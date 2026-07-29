@@ -1,0 +1,65 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "shoppp-api-development",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-07-22",
+  "vars": {
+    "ENVIRONMENT": "development",
+    "RESOURCE_NAMESPACE": "shoppp-development",
+    "PUBLIC_ORIGIN": "https://development.example.invalid",
+    "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
+    "ACCESS_AUDIENCE": "development-audience",
+    "ACCESS_JWKS": "{\"keys\":[]}",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shoppp-development",
+      "database_id": "00000000-0000-0000-0000-000000000010",
+      "preview_database_id": "00000000-0000-0000-0000-000000000011",
+      "migrations_dir": "../../packages/db/migrations",
+    },
+  ],
+  "env": {
+    "staging": {
+      "name": "shoppp-api-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "RESOURCE_NAMESPACE": "shoppp-staging",
+        "PUBLIC_ORIGIN": "https://staging.example.invalid",
+        "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
+        "ACCESS_AUDIENCE": "staging-audience",
+        "ACCESS_JWKS": "{\"keys\":[]}",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "shoppp-staging",
+          "database_id": "00000000-0000-0000-0000-000000000020",
+          "preview_database_id": "00000000-0000-0000-0000-000000000021",
+          "migrations_dir": "../../packages/db/migrations",
+        },
+      ],
+    },
+    "production": {
+      "name": "shoppp-api-production",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "RESOURCE_NAMESPACE": "shoppp-production",
+        "PUBLIC_ORIGIN": "https://api.example.invalid",
+        "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
+        "ACCESS_AUDIENCE": "production-audience",
+        "ACCESS_JWKS": "{\"keys\":[]}",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "shoppp-production",
+          "database_id": "00000000-0000-0000-0000-000000000030",
+          "preview_database_id": "00000000-0000-0000-0000-000000000031",
+          "migrations_dir": "../../packages/db/migrations",
+        },
+      ],
+    },
+  },
+}
