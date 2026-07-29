@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { observeCommerceEvent } from "../observability/logger";
 import { PaymentProviderError, type PaymentProvider } from "./port";
 import { reconcilePaymentEvent } from "./reconciliation";
 import { completeProviderRecovery, enqueueProviderRecovery } from "../recovery/provider-events";
@@ -47,6 +48,9 @@ export async function processPaymentWebhook(
   }
   try {
     const result = await reconcilePaymentEvent(context.env.DB, provider, event, rawPayload);
+    if (result.orderReference && !result.replayed) {
+      observeCommerceEvent(context, { event: "purchase_confirmed" });
+    }
     await completeProviderRecovery(context.env.DB, provider.name, event.id);
     return {
       data: result,

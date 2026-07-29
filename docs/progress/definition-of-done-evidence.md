@@ -1,0 +1,95 @@
+# Definition of Done Evidence Matrix
+
+Authority: `docs/plans/2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md`.
+This ledger records evidence without modifying the authoritative plan.
+
+Status vocabulary:
+
+- **Local complete** — implemented and covered by repository gates.
+- **Environment pending** — implementation exists, but proof requires provisioned staging/provider
+  resources.
+- **Human pending** — a named production owner must approve or manually verify the result.
+
+## Requirements R1-R48
+
+| ID  | Status                              | Evidence and remaining gate                                                                                                                                                        |
+| --- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Local complete                      | Nuxt prerender routes and `apps/storefront/scripts/verify-static.ts` require meaningful headings and HTML before JavaScript.                                                       |
+| R2  | Local complete                      | Product/collection pages emit per-snapshot SEO metadata, canonicals, semantic headings, and collection/product links.                                                              |
+| R3  | Local complete                      | `apps/storefront/app/utils/seo.ts` emits Product, Offer, and breadcrumb JSON-LD from generated product modules.                                                                    |
+| R4  | Local complete                      | Segmented sitemaps, robots, redirects, and a human-readable static 404 are generated and inspected.                                                                                |
+| R5  | Local complete                      | Product media requires dimensions and alt text; responsive Nuxt Image output is statically verified.                                                                               |
+| R6  | Local complete                      | Publication creates a catalog release/build trigger; authenticated terminal callbacks record deployed/failed while the previous release remains live.                              |
+| R7  | Local complete                      | Indexable content is generated; cart, checkout, search/sort enhancement, and live availability do not own indexable HTML.                                                          |
+| R8  | Local complete; Human pending       | The 1,000-product/5,000-variant gate runs mobile Lighthouse and initial-JS budgets. Representative physical iOS/Android checks remain operations-owned.                            |
+| R9  | Local complete                      | Catalog contracts/API/admin cover products, variants, SKU/options, categories/collections, media, scheduling/status, price, dimensions, weight, and SEO.                           |
+| R10 | Local complete                      | Static browsing and variant selection are enhanced by authoritative live catalog/cart/shipping APIs.                                                                               |
+| R11 | Local complete; Human pending       | One English catalog supports explicit configured currencies; launch currency set needs merchant approval.                                                                          |
+| R12 | Local complete                      | Domain/contracts/D1 use integer minor units plus explicit currency and reject floats/mismatch.                                                                                     |
+| R13 | Local complete                      | Guest cart/checkout and opaque guest order access require no customer account.                                                                                                     |
+| R14 | Local complete                      | D1 cart retains lines, quantities, currency, release/pricing context, destination, and quote state.                                                                                |
+| R15 | Local complete                      | Checkout revalidates catalog release, price, quantity limits, inventory, destination, shipping, tax port, and totals.                                                              |
+| R16 | Local complete                      | Reservation create/confirm/expire/release transitions are durable and replay safe.                                                                                                 |
+| R17 | Local complete                      | Local D1 integration runs 50 concurrent attempts and conserves configured inventory.                                                                                               |
+| R18 | Local complete; Human pending       | Shipping-zone CRUD and quote logic support country allowlists, flat/weight methods, thresholds, bounds, and unavailable feedback; country list needs approval.                     |
+| R19 | Local complete; Human pending       | Provider-neutral payment port has a Stripe Hosted Checkout adapter; merchant eligibility is a named launch gate.                                                                   |
+| R20 | Local complete                      | Hosted payment creation, provider-managed capture, expiry/cancellation convergence, refunds, and webhooks use idempotency and audit/event records.                                 |
+| R21 | Local complete; Environment pending | Raw-body HMAC verification, deduplication, reversed/out-of-order reconciliation, and provider truth fetches pass locally; Stripe dashboard reconciliation awaits staging.          |
+| R22 | Local complete                      | Payment, order, and fulfillment states and histories are independent in domain, schema, API, and admin.                                                                            |
+| R23 | Local complete                      | Paid orders persist immutable item, amount, discount, address, shipping, tax, and currency snapshots.                                                                              |
+| R24 | Local complete                      | Fulfillment rejects non-approved payment and invalid/canceled transitions.                                                                                                         |
+| R25 | Local complete                      | Permissioned cancellation, partial/full refund, reasons, provider reconciliation, stock return, and transition history are implemented.                                            |
+| R26 | Local complete                      | Receipt, payment failure, cancellation, refund, and shipment jobs use asynchronous outbox/queue delivery.                                                                          |
+| R27 | Local complete                      | Guest access uses non-sequential, hashed, expiring opaque links scoped to one order.                                                                                               |
+| R28 | Local complete                      | Safe order search and detail expose facts plus payment, fulfillment, communication, and audit timelines.                                                                           |
+| R29 | Local complete; Environment pending | Production admin resolves `/admin/session` from Cloudflare Access identity, fails closed, applies RBAC/session expiry, and audits actions; real Access policy awaits provisioning. |
+| R30 | Local complete                      | Authorized catalog management, preview token flow, publication, and build status are available in admin.                                                                           |
+| R31 | Local complete                      | Inventory lists on-hand/reserved/available and append-only adjustment reasons.                                                                                                     |
+| R32 | Local complete                      | Admin order detail exposes immutable facts, allowed actions, state/event histories, shipment tracking, and communications.                                                         |
+| R33 | Local complete; Human pending       | Launch and shipping settings cover currencies, countries, zones/methods, numbering, stock/tax/provider modes, policy URLs; secrets remain human-managed bindings.                  |
+| R34 | Local complete                      | Sensitive UI/API actions require confirmation and reason and record actor, time, result, and state.                                                                                |
+| R35 | Local complete                      | Operational lists use stable search/filter/sort/pagination, accessible controls, and permissioned business exports.                                                                |
+| R36 | Local complete                      | Dashboard metrics reconcile to immutable commerce facts and label currency, IANA time zone, and comparison window.                                                                 |
+| R37 | Local complete                      | Zod/contract validation and use-case authorization cover public, provider, machine, and admin trust boundaries.                                                                    |
+| R38 | Local complete; Environment pending | Guest, Access admin, and build/webhook/provider machine credentials have separate paths and permissions; live credentials await owners.                                            |
+| R39 | Local complete                      | Redaction, secret/card scanners, normalized funnel events, safe URLs, and production bundle inspection prevent sensitive leakage.                                                  |
+| R40 | Local complete                      | Retried mutations use durable idempotency or provider/business deduplication and reject payload/key conflicts.                                                                     |
+| R41 | Local complete                      | Queue/workflow consumers claim once, retry within bounds, record attempts, dead-letter, and replay with the original identity.                                                     |
+| R42 | Local complete; Environment pending | Forward migrations and production-like local D1 restore reconciliation pass; staging backup/restore drill awaits provisioned D1/R2.                                                |
+| R43 | Local complete; Environment pending | Structured logs, Analytics Engine request/funnel metrics, health/failure views, and alertable states exist; alert routing/delivery requires staging.                               |
+| R44 | Local complete; Environment pending | Structural isolation fails closed across names, IDs, domains, bindings, credentials, webhooks, and Turnstile; real isolated resources are not supplied.                            |
+| R45 | Local complete; Human pending       | Six configurable policy surfaces disclose commerce, privacy, cookies, contact, shipping, and returns; legal/market approval is pending.                                            |
+| R46 | Local complete                      | Audited export/correction/deletion operations scope subject data and preserve immutable financial records.                                                                         |
+| R47 | Local complete; Human pending       | Automated axe/keyboard coverage passes critical flows; screen reader and representative-device verification remains manual.                                                        |
+| R48 | Local complete                      | Root gates cover money, inventory concurrency, state transitions, idempotency, permissions, checkout, webhook replay, and browser journeys.                                        |
+
+## Flows and acceptance examples
+
+| Contract     | Local evidence                                                                                                                            | Remaining evidence                                            |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| F1 / AE1-AE3 | Static discovery, authoritative cart/reservation, signed payment convergence, immutable order, notification, and fulfillment suites.      | Provider-backed staging purchase of the last unit.            |
+| F2 / AE4     | Failure/expiry races release inventory once, create no paid order, and send no paid receipt.                                              | Abandoned Stripe test-mode staging journey.                   |
+| F3 / AE5-AE6 | Admin/API tests cover provider-confirmed partial refund, cancellation stock return, independent states, and denied/audited permissions.   | Authorized and prohibited real Access identities in staging.  |
+| F4           | Publication persists immutable release state, triggers one build, uses exact release sourcing, and records authenticated terminal result. | Deploy-hook and last-known-good rehearsal in staging.         |
+| F5 / AE7     | Duplicate/reversed provider events and exhausted/replayed jobs converge without duplicate side effects.                                   | Live provider/email failure and alert delivery in staging.    |
+| AE8          | Structural and runtime environment checks reject resource, domain, callback, credential, and webhook crossover.                           | Real staging resources proving they cannot mutate production. |
+
+## Implementation units
+
+U1-U12 and U14 have local completion evidence in
+`docs/progress/cross-border-dtc-commerce-progress.md`. U13 is **Environment pending**: the release
+workflow, immutable artifact promotion, failure callbacks, staging journeys, latency probe,
+rollback/redeploy, and approval gate exist, but cannot run until infrastructure owners provide real
+Cloudflare/Stripe/GitHub environment resources and credentials.
+
+## Named human-owned launch gates
+
+- **Merchant owner:** entity, Stripe eligibility, currencies, payouts, webhook ownership, catalog
+  scale, and peak concurrency.
+- **Legal/compliance owner:** product category, tax treatment, policy text, tracking/cookie behavior,
+  and shipping-country allowlist.
+- **Infrastructure owner:** Cloudflare resources/domains, Access, secrets, alert destinations,
+  backup schedule, and GitHub environments.
+- **Operations owner:** representative data, support/escalation, real-device and screen-reader
+  evidence, provider dashboard reconciliation, alert delivery, restore, and rollback drills.
+- **Release approver:** the exact immutable artifact and backup that passed staging validation.

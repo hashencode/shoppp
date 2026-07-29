@@ -9,7 +9,8 @@ bun run release:validate -- --release-id <release-id>
 ```
 
 The command performs the locked install, formatting, lint, type, unit, Worker, admin-browser,
-production-build, static-output, end-to-end, accessibility, and performance gates. It also checks
+representative-catalog, production-build, static-output, end-to-end, accessibility, and performance
+gates. It also checks
 staging/production isolation and writes `artifacts/releases/<release-id>.json` with the commit,
 individual gate outcomes, and SHA-256 digests for all three deployable outputs and D1 migrations.
 The build gate prebundles all three Worker entrypoints. Deployment uses those saved bundles with
@@ -46,6 +47,26 @@ An infrastructure owner must:
 7. Configure alerts for Worker errors, failed catalog builds, queue exhaustion, webhook
    verification failures, backup failures, and the performance signals in the operations runbook.
 
+Before applying migration `0011_shipping_country_zone_guard.sql`, run this read-only query in the
+target environment:
+
+```sql
+SELECT szc.country_code, COUNT(*) AS active_zone_count
+FROM shipping_zone_countries szc
+JOIN shipping_zones sz ON sz.id = szc.zone_id
+WHERE sz.status = 'active'
+GROUP BY szc.country_code
+HAVING COUNT(*) > 1;
+```
+
+The expected result is zero rows. Any result is a deployment stop: retain the backup, reconcile the
+duplicate active assignments under an approved operations change, rerun the query, and only then
+apply the migration. After deployment, repeat the query and verify both
+`shipping_country_active_insert_guard`, `shipping_country_active_update_guard`, and
+`shipping_zone_activation_guard` exist in `sqlite_schema`. The triggers are safe to retain if
+application code is rolled back because they enforce the pre-existing single-active-zone
+invariant.
+
 ## Staging and promotion
 
 Dispatch `Deploy immutable commerce release` with the approved immutable catalog release ID. The
@@ -57,8 +78,12 @@ cross-origin source, or a short/missing token stops the release before any uploa
 2. applies staging migrations, uploads tagged Cloudflare Versions, and deploys those saved versions;
 3. runs the root staging browser suite against public storefront, Access-protected admin/API,
    Stripe test mode, queues, and the representative catalog;
-4. pauses at the protected `production` environment;
-5. after a named human approval and a confirmed recent production backup, uploads production-bound
+4. reports the catalog release as `deployed` through the authenticated, idempotent build callback
+   only after the staging journeys, latency gate, rollback, and validated-version restore pass;
+5. reports candidate validation, staging deployment, or staging proof failure as `failed`, which
+   preserves the previous live storefront and raises the catalog health signal;
+6. pauses at the protected `production` environment;
+7. after a named human approval and a confirmed recent production backup, uploads production-bound
    versions from the same commit and deploys the same release tag. The production job runs
    `release:validate -- --promotion`; this hashes the downloaded outputs and requires an exact match
    with staging evidence. It does not rebuild environment-sensitive or nondeterministic output.

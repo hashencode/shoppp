@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { catalogRelease } from "~/generated/catalog";
+import { featuredProducts } from "~/generated/featured-products";
 import { canonicalUrl } from "~/utils/seo";
 
 const canonical = canonicalUrl(catalogRelease.site.origin, "/");
+const featuredCollection = catalogRelease.collections[0];
 useSeoMeta({
   title: "Shoppp — Objects for moving well",
   description:
@@ -23,7 +25,13 @@ useHead({ link: [{ rel: "canonical", href: canonical }] });
         <p class="hero-copy">
           A focused collection of durable travel objects, designed to cross borders without excess.
         </p>
-        <NuxtLink class="cta" to="/collections/travel-essentials">Explore the collection</NuxtLink>
+        <NuxtLink
+          v-if="featuredCollection"
+          class="cta"
+          :to="`/collections/${featuredCollection.slug}`"
+        >
+          Explore the collection
+        </NuxtLink>
       </div>
       <p class="eyebrow">One global catalog · Currency clarified before purchase</p>
     </section>
@@ -36,7 +44,7 @@ useHead({ link: [{ rel: "canonical", href: canonical }] });
       </div>
       <div class="product-grid">
         <CommerceProductCard
-          v-for="product in catalogRelease.products"
+          v-for="product in featuredProducts"
           :key="product.slug"
           :product="product"
         />

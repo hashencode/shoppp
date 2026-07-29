@@ -27,6 +27,7 @@ describe("release validation", () => {
       "unit-contract",
       "worker-integration",
       "admin-browser",
+      "representative-catalog",
       "production-builds",
       "static-output",
       "browser-journeys",

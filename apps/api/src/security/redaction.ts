@@ -12,6 +12,8 @@ const SENSITIVE_KEY_PARTS = [
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const CREDENTIAL_PATTERN =
   /\b(?:Bearer|CartToken)\s+\S+|\b(?:sk|rk)_(?:test|live)_\S+|\bwhsec_\S+|\border_access_[A-Za-z0-9_-]+/i;
+const REQUEST_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function normalizedKey(key: string): string {
   return key.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
@@ -63,4 +65,11 @@ export function safeRequestPath(url: string): string {
   const path = new URL(url).pathname;
   if (/^\/orders\/[^/]+\/?$/.test(path)) return "/orders/:guestToken";
   return path;
+}
+
+export function safeRequestId(
+  candidate: string | undefined,
+  generate: () => string = () => crypto.randomUUID(),
+): string {
+  return candidate && REQUEST_ID_PATTERN.test(candidate) ? candidate : generate();
 }

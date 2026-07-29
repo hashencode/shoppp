@@ -1,18 +1,17 @@
 import type { PropsWithChildren } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission, type PermissionKey } from '../../infrastructure/auth/permissions'
+import { ForbiddenPage } from '../../pages/forbidden-page'
 
 type PermissionGuardProps = PropsWithChildren<{
   permission: PermissionKey
 }>
 
 export const PermissionGuard = ({ permission, children }: PermissionGuardProps) => {
-  const { role } = useAuth()
-  const location = useLocation()
+  const { role, permissions } = useAuth()
 
-  if (!hasPermission(role, permission)) {
-    return <Navigate to="/template/exception/403" replace state={{ from: location.pathname }} />
+  if (!hasPermission(role, permission, permissions)) {
+    return <ForbiddenPage />
   }
 
   return children

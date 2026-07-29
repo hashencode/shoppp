@@ -93,7 +93,7 @@ export const StandardListPageRecipe = <
   cardTitleOverride?: React.ReactNode
 }) => {
   const [filterForm] = Form.useForm<TFilterValues>()
-  const { role } = useAuth()
+  const { role, permissions } = useAuth()
   const { searchCompactLayout, setSearchCompactLayout } = useTheme()
   const { openFormPage } = useCrudFormNavigation(spec.formRoute)
   const [total, setTotal] = useState(0)
@@ -329,7 +329,9 @@ export const StandardListPageRecipe = <
     virtualScroll,
   })
   const visibleCreateAction =
-    spec.createAction && (!spec.createAction.permission || hasPermission(role, spec.createAction.permission))
+    spec.createAction &&
+    (!spec.createAction.permission ||
+      hasPermission(role, spec.createAction.permission, permissions))
       ? spec.createAction
       : null
   const hasToolbarLeadingActions = Boolean(visibleCreateAction) || spec.toolbarExtraVisible === true

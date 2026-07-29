@@ -71,7 +71,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('AUTHED')).toBeTruthy()
-      expect(screen.getByText('付小小')).toBeTruthy()
+      expect(screen.getByText('Access operator')).toBeTruthy()
       expect(screen.getByText('alice')).toBeTruthy()
     })
   })

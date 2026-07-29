@@ -45,6 +45,57 @@ describe("D1 migrations", () => {
         "SELECT name FROM sqlite_schema WHERE type = 'index' AND name = 'shipping_methods_zone_idx'",
       ).first(),
     ).toEqual({ name: "shipping_methods_zone_idx" });
+    expect(
+      (
+        await env.DB.prepare(
+          `SELECT name
+             FROM sqlite_schema
+            WHERE type = 'trigger' AND name LIKE 'shipping_%_guard'
+            ORDER BY name`,
+        ).all<{ name: string }>()
+      ).results,
+    ).toEqual([
+      { name: "shipping_country_active_insert_guard" },
+      { name: "shipping_country_active_update_guard" },
+      { name: "shipping_zone_activation_guard" },
+    ]);
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO shipping_zones (id, name, status, created_at, updated_at) VALUES ('zone_active_us', 'Active US', 'active', ?, ?)",
+      ).bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z"),
+      env.DB.prepare(
+        "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_active_us', 'US')",
+      ),
+      env.DB.prepare(
+        "INSERT INTO shipping_zones (id, name, status, created_at, updated_at) VALUES ('zone_disabled_us', 'Disabled US', 'disabled', ?, ?)",
+      ).bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z"),
+      env.DB.prepare(
+        "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_disabled_us', 'US')",
+      ),
+    ]);
+    await expect(
+      env.DB.prepare(
+        "UPDATE shipping_zones SET status = 'active' WHERE id = 'zone_disabled_us'",
+      ).run(),
+    ).rejects.toThrow("shipping_country_zone_conflict");
+    await env.DB.prepare(
+      "INSERT INTO shipping_zones (id, name, status, created_at, updated_at) VALUES ('zone_active_other', 'Other active', 'active', ?, ?)",
+    )
+      .bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z")
+      .run();
+    await expect(
+      env.DB.prepare(
+        "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_active_other', 'US')",
+      ).run(),
+    ).rejects.toThrow("shipping_country_zone_conflict");
+    await env.DB.prepare(
+      "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_active_other', 'CA')",
+    ).run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE shipping_zone_countries SET country_code = 'US' WHERE zone_id = 'zone_active_other' AND country_code = 'CA'",
+      ).run(),
+    ).rejects.toThrow("shipping_country_zone_conflict");
     const notificationColumns = await env.DB.prepare("PRAGMA table_info(notification_jobs)").all<{
       name: string;
     }>();

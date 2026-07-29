@@ -25,6 +25,7 @@ export type PermissionKey =
   | "operations.jobs.read";
 
 export interface Principal {
+  readonly displayName: string;
   readonly email: string;
   readonly id: string;
   readonly role: AdminRole;
@@ -71,6 +72,10 @@ const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly PermissionKey[]>> = 
 
 export function isAdminRole(value: string): value is AdminRole {
   return value in ROLE_PERMISSIONS;
+}
+
+export function permissionsForRole(role: AdminRole): readonly PermissionKey[] {
+  return ROLE_PERMISSIONS[role];
 }
 
 export function hasPermission(role: AdminRole, permission: PermissionKey): boolean {

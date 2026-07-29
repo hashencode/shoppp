@@ -3,6 +3,28 @@ import * as z from "zod";
 import { moneySchema, publicIdSchema } from "./common";
 
 export const productStatusSchema = z.enum(["draft", "scheduled", "published", "archived"]);
+export const catalogBuildResultSchema = z
+  .object({
+    failureCode: z.string().trim().min(3).max(120).optional(),
+    status: z.enum(["deployed", "failed"]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.status === "failed" && !value.failureCode) {
+      context.addIssue({
+        code: "custom",
+        message: "A failure code is required for a failed catalog build.",
+        path: ["failureCode"],
+      });
+    }
+    if (value.status === "deployed" && value.failureCode) {
+      context.addIssue({
+        code: "custom",
+        message: "A deployed catalog build cannot include a failure code.",
+        path: ["failureCode"],
+      });
+    }
+  });
 export const productMediaSchema = z
   .object({
     alt: z.string().min(1),
@@ -49,3 +71,4 @@ export const productSchema = z
   .strict();
 
 export type Product = z.infer<typeof productSchema>;
+export type CatalogBuildResult = z.infer<typeof catalogBuildResultSchema>;

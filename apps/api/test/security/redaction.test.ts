@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { redactForLog, safeRequestPath } from "../../src/security/redaction";
+import { commerceDataPoint } from "../../src/observability/logger";
+import { redactForLog, safeRequestId, safeRequestPath } from "../../src/security/redaction";
 
 describe("central log redaction", () => {
   test("removes keyed and value-shaped personal data, credentials, tokens, and cards", () => {
@@ -39,5 +40,23 @@ describe("central log redaction", () => {
     expect(
       safeRequestPath("https://api.example.test/catalog/products/atlas/live?currency=USD"),
     ).toBe("/catalog/products/atlas/live");
+  });
+
+  test("keeps commerce analytics aggregate and identifier-free", () => {
+    expect(commerceDataPoint("staging", { event: "page_view", route: "order_status" })).toEqual({
+      blobs: ["staging", "commerce.funnel", "page_view", "order_status"],
+      doubles: [1],
+      indexes: ["staging"],
+    });
+  });
+
+  test("accepts only UUID request identifiers at the logging and audit boundary", () => {
+    const generated = "019faf01-877a-7143-a602-9b31e2511dc5";
+    const supplied = "019fae99-5bb2-78d0-afc4-083958ed49b0";
+    expect(safeRequestId(supplied, () => generated)).toBe(supplied);
+    expect(safeRequestId("shopper@example.test", () => generated)).toBe(generated);
+    expect(safeRequestId("order_access_ABCDEFGHIJKLMNOPQRSTUVWXYZ", () => generated)).toBe(
+      generated,
+    );
   });
 });

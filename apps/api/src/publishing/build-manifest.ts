@@ -173,7 +173,7 @@ const defaultPolicies: BuildCatalogInput["policies"] = [
         heading: "Retention and your requests",
       },
       {
-        body: "Service providers receive only the data needed for payment, delivery, communications, hosting, or security. We do not place optional analytics until the applicable consent requirement is met.",
+        body: "Service providers receive only the data needed for payment, delivery, communications, hosting, or security. We count anonymous page classes and purchase stages without cookies, URLs, device identifiers, or personal data. Optional analytics remain disabled until the applicable consent requirement is met.",
         heading: "Providers and international processing",
       },
     ],
@@ -230,7 +230,7 @@ const defaultPolicies: BuildCatalogInput["policies"] = [
         heading: "Essential storage",
       },
       {
-        body: "Optional analytics and marketing tracking are disabled in the launch implementation. If introduced for an enabled market, they must remain off until the required consent is recorded.",
+        body: "The launch service counts aggregate page classes and purchase stages without cookies or persistent identifiers. Optional analytics and marketing tracking remain off until the required consent is recorded for an enabled market.",
         heading: "Optional tracking",
       },
       {

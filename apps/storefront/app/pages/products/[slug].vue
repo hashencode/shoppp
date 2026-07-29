@@ -4,11 +4,14 @@ import { useGuestCart } from "~/features/cart/use-guest-cart";
 import { breadcrumbStructuredData, canonicalUrl, productStructuredData } from "~/utils/seo";
 
 const route = useRoute();
-const product = catalogRelease.products.find((item) => item.slug === route.params.slug);
-if (!product) throw createError({ statusCode: 404, statusMessage: "Product not found" });
-const collection = catalogRelease.collections.find((item) =>
-  product.collectionSlugs.includes(item.slug),
-);
+const slug = String(route.params.slug);
+const { data: page } = await useAsyncData(`catalog-product:${slug}`, async () => {
+  if (import.meta.client) return undefined;
+  const { loadProductPage } = await import("~/utils/catalog-loader.server");
+  return loadProductPage(slug);
+});
+if (!page.value) throw createError({ statusCode: 404, statusMessage: "Product not found" });
+const { collection, product } = page.value;
 const selectedVariant = ref(product.variants[0]?.id ?? "");
 const selectedCurrency = ref(catalogRelease.site.defaultCurrency);
 const liveMessage = ref(

@@ -122,4 +122,68 @@ describe("public submission trust boundaries", () => {
     await app.fetch(request("/catalog/products/missing/live?currency=USD"), env);
     expect(limiter.limit).toHaveBeenCalledTimes(callsBeforeCatalog);
   });
+
+  test("accepts only small, same-origin, rate-limited aggregate page events", async () => {
+    const limiter = {
+      limit: vi
+        .fn()
+        .mockResolvedValueOnce({ success: true })
+        .mockResolvedValueOnce({ success: false }),
+    };
+    const app = createApp({ analyticsRateLimiter: limiter });
+    const validBody = JSON.stringify({ event: "page_view", route: "product" });
+
+    const accepted = await app.fetch(
+      request("/platform/events", {
+        body: validBody,
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(accepted.status).toBe(204);
+    expect(accepted.headers.get("Cache-Control")).toBe("no-store");
+
+    const limited = await app.fetch(
+      request("/platform/events", {
+        body: validBody,
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("Retry-After")).toBe("60");
+
+    expect(
+      (
+        await app.fetch(
+          request("/platform/events", {
+            body: validBody,
+            headers: {
+              "Content-Type": "application/json",
+              Origin: "https://forged.example.test",
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await app.fetch(
+          request("/platform/events", {
+            body: validBody,
+            headers: {
+              "Content-Length": "2048",
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(413);
+  });
 });

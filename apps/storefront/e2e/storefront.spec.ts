@@ -31,6 +31,18 @@ test("mobile enhancement changes currency while keeping one responsive route", a
   expect(new URL(page.url()).pathname.replace(/\/$/, "")).toBe("/products/atlas-carry-on");
 });
 
+test("client navigation hydrates generated product payloads", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop");
+  await page.goto("/");
+  await page
+    .getByRole("link", { name: /Atlas Carry-on/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/products\/atlas-carry-on\/?$/);
+  await expect(page.getByRole("heading", { name: "Atlas Carry-on" })).toBeVisible();
+  await expect(page.getByText("$129.00")).toBeVisible();
+});
+
 test("unknown routes are real 404s and changed slugs are permanent redirects", async ({
   request,
 }, testInfo) => {

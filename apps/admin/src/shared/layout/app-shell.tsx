@@ -84,7 +84,7 @@ type AppShellProps = {
 export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { role, displayName, accountName, logout } = useAuth()
+  const { accessManaged, role, permissions, displayName, accountName, logout } = useAuth()
   const {
     formContentAlign,
     mode,
@@ -104,9 +104,9 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
         contract.inMenu &&
         contract.path !== '*' &&
         isMenuVisibleInCurrentEnv(contract) &&
-        hasPermission(role, contract.permission)
+        hasPermission(role, contract.permission, permissions)
     )
-  }, [role, routes])
+  }, [permissions, role, routes])
 
   const showDevMenuGroup =
     import.meta.env.DEV && menuRoutes.some((route) => route.menuVisibility === 'dev-only')
@@ -235,8 +235,10 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
 
   const handleLogout = () => {
     logout()
-    void message.success('已退出登录')
-    navigate('/login')
+    if (!accessManaged) {
+      void message.success('已退出登录')
+      navigate('/login')
+    }
   }
 
   const copyAccount = async () => {

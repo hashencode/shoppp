@@ -89,9 +89,9 @@ const toFilters = (values: CatalogSearchValues): CatalogListFilters => ({
 })
 
 export const CatalogListPage = () => {
-  const { role } = useAuth()
-  const canWrite = hasPermission(role, 'catalog.write')
-  const canPublish = hasPermission(role, 'catalog.publish')
+  const { role, permissions } = useAuth()
+  const canWrite = hasPermission(role, 'catalog.write', permissions)
+  const canPublish = hasPermission(role, 'catalog.publish', permissions)
 
   const filters = useMemo<TemplateListFilterField<CatalogSearchValues>[]>(
     () => [

@@ -8,6 +8,43 @@ import {
 } from "./common";
 import { guestOrderLineSchema, shippingAddressSchema } from "./checkout";
 
+export const adminRoleSchema = z.enum([
+  "admin",
+  "catalog_manager",
+  "operations",
+  "support",
+  "analyst",
+]);
+
+export const adminPermissionSchema = z.enum([
+  "catalog.read",
+  "catalog.write",
+  "catalog.publish",
+  "inventory.read",
+  "inventory.adjust",
+  "orders.read",
+  "orders.fulfill",
+  "orders.cancel",
+  "orders.refund",
+  "reporting.read",
+  "reporting.export",
+  "audit.read",
+  "settings.read",
+  "settings.write",
+  "privacy.manage",
+  "operations.replay",
+  "operations.jobs.read",
+]);
+
+export const adminSessionSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(160),
+    email: z.email(),
+    permissions: z.array(adminPermissionSchema),
+    role: adminRoleSchema,
+  })
+  .strict();
+
 export const paymentStatusSchema = z.enum([
   "pending",
   "authorized",
@@ -183,6 +220,9 @@ export const replayNotificationJobRequestSchema = z
 
 export type AdminOrder = z.infer<typeof adminOrderSchema>;
 export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
+export type AdminPermission = z.infer<typeof adminPermissionSchema>;
+export type AdminRole = z.infer<typeof adminRoleSchema>;
+export type AdminSession = z.infer<typeof adminSessionSchema>;
 export type CancelOrderRequest = z.infer<typeof cancelOrderRequestSchema>;
 export type FulfillmentTransitionRequest = z.infer<typeof fulfillmentTransitionRequestSchema>;
 export type NotificationAttempt = z.infer<typeof notificationAttemptSchema>;

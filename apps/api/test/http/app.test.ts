@@ -72,6 +72,17 @@ describe("API shell", () => {
       meta: { requestId: expect.any(String) },
     });
     expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/);
+
+    const session = await app.fetch(adminRequest("/admin/session"), env);
+    expect(session.status).toBe(200);
+    expect(await session.json()).toMatchObject({
+      data: {
+        displayName: "access-user-001",
+        email: "access-user-001@example.test",
+        permissions: expect.arrayContaining(["orders.read", "orders.refund"]),
+        role: "operations",
+      },
+    });
   });
 
   test("denies expired, malformed, or unmapped identities without leaking tokens", async () => {

@@ -162,7 +162,7 @@ export const CatalogFormPage = () => {
   const [form] = Form.useForm<CatalogFormValues>()
   const [searchParams] = useSearchParams()
   const [pendingFile, setPendingFile] = useState<File | null>(null)
-  const { role } = useAuth()
+  const { role, permissions } = useAuth()
   const { publishRefresh } = useListRefreshChannel({
     channelName: LIST_REFRESH_CHANNEL,
     eventType: LIST_REFRESH_EVENT.REFRESH_LIST,
@@ -170,6 +170,7 @@ export const CatalogFormPage = () => {
   const { parsedMode, modeView, isReadonly, permissionDenied } = useFormModeAccess({
     searchParams,
     role,
+    permissions,
     readPermission: 'catalog.read',
     writePermission: 'catalog.write',
   })

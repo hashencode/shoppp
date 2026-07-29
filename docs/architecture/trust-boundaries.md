@@ -7,6 +7,7 @@
 | Public catalog       | None                                     | Published release and live catalog validation                                                                       | Public catalog facts only; cacheable by route policy                                |
 | Guest cart and order | Opaque `CartToken` or order-access token | Hash lookup, expiry, use-case validation, private/no-store responses                                                | Tokens never enter URLs except the guest order route and are normalized out of logs |
 | Checkout submission  | Cart token, origin, Turnstile token      | Exact storefront origin, 32 KiB body cap, credential-scoped rate limit, single-use Siteverify action/hostname check | Hosted payment only; no raw card data                                               |
+| Aggregate analytics  | Exact storefront origin                  | 1 KiB body cap, independent rate limit, allowlisted event and normalized route class                                | No URL, slug, guest token, cookie, IP, device, session, or personal identifier      |
 | Stripe webhook       | Provider signature                       | Raw-body HMAC verification, provider event uniqueness, monotonic convergence                                        | Payload is hashed; credentials and payloads are excluded from ordinary logs         |
 | Admin                | Cloudflare Access assertion              | Access JWT, enabled D1 identity, role permission inside each use case                                               | Private/no-store; denied actions are audited                                        |
 | Build machine        | Dedicated bearer secret                  | Release-scoped manifest endpoint and approved release status                                                        | Build credential is separate from shopper/admin credentials                         |
@@ -31,8 +32,9 @@ placeholder policy domains are gone.
 Every request receives an `x-request-id`. Structured request events contain only environment,
 method, normalized route, status, duration, and a redacted error classification. Query strings,
 opaque order tokens, email, address, phone, authorization, cookies, provider secrets, and
-card-like values are removed before console or Analytics Engine emission. Private endpoints set
-`Cache-Control: private, no-store`.
+card-like values are removed before console or Analytics Engine emission. Page analytics contain
+only a normalized route class; cart creation, checkout start, and confirmed purchase are counted
+at idempotent server milestones. Private endpoints set `Cache-Control: private, no-store`.
 
 ## Data lifecycle
 

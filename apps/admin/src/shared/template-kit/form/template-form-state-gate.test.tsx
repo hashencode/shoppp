@@ -130,11 +130,11 @@ describe('TemplateFormStateGate', () => {
               </TemplateFormStateGate>
             }
           />
-          <Route path="/template/exception/403" element={<div>403 forbidden</div>} />
+          <Route path="/catalog/products" element={<div>catalog</div>} />
         </Routes>
       </MemoryRouter>
     )
 
-    expect(screen.getByText('403 forbidden')).toBeTruthy()
+      expect(screen.getByText('Access denied')).toBeTruthy()
   })
 })

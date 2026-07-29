@@ -72,7 +72,7 @@ const toFormPayload = (values: BasicFormValues): FormPayload => ({
 export const BasicFormPage = () => {
   const [form] = Form.useForm<BasicFormValues>()
   const [searchParams] = useSearchParams()
-  const { role } = useAuth()
+  const { role, permissions } = useAuth()
   const publicType = Form.useWatch('publicType', form) ?? '1'
   const defaultValues = useMemo(() => buildDefaultValues(), [])
   const { token } = theme.useToken()
@@ -83,6 +83,7 @@ export const BasicFormPage = () => {
   const { parsedMode, modeView, isReadonly, permissionDenied } = useFormModeAccess({
     searchParams,
     role,
+    permissions,
   })
   const {
     detailLoading,

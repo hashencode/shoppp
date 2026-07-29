@@ -14,6 +14,7 @@ import {
   AuditOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  GlobalOutlined,
   SmileOutlined,
   TableOutlined,
 } from '@ant-design/icons'
@@ -191,6 +192,22 @@ const commerceRoutes: TemplateRoute[] = [
       lazyPage(() =>
         import('../pages/settings/launch-settings-page').then((m) => ({
           default: m.LaunchSettingsPage,
+        }))
+      ),
+  },
+  {
+    key: 'shipping-settings',
+    path: '/settings/shipping',
+    title: 'Shipping settings',
+    icon: createElement(GlobalOutlined),
+    permission: 'settings.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Settings', 'Shipping'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/shipping-settings-page').then((m) => ({
+          default: m.ShippingSettingsPage,
         }))
       ),
   },

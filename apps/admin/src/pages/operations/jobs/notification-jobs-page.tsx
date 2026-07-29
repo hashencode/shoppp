@@ -32,7 +32,7 @@ const statusColors: Record<NotificationJobStatus, string> = {
 }
 
 export const NotificationJobsPage = () => {
-  const { role } = useAuth()
+  const { role, permissions } = useAuth()
   const [items, setItems] = useState<NotificationJob[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -45,7 +45,7 @@ export const NotificationJobsPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<{ reason: string }>()
   const pageSize = 20
-  const canReplay = hasPermission(role, 'operations.replay')
+  const canReplay = hasPermission(role, 'operations.replay', permissions)
 
   const load = useCallback(
     async (nextPage = 1) => {

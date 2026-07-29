@@ -53,6 +53,16 @@ jobs:
             apps/storefront/worker-dist/
             artifacts/releases/${{ inputs.release_id }}.json
             packages/db/migrations/
+      - name: Record failed candidate validation
+        if: failure()
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $NUXT_CATALOG_RELEASE_TOKEN" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: catalog-build-$RELEASE_ID-validation-failed" \
+            --data '{"status":"failed","failureCode":"candidate_validation_failed"}' \
+            "$NUXT_CATALOG_RELEASE_URL/status"
 
   deploy-staging:
     needs: validate
@@ -60,6 +70,8 @@ jobs:
     timeout-minutes: 15
     environment: staging
     env:
+      API_URL: ${{ vars.API_URL }}
+      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
@@ -84,6 +96,16 @@ jobs:
           (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
           (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
           (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
+      - name: Record failed staging deployment
+        if: failure()
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: catalog-build-$RELEASE_ID-deployment-failed" \
+            --data '{"status":"failed","failureCode":"staging_deployment_failed"}' \
+            "$API_URL/build/catalog/releases/$RELEASE_ID/status"
 
   prove-staging:
     needs: deploy-staging
@@ -95,6 +117,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       API_E2E_BASE_URL: ${{ vars.API_URL }}
       ADMIN_E2E_BASE_URL: ${{ vars.ADMIN_URL }}
+      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
       STOREFRONT_E2E_BASE_URL: ${{ vars.STOREFRONT_URL }}
       E2E_CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       E2E_CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
@@ -133,6 +156,15 @@ jobs:
           (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
           (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
           (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
+      - name: Record proven catalog deployment
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: catalog-build-$RELEASE_ID-deployed" \
+            --data '{"status":"deployed"}' \
+            "$API_E2E_BASE_URL/build/catalog/releases/$RELEASE_ID/status"
       - name: Preserve staging journey evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,6 +174,16 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: warn
+      - name: Record failed staging proof
+        if: failure()
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: catalog-build-$RELEASE_ID-staging-proof-failed" \
+            --data '{"status":"failed","failureCode":"staging_proof_failed"}' \
+            "$API_E2E_BASE_URL/build/catalog/releases/$RELEASE_ID/status"
 
   promote-production:
     needs: [validate, prove-staging]

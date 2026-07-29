@@ -6,52 +6,7 @@ export const catalogRelease = {
     defaultCurrency: "USD",
     freshnessHours: 24,
   },
-  products: [
-    {
-      slug: "atlas-carry-on",
-      name: "Atlas Carry-on",
-      description:
-        "A lightweight, impact-resistant carry-on designed for long-haul travel and compact overhead bins.",
-      seoTitle: "Atlas Carry-on | Shoppp",
-      seoDescription:
-        "Meet the Atlas Carry-on: durable shell, quiet wheels, and an international cabin-friendly profile.",
-      status: "published",
-      collectionSlugs: ["travel-essentials"],
-      variants: [
-        {
-          id: "var_01J00000000000000000000000",
-          sku: "ATLAS-BLK",
-          title: "Black",
-          status: "active",
-          optionValues: { color: "Black" },
-          weightGrams: 2900,
-          prices: [
-            { currency: "USD", amount: 12900 },
-            { currency: "EUR", amount: 11900 },
-          ],
-        },
-      ],
-      media: [
-        {
-          src: "/media/atlas-carry-on.svg",
-          alt: "Black Atlas carry-on suitcase standing upright",
-          width: 1200,
-          height: 1200,
-        },
-      ],
-    },
-  ],
-  collections: [
-    {
-      slug: "travel-essentials",
-      name: "Travel essentials",
-      description: "Purposeful gear for moving through the world with less friction.",
-      seoTitle: "Travel essentials | Shoppp",
-      seoDescription: "Browse durable travel essentials for international journeys.",
-      status: "published",
-      productSlugs: ["atlas-carry-on"],
-    },
-  ],
+  collections: [{ name: "Travel essentials", slug: "travel-essentials" }],
   policies: [
     {
       slug: "shipping",
@@ -112,7 +67,7 @@ export const catalogRelease = {
         },
         {
           heading: "Providers and international processing",
-          body: "Service providers receive only the data needed for payment, delivery, communications, hosting, or security. We do not place optional analytics until the applicable consent requirement is met.",
+          body: "Service providers receive only the data needed for payment, delivery, communications, hosting, or security. We count anonymous page classes and purchase stages without cookies, URLs, device identifiers, or personal data. Optional analytics remain disabled until the applicable consent requirement is met.",
         },
       ],
     },
@@ -169,7 +124,7 @@ export const catalogRelease = {
         },
         {
           heading: "Optional tracking",
-          body: "Optional analytics and marketing tracking are disabled in the launch implementation. If introduced for an enabled market, they must remain off until the required consent is recorded.",
+          body: "The launch service counts aggregate page classes and purchase stages without cookies or persistent identifiers. Optional analytics and marketing tracking remain off until the required consent is recorded for an enabled market.",
         },
         {
           heading: "Your controls",
@@ -178,5 +133,4 @@ export const catalogRelease = {
       ],
     },
   ],
-  redirects: [{ from: "/products/carry-on", to: "/products/atlas-carry-on" }],
 } as const;

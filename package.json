@@ -18,6 +18,7 @@
     "test": "bun test tools && bun tools/run-workspace-script.ts test --if-present",
     "test:a11y": "bun tools/run-workspace-script.ts test:a11y --if-present",
     "test:admin-browser": "bun tools/run-workspace-script.ts test:browser --if-present --workspace=@shoppp/admin",
+    "test:catalog-scale": "bun tools/verify-catalog-scale.ts",
     "test:e2e": "bun tools/run-workspace-script.ts test:e2e --if-present",
     "test:perf": "bun tools/run-workspace-script.ts test:perf --if-present",
     "test:staging-latency": "bun tools/verify-staging-latency.ts",

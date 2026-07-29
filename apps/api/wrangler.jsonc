@@ -59,6 +59,14 @@
   ],
   "ratelimits": [
     {
+      "name": "ANALYTICS_RATE_LIMITER",
+      "namespace_id": "11002",
+      "simple": {
+        "limit": 120,
+        "period": 60,
+      },
+    },
+    {
       "name": "CHECKOUT_RATE_LIMITER",
       "namespace_id": "11001",
       "simple": {
@@ -170,6 +178,14 @@
       ],
       "ratelimits": [
         {
+          "name": "ANALYTICS_RATE_LIMITER",
+          "namespace_id": "12002",
+          "simple": {
+            "limit": 120,
+            "period": 60,
+          },
+        },
+        {
           "name": "CHECKOUT_RATE_LIMITER",
           "namespace_id": "12001",
           "simple": {
@@ -280,6 +296,14 @@
         },
       ],
       "ratelimits": [
+        {
+          "name": "ANALYTICS_RATE_LIMITER",
+          "namespace_id": "13002",
+          "simple": {
+            "limit": 120,
+            "period": 60,
+          },
+        },
         {
           "name": "CHECKOUT_RATE_LIMITER",
           "namespace_id": "13001",

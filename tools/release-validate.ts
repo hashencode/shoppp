@@ -47,6 +47,7 @@ export const RELEASE_GATES: GateDefinition[] = [
   { name: "unit-contract", command: ["bun", "run", "test"] },
   { name: "worker-integration", command: ["bun", "run", "test:workers"] },
   { name: "admin-browser", command: ["bun", "run", "test:admin-browser"] },
+  { name: "representative-catalog", command: ["bun", "run", "test:catalog-scale"] },
   { name: "production-builds", command: ["bun", "run", "build"] },
   { name: "static-output", command: ["bun", "run", "verify:static"] },
   { name: "browser-journeys", command: ["bun", "run", "test:e2e"] },

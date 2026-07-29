@@ -16,8 +16,8 @@ export interface AuditEventInput {
   readonly targetType: string;
 }
 
-export async function recordAuditEvent(db: D1Database, input: AuditEventInput): Promise<void> {
-  await db
+export function prepareAuditEvent(db: D1Database, input: AuditEventInput): D1PreparedStatement {
+  return db
     .prepare(
       `INSERT INTO audit_events
          (id, actor_type, actor_id, action, target_type, target_id, result, reason, request_id, metadata_json, created_at)
@@ -35,8 +35,11 @@ export async function recordAuditEvent(db: D1Database, input: AuditEventInput): 
       input.requestId ?? null,
       JSON.stringify(redactForLog(input.metadata ?? {})),
       new Date().toISOString(),
-    )
-    .run();
+    );
+}
+
+export async function recordAuditEvent(db: D1Database, input: AuditEventInput): Promise<void> {
+  await prepareAuditEvent(db, input).run();
 }
 
 interface AuditCursor {

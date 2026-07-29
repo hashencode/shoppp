@@ -7,10 +7,12 @@ import {
   addCartLineRequestSchema,
   auditQuerySchema,
   cancelOrderRequestSchema,
+  catalogBuildResultSchema,
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
   createPrivacyRequestSchema,
   checkoutRequestSchema,
+  commerceFunnelEventSchema,
   fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
   reportExportRequestSchema,
@@ -19,8 +21,10 @@ import {
   refundRequestSchema,
   shippingQuoteRequestSchema,
   publicRuntimeConfigurationSchema,
+  publicIdSchema,
   updateCartLineRequestSchema,
   updateLaunchConfigurationRequestSchema,
+  upsertShippingZoneRequestSchema,
 } from "@shoppp/contracts";
 
 import {
@@ -38,7 +42,7 @@ import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
-import { requirePermission } from "../iam/permissions";
+import { permissionsForRole, requirePermission } from "../iam/permissions";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
@@ -71,17 +75,21 @@ import { createReportExport, downloadReportExport, getReportExport } from "../re
 import { getRevenueReport, listReportOrders } from "../reporting/order-metrics";
 import type { RateLimiter } from "../security/rate-limit";
 import { protectCheckoutSubmission } from "../security/public-submission";
+import { safeRequestId } from "../security/redaction";
 import type { TurnstileVerifier } from "../security/turnstile";
 import { getOperationalHealth } from "../observability/health";
-import { observeRequest } from "../observability/logger";
+import { observeCommerceEvent, observeRequest } from "../observability/logger";
+import { protectAnalyticsSubmission } from "../security/public-analytics";
 import {
   getLaunchConfiguration,
   updateLaunchConfiguration,
 } from "../settings/launch-configuration";
+import { listShippingZones, upsertShippingZone } from "../shipping/settings";
 import {
   createPreviewToken,
   defaultBuildTrigger,
   publishProduct,
+  recordCatalogBuildResult,
   type BuildTrigger,
 } from "../publishing/releases";
 import type { ApiEnvironment } from "./context";
@@ -90,6 +98,7 @@ import { assertEnvironmentIsolation } from "./environment";
 
 export interface CreateAppOptions {
   readonly accessVerifier?: AccessVerifier;
+  readonly analyticsRateLimiter?: RateLimiter;
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
   readonly previewTokenSecret?: string;
@@ -144,12 +153,28 @@ function validatedQuery<Schema extends z.ZodType>(
   return parsed.data;
 }
 
+function requireBuildCredential(
+  context: Context<ApiEnvironment>,
+  configuredToken: string | undefined,
+): void {
+  if (!configuredToken || configuredToken.length < 32) {
+    throw new ApiError(
+      500,
+      "build_manifest_not_configured",
+      "The build manifest credential is not configured.",
+    );
+  }
+  if (context.req.header("authorization") !== `Bearer ${configuredToken}`) {
+    throw new ApiError(401, "build_manifest_unauthorized", "Build credential required.");
+  }
+}
+
 export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono<ApiEnvironment>();
 
   app.use("*", async (context, next) => {
     const startedAt = Date.now();
-    const requestId = context.req.header("x-request-id") || crypto.randomUUID();
+    const requestId = safeRequestId(context.req.header("x-request-id"));
     context.set("requestId", requestId);
     context.header("x-request-id", requestId);
     assertEnvironmentIsolation({
@@ -234,6 +259,18 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.post(
+    "/platform/events",
+    protectAnalyticsSubmission({
+      ...(options.analyticsRateLimiter ? { rateLimiter: options.analyticsRateLimiter } : {}),
+    }),
+    async (context) => {
+      const input = await parseJson(context, commerceFunnelEventSchema);
+      observeCommerceEvent(context, input);
+      context.header("Cache-Control", "no-store");
+      return context.body(null, 204);
+    },
+  );
   app.get("/catalog/products/:slug/live", async (context) => {
     const currency = (context.req.query("currency") ?? "USD").toUpperCase();
     if (!/^[A-Z]{3}$/.test(currency)) {
@@ -254,11 +291,10 @@ export function createApp(options: CreateAppOptions = {}) {
   });
   app.post("/cart", idempotency("cart.create"), async (context) => {
     const input = await parseJson(context, createCartRequestSchema);
+    const cart = await createCart(context, input);
+    observeCommerceEvent(context, { event: "cart_created" });
     context.header("Cache-Control", "private, no-store");
-    return context.json(
-      { data: await createCart(context, input), meta: { requestId: context.get("requestId") } },
-      201,
-    );
+    return context.json({ data: cart, meta: { requestId: context.get("requestId") } }, 201);
   });
   app.get("/cart", async (context) => {
     const cart = await requireCart(context);
@@ -333,14 +369,16 @@ export function createApp(options: CreateAppOptions = {}) {
     const input = await parseJson(context, checkoutRequestSchema);
     context.header("Cache-Control", "private, no-store");
     try {
+      const session = await createHostedCheckout(
+        context,
+        cart,
+        input,
+        options.paymentProvider ?? createStripePaymentProvider(context.env),
+      );
+      observeCommerceEvent(context, { event: "checkout_started" });
       return context.json(
         {
-          data: await createHostedCheckout(
-            context,
-            cart,
-            input,
-            options.paymentProvider ?? createStripePaymentProvider(context.env),
-          ),
+          data: session,
           meta: { requestId: context.get("requestId") },
         },
         201,
@@ -377,16 +415,7 @@ export function createApp(options: CreateAppOptions = {}) {
   );
   app.get("/build/catalog/releases/:id", async (context) => {
     const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
-    if (!expectedToken || expectedToken.length < 32) {
-      throw new ApiError(
-        500,
-        "build_manifest_not_configured",
-        "The build manifest credential is not configured.",
-      );
-    }
-    if (context.req.header("authorization") !== `Bearer ${expectedToken}`) {
-      throw new ApiError(401, "build_manifest_unauthorized", "Build credential required.");
-    }
+    requireBuildCredential(context, expectedToken);
     const release = await context.env.DB.prepare(
       `SELECT manifest_json
          FROM catalog_releases
@@ -400,12 +429,43 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Cache-Control", "private, no-store");
     return context.json(JSON.parse(release.manifest_json));
   });
+  app.post(
+    "/build/catalog/releases/:id/status",
+    async (context, next) => {
+      requireBuildCredential(
+        context,
+        options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN,
+      );
+      await next();
+    },
+    idempotency("catalog.build.result"),
+    async (context) => {
+      const result = await parseJson(context, catalogBuildResultSchema);
+      context.header("Cache-Control", "private, no-store");
+      return context.json({
+        data: await recordCatalogBuildResult(context, context.req.param("id"), result),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
 
   app.use("/admin/*", async (context, next) => {
     context.header("Cache-Control", "private, no-store");
     await next();
   });
   app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
+  app.get("/admin/session", (context) => {
+    const principal = context.get("principal");
+    return context.json({
+      data: {
+        displayName: principal.displayName,
+        email: principal.email,
+        permissions: permissionsForRole(principal.role),
+        role: principal.role,
+      },
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.get("/admin/settings/launch", async (context) => {
     await requirePermission(context, "settings.read", { type: "setting" });
     return context.json({
@@ -413,6 +473,70 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/settings/shipping", async (context) => {
+    await requirePermission(context, "settings.read", { type: "shipping_zone" });
+    return context.json({
+      data: await listShippingZones(context.env.DB),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.put(
+    "/admin/settings/shipping/zones/:id",
+    async (context, next) => {
+      await requirePermission(context, "settings.write", {
+        id: context.req.param("id"),
+        type: "shipping_zone",
+      });
+      await next();
+    },
+    idempotency("shipping.zone.upsert"),
+    async (context) => {
+      const input = await parseJson(context, upsertShippingZoneRequestSchema);
+      const zoneId = publicIdSchema.safeParse(context.req.param("id"));
+      if (!zoneId.success) {
+        throw new ApiError(422, "shipping_zone_id_invalid", "The shipping zone ID is invalid.");
+      }
+      if (input.zone.id && input.zone.id !== zoneId.data) {
+        throw new ApiError(
+          422,
+          "shipping_zone_id_mismatch",
+          "The shipping zone path and payload identifiers must match.",
+        );
+      }
+      return context.json({
+        data: await upsertShippingZone(context, {
+          ...input,
+          zone: { ...input.zone, id: zoneId.data },
+        }),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/settings/shipping/zones",
+    async (context, next) => {
+      await requirePermission(context, "settings.write", { type: "shipping_zone" });
+      await next();
+    },
+    idempotency("shipping.zone.upsert"),
+    async (context) => {
+      const input = await parseJson(context, upsertShippingZoneRequestSchema);
+      if (input.zone.id) {
+        throw new ApiError(
+          422,
+          "shipping_zone_id_unexpected",
+          "Create requests must not provide a shipping zone identifier.",
+        );
+      }
+      return context.json(
+        {
+          data: await upsertShippingZone(context, input),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
+    },
+  );
   app.put(
     "/admin/settings/launch",
     async (context, next) => {

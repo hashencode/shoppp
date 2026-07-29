@@ -12,7 +12,7 @@ import { cartSchema } from "../src/cart";
 import { productSchema } from "../src/catalog";
 import { checkoutRequestSchema } from "../src/checkout";
 import { inventoryAdjustmentRequestSchema, inventoryReservationSchema } from "../src/inventory";
-import { publicRuntimeConfigurationSchema } from "../src/platform";
+import { commerceFunnelEventSchema, publicRuntimeConfigurationSchema } from "../src/platform";
 
 const product = {
   description: "A durable travel bottle.",
@@ -49,6 +49,20 @@ describe("public contracts", () => {
     expect(() =>
       publicRuntimeConfigurationSchema.parse({
         turnstile: { required: true, siteKey: null },
+      }),
+    ).toThrow();
+  });
+
+  test("accepts only identifier-free page funnel events", () => {
+    expect(commerceFunnelEventSchema.parse({ event: "page_view", route: "product" })).toEqual({
+      event: "page_view",
+      route: "product",
+    });
+    expect(() =>
+      commerceFunnelEventSchema.parse({
+        event: "page_view",
+        path: "/orders/private-token",
+        route: "order_status",
       }),
     ).toThrow();
   });

@@ -1,9 +1,16 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import { chromium, expect, test } from "@playwright/test";
 
-const routes = ["/", "/collections/travel-essentials", "/products/atlas-carry-on"];
+const manifest = JSON.parse(
+  readFileSync(resolve(import.meta.dirname, "../app/generated/route-manifest.json"), "utf8"),
+) as { routes: string[] };
+const routes = [
+  "/",
+  manifest.routes.find((route) => route.startsWith("/collections/")),
+  manifest.routes.find((route) => route.startsWith("/products/")),
+].filter((route): route is string => Boolean(route));
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,

@@ -20,8 +20,8 @@ type AdjustmentValues = {
 }
 
 export const InventoryPage = () => {
-  const { role } = useAuth()
-  const canAdjust = hasPermission(role, 'inventory.adjust')
+  const { role, permissions } = useAuth()
+  const canAdjust = hasPermission(role, 'inventory.adjust', permissions)
   const [items, setItems] = useState<InventoryListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')

@@ -85,6 +85,7 @@ export async function deliverProviderRecoveryJob(
   provider: PaymentProvider,
   jobId: string,
   now = new Date().toISOString(),
+  onPurchaseConfirmed?: () => void,
 ): Promise<NotificationDeliveryResult> {
   const job = await claimNotificationJob(db, jobId, now);
   if (!job) {
@@ -150,6 +151,7 @@ export async function deliverProviderRecoveryJob(
         false,
       );
     }
+    if (result.orderReference && !result.replayed) onPurchaseConfirmed?.();
     await recordAutomationSuccess(
       db,
       job,

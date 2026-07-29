@@ -31,7 +31,7 @@ const formatMinorUnits = (amount: number, currency: string) => {
 }
 
 export const OrderReportPage = () => {
-  const { role } = useAuth()
+  const { role, permissions } = useAuth()
   const [query, setQuery] = useState<ReportingQuery>(paramsQuery)
   const [search, setSearch] = useState('')
   const [committedSearch, setCommittedSearch] = useState('')
@@ -44,7 +44,7 @@ export const OrderReportPage = () => {
   const [reportExport, setReportExport] = useState<ReportExport | null>(null)
   const [form] = Form.useForm<{ reason: string }>()
   const pageSize = 20
-  const canExport = hasPermission(role, 'reporting.export')
+  const canExport = hasPermission(role, 'reporting.export', permissions)
 
   const load = useCallback(
     async (nextPage = 1) => {

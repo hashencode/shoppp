@@ -5,8 +5,12 @@ import { useAuth } from '../infrastructure/auth/use-auth'
 void React
 
 export const RequireAuth = ({ children }: PropsWithChildren) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
+
+  if (isLoading) {
+    return <div role="status" aria-live="polite">Verifying Cloudflare Access session…</div>
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
@@ -16,7 +20,11 @@ export const RequireAuth = ({ children }: PropsWithChildren) => {
 }
 
 export const RedirectIfAuthenticated = ({ children }: PropsWithChildren) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <div role="status" aria-live="polite">Verifying Cloudflare Access session…</div>
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />

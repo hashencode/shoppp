@@ -123,6 +123,25 @@ export const publicRuntimeConfigurationSchema = z
     }
   });
 
+export const commerceFunnelPageRouteSchema = z.enum([
+  "home",
+  "collection",
+  "product",
+  "cart",
+  "checkout",
+  "checkout_complete",
+  "order_status",
+  "policy",
+  "content",
+]);
+
+export const commerceFunnelEventSchema = z
+  .object({
+    event: z.literal("page_view"),
+    route: commerceFunnelPageRouteSchema,
+  })
+  .strict();
+
 export const launchConfigurationStatusSchema = z
   .object({
     configuration: launchConfigurationSchema,
@@ -178,6 +197,8 @@ export const operationalHealthSchema = z
 
 export type AuditEvent = z.infer<typeof auditEventSchema>;
 export type AuditQuery = z.infer<typeof auditQuerySchema>;
+export type CommerceFunnelEvent = z.infer<typeof commerceFunnelEventSchema>;
+export type CommerceFunnelPageRoute = z.infer<typeof commerceFunnelPageRouteSchema>;
 export type LaunchConfiguration = z.infer<typeof launchConfigurationSchema>;
 export type LaunchConfigurationStatus = z.infer<typeof launchConfigurationStatusSchema>;
 export type OperationalHealth = z.infer<typeof operationalHealthSchema>;

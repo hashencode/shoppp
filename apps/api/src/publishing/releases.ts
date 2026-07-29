@@ -6,10 +6,13 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { buildCatalogReleaseManifest } from "./build-manifest";
+import type { CatalogBuildResult } from "@shoppp/contracts";
 
 export interface BuildTriggerResult {
   correlationId: string;
 }
+
+const BUILD_HOOK_TIMEOUT_MS = 15_000;
 
 export type BuildTrigger = (input: {
   environment: string;
@@ -47,6 +50,7 @@ export function defaultBuildTrigger(env: ApiEnvironment["Bindings"]): BuildTrigg
         "X-Request-Id": input.requestId,
       },
       method: "POST",
+      signal: AbortSignal.timeout(BUILD_HOOK_TIMEOUT_MS),
     });
     if (!response.ok) {
       throw new ApiError(500, "build_hook_failed", "The storefront build could not be started.");
@@ -58,6 +62,96 @@ export function defaultBuildTrigger(env: ApiEnvironment["Bindings"]): BuildTrigg
       correlationId:
         body.correlationId ?? response.headers.get("x-build-correlation-id") ?? crypto.randomUUID(),
     };
+  };
+}
+
+export async function recordCatalogBuildResult(
+  context: Context<ApiEnvironment>,
+  releaseId: string,
+  result: CatalogBuildResult,
+) {
+  const current = await context.env.DB.prepare(
+    "SELECT status, failure_code, deployed_at FROM catalog_releases WHERE id = ?",
+  )
+    .bind(releaseId)
+    .first<{ deployed_at: string | null; failure_code: string | null; status: string }>();
+  if (!current) {
+    throw new ApiError(404, "catalog_release_not_found", "The catalog release was not found.");
+  }
+  if (current.status === result.status) {
+    return {
+      deployedAt: current.deployed_at,
+      failureCode: current.failure_code,
+      releaseId,
+      status: current.status,
+    };
+  }
+  if (current.status !== "building") {
+    throw new ApiError(
+      409,
+      "catalog_build_transition_invalid",
+      `A catalog release in ${current.status} cannot transition to ${result.status}.`,
+    );
+  }
+
+  const now = new Date().toISOString();
+  const transition = context.env.DB.prepare(
+    `UPDATE catalog_releases
+        SET status = ?, deployed_at = ?, failure_code = ?, updated_at = ?
+      WHERE id = ? AND status = 'building'`,
+  ).bind(
+    result.status,
+    result.status === "deployed" ? now : null,
+    result.status === "failed" ? result.failureCode : null,
+    now,
+    releaseId,
+  );
+  const audit = context.env.DB.prepare(
+    `INSERT OR IGNORE INTO audit_events
+       (id, actor_type, action, target_type, target_id, result, reason, request_id,
+        metadata_json, created_at)
+     SELECT ?, 'machine', 'catalog.build.result', 'catalog_release', ?,
+            ?, ?, ?, ?, ?
+       FROM catalog_releases
+      WHERE id = ? AND status = ? AND updated_at = ?`,
+  ).bind(
+    `aud_catalog_build_${releaseId}`,
+    releaseId,
+    result.status === "deployed" ? "succeeded" : "failed",
+    result.status === "failed" ? result.failureCode : null,
+    context.get("requestId"),
+    JSON.stringify({ status: result.status }),
+    now,
+    releaseId,
+    result.status,
+    now,
+  );
+  const [changed] = await context.env.DB.batch([transition, audit]);
+  if (!changed || changed.meta.changes !== 1) {
+    const terminal = await context.env.DB.prepare(
+      "SELECT status, failure_code, deployed_at FROM catalog_releases WHERE id = ?",
+    )
+      .bind(releaseId)
+      .first<{ deployed_at: string | null; failure_code: string | null; status: string }>();
+    if (terminal?.status === result.status) {
+      return {
+        deployedAt: terminal.deployed_at,
+        failureCode: terminal.failure_code,
+        releaseId,
+        status: terminal.status,
+      };
+    }
+    throw new ApiError(
+      409,
+      "catalog_build_transition_conflict",
+      "The catalog release changed while the build result was recorded.",
+    );
+  }
+  return {
+    deployedAt: result.status === "deployed" ? now : null,
+    failureCode: result.status === "failed" ? result.failureCode : null,
+    releaseId,
+    status: result.status,
   };
 }
 

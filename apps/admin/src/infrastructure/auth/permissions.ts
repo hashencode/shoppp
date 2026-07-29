@@ -53,6 +53,27 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'audit.read',
     'privacy.manage',
   ],
+  catalog_manager: ['catalog.read', 'catalog.write', 'catalog.publish', 'inventory.read'],
+  operations: [
+    'catalog.read',
+    'inventory.read',
+    'inventory.adjust',
+    'orders.read',
+    'orders.fulfill',
+    'orders.cancel',
+    'orders.refund',
+    'audit.read',
+    'operations.replay',
+    'operations.jobs.read',
+  ],
+  support: ['catalog.read', 'inventory.read', 'orders.read'],
+  analyst: [
+    'catalog.read',
+    'inventory.read',
+    'orders.read',
+    'reporting.read',
+    'reporting.export',
+  ],
   editor: [
     'dashboard.read',
     'list.read',
@@ -89,6 +110,12 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
   ],
 }
 
-export const hasPermission = (role: Role, permission: PermissionKey): boolean => {
-  return rolePermissions[role].includes(permission)
+export const hasPermission = (
+  role: Role,
+  permission: PermissionKey,
+  authoritativePermissions?: readonly PermissionKey[]
+): boolean => {
+  return authoritativePermissions !== undefined
+    ? authoritativePermissions.includes(permission)
+    : rolePermissions[role].includes(permission)
 }

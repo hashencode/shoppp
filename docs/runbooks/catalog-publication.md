@@ -11,6 +11,12 @@
    pages, and permanent redirects.
 5. Keep the previous immutable storefront artifact serving until the replacement passes gates.
 
+The deployment workflow reports one terminal result to
+`POST /build/catalog/releases/<release-id>/status` with `BUILD_MANIFEST_TOKEN` and a stable
+`Idempotency-Key`. Do not edit the release row manually. A `deployed` result is valid only after
+staging journeys, latency, rollback, and restore pass; a failed candidate, deployment, or proof
+uses a bounded failure code and becomes visible in operational health.
+
 ## Verification
 
 ```sh

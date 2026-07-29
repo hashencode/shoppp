@@ -3,11 +3,14 @@ import { catalogRelease } from "~/generated/catalog";
 import { canonicalUrl } from "~/utils/seo";
 
 const route = useRoute();
-const collection = catalogRelease.collections.find((item) => item.slug === route.params.slug);
-if (!collection) throw createError({ statusCode: 404, statusMessage: "Collection not found" });
-const products = catalogRelease.products.filter((product) =>
-  collection.productSlugs.includes(product.slug),
-);
+const slug = String(route.params.slug);
+const { data: page } = await useAsyncData(`catalog-collection:${slug}`, async () => {
+  if (import.meta.client) return undefined;
+  const { loadCollectionPage } = await import("~/utils/catalog-loader.server");
+  return loadCollectionPage(slug);
+});
+if (!page.value) throw createError({ statusCode: 404, statusMessage: "Collection not found" });
+const { collection, products } = page.value;
 const canonical = canonicalUrl(catalogRelease.site.origin, `/collections/${collection.slug}`);
 useSeoMeta({
   title: collection.seoTitle,

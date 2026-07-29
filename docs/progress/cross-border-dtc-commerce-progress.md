@@ -30,6 +30,29 @@ The plan remains the read-only authority.
 | U12  | Complete          | Credential-scoped checkout rate limiting, exact-origin/body guards, action/hostname-bound Turnstile, centralized recursive redaction, structured request/Analytics Engine telemetry, no-store admin responses, server-verified launch gates, runtime commercial settings, stable audit browsing, six complete configurable policy disclosures, hashed-subject privacy operations with seven-day R2 exports and immutable retention decisions, and a scheduled D1-to-R2 Workflow with isolated seeded restore reconciliation pass Worker 83/83, D1 6/6, admin 246/246 + browser 8/8, storefront 8/8, Playwright 16/25 applicable, WCAG 4/4, Lighthouse/bundle, type/build/lint/format/static/table-width gates.                                                                                                                                                                                                                                                                                                                                                                         |
 | U13  | Ready for staging | Versioned release reports, exact approved catalog-manifest sourcing, prebundled/no-rebuild Worker deployment, source/build secret and card scanning, strict AE8 environment isolation, environment-neutral Service Binding gateways and runtime Turnstile public configuration, static/admin security headers, immutable staging-to-production promotion, protected production approval, real staging purchase/recovery/fulfillment/refund/publication/accessibility journeys, staging p95 probes, and automated rollback/redeploy rehearsal are implemented. The complete local immutable-candidate gate passes: tools 19/19, Worker 84/84 + D1 6/6, admin 246/246 + browser 8/8 + Playwright 7/7, storefront 9/18 applicable, WCAG 4/4, mobile Lighthouse performance 98/94/94, JS 157,415/204,800 bytes, and clean frozen-install/format/lint/type/build/static gates. Strict validation correctly blocks missing live catalog/build credentials and non-routable placeholder staging resources, so deployed staging evidence remains pending human-owned environment provisioning. |
 
+## Final local hardening pass
+
+- The storefront release is split into per-route generated modules and now proves all 1,027
+  indexable representative routes at 1,000 products and 5,000 variants. The latest run completed
+  generation in 21,684 ms; initial JavaScript stayed at 146,667-147,811 of 204,800 bytes gzip, and
+  mobile Lighthouse performance was 94/95/95 with accessibility 98-100 and SEO 100.
+- Catalog publication has an authenticated, idempotent terminal callback, a bounded build-hook
+  timeout, concurrent same-result convergence, an atomic machine audit, and CI failure/deployed
+  reporting. Shipping settings have complete contract/API/admin coverage, atomic reason audit, and
+  a fail-closed migration guarding insert, update, and zone-activation country conflicts.
+- Production admin authentication now ignores template credentials and derives the session from
+  Cloudflare Access. The API-provided permission set is authoritative in navigation, guards, forms,
+  and actions; stale session requests cannot restore a logged-out session.
+- Privacy-safe funnel events record normalized page class, cart creation, checkout start, and
+  provider-confirmed purchase without identifiers. Both webhook and queued provider-recovery paths
+  emit purchase exactly once.
+- The final review has no surviving local findings. Evidence:
+  `/tmp/compound-engineering/ce-code-review/shoppp-20260730-full/review.json`.
+- Latest local gates: tools 20/20; admin unit 249/249 and browser 8/8; storefront unit 18/18;
+  contracts 7/7; domain 24/24; Worker API 93/93 and D1 6/6; admin Playwright 7/7; storefront
+  Playwright 10/10 applicable; WCAG/keyboard 4/4; plus format, lint, typecheck, production build,
+  static-output, bundle, representative-catalog, and Lighthouse gates.
+
 ## Human-owned production gates
 
 - Merchant owner: merchant entity, Stripe eligibility, currencies, payout configuration, and webhook

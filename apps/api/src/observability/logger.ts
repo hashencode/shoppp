@@ -9,12 +9,46 @@ export interface RequestObservation {
   readonly status: number;
 }
 
+export type CommerceFunnelEvent =
+  "cart_created" | "checkout_started" | "page_view" | "purchase_confirmed";
+
+export interface CommerceObservation {
+  readonly event: CommerceFunnelEvent;
+  readonly route?: string;
+}
+
+export function commerceDataPoint(
+  environment: ApiEnvironment["Bindings"]["ENVIRONMENT"],
+  observation: CommerceObservation,
+) {
+  return {
+    blobs: [environment, "commerce.funnel", observation.event, observation.route ?? "server"],
+    doubles: [1],
+    indexes: [environment],
+  };
+}
+
+export function observeCommerceEvent(
+  context: Context<ApiEnvironment>,
+  observation: CommerceObservation,
+): void {
+  writeCommerceEvent(context.env.OBSERVABILITY, context.env.ENVIRONMENT, observation);
+}
+
+export function writeCommerceEvent(
+  dataset: AnalyticsEngineDataset | undefined,
+  environment: ApiEnvironment["Bindings"]["ENVIRONMENT"],
+  observation: CommerceObservation,
+): void {
+  dataset?.writeDataPoint(commerceDataPoint(environment, observation));
+}
+
 export function observeRequest(
   context: Context<ApiEnvironment>,
   observation: RequestObservation,
 ): void {
   const route = safeRequestPath(context.req.url);
-  const payload = redactForLog({
+  const redacted = redactForLog({
     durationMs: observation.durationMs,
     environment: context.env.ENVIRONMENT,
     error: observation.error
@@ -22,10 +56,10 @@ export function observeRequest(
       : undefined,
     event: "http.request",
     method: context.req.method,
-    requestId: context.get("requestId"),
     route,
     status: observation.status,
-  });
+  }) as Record<string, unknown>;
+  const payload = { ...redacted, requestId: context.get("requestId") };
   const serialized = JSON.stringify(payload);
   if (observation.status >= 500) console.error(serialized);
   else console.info(serialized);

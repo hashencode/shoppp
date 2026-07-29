@@ -30,14 +30,21 @@ export function adminAuthentication(
       throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
     }
     const principal = await context.env.DB.prepare(
-      "SELECT id, email, role, enabled FROM admin_identities WHERE access_subject = ?",
+      "SELECT id, email, display_name, role, enabled FROM admin_identities WHERE access_subject = ?",
     )
       .bind(identity.subject)
-      .first<{ enabled: number; email: string; id: string; role: string }>();
+      .first<{
+        display_name: string;
+        enabled: number;
+        email: string;
+        id: string;
+        role: string;
+      }>();
     if (!principal || principal.enabled !== 1 || !isAdminRole(principal.role)) {
       throw new ApiError(401, "identity_not_enabled", "The Access identity is not enabled.");
     }
     context.set("principal", {
+      displayName: principal.display_name,
       email: principal.email,
       id: principal.id,
       role: principal.role,

@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import manifest from "../app/generated/route-manifest.json";
+import verificationCatalog from "../app/generated/verification-catalog.json";
 
 const root = resolve(import.meta.dir, "..");
 const output = resolve(root, ".output/public");
@@ -14,12 +15,16 @@ for (const route of manifest.routes) {
     throw new Error(`${route} is missing canonical metadata or meaningful static content.`);
   }
   if (route.startsWith("/products/")) {
+    const product = verificationCatalog.products.find(
+      (item) => item.slug === route.slice("/products/".length),
+    );
+    if (!product) throw new Error(`${route} has no generated product verification record.`);
     for (const required of [
       "application/ld+json",
-      "Atlas Carry-on",
-      'width="1200"',
-      'height="1200"',
-      "Travel essentials",
+      product.name,
+      `width="${product.width}"`,
+      `height="${product.height}"`,
+      product.collectionName ?? product.name,
     ]) {
       if (!html.includes(required)) throw new Error(`${route} static HTML is missing ${required}.`);
     }

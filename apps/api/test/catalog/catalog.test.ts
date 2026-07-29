@@ -217,6 +217,153 @@ describe("catalog management and publishing", () => {
         },
       ],
     });
+
+    const deployedRequest = () =>
+      new Request(`https://api.example.test/build/catalog/releases/${release!.id}/status`, {
+        body: JSON.stringify({ status: "deployed" }),
+        headers: {
+          Authorization: "Bearer test-build-manifest-token-at-least-32-bytes",
+          "Content-Type": "application/json",
+          "Idempotency-Key": `catalog-build-${release!.id}-deployed`,
+        },
+        method: "POST",
+      });
+    const deployed = await app.fetch(deployedRequest(), env);
+    const deployedReplay = await app.fetch(deployedRequest(), env);
+    expect(deployed.status).toBe(200);
+    expect(await deployedReplay.text()).toBe(await deployed.clone().text());
+    expect(await deployed.json()).toMatchObject({
+      data: {
+        deployedAt: expect.any(String),
+        failureCode: null,
+        releaseId: release!.id,
+        status: "deployed",
+      },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT status, deployed_at, failure_code FROM catalog_releases WHERE id = ?",
+      )
+        .bind(release!.id)
+        .first(),
+    ).toEqual({
+      deployed_at: expect.any(String),
+      failure_code: null,
+      status: "deployed",
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT action, actor_type, result FROM audit_events WHERE target_id = ? AND action = 'catalog.build.result'",
+      )
+        .bind(release!.id)
+        .first(),
+    ).toEqual({
+      action: "catalog.build.result",
+      actor_type: "machine",
+      result: "succeeded",
+    });
+    expect(
+      (
+        await app.fetch(
+          new Request(`https://api.example.test/build/catalog/releases/${release!.id}/status`, {
+            body: JSON.stringify({
+              failureCode: "late_failure",
+              status: "failed",
+            }),
+            headers: {
+              Authorization: "Bearer test-build-manifest-token-at-least-32-bytes",
+              "Content-Type": "application/json",
+              "Idempotency-Key": `catalog-build-${release!.id}-late-failure`,
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(409);
+  });
+
+  test("records an authenticated failed build with a stable machine result", async () => {
+    const { app } = appFor();
+    const releaseId = "failed-release-001";
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, created_at, updated_at)
+       VALUES (?, 'building', '{}', ?, ?, ?)`,
+    )
+      .bind(releaseId, NOW, NOW, NOW)
+      .run();
+    const statusRequest = (body: unknown, token = "test-build-manifest-token-at-least-32-bytes") =>
+      new Request(`https://api.example.test/build/catalog/releases/${releaseId}/status`, {
+        body: JSON.stringify(body),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `catalog-build-${releaseId}-failed`,
+        },
+        method: "POST",
+      });
+
+    expect(
+      (
+        await app.fetch(
+          statusRequest({ failureCode: "staging_journey_failed", status: "failed" }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      await env.DB.prepare("SELECT status, failure_code FROM catalog_releases WHERE id = ?")
+        .bind(releaseId)
+        .first(),
+    ).toEqual({ failure_code: "staging_journey_failed", status: "failed" });
+
+    expect(
+      (
+        await app.fetch(
+          statusRequest({ failureCode: "another_failure", status: "failed" }, "wrong-token"),
+          env,
+        )
+      ).status,
+    ).toBe(401);
+  });
+
+  test("converges concurrent identical build callbacks to one terminal audit", async () => {
+    const { app } = appFor();
+    const releaseId = "concurrent-release-001";
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, created_at, updated_at)
+       VALUES (?, 'building', '{}', ?, ?, ?)`,
+    )
+      .bind(releaseId, NOW, NOW, NOW)
+      .run();
+    const responses = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        app.fetch(
+          new Request(`https://api.example.test/build/catalog/releases/${releaseId}/status`, {
+            body: JSON.stringify({ status: "deployed" }),
+            headers: {
+              Authorization: "Bearer test-build-manifest-token-at-least-32-bytes",
+              "Content-Type": "application/json",
+              "Idempotency-Key": `catalog-build-${releaseId}-${String(index).padStart(4, "0")}`,
+            },
+            method: "POST",
+          }),
+          env,
+        ),
+      ),
+    );
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM audit_events WHERE target_id = ? AND action = 'catalog.build.result'",
+        )
+          .bind(releaseId)
+          .first<{ count: number }>()
+      )?.count,
+    ).toBe(1);
   });
 
   test.each([

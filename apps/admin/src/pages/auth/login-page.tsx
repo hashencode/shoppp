@@ -10,6 +10,7 @@ import {
   Checkbox,
   Form,
   Input,
+  Result,
   Space,
   Tabs,
   Typography,
@@ -35,7 +36,30 @@ type LoginLocationState = {
   from?: string
 }
 
-export const LoginPage = () => {
+const templateAuthentication =
+  typeof __ENABLE_TEMPLATE_ROUTES__ === 'undefined' || __ENABLE_TEMPLATE_ROUTES__
+
+const AccessSessionPage = () => {
+  const { refreshSession, sessionError } = useAuth()
+
+  return (
+    <Result
+      status="403"
+      title="Cloudflare Access session required"
+      subTitle={
+        sessionError ??
+        'Sign in through the protected admin hostname, then verify the session again.'
+      }
+      extra={
+        <Button type="primary" onClick={() => void refreshSession?.()}>
+          Verify session
+        </Button>
+      }
+    />
+  )
+}
+
+const TemplateLoginPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { login } = useAuth()
@@ -209,3 +233,5 @@ export const LoginPage = () => {
     </div>
   )
 }
+
+export const LoginPage = templateAuthentication ? TemplateLoginPage : AccessSessionPage

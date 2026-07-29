@@ -1,0 +1,17 @@
+{
+  "collections": [
+    {
+      "name": "Travel essentials",
+      "slug": "travel-essentials"
+    }
+  ],
+  "products": [
+    {
+      "collectionName": "Travel essentials",
+      "height": 1200,
+      "name": "Atlas Carry-on",
+      "slug": "atlas-carry-on",
+      "width": 1200
+    }
+  ]
+}

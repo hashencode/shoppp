@@ -39,4 +39,12 @@ describe('permission policy', () => {
     expect(hasPermission('admin', 'audit.read')).toBe(true)
     expect(hasPermission('admin', 'privacy.manage')).toBe(true)
   })
+
+  it('uses the API permission set as the authority when present', () => {
+    const apiPermissions = ['catalog.read'] as const
+
+    expect(hasPermission('admin', 'catalog.read', apiPermissions)).toBe(true)
+    expect(hasPermission('admin', 'catalog.write', apiPermissions)).toBe(false)
+    expect(hasPermission('support', 'orders.read', [])).toBe(false)
+  })
 })

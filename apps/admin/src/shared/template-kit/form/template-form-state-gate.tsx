@@ -1,6 +1,6 @@
 import React from 'react'
-import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { ForbiddenPage } from '../../../pages/forbidden-page'
 import { QueryStateBlock } from '../../components/query-state-block'
 import type { ApiError } from '../../../infrastructure/http/api-client'
 import type { ParsedFormMode, FormModeViewModel } from '../../../routes/form-route-contract'
@@ -41,7 +41,7 @@ export const TemplateFormStateGate = ({
   }
 
   if (permissionDenied) {
-    return <Navigate to="/template/exception/403" replace state={{ from: '/template/list/table/form' }} />
+    return <ForbiddenPage />
   }
 
   if (modeView?.canFetch && detailLoading) {

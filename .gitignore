@@ -10,6 +10,8 @@ coverage/
 dist/
 worker-dist/
 apps/storefront/dist
+apps/storefront/app/generated/collections/
+apps/storefront/app/generated/products/
 node_modules/
 playwright-report/
 test-results/

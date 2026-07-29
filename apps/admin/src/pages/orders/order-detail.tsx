@@ -56,7 +56,7 @@ const actionTitle = (action: Action | null) => {
 
 export const OrderDetailPage = () => {
   const { reference = '' } = useParams()
-  const { role } = useAuth()
+  const { role, permissions } = useAuth()
   const [detail, setDetail] = useState<AdminOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -138,9 +138,9 @@ export const OrderDetailPage = () => {
   }
 
   const { facts } = detail
-  const canFulfill = hasPermission(role, 'orders.fulfill')
-  const canRefund = hasPermission(role, 'orders.refund')
-  const canCancel = hasPermission(role, 'orders.cancel')
+  const canFulfill = hasPermission(role, 'orders.fulfill', permissions)
+  const canRefund = hasPermission(role, 'orders.refund', permissions)
+  const canCancel = hasPermission(role, 'orders.cancel', permissions)
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">

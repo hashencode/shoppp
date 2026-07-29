@@ -12,21 +12,40 @@ async function sha256(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function actorKey(context: Context<ApiEnvironment>): Promise<string> {
+  const credential =
+    context.req.header("authorization") ?? context.req.header("cf-connecting-ip") ?? "anonymous";
+  return sha256(credential);
+}
+
 export async function enforceCheckoutRateLimit(
   context: Context<ApiEnvironment>,
   limiter: RateLimiter | undefined,
 ): Promise<void> {
   if (!limiter) return;
-  const credential =
-    context.req.header("authorization") ?? context.req.header("cf-connecting-ip") ?? "anonymous";
-  const actorKey = await sha256(credential);
-  const result = await limiter.limit({ key: `checkout:${actorKey}` });
+  const result = await limiter.limit({ key: `checkout:${await actorKey(context)}` });
   if (!result.success) {
     context.header("Retry-After", "60");
     throw new ApiError(
       429,
       "checkout_rate_limited",
       "Too many checkout attempts. Wait before trying again.",
+    );
+  }
+}
+
+export async function enforceAnalyticsRateLimit(
+  context: Context<ApiEnvironment>,
+  limiter: RateLimiter | undefined,
+): Promise<void> {
+  if (!limiter) return;
+  const result = await limiter.limit({ key: `analytics:${await actorKey(context)}` });
+  if (!result.success) {
+    context.header("Retry-After", "60");
+    throw new ApiError(
+      429,
+      "analytics_rate_limited",
+      "Too many analytics events. Wait before trying again.",
     );
   }
 }

@@ -66,6 +66,8 @@ const toRootChildPath = (path: string) => {
 
 const routeIssues = validateTemplateRoutes(templateRoutes)
 const routerOptions = APP_BASE_PATH ? { basename: APP_BASE_PATH } : undefined
+const templateRoutesEnabled =
+  typeof __ENABLE_TEMPLATE_ROUTES__ === 'undefined' || __ENABLE_TEMPLATE_ROUTES__
 const legacyTemplateRouteMap: Record<string, string> = {
   '/dev': '/template',
   '/dev/dashboard/analysis': '/template/dashboard/analysis',
@@ -103,6 +105,61 @@ const invalidRouter = createBrowserRouter([
   },
 ], routerOptions)
 
+const developmentRouteBranches = templateRoutesEnabled
+  ? [
+      {
+        path: '/dev',
+        element: (
+          <RequireAuth>
+            <AppShell routes={templateRoutes} />
+          </RequireAuth>
+        ),
+        children: [
+          ...templateRoutes
+            .filter((route) => route.path !== '*' && route.path.startsWith('/dev'))
+            .map((route) => ({
+              path: toChildPath(route.path, '/dev/' as const),
+              index: route.path === '/dev',
+              element: (
+                <PermissionGuard permission={route.permission}>
+                  {route.component()}
+                </PermissionGuard>
+              ),
+            })),
+          {
+            path: '*',
+            element: <LegacyDevRouteRedirect />,
+          },
+        ],
+      },
+      {
+        path: '/template',
+        element: (
+          <RequireAuth>
+            <AppShell routes={templateRoutes} />
+          </RequireAuth>
+        ),
+        children: [
+          ...templateRoutes
+            .filter((route) => route.path !== '*' && route.path.startsWith('/template'))
+            .map((route) => ({
+              path: toChildPath(route.path, '/template/' as const),
+              index: route.path === '/template',
+              element: (
+                <PermissionGuard permission={route.permission}>
+                  {route.component()}
+                </PermissionGuard>
+              ),
+            })),
+          {
+            path: '*',
+            element: templateRoutes.find((route) => route.path === '*')?.component(),
+          },
+        ],
+      },
+    ]
+  : []
+
 const validRouter = createBrowserRouter([
   {
     path: '/login',
@@ -134,48 +191,7 @@ const validRouter = createBrowserRouter([
         })),
     ],
   },
-  {
-    path: '/dev',
-    element: (
-      <RequireAuth>
-        <AppShell routes={templateRoutes} />
-      </RequireAuth>
-    ),
-    children: [
-      ...templateRoutes
-        .filter((route) => route.path !== '*' && route.path.startsWith('/dev'))
-        .map((route) => ({
-          path: toChildPath(route.path, '/dev/'),
-          index: route.path === '/dev',
-          element: <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>,
-        })),
-      {
-        path: '*',
-        element: <LegacyDevRouteRedirect />,
-      },
-    ],
-  },
-  {
-    path: '/template',
-    element: (
-      <RequireAuth>
-        <AppShell routes={templateRoutes} />
-      </RequireAuth>
-    ),
-    children: [
-      ...templateRoutes
-        .filter((route) => route.path !== '*' && route.path.startsWith('/template'))
-        .map((route) => ({
-          path: toChildPath(route.path, '/template/'),
-          index: route.path === '/template',
-          element: <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>,
-        })),
-      {
-        path: '*',
-        element: templateRoutes.find((route) => route.path === '*')?.component(),
-      },
-    ],
-  },
+  ...developmentRouteBranches,
   {
     path: '*',
     element: <Navigate to="/" replace />,

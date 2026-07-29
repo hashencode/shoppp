@@ -15,6 +15,7 @@ import {
 } from "../notifications/templates";
 import type { PaymentProvider } from "../payments/port";
 import { createStripePaymentProvider } from "../payments/stripe-adapter";
+import { writeCommerceEvent } from "../observability/logger";
 import { deliverProviderRecoveryJob } from "../recovery/provider-events";
 import {
   completedAtAfter,
@@ -183,13 +184,14 @@ export async function deliverAutomationJob(
   jobId: string,
   now = new Date().toISOString(),
   from = "orders@shoppp.example",
+  onPurchaseConfirmed?: () => void,
 ): Promise<NotificationDeliveryResult> {
   const job = await db
     .prepare("SELECT kind FROM notification_jobs WHERE id = ?")
     .bind(jobId)
     .first<{ kind: "notification" | "provider_recovery" }>();
   if (job?.kind === "provider_recovery") {
-    return deliverProviderRecoveryJob(db, paymentProvider, jobId, now);
+    return deliverProviderRecoveryJob(db, paymentProvider, jobId, now, onPurchaseConfirmed);
   }
   return deliverNotificationJob(db, emailProvider, storefrontOrigin, jobId, now, from);
 }
@@ -220,6 +222,10 @@ export class NotificationDeliveryWorkflow extends WorkflowEntrypoint<
             event.payload.jobId,
             new Date().toISOString(),
             this.env.EMAIL_FROM,
+            () =>
+              writeCommerceEvent(this.env.OBSERVABILITY, this.env.ENVIRONMENT, {
+                event: "purchase_confirmed",
+              }),
           ),
       );
       if (result.status !== "retry") return result;

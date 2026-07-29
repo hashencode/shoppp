@@ -11,6 +11,7 @@ import type { PermissionKey } from '../../../infrastructure/auth/permissions'
 type UseFormModeAccessOptions = {
   searchParams: URLSearchParams
   role: Role
+  permissions?: readonly PermissionKey[]
   readPermission?: PermissionKey
   writePermission?: PermissionKey
 }
@@ -25,6 +26,7 @@ type FormModeAccessResult = {
 export const useFormModeAccess = ({
   searchParams,
   role,
+  permissions,
   readPermission = 'form.read',
   writePermission = 'form.write',
 }: UseFormModeAccessOptions): FormModeAccessResult => {
@@ -40,11 +42,11 @@ export const useFormModeAccess = ({
     }
 
     if (parsedMode.mode === 'readonly') {
-      return !hasPermission(role, readPermission)
+      return !hasPermission(role, readPermission, permissions)
     }
 
-    return !hasPermission(role, writePermission)
-  }, [parsedMode, readPermission, role, writePermission])
+    return !hasPermission(role, writePermission, permissions)
+  }, [parsedMode, permissions, readPermission, role, writePermission])
 
   return {
     parsedMode,

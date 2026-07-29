@@ -7,3 +7,4 @@ export * from "./inventory";
 export * from "./platform";
 export * from "./privacy";
 export * from "./reporting";
+export * from "./shipping";

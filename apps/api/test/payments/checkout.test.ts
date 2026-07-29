@@ -114,8 +114,8 @@ async function seedCheckout(): Promise<SeededCheckout> {
   const lineId = publicId("cl", sequence);
   const listId = publicId("pl", sequence);
   const priceId = publicId("price", sequence);
-  const zoneId = publicId("zone", sequence);
-  const shippingMethodId = publicId("ship", sequence);
+  const zoneId = publicId("zone", 1);
+  const shippingMethodId = publicId("ship", 1);
   const cartToken = `cartToken${sequence}`.padEnd(43, "A");
   const now = new Date().toISOString();
   const future = new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString();
@@ -157,14 +157,14 @@ async function seedCheckout(): Promise<SeededCheckout> {
        VALUES (?, 'wh_primary', 5, 0, 0, 0, ?)`,
     ).bind(variantId, now),
     env.DB.prepare(
-      `INSERT INTO shipping_zones (id, name, status, created_at, updated_at)
-       VALUES (?, ?, 'active', ?, ?)`,
-    ).bind(zoneId, `US Zone ${sequence}`, now, now),
+      `INSERT OR IGNORE INTO shipping_zones (id, name, status, created_at, updated_at)
+       VALUES (?, 'US Test Zone', 'active', ?, ?)`,
+    ).bind(zoneId, now, now),
     env.DB.prepare(
-      "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES (?, 'US')",
+      "INSERT OR IGNORE INTO shipping_zone_countries (zone_id, country_code) VALUES (?, 'US')",
     ).bind(zoneId),
     env.DB.prepare(
-      `INSERT INTO shipping_methods
+      `INSERT OR IGNORE INTO shipping_methods
          (id, zone_id, name, calculation_type, price_amount, currency,
           status, created_at, updated_at)
        VALUES (?, ?, 'Tracked shipping', 'flat', 500, 'USD', 'active', ?, ?)`,
@@ -524,6 +524,7 @@ describe("hosted checkout and payment convergence", () => {
     ).resolves.toMatchObject({ status: "retry" });
     provider.retrieveError = null;
     provider.sessions.set(session.id, { ...session, paymentState: "approved" });
+    const purchaseConfirmed = vi.fn();
     await expect(
       deliverAutomationJob(
         env.DB,
@@ -532,8 +533,11 @@ describe("hosted checkout and payment convergence", () => {
         "https://shop.example.test",
         recovery!.id,
         "2026-07-30T04:10:00.000Z",
+        undefined,
+        purchaseConfirmed,
       ),
     ).resolves.toMatchObject({ status: "sent" });
+    expect(purchaseConfirmed).toHaveBeenCalledOnce();
     expect(
       await env.DB.prepare("SELECT COUNT(*) AS count FROM orders WHERE checkout_attempt_id = ?")
         .bind(created.data.attemptId)
