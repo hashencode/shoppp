@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_id:
-        description: Unique release ID (for example 2026-07-30.1)
+        description: Approved immutable catalog release ID
         required: true
         type: string
 
@@ -23,6 +23,10 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    environment: staging
+    env:
+      NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+      NUXT_CATALOG_RELEASE_URL: ${{ vars.API_URL }}/build/catalog/releases/${{ inputs.release_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -43,8 +47,10 @@ jobs:
           if-no-files-found: error
           path: |
             apps/admin/dist/
+            apps/admin/worker-dist/
             apps/api/dist/
             apps/storefront/.output/public/
+            apps/storefront/worker-dist/
             artifacts/releases/${{ inputs.release_id }}.json
             packages/db/migrations/
 
@@ -70,9 +76,9 @@ jobs:
         run: bunx wrangler d1 migrations apply DB --env staging --remote
       - name: Upload saved staging versions
         run: |
-          (cd apps/api && bunx wrangler versions upload --env staging --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
-          (cd apps/admin && bunx wrangler versions upload --env staging --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
-          (cd apps/storefront && bunx wrangler versions upload --env staging --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/api && bunx wrangler versions upload dist/index.js --env staging --no-bundle --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/admin && bunx wrangler versions upload worker-dist/index.js --env staging --no-bundle --assets dist --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/storefront && bunx wrangler versions upload worker-dist/index.js --env staging --no-bundle --assets .output/public --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
       - name: Deploy saved staging versions
         run: |
           (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
@@ -167,9 +173,9 @@ jobs:
         run: bunx wrangler d1 migrations apply DB --env production --remote
       - name: Upload production-bound saved versions
         run: |
-          (cd apps/api && bunx wrangler versions upload --env production --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
-          (cd apps/admin && bunx wrangler versions upload --env production --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
-          (cd apps/storefront && bunx wrangler versions upload --env production --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/api && bunx wrangler versions upload dist/index.js --env production --no-bundle --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/admin && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets dist --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/storefront && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets .output/public --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
       - name: Deploy production versions after environment approval
         run: |
           (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)

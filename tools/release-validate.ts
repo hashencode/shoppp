@@ -111,10 +111,10 @@ export async function digestArtifact(path: string, root = ROOT): Promise<string>
 async function artifactDigests(): Promise<Record<string, string>> {
   const paths = [
     "apps/storefront/.output/public",
-    "apps/storefront/worker",
+    "apps/storefront/worker-dist",
     "apps/storefront/wrangler.jsonc",
     "apps/admin/dist",
-    "apps/admin/worker",
+    "apps/admin/worker-dist",
     "apps/admin/wrangler.jsonc",
     "apps/api/dist",
     "apps/api/wrangler.jsonc",
@@ -147,6 +147,29 @@ export async function assertProductionApproval(options: {
     "production commit differs from the staging-validated commit",
   );
   return report;
+}
+
+export function assertCatalogReleaseSource(options: {
+  catalogReleaseToken?: string;
+  catalogReleaseUrl?: string;
+  releaseId: string;
+  stagingApiOrigin?: string;
+}): void {
+  const token = options.catalogReleaseToken?.trim();
+  const url = options.catalogReleaseUrl?.trim();
+  const stagingApiOrigin = options.stagingApiOrigin?.trim();
+  assert(token && token.length >= 32, "strict staging validation requires a build manifest token");
+  assert(url, "strict staging validation requires NUXT_CATALOG_RELEASE_URL");
+  assert(stagingApiOrigin, "staging API PUBLIC_ORIGIN is missing");
+
+  const source = new URL(url);
+  const expectedOrigin = new URL(stagingApiOrigin).origin;
+  assert(source.origin === expectedOrigin, "catalog release source crosses the staging API origin");
+  assert(
+    source.pathname === `/build/catalog/releases/${encodeURIComponent(options.releaseId)}`,
+    "catalog release source does not match the selected release ID",
+  );
+  assert(!source.username && !source.password, "catalog release URL must not embed credentials");
 }
 
 async function runGate(gate: GateDefinition): Promise<GateResult> {
@@ -202,6 +225,21 @@ export async function validateRelease(options: {
   const snapshots = await verifyEnvironmentIsolation({
     strictProduction: strictEnvironment,
   });
+  if (strictEnvironment && !options.promotion) {
+    const staging = snapshots.find((snapshot) => snapshot.environment === "staging");
+    assertCatalogReleaseSource({
+      releaseId,
+      ...(staging?.apiVariables.PUBLIC_ORIGIN
+        ? { stagingApiOrigin: staging.apiVariables.PUBLIC_ORIGIN }
+        : {}),
+      ...(process.env.NUXT_CATALOG_RELEASE_URL
+        ? { catalogReleaseUrl: process.env.NUXT_CATALOG_RELEASE_URL }
+        : {}),
+      ...(process.env.NUXT_CATALOG_RELEASE_TOKEN
+        ? { catalogReleaseToken: process.env.NUXT_CATALOG_RELEASE_TOKEN }
+        : {}),
+    });
+  }
   if (options.promotion) {
     assert(options.target === "production", "promotion mode is only valid for production");
     assert(stagingEvidence, "promotion mode requires a passing staging report");

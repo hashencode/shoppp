@@ -2,7 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { RELEASE_GATES, assertProductionApproval, digestArtifact } from "./release-validate";
+import {
+  RELEASE_GATES,
+  assertCatalogReleaseSource,
+  assertProductionApproval,
+  digestArtifact,
+} from "./release-validate";
 
 const temporaryDirectories: string[] = [];
 
@@ -45,5 +50,25 @@ describe("release validation", () => {
     await expect(assertProductionApproval({ target: "production", commit: "abc" })).rejects.toThrow(
       /RELEASE_APPROVED_BY/,
     );
+  });
+
+  test("strict staging builds fetch the selected immutable catalog release", () => {
+    expect(() =>
+      assertCatalogReleaseSource({
+        catalogReleaseToken: "a".repeat(32),
+        catalogReleaseUrl:
+          "https://api.staging.example.com/build/catalog/releases/release-2026-07-30",
+        releaseId: "release-2026-07-30",
+        stagingApiOrigin: "https://api.staging.example.com",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertCatalogReleaseSource({
+        catalogReleaseToken: "a".repeat(32),
+        catalogReleaseUrl: "https://api.example.com/build/catalog/releases/release-2026-07-30",
+        releaseId: "release-2026-07-30",
+        stagingApiOrigin: "https://api.staging.example.com",
+      }),
+    ).toThrow(/crosses the staging API origin/);
   });
 });

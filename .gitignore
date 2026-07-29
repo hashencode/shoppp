@@ -8,6 +8,7 @@
 .wrangler/
 coverage/
 dist/
+worker-dist/
 apps/storefront/dist
 node_modules/
 playwright-report/

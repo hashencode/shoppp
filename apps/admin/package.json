@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "build:test": "tsc -b && rsbuild build --env-mode test && rm -f dist/mockServiceWorker.js",
-    "build:production": "tsc -b && rsbuild build --env-mode production && rm -f dist/mockServiceWorker.js",
+    "build:production": "tsc -b && rsbuild build --env-mode production && rm -f dist/mockServiceWorker.js && wrangler deploy --dry-run --outdir worker-dist --env=\"\"",
     "test": "rstest run",
     "test:watch": "rstest watch",
     "test:browser": "rstest run -c rstest.browser.config.ts",
