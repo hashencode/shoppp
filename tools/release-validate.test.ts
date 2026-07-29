@@ -1,0 +1,49 @@
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { RELEASE_GATES, assertProductionApproval, digestArtifact } from "./release-validate";
+
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true })),
+  );
+});
+
+describe("release validation", () => {
+  test("aggregates every verification-contract gate", () => {
+    expect(RELEASE_GATES.map((gate) => gate.name)).toEqual([
+      "reproducible-install",
+      "format",
+      "lint",
+      "types",
+      "unit-contract",
+      "worker-integration",
+      "admin-browser",
+      "production-builds",
+      "static-output",
+      "browser-journeys",
+      "accessibility",
+      "performance",
+    ]);
+  });
+
+  test("artifact digest changes when content changes", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "shoppp-release-"));
+    temporaryDirectories.push(root);
+    const artifact = resolve(root, "artifact");
+    await mkdir(artifact);
+    await writeFile(resolve(artifact, "index.html"), "first");
+    const first = await digestArtifact(artifact, root);
+    await writeFile(resolve(artifact, "index.html"), "second");
+    expect(await digestArtifact(artifact, root)).not.toBe(first);
+  });
+
+  test("production cannot promote without human and staging evidence", async () => {
+    await expect(assertProductionApproval({ target: "production", commit: "abc" })).rejects.toThrow(
+      /RELEASE_APPROVED_BY/,
+    );
+  });
+});

@@ -36,6 +36,12 @@ import {
 import { useTheme, type FormContentAlign, type ThemeMode } from '../contexts/theme-context'
 import { getDisplayNameAvatarText, normalizeDisplayName } from '../utils/display-name'
 
+const templateRoutesEnabled =
+  typeof __ENABLE_TEMPLATE_ROUTES__ !== 'undefined' && __ENABLE_TEMPLATE_ROUTES__
+const loadMocking = templateRoutesEnabled
+  ? () => import('../../infrastructure/msw/browser')
+  : undefined
+
 const { Header, Content, Sider } = Layout
 void React
 
@@ -339,13 +345,13 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   }
 
   const handleMswSwitchChange = async (checked: boolean) => {
-    if (!isMswGlobalToggleAvailable || switchLoading) {
+    if (!isMswGlobalToggleAvailable || !loadMocking || switchLoading) {
       return
     }
 
     setSwitchLoading(true)
     try {
-      const { disableMocking, enableMocking } = await import('../../infrastructure/msw/browser')
+      const { disableMocking, enableMocking } = await loadMocking()
       if (checked) {
         await enableMocking()
       } else {
@@ -377,7 +383,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
             style={{ color: token.colorText }}
             onClick={() => navigate('/')}
           >
-            <span className="text-base tracking-[0.2px]">Admin Quick Start</span>
+            <span className="text-base tracking-[0.2px]">Shoppp Operations</span>
           </div>
         </div>
 

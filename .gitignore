@@ -12,5 +12,6 @@ apps/storefront/dist
 node_modules/
 playwright-report/
 test-results/
+artifacts/releases/
 *.local
 *.log

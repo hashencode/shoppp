@@ -1,0 +1,177 @@
+name: Deploy immutable commerce release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Unique release ID (for example 2026-07-30.1)
+        required: true
+        type: string
+
+concurrency:
+  group: commerce-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_ID: ${{ inputs.release_id }}
+  RELEASE_TAG: release-${{ github.sha }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - name: Install browser runtime
+        run: bunx playwright install --with-deps chromium
+      - name: Validate locked staging candidate
+        env:
+          RELEASE_STRICT_ENVIRONMENT: "true"
+          RELEASE_TARGET: staging
+        run: bun run release:validate -- --release-id "$RELEASE_ID"
+      - name: Package the validated workspace and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: validated-${{ inputs.release_id }}
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            apps/admin/dist/
+            apps/api/dist/
+            apps/storefront/.output/public/
+            artifacts/releases/${{ inputs.release_id }}.json
+            packages/db/migrations/
+
+  deploy-staging:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: validated-${{ inputs.release_id }}
+      - name: Apply staging D1 migrations
+        working-directory: apps/api
+        run: bunx wrangler d1 migrations apply DB --env staging --remote
+      - name: Upload saved staging versions
+        run: |
+          (cd apps/api && bunx wrangler versions upload --env staging --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/admin && bunx wrangler versions upload --env staging --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/storefront && bunx wrangler versions upload --env staging --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+      - name: Deploy saved staging versions
+        run: |
+          (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
+          (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
+          (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
+
+  prove-staging:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment: staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      API_E2E_BASE_URL: ${{ vars.API_URL }}
+      ADMIN_E2E_BASE_URL: ${{ vars.ADMIN_URL }}
+      STOREFRONT_E2E_BASE_URL: ${{ vars.STOREFRONT_URL }}
+      E2E_CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      E2E_CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      E2E_STRIPE_TEST_CARD: ${{ secrets.STRIPE_TEST_CARD }}
+      E2E_OPERATOR_EMAIL: ${{ vars.OPERATOR_EMAIL }}
+      E2E_PROHIBITED_CF_ACCESS_CLIENT_ID: ${{ secrets.PROHIBITED_CF_ACCESS_CLIENT_ID }}
+      E2E_PROHIBITED_CF_ACCESS_CLIENT_SECRET: ${{ secrets.PROHIBITED_CF_ACCESS_CLIENT_SECRET }}
+      E2E_ORDER_REFERENCE: ${{ vars.ORDER_REFERENCE }}
+      E2E_PRODUCT_SLUG: ${{ vars.PRODUCT_SLUG }}
+      E2E_EXHAUSTED_NOTIFICATION_ID: ${{ vars.EXHAUSTED_NOTIFICATION_ID }}
+      E2E_LAST_KNOWN_GOOD_RELEASE_ID: ${{ vars.LAST_KNOWN_GOOD_RELEASE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - name: Verify public and protected deployment boundaries
+        run: bunx playwright test --config e2e/playwright.config.ts
+      - name: Enforce staging API p95 targets
+        run: bun run test:staging-latency
+      - name: Demonstrate last-known-good rollback
+        run: |
+          (cd apps/api && bunx wrangler rollback --env staging --message "$RELEASE_ID rollback rehearsal" --yes)
+          (cd apps/admin && bunx wrangler rollback --env staging --message "$RELEASE_ID rollback rehearsal" --yes)
+          (cd apps/storefront && bunx wrangler rollback --env staging --message "$RELEASE_ID rollback rehearsal" --yes)
+          curl --fail --silent --show-error "$API_E2E_BASE_URL/health"
+          curl --fail --silent --show-error "$STOREFRONT_E2E_BASE_URL/"
+          curl --fail --silent --show-error \
+            -H "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+            "$ADMIN_E2E_BASE_URL/"
+      - name: Restore the validated staging versions
+        run: |
+          (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
+          (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
+          (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
+      - name: Preserve staging journey evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-evidence-${{ inputs.release_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+
+  promote-production:
+    needs: [validate, prove-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: validated-${{ inputs.release_id }}
+      - name: Revalidate approved promotion against staging evidence
+        env:
+          RELEASE_APPROVED_BY: ${{ github.actor }}
+          RELEASE_STRICT_ENVIRONMENT: "true"
+          RELEASE_TARGET: production
+          STAGING_RELEASE_REPORT: artifacts/releases/${{ inputs.release_id }}.json
+        run: bun run release:validate -- --promotion --release-id "${RELEASE_ID}-production"
+      - name: Apply production D1 migrations after approved backup
+        working-directory: apps/api
+        run: bunx wrangler d1 migrations apply DB --env production --remote
+      - name: Upload production-bound saved versions
+        run: |
+          (cd apps/api && bunx wrangler versions upload --env production --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/admin && bunx wrangler versions upload --env production --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+          (cd apps/storefront && bunx wrangler versions upload --env production --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
+      - name: Deploy production versions after environment approval
+        run: |
+          (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
+          (cd apps/admin && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
+          (cd apps/storefront && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)

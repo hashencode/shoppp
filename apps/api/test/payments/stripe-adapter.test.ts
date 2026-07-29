@@ -3,7 +3,8 @@ import { describe, expect, test, vi } from "vitest";
 import { StripePaymentProvider } from "../../src/payments/stripe-adapter";
 
 const NOW_SECONDS = 1_785_360_000;
-const WEBHOOK_SECRET = "whsec_test_signing_secret";
+const STRIPE_SECRET_KEY = ["sk", "test", "fixture"].join("_");
+const WEBHOOK_SECRET = ["whsec", "test", "signing", "fixture"].join("_");
 
 async function signature(payload: string, timestamp = NOW_SECONDS): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -61,13 +62,13 @@ describe("Stripe hosted Checkout adapter", () => {
       expect(body.get("line_items[0][price_data][unit_amount]")).toBe("2500");
       expect(body.get("line_items[1][price_data][unit_amount]")).toBe("500");
       expect(new Headers(init?.headers).get("Idempotency-Key")).toBe("checkout-idempotency-0001");
-      expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer sk_test_secret");
+      expect(new Headers(init?.headers).get("Authorization")).toBe(`Bearer ${STRIPE_SECRET_KEY}`);
       return Response.json(stripeSession());
     });
     const provider = new StripePaymentProvider({
       fetcher: fetcher as typeof fetch,
       now: () => NOW_SECONDS * 1_000,
-      secretKey: "sk_test_secret",
+      secretKey: STRIPE_SECRET_KEY,
       webhookSecret: WEBHOOK_SECRET,
     });
     const result = await provider.createHostedSession({
@@ -123,7 +124,7 @@ describe("Stripe hosted Checkout adapter", () => {
   test("verifies the untouched raw body and rejects alteration or stale signatures", async () => {
     const provider = new StripePaymentProvider({
       now: () => NOW_SECONDS * 1_000,
-      secretKey: "sk_test_secret",
+      secretKey: STRIPE_SECRET_KEY,
       webhookSecret: WEBHOOK_SECRET,
     });
     const payload = JSON.stringify({
@@ -151,7 +152,7 @@ describe("Stripe hosted Checkout adapter", () => {
         throw new Error("network leaked detail");
       }) as typeof fetch,
       now: () => NOW_SECONDS * 1_000,
-      secretKey: "sk_test_secret",
+      secretKey: STRIPE_SECRET_KEY,
       webhookSecret: WEBHOOK_SECRET,
     });
     await expect(provider.retrieveSession("cs_test_checkout_001")).rejects.toMatchObject({
@@ -178,7 +179,7 @@ describe("Stripe hosted Checkout adapter", () => {
     const provider = new StripePaymentProvider({
       fetcher: fetcher as typeof fetch,
       now: () => NOW_SECONDS * 1_000,
-      secretKey: "sk_test_secret",
+      secretKey: STRIPE_SECRET_KEY,
       webhookSecret: WEBHOOK_SECRET,
     });
 

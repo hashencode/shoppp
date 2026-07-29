@@ -62,9 +62,9 @@ test("checkout persists the opaque access token and displays only provider-verif
   test.skip(testInfo.project.name === "no-js-desktop");
   let submitted: Record<string, unknown> | undefined;
   let orderLookups = 0;
-  await page.route("https://api.example.invalid/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const path = new URL(request.url()).pathname.replace(/^\/api/, "");
     if (path === "/cart") {
       await route.fulfill({ contentType: "application/json", json: { data: cart } });
       return;
@@ -148,7 +148,7 @@ test("checkout persists the opaque access token and displays only provider-verif
 test("a forged return URL cannot approve an order", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "no-js-desktop");
   let orderLookups = 0;
-  await page.route("https://api.example.invalid/orders/**", async (route) => {
+  await page.route("**/api/orders/**", async (route) => {
     orderLookups += 1;
     await route.abort();
   });

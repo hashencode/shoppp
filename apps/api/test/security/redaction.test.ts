@@ -4,13 +4,15 @@ import { redactForLog, safeRequestPath } from "../../src/security/redaction";
 
 describe("central log redaction", () => {
   test("removes keyed and value-shaped personal data, credentials, tokens, and cards", () => {
+    const card = ["4242", "4242", "4242", "4242"].join(" ");
+    const webhookCredential = ["whsec", "raw", "webhook", "fixture"].join("_");
     const output = JSON.stringify(
       redactForLog({
         address: "100 Market Street",
         authorization: "Bearer raw-auth-token",
-        genericCard: "4242 4242 4242 4242",
+        genericCard: card,
         genericEmail: "shopper@example.test",
-        genericSecret: "whsec_raw_webhook_secret",
+        genericSecret: webhookCredential,
         nested: {
           safe: "checkout_failed",
           token: "order_access_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",

@@ -12,24 +12,20 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      CLOUDFLARE_ACCOUNT_ID: ci-placeholder
-      CLOUDFLARE_API_TOKEN: ci-placeholder
-      STRIPE_SECRET_KEY: sk_test_placeholder
-      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
-      - name: Install locked dependencies
-        run: bun install --frozen-lockfile
-      - name: Lint and boundaries
-        run: bun run lint
-      - name: Static types
-        run: bun run typecheck
-      - name: Unit and contract tests
-        run: bun run test
-      - name: Production builds
-        run: bun run build
+      - name: Install browser runtime
+        run: bunx playwright install --with-deps chromium
+      - name: Validate release candidate
+        run: bun run release:validate -- --release-id "ci-${GITHUB_SHA}"
+      - name: Preserve release report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-report-${{ github.sha }}
+          path: artifacts/releases/
+          if-no-files-found: error

@@ -10,9 +10,15 @@ import './index.css'
 
 dayjs.locale('zh-cn')
 
+const templateRoutesEnabled =
+  typeof __ENABLE_TEMPLATE_ROUTES__ !== 'undefined' && __ENABLE_TEMPLATE_ROUTES__
+const loadMocking = templateRoutesEnabled
+  ? () => import('./infrastructure/msw/browser')
+  : undefined
+
 const bootstrap = async () => {
-  if (isMswGlobalToggleAvailable && getStoredMswEnabled()) {
-    const { enableMocking } = await import('./infrastructure/msw/browser')
+  if (isMswGlobalToggleAvailable && getStoredMswEnabled() && loadMocking) {
+    const { enableMocking } = await loadMocking()
     await enableMocking()
   }
 

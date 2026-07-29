@@ -35,7 +35,7 @@ export type TemplateRoute = {
   component: () => ReactNode
 }
 
-export const templateRoutes: TemplateRoute[] = [
+const commerceRoutes: TemplateRoute[] = [
   {
     key: 'commerce-dashboard',
     path: '/dashboard',
@@ -226,6 +226,12 @@ export const templateRoutes: TemplateRoute[] = [
         }))
       ),
   },
+]
+
+const templateRoutesEnabled =
+  typeof __ENABLE_TEMPLATE_ROUTES__ !== 'undefined' && __ENABLE_TEMPLATE_ROUTES__
+const developmentTemplateRoutes: TemplateRoute[] = templateRoutesEnabled
+  ? [
   {
     key: 'welcome',
     path: '/template',
@@ -420,6 +426,12 @@ export const templateRoutes: TemplateRoute[] = [
         }))
       ),
   },
+    ]
+  : []
+
+export const templateRoutes: TemplateRoute[] = [
+  ...commerceRoutes,
+  ...developmentTemplateRoutes,
   {
     key: 'exception-404',
     path: '*',
@@ -430,7 +442,7 @@ export const templateRoutes: TemplateRoute[] = [
     breadcrumb: ['异常页', '404'],
     component: () =>
       lazyPage(() =>
-        import('../pages/templates/exception/not-found-page').then((m) => ({
+        import('../pages/not-found-page').then((m) => ({
           default: m.NotFoundPage,
         }))
       ),

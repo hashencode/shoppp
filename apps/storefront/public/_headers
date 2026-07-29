@@ -1,0 +1,25 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(self)
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
+
+/_nuxt/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/cart
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex, nofollow
+
+/checkout*
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex, nofollow
+
+/orders/*
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex, nofollow

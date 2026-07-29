@@ -19,7 +19,7 @@ export type ApiError = Error & {
 }
 
 export const resolveApiBaseUrl = (apiBase?: string): string => {
-  return apiBase || '/'
+  return apiBase || '/api'
 }
 
 export const normalizeApiError = (error: unknown): ApiError => {
@@ -92,7 +92,7 @@ export const normalizeApiError = (error: unknown): ApiError => {
 }
 
 export const apiClient = axios.create({
-  // Prefer env-driven API base; fallback to same-origin.
+  // Production uses the environment-isolated same-origin Worker service binding.
   baseURL: resolveApiBaseUrl(import.meta.env.PUBLIC_API_BASE),
   timeout: 30_000,
 })

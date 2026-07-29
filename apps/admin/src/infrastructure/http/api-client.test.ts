@@ -150,7 +150,7 @@ describe('resolveApiBaseUrl', () => {
     expect(resolveApiBaseUrl('https://api.example.com')).toBe('https://api.example.com')
   })
 
-  it('should fallback to same-origin root when api base is missing', () => {
-    expect(resolveApiBaseUrl(undefined)).toBe('/')
+  it('should fallback to the environment-isolated same-origin API gateway', () => {
+    expect(resolveApiBaseUrl(undefined)).toBe('/api')
   })
 })

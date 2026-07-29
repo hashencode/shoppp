@@ -52,6 +52,7 @@ export default defineConfig(({ command, envMode }) => {
               target: apiProxyTarget,
               changeOrigin: true,
               secure: false,
+              pathRewrite: { '^/api': '' },
             },
           },
         }

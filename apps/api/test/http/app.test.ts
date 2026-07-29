@@ -2,6 +2,9 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { createApp } from "../../src/http/app";
+import { recordAuditEvent } from "../../src/iam/audit";
+import { requirePermission } from "../../src/iam/permissions";
+import { idempotency } from "../../src/middleware/idempotency";
 
 const NOW = "2026-07-30T00:00:00.000Z";
 
@@ -103,6 +106,21 @@ describe("API shell", () => {
         email: "access-user-001@example.test",
         subject: "access-user-001",
       }),
+    });
+    app.post("/admin/test/idempotent", idempotency("test.idempotent"), async (context) => {
+      await requirePermission(context, "operations.replay", { type: "test" });
+      const input = (await context.req.json()) as { value: string };
+      const principal = context.get("principal");
+      await recordAuditEvent(context.env.DB, {
+        action: "test.idempotent",
+        actorId: principal.id,
+        actorType: "admin",
+        id: crypto.randomUUID(),
+        requestId: context.get("requestId"),
+        result: "succeeded",
+        targetType: "test",
+      });
+      return context.json({ data: input, meta: { requestId: context.get("requestId") } });
     });
     const headers = { "Idempotency-Key": "idempotency-key-0001" };
     const first = await app.fetch(

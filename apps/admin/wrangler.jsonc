@@ -1,17 +1,37 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "shoppp-admin",
+  "main": "./worker/index.ts",
   "compatibility_date": "2026-07-30",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "services": [
+    {
+      "binding": "API",
+      "service": "shoppp-api-development"
+    }
+  ],
   "env": {
     "staging": {
-      "name": "shoppp-admin-staging"
+      "name": "shoppp-admin-staging",
+      "services": [
+        {
+          "binding": "API",
+          "service": "shoppp-api-staging"
+        }
+      ]
     },
     "production": {
-      "name": "shoppp-admin-production"
+      "name": "shoppp-admin-production",
+      "services": [
+        {
+          "binding": "API",
+          "service": "shoppp-api-production"
+        }
+      ]
     }
   }
 }

@@ -36,7 +36,7 @@ import { createProduct, getProduct, listProducts, updateProduct } from "../catal
 import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
-import { listAuditEvents, recordAuditEvent } from "../iam/audit";
+import { listAuditEvents } from "../iam/audit";
 import { requirePermission } from "../iam/permissions";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
@@ -98,7 +98,6 @@ export interface CreateAppOptions {
   readonly turnstileVerifier?: TurnstileVerifier;
 }
 
-const idempotentTestSchema = z.object({ value: z.string().min(1) }).strict();
 const notificationJobQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
@@ -808,21 +807,5 @@ export function createApp(options: CreateAppOptions = {}) {
       });
     },
   );
-  app.post("/admin/test/idempotent", idempotency("test.idempotent"), async (context) => {
-    await requirePermission(context, "operations.replay", { type: "test" });
-    const input = await parseJson(context, idempotentTestSchema);
-    const principal = context.get("principal");
-    await recordAuditEvent(context.env.DB, {
-      action: "test.idempotent",
-      actorId: principal.id,
-      actorType: "admin",
-      id: crypto.randomUUID(),
-      requestId: context.get("requestId"),
-      result: "succeeded",
-      targetType: "test",
-    });
-    return context.json({ data: input, meta: { requestId: context.get("requestId") } });
-  });
-
   return app;
 }

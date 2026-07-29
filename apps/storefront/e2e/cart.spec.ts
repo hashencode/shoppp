@@ -35,9 +35,9 @@ test("desktop and mobile add the same variant and render the API-authoritative q
 }, testInfo) => {
   test.skip(testInfo.project.name === "no-js-desktop");
   let submitted: Record<string, unknown> | undefined;
-  await page.route("https://api.example.invalid/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const path = new URL(request.url()).pathname.replace(/^\/api/, "");
     if (path.includes("/catalog/products/")) {
       await route.fulfill({
         contentType: "application/json",

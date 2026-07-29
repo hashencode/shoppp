@@ -30,6 +30,15 @@ export default defineNuxtConfig({
     screens: { xs: 390, sm: 640, md: 768, lg: 1024, xl: 1280 },
   },
   nitro: {
+    devProxy: process.env.API_PROXY_TARGET
+      ? {
+          "/api": {
+            target: process.env.API_PROXY_TARGET,
+            changeOrigin: true,
+            prependPath: false,
+          },
+        }
+      : {},
     prerender: {
       crawlLinks: true,
       failOnError: true,
@@ -45,7 +54,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || "https://api.example.invalid",
+      apiBase: "/api",
       siteOrigin: catalogRelease.site.origin,
       releaseId: catalogRelease.releaseId,
       freshnessHours: catalogRelease.site.freshnessHours,
