@@ -20,7 +20,13 @@ export function idempotency(scope: string): MiddlewareHandler<ApiEnvironment> {
       );
     }
     const body = await context.req.raw.clone().text();
-    const requestHash = await sha256(`${context.req.method}:${context.req.path}:${body}`);
+    const credential =
+      context.req.header("authorization") ??
+      context.req.header("cf-access-jwt-assertion") ??
+      "anonymous";
+    const requestHash = await sha256(
+      `${context.req.method}:${context.req.path}:${credential}:${body}`,
+    );
     const claimId = crypto.randomUUID();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1_000).toISOString();

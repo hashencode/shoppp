@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { catalogRelease } from "~/generated/catalog";
+import { useGuestCart } from "~/features/cart/use-guest-cart";
 import { breadcrumbStructuredData, canonicalUrl, productStructuredData } from "~/utils/seo";
 
 const route = useRoute();
@@ -8,13 +9,13 @@ if (!product) throw createError({ statusCode: 404, statusMessage: "Product not f
 const collection = catalogRelease.collections.find((item) =>
   product.collectionSlugs.includes(item.slug),
 );
-const selectedVariant = ref(product.variants[0]?.sku ?? "");
+const selectedVariant = ref(product.variants[0]?.id ?? "");
 const selectedCurrency = ref(catalogRelease.site.defaultCurrency);
 const liveMessage = ref(
   `Static catalog facts are refreshed within ${catalogRelease.site.freshnessHours} hours.`,
 );
 const variant = computed(
-  () => product.variants.find((item) => item.sku === selectedVariant.value) ?? product.variants[0],
+  () => product.variants.find((item) => item.id === selectedVariant.value) ?? product.variants[0],
 );
 const price = computed(
   () =>
@@ -26,6 +27,7 @@ const currencies = [
 ];
 const canonical = canonicalUrl(catalogRelease.site.origin, `/products/${product.slug}`);
 const image = product.media[0];
+const { add, busy: cartBusy, error: cartError } = useGuestCart();
 
 const formatMoney = (amount: number, currency: string) =>
   new Intl.NumberFormat("en", { style: "currency", currency }).format(amount / 100);
@@ -67,7 +69,7 @@ useHead({
 onMounted(async () => {
   try {
     const { getLiveProduct } = useCommerceApi();
-    const live = await getLiveProduct(product.slug);
+    const live = await getLiveProduct(product.slug, selectedCurrency.value);
     liveMessage.value = live.data.variants.some((item) => item.available)
       ? "Available. Final price and delivery are confirmed when added to cart."
       : "Currently unavailable.";
@@ -75,6 +77,20 @@ onMounted(async () => {
     liveMessage.value = "Live availability will be confirmed when added to cart.";
   }
 });
+
+const addToCart = async () => {
+  if (!variant.value || !price.value) return;
+  await add(
+    {
+      expectedUnitPrice: { amount: price.value.amount, currency: price.value.currency },
+      quantity: 1,
+      releaseId: catalogRelease.releaseId,
+      variantId: variant.value.id,
+    },
+    selectedCurrency.value,
+  );
+  await navigateTo("/cart");
+};
 </script>
 
 <template>
@@ -114,7 +130,7 @@ onMounted(async () => {
         <label>
           Variant
           <select v-model="selectedVariant">
-            <option v-for="item in product.variants" :key="item.sku" :value="item.sku">
+            <option v-for="item in product.variants" :key="item.id" :value="item.id">
               {{ item.title }} · {{ item.optionValues.color }}
             </option>
           </select>
@@ -127,7 +143,10 @@ onMounted(async () => {
             </option>
           </select>
         </label>
-        <button class="buy-button" type="button">Add to bag</button>
+        <button class="buy-button" type="button" :disabled="cartBusy" @click="addToCart">
+          {{ cartBusy ? "Checking…" : "Add to bag" }}
+        </button>
+        <p v-if="cartError" class="form-error" role="alert">{{ cartError }}</p>
         <p role="status">{{ liveMessage }}</p>
         <p>
           Weight: {{ variant?.weightGrams }} g. Delivery eligibility and stock are validated against

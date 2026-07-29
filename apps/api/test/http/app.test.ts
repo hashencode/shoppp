@@ -132,6 +132,19 @@ describe("API shell", () => {
       )?.count,
     ).toBe(1);
 
+    const differentCredential = await app.fetch(
+      adminRequest("/admin/test/idempotent", {
+        body: JSON.stringify({ value: "first" }),
+        headers: {
+          "Cf-Access-Jwt-Assertion": "another-principal-token",
+          "Idempotency-Key": "idempotency-key-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(differentCredential.status).toBe(409);
+
     const conflict = await app.fetch(
       adminRequest("/admin/test/idempotent", {
         body: JSON.stringify({ value: "different" }),

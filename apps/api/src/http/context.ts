@@ -15,6 +15,7 @@ export interface ApiBindings {
   BUILD_MANIFEST_TOKEN?: string;
   MEDIA_PUBLIC_ORIGIN: string;
   STOREFRONT_ORIGIN: string;
+  TAX_MODE: "zero";
 }
 
 export interface ApiVariables {

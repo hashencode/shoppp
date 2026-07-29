@@ -13,6 +13,7 @@ export interface StorefrontPrice {
 }
 
 export interface StorefrontVariant {
+  id: string;
   optionValues: Record<string, string>;
   prices: StorefrontPrice[];
   sku: string;
@@ -271,6 +272,7 @@ export async function buildCatalogReleaseManifest(
       .filter((variant) => variant.product_id === product.id)
       .map((variant) => ({
         optionValues: parseSetting<Record<string, string>>(variant.option_values_json, {}),
+        id: variant.id,
         prices: prices.results
           .filter((price) => price.variant_id === variant.id)
           .map((price) => ({ amount: price.amount, currency: price.currency })),
@@ -344,7 +346,10 @@ export function buildStaticRouteManifest(input: BuildCatalogInput): StaticRouteM
     ...input,
     collections: publishedCollections,
     generatedAt: new Date().toISOString(),
-    products: publishedProducts,
+    products: publishedProducts.map((product) => ({
+      ...product,
+      variants: product.variants.filter((variant) => variant.status === "active"),
+    })),
     redirects: input.redirects.map((redirect) => ({ ...redirect, status: 301 })),
     routes: uniqueRoutes,
     schemaVersion: 1,

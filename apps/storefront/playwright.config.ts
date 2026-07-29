@@ -16,6 +16,10 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "no-js-desktop",
       use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
     },

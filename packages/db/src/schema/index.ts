@@ -164,17 +164,81 @@ export const inventoryReservations = sqliteTable(
   ],
 );
 
-export const carts = sqliteTable("carts", {
+export const carts = sqliteTable(
+  "carts",
+  {
+    id: text("id").primaryKey(),
+    publicTokenHash: text("public_token_hash").notNull().unique(),
+    currency: text("currency").notNull(),
+    pricingContextJson: text("pricing_context_json").notNull().default("{}"),
+    promotionContextJson: text("promotion_context_json").notNull().default("{}"),
+    shippingCountry: text("shipping_country"),
+    shippingAddressJson: text("shipping_address_json"),
+    shippingMethodId: text("shipping_method_id"),
+    status: text("status", { enum: ["active", "converted", "expired"] }).notNull(),
+    expiresAt: text("expires_at").notNull(),
+    ...timestamps,
+  },
+  (table) => [index("carts_status_expiry_idx").on(table.status, table.expiresAt)],
+);
+
+export const cartLines = sqliteTable(
+  "cart_lines",
+  {
+    id: text("id").primaryKey(),
+    cartId: text("cart_id")
+      .notNull()
+      .references(() => carts.id, { onDelete: "cascade" }),
+    variantId: text("variant_id")
+      .notNull()
+      .references(() => productVariants.id, { onDelete: "restrict" }),
+    quantity: integer("quantity").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("cart_lines_cart_variant_unique").on(table.cartId, table.variantId),
+    index("cart_lines_cart_idx").on(table.cartId, table.createdAt),
+    check("cart_lines_quantity_positive", sql`${table.quantity} > 0`),
+  ],
+);
+
+export const shippingZones = sqliteTable("shipping_zones", {
   id: text("id").primaryKey(),
-  publicTokenHash: text("public_token_hash").notNull().unique(),
-  currency: text("currency").notNull(),
-  pricingContextJson: text("pricing_context_json").notNull().default("{}"),
-  promotionContextJson: text("promotion_context_json").notNull().default("{}"),
-  shippingCountry: text("shipping_country"),
-  status: text("status", { enum: ["active", "converted", "expired"] }).notNull(),
-  expiresAt: text("expires_at").notNull(),
+  name: text("name").notNull(),
+  status: text("status", { enum: ["active", "disabled"] }).notNull(),
   ...timestamps,
 });
+
+export const shippingZoneCountries = sqliteTable(
+  "shipping_zone_countries",
+  {
+    zoneId: text("zone_id")
+      .notNull()
+      .references(() => shippingZones.id, { onDelete: "cascade" }),
+    countryCode: text("country_code").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.zoneId, table.countryCode] })],
+);
+
+export const shippingMethods = sqliteTable(
+  "shipping_methods",
+  {
+    id: text("id").primaryKey(),
+    zoneId: text("zone_id")
+      .notNull()
+      .references(() => shippingZones.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    calculationType: text("calculation_type", { enum: ["flat", "weight"] }).notNull(),
+    priceAmount: integer("price_amount").notNull(),
+    currency: text("currency").notNull(),
+    freeThresholdAmount: integer("free_threshold_amount"),
+    minWeightGrams: integer("min_weight_grams"),
+    maxWeightGrams: integer("max_weight_grams"),
+    status: text("status", { enum: ["active", "disabled"] }).notNull(),
+    ...timestamps,
+  },
+  (table) => [index("shipping_methods_zone_idx").on(table.zoneId, table.status)],
+);
 
 export const checkoutAttempts = sqliteTable("checkout_attempts", {
   id: text("id").primaryKey(),

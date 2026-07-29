@@ -1,7 +1,27 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import * as z from "zod";
 
+import {
+  acknowledgeCartAdjustmentsSchema,
+  addCartLineRequestSchema,
+  createCartRequestSchema,
+  shippingQuoteRequestSchema,
+  updateCartLineRequestSchema,
+} from "@shoppp/contracts";
+
+import {
+  acknowledgeAdjustments,
+  addCartLine,
+  createCart,
+  quoteCart,
+  removeCartLine,
+  requireCart,
+  setCartShipping,
+  updateCartLine,
+} from "../cart/service";
 import { createProduct, getProduct, listProducts, updateProduct } from "../catalog/products";
+import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { recordAuditEvent } from "../iam/audit";
 import { requirePermission } from "../iam/permissions";
@@ -81,6 +101,97 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/health", (context) =>
     context.json({ data: { status: "ok" }, meta: { requestId: context.get("requestId") } }),
   );
+  const publicCors = cors({
+    allowHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Request-Id"],
+    allowMethods: ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"],
+    credentials: false,
+    origin: (origin, context) => (origin === context.env.STOREFRONT_ORIGIN ? origin : ""),
+  });
+  app.use("/cart", publicCors);
+  app.use("/cart/*", publicCors);
+  app.use("/catalog/*", publicCors);
+  app.get("/catalog/products/:slug/live", async (context) => {
+    const currency = (context.req.query("currency") ?? "USD").toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      throw new ApiError(422, "validation_failed", "Request validation failed.", [
+        { path: ["currency"], message: "Use a three-letter currency code." },
+      ]);
+    }
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await getLiveProduct(
+        context.env.DB,
+        context.req.param("slug"),
+        currency,
+        context.env.MEDIA_PUBLIC_ORIGIN,
+      ),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/cart", idempotency("cart.create"), async (context) => {
+    const input = await parseJson(context, createCartRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    return context.json(
+      { data: await createCart(context, input), meta: { requestId: context.get("requestId") } },
+      201,
+    );
+  });
+  app.get("/cart", async (context) => {
+    const cart = await requireCart(context);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await quoteCart(context.env.DB, cart, context.env.TAX_MODE),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/cart/lines", idempotency("cart.lines.add"), async (context) => {
+    const cart = await requireCart(context);
+    const input = await parseJson(context, addCartLineRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await addCartLine(context, cart, input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.patch("/cart/lines/:variantId", idempotency("cart.lines.update"), async (context) => {
+    const cart = await requireCart(context);
+    const input = await parseJson(context, updateCartLineRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await updateCartLine(context, cart, context.req.param("variantId"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.delete("/cart/lines/:variantId", idempotency("cart.lines.delete"), async (context) => {
+    const cart = await requireCart(context);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await removeCartLine(context, cart, context.req.param("variantId")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/cart/adjustments/acknowledge",
+    idempotency("cart.adjustments.acknowledge"),
+    async (context) => {
+      const cart = await requireCart(context);
+      const input = await parseJson(context, acknowledgeCartAdjustmentsSchema);
+      context.header("Cache-Control", "private, no-store");
+      return context.json({
+        data: await acknowledgeAdjustments(context, cart, input.codes),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.put("/cart/shipping", idempotency("cart.shipping.quote"), async (context) => {
+    const cart = await requireCart(context);
+    const input = await parseJson(context, shippingQuoteRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await setCartShipping(context, cart, input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.get("/build/catalog/releases/:id", async (context) => {
     const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
     if (!expectedToken || expectedToken.length < 32) {

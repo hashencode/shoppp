@@ -1,5 +1,12 @@
 <script setup lang="ts">
+import type { Cart } from "@shoppp/contracts";
+
 import { catalogRelease } from "~/generated/catalog";
+
+const cart = useState<Cart | null>("guest-cart", () => null);
+const bagCount = computed(
+  () => cart.value?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0,
+);
 </script>
 
 <template>
@@ -17,7 +24,9 @@ import { catalogRelease } from "~/generated/catalog";
         </NuxtLink>
         <NuxtLink to="/policies/shipping">Shipping</NuxtLink>
       </nav>
-      <NuxtLink class="bag-link" to="/cart" aria-label="View shopping bag">Bag · 0</NuxtLink>
+      <NuxtLink class="bag-link" to="/cart" aria-label="View shopping bag">
+        Bag · {{ bagCount }}
+      </NuxtLink>
     </header>
     <main id="main-content" tabindex="-1">
       <slot />

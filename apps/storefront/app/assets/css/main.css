@@ -248,6 +248,95 @@ select:focus-visible {
   letter-spacing: -0.1em;
   line-height: 0.8;
 }
+.commerce-shell {
+  width: min(1180px, 100% - 2rem);
+  min-height: 65vh;
+  margin: 0 auto;
+  padding: clamp(2rem, 7vw, 6rem) 0;
+}
+.commerce-shell h1 {
+  font-size: clamp(2.6rem, 7vw, 5.5rem);
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+.cart-lines {
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.cart-lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8rem auto auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.cart-item-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+.cart-lines input,
+.address-fields input,
+.address-fields select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--ink);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  padding: 0.65rem;
+}
+.totals {
+  width: min(100%, 430px);
+  margin: 2rem 0 2rem auto;
+}
+.totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0.35rem 0;
+}
+.totals dd {
+  margin: 0;
+}
+.totals .total {
+  margin-top: 0.7rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ink);
+  font-weight: 800;
+}
+.adjustments,
+.form-error {
+  padding: 1rem;
+  border: 1px solid #956d00;
+  background: #fff3c4;
+}
+.checkout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: clamp(2rem, 7vw, 7rem);
+}
+.address-fields,
+.shipping-methods {
+  display: grid;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 0;
+  border: 0;
+}
+.address-fields label {
+  display: grid;
+  gap: 0.35rem;
+}
+.shipping-methods label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+}
 
 @media (max-width: 760px) {
   .site-header {
@@ -263,6 +352,10 @@ select:focus-visible {
     padding: 2.5rem 1.25rem 4rem;
   }
   .site-footer {
+    grid-template-columns: 1fr;
+  }
+  .checkout-grid,
+  .cart-lines li {
     grid-template-columns: 1fr;
   }
 }

@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const currencyCodeSchema = z.string().regex(/^[A-Z]{3}$/);
 export const countryCodeSchema = z.string().regex(/^[A-Z]{2}$/);
-export const publicIdSchema = z.string().regex(/^[a-z]+_[A-Z0-9]{20,32}$/i);
+export const publicIdSchema = z.union([z.string().regex(/^[a-z]+_[A-Z0-9]{20,32}$/i), z.uuid()]);
 export const isoDateTimeSchema = z.iso.datetime({ offset: true });
 export const moneySchema = z
   .object({

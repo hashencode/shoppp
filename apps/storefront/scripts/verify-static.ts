@@ -26,6 +26,13 @@ for (const route of manifest.routes) {
   }
 }
 
+for (const route of ["/cart", "/checkout"]) {
+  const html = await readFile(outputPath(route), "utf8");
+  if (!/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html)) {
+    throw new Error(`${route} must be a deployable, non-indexable static commerce shell.`);
+  }
+}
+
 for (const file of ["404.html", "robots.txt", "sitemap.xml", "_redirects"]) {
   await stat(resolve(output, file));
 }
@@ -39,4 +46,17 @@ try {
   if (error instanceof Error && !("code" in error && error.code === "ENOENT")) throw error;
 }
 
-console.log(`Static SEO verification passed for ${manifest.routes.length} routes.`);
+const sitemapText = (
+  await Promise.all(
+    ["sitemap-products.xml", "sitemap-collections.xml", "sitemap-pages.xml"].map((name) =>
+      readFile(resolve(output, name), "utf8"),
+    ),
+  )
+).join("\n");
+if (sitemapText.includes("/cart") || sitemapText.includes("/checkout")) {
+  throw new Error("Private commerce routes must not appear in sitemaps.");
+}
+
+console.log(
+  `Static SEO verification passed for ${manifest.routes.length} indexable routes and 2 private commerce shells.`,
+);

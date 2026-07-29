@@ -18,6 +18,7 @@ export default defineConfig(async () => {
             ENVIRONMENT: "staging",
             PUBLIC_ORIGIN: "https://staging.example.invalid",
             RESOURCE_NAMESPACE: "shoppp-staging",
+            TAX_MODE: "zero",
             TEST_MIGRATIONS: migrations,
           },
         },

@@ -33,10 +33,15 @@ describe("public contracts", () => {
     expect(productSchema.parse(product).slug).toBe("travel-bottle");
     expect(
       cartSchema.parse({
+        adjustments: [],
+        canCheckout: false,
         currency: "USD",
         expiresAt: "2026-07-31T00:00:00.000Z",
         id: "cart_01J00000000000000000000000",
         lines: [],
+        selectedShippingMethodId: null,
+        shippingAddress: null,
+        shippingMethods: [],
         totals: {
           discountTotal: 0,
           grandTotal: 0,

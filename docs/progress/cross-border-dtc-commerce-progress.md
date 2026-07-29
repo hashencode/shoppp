@@ -6,29 +6,29 @@ The plan remains the read-only authority.
 
 ## Current state
 
-- Active unit: U7 — Implement cart authority and inventory reservations
+- Active unit: U8 — Enforce inventory reservations
 - Branch: `codex/feat-cross-border-dtc`
 - Goal mode: active
 - Last updated: 2026-07-30
 
 ## Unit ledger
 
-| Unit | Status      | Verification evidence                                                                                                                                                                                                                                        |
-| ---- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| U1   | Complete    | Red: checker module missing. Green: frozen install, format, lint, typecheck, 3 boundary tests, build discovery, and aggregate release command.                                                                                                               |
-| U2   | Complete    | Imported 200 allowlisted blobs from `fdd1935…`; repeatability/exclusion 2/2, upstream 233/233, browser 8/8, typecheck and build passed; source status hash unchanged.                                                                                        |
-| U3   | Complete    | Invariant red baselines observed. Domain/contracts 21/21, fixture 1/1, workerd+D1 6/6; Wrangler applied 46 statements, reapply no-op, FK and Drizzle checks passed.                                                                                          |
-| U4   | Complete    | Proof-first API moved from missing entrypoint to workerd 8/8; JWT, identity, RBAC audit, errors, request IDs, redaction, idempotency, AE6/AE8 and build passed.                                                                                              |
-| U5   | Complete    | Worker 15/15, D1 6/6, admin 237/237, real-browser 8/8, Playwright publication 2/2, lint/typecheck/build/format pass; catalog, R2, preview, release/build correlation and reason audit verified.                                                              |
-| U6   | Complete    | Full release manifest is build-token protected; Worker 16/16, storefront 4/4, static 9 routes, browser 3/3, WCAG/keyboard 4/4; Lighthouse home/collection/product ≥94 performance, ≥98 accessibility, ≥96 best practices, 100 SEO; JS 146,323/204,800 bytes. |
-| U7   | In progress | Reading authoritative cart, pricing, inventory reservation, expiry, and convergence requirements.                                                                                                                                                            |
-| U8   | Pending     | —                                                                                                                                                                                                                                                            |
-| U9   | Pending     | —                                                                                                                                                                                                                                                            |
-| U10  | Pending     | —                                                                                                                                                                                                                                                            |
-| U11  | Pending     | —                                                                                                                                                                                                                                                            |
-| U14  | Pending     | —                                                                                                                                                                                                                                                            |
-| U12  | Pending     | —                                                                                                                                                                                                                                                            |
-| U13  | Pending     | —                                                                                                                                                                                                                                                            |
+| Unit | Status      | Verification evidence                                                                                                                                                                                                                                           |
+| ---- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1   | Complete    | Red: checker module missing. Green: frozen install, format, lint, typecheck, 3 boundary tests, build discovery, and aggregate release command.                                                                                                                  |
+| U2   | Complete    | Imported 200 allowlisted blobs from `fdd1935…`; repeatability/exclusion 2/2, upstream 233/233, browser 8/8, typecheck and build passed; source status hash unchanged.                                                                                           |
+| U3   | Complete    | Invariant red baselines observed. Domain/contracts 21/21, fixture 1/1, workerd+D1 6/6; Wrangler applied 46 statements, reapply no-op, FK and Drizzle checks passed.                                                                                             |
+| U4   | Complete    | Proof-first API moved from missing entrypoint to workerd 8/8; JWT, identity, RBAC audit, errors, request IDs, redaction, idempotency, AE6/AE8 and build passed.                                                                                                 |
+| U5   | Complete    | Worker 15/15, D1 6/6, admin 237/237, real-browser 8/8, Playwright publication 2/2, lint/typecheck/build/format pass; catalog, R2, preview, release/build correlation and reason audit verified.                                                                 |
+| U6   | Complete    | Full release manifest is build-token protected; Worker 16/16, storefront 4/4, static 9 routes, browser 3/3, WCAG/keyboard 4/4; Lighthouse home/collection/product ≥94 performance, ≥98 accessibility, ≥96 best practices, 100 SEO; JS 146,323/204,800 bytes.    |
+| U7   | Complete    | Guest-token cart, live API truth, stale-price acknowledgement, limits, address validation, zero-tax port, and flat/weight/free/unavailable shipping pass Worker 21/21, domain 21/21, storefront 6/6, desktop/mobile browser, static 9+2, and performance gates. |
+| U8   | In progress | Reading reservation concurrency, expiry, release, recovery, admin inventory, and audit requirements.                                                                                                                                                            |
+| U9   | Pending     | —                                                                                                                                                                                                                                                               |
+| U10  | Pending     | —                                                                                                                                                                                                                                                               |
+| U11  | Pending     | —                                                                                                                                                                                                                                                               |
+| U14  | Pending     | —                                                                                                                                                                                                                                                               |
+| U12  | Pending     | —                                                                                                                                                                                                                                                               |
+| U13  | Pending     | —                                                                                                                                                                                                                                                               |
 
 ## Human-owned production gates
 

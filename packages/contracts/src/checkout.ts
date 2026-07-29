@@ -10,7 +10,11 @@ export const shippingAddressSchema = z
     line2: z.string().max(200).optional(),
     name: z.string().min(1).max(160),
     phone: z.string().max(40).optional(),
-    postalCode: z.string().min(1).max(32),
+    postalCode: z
+      .string()
+      .min(3)
+      .max(32)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9 -]*[A-Za-z0-9]$/),
     region: z.string().max(120).optional(),
   })
   .strict();

@@ -19,6 +19,7 @@ export const catalogRelease = {
       collectionSlugs: ["travel-essentials"],
       variants: [
         {
+          id: "var_01J00000000000000000000000",
           sku: "ATLAS-BLK",
           title: "Black",
           status: "active",

@@ -30,11 +30,21 @@ describe("storefront build manifest", () => {
           variants: [
             {
               optionValues: {},
+              id: "var_01J00000000000000000000000",
               prices: [{ amount: 12_900, currency: "USD" }],
               sku: "ACTIVE",
               status: "active",
               title: "Default",
               weightGrams: 2_900,
+            },
+            {
+              id: "var_01J00000000000000000000002",
+              optionValues: {},
+              prices: [{ amount: 1, currency: "USD" }],
+              sku: "DISABLED",
+              status: "disabled",
+              title: "Disabled",
+              weightGrams: 500,
             },
           ],
         },
@@ -50,6 +60,7 @@ describe("storefront build manifest", () => {
           variants: [
             {
               optionValues: {},
+              id: "var_01J00000000000000000000001",
               prices: [{ amount: 9_900, currency: "USD" }],
               sku: "DRAFT",
               status: "active",
@@ -79,5 +90,6 @@ describe("storefront build manifest", () => {
     expect(manifest.redirects).toEqual([
       { from: "/products/old-carry-on", status: 301, to: "/products/carry-on" },
     ]);
+    expect(manifest.products[0]?.variants.map((variant) => variant.sku)).toEqual(["ACTIVE"]);
   });
 });

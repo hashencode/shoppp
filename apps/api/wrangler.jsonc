@@ -12,6 +12,7 @@
     "ACCESS_JWKS": "{\"keys\":[]}",
     "MEDIA_PUBLIC_ORIGIN": "https://media-development.example.invalid",
     "STOREFRONT_ORIGIN": "https://storefront-development.example.invalid",
+    "TAX_MODE": "zero",
   },
   "d1_databases": [
     {
@@ -41,6 +42,7 @@
         "ACCESS_JWKS": "{\"keys\":[]}",
         "MEDIA_PUBLIC_ORIGIN": "https://media-staging.example.invalid",
         "STOREFRONT_ORIGIN": "https://storefront-staging.example.invalid",
+        "TAX_MODE": "zero",
       },
       "d1_databases": [
         {
@@ -70,6 +72,7 @@
         "ACCESS_JWKS": "{\"keys\":[]}",
         "MEDIA_PUBLIC_ORIGIN": "https://media.example.invalid",
         "STOREFRONT_ORIGIN": "https://shop.example.invalid",
+        "TAX_MODE": "zero",
       },
       "d1_databases": [
         {

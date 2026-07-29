@@ -31,6 +31,15 @@ describe("D1 migrations", () => {
     );
 
     await seedLaunchFixture(env.DB);
+    const cartColumns = await env.DB.prepare("PRAGMA table_info(carts)").all<{ name: string }>();
+    expect(cartColumns.results.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(["shipping_address_json", "shipping_method_id"]),
+    );
+    expect(
+      await env.DB.prepare(
+        "SELECT name FROM sqlite_schema WHERE type = 'index' AND name = 'shipping_methods_zone_idx'",
+      ).first(),
+    ).toEqual({ name: "shipping_methods_zone_idx" });
     const foreignKeyViolations = await env.DB.prepare("PRAGMA foreign_key_check").all();
     expect(foreignKeyViolations.results).toEqual([]);
   });
