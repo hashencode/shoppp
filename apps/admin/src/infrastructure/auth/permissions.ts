@@ -8,6 +8,9 @@ export type PermissionKey =
   | 'profile.read'
   | 'result.read'
   | 'exception.read'
+  | 'catalog.read'
+  | 'catalog.write'
+  | 'catalog.publish'
 
 const rolePermissions: Record<Role, PermissionKey[]> = {
   admin: [
@@ -18,6 +21,9 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'profile.read',
     'result.read',
     'exception.read',
+    'catalog.read',
+    'catalog.write',
+    'catalog.publish',
   ],
   editor: [
     'dashboard.read',
@@ -27,8 +33,19 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'profile.read',
     'result.read',
     'exception.read',
+    'catalog.read',
+    'catalog.write',
+    'catalog.publish',
   ],
-  viewer: ['dashboard.read', 'list.read', 'form.read', 'profile.read', 'result.read', 'exception.read'],
+  viewer: [
+    'dashboard.read',
+    'list.read',
+    'form.read',
+    'profile.read',
+    'result.read',
+    'exception.read',
+    'catalog.read',
+  ],
 }
 
 export const hasPermission = (role: Role, permission: PermissionKey): boolean => {

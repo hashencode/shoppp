@@ -1,8 +1,11 @@
 import { Hono } from "hono";
 import * as z from "zod";
 
+import { createProduct, getProduct, listProducts, updateProduct } from "../catalog/products";
+import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { recordAuditEvent } from "../iam/audit";
 import { requirePermission } from "../iam/permissions";
+import { uploadCatalogMedia } from "../media/uploads";
 import {
   adminAuthentication,
   defaultAccessVerifier,
@@ -10,6 +13,12 @@ import {
 } from "../middleware/auth";
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
+import {
+  createPreviewToken,
+  defaultBuildTrigger,
+  publishProduct,
+  type BuildTrigger,
+} from "../publishing/releases";
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
@@ -17,6 +26,8 @@ import { redact } from "./redaction";
 
 export interface CreateAppOptions {
   readonly accessVerifier?: AccessVerifier;
+  readonly buildTrigger?: BuildTrigger;
+  readonly previewTokenSecret?: string;
 }
 
 const refundSchema = z
@@ -71,6 +82,87 @@ export function createApp(options: CreateAppOptions = {}) {
   );
 
   app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
+  app.get("/admin/catalog/products", async (context) => {
+    await requirePermission(context, "catalog.read", { type: "product" });
+    return context.json(await listProducts(context));
+  });
+  app.get("/admin/catalog/products/:id", async (context) => {
+    await requirePermission(context, "catalog.read", {
+      id: context.req.param("id"),
+      type: "product",
+    });
+    return context.json({
+      data: await getProduct(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/catalog/products", async (context) => {
+    await requirePermission(context, "catalog.write", { type: "product" });
+    const input = await parseJson(context, productDraftSchema);
+    return context.json(
+      {
+        data: await createProduct(context, input),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    );
+  });
+  app.put("/admin/catalog/products/:id", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.write", { id: productId, type: "product" });
+    const input = await parseJson(context, productDraftSchema);
+    return context.json({
+      data: await updateProduct(context, productId, input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.put("/admin/media/*", async (context) =>
+    context.json(
+      {
+        data: await uploadCatalogMedia(context),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    ),
+  );
+  app.post("/admin/catalog/products/:id/preview", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.read", { id: productId, type: "product" });
+    await getProduct(context.env.DB, productId);
+    const secret = options.previewTokenSecret ?? context.env.PREVIEW_TOKEN_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new ApiError(
+        500,
+        "preview_token_not_configured",
+        "The preview token secret is not configured.",
+      );
+    }
+    return context.json({
+      data: await createPreviewToken(productId, secret),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/admin/catalog/products/:id/publish",
+    idempotency("catalog.publish"),
+    async (context) => {
+      const productId = context.req.param("id");
+      await requirePermission(context, "catalog.publish", { id: productId, type: "product" });
+      const input = await parseJson(context, publicationSchema);
+      return context.json(
+        {
+          data: await publishProduct(
+            context,
+            productId,
+            options.buildTrigger ?? defaultBuildTrigger(context.env),
+            input.reason,
+          ),
+          meta: { requestId: context.get("requestId") },
+        },
+        202,
+      );
+    },
+  );
   app.get("/admin/orders", async (context) => {
     await requirePermission(context, "orders.read", { type: "order" });
     return context.json({ data: [], meta: { requestId: context.get("requestId") } });

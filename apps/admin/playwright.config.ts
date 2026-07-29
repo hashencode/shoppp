@@ -15,7 +15,7 @@ if (existsSync(envFile)) loadEnvFile(envFile)
 
 const appBasePath = normalizeAppBasePath(process.env.PUBLIC_APP_BASE)
 
-const port = Number(process.env.E2E_PORT || 3000)
+const port = Number(process.env.E2E_PORT || 3417)
 const externalBaseUrl = process.env.E2E_BASE_URL?.replace(/\/$/, '')
 const origin = externalBaseUrl || `http://127.0.0.1:${port}`
 

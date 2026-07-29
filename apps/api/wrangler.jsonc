@@ -20,6 +20,13 @@
       "migrations_dir": "../../packages/db/migrations",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "shoppp-development-media",
+      "preview_bucket_name": "shoppp-development-media-preview",
+    },
+  ],
   "env": {
     "staging": {
       "name": "shoppp-api-staging",
@@ -40,6 +47,13 @@
           "migrations_dir": "../../packages/db/migrations",
         },
       ],
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "shoppp-staging-media",
+          "preview_bucket_name": "shoppp-staging-media-preview",
+        },
+      ],
     },
     "production": {
       "name": "shoppp-api-production",
@@ -58,6 +72,13 @@
           "database_id": "00000000-0000-0000-0000-000000000030",
           "preview_database_id": "00000000-0000-0000-0000-000000000031",
           "migrations_dir": "../../packages/db/migrations",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "shoppp-production-media",
+          "preview_bucket_name": "shoppp-production-media-preview",
         },
       ],
     },

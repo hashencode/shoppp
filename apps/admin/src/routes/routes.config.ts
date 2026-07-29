@@ -5,6 +5,7 @@ import {
   ExclamationCircleOutlined,
   FormOutlined,
   ProfileOutlined,
+  ShoppingOutlined,
   SmileOutlined,
   TableOutlined,
 } from '@ant-design/icons'
@@ -27,6 +28,37 @@ export type TemplateRoute = {
 }
 
 export const templateRoutes: TemplateRoute[] = [
+  {
+    key: 'catalog-products',
+    path: '/catalog/products',
+    title: 'Catalog',
+    icon: createElement(ShoppingOutlined),
+    permission: 'catalog.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Catalog', 'Products'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/catalog/catalog-list-page').then((m) => ({
+          default: m.CatalogListPage,
+        }))
+      ),
+  },
+  {
+    key: 'catalog-product-form',
+    path: '/catalog/products/form',
+    title: 'Product',
+    icon: createElement(FormOutlined),
+    permission: 'catalog.read',
+    inMenu: false,
+    breadcrumb: ['Catalog', 'Products', 'Product'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/catalog/catalog-form-page').then((m) => ({
+          default: m.CatalogFormPage,
+        }))
+      ),
+  },
   {
     key: 'welcome',
     path: '/template',

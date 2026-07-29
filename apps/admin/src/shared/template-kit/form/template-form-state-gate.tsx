@@ -49,7 +49,7 @@ export const TemplateFormStateGate = ({
   }
 
   if (modeView?.canFetch && detailError) {
-    const notFound = detailError.code === 'RESOURCE_NOT_FOUND'
+    const notFound = detailError.code === 'RESOURCE_NOT_FOUND' || detailError.status === 404
 
     return (
       <QueryStateBlock

@@ -10,6 +10,7 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         miniflare: {
+          r2Buckets: ["MEDIA"],
           bindings: {
             ACCESS_AUDIENCE: "test-audience",
             ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",

@@ -24,9 +24,14 @@ export const resolveApiBaseUrl = (apiBase?: string): string => {
 
 export const normalizeApiError = (error: unknown): ApiError => {
   if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<{ message?: string; errorCode?: ApiErrorCode }>
+    const axiosError = error as AxiosError<{
+      message?: string
+      errorCode?: ApiErrorCode
+      error?: { code?: string; message?: string }
+    }>
     const status = axiosError.response?.status
     const message =
+      axiosError.response?.data?.error?.message ??
       axiosError.response?.data?.message ??
       axiosError.message ??
       '请求失败，请稍后重试。'
@@ -52,11 +57,11 @@ export const normalizeApiError = (error: unknown): ApiError => {
       })
     }
 
-    const errorCode = axiosError.response?.data?.errorCode
+    const errorCode = axiosError.response?.data?.errorCode ?? axiosError.response?.data?.error?.code
 
     if (errorCode) {
       return Object.assign(new Error(message), {
-        code: errorCode,
+        code: errorCode as ApiErrorCode,
         status,
       })
     }
@@ -65,6 +70,20 @@ export const normalizeApiError = (error: unknown): ApiError => {
       code: 'UNKNOWN_ERROR' as const,
       status,
     })
+  }
+
+  if (
+    error instanceof Error &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+  ) {
+    if ((error as ApiError).code === 'QUERY_SERVER_ERROR') {
+      return Object.assign(new Error('请求失败，请稍后重试。'), {
+        code: 'QUERY_SERVER_ERROR' as const,
+        status: (error as ApiError).status,
+      })
+    }
+    return error as ApiError
   }
 
   return Object.assign(new Error('请求失败，请稍后重试。'), {

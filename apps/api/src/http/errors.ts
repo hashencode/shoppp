@@ -1,7 +1,7 @@
 export class ApiError extends Error {
   readonly code: string;
   readonly details?: unknown;
-  readonly status: 400 | 401 | 403 | 404 | 409 | 422 | 500;
+  readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 500;
 
   constructor(status: ApiError["status"], code: string, message: string, details?: unknown) {
     super(message);

@@ -3,7 +3,6 @@ import { LoginPage } from '../pages/auth/login-page'
 import { PermissionGuard } from '../shared/components/permission-guard'
 import { RouteErrorBoundary } from '../shared/components/route-error-boundary'
 import { AppShell } from '../shared/layout/app-shell'
-import { lazyPage } from '../shared/components/lazy-page.tsx'
 import { APP_BASE_PATH } from '../shared/utils/app-base'
 import { RedirectIfAuthenticated, RequireAuth } from './auth-route-guards'
 import { templateRoutes, type TemplateRoute } from './routes.config'
@@ -123,7 +122,7 @@ const validRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        element: lazyPage(() => import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))),
+        element: <Navigate to="/catalog/products" replace />,
       },
       ...templateRoutes
         .filter(

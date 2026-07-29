@@ -25,9 +25,32 @@ export const products = sqliteTable(
     seoTitle: text("seo_title").notNull().default(""),
     seoDescription: text("seo_description").notNull().default(""),
     publishedAt: text("published_at"),
+    scheduledAt: text("scheduled_at"),
     ...timestamps,
   },
   (table) => [uniqueIndex("products_slug_unique").on(table.slug)],
+);
+
+export const productMedia = sqliteTable(
+  "product_media",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    variantId: text("variant_id"),
+    r2Key: text("r2_key").notNull().unique(),
+    altText: text("alt_text").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    position: integer("position").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("product_media_product_idx").on(table.productId, table.position),
+    check("product_media_width_positive", sql`${table.width} > 0`),
+    check("product_media_height_positive", sql`${table.height} > 0`),
+  ],
 );
 
 export const productVariants = sqliteTable(
@@ -41,6 +64,9 @@ export const productVariants = sqliteTable(
     title: text("title").notNull(),
     optionValuesJson: text("option_values_json").notNull().default("{}"),
     weightGrams: integer("weight_grams").notNull(),
+    lengthMm: integer("length_mm").notNull().default(0),
+    widthMm: integer("width_mm").notNull().default(0),
+    heightMm: integer("height_mm").notNull().default(0),
     status: text("status", { enum: ["active", "disabled"] }).notNull(),
     ...timestamps,
   },
@@ -171,6 +197,26 @@ export const checkoutAttempts = sqliteTable("checkout_attempts", {
   }).notNull(),
   ...timestamps,
 });
+
+export const catalogReleases = sqliteTable(
+  "catalog_releases",
+  {
+    id: text("id").primaryKey(),
+    status: text("status", { enum: ["approved", "building", "deployed", "failed"] }).notNull(),
+    manifestJson: text("manifest_json").notNull(),
+    approvedBy: text("approved_by"),
+    approvedAt: text("approved_at").notNull(),
+    deployedAt: text("deployed_at"),
+    failureCode: text("failure_code"),
+    buildCorrelationId: text("build_correlation_id"),
+    productId: text("product_id").references(() => products.id, { onDelete: "restrict" }),
+    ...timestamps,
+  },
+  (table) => [
+    index("catalog_releases_build_correlation_idx").on(table.buildCorrelationId),
+    index("catalog_releases_product_idx").on(table.productId, table.createdAt),
+  ],
+);
 
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),

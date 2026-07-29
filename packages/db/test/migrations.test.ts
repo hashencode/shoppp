@@ -40,7 +40,7 @@ describe("D1 migrations", () => {
     const applied = await env.DB.prepare("SELECT COUNT(*) AS count FROM d1_migrations").first<{
       count: number;
     }>();
-    expect(applied?.count).toBe(1);
+    expect(applied?.count).toBe(env.TEST_MIGRATIONS.length);
   });
 
   test("a failed batch rolls back and leaves the database recoverable", async () => {

@@ -106,15 +106,10 @@ export const LoginPage = () => {
       <div className="w-full max-w-[360px]">
         <Space orientation="vertical" size={20} className="w-full">
           <div className="text-center">
-            <img
-              src="https://raw.githubusercontent.com/brand-icons/brands/refs/heads/master/icons/dark/github.svg"
-              alt="logo"
-              className="mx-auto mb-3 h-10 w-10"
-            />
             <Typography.Title level={3} className="!mb-1">
-              Github
+              Shoppp Operations
             </Typography.Title>
-            <Typography.Text type="secondary">全球最大的代码托管平台</Typography.Text>
+            <Typography.Text type="secondary">Cross-border commerce control plane</Typography.Text>
           </div>
 
           {submitError ? (
