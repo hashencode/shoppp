@@ -8,8 +8,9 @@
     "dev": "bun run prepare:release && nuxt dev",
     "prepare:release": "bun scripts/prepare-release.ts",
     "test": "bun test tests",
+    "test:a11y": "playwright test --config playwright.a11y.config.ts",
     "test:e2e": "playwright test",
-    "test:perf": "bun scripts/check-bundle-budget.ts",
+    "test:perf": "bun scripts/check-bundle-budget.ts && playwright test --config playwright.performance.config.ts",
     "typecheck": "nuxt typecheck",
     "verify:static": "bun scripts/verify-static.ts"
   },
@@ -25,7 +26,10 @@
     "vue-router": "5.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@playwright/test": "1.61.1",
+    "chrome-launcher": "1.2.1",
+    "lighthouse": "13.4.1",
     "typescript": "6.0.3",
     "vue-tsc": "3.3.8",
     "wrangler": "4.115.0"

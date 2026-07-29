@@ -19,7 +19,7 @@ import { catalogRelease } from "~/generated/catalog";
       </nav>
       <NuxtLink class="bag-link" to="/cart" aria-label="View shopping bag">Bag · 0</NuxtLink>
     </header>
-    <main id="main-content">
+    <main id="main-content" tabindex="-1">
       <slot />
     </main>
     <footer class="site-footer">
