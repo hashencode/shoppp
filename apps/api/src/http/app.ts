@@ -7,6 +7,7 @@ import {
   addCartLineRequestSchema,
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
+  checkoutRequestSchema,
   inventoryAdjustmentRequestSchema,
   shippingQuoteRequestSchema,
   updateCartLineRequestSchema,
@@ -37,6 +38,11 @@ import {
 } from "../middleware/auth";
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
+import { getGuestOrderAccess } from "../orders/guest-access";
+import { PaymentProviderError, type PaymentProvider } from "../payments/port";
+import { createHostedCheckout } from "../payments/session";
+import { createStripePaymentProvider } from "../payments/stripe-adapter";
+import { processPaymentWebhook } from "../payments/webhook";
 import {
   createPreviewToken,
   defaultBuildTrigger,
@@ -53,6 +59,7 @@ export interface CreateAppOptions {
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
   readonly previewTokenSecret?: string;
+  readonly paymentProvider?: PaymentProvider;
 }
 
 const refundSchema = z
@@ -114,6 +121,8 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/cart", publicCors);
   app.use("/cart/*", publicCors);
   app.use("/catalog/*", publicCors);
+  app.use("/checkout/*", publicCors);
+  app.use("/orders/*", publicCors);
   app.get("/catalog/products/:slug/live", async (context) => {
     const currency = (context.req.query("currency") ?? "USD").toUpperCase();
     if (!/^[A-Z]{3}$/.test(currency)) {
@@ -208,6 +217,53 @@ export function createApp(options: CreateAppOptions = {}) {
       201,
     );
   });
+  app.post("/checkout/sessions", idempotency("checkout.sessions.create"), async (context) => {
+    const cart = await requireCart(context);
+    const input = await parseJson(context, checkoutRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    try {
+      return context.json(
+        {
+          data: await createHostedCheckout(
+            context,
+            cart,
+            input,
+            options.paymentProvider ?? createStripePaymentProvider(context.env),
+          ),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
+    } catch (error) {
+      if (!(error instanceof PaymentProviderError)) throw error;
+      const apiError = new ApiError(error.retryable ? 503 : 422, error.code, error.message);
+      return context.json(errorEnvelope(apiError, context.get("requestId")), apiError.status);
+    }
+  });
+  app.get("/orders/:token", async (context) => {
+    const access = await getGuestOrderAccess(context.env.DB, context.req.param("token"));
+    if (!access) {
+      throw new ApiError(
+        404,
+        "order_access_not_found",
+        "The order access link is invalid or expired.",
+      );
+    }
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    return context.json(
+      { data: access, meta: { requestId: context.get("requestId") } },
+      access.status === "pending" ? 202 : 200,
+    );
+  });
+  app.post("/webhooks/stripe", async (context) =>
+    context.json(
+      await processPaymentWebhook(
+        context,
+        options.paymentProvider ?? createStripePaymentProvider(context.env),
+      ),
+    ),
+  );
   app.get("/build/catalog/releases/:id", async (context) => {
     const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
     if (!expectedToken || expectedToken.length < 32) {

@@ -1,6 +1,7 @@
 import type {
   AddCartLineRequest,
   Cart,
+  CheckoutRequest,
   ShippingQuoteRequest,
   UpdateCartLineRequest,
 } from "@shoppp/contracts";
@@ -88,6 +89,20 @@ export function useGuestCart() {
     withCart((value) => api.acknowledgeCartAdjustments(value, codes));
   const shipping = (input: ShippingQuoteRequest) =>
     withCart((value) => api.quoteShipping(value, input));
+  const beginCheckout = async (input: CheckoutRequest) => {
+    busy.value = true;
+    error.value = null;
+    try {
+      const cartToken = token();
+      if (!cartToken) throw new Error("Cart token unavailable");
+      return (await api.createCheckoutSession(cartToken, input)).data;
+    } catch (cause) {
+      error.value = errorMessage(cause);
+      throw cause;
+    } finally {
+      busy.value = false;
+    }
+  };
 
-  return { acknowledge, add, busy, cart, ensure, error, remove, shipping, update };
+  return { acknowledge, add, beginCheckout, busy, cart, ensure, error, remove, shipping, update };
 }

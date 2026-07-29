@@ -100,19 +100,20 @@ describe("admin inventory adjustments", () => {
     });
 
     const detail = await app.fetch(request("/admin/inventory/var_fixture_0001/wh_primary"), env);
-    expect(await detail.json()).toMatchObject({
-      data: {
-        history: [
-          {
-            actor_name: "inventory-operator",
-            quantity_delta: 2,
-            reason: "Cycle count correction",
-            reference_type: "manual_adjustment",
-          },
-        ],
-        position: { available: 3, onHand: 3, reserved: 0 },
-      },
-    });
+    const detailBody = (await detail.json()) as {
+      data: { history: Record<string, unknown>[]; position: Record<string, unknown> };
+    };
+    expect(detailBody.data.position).toMatchObject({ available: 3, onHand: 3, reserved: 0 });
+    expect(detailBody.data.history).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actor_name: "inventory-operator",
+          quantity_delta: 2,
+          reason: "Cycle count correction",
+          reference_type: "manual_adjustment",
+        }),
+      ]),
+    );
     expect(
       (
         await env.DB.prepare(

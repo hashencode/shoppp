@@ -70,9 +70,9 @@ describe("inventory reservation concurrency and lifecycle on D1", () => {
     });
     expect(
       (
-        await env.DB.prepare("SELECT COUNT(*) AS count FROM inventory_reservation_groups").first<{
-          count: number;
-        }>()
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM inventory_reservation_groups WHERE id LIKE 'irg_concurrency_%'",
+        ).first<{ count: number }>()
       )?.count,
     ).toBe(1);
   });
@@ -150,7 +150,11 @@ describe("inventory reservation concurrency and lifecycle on D1", () => {
       { count: 1, event_type: "confirmed", group_id: groupInput(201).id },
       { count: 1, event_type: "created", group_id: groupInput(201).id },
     ]);
-    expect((await inventory())?.reserved_quantity).toBe(1);
+    expect(await inventory()).toEqual({
+      on_hand_quantity: 2,
+      oversell_limit: 0,
+      reserved_quantity: 0,
+    });
   });
 
   test("zero stock rejects while one configured oversell unit succeeds", async () => {

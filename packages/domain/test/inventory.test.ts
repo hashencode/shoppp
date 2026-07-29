@@ -11,6 +11,7 @@ import {
 describe("inventory policy", () => {
   test("derives sellable quantity from on-hand, active reservations, and oversell policy", () => {
     expect(availableQuantity({ onHand: 10, oversellLimit: 2, reserved: 4 })).toBe(8);
+    expect(availableQuantity({ backordered: 1, onHand: 0, oversellLimit: 2, reserved: 0 })).toBe(1);
   });
 
   test("rejects a reservation beyond the sellable quantity", () => {

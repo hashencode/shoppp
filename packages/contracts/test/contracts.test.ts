@@ -54,6 +54,7 @@ describe("public contracts", () => {
     ).toBe("USD");
     expect(
       checkoutRequestSchema.parse({
+        acceptTerms: true,
         cartId: "cart_01J00000000000000000000000",
         countryCode: "US",
         currency: "USD",
@@ -103,6 +104,7 @@ describe("public contracts", () => {
     ).toThrow();
     expect(() =>
       checkoutRequestSchema.parse({
+        acceptTerms: true,
         cartId: "cart_01J00000000000000000000000",
         countryCode: "USA",
         currency: "USD",

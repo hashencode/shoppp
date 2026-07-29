@@ -1,7 +1,10 @@
 import type {
   AddCartLineRequest,
   Cart,
+  CheckoutRequest,
+  CheckoutSession,
   CreateCartRequest,
+  OrderAccess,
   Product,
   ShippingQuoteRequest,
   UpdateCartLineRequest,
@@ -63,12 +66,25 @@ export const useCommerceApi = () => {
       headers: cartHeaders(token, "cart-shipping"),
       method: "PUT",
     });
+  const createCheckoutSession = (token: string, input: CheckoutRequest) =>
+    api<ApiData<CheckoutSession>>("/checkout/sessions", {
+      body: input,
+      headers: {
+        Authorization: `CartToken ${token}`,
+        "Idempotency-Key": input.idempotencyKey,
+      },
+      method: "POST",
+    });
+  const getOrderAccess = (token: string) =>
+    api<ApiData<OrderAccess>>(`/orders/${encodeURIComponent(token)}`);
   return {
     acknowledgeCartAdjustments,
     addCartLine,
     createCart,
+    createCheckoutSession,
     getCart,
     getLiveProduct,
+    getOrderAccess,
     quoteShipping,
     removeCartLine,
     updateCartLine,

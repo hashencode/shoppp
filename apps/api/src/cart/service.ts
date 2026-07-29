@@ -146,7 +146,8 @@ async function authoritativeVariant(
                   AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
                   AND (pl.ends_at IS NULL OR pl.ends_at > ?)
                 ORDER BY pl.code LIMIT 1) AS unit_price,
-              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit - i.reserved_quantity)
+              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+                                         i.reserved_quantity - i.backordered_quantity)
                           FROM inventory_items i WHERE i.variant_id = v.id), 0) AS available_quantity
          FROM product_variants v
          JOIN products p ON p.id = v.product_id
@@ -226,7 +227,8 @@ async function lineRows(db: D1Database, cart: CartRow): Promise<LineRow[]> {
                   AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
                   AND (pl.ends_at IS NULL OR pl.ends_at > ?)
                 ORDER BY pl.code LIMIT 1) AS unit_price,
-              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit - i.reserved_quantity)
+              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+                                         i.reserved_quantity - i.backordered_quantity)
                           FROM inventory_items i WHERE i.variant_id = v.id), 0) AS available_quantity
          FROM cart_lines cl
          JOIN product_variants v ON v.id = cl.variant_id

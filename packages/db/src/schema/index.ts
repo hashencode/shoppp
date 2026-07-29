@@ -128,6 +128,7 @@ export const inventoryItems = sqliteTable(
       .references(() => warehouses.id, { onDelete: "restrict" }),
     onHandQuantity: integer("on_hand_quantity").notNull().default(0),
     reservedQuantity: integer("reserved_quantity").notNull().default(0),
+    backorderedQuantity: integer("backordered_quantity").notNull().default(0),
     oversellLimit: integer("oversell_limit").notNull().default(0),
     version: integer("version").notNull().default(0),
     updatedAt: text("updated_at").notNull(),
@@ -136,9 +137,10 @@ export const inventoryItems = sqliteTable(
     primaryKey({ columns: [table.variantId, table.warehouseId] }),
     check("inventory_on_hand_nonnegative", sql`${table.onHandQuantity} >= 0`),
     check("inventory_reserved_nonnegative", sql`${table.reservedQuantity} >= 0`),
+    check("inventory_backordered_nonnegative", sql`${table.backorderedQuantity} >= 0`),
     check(
       "inventory_conserved",
-      sql`${table.reservedQuantity} <= ${table.onHandQuantity} + ${table.oversellLimit}`,
+      sql`${table.reservedQuantity} + ${table.backorderedQuantity} <= ${table.onHandQuantity} + ${table.oversellLimit}`,
     ),
   ],
 );
@@ -288,8 +290,12 @@ export const checkoutAttempts = sqliteTable("checkout_attempts", {
     .notNull()
     .references(() => carts.id, { onDelete: "restrict" }),
   reservationId: text("reservation_id"),
+  reservationGroupId: text("reservation_group_id"),
   provider: text("provider").notNull(),
   providerSessionId: text("provider_session_id").unique(),
+  providerSessionUrl: text("provider_session_url"),
+  providerStatus: text("provider_status"),
+  lastProviderEventCreatedAt: text("last_provider_event_created_at"),
   idempotencyKey: text("idempotency_key").notNull().unique(),
   currency: text("currency").notNull(),
   subtotalAmount: integer("subtotal_amount").notNull(),
@@ -298,6 +304,10 @@ export const checkoutAttempts = sqliteTable("checkout_attempts", {
   taxAmount: integer("tax_amount").notNull(),
   grandTotalAmount: integer("grand_total_amount").notNull(),
   shippingAddressJson: text("shipping_address_json").notNull(),
+  email: text("email"),
+  snapshotJson: text("snapshot_json"),
+  guestAccessTokenHash: text("guest_access_token_hash"),
+  guestAccessExpiresAt: text("guest_access_expires_at"),
   status: text("status", {
     enum: ["validating", "payment_pending", "completed", "failed", "expired"],
   }).notNull(),
@@ -328,6 +338,7 @@ export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),
   publicReference: text("public_reference").notNull().unique(),
   guestAccessTokenHash: text("guest_access_token_hash").notNull().unique(),
+  guestAccessExpiresAt: text("guest_access_expires_at"),
   checkoutAttemptId: text("checkout_attempt_id")
     .notNull()
     .unique()
@@ -380,6 +391,8 @@ export const paymentEvents = sqliteTable(
     receivedAt: text("received_at").notNull(),
     processedAt: text("processed_at"),
     result: text("result", { enum: ["applied", "ignored", "failed"] }),
+    processingAttemptCount: integer("processing_attempt_count").notNull().default(0),
+    lastErrorCode: text("last_error_code"),
   },
   (table) => [
     uniqueIndex("payment_events_provider_event_unique").on(table.provider, table.providerEventId),

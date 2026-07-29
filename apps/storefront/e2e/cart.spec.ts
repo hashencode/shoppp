@@ -73,7 +73,11 @@ test("desktop and mobile add the same variant and render the API-authoritative q
     await route.fulfill({ contentType: "application/json", json: { data: cart } });
   });
 
+  const liveProduct = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.includes("/catalog/products/") && response.ok(),
+  );
   await page.goto("/products/atlas-carry-on");
+  await liveProduct;
   await page.getByRole("button", { name: "Add to bag" }).click();
   await expect(page).toHaveURL(/\/cart\/?$/);
   await expect(page.getByRole("heading", { name: "Your bag" })).toBeVisible();

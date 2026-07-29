@@ -17,6 +17,11 @@ export interface ApiBindings {
   STOREFRONT_ORIGIN: string;
   TAX_MODE: "zero";
   RESERVATION_TTL_MINUTES?: string;
+  GUEST_ORDER_TOKEN_TTL_HOURS?: string;
+  PAYMENT_CANCEL_URL?: string;
+  PAYMENT_SUCCESS_URL?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 }
 
 export interface ApiVariables {

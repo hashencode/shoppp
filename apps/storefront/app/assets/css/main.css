@@ -279,7 +279,8 @@ select:focus-visible {
 }
 .cart-lines input,
 .address-fields input,
-.address-fields select {
+.address-fields select,
+.checkout-field input {
   width: 100%;
   min-height: 46px;
   border: 1px solid var(--ink);
@@ -328,6 +329,50 @@ select:focus-visible {
 .address-fields label {
   display: grid;
   gap: 0.35rem;
+}
+.checkout-field {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 2rem;
+}
+.secondary-button {
+  min-height: 46px;
+  border: 1px solid var(--ink);
+  border-radius: 0.65rem;
+  background: transparent;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+}
+.policy-consent {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.65rem;
+  margin: 1.5rem 0;
+}
+.policy-consent input {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.payment-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.status-page,
+.order-page {
+  max-width: 850px;
+}
+.order-lines {
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.order-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
 }
 .shipping-methods label {
   display: grid;

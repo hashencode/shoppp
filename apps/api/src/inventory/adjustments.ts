@@ -69,7 +69,8 @@ export async function listInventory(context: Context<ApiEnvironment>) {
     .first<{ total: number }>();
   const rows = await context.env.DB.prepare(
     `SELECT i.variant_id, i.warehouse_id, i.on_hand_quantity, i.reserved_quantity,
-            i.oversell_limit, p.name AS product_name, v.title AS variant_name, v.sku,
+            i.backordered_quantity, i.oversell_limit,
+            p.name AS product_name, v.title AS variant_name, v.sku,
             w.name AS warehouse_name,
             COALESCE((
               SELECT SUM(sl.quantity_delta)
@@ -93,6 +94,7 @@ export async function listInventory(context: Context<ApiEnvironment>) {
     )
     .all<{
       adjusted_quantity: number;
+      backordered_quantity: number;
       on_hand_quantity: number;
       oversell_limit: number;
       product_name: string;
@@ -105,7 +107,10 @@ export async function listInventory(context: Context<ApiEnvironment>) {
     }>();
   const data: InventoryPosition[] = rows.results.map((row) => ({
     adjusted: row.adjusted_quantity,
-    available: Math.max(0, row.on_hand_quantity + row.oversell_limit - row.reserved_quantity),
+    available: Math.max(
+      0,
+      row.on_hand_quantity + row.oversell_limit - row.reserved_quantity - row.backordered_quantity,
+    ),
     onHand: row.on_hand_quantity,
     oversellLimit: row.oversell_limit,
     productName: row.product_name,
@@ -133,11 +138,16 @@ export async function getInventoryHistory(
   warehouseId: string,
 ) {
   const item = await context.env.DB.prepare(
-    `SELECT on_hand_quantity, reserved_quantity, oversell_limit
+    `SELECT on_hand_quantity, reserved_quantity, oversell_limit, backordered_quantity
        FROM inventory_items WHERE variant_id = ? AND warehouse_id = ?`,
   )
     .bind(variantId, warehouseId)
-    .first<{ on_hand_quantity: number; oversell_limit: number; reserved_quantity: number }>();
+    .first<{
+      backordered_quantity: number;
+      on_hand_quantity: number;
+      oversell_limit: number;
+      reserved_quantity: number;
+    }>();
   if (!item) {
     throw new ApiError(404, "inventory_item_not_found", "The inventory position was not found.");
   }
@@ -158,7 +168,10 @@ export async function getInventoryHistory(
       position: {
         available: Math.max(
           0,
-          item.on_hand_quantity + item.oversell_limit - item.reserved_quantity,
+          item.on_hand_quantity +
+            item.oversell_limit -
+            item.reserved_quantity -
+            item.backordered_quantity,
         ),
         onHand: item.on_hand_quantity,
         oversellLimit: item.oversell_limit,
@@ -178,16 +191,22 @@ export async function adjustInventory(
   input: InventoryAdjustmentRequest,
 ) {
   const current = await context.env.DB.prepare(
-    `SELECT on_hand_quantity, reserved_quantity, oversell_limit
+    `SELECT on_hand_quantity, reserved_quantity, oversell_limit, backordered_quantity
        FROM inventory_items WHERE variant_id = ? AND warehouse_id = ?`,
   )
     .bind(variantId, warehouseId)
-    .first<{ on_hand_quantity: number; oversell_limit: number; reserved_quantity: number }>();
+    .first<{
+      backordered_quantity: number;
+      on_hand_quantity: number;
+      oversell_limit: number;
+      reserved_quantity: number;
+    }>();
   if (!current) {
     throw new ApiError(404, "inventory_item_not_found", "The inventory position was not found.");
   }
   try {
     assertInventoryAdjustment(input.quantityDelta, {
+      backordered: current.backordered_quantity,
       onHand: current.on_hand_quantity,
       oversellLimit: current.oversell_limit,
       reserved: current.reserved_quantity,

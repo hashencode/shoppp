@@ -1,6 +1,7 @@
 import type { ReservationStatus } from "./order-state";
 
 export interface InventoryPosition {
+  readonly backordered?: number;
   readonly onHand: number;
   readonly oversellLimit: number;
   readonly reserved: number;
@@ -31,7 +32,7 @@ export function assertInventoryAdjustment(
     throw new RangeError("Inventory adjustment cannot make on-hand quantity negative.");
   }
   const next = { ...position, onHand };
-  if (position.reserved > onHand + position.oversellLimit) {
+  if (position.reserved + (position.backordered ?? 0) > onHand + position.oversellLimit) {
     throw new RangeError("Inventory adjustment cannot invalidate active reservations.");
   }
   return next;
@@ -57,7 +58,9 @@ export function availableQuantity(position: InventoryPosition): number {
   assertQuantity(position.onHand, "On-hand quantity");
   assertQuantity(position.reserved, "Reserved quantity");
   assertQuantity(position.oversellLimit, "Oversell limit");
-  const available = position.onHand + position.oversellLimit - position.reserved;
+  assertQuantity(position.backordered ?? 0, "Backordered quantity");
+  const available =
+    position.onHand + position.oversellLimit - position.reserved - (position.backordered ?? 0);
   if (!Number.isSafeInteger(available)) {
     throw new RangeError("Available quantity must be a safe non-negative integer.");
   }

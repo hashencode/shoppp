@@ -33,15 +33,15 @@ export default defineNuxtConfig({
     prerender: {
       crawlLinks: true,
       failOnError: true,
-      ignore: ["/orders/**"],
-      routes: [...manifest.routes, "/cart", "/checkout"],
+      routes: [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"],
     },
   },
   routeRules: {
     ...redirectRules,
     "/cart": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
     "/checkout": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
-    "/orders/**": { prerender: false },
+    "/checkout/complete": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
+    "/orders/**": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
   },
   runtimeConfig: {
     public: {

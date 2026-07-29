@@ -49,7 +49,8 @@ export async function getLiveProduct(
     db
       .prepare(
         `SELECT v.id, v.sku, v.title, v.option_values_json, pr.amount AS price_amount,
-                COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit - i.reserved_quantity)
+                COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+                                           i.reserved_quantity - i.backordered_quantity)
                             FROM inventory_items i WHERE i.variant_id = v.id), 0)
                   AS available_quantity
            FROM product_variants v

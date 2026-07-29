@@ -14,6 +14,9 @@
     "STOREFRONT_ORIGIN": "https://storefront-development.example.invalid",
     "TAX_MODE": "zero",
     "RESERVATION_TTL_MINUTES": "30",
+    "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
+    "PAYMENT_CANCEL_URL": "https://storefront-development.example.invalid/checkout",
+    "PAYMENT_SUCCESS_URL": "https://storefront-development.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
   },
   "triggers": {
     "crons": ["*/5 * * * *"],
@@ -51,6 +54,9 @@
         "STOREFRONT_ORIGIN": "https://storefront-staging.example.invalid",
         "TAX_MODE": "zero",
         "RESERVATION_TTL_MINUTES": "30",
+        "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
+        "PAYMENT_CANCEL_URL": "https://storefront-staging.example.invalid/checkout",
+        "PAYMENT_SUCCESS_URL": "https://storefront-staging.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
       },
       "d1_databases": [
         {
@@ -85,6 +91,9 @@
         "STOREFRONT_ORIGIN": "https://shop.example.invalid",
         "TAX_MODE": "zero",
         "RESERVATION_TTL_MINUTES": "30",
+        "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
+        "PAYMENT_CANCEL_URL": "https://shop.example.invalid/checkout",
+        "PAYMENT_SUCCESS_URL": "https://shop.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
       },
       "d1_databases": [
         {

@@ -57,7 +57,7 @@ export async function createCartReservation(
       `SELECT warehouse_id
          FROM inventory_items
         WHERE variant_id = ?
-          AND on_hand_quantity + oversell_limit - reserved_quantity >= ?
+          AND on_hand_quantity + oversell_limit - reserved_quantity - backordered_quantity >= ?
         ORDER BY warehouse_id
         LIMIT 1`,
     )
