@@ -21,6 +21,10 @@ export type PermissionKey =
   | 'reporting.export'
   | 'operations.jobs.read'
   | 'operations.replay'
+  | 'settings.read'
+  | 'settings.write'
+  | 'audit.read'
+  | 'privacy.manage'
 
 const rolePermissions: Record<Role, PermissionKey[]> = {
   admin: [
@@ -44,6 +48,10 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'reporting.export',
     'operations.jobs.read',
     'operations.replay',
+    'settings.read',
+    'settings.write',
+    'audit.read',
+    'privacy.manage',
   ],
   editor: [
     'dashboard.read',

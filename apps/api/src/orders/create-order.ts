@@ -1,4 +1,5 @@
 import type { CheckoutSnapshot } from "../payments/port";
+import { loadRuntimeLaunchConfiguration } from "../settings/runtime";
 
 interface CheckoutAttemptRow {
   currency: string;
@@ -69,9 +70,12 @@ export async function createPaidOrderFromAttempt(
     throw new Error("Checkout attempt is incomplete.");
   }
   const snapshot = parseSnapshot(attempt.snapshot_json);
+  const configuration = await loadRuntimeLaunchConfiguration(db);
   const suffix = attemptSuffix(attempt.id);
   const orderId = `ord_${suffix}`;
-  const publicReference = `ORD-${suffix.slice(0, 12).toUpperCase()}`;
+  const publicReference = `${configuration?.orderNumberPrefix ?? "ORD"}-${suffix
+    .slice(0, 12)
+    .toUpperCase()}`;
   const address = snapshot.shippingAddress;
   const results = await db.batch([
     db

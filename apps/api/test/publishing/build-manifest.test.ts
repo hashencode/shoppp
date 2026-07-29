@@ -16,7 +16,13 @@ describe("storefront build manifest", () => {
           status: "published",
         },
       ],
-      policies: [{ description: "Returns policy", slug: "returns", title: "Returns" }],
+      policies: ["contact", "cookies", "privacy", "returns", "shipping", "terms"].map((slug) => ({
+        description: `${slug} disclosure`,
+        effectiveDate: "2026-07-30",
+        sections: [{ body: `${slug} policy body`, heading: `${slug} details` }],
+        slug,
+        title: `${slug} policy`,
+      })),
       products: [
         {
           description: "Published product",
@@ -83,7 +89,12 @@ describe("storefront build manifest", () => {
     expect(manifest.routes).toEqual([
       "/",
       "/collections/travel",
+      "/policies/contact",
+      "/policies/cookies",
+      "/policies/privacy",
       "/policies/returns",
+      "/policies/shipping",
+      "/policies/terms",
       "/products/carry-on",
     ]);
     expect(new Set(manifest.routes).size).toBe(manifest.routes.length);

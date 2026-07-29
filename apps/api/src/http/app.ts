@@ -5,9 +5,11 @@ import * as z from "zod";
 import {
   acknowledgeCartAdjustmentsSchema,
   addCartLineRequestSchema,
+  auditQuerySchema,
   cancelOrderRequestSchema,
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
+  createPrivacyRequestSchema,
   checkoutRequestSchema,
   fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
@@ -17,6 +19,7 @@ import {
   refundRequestSchema,
   shippingQuoteRequestSchema,
   updateCartLineRequestSchema,
+  updateLaunchConfigurationRequestSchema,
 } from "@shoppp/contracts";
 
 import {
@@ -33,7 +36,7 @@ import { createProduct, getProduct, listProducts, updateProduct } from "../catal
 import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
-import { recordAuditEvent } from "../iam/audit";
+import { listAuditEvents, recordAuditEvent } from "../iam/audit";
 import { requirePermission } from "../iam/permissions";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
@@ -52,6 +55,11 @@ import { PaymentProviderError, type PaymentProvider } from "../payments/port";
 import { createHostedCheckout } from "../payments/session";
 import { createStripePaymentProvider } from "../payments/stripe-adapter";
 import { processPaymentWebhook } from "../payments/webhook";
+import {
+  createPrivacyRequest,
+  downloadPrivacyExport,
+  listPrivacyRequests,
+} from "../privacy/service";
 import { refundOrder } from "../refunds/service";
 import {
   listNotificationJobs,
@@ -60,6 +68,15 @@ import {
 } from "../recovery/notification-jobs";
 import { createReportExport, downloadReportExport, getReportExport } from "../reporting/export";
 import { getRevenueReport, listReportOrders } from "../reporting/order-metrics";
+import type { RateLimiter } from "../security/rate-limit";
+import { protectCheckoutSubmission } from "../security/public-submission";
+import type { TurnstileVerifier } from "../security/turnstile";
+import { getOperationalHealth } from "../observability/health";
+import { observeRequest } from "../observability/logger";
+import {
+  getLaunchConfiguration,
+  updateLaunchConfiguration,
+} from "../settings/launch-configuration";
 import {
   createPreviewToken,
   defaultBuildTrigger,
@@ -69,7 +86,6 @@ import {
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
-import { redact } from "./redaction";
 
 export interface CreateAppOptions {
   readonly accessVerifier?: AccessVerifier;
@@ -77,6 +93,9 @@ export interface CreateAppOptions {
   readonly buildTrigger?: BuildTrigger;
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
+  readonly checkoutRateLimiter?: RateLimiter;
+  readonly turnstileRequired?: boolean;
+  readonly turnstileVerifier?: TurnstileVerifier;
 }
 
 const idempotentTestSchema = z.object({ value: z.string().min(1) }).strict();
@@ -129,29 +148,35 @@ export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono<ApiEnvironment>();
 
   app.use("*", async (context, next) => {
+    const startedAt = Date.now();
     const requestId = context.req.header("x-request-id") || crypto.randomUUID();
     context.set("requestId", requestId);
+    context.header("x-request-id", requestId);
     assertEnvironmentIsolation({
       environment: context.env.ENVIRONMENT,
       publicOrigin: context.env.PUBLIC_ORIGIN,
       resourceNamespace: context.env.RESOURCE_NAMESPACE,
     });
-    await next();
-    context.header("x-request-id", requestId);
+    try {
+      await next();
+      observeRequest(context, {
+        durationMs: Date.now() - startedAt,
+        status: context.res.status,
+      });
+    } catch (error) {
+      observeRequest(context, {
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error : new Error("Unknown request failure"),
+        status: error instanceof ApiError ? error.status : 500,
+      });
+      throw error;
+    }
   });
   app.onError((error, context) => {
     const apiError =
       error instanceof ApiError
         ? error
         : new ApiError(500, "internal_error", "An unexpected error occurred.");
-    if (!(error instanceof ApiError)) {
-      console.error(
-        JSON.stringify({
-          error: redact({ message: error.message, name: error.name }),
-          requestId: context.get("requestId"),
-        }),
-      );
-    }
     return context.json(errorEnvelope(apiError, context.get("requestId")), apiError.status);
   });
   app.notFound((context) =>
@@ -168,7 +193,13 @@ export function createApp(options: CreateAppOptions = {}) {
     context.json({ data: { status: "ok" }, meta: { requestId: context.get("requestId") } }),
   );
   const publicCors = cors({
-    allowHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Request-Id"],
+    allowHeaders: [
+      "Authorization",
+      "Content-Type",
+      "Idempotency-Key",
+      "X-Request-Id",
+      "X-Turnstile-Token",
+    ],
     allowMethods: ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"],
     credentials: false,
     origin: (origin, context) => (origin === context.env.STOREFRONT_ORIGIN ? origin : ""),
@@ -177,6 +208,16 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/cart/*", publicCors);
   app.use("/catalog/*", publicCors);
   app.use("/checkout/*", publicCors);
+  app.use(
+    "/checkout/sessions",
+    protectCheckoutSubmission({
+      ...(options.checkoutRateLimiter ? { rateLimiter: options.checkoutRateLimiter } : {}),
+      ...(options.turnstileRequired === undefined
+        ? {}
+        : { turnstileRequired: options.turnstileRequired }),
+      ...(options.turnstileVerifier ? { turnstileVerifier: options.turnstileVerifier } : {}),
+    }),
+  );
   app.use("/orders/*", publicCors);
   app.get("/catalog/products/:slug/live", async (context) => {
     const currency = (context.req.query("currency") ?? "USD").toUpperCase();
@@ -345,7 +386,85 @@ export function createApp(options: CreateAppOptions = {}) {
     return context.json(JSON.parse(release.manifest_json));
   });
 
+  app.use("/admin/*", async (context, next) => {
+    context.header("Cache-Control", "private, no-store");
+    await next();
+  });
   app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
+  app.get("/admin/settings/launch", async (context) => {
+    await requirePermission(context, "settings.read", { type: "setting" });
+    return context.json({
+      data: await getLaunchConfiguration(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.put(
+    "/admin/settings/launch",
+    async (context, next) => {
+      await requirePermission(context, "settings.write", {
+        id: "launch_configuration",
+        type: "setting",
+      });
+      await next();
+    },
+    idempotency("settings.launch.update"),
+    async (context) => {
+      const input = await parseJson(context, updateLaunchConfigurationRequestSchema);
+      return context.json({
+        data: await updateLaunchConfiguration(context, input),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.get("/admin/audit", async (context) => {
+    await requirePermission(context, "audit.read", { type: "audit_event" });
+    const input = validatedQuery(context, auditQuerySchema);
+    const result = await listAuditEvents(context.env.DB, input);
+    return context.json({
+      data: result.data,
+      meta: { nextCursor: result.nextCursor, requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/operations/health", async (context) => {
+    await requirePermission(context, "settings.read", { type: "operational_health" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await getOperationalHealth(context.env),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/privacy/requests", async (context) => {
+    await requirePermission(context, "privacy.manage", { type: "privacy_request" });
+    return context.json({
+      data: await listPrivacyRequests(context.env.DB),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/admin/privacy/requests",
+    async (context, next) => {
+      await requirePermission(context, "privacy.manage", { type: "privacy_request" });
+      await next();
+    },
+    idempotency("privacy.requests.create"),
+    async (context) => {
+      const input = await parseJson(context, createPrivacyRequestSchema);
+      return context.json(
+        {
+          data: await createPrivacyRequest(context, input),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
+    },
+  );
+  app.get("/admin/privacy/requests/:id/download", async (context) => {
+    await requirePermission(context, "privacy.manage", {
+      id: context.req.param("id"),
+      type: "privacy_request",
+    });
+    return downloadPrivacyExport(context, context.req.param("id"));
+  });
   app.get("/admin/catalog/products", async (context) => {
     await requirePermission(context, "catalog.read", { type: "product" });
     return context.json(await listProducts(context));

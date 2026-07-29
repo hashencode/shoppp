@@ -4,4 +4,6 @@ export * from "./catalog";
 export * from "./checkout";
 export * from "./common";
 export * from "./inventory";
+export * from "./platform";
+export * from "./privacy";
 export * from "./reporting";

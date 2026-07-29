@@ -7,6 +7,7 @@ import {
 } from "./automation/queue-consumer";
 
 export { NotificationDeliveryWorkflow } from "./automation/workflows";
+export { D1BackupWorkflow } from "./operations/d1-backup";
 
 const app = createApp();
 

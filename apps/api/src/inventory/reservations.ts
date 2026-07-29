@@ -9,6 +9,7 @@ import type { Context } from "hono";
 import { quoteCart, type CartRow } from "../cart/service";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
+import { loadRuntimeLaunchConfiguration } from "../settings/runtime";
 
 interface InventoryPositionRow {
   warehouse_id: string;
@@ -79,8 +80,12 @@ export async function createCartReservation(
     });
   }
   const createdAt = new Date();
+  const configuration = await loadRuntimeLaunchConfiguration(context.env.DB);
   const expiresAt = new Date(
-    createdAt.getTime() + reservationTtlMinutes(context.env.RESERVATION_TTL_MINUTES) * 60_000,
+    createdAt.getTime() +
+      (configuration?.reservationTtlMinutes ??
+        reservationTtlMinutes(context.env.RESERVATION_TTL_MINUTES)) *
+        60_000,
   ).toISOString();
   try {
     const reservation = await reserveInventoryGroup(context.env.DB, {

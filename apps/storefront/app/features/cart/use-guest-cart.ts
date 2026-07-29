@@ -89,13 +89,13 @@ export function useGuestCart() {
     withCart((value) => api.acknowledgeCartAdjustments(value, codes));
   const shipping = (input: ShippingQuoteRequest) =>
     withCart((value) => api.quoteShipping(value, input));
-  const beginCheckout = async (input: CheckoutRequest) => {
+  const beginCheckout = async (input: CheckoutRequest, turnstileToken?: string) => {
     busy.value = true;
     error.value = null;
     try {
       const cartToken = token();
       if (!cartToken) throw new Error("Cart token unavailable");
-      return (await api.createCheckoutSession(cartToken, input)).data;
+      return (await api.createCheckoutSession(cartToken, input, turnstileToken)).data;
     } catch (cause) {
       error.value = errorMessage(cause);
       throw cause;

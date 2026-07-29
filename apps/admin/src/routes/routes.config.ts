@@ -11,6 +11,9 @@ import {
   ShoppingCartOutlined,
   ShoppingOutlined,
   DollarOutlined,
+  AuditOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
   SmileOutlined,
   TableOutlined,
 } from '@ant-design/icons'
@@ -176,6 +179,54 @@ export const templateRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'launch-settings',
+    path: '/settings/launch',
+    title: 'Launch settings',
+    icon: createElement(SettingOutlined),
+    permission: 'settings.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Settings', 'Launch'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/launch-settings-page').then((m) => ({
+          default: m.LaunchSettingsPage,
+        }))
+      ),
+  },
+  {
+    key: 'audit',
+    path: '/audit',
+    title: 'Audit trail',
+    icon: createElement(AuditOutlined),
+    permission: 'audit.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Operations', 'Audit'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/audit/audit-page').then((m) => ({
+          default: m.AuditPage,
+        }))
+      ),
+  },
+  {
+    key: 'privacy',
+    path: '/privacy',
+    title: 'Privacy requests',
+    icon: createElement(SafetyCertificateOutlined),
+    permission: 'privacy.manage',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Operations', 'Privacy requests'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/privacy/privacy-page').then((m) => ({
+          default: m.PrivacyPage,
+        }))
+      ),
+  },
+  {
     key: 'welcome',
     path: '/template',
     title: '欢迎',
@@ -184,7 +235,10 @@ export const templateRoutes: TemplateRoute[] = [
     inMenu: true,
     menuVisibility: 'dev-only',
     menuGroup: 'Template',
-    component: () => lazyPage(() => import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))),
+    component: () =>
+      lazyPage(() =>
+        import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))
+      ),
   },
   {
     key: 'analysis',
@@ -196,7 +250,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuVisibility: 'dev-only',
     menuGroup: 'Template',
     component: () =>
-      lazyPage(() => import('../pages/templates/dashboard/analysis-page').then((m) => ({ default: m.AnalysisPage }))),
+      lazyPage(() =>
+        import('../pages/templates/dashboard/analysis-page').then((m) => ({
+          default: m.AnalysisPage,
+        }))
+      ),
   },
   {
     key: 'table-query',
@@ -208,7 +266,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuVisibility: 'dev-only',
     menuGroup: 'Template',
     component: () =>
-      lazyPage(() => import('../pages/templates/list/table-query-page').then((m) => ({ default: m.TableQueryPage }))),
+      lazyPage(() =>
+        import('../pages/templates/list/table-query-page').then((m) => ({
+          default: m.TableQueryPage,
+        }))
+      ),
   },
   {
     key: 'list-prompt-generator',
@@ -236,7 +298,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuGroup: 'Template',
     breadcrumb: ['表单页', '基础表单'],
     component: () =>
-      lazyPage(() => import('../pages/templates/form/basic-form-page').then((m) => ({ default: m.BasicFormPage }))),
+      lazyPage(() =>
+        import('../pages/templates/form/basic-form-page').then((m) => ({
+          default: m.BasicFormPage,
+        }))
+      ),
   },
   {
     key: 'step-form',
@@ -249,7 +315,9 @@ export const templateRoutes: TemplateRoute[] = [
     menuGroup: 'Template',
     breadcrumb: ['表单页', '分步表单'],
     component: () =>
-      lazyPage(() => import('../pages/templates/form/step-form-page').then((m) => ({ default: m.StepFormPage }))),
+      lazyPage(() =>
+        import('../pages/templates/form/step-form-page').then((m) => ({ default: m.StepFormPage }))
+      ),
   },
   {
     key: 'advanced-form',
@@ -262,7 +330,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuGroup: 'Template',
     breadcrumb: ['表单页', '高级表单'],
     component: () =>
-      lazyPage(() => import('../pages/templates/form/advanced-form-page').then((m) => ({ default: m.AdvancedFormPage }))),
+      lazyPage(() =>
+        import('../pages/templates/form/advanced-form-page').then((m) => ({
+          default: m.AdvancedFormPage,
+        }))
+      ),
   },
   {
     key: 'basic-profile',
@@ -274,7 +346,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuVisibility: 'dev-only',
     menuGroup: 'Template',
     component: () =>
-      lazyPage(() => import('../pages/templates/profile/basic-profile-page').then((m) => ({ default: m.BasicProfilePage }))),
+      lazyPage(() =>
+        import('../pages/templates/profile/basic-profile-page').then((m) => ({
+          default: m.BasicProfilePage,
+        }))
+      ),
   },
   {
     key: 'result-success',
@@ -288,7 +364,9 @@ export const templateRoutes: TemplateRoute[] = [
     breadcrumb: ['结果页', '成功页'],
     component: () =>
       lazyPage(() =>
-        import('../pages/templates/dashboard/result-success-page').then((m) => ({ default: m.ResultSuccessPage }))
+        import('../pages/templates/dashboard/result-success-page').then((m) => ({
+          default: m.ResultSuccessPage,
+        }))
       ),
   },
   {
@@ -302,7 +380,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuGroup: 'Template',
     breadcrumb: ['结果页', '失败页'],
     component: () =>
-      lazyPage(() => import('../pages/templates/dashboard/result-fail-page').then((m) => ({ default: m.ResultFailPage }))),
+      lazyPage(() =>
+        import('../pages/templates/dashboard/result-fail-page').then((m) => ({
+          default: m.ResultFailPage,
+        }))
+      ),
   },
   {
     key: 'exception-403',
@@ -315,7 +397,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuGroup: 'Template',
     breadcrumb: ['异常页', '403'],
     component: () =>
-      lazyPage(() => import('../pages/templates/exception/forbidden-page').then((m) => ({ default: m.ForbiddenPage }))),
+      lazyPage(() =>
+        import('../pages/templates/exception/forbidden-page').then((m) => ({
+          default: m.ForbiddenPage,
+        }))
+      ),
   },
   {
     key: 'exception-500',
@@ -328,7 +414,11 @@ export const templateRoutes: TemplateRoute[] = [
     menuGroup: 'Template',
     breadcrumb: ['异常页', '500'],
     component: () =>
-      lazyPage(() => import('../pages/templates/exception/server-error-page').then((m) => ({ default: m.ServerErrorPage }))),
+      lazyPage(() =>
+        import('../pages/templates/exception/server-error-page').then((m) => ({
+          default: m.ServerErrorPage,
+        }))
+      ),
   },
   {
     key: 'exception-404',
@@ -339,6 +429,10 @@ export const templateRoutes: TemplateRoute[] = [
     inMenu: false,
     breadcrumb: ['异常页', '404'],
     component: () =>
-      lazyPage(() => import('../pages/templates/exception/not-found-page').then((m) => ({ default: m.NotFoundPage }))),
+      lazyPage(() =>
+        import('../pages/templates/exception/not-found-page').then((m) => ({
+          default: m.NotFoundPage,
+        }))
+      ),
   },
 ]

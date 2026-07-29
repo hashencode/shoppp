@@ -4,6 +4,7 @@ import {
   countryCodeSchema,
   currencyCodeSchema,
   isoDateTimeSchema,
+  orderReferenceSchema,
   pricingTotalsSchema,
   publicIdSchema,
 } from "./common";
@@ -92,7 +93,7 @@ export const guestOrderSchema = z
       "partially_refunded",
       "refunded",
     ]),
-    publicReference: z.string().regex(/^ORD-[A-Z0-9]{6,20}$/),
+    publicReference: orderReferenceSchema,
     shippingAddress: shippingAddressSchema,
     totals: pricingTotalsSchema,
   })

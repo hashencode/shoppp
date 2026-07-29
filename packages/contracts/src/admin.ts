@@ -1,6 +1,11 @@
 import * as z from "zod";
 
-import { currencyCodeSchema, isoDateTimeSchema, pricingTotalsSchema } from "./common";
+import {
+  currencyCodeSchema,
+  isoDateTimeSchema,
+  orderReferenceSchema,
+  pricingTotalsSchema,
+} from "./common";
 import { guestOrderLineSchema, shippingAddressSchema } from "./checkout";
 
 export const paymentStatusSchema = z.enum([
@@ -36,7 +41,7 @@ export const adminOrderSchema = z
     grandTotal: z.int().nonnegative(),
     orderStatus: orderStatusSchema,
     paymentStatus: paymentStatusSchema,
-    publicReference: z.string().regex(/^ORD-[A-Z0-9]{6,20}$/),
+    publicReference: orderReferenceSchema,
   })
   .strict();
 
@@ -71,7 +76,7 @@ export const adminOrderDetailSchema = z
         lines: z.array(guestOrderLineSchema).min(1),
         orderStatus: orderStatusSchema,
         paymentStatus: paymentStatusSchema,
-        publicReference: z.string().regex(/^ORD-[A-Z0-9]{6,20}$/),
+        publicReference: orderReferenceSchema,
         shippingAddress: shippingAddressSchema,
         totals: pricingTotalsSchema,
       })
@@ -152,11 +157,7 @@ export const notificationJobSchema = z
     lastErrorCode: z.string().nullable().optional(),
     maxAttempts: z.int().positive(),
     nextAttemptAt: isoDateTimeSchema.nullable().optional(),
-    orderReference: z
-      .string()
-      .regex(/^ORD-[A-Z0-9]{6,20}$/)
-      .nullable()
-      .optional(),
+    orderReference: orderReferenceSchema.nullable().optional(),
     recipient: z.string().min(3),
     replayCount: z.int().nonnegative(),
     sentAt: isoDateTimeSchema.nullable().optional(),

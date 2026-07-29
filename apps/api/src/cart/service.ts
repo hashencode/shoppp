@@ -14,6 +14,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { configuredTaxPort } from "../pricing/tax";
+import { loadRuntimeLaunchConfiguration } from "../settings/runtime";
 
 type CartContext = Context<ApiEnvironment>;
 
@@ -248,6 +249,7 @@ async function shippingQuotes(
   totalWeightGrams: number,
 ): Promise<ShippingMethodQuote[]> {
   if (!cart.shipping_country) return [];
+  const configuration = await loadRuntimeLaunchConfiguration(db);
   const rows = await db
     .prepare(
       `SELECT sm.id, sm.name, sm.calculation_type, sm.price_amount, sm.currency,
@@ -262,16 +264,18 @@ async function shippingQuotes(
     .all<ShippingMethodRow>();
   return quoteShippingMethods({
     currency: cart.currency,
-    methods: rows.results.map((row) => ({
-      calculationType: row.calculation_type,
-      currency: row.currency,
-      freeThresholdAmount: row.free_threshold_amount,
-      id: row.id,
-      maxWeightGrams: row.max_weight_grams,
-      minWeightGrams: row.min_weight_grams,
-      name: row.name,
-      priceAmount: row.price_amount,
-    })),
+    methods: rows.results
+      .filter((row) => !configuration || configuration.shippingMethodIds.includes(row.id))
+      .map((row) => ({
+        calculationType: row.calculation_type,
+        currency: row.currency,
+        freeThresholdAmount: row.free_threshold_amount,
+        id: row.id,
+        maxWeightGrams: row.max_weight_grams,
+        minWeightGrams: row.min_weight_grams,
+        name: row.name,
+        priceAmount: row.price_amount,
+      })),
     subtotalAmount,
     totalWeightGrams,
   });
@@ -384,6 +388,10 @@ export async function createCart(
   context: CartContext,
   input: CreateCartRequest,
 ): Promise<{ cart: Cart; token: string }> {
+  const configuration = await loadRuntimeLaunchConfiguration(context.env.DB);
+  if (configuration && !configuration.sellableCurrencies.includes(input.currency)) {
+    throw new ApiError(422, "currency_unavailable", "This currency is not enabled for checkout.");
+  }
   const token = opaqueToken();
   const id = publicId("cart");
   const createdAt = new Date();
@@ -554,6 +562,18 @@ export async function setCartShipping(
   cart: CartRow,
   input: ShippingQuoteRequest,
 ): Promise<Cart> {
+  const configuration = await loadRuntimeLaunchConfiguration(context.env.DB);
+  if (
+    configuration &&
+    !configuration.shippingCountries.includes(input.shippingAddress.countryCode)
+  ) {
+    throw new ApiError(
+      422,
+      "shipping_destination_unavailable",
+      "Shipping is not enabled for this country.",
+      [{ path: ["shippingAddress", "countryCode"] }],
+    );
+  }
   const zone = await context.env.DB.prepare(
     `SELECT sz.id
        FROM shipping_zones sz

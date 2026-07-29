@@ -10,7 +10,8 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         miniflare: {
-          r2Buckets: ["MEDIA", "REPORT_EXPORTS"],
+          d1Databases: ["RESTORE_DB"],
+          r2Buckets: ["BACKUP_BUCKET", "MEDIA", "PRIVACY_EXPORTS", "REPORT_EXPORTS"],
           bindings: {
             ACCESS_AUDIENCE: "test-audience",
             ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",
@@ -26,6 +27,8 @@ export default defineConfig(async () => {
               "https://storefront-staging.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
             TAX_MODE: "zero",
             TEST_MIGRATIONS: migrations,
+            TURNSTILE_HOSTNAMES: "storefront-staging.example.invalid",
+            TURNSTILE_REQUIRED: "false",
           },
         },
         wrangler: {

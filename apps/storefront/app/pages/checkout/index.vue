@@ -4,6 +4,7 @@ import type { ShippingQuoteRequest } from "@shoppp/contracts";
 import CartSummary from "~/features/cart/CartSummary.vue";
 import CheckoutAddress from "~/features/checkout/address.vue";
 import CheckoutShipping from "~/features/checkout/shipping.vue";
+import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { storeOrderAccess } from "~/features/checkout/session";
 import { useGuestCart } from "~/features/cart/use-guest-cart";
 
@@ -19,6 +20,10 @@ const address = reactive<ShippingQuoteRequest["shippingAddress"]>({
 const email = ref("");
 const selectedMethod = ref<string>();
 const termsAccepted = ref(false);
+const turnstileToken = ref("");
+const turnstileRenderKey = ref(0);
+const config = useRuntimeConfig();
+const turnstileRequired = computed(() => Boolean(config.public.turnstileSiteKey));
 
 useSeoMeta({ title: "Checkout | Shoppp", robots: "noindex, nofollow" });
 useHead({ meta: [{ name: "referrer", content: "no-referrer" }] });
@@ -42,18 +47,26 @@ const refreshQuote = async () => {
 const continueToPayment = async () => {
   if (!cart.value || !selectedMethod.value || !termsAccepted.value) return;
   const idempotencyKey = `checkout-${crypto.randomUUID()}`;
-  const session = await beginCheckout({
-    acceptTerms: true,
-    cartId: cart.value.id,
-    countryCode: address.countryCode,
-    currency: cart.value.currency,
-    email: email.value,
-    idempotencyKey,
-    shippingAddress: address,
-    shippingMethodId: selectedMethod.value,
-  });
-  storeOrderAccess({ attemptId: session.attemptId, token: session.orderAccessToken });
-  window.location.assign(session.checkoutUrl);
+  try {
+    const session = await beginCheckout(
+      {
+        acceptTerms: true,
+        cartId: cart.value.id,
+        countryCode: address.countryCode,
+        currency: cart.value.currency,
+        email: email.value,
+        idempotencyKey,
+        shippingAddress: address,
+        shippingMethodId: selectedMethod.value,
+      },
+      turnstileToken.value || undefined,
+    );
+    storeOrderAccess({ attemptId: session.attemptId, token: session.orderAccessToken });
+    window.location.assign(session.checkoutUrl);
+  } catch {
+    turnstileToken.value = "";
+    turnstileRenderKey.value += 1;
+  }
 };
 </script>
 
@@ -85,10 +98,22 @@ const continueToPayment = async () => {
           <NuxtLink to="/policies/returns">returns policy</NuxtLink>.
         </span>
       </label>
+      <TurnstileChallenge
+        v-if="turnstileRequired"
+        :key="turnstileRenderKey"
+        v-model="turnstileToken"
+        :sitekey="config.public.turnstileSiteKey"
+      />
       <button
         class="buy-button"
         type="submit"
-        :disabled="busy || !cart?.canCheckout || !selectedMethod || !termsAccepted"
+        :disabled="
+          busy ||
+          !cart?.canCheckout ||
+          !selectedMethod ||
+          !termsAccepted ||
+          (turnstileRequired && !turnstileToken)
+        "
       >
         Continue to secure payment
       </button>

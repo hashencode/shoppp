@@ -6,6 +6,7 @@ declare global {
       ACCESS_AUDIENCE: string;
       ACCESS_ISSUER: string;
       ACCESS_JWKS: string;
+      BACKUP_BUCKET: R2Bucket;
       DB: D1Database;
       ENVIRONMENT: "development" | "staging" | "production";
       EMAIL_FROM: string;
@@ -18,7 +19,10 @@ declare global {
       STRIPE_SECRET_KEY?: string;
       STRIPE_WEBHOOK_SECRET?: string;
       MEDIA: R2Bucket;
+      PRIVACY_EXPORTS: R2Bucket;
       REPORT_EXPORTS: R2Bucket;
+      RESTORE_DB: D1Database;
+      STOREFRONT_ORIGIN: string;
       TEST_MIGRATIONS: D1Migration[];
     }
   }

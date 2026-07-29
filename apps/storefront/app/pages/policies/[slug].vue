@@ -22,10 +22,11 @@ useHead({ link: [{ rel: "canonical", href: canonical }] });
     <h1>{{ policy.title }}</h1>
     <div class="prose">
       <p>{{ policy.description }}</p>
-      <p>
-        This launch policy is published from the approved commerce release. Market-specific
-        eligibility is confirmed before checkout.
-      </p>
+      <p><strong>Effective date:</strong> {{ policy.effectiveDate }}</p>
+      <section v-for="section in policy.sections" :key="section.heading">
+        <h2>{{ section.heading }}</h2>
+        <p>{{ section.body }}</p>
+      </section>
     </div>
   </article>
 </template>

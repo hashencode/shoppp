@@ -66,12 +66,13 @@ export const useCommerceApi = () => {
       headers: cartHeaders(token, "cart-shipping"),
       method: "PUT",
     });
-  const createCheckoutSession = (token: string, input: CheckoutRequest) =>
+  const createCheckoutSession = (token: string, input: CheckoutRequest, turnstileToken?: string) =>
     api<ApiData<CheckoutSession>>("/checkout/sessions", {
       body: input,
       headers: {
         Authorization: `CartToken ${token}`,
         "Idempotency-Key": input.idempotencyKey,
+        ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
       },
       method: "POST",
     });

@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { currencyCodeSchema, isoDateTimeSchema } from "./common";
+import { currencyCodeSchema, isoDateTimeSchema, orderReferenceSchema } from "./common";
 import { fulfillmentStatusSchema, orderStatusSchema, paymentStatusSchema } from "./admin";
 
 const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -67,7 +67,7 @@ export const reportOrderRowSchema = z
     netContribution: z.int(),
     orderStatus: orderStatusSchema,
     paymentStatus: paymentStatusSchema,
-    publicReference: z.string().regex(/^ORD-[A-Z0-9]{6,20}$/),
+    publicReference: orderReferenceSchema,
     refundContribution: z.int().nonnegative(),
   })
   .strict();

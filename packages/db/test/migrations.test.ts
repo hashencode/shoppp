@@ -12,6 +12,7 @@ describe("D1 migrations", () => {
     expect(tables.results.map(({ name }) => name)).toEqual(
       expect.arrayContaining([
         "audit_events",
+        "d1_backup_runs",
         "carts",
         "catalog_releases",
         "checkout_attempts",
@@ -24,6 +25,8 @@ describe("D1 migrations", () => {
         "order_lines",
         "orders",
         "payment_events",
+        "privacy_request_events",
+        "privacy_requests",
         "prices",
         "product_variants",
         "products",

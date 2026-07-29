@@ -18,6 +18,10 @@
     "PAYMENT_CANCEL_URL": "https://storefront-development.example.invalid/checkout",
     "PAYMENT_SUCCESS_URL": "https://storefront-development.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
     "EMAIL_FROM": "orders@development.example.invalid",
+    "TURNSTILE_REQUIRED": "false",
+    "TURNSTILE_HOSTNAMES": "storefront-development.example.invalid",
+    "CLOUDFLARE_ACCOUNT_ID": "00000000000000000000000000000001",
+    "D1_DATABASE_ID": "00000000-0000-0000-0000-000000000010",
   },
   "triggers": {
     "crons": ["*/5 * * * *"],
@@ -41,6 +45,32 @@
       "binding": "REPORT_EXPORTS",
       "bucket_name": "shoppp-development-report-exports",
       "preview_bucket_name": "shoppp-development-report-exports-preview",
+    },
+    {
+      "binding": "PRIVACY_EXPORTS",
+      "bucket_name": "shoppp-development-privacy-exports",
+      "preview_bucket_name": "shoppp-development-privacy-exports-preview",
+    },
+    {
+      "binding": "BACKUP_BUCKET",
+      "bucket_name": "shoppp-development-d1-backups",
+      "preview_bucket_name": "shoppp-development-d1-backups-preview",
+    },
+  ],
+  "ratelimits": [
+    {
+      "name": "CHECKOUT_RATE_LIMITER",
+      "namespace_id": "11001",
+      "simple": {
+        "limit": 10,
+        "period": 60,
+      },
+    },
+  ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "OBSERVABILITY",
+      "dataset": "shoppp_development_observability",
     },
   ],
   "queues": {
@@ -73,6 +103,12 @@
       "binding": "NOTIFICATION_WORKFLOW",
       "class_name": "NotificationDeliveryWorkflow",
     },
+    {
+      "name": "shoppp-development-d1-backup",
+      "binding": "BACKUP_WORKFLOW",
+      "class_name": "D1BackupWorkflow",
+      "schedules": ["0 0 * * *"],
+    },
   ],
   "env": {
     "staging": {
@@ -95,6 +131,10 @@
         "PAYMENT_CANCEL_URL": "https://storefront-staging.example.invalid/checkout",
         "PAYMENT_SUCCESS_URL": "https://storefront-staging.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
         "EMAIL_FROM": "orders@staging.example.invalid",
+        "TURNSTILE_REQUIRED": "true",
+        "TURNSTILE_HOSTNAMES": "storefront-staging.example.invalid",
+        "CLOUDFLARE_ACCOUNT_ID": "00000000000000000000000000000002",
+        "D1_DATABASE_ID": "00000000-0000-0000-0000-000000000020",
       },
       "d1_databases": [
         {
@@ -115,6 +155,32 @@
           "binding": "REPORT_EXPORTS",
           "bucket_name": "shoppp-staging-report-exports",
           "preview_bucket_name": "shoppp-staging-report-exports-preview",
+        },
+        {
+          "binding": "PRIVACY_EXPORTS",
+          "bucket_name": "shoppp-staging-privacy-exports",
+          "preview_bucket_name": "shoppp-staging-privacy-exports-preview",
+        },
+        {
+          "binding": "BACKUP_BUCKET",
+          "bucket_name": "shoppp-staging-d1-backups",
+          "preview_bucket_name": "shoppp-staging-d1-backups-preview",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "CHECKOUT_RATE_LIMITER",
+          "namespace_id": "12001",
+          "simple": {
+            "limit": 10,
+            "period": 60,
+          },
+        },
+      ],
+      "analytics_engine_datasets": [
+        {
+          "binding": "OBSERVABILITY",
+          "dataset": "shoppp_staging_observability",
         },
       ],
       "queues": {
@@ -147,6 +213,12 @@
           "binding": "NOTIFICATION_WORKFLOW",
           "class_name": "NotificationDeliveryWorkflow",
         },
+        {
+          "name": "shoppp-staging-d1-backup",
+          "binding": "BACKUP_WORKFLOW",
+          "class_name": "D1BackupWorkflow",
+          "schedules": ["0 0 * * *"],
+        },
       ],
     },
     "production": {
@@ -169,6 +241,10 @@
         "PAYMENT_CANCEL_URL": "https://shop.example.invalid/checkout",
         "PAYMENT_SUCCESS_URL": "https://shop.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
         "EMAIL_FROM": "orders@example.invalid",
+        "TURNSTILE_REQUIRED": "true",
+        "TURNSTILE_HOSTNAMES": "shop.example.invalid",
+        "CLOUDFLARE_ACCOUNT_ID": "00000000000000000000000000000003",
+        "D1_DATABASE_ID": "00000000-0000-0000-0000-000000000030",
       },
       "d1_databases": [
         {
@@ -189,6 +265,32 @@
           "binding": "REPORT_EXPORTS",
           "bucket_name": "shoppp-production-report-exports",
           "preview_bucket_name": "shoppp-production-report-exports-preview",
+        },
+        {
+          "binding": "PRIVACY_EXPORTS",
+          "bucket_name": "shoppp-production-privacy-exports",
+          "preview_bucket_name": "shoppp-production-privacy-exports-preview",
+        },
+        {
+          "binding": "BACKUP_BUCKET",
+          "bucket_name": "shoppp-production-d1-backups",
+          "preview_bucket_name": "shoppp-production-d1-backups-preview",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "CHECKOUT_RATE_LIMITER",
+          "namespace_id": "13001",
+          "simple": {
+            "limit": 10,
+            "period": 60,
+          },
+        },
+      ],
+      "analytics_engine_datasets": [
+        {
+          "binding": "OBSERVABILITY",
+          "dataset": "shoppp_production_observability",
         },
       ],
       "queues": {
@@ -220,6 +322,12 @@
           "name": "shoppp-production-notification-delivery",
           "binding": "NOTIFICATION_WORKFLOW",
           "class_name": "NotificationDeliveryWorkflow",
+        },
+        {
+          "name": "shoppp-production-d1-backup",
+          "binding": "BACKUP_WORKFLOW",
+          "class_name": "D1BackupWorkflow",
+          "schedules": ["0 0 * * *"],
         },
       ],
     },

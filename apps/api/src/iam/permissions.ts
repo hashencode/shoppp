@@ -17,6 +17,7 @@ export type PermissionKey =
   | "orders.refund"
   | "reporting.read"
   | "reporting.export"
+  | "audit.read"
   | "settings.read"
   | "settings.write"
   | "privacy.manage"
@@ -42,6 +43,7 @@ const ALL_PERMISSIONS: readonly PermissionKey[] = [
   "orders.refund",
   "reporting.read",
   "reporting.export",
+  "audit.read",
   "settings.read",
   "settings.write",
   "privacy.manage",
@@ -59,6 +61,7 @@ const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly PermissionKey[]>> = 
     "orders.fulfill",
     "orders.cancel",
     "orders.refund",
+    "audit.read",
     "operations.replay",
     "operations.jobs.read",
   ],
