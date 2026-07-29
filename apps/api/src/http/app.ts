@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import * as z from "zod";
 
@@ -11,6 +11,8 @@ import {
   checkoutRequestSchema,
   fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
+  reportExportRequestSchema,
+  reportingQuerySchema,
   replayNotificationJobRequestSchema,
   refundRequestSchema,
   shippingQuoteRequestSchema,
@@ -56,6 +58,8 @@ import {
   NotificationRecoveryError,
   replayNotificationJob,
 } from "../recovery/notification-jobs";
+import { createReportExport, downloadReportExport, getReportExport } from "../reporting/export";
+import { getRevenueReport, listReportOrders } from "../reporting/order-metrics";
 import {
   createPreviewToken,
   defaultBuildTrigger,
@@ -94,6 +98,32 @@ const notificationJobQuerySchema = z
       .optional(),
   })
   .strict();
+const reportOrderQuerySchema = reportingQuerySchema
+  .extend({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    query: z.string().trim().max(160).optional(),
+  })
+  .strict();
+
+function validatedQuery<Schema extends z.ZodType>(
+  context: Context<ApiEnvironment>,
+  schema: Schema,
+): z.infer<Schema> {
+  const parsed = schema.safeParse(context.req.query());
+  if (!parsed.success) {
+    throw new ApiError(
+      422,
+      "validation_failed",
+      "Request validation failed.",
+      parsed.error.issues.map((issue) => ({
+        message: issue.message,
+        path: issue.path.map(String),
+      })),
+    );
+  }
+  return parsed.data;
+}
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -427,6 +457,90 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/admin/orders", async (context) => {
     await requirePermission(context, "orders.read", { type: "order" });
     return context.json(await listOrders(context));
+  });
+  app.get("/admin/reporting/revenue", async (context) => {
+    await requirePermission(context, "reporting.read", { type: "commerce_report" });
+    const input = validatedQuery(context, reportingQuerySchema);
+    try {
+      return context.json({
+        data: await getRevenueReport(context.env.DB, context.env.ENVIRONMENT, input),
+        meta: { requestId: context.get("requestId") },
+      });
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.startsWith("reporting_")) throw error;
+      throw new ApiError(422, error.message, "The reporting window is invalid.");
+    }
+  });
+  app.get("/admin/reporting/orders", async (context) => {
+    await requirePermission(context, "reporting.read", { type: "commerce_report" });
+    const input = validatedQuery(context, reportOrderQuerySchema);
+    try {
+      const result = await listReportOrders(context.env.DB, context.env.ENVIRONMENT, {
+        currency: input.currency,
+        endDate: input.endDate,
+        page: input.page,
+        pageSize: input.pageSize,
+        ...(input.query ? { query: input.query } : {}),
+        startDate: input.startDate,
+        timeZone: input.timeZone,
+      });
+      return context.json({
+        data: result.data,
+        meta: {
+          currency: input.currency,
+          endDate: input.endDate,
+          page: result.page,
+          pageSize: result.pageSize,
+          requestId: context.get("requestId"),
+          startDate: input.startDate,
+          timeZone: input.timeZone,
+          total: result.total,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.startsWith("reporting_")) throw error;
+      throw new ApiError(422, error.message, "The reporting window is invalid.");
+    }
+  });
+  app.post(
+    "/admin/reporting/exports",
+    async (context, next) => {
+      await requirePermission(context, "reporting.export", { type: "report_export" });
+      await next();
+    },
+    idempotency("reporting.export"),
+    async (context) => {
+      const input = await parseJson(context, reportExportRequestSchema);
+      try {
+        return context.json(
+          {
+            data: await createReportExport(context, input),
+            meta: { requestId: context.get("requestId") },
+          },
+          202,
+        );
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.startsWith("reporting_")) throw error;
+        throw new ApiError(422, error.message, "The reporting window is invalid.");
+      }
+    },
+  );
+  app.get("/admin/reporting/exports/:id", async (context) => {
+    await requirePermission(context, "reporting.export", {
+      id: context.req.param("id"),
+      type: "report_export",
+    });
+    return context.json({
+      data: await getReportExport(context, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/reporting/exports/:id/download", async (context) => {
+    await requirePermission(context, "reporting.export", {
+      id: context.req.param("id"),
+      type: "report_export",
+    });
+    return downloadReportExport(context, context.req.param("id"));
   });
   app.get("/admin/orders/:reference", async (context) => {
     const reference = context.req.param("reference");

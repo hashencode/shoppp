@@ -27,6 +27,7 @@ describe("D1 migrations", () => {
         "prices",
         "product_variants",
         "products",
+        "report_exports",
         "stock_ledger_entries",
       ]),
     );
@@ -55,6 +56,23 @@ describe("D1 migrations", () => {
         "replay_count",
       ]),
     );
+    const checkoutColumns = await env.DB.prepare("PRAGMA table_info(checkout_attempts)").all<{
+      name: string;
+    }>();
+    expect(checkoutColumns.results.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(["environment", "test_mode"]),
+    );
+    const orderColumns = await env.DB.prepare("PRAGMA table_info(orders)").all<{
+      name: string;
+    }>();
+    expect(orderColumns.results.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(["environment", "test_mode"]),
+    );
+    await expect(
+      env.DB.prepare(
+        "UPDATE orders SET environment = 'staging' WHERE id = 'ord_fixture_0001'",
+      ).run(),
+    ).rejects.toThrow("immutable_order_reporting_context");
     const job = await env.DB.prepare("SELECT id FROM notification_jobs LIMIT 1").first<{
       id: string;
     }>();

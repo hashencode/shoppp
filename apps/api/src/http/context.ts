@@ -8,6 +8,7 @@ export interface ApiBindings {
   ACCESS_JWKS: string;
   DB: D1Database;
   MEDIA: R2Bucket;
+  REPORT_EXPORTS: R2Bucket;
   ENVIRONMENT: "development" | "staging" | "production";
   PUBLIC_ORIGIN: string;
   PREVIEW_TOKEN_SECRET?: string;

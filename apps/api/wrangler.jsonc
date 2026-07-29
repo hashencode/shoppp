@@ -37,6 +37,11 @@
       "bucket_name": "shoppp-development-media",
       "preview_bucket_name": "shoppp-development-media-preview",
     },
+    {
+      "binding": "REPORT_EXPORTS",
+      "bucket_name": "shoppp-development-report-exports",
+      "preview_bucket_name": "shoppp-development-report-exports-preview",
+    },
   ],
   "queues": {
     "producers": [
@@ -106,6 +111,11 @@
           "bucket_name": "shoppp-staging-media",
           "preview_bucket_name": "shoppp-staging-media-preview",
         },
+        {
+          "binding": "REPORT_EXPORTS",
+          "bucket_name": "shoppp-staging-report-exports",
+          "preview_bucket_name": "shoppp-staging-report-exports-preview",
+        },
       ],
       "queues": {
         "producers": [
@@ -174,6 +184,11 @@
           "binding": "MEDIA",
           "bucket_name": "shoppp-production-media",
           "preview_bucket_name": "shoppp-production-media-preview",
+        },
+        {
+          "binding": "REPORT_EXPORTS",
+          "bucket_name": "shoppp-production-report-exports",
+          "preview_bucket_name": "shoppp-production-report-exports-preview",
         },
       ],
       "queues": {

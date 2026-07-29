@@ -18,6 +18,7 @@ declare global {
       STRIPE_SECRET_KEY?: string;
       STRIPE_WEBHOOK_SECRET?: string;
       MEDIA: R2Bucket;
+      REPORT_EXPORTS: R2Bucket;
       TEST_MIGRATIONS: D1Migration[];
     }
   }

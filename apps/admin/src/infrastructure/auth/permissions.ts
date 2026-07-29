@@ -17,6 +17,8 @@ export type PermissionKey =
   | 'orders.fulfill'
   | 'orders.cancel'
   | 'orders.refund'
+  | 'reporting.read'
+  | 'reporting.export'
   | 'operations.jobs.read'
   | 'operations.replay'
 
@@ -38,6 +40,8 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'orders.fulfill',
     'orders.cancel',
     'orders.refund',
+    'reporting.read',
+    'reporting.export',
     'operations.jobs.read',
     'operations.replay',
   ],
@@ -58,6 +62,8 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'orders.fulfill',
     'orders.cancel',
     'orders.refund',
+    'reporting.read',
+    'reporting.export',
     'operations.jobs.read',
     'operations.replay',
   ],
@@ -71,6 +77,7 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'catalog.read',
     'inventory.read',
     'orders.read',
+    'reporting.read',
   ],
 }
 

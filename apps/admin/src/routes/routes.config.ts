@@ -5,10 +5,12 @@ import {
   DatabaseOutlined,
   ExclamationCircleOutlined,
   FormOutlined,
+  FileTextOutlined,
   ProfileOutlined,
   ReloadOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
+  DollarOutlined,
   SmileOutlined,
   TableOutlined,
 } from '@ant-design/icons'
@@ -31,6 +33,38 @@ export type TemplateRoute = {
 }
 
 export const templateRoutes: TemplateRoute[] = [
+  {
+    key: 'commerce-dashboard',
+    path: '/dashboard',
+    title: 'Commerce dashboard',
+    icon: createElement(DollarOutlined),
+    permission: 'reporting.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Commerce dashboard'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/dashboard/dashboard-page').then((m) => ({
+          default: m.DashboardPage,
+        }))
+      ),
+  },
+  {
+    key: 'order-report',
+    path: '/reports/orders',
+    title: 'Revenue report',
+    icon: createElement(FileTextOutlined),
+    permission: 'reporting.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Reports', 'Order revenue'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/reports/order-report-page').then((m) => ({
+          default: m.OrderReportPage,
+        }))
+      ),
+  },
   {
     key: 'catalog-products',
     path: '/catalog/products',

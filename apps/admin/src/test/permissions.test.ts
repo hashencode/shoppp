@@ -7,6 +7,7 @@ describe('permission policy', () => {
     expect(hasPermission('viewer', 'catalog.write')).toBe(false)
     expect(hasPermission('viewer', 'catalog.publish')).toBe(false)
     expect(hasPermission('viewer', 'inventory.adjust')).toBe(false)
+    expect(hasPermission('viewer', 'reporting.export')).toBe(false)
   })
 
   it('viewer can access read-only domains', () => {
@@ -17,6 +18,7 @@ describe('permission policy', () => {
     expect(hasPermission('viewer', 'result.read')).toBe(true)
     expect(hasPermission('viewer', 'catalog.read')).toBe(true)
     expect(hasPermission('viewer', 'inventory.read')).toBe(true)
+    expect(hasPermission('viewer', 'reporting.read')).toBe(true)
   })
 
   it('admin can access all current permissions', () => {
@@ -28,5 +30,6 @@ describe('permission policy', () => {
     expect(hasPermission('admin', 'result.read')).toBe(true)
     expect(hasPermission('admin', 'exception.read')).toBe(true)
     expect(hasPermission('admin', 'inventory.adjust')).toBe(true)
+    expect(hasPermission('admin', 'reporting.export')).toBe(true)
   })
 })

@@ -26,6 +26,10 @@ function publicId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 }
 
+function isTestCheckout(env: ApiEnvironment["Bindings"]): boolean {
+  return env.ENVIRONMENT !== "production" || env.STRIPE_SECRET_KEY?.startsWith("sk_test_") === true;
+}
+
 function guestTokenTtlHours(value: string | undefined): number {
   if (!value) return 24 * 30;
   const parsed = Number(value);
@@ -204,16 +208,18 @@ export async function createHostedCheckout(
     await context.env.DB.prepare(
       `INSERT INTO checkout_attempts
          (id, cart_id, reservation_group_id, provider, provider_session_id,
-          idempotency_key, currency, subtotal_amount, discount_amount, shipping_amount,
+          environment, test_mode, idempotency_key, currency, subtotal_amount, discount_amount, shipping_amount,
           tax_amount, grand_total_amount, shipping_address_json, email, snapshot_json,
           guest_access_token_hash, guest_access_expires_at, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'validating', ?, ?)`,
+       VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'validating', ?, ?)`,
     )
       .bind(
         attemptId,
         cart.id,
         reservation.id,
         provider.name,
+        context.env.ENVIRONMENT,
+        isTestCheckout(context.env) ? 1 : 0,
         input.idempotencyKey,
         snapshot.currency,
         snapshot.totals.subtotal,

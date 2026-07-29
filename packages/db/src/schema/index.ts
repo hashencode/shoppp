@@ -294,6 +294,12 @@ export const checkoutAttempts = sqliteTable("checkout_attempts", {
   provider: text("provider").notNull(),
   providerSessionId: text("provider_session_id").unique(),
   providerPaymentId: text("provider_payment_id"),
+  environment: text("environment", {
+    enum: ["development", "staging", "production"],
+  })
+    .notNull()
+    .default("development"),
+  testMode: integer("test_mode", { mode: "boolean" }).notNull().default(false),
   providerSessionUrl: text("provider_session_url"),
   providerStatus: text("provider_status"),
   lastProviderEventCreatedAt: text("last_provider_event_created_at"),
@@ -335,28 +341,46 @@ export const catalogReleases = sqliteTable(
   ],
 );
 
-export const orders = sqliteTable("orders", {
-  id: text("id").primaryKey(),
-  publicReference: text("public_reference").notNull().unique(),
-  guestAccessTokenHash: text("guest_access_token_hash").notNull().unique(),
-  guestAccessExpiresAt: text("guest_access_expires_at"),
-  checkoutAttemptId: text("checkout_attempt_id")
-    .notNull()
-    .unique()
-    .references(() => checkoutAttempts.id, { onDelete: "restrict" }),
-  providerPaymentId: text("provider_payment_id"),
-  email: text("email").notNull(),
-  currency: text("currency").notNull(),
-  subtotalAmount: integer("subtotal_amount").notNull(),
-  discountAmount: integer("discount_amount").notNull(),
-  shippingAmount: integer("shipping_amount").notNull(),
-  taxAmount: integer("tax_amount").notNull(),
-  grandTotalAmount: integer("grand_total_amount").notNull(),
-  paymentStatus: text("payment_status").notNull(),
-  orderStatus: text("order_status").notNull(),
-  fulfillmentStatus: text("fulfillment_status").notNull(),
-  ...timestamps,
-});
+export const orders = sqliteTable(
+  "orders",
+  {
+    id: text("id").primaryKey(),
+    publicReference: text("public_reference").notNull().unique(),
+    guestAccessTokenHash: text("guest_access_token_hash").notNull().unique(),
+    guestAccessExpiresAt: text("guest_access_expires_at"),
+    checkoutAttemptId: text("checkout_attempt_id")
+      .notNull()
+      .unique()
+      .references(() => checkoutAttempts.id, { onDelete: "restrict" }),
+    providerPaymentId: text("provider_payment_id"),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    })
+      .notNull()
+      .default("development"),
+    testMode: integer("test_mode", { mode: "boolean" }).notNull().default(false),
+    email: text("email").notNull(),
+    currency: text("currency").notNull(),
+    subtotalAmount: integer("subtotal_amount").notNull(),
+    discountAmount: integer("discount_amount").notNull(),
+    shippingAmount: integer("shipping_amount").notNull(),
+    taxAmount: integer("tax_amount").notNull(),
+    grandTotalAmount: integer("grand_total_amount").notNull(),
+    paymentStatus: text("payment_status").notNull(),
+    orderStatus: text("order_status").notNull(),
+    fulfillmentStatus: text("fulfillment_status").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index("orders_reporting_idx").on(
+      table.environment,
+      table.testMode,
+      table.currency,
+      table.createdAt,
+      table.id,
+    ),
+  ],
+);
 
 export const orderLines = sqliteTable("order_lines", {
   id: text("id").primaryKey(),
@@ -546,6 +570,34 @@ export const notificationAttempts = sqliteTable(
   (table) => [
     uniqueIndex("notification_attempts_job_number_unique").on(table.jobId, table.attemptNumber),
     index("notification_attempts_job_idx").on(table.jobId, table.attemptNumber),
+  ],
+);
+
+export const reportExports = sqliteTable(
+  "report_exports",
+  {
+    id: text("id").primaryKey(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    currency: text("currency").notNull(),
+    timeZone: text("time_zone").notNull(),
+    startDate: text("start_date").notNull(),
+    endDate: text("end_date").notNull(),
+    queryJson: text("query_json").notNull(),
+    status: text("status", {
+      enum: ["pending", "processing", "ready", "failed", "expired"],
+    }).notNull(),
+    rowCount: integer("row_count"),
+    objectKey: text("object_key").unique(),
+    errorCode: text("error_code"),
+    requestedBy: text("requested_by").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index("report_exports_requester_idx").on(table.requestedBy, table.createdAt, table.id),
+    index("report_exports_expiry_idx").on(table.status, table.expiresAt),
   ],
 );
 

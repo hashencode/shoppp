@@ -4,6 +4,7 @@ interface CheckoutAttemptRow {
   currency: string;
   discount_amount: number;
   email: string | null;
+  environment: "development" | "staging" | "production";
   grand_total_amount: number;
   guest_access_expires_at: string | null;
   guest_access_token_hash: string | null;
@@ -15,6 +16,7 @@ interface CheckoutAttemptRow {
   snapshot_json: string | null;
   subtotal_amount: number;
   tax_amount: number;
+  test_mode: number;
 }
 
 export interface CreatedOrder {
@@ -52,7 +54,7 @@ export async function createPaidOrderFromAttempt(
       `SELECT id, reservation_group_id, email, snapshot_json, guest_access_token_hash,
               guest_access_expires_at, currency, subtotal_amount, discount_amount,
               shipping_amount, tax_amount, grand_total_amount, shipping_address_json,
-              provider_payment_id
+              provider_payment_id, environment, test_mode
          FROM checkout_attempts WHERE id = ?`,
     )
     .bind(checkoutAttemptId)
@@ -76,11 +78,11 @@ export async function createPaidOrderFromAttempt(
       .prepare(
         `INSERT OR IGNORE INTO orders
            (id, public_reference, guest_access_token_hash, guest_access_expires_at,
-            checkout_attempt_id, provider_payment_id, email, currency, subtotal_amount,
+            checkout_attempt_id, provider_payment_id, environment, test_mode, email, currency, subtotal_amount,
             discount_amount,
             shipping_amount, tax_amount, grand_total_amount, payment_status, order_status,
             fulfillment_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'confirmed',
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'confirmed',
                  'unfulfilled', ?, ?)`,
       )
       .bind(
@@ -90,6 +92,8 @@ export async function createPaidOrderFromAttempt(
         attempt.guest_access_expires_at,
         attempt.id,
         attempt.provider_payment_id,
+        attempt.environment,
+        attempt.test_mode,
         attempt.email,
         attempt.currency,
         attempt.subtotal_amount,
