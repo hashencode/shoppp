@@ -1,0 +1,138 @@
+version: 1
+updatedAt: "2026-04-16"
+project: codex-admin-quick-start
+goal: >
+  给 AI 一份业务到页面与组件的路由图，确保新需求先映射业务，再选页面模板，再组装组件。
+
+businessDomains:
+  - id: dashboard
+    name: 仪表盘
+    intent: 展示全局指标和趋势
+    routes:
+      - path: /dev/dashboard/analysis
+        routeKey: analysis
+        pageComponent: src/pages/templates/dashboard/analysis-page.tsx
+        permission: dashboard.read
+        templateType: analysis
+        primaryComponents:
+          - Antd Card
+          - Antd Statistic
+          - Antd Table
+        apis: []
+
+  - id: list-query
+    name: 查询列表
+    intent: 条件过滤 + 分页表格 + 结果态
+    routes:
+      - path: /dev/list/table
+        routeKey: table-query
+        pageComponent: src/pages/templates/list/table-query-page.tsx
+        permission: list.read
+        templateType: list
+        primaryComponents:
+          - TemplateListFilterForm
+          - TemplateListContent
+          - QueryStateBlock
+        apis:
+          - src/pages/templates/list/api.ts#fetchRuleList
+        dataContracts:
+          - src/pages/templates/list/api.ts#RuleListResponse
+
+  - id: form-management
+    name: 表单管理
+    intent: 新建/编辑/只读同构页面
+    defaultDetailStrategy: >
+      详情展示默认复用表单页的 readonly 模式，不额外新建详情页。
+      仅当展示结构显著不同（例如审计轨迹、时间轴、复杂聚合看板）时，才评估独立详情页。
+    routes:
+      - path: /dev/form/basic-form
+        routeKey: basic-form
+        pageComponent: src/pages/templates/form/basic-form-page.tsx
+        permission: form.read
+        templateType: form
+        modeContract: src/routes/form-route-contract.ts
+        primaryComponents:
+          - TemplateFormStateGate
+        apis:
+          - src/pages/templates/form/api.ts#fetchFormDetail
+          - src/pages/templates/form/api.ts#createForm
+          - src/pages/templates/form/api.ts#updateForm
+        dataContracts:
+          - src/pages/templates/form/api.ts#FormEntity
+      - path: /dev/form/step-form
+        routeKey: step-form
+        pageComponent: src/pages/templates/form/step-form-page.tsx
+        permission: form.write
+        templateType: form
+        modeContract: src/routes/form-route-contract.ts
+        primaryComponents:
+          - Antd Steps
+          - Form
+      - path: /dev/form/advanced-form
+        routeKey: advanced-form
+        pageComponent: src/pages/templates/form/advanced-form-page.tsx
+        permission: form.write
+        templateType: form
+        modeContract: src/routes/form-route-contract.ts
+        primaryComponents:
+          - Antd Form
+          - Dynamic Form List
+
+  - id: profile
+    name: 详情页
+    intent: 特殊业务详情展示（非默认路径）
+    usageConstraint: >
+      只有“表单 readonly 无法满足信息组织需求”才进入该域。
+    routes:
+      - path: /dev/profile/basic
+        routeKey: basic-profile
+        pageComponent: src/pages/templates/profile/basic-profile-page.tsx
+        permission: profile.read
+        templateType: detail
+        primaryComponents:
+          - Antd Descriptions
+          - Antd Card
+
+  - id: result
+    name: 结果页
+    intent: 成功/失败反馈与后续引导
+    routes:
+      - path: /dev/result/success
+        routeKey: result-success
+        pageComponent: src/pages/templates/dashboard/result-success-page.tsx
+        permission: result.read
+        templateType: result
+      - path: /dev/result/fail
+        routeKey: result-fail
+        pageComponent: src/pages/templates/dashboard/result-fail-page.tsx
+        permission: result.read
+        templateType: result
+
+  - id: exception
+    name: 异常页
+    intent: 标准错误态（403/404/500）
+    routes:
+      - path: /dev/exception/403
+        routeKey: exception-403
+        pageComponent: src/pages/templates/exception/forbidden-page.tsx
+        permission: exception.read
+        templateType: exception
+      - path: /dev/exception/500
+        routeKey: exception-500
+        pageComponent: src/pages/templates/exception/server-error-page.tsx
+        permission: exception.read
+        templateType: exception
+      - path: "*"
+        routeKey: exception-404
+        pageComponent: src/pages/templates/exception/not-found-page.tsx
+        permission: exception.read
+        templateType: exception
+
+globalConstraints:
+  permissionsSource: src/infrastructure/auth/permissions.ts
+  routesSource: src/routes/routes.config.ts
+  shellLayout: src/shared/layout/app-shell.tsx
+  themeContext: src/shared/contexts/theme-context.tsx
+  noAntDesignPro: true
+  routeDrivenMenu: true
+  defaultDetailPagePolicy: form-readonly-first

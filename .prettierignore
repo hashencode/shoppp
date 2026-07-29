@@ -1,4 +1,5 @@
 bun.lock
+apps/admin
 coverage
 dist
 docs/plans
@@ -7,3 +8,4 @@ node_modules
 .output
 playwright-report
 test-results
+tools/admin-template-manifest.json

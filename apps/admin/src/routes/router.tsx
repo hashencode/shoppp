@@ -1,0 +1,186 @@
+import { Navigate, createBrowserRouter, useLocation } from 'react-router-dom'
+import { LoginPage } from '../pages/auth/login-page'
+import { PermissionGuard } from '../shared/components/permission-guard'
+import { RouteErrorBoundary } from '../shared/components/route-error-boundary'
+import { AppShell } from '../shared/layout/app-shell'
+import { lazyPage } from '../shared/components/lazy-page.tsx'
+import { APP_BASE_PATH } from '../shared/utils/app-base'
+import { RedirectIfAuthenticated, RequireAuth } from './auth-route-guards'
+import { templateRoutes, type TemplateRoute } from './routes.config'
+
+type RouteIssue = {
+  code: 'ROUTE_DUPLICATE_KEY' | 'ROUTE_DUPLICATE_PATH' | 'ROUTE_INVALID'
+  message: string
+}
+
+const validateTemplateRoutes = (routes: TemplateRoute[]): RouteIssue[] => {
+  const issues: RouteIssue[] = []
+  const keySet = new Set<string>()
+  const pathSet = new Set<string>()
+
+  for (const route of routes) {
+    if (!route.key || !route.path || !route.title || !route.permission) {
+      issues.push({
+        code: 'ROUTE_INVALID',
+        message: `Route ${route.key || 'unknown'} has missing required fields`,
+      })
+      continue
+    }
+
+    if (keySet.has(route.key)) {
+      issues.push({
+        code: 'ROUTE_DUPLICATE_KEY',
+        message: `Duplicate route key: ${route.key}`,
+      })
+    }
+
+    if (pathSet.has(route.path)) {
+      issues.push({
+        code: 'ROUTE_DUPLICATE_PATH',
+        message: `Duplicate route path: ${route.path}`,
+      })
+    }
+
+    keySet.add(route.key)
+    pathSet.add(route.path)
+  }
+
+  return issues
+}
+
+const toChildPath = (path: string, prefix: '/dev/' | '/template/') => {
+  const parentPath = prefix === '/dev/' ? '/dev' : '/template'
+  if (path === parentPath) {
+    return undefined
+  }
+
+  return path.startsWith(prefix) ? path.slice(prefix.length) : path
+}
+
+const toRootChildPath = (path: string) => {
+  if (!path.startsWith('/')) {
+    return path
+  }
+
+  return path.slice(1)
+}
+
+const routeIssues = validateTemplateRoutes(templateRoutes)
+const routerOptions = APP_BASE_PATH ? { basename: APP_BASE_PATH } : undefined
+const legacyTemplateRouteMap: Record<string, string> = {
+  '/dev': '/template',
+  '/dev/dashboard/analysis': '/template/dashboard/analysis',
+  '/dev/list/table': '/template/list/table',
+  '/dev/form/basic-form': '/template/list/table/form',
+  '/dev/form/step-form': '/template/form/step-form',
+  '/dev/form/advanced-form': '/template/form/advanced-form',
+  '/dev/profile/basic': '/template/profile/basic',
+  '/dev/result/success': '/template/result/success',
+  '/dev/result/fail': '/template/result/fail',
+  '/dev/exception/403': '/template/exception/403',
+  '/dev/exception/500': '/template/exception/500',
+}
+
+const LegacyDevRouteRedirect = () => {
+  const location = useLocation()
+  const target = legacyTemplateRouteMap[location.pathname]
+
+  if (!target) {
+    return templateRoutes.find((route) => route.path === '*')?.component() ?? <Navigate to="/" replace />
+  }
+
+  return <Navigate to={`${target}${location.search}${location.hash}`} replace />
+}
+
+const invalidRouter = createBrowserRouter([
+  {
+    path: '*',
+    element: (
+      <RouteErrorBoundary
+        errorCode={routeIssues[0]?.code ?? 'ROUTE_INVALID'}
+        detail={routeIssues.map((issue) => issue.message).join('; ')}
+      />
+    ),
+  },
+], routerOptions)
+
+const validRouter = createBrowserRouter([
+  {
+    path: '/login',
+    element: (
+      <RedirectIfAuthenticated>
+        <LoginPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/',
+    element: (
+      <RequireAuth>
+        <AppShell routes={templateRoutes} />
+      </RequireAuth>
+    ),
+    children: [
+      {
+        index: true,
+        element: lazyPage(() => import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))),
+      },
+      ...templateRoutes
+        .filter(
+          (route) => route.path !== '*' && !route.path.startsWith('/dev') && !route.path.startsWith('/template')
+        )
+        .map((route) => ({
+          path: toRootChildPath(route.path),
+          element: <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>,
+        })),
+    ],
+  },
+  {
+    path: '/dev',
+    element: (
+      <RequireAuth>
+        <AppShell routes={templateRoutes} />
+      </RequireAuth>
+    ),
+    children: [
+      ...templateRoutes
+        .filter((route) => route.path !== '*' && route.path.startsWith('/dev'))
+        .map((route) => ({
+          path: toChildPath(route.path, '/dev/'),
+          index: route.path === '/dev',
+          element: <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>,
+        })),
+      {
+        path: '*',
+        element: <LegacyDevRouteRedirect />,
+      },
+    ],
+  },
+  {
+    path: '/template',
+    element: (
+      <RequireAuth>
+        <AppShell routes={templateRoutes} />
+      </RequireAuth>
+    ),
+    children: [
+      ...templateRoutes
+        .filter((route) => route.path !== '*' && route.path.startsWith('/template'))
+        .map((route) => ({
+          path: toChildPath(route.path, '/template/'),
+          index: route.path === '/template',
+          element: <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>,
+        })),
+      {
+        path: '*',
+        element: templateRoutes.find((route) => route.path === '*')?.component(),
+      },
+    ],
+  },
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
+  },
+], routerOptions)
+
+export const router = routeIssues.length > 0 ? invalidRouter : validRouter

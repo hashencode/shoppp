@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Quick Start</title>
+    <script>
+      ;(() => {
+        const STORAGE_KEY = 'admin-theme-mode'
+        const VALID_MODES = ['light', 'dark', 'system']
+
+        let mode = 'system'
+        try {
+          const storedMode = window.localStorage.getItem(STORAGE_KEY)
+          if (storedMode && VALID_MODES.includes(storedMode)) {
+            mode = storedMode
+          }
+        } catch {
+          mode = 'system'
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const resolvedTheme = mode === 'system' ? (prefersDark ? 'dark' : 'light') : mode
+        document.documentElement.setAttribute('data-theme', resolvedTheme)
+        document.documentElement.style.colorScheme = resolvedTheme
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

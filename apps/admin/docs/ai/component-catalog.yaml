@@ -1,0 +1,441 @@
+version: 1
+updatedAt: "2026-07-29"
+project: codex-admin-quick-start
+
+pageModules:
+  - module: 筛选区
+    purpose: 承载查询条件输入与触发查询。
+    useWhen:
+      - 列表页有多条件过滤
+      - 查询条件需要重置和回显
+    avoidWhen:
+      - 数据一次性展示且无筛选需求
+
+  - module: 表格内容区
+    purpose: 承载列表数据展示、分页与结果态切换。
+    useWhen:
+      - 后端分页列表
+      - 需要统一空态、错误态、局部异常态
+    avoidWhen:
+      - 纯卡片流或瀑布流展示
+
+  - module: 表单主编辑区
+    purpose: 承载新增/编辑/只读同构表单的主交互区域。
+    useWhen:
+      - 新增/编辑/只读同构页面
+      - 需要 route 参数决定可编辑性
+    avoidWhen:
+      - 纯展示型详情（且业务已确认不走表单复用）
+
+  - module: 状态反馈区
+    purpose: 向用户明确展示加载、空态、错误、部分成功等状态。
+    useWhen:
+      - 有异步请求且可能出现 empty/error/partial
+      - 提交后需要成功/失败反馈
+    avoidWhen:
+      - 静态文案页
+
+  - module: 权限守卫区
+    purpose: 根据权限控制页面或区块是否可见。
+    useWhen:
+      - 页面、区块、按钮有角色或权限差异
+    avoidWhen:
+      - 完全公开内容（后台场景极少）
+
+componentCatalog:
+  - name: TemplateListFilterForm
+    source: src/shared/template-kit/list/template-list-filter-form.tsx
+    type: list-filter
+    sharedCapability: standard-filter-fields
+    responsibilities:
+      - 渲染筛选条件并提交过滤参数
+      - 内置 text、number、select、remote-select 与日期类标准字段
+      - 字段变化只更新表单值，仍由“查询”动作触发列表请求
+    useWhen:
+      - 页面目标是“列表查询”
+      - 需要 name/status/date 等过滤项
+    avoidWhen:
+      - 纯静态表格
+      - 无筛选需求的短列表
+
+  - name: TemplateListContent
+    source: src/shared/template-kit/list/template-list-content.tsx
+    type: list-content
+    responsibilities:
+      - 渲染表格和分页
+      - 处理 empty/loading/error/partial 视图切换
+    useWhen:
+      - 后端返回列表数据
+      - 页面存在分页或刷新
+    avoidWhen:
+      - 表单页面
+      - 详情页
+
+  - name: StandardModalRules
+    source: src/shared/template-kit/standard-modal-rules.ts
+    type: modal-layout
+    sharedCapability: standard-modal-rules
+    responsibilities:
+      - 数值宽度大于等于 1000px 的标准 Modal 统一设置 top: 24px
+      - 窄弹窗保留组件默认位置
+    useWhen:
+      - 标准 Modal 使用数值 width
+    avoidWhen:
+      - centered、全屏、显式纵向定位或非数值宽度
+
+  - name: ModalListRules
+    source: src/shared/template-kit/list/modal-list-rules.ts
+    type: modal-list-contract
+    sharedCapability: modal-list-rules
+    responsibilities:
+      - 固化 Modal 表格的 middle 标准密度
+      - 复用标准分页并在左下角展示总数据量
+    useWhen:
+      - ModalListPageRecipe 或弹窗内业务 override 表格
+    avoidWhen:
+      - 非 Modal 的完整列表页
+
+  - name: ListToolbarActions
+    source: src/shared/components/list-toolbar-actions.tsx
+    type: list-toolbar
+    sharedCapability: standard-list-controls
+    responsibilities:
+      - 渲染刷新、密度、列设置等列表右侧工具
+      - 统一列设置入口与列顺序重置入口
+      - 刷新显示图标和文本，并根据前方可见业务动作显示条件分隔线
+    useWhen:
+      - 标准列表页需要刷新、密度切换或列设置
+      - 页面通过 StandardListPageRecipe 接入工具栏
+    avoidWhen:
+      - 页面没有表格列配置
+      - 业务需要完全不同的工具区状态机
+
+  - name: ListRowActions
+    source: src/shared/components/list-row-actions.tsx
+    type: list-row-actions
+    responsibilities:
+      - 渲染表格行操作
+      - 统一危险操作确认，并直接展示所有可见操作项
+      - 为站内根相对链接补齐可选应用部署前缀
+    useWhen:
+      - 表格行需要查看、编辑、删除等文本动作
+      - 操作项需要统一按权限和状态控制可见性
+    avoidWhen:
+      - 行内操作是复杂表单或批量选择状态机
+
+  - name: ListSearchSettingsDropdown
+    source: src/shared/components/list-search-settings-dropdown.tsx
+    type: list-settings
+    sharedCapability: standard-list-controls
+    responsibilities:
+      - 暴露列表搜索区紧凑布局偏好
+      - 在标准列表中位于重置和查询动作之前
+    useWhen:
+      - 标准列表页允许用户切换筛选区显示密度
+    avoidWhen:
+      - 无筛选区或筛选区完全自定义
+
+  - name: useTemplateListController
+    source: src/shared/template-kit/list/use-template-list-controller.ts
+    type: list-controller-hook
+    responsibilities:
+      - 聚合过滤器、分页、刷新与请求状态
+    useWhen:
+      - 页面希望复用“标准列表控制器”
+    avoidWhen:
+      - 页面有强定制状态机且与模板控制器冲突
+
+  - name: useListAutoRefresh
+    source: src/shared/hooks/use-list-auto-refresh.ts
+    type: list-refresh-hook
+    responsibilities:
+      - 根据全局列表偏好触发自动刷新
+      - 在 controller 内接入显式 reload
+    useWhen:
+      - 标准列表需要统一自动刷新策略
+    avoidWhen:
+      - 页面请求不可重复执行或刷新有副作用
+
+  - name: useTemplateListFilters
+    source: src/shared/template-kit/list/use-template-list-filters.ts
+    type: list-filter-hook
+    responsibilities:
+      - 管理列表查询参数与同步逻辑
+    useWhen:
+      - 过滤条件需要复用
+    avoidWhen:
+      - 仅单次请求，无参数状态维护
+
+  - name: RemoteSearchSelect
+    source: src/shared/components/remote-search-select.tsx
+    type: form-field
+    sharedCapability: remote-search-select
+    responsibilities:
+      - 支持远程搜索、分页加载、按首次打开加载、默认选项合并和自定义空态
+      - 选项值支持 string 或 number，并为 single、multiple、tags 提供匹配的 onChange 类型
+      - 合并内部与外部 loading 状态
+      - 隔离过期请求，组合外部事件，并提供可聚焦的失败重试入口
+    useWhen:
+      - 字段需要按关键字远程检索候选项
+      - 表单回填值不是一次性静态 options 能覆盖
+    avoidWhen:
+      - 选项全集很小且可静态内置
+      - 字段包含来源项目特定媒体、预览或上传流程
+
+  - name: FilePreview
+    source: src/shared/components/file-preview.tsx
+    type: file-preview
+    sharedCapability:
+      capabilityId: file-preview
+      sourceProject: combined
+      localStatus: verified
+      evidence:
+        - src/shared/components/file-preview.test.tsx
+        - src/shared/components/file-preview.browser.test.tsx
+        - src/shared/components/video-player.test.tsx
+        - src/shared/components/upload-form-item.test.tsx
+    responsibilities:
+      - 按 MIME、文件名和 URL 后缀统一识别图片、PDF、HLS/MP4 视频和未知文件
+      - 统一弹窗、加载/失败反馈、播放器销毁和显式下载动作
+      - PDF worker 独立产出、视频播放器在打开时按需加载；下载复用 shared download 合同，仅在传输失败时打开安全原文件地址
+    useWhen:
+      - 业务页面、上传字段或资源列表需要统一预览并下载文件
+    avoidWhen:
+      - 直播、证书 Canvas、Office 在线编辑或 HLS 分片合并等业务专属状态机
+
+  - name: UploadFormItem
+    source: src/shared/components/upload-form-item.tsx
+    type: form-field
+    sharedCapability: upload-concurrency
+    responsibilities:
+      - 渲染表单字段型上传控件
+      - 根据 accept 自动选择卡片或按钮展示，并允许显式覆盖
+      - JPEG、PNG、WebP 默认压缩，GIF 绕过；压缩后统一文件 MIME、扩展名和大小校验
+      - 统一上传文件列表、FilePreview 预览、删除、大小限制与 readonly 禁用
+      - 通过业务 adapter 注入 uploadFile，避免在通用组件中硬编码接口路径
+      - 组合调用方 beforeUpload 校验，失败或压缩后超限时不发起请求
+      - 通过 tooltip 渲染上传说明，保持上传卡片与提示文本的固定间距和样式
+      - 原子合并并发上传结果，忽略已删除文件的迟到响应和被父级值替换的上传任务
+    useWhen:
+      - 表单字段需要上传文件并把 URL 写回表单值
+      - 上传成功结果是 string 或 string[] 类型的文件地址
+      - readonly 详情页仍需要展示禁用态上传卡片
+    avoidWhen:
+      - Excel 导入、批量导入、论文合并等上传后触发业务动作和列表刷新的流程
+      - 视频 SDK、富文本内容上传等有独立上传协议或进度状态机的场景
+      - 上传说明仅为了视觉提示却准备放到 AntD Form.Item extra 的场景；应使用 UploadFormItem.tooltip
+
+  - name: ListExcelActions
+    source: src/shared/components/list-excel-actions.tsx
+    type: list-toolbar-action
+    sharedCapability: download-infrastructure
+    responsibilities:
+      - 统一标准列表工具栏里的 Excel 导出、Excel 批量导入和导入模板下载 UI
+      - 固化导入/导出按钮和下载模板按钮的视觉语义：模板下载使用 link 按钮、无 icon，并紧跟导入按钮右侧
+      - 对导出和模板下载的异步 onClick 自动显示按钮 loading；页面仅在需要外部联动时显式传 loading
+      - 异步动作进行中同步阻止重复触发
+      - 只承载按钮、导入弹窗和 Upload.Dragger 展示，不承载接口路径、权限判断、业务参数或成功提示
+    useWhen:
+      - 标准列表页需要导出当前查询结果
+      - 标准列表页需要 Excel 批量导入，并在导入成功后刷新列表
+      - Excel 导入流程需要提供导入模板下载
+    avoidWhen:
+      - 表单字段型图片、PDF、附件上传；这类场景应使用字段上传组件或页面既有表单控件
+      - 视频、富文本、OSS 直传、SDK 上传或独立进度状态机
+      - 行内单条记录上传/下载动作
+      - 只有静态 OSS 模板链接、没有列表批量导入流程的页面
+
+  - name: PageHeaderWithBack
+    source: src/shared/components/form-page-header.tsx
+    type: page-header
+    responsibilities:
+      - 统一二级及更深层级页面标题和返回入口
+      - 避免表单/详情页在内容区重复实现返回头部
+    useWhen:
+      - 表单页、详情页或深层页面需要返回上级列表
+    avoidWhen:
+      - 一级列表落地页
+
+  - name: CustomPageRecipe
+    source: src/shared/template-kit/recipes/custom-page-recipe.tsx
+    type: page-shell
+    responsibilities:
+      - 统一一级业务 override / 自定义页的内容区主标题和外层间距
+      - 默认读取 AppShell 注入的 route title，避免页面散装手写标题
+      - 支持 title/titleHidden/extra/onBack 等有限 slot
+    useWhen:
+      - 页面是一级路由，但不适合标准列表或表单 recipe
+      - 工作台、生成器、复杂组合页需要保留业务自定义布局
+    avoidWhen:
+      - 标准查询列表页，应使用 StandardListPageRecipe
+      - 二级表单或详情页，应使用 PageHeaderWithBack 或表单 recipe
+
+  - name: RoutePageMetaContext
+    source: src/shared/layout/route-page-meta-context.tsx
+    type: layout-context
+    responsibilities:
+      - 暴露当前 route title 与 breadcrumb meta 给内容区 recipe
+      - 保持面包屑仍由 AppShell 统一渲染
+    useWhen:
+      - 内容区 recipe 需要读取当前路由标题
+      - 自定义页需要默认继承 route title
+    avoidWhen:
+      - 业务页面需要自行维护与路由无关的局部标题状态
+
+  - name: FixedPageToolbar
+    source: src/shared/components/fixed-page-toolbar.tsx
+    type: layout-toolbar
+    responsibilities:
+      - 按 AppShell 侧栏宽度对齐页面底部固定操作区
+    useWhen:
+      - 页面需要固定在视口底部的操作条
+      - 操作条必须适配侧栏展开/收起
+    avoidWhen:
+      - 只需要局部卡片内按钮
+
+  - name: FormSubmitToolbar
+    source: src/shared/components/form-submit-toolbar.tsx
+    type: form-toolbar
+    responsibilities:
+      - 渲染基础表单的底部固定提交/重置操作条
+    useWhen:
+      - add/modify 表单需要固定底部操作区
+    avoidWhen:
+      - readonly 模式
+      - 页面已有复杂业务提交状态机
+
+  - name: BasicCrudFormRecipe
+    source: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
+    type: form-recipe
+    sharedCapability: form-recipes
+    responsibilities:
+      - 统一 add/modify/readonly 基础表单壳与底部提交区
+      - 支持单 Card 和多 Card 分区，并为每个分区应用共享内容宽度与对齐规则
+      - 标准 submit 校验失败时滚动到首个错误字段
+    useWhen:
+      - 新增、编辑、查看能够复用同一字段结构
+      - 表单可按稳定业务分组拆成一个或多个 Card
+    avoidWhen:
+      - 明确需要 2-5 个阶段的分步流程，应使用 StepFormRecipe
+      - 复杂矩阵、拖拽编排或跨模块状态机
+
+  - name: validateFieldsWithScroll
+    source: src/shared/template-kit/form/form-validation-scroll.ts
+    type: form-validation-feedback
+    sharedCapability: form-error-scroll
+    responsibilities:
+      - 手动调用表单校验时滚动到首个错误字段，并保持原校验错误继续向上传播
+      - 与 BasicCrudFormRecipe 共享 FORM_ERROR_SCROLL_OPTIONS，统一滚动位置和行为
+    useWhen:
+      - 自定义操作栏、分字段保存或其他流程需要直接调用 form.validateFields
+      - 长表单的手动校验需要定位首个错误字段
+    avoidWhen:
+      - 已通过 BasicCrudFormRecipe 标准 submit 提交
+      - 短表单或 Modal 没有定位首个错误字段的滚动需求
+
+  - name: StepFormRecipe
+    source: src/shared/template-kit/recipes/step-form-recipe.tsx
+    type: form-recipe
+    sharedCapability: form-recipes
+    responsibilities:
+      - 统一步骤条、内容宽度、标签对齐和必填标识
+      - 提交中阻止重复主操作
+    useWhen:
+      - 用户明确要求 2-5 个阶段的流程
+    avoidWhen:
+      - 单页字段分组即可完成的基础表单
+
+  - name: buildFormSaveSuccessModal
+    source: src/shared/template-kit/form/form-save-success-modal.ts
+    type: form-feedback
+    sharedCapability: form-save-result-modal
+    responsibilities:
+      - 生成保存成功弹窗配置
+      - 关闭弹窗留在当前页，确认动作复用调用方离页回调
+    useWhen:
+      - 表单保存成功后需要用户确认再离页
+    avoidWhen:
+      - 删除、发布、审核等非保存动作
+
+  - name: AppBaseNavigation
+    source: src/shared/utils/app-base.ts
+    type: navigation-utility
+    sharedCapability: app-base-navigation
+    responsibilities:
+      - 严格规范化 PUBLIC_APP_BASE
+      - 为站内路径补齐或移除部署前缀，并保持外部与相对 URL 不变
+    useWhen:
+      - 应用需要部署到域名子路径
+      - 新窗口、普通 href 或关闭回退需要生成站内地址
+    avoidWhen:
+      - 跨域资源地址或仅服务端使用的路径
+
+  - name: TemplateFormStateGate
+    source: src/shared/template-kit/form/template-form-state-gate.tsx
+    type: form-state-gate
+    responsibilities:
+      - 根据模式与请求状态控制表单渲染和兜底态
+    useWhen:
+      - 表单有 add/modify/readonly 三态
+    avoidWhen:
+      - 页面无模式切换
+
+  - name: useTemplateFormController
+    source: src/shared/template-kit/form/use-template-form-controller.ts
+    type: form-controller-hook
+    responsibilities:
+      - 承载表单模式、提交、加载、权限相关逻辑
+    useWhen:
+      - 表单模板页
+    avoidWhen:
+      - 非表单类页面
+
+  - name: PermissionGuard
+    source: src/shared/components/permission-guard.tsx
+    type: auth-guard
+    responsibilities:
+      - 基于 PermissionKey 控制可见性
+    useWhen:
+      - 新增页面或按钮涉及权限控制
+    avoidWhen:
+      - 页面无权限限制（极少场景）
+
+  - name: QueryStateBlock
+    source: src/shared/components/query-state-block.tsx
+    type: state-feedback
+    responsibilities:
+      - 统一 loading/empty/error/partial 的可视反馈
+    useWhen:
+      - 异步加载数据
+    avoidWhen:
+      - 完全静态内容
+
+  - name: useStandardPagination
+    source: src/shared/hooks/use-standard-pagination.ts
+    type: pagination-hook
+    responsibilities:
+      - 标准分页状态与变更处理
+    useWhen:
+      - 列表页需要统一分页行为
+    avoidWhen:
+      - 数据量极小且不分页
+
+  - name: AppShell
+    source: src/shared/layout/app-shell.tsx
+    type: layout
+    responsibilities:
+      - 后台整体导航与内容容器
+      - 承载主题、搜索紧凑布局、表单内容对齐等全局展示偏好入口
+    useWhen:
+      - 新增后台路由页面
+    avoidWhen:
+      - 独立登录页或纯公共页面
+
+crossCuttingRules:
+  - 先复用 template-kit 再考虑新造轮子
+  - 列表页优先走 useTemplateListController + TemplateListContent 组合
+  - 标准查询列表页分页必须复用 useStandardPagination，禁止散装分页状态实现
+  - 表单页优先走 form-route-contract + TemplateFormStateGate 组合
+  - 权限必须走 PermissionKey，不允许硬编码角色分支
+  - 页面设计先拆模块（筛选区/内容区/反馈区/权限区），再映射组件
+  - 静态 OSS 模板/文件链接若使用前端 blob 下载工具包装下载，必须把原始静态链接作为 fallbackUrl；后端同源 blob 下载接口不适用此规则

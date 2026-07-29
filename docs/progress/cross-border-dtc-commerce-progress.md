@@ -6,29 +6,29 @@ The plan remains the read-only authority.
 
 ## Current state
 
-- Active unit: U2 — Import the admin template safely
+- Active unit: U3 — Define domain, contracts, and D1 schema
 - Branch: `codex/feat-cross-border-dtc`
 - Goal mode: active
 - Last updated: 2026-07-30
 
 ## Unit ledger
 
-| Unit | Status      | Verification evidence                                                                                                                          |
-| ---- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| U1   | Complete    | Red: checker module missing. Green: frozen install, format, lint, typecheck, 3 boundary tests, build discovery, and aggregate release command. |
-| U2   | In progress | Approved upstream commit `fdd1935d35b1919ae6673970e8c428777c71d261` exists locally; import reads the commit, not the dirty source worktree.    |
-| U3   | Pending     | —                                                                                                                                              |
-| U4   | Pending     | —                                                                                                                                              |
-| U5   | Pending     | —                                                                                                                                              |
-| U6   | Pending     | —                                                                                                                                              |
-| U7   | Pending     | —                                                                                                                                              |
-| U8   | Pending     | —                                                                                                                                              |
-| U9   | Pending     | —                                                                                                                                              |
-| U10  | Pending     | —                                                                                                                                              |
-| U11  | Pending     | —                                                                                                                                              |
-| U14  | Pending     | —                                                                                                                                              |
-| U12  | Pending     | —                                                                                                                                              |
-| U13  | Pending     | —                                                                                                                                              |
+| Unit | Status      | Verification evidence                                                                                                                                                 |
+| ---- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1   | Complete    | Red: checker module missing. Green: frozen install, format, lint, typecheck, 3 boundary tests, build discovery, and aggregate release command.                        |
+| U2   | Complete    | Imported 200 allowlisted blobs from `fdd1935…`; repeatability/exclusion 2/2, upstream 233/233, browser 8/8, typecheck and build passed; source status hash unchanged. |
+| U3   | In progress | Reading domain invariants, contracts, migrations, fixtures, and D1 verification requirements.                                                                         |
+| U4   | Pending     | —                                                                                                                                                                     |
+| U5   | Pending     | —                                                                                                                                                                     |
+| U6   | Pending     | —                                                                                                                                                                     |
+| U7   | Pending     | —                                                                                                                                                                     |
+| U8   | Pending     | —                                                                                                                                                                     |
+| U9   | Pending     | —                                                                                                                                                                     |
+| U10  | Pending     | —                                                                                                                                                                     |
+| U11  | Pending     | —                                                                                                                                                                     |
+| U14  | Pending     | —                                                                                                                                                                     |
+| U12  | Pending     | —                                                                                                                                                                     |
+| U13  | Pending     | —                                                                                                                                                                     |
 
 ## Human-owned production gates
 

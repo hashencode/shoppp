@@ -1,0 +1,20 @@
+@import 'xgplayer/dist/index.min.css';
+
+.video-player {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--ant-border-radius-lg);
+  background: #000;
+}
+
+.video-player-stage,
+.video-player-stage.xgplayer {
+  width: 100%;
+  max-width: 100%;
+  cursor: default;
+}
+
+.video-player-stage.xgplayer.xgplayer-inactive {
+  cursor: default !important;
+}

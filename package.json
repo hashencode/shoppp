@@ -13,7 +13,7 @@
     "check:boundaries": "bun tools/check-boundaries.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . && bun run check:boundaries",
+    "lint": "eslint . && bun run check:boundaries && bun tools/run-workspace-script.ts lint --if-present",
     "release:validate": "bun run lint && bun run typecheck && bun run test && bun run test:workers && bun run build && bun run verify:static && bun run test:e2e && bun run test:a11y && bun run test:perf",
     "test": "bun test tools packages && bun tools/run-workspace-script.ts test --if-present",
     "test:a11y": "bun tools/run-workspace-script.ts test:a11y --if-present",

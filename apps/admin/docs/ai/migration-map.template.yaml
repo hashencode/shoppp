@@ -1,0 +1,72 @@
+version: 1
+updatedAt: null
+project: null
+purpose: >
+  为旧页迁移保存机器可读的页面映射和验证事实。复制本模板为项目自己的迁移映射文件后填写，
+  本文件本身不保存任何业务项目的真实路由、权限或接口。
+
+usageRules:
+  - 只有已有源码、文档、接口或可审查行为证据时才填写事实字段。
+  - 未知值使用 null；未执行验证使用 not-run 或 blocked，不得从页面状态推断通过。
+  - 每个条目至少明确目标页面、recipe、参考页面和证据。
+  - 本文件不替代 ai-rules、page-recipes、迁移工作流和测试标准。
+
+entrySchema:
+  sourceProject: 旧页或迁移合同来源，未知填 null
+  slice: 迁移分片 ID，尚未归片填 null
+  legacyRoute: 旧项目路由，未知填 null
+  legacySource: 旧项目源码路径，未知填 null
+  newRoute: 当前项目目标路由，未知填 null
+  domain: 业务域，未知填 null
+  pageType: list | form | detail | result | exception | override
+  recipe: 取值必须来自 page-recipes.yaml
+  formType: basic | step | advanced | null
+  permission:
+    page: 页面权限，未知填 null
+    actions: 按钮权限数组
+  referencePages: 当前项目可复用的页面或共享实现
+  primaryDocs: 该迁移必须读取的权威文档
+  specialChecks: 页面特有风险和历史行为
+  evidence: 证明映射关系的文档、源码或可审查行为
+  status: planned | in-progress | migrated | verified
+  automation:
+    status: not-run | passed | failed | blocked | not-applicable
+    evidence: 已执行命令、日期和结果
+  manualParity:
+    status: not-run | passed | partial | blocked | not-applicable
+    evidence: 旧新页面对照证据
+  blockers: 阻止实施、验证或发布判断的条件
+  notes: 补充说明
+
+entries: []
+
+template:
+  id: feature-slug
+  sourceProject: null
+  slice: null
+  legacyRoute: null
+  legacySource: null
+  newRoute: null
+  domain: null
+  pageType: list
+  recipe: list-query-standard
+  formType: null
+  permission:
+    page: null
+    actions: []
+  referencePages: []
+  primaryDocs:
+    - docs/ai/ai-rules.md
+    - docs/ai/page-recipes.yaml
+    - docs/ai/legacy-page-migration-workflow.md
+  specialChecks: []
+  evidence: []
+  status: planned
+  automation:
+    status: not-run
+    evidence: []
+  manualParity:
+    status: not-run
+    evidence: []
+  blockers: []
+  notes: null

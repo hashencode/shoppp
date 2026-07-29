@@ -1,0 +1,230 @@
+version: 1
+updatedAt: "2026-05-08"
+project: codex-admin-quick-start
+
+formTemplateDecisionMatrix:
+  defaultRule: 除非用户主动要求复杂表单或多步骤表单，否则一律使用基础三态表单；实现者不得因为字段数量、模块标题、多 Card、远程下拉或上传字段自行升级。
+  chooseBasicFormWhen:
+    - 用户未主动要求复杂表单或多步骤表单
+    - 单阶段提交或可按单阶段提交表达
+    - 详情可复用 readonly 表单展示
+    - 存在模块标题、多 Card、远程下拉、上传字段、富文本或普通字段分组时，仍默认使用基础表单
+  chooseStepFormWhen:
+    - 用户主动要求多步骤/分步表单
+    - 业务自然分为 2-5 个阶段
+    - 后续步骤依赖前序步骤产物（例如先选主体再配规则）
+  chooseAdvancedFormWhen:
+    - 用户主动要求复杂/高级表单
+    - 存在动态字段块（增删行、嵌套结构、多段条件组）且普通表单无法表达
+    - 需要复杂联动、批量编辑、编排器、矩阵或画布能力
+    - 包含权限树勾选、半选或树节点联动回填，且用户确认不按普通表单处理
+  advancedFormGuardrail:
+    - 第一阶段默认不抽取 AdvancedFormRecipe
+    - 未满足至少 3 个稳定样本前，按 business override 处理
+    - 复用目标优先落在字段块与局部能力组件，避免过早抽整页骨架
+  antiPatterns:
+    - 用户未主动要求时，因为模板里存在高级表单示例就套用复杂表单实现
+    - 因为存在模块标题、多 Card、远程下拉、上传字段、富文本或普通字段分组就升级为复杂表单
+    - 仅因为“看起来高级”就选择高级表单
+    - 仅因为字段多就直接上高级表单，忽略分步可读性
+    - 未满足分步条件却拆成过多步骤
+
+recipes:
+  - id: list-query-standard
+    name: 标准查询列表页
+    appliesTo:
+      - 运营列表
+      - 规则列表
+      - 资源列表
+    routePattern: /dev/list/<feature>
+    chooseTemplate: src/pages/templates/list/table-query-page.tsx
+    requiredPieces:
+      - src/shared/template-kit/specs/standard-list-page-spec.ts
+      - src/shared/template-kit/recipes/standard-list-page-recipe.tsx
+      - src/shared/template-kit/list/use-template-list-controller.ts
+      - src/shared/template-kit/list/template-list-filter-form.tsx
+      - src/shared/template-kit/list/template-list-content.tsx
+      - src/shared/hooks/use-standard-pagination.ts
+      - src/pages/templates/list/api.ts
+    optionalPieces:
+      - src/shared/components/query-state-block.tsx
+      - src/shared/components/list-toolbar-actions.tsx
+      - src/shared/components/list-search-settings-dropdown.tsx
+      - src/shared/hooks/use-list-auto-refresh.ts
+    buildSteps:
+      - 先确认是否满足 docs/ai/page-guardrail-recipes.md 的标准列表页接入条件
+      - 页面通过 StandardListPageSpec 接入 StandardListPageRecipe，禁止直接散装拼装 controller 与状态区
+      - 在 routes.config.ts 增加 route，绑定 permission=list.read 或业务权限
+      - 定义 api.ts 中的 filters、response contract、fetch 函数
+      - 用控制器串联 filter + table + pagination
+      - 处理 partial/empty/error 展示
+      - 补测试（控制器 + 页面渲染）
+
+  - id: modal-list-standard
+    name: 弹窗内轻量列表
+    appliesTo:
+      - 弹窗选择列表
+      - 弹窗内分页查询结果
+      - 不需要独立路由的辅助列表
+    routePattern: none
+    chooseTemplate: src/shared/template-kit/recipes/modal-list-page-recipe.tsx
+    requiredPieces:
+      - src/shared/template-kit/specs/standard-list-page-spec.ts
+      - src/shared/template-kit/recipes/modal-list-page-recipe.tsx
+      - src/shared/template-kit/list/modal-list-rules.ts
+      - src/shared/template-kit/standard-modal-rules.ts
+      - src/shared/template-kit/list/use-template-list-controller.ts
+      - src/shared/template-kit/list/template-list-filter-form.tsx
+      - src/shared/template-kit/list/template-list-content.tsx
+      - src/shared/hooks/use-standard-pagination.ts
+    buildSteps:
+      - 先确认列表不需要整页路由、菜单高亮和页面级标题
+      - 通过 StandardListPageSpec 接入 ModalListPageRecipe
+      - 保持筛选、分页、空态、错误态与标准列表一致
+      - 表格固定使用 middle 标准密度，并通过标准分页在左下角展示“共 N 条数据”
+      - 数值宽度大于等于 1000px 的 Modal 通过 buildStandardModalProps 设置 top: 24px
+      - 仅保留弹窗场景必要操作，复杂状态机标记为 business override，但仍复用表格和定位合同
+      - 补测试（筛选提交、分页、密度和宽度阈值）
+
+  - id: custom-page-shell
+    name: 一级自定义页外壳
+    appliesTo:
+      - 业务 override 页面
+      - 工作台、生成器、复杂组合页
+      - 不适合标准列表或表单 recipe 的一级路由页
+    routePattern: "/dev/<domain>/<feature> 或 /page/<domain>/<feature>"
+    chooseTemplate: src/shared/template-kit/recipes/custom-page-recipe.tsx
+    requiredPieces:
+      - src/shared/template-kit/recipes/custom-page-recipe.tsx
+      - src/shared/layout/route-page-meta-context.tsx
+      - src/shared/layout/app-shell.tsx
+      - src/routes/routes.config.ts
+    buildSteps:
+      - 先确认页面不适合 StandardListPageRecipe、BasicCrudFormRecipe 或 StepFormRecipe
+      - 页面根节点使用 CustomPageRecipe，默认从 AppShell 注入的 route title 渲染内容区主标题
+      - 仅当业务标题确实不同于 route title 时传 title 覆盖；嵌入式场景可用 titleHidden 隐藏
+      - 面包屑只由 AppShell 渲染，页面内容区不得重复渲染面包屑
+      - 首个主 Card title 只表达内容分区，不重复页面主标题
+      - 补测试（route title 注入、标题覆盖或隐藏、关键业务内容渲染）
+
+  - id: form-three-mode
+    name: 三态表单页（add/modify/readonly）
+    appliesTo:
+      - 创建与编辑共用页面
+      - 只读详情复用同一表单结构
+    routePattern: /dev/form/<feature>?mode=add|modify|readonly&id=<resourceKey>
+    chooseTemplate: src/pages/templates/form/basic-form-page.tsx
+    requiredPieces:
+      - src/routes/form-route-contract.ts
+      - src/shared/template-kit/specs/basic-crud-form-spec.ts
+      - src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
+      - src/shared/template-kit/form/use-template-form-controller.ts
+      - src/shared/template-kit/form/template-form-state-gate.tsx
+      - src/pages/templates/form/api.ts
+    buildSteps:
+      - 先确认是否满足 docs/ai/page-guardrail-recipes.md 的基础表单接入条件
+      - 页面通过 BasicCrudFormSpec 接入 BasicCrudFormRecipe，禁止页面内重复手写固定底部操作条与基础错误态
+      - 表单内容宽度通过 BasicCrudFormSpec.contentWidthPreset 选择；默认不传，等同 compact，最大宽度 800px
+      - 富文本不单独触发 contentWidthPreset=wide；单 Card 内容命中单行表单项超过 3 个的动态表单、多层级动态表单、或列数大于等于 4 个的列表时，才可显式声明 contentWidthPreset=wide，最大宽度 1200px
+      - contentWidthPreset=full 不设置最大宽度，仅用于工作台、编排器、矩阵、画布、超宽批量编辑等 wide 仍明显影响操作效率的模块，必须特殊声明
+      - 只有 preset 无法表达的页面级特例，才使用 maxWidthClassName 作为逃生口，并在实现说明中写明原因
+      - 普通单列编辑页字段控件默认填满表单内容列，禁止用字段级固定宽度替代模板内容宽度
+      - 多 Card 表单页保持 Card 全宽，宽度 preset 按每个 Card 独立判断，只作用于 Card body 或 Card 内表单内容容器；禁止把 preset 挂到包裹多个 Card 的 Form 根节点上
+      - 自定义内容容器或 Card body 手动控制宽度时，必须复用 FORM_CONTENT_ALIGN_CLASS_NAME / FORM_CARD_BODY_WIDTH_CLASS_NAME，禁止手写 mx-auto 或左右 margin 覆盖表单对齐偏好
+      - 解析 mode/resourceKey，非法参数直接展示错误态
+      - add 模式走 create，modify 模式走 fetch + update，readonly 禁用提交且不由 BasicCrudFormRecipe 默认渲染查看提示
+      - 提交成功后统一反馈并可跳转结果页
+      - 补测试（mode 解析、controller 行为、页面交互）
+
+  - id: form-as-detail-default
+    name: 默认表单复用详情页
+    appliesTo:
+      - 新增后查看详情
+      - 列表点击查看记录详情
+    routePattern: /dev/form/<feature>?mode=readonly&id=<resourceKey>
+    chooseTemplate: src/pages/templates/form/basic-form-page.tsx
+    principle:
+      - 默认复用表单 readonly 模式，不单独创建详情页
+      - 只有在业务确认“展示结构与编辑结构完全不同”时，才新建 profile/detail 页面
+    specialCaseChecklist:
+      - 是否需要大量只读聚合信息（非表单字段）？
+      - 是否需要专门的时间轴、审批流、审计轨迹展示？
+      - 是否需要双栏/多卡片布局且与编辑结构完全不同？
+    buildSteps:
+      - 列表“查看”按钮统一跳转 readonly form 路由
+      - 若命中特例清单，先评审再落地独立详情页
+
+  - id: form-step-standard
+    name: 分步表单页
+    appliesTo:
+      - 多阶段录入
+      - 后续步骤依赖前一步确认结果
+    routePattern: /dev/form/<feature-step>
+    chooseTemplate: src/pages/templates/form/step-form-page.tsx
+    requiredPieces:
+      - src/shared/template-kit/specs/step-form-spec.ts
+      - src/shared/template-kit/recipes/step-form-recipe.tsx
+    buildSteps:
+      - 先确认是否满足 docs/ai/page-guardrail-recipes.md 的分步表单接入条件
+      - 页面通过 StepFormSpec 接入 StepFormRecipe，禁止页面内重复手写页头、步骤条和阶段操作区
+      - 业务页自行保留步骤状态机与步骤前校验逻辑
+      - 完成态与说明区通过 spec slot 承载
+      - 补测试（步骤切换、回退、完成态）
+
+  - id: result-feedback-page
+    name: 结果反馈页（成功/失败）
+    appliesTo:
+      - 提交后反馈
+      - 异步任务完成反馈
+    routePattern: /dev/result/<success|fail>
+    chooseTemplates:
+      - src/pages/templates/dashboard/result-success-page.tsx
+      - src/pages/templates/dashboard/result-fail-page.tsx
+    buildSteps:
+      - 统一 Result 组件表达状态
+      - 提供回退动作（返回列表/返回首页/重试）
+      - 在触发来源页面补跳转逻辑
+
+  - id: exception-page
+    name: 异常页
+    appliesTo:
+      - 权限拒绝
+      - 未找到
+      - 服务器异常
+    routePattern: /dev/exception/<403|404|500>
+    chooseTemplates:
+      - src/pages/templates/exception/forbidden-page.tsx
+      - src/pages/templates/exception/not-found-page.tsx
+      - src/pages/templates/exception/server-error-page.tsx
+    buildSteps:
+      - 按异常类型渲染模板
+      - 保证回到可用路径的引导动作
+      - 与路由 fallback 对齐（* -> 404）
+
+decisionTree:
+  - if: "需求关键词包含 列表/筛选/分页"
+    thenRecipe: list-query-standard
+  - if: "需求关键词包含 弹窗列表/选择列表/弹窗分页"
+    thenRecipe: modal-list-standard
+  - if: "需求关键词包含 新建/编辑/详情同构"
+    thenRecipe: form-three-mode
+  - if: "需求关键词包含 分步/多阶段/步骤条"
+    thenRecipe: form-step-standard
+  - if: "需求关键词包含 角色管理/权限树/菜单授权"
+    thenRecipe: form-three-mode
+  - if: "需求关键词包含 查看详情/查看记录，且无特殊展示结构"
+    thenRecipe: form-as-detail-default
+  - if: "需求关键词包含 工作台/生成器/业务 override/自定义页"
+    thenRecipe: custom-page-shell
+  - if: "需求关键词包含 提交反馈/结果态"
+    thenRecipe: result-feedback-page
+  - if: "需求关键词包含 403/404/500/异常"
+    thenRecipe: exception-page
+
+qualityGate:
+  - 新页面必须在 routes.config.ts 注册
+  - 新页面必须声明 permission
+  - 有异步请求必须覆盖 empty/error/partial
+  - 业务 API contract 必须有类型定义
+  - 新增详情需求默认先验证是否可复用 readonly 表单
+  - 一级自定义页必须通过 CustomPageRecipe 承载内容区标题
