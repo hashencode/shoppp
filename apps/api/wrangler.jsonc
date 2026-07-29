@@ -10,6 +10,8 @@
     "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
     "ACCESS_AUDIENCE": "development-audience",
     "ACCESS_JWKS": "{\"keys\":[]}",
+    "MEDIA_PUBLIC_ORIGIN": "https://media-development.example.invalid",
+    "STOREFRONT_ORIGIN": "https://storefront-development.example.invalid",
   },
   "d1_databases": [
     {
@@ -37,6 +39,8 @@
         "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
         "ACCESS_AUDIENCE": "staging-audience",
         "ACCESS_JWKS": "{\"keys\":[]}",
+        "MEDIA_PUBLIC_ORIGIN": "https://media-staging.example.invalid",
+        "STOREFRONT_ORIGIN": "https://storefront-staging.example.invalid",
       },
       "d1_databases": [
         {
@@ -64,6 +68,8 @@
         "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
         "ACCESS_AUDIENCE": "production-audience",
         "ACCESS_JWKS": "{\"keys\":[]}",
+        "MEDIA_PUBLIC_ORIGIN": "https://media.example.invalid",
+        "STOREFRONT_ORIGIN": "https://shop.example.invalid",
       },
       "d1_databases": [
         {

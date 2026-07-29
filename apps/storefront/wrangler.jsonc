@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "shoppp-storefront",
+  "compatibility_date": "2026-07-29",
+  "assets": {
+    "directory": "./.output/public",
+    "not_found_handling": "404-page",
+  },
+  "env": {
+    "staging": {
+      "name": "shoppp-storefront-staging",
+    },
+    "production": {
+      "name": "shoppp-storefront-production",
+    },
+  },
+}

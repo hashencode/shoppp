@@ -1,0 +1,21 @@
+{
+  "releaseId": "representative-release-2026-07-30",
+  "routes": [
+    "/",
+    "/collections/travel-essentials",
+    "/policies/contact",
+    "/policies/cookies",
+    "/policies/privacy",
+    "/policies/returns",
+    "/policies/shipping",
+    "/policies/terms",
+    "/products/atlas-carry-on"
+  ],
+  "redirects": [
+    {
+      "from": "/products/carry-on",
+      "to": "/products/atlas-carry-on",
+      "status": 301
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-labelledby="title">
+  <title id="title">Black Atlas carry-on suitcase</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ebe7df"/>
+      <stop offset="1" stop-color="#c9d8d1"/>
+    </linearGradient>
+    <linearGradient id="case" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#303a37"/>
+      <stop offset="1" stop-color="#0e1513"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#bg)"/>
+  <ellipse cx="600" cy="1045" rx="305" ry="55" fill="#17201d" opacity=".16"/>
+  <path d="M510 242v-76c0-35 28-63 63-63h54c35 0 63 28 63 63v76" fill="none" stroke="#1c2522" stroke-width="28"/>
+  <rect x="330" y="225" width="540" height="790" rx="92" fill="url(#case)"/>
+  <path d="M430 310v610M570 286v658M710 310v610" fill="none" stroke="#66716d" stroke-width="11" opacity=".55"/>
+  <rect x="833" y="450" width="34" height="160" rx="17" fill="#8d9994"/>
+  <circle cx="440" cy="1028" r="34" fill="#101815"/>
+  <circle cx="760" cy="1028" r="34" fill="#101815"/>
+</svg>

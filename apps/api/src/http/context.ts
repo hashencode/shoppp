@@ -12,6 +12,9 @@ export interface ApiBindings {
   RESOURCE_NAMESPACE: string;
   STOREFRONT_BUILD_HOOK?: string;
   BUILD_HOOK_TOKEN?: string;
+  BUILD_MANIFEST_TOKEN?: string;
+  MEDIA_PUBLIC_ORIGIN: string;
+  STOREFRONT_ORIGIN: string;
 }
 
 export interface ApiVariables {

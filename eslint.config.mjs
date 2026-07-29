@@ -1,12 +1,15 @@
 import eslint from "@eslint/js";
+import pluginVue from "eslint-plugin-vue";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import vueParser from "vue-eslint-parser";
 
 export default tseslint.config(
   {
     ignores: [
       "**/.nuxt/**",
       "**/.output/**",
+      "**/.wrangler/**",
       "apps/admin/**",
       "**/coverage/**",
       "**/dist/**",
@@ -17,6 +20,22 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  ...pluginVue.configs["flat/essential"],
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        extraFileExtensions: [".vue"],
+        parser: tseslint.parser,
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "no-undef": "off",
+      "vue/multi-word-component-names": "off",
+    },
+  },
   {
     files: ["**/*.{js,mjs,cjs,ts,tsx,vue}"],
     languageOptions: {

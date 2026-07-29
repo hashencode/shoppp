@@ -1,0 +1,90 @@
+{
+  "releaseId": "representative-release-2026-07-30",
+  "site": {
+    "name": "Shoppp",
+    "origin": "https://shop.example.invalid",
+    "defaultCurrency": "USD",
+    "freshnessHours": 24
+  },
+  "products": [
+    {
+      "slug": "atlas-carry-on",
+      "name": "Atlas Carry-on",
+      "description": "A lightweight, impact-resistant carry-on designed for long-haul travel and compact overhead bins.",
+      "seoTitle": "Atlas Carry-on | Shoppp",
+      "seoDescription": "Meet the Atlas Carry-on: durable shell, quiet wheels, and an international cabin-friendly profile.",
+      "status": "published",
+      "collectionSlugs": ["travel-essentials"],
+      "variants": [
+        {
+          "sku": "ATLAS-BLK",
+          "title": "Black",
+          "status": "active",
+          "optionValues": { "color": "Black" },
+          "weightGrams": 2900,
+          "prices": [
+            { "currency": "USD", "amount": 12900 },
+            { "currency": "EUR", "amount": 11900 }
+          ]
+        }
+      ],
+      "media": [
+        {
+          "src": "/media/atlas-carry-on.svg",
+          "alt": "Black Atlas carry-on suitcase standing upright",
+          "width": 1200,
+          "height": 1200
+        }
+      ]
+    }
+  ],
+  "collections": [
+    {
+      "slug": "travel-essentials",
+      "name": "Travel essentials",
+      "description": "Purposeful gear for moving through the world with less friction.",
+      "seoTitle": "Travel essentials | Shoppp",
+      "seoDescription": "Browse durable travel essentials for international journeys.",
+      "status": "published",
+      "productSlugs": ["atlas-carry-on"]
+    }
+  ],
+  "policies": [
+    {
+      "slug": "shipping",
+      "title": "Shipping policy",
+      "description": "Delivery timing and available services are confirmed from your destination during checkout."
+    },
+    {
+      "slug": "returns",
+      "title": "Returns policy",
+      "description": "Eligible unused items may be returned within 30 days of delivery. Contact support before sending an item back."
+    },
+    {
+      "slug": "privacy",
+      "title": "Privacy policy",
+      "description": "We collect only the information needed to operate, secure, and improve your purchase experience."
+    },
+    {
+      "slug": "terms",
+      "title": "Terms of service",
+      "description": "These terms govern use of the Shoppp storefront and purchases made through it."
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "description": "Contact support through the secure channel shown in your order receipt."
+    },
+    {
+      "slug": "cookies",
+      "title": "Cookie disclosure",
+      "description": "Essential storage supports cart and security features. Optional tracking remains disabled until consent."
+    }
+  ],
+  "redirects": [
+    {
+      "from": "/products/carry-on",
+      "to": "/products/atlas-carry-on"
+    }
+  ]
+}

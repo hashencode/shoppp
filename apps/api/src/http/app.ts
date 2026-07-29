@@ -26,6 +26,7 @@ import { redact } from "./redaction";
 
 export interface CreateAppOptions {
   readonly accessVerifier?: AccessVerifier;
+  readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
   readonly previewTokenSecret?: string;
 }
@@ -80,6 +81,31 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/health", (context) =>
     context.json({ data: { status: "ok" }, meta: { requestId: context.get("requestId") } }),
   );
+  app.get("/build/catalog/releases/:id", async (context) => {
+    const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
+    if (!expectedToken || expectedToken.length < 32) {
+      throw new ApiError(
+        500,
+        "build_manifest_not_configured",
+        "The build manifest credential is not configured.",
+      );
+    }
+    if (context.req.header("authorization") !== `Bearer ${expectedToken}`) {
+      throw new ApiError(401, "build_manifest_unauthorized", "Build credential required.");
+    }
+    const release = await context.env.DB.prepare(
+      `SELECT manifest_json
+         FROM catalog_releases
+        WHERE id = ? AND status IN ('approved', 'building', 'deployed')`,
+    )
+      .bind(context.req.param("id"))
+      .first<{ manifest_json: string }>();
+    if (!release) {
+      throw new ApiError(404, "catalog_release_not_found", "The catalog release was not found.");
+    }
+    context.header("Cache-Control", "private, no-store");
+    return context.json(JSON.parse(release.manifest_json));
+  });
 
   app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
   app.get("/admin/catalog/products", async (context) => {

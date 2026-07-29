@@ -80,6 +80,7 @@ function appFor(subject = "catalog-user", buildTrigger = vi.fn()) {
         subject,
       }),
       buildTrigger,
+      buildManifestToken: "test-build-manifest-token-at-least-32-bytes",
       previewTokenSecret: "test-preview-secret-at-least-32-bytes",
     }),
     buildTrigger,
@@ -177,6 +178,36 @@ describe("catalog management and publishing", () => {
         "SELECT reason FROM audit_events WHERE action = 'catalog.publish' ORDER BY created_at DESC LIMIT 1",
       ).first(),
     ).toEqual({ reason: "Approved launch catalog release" });
+    const release = await env.DB.prepare(
+      "SELECT id, manifest_json FROM catalog_releases ORDER BY created_at DESC LIMIT 1",
+    ).first<{ id: string; manifest_json: string }>();
+    const manifest = JSON.parse(release!.manifest_json) as {
+      collections: Array<{ status: string }>;
+      products: Array<{ slug: string }>;
+      routes: string[];
+    };
+    expect(manifest.products).toEqual([expect.objectContaining({ slug: "carry-on-pro" })]);
+    expect(manifest.collections).toEqual([expect.objectContaining({ status: "published" })]);
+    expect(manifest.routes).toContain("/products/carry-on-pro");
+    const releaseResponse = await app.fetch(
+      new Request(`https://api.example.test/build/catalog/releases/${release!.id}`, {
+        headers: {
+          Authorization: "Bearer test-build-manifest-token-at-least-32-bytes",
+        },
+      }),
+      env,
+    );
+    expect(releaseResponse.status).toBe(200);
+    expect(releaseResponse.headers.get("cache-control")).toBe("private, no-store");
+    expect(await releaseResponse.json()).toMatchObject({ releaseId: release!.id });
+    expect(
+      (
+        await app.fetch(
+          new Request(`https://api.example.test/build/catalog/releases/${release!.id}`),
+          env,
+        )
+      ).status,
+    ).toBe(401);
     const list = await app.fetch(request("/admin/catalog/products"), env);
     expect(await list.json()).toMatchObject({
       data: [

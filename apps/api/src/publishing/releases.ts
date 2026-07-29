@@ -5,6 +5,7 @@ import { getProduct } from "../catalog/products";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { buildCatalogReleaseManifest } from "./build-manifest";
 
 export interface BuildTriggerResult {
   correlationId: string;
@@ -83,12 +84,12 @@ export async function publishProduct(
   const principal = context.get("principal");
   const releaseId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const manifest = {
-    generatedAt: now,
-    product: snapshot,
+  const manifest = await buildCatalogReleaseManifest(context.env.DB, {
+    candidateProductId: productId,
+    mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
     releaseId,
-    schemaVersion: 1,
-  };
+    storefrontOrigin: context.env.STOREFRONT_ORIGIN,
+  });
   await context.env.DB.prepare(
     `INSERT INTO catalog_releases
       (id, status, manifest_json, approved_by, approved_at, product_id, created_at, updated_at)
@@ -112,6 +113,11 @@ export async function publishProduct(
       context.env.DB.prepare(
         "UPDATE products SET status = 'published', published_at = ?, updated_at = ? WHERE id = ?",
       ).bind(now, now, productId),
+      context.env.DB.prepare(
+        `UPDATE collections
+            SET status = 'published', updated_at = ?
+          WHERE id IN (SELECT collection_id FROM collection_products WHERE product_id = ?)`,
+      ).bind(now, productId),
     ]);
     await recordAuditEvent(context.env.DB, {
       action: "catalog.publish",
