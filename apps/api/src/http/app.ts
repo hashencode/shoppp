@@ -11,6 +11,7 @@ import {
   checkoutRequestSchema,
   fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
+  replayNotificationJobRequestSchema,
   refundRequestSchema,
   shippingQuoteRequestSchema,
   updateCartLineRequestSchema,
@@ -51,6 +52,11 @@ import { createStripePaymentProvider } from "../payments/stripe-adapter";
 import { processPaymentWebhook } from "../payments/webhook";
 import { refundOrder } from "../refunds/service";
 import {
+  listNotificationJobs,
+  NotificationRecoveryError,
+  replayNotificationJob,
+} from "../recovery/notification-jobs";
+import {
   createPreviewToken,
   defaultBuildTrigger,
   publishProduct,
@@ -70,6 +76,24 @@ export interface CreateAppOptions {
 }
 
 const idempotentTestSchema = z.object({ value: z.string().min(1) }).strict();
+const notificationJobQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    query: z.string().trim().min(1).max(160).optional(),
+    status: z.enum(["pending", "processing", "sent", "failed", "dead_letter"]).optional(),
+    type: z
+      .enum([
+        "order_receipt",
+        "payment_failed",
+        "cancellation",
+        "refund",
+        "shipment",
+        "payment_reconciliation",
+      ])
+      .optional(),
+  })
+  .strict();
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -483,6 +507,72 @@ export function createApp(options: CreateAppOptions = {}) {
         const apiError = new ApiError(error.retryable ? 503 : 422, error.code, error.message);
         return context.json(errorEnvelope(apiError, context.get("requestId")), apiError.status);
       }
+    },
+  );
+  app.get("/admin/operations/jobs", async (context) => {
+    await requirePermission(context, "operations.jobs.read", {
+      type: "notification_job",
+    });
+    const parsed = notificationJobQuerySchema.safeParse(context.req.query());
+    if (!parsed.success) {
+      throw new ApiError(
+        422,
+        "validation_failed",
+        "Request validation failed.",
+        parsed.error.issues.map((issue) => ({
+          message: issue.message,
+          path: issue.path.map(String),
+        })),
+      );
+    }
+    const result = await listNotificationJobs(context.env.DB, {
+      page: parsed.data.page,
+      pageSize: parsed.data.pageSize,
+      ...(parsed.data.query ? { query: parsed.data.query } : {}),
+      ...(parsed.data.status ? { status: parsed.data.status } : {}),
+      ...(parsed.data.type ? { type: parsed.data.type } : {}),
+    });
+    return context.json({
+      data: result.data,
+      meta: {
+        page: result.page,
+        pageSize: result.pageSize,
+        requestId: context.get("requestId"),
+        total: result.total,
+      },
+    });
+  });
+  app.post(
+    "/admin/operations/jobs/:id/replay",
+    async (context, next) => {
+      await requirePermission(context, "operations.replay", {
+        id: context.req.param("id"),
+        type: "notification_job",
+      });
+      await next();
+    },
+    idempotency("operations.notifications.replay"),
+    async (context) => {
+      const input = await parseJson(context, replayNotificationJobRequestSchema);
+      try {
+        await replayNotificationJob(context.env.DB, context.req.param("id"), {
+          actorId: context.get("principal").id,
+          reason: input.reason,
+          requestId: context.get("requestId"),
+        });
+      } catch (error) {
+        if (!(error instanceof NotificationRecoveryError)) throw error;
+        throw new ApiError(409, error.code, error.message);
+      }
+      const result = await listNotificationJobs(context.env.DB, {
+        page: 1,
+        pageSize: 1,
+        query: context.req.param("id"),
+      });
+      return context.json({
+        data: result.data[0],
+        meta: { requestId: context.get("requestId") },
+      });
     },
   );
   app.post("/admin/test/idempotent", idempotency("test.idempotent"), async (context) => {

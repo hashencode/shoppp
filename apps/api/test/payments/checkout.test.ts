@@ -13,6 +13,8 @@ import { PaymentProviderError } from "../../src/payments/port";
 import { sha256Hex } from "../../src/orders/tokens";
 import { getGuestOrderAccess } from "../../src/orders/guest-access";
 import { createApp } from "../../src/http/app";
+import { deliverAutomationJob } from "../../src/automation/workflows";
+import type { EmailProvider } from "../../src/notifications/port";
 import { expireDueReservations } from "../../src/inventory/expiry";
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
 
@@ -447,6 +449,21 @@ describe("hosted checkout and payment convergence", () => {
     );
     const retryEvent = eventFor(session, `evt_retry_${sequence}`);
     expect((await app.fetch(webhookRequest(retryEvent), env)).status).toBe(503);
+    expect(
+      await env.DB.prepare(
+        `SELECT kind, type, status FROM notification_jobs
+          WHERE provider_event_id = (
+            SELECT id FROM payment_events
+             WHERE provider_event_id = ?
+          )`,
+      )
+        .bind(retryEvent.id)
+        .first(),
+    ).toEqual({
+      kind: "provider_recovery",
+      status: "pending",
+      type: "payment_reconciliation",
+    });
     provider.retrieveError = null;
     provider.sessions.set(session.id, { ...session, paymentState: "approved" });
     const recovered = await app.fetch(webhookRequest(retryEvent), env);
@@ -460,6 +477,119 @@ describe("hosted checkout and payment convergence", () => {
           .first<{ count: number }>()
       )?.count,
     ).toBe(1);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM notification_jobs WHERE deduplication_key LIKE 'payment.reconciliation:%' ORDER BY created_at DESC LIMIT 1",
+      ).first(),
+    ).toEqual({ status: "sent" });
+  });
+
+  test("a queued provider recovery converges payment without another webhook delivery", async () => {
+    const provider = new FakePaymentProvider();
+    const app = createApp({ paymentProvider: provider });
+    const checkout = await seedCheckout();
+    const response = await app.fetch(checkoutRequest(checkout), env);
+    const created = await response.json<{ data: { attemptId: string } }>();
+    const session = [...provider.sessions.values()][0]!;
+    provider.retrieveError = new PaymentProviderError(
+      "stripe_unreachable",
+      "The payment provider could not be reached.",
+      true,
+    );
+    const event = eventFor(session, `evt_async_recovery_${sequence}`);
+    expect((await app.fetch(webhookRequest(event), env)).status).toBe(503);
+    const recovery = await env.DB.prepare(
+      `SELECT id FROM notification_jobs
+        WHERE kind = 'provider_recovery' AND provider_event_id = (
+          SELECT id FROM payment_events WHERE provider_event_id = ?
+        )`,
+    )
+      .bind(event.id)
+      .first<{ id: string }>();
+
+    const unusedEmailProvider: EmailProvider = {
+      async send() {
+        throw new Error("Provider recovery must not send customer email.");
+      },
+    };
+    await expect(
+      deliverAutomationJob(
+        env.DB,
+        unusedEmailProvider,
+        provider,
+        "https://shop.example.test",
+        recovery!.id,
+        "2026-07-30T04:00:00.000Z",
+      ),
+    ).resolves.toMatchObject({ status: "retry" });
+    provider.retrieveError = null;
+    provider.sessions.set(session.id, { ...session, paymentState: "approved" });
+    await expect(
+      deliverAutomationJob(
+        env.DB,
+        unusedEmailProvider,
+        provider,
+        "https://shop.example.test",
+        recovery!.id,
+        "2026-07-30T04:10:00.000Z",
+      ),
+    ).resolves.toMatchObject({ status: "sent" });
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM orders WHERE checkout_attempt_id = ?")
+        .bind(created.data.attemptId)
+        .first(),
+    ).toEqual({ count: 1 });
+    expect(
+      await env.DB.prepare("SELECT status, attempt_count FROM notification_jobs WHERE id = ?")
+        .bind(recovery!.id)
+        .first(),
+    ).toEqual({ attempt_count: 2, status: "sent" });
+  });
+
+  test("failed provider truth releases stock and queues one privacy-minimal outcome message", async () => {
+    const provider = new FakePaymentProvider();
+    const app = createApp({ paymentProvider: provider });
+    const checkout = await seedCheckout();
+    const response = await app.fetch(checkoutRequest(checkout), env);
+    const created = await response.json<{ data: { attemptId: string } }>();
+    const session = [...provider.sessions.values()][0]!;
+    const failedSession = { ...session, paymentState: "failed" as const };
+    provider.sessions.set(session.id, failedSession);
+    const event = eventFor(
+      failedSession,
+      `evt_payment_failed_${sequence}`,
+      "checkout.payment_failed",
+    );
+
+    expect(await (await app.fetch(webhookRequest(event), env)).json()).toMatchObject({
+      data: { eventResult: "applied" },
+    });
+    expect(await (await app.fetch(webhookRequest(event), env)).json()).toMatchObject({
+      data: { replayed: true },
+    });
+    const jobs = await env.DB.prepare(
+      `SELECT type, payload_json
+         FROM notification_jobs
+        WHERE checkout_attempt_id = ?`,
+    )
+      .bind(created.data.attemptId)
+      .all<{ payload_json: string; type: string }>();
+    expect(jobs.results).toHaveLength(1);
+    expect(jobs.results[0]?.type).toBe("payment_failed");
+    expect(JSON.parse(jobs.results[0]!.payload_json)).toEqual({
+      checkoutAttemptId: created.data.attemptId,
+    });
+    expect(jobs.results[0]?.payload_json).not.toContain("@");
+    expect(
+      await env.DB.prepare(
+        `SELECT g.status
+           FROM inventory_reservation_groups g
+           JOIN checkout_attempts c ON c.reservation_group_id = g.id
+          WHERE c.id = ?`,
+      )
+        .bind(created.data.attemptId)
+        .first(),
+    ).toEqual({ status: "released" });
   });
 
   test("a provider timeout records one failed attempt, releases stock, and replays stably", async () => {

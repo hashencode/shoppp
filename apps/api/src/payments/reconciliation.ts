@@ -72,6 +72,25 @@ async function terminateAttempt(
   if (attempt.reservation_group_id) {
     await releaseInventoryReservation(db, attempt.reservation_group_id, at);
   }
+  if (status === "failed") {
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO notification_jobs
+           (id, checkout_attempt_id, type, deduplication_key, payload_json, status,
+            attempt_count, next_attempt_at, created_at, updated_at)
+         VALUES (?, ?, 'payment_failed', ?, ?, 'pending', 0, ?, ?, ?)`,
+      )
+      .bind(
+        `notify_payment_failed_${attempt.id}`,
+        attempt.id,
+        `checkout.payment_failed:${attempt.id}`,
+        JSON.stringify({ checkoutAttemptId: attempt.id }),
+        at,
+        at,
+        at,
+      )
+      .run();
+  }
 }
 
 export async function reconcilePaymentEvent(

@@ -5,6 +5,7 @@ import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { PaymentProviderError, type PaymentProvider } from "./port";
 import { reconcilePaymentEvent } from "./reconciliation";
+import { completeProviderRecovery, enqueueProviderRecovery } from "../recovery/provider-events";
 
 async function recordVerificationFailure(
   context: Context<ApiEnvironment>,
@@ -45,12 +46,17 @@ export async function processPaymentWebhook(
     throw error;
   }
   try {
+    const result = await reconcilePaymentEvent(context.env.DB, provider, event, rawPayload);
+    await completeProviderRecovery(context.env.DB, provider.name, event.id);
     return {
-      data: await reconcilePaymentEvent(context.env.DB, provider, event, rawPayload),
+      data: result,
       meta: { requestId: context.get("requestId") },
     };
   } catch (error) {
     if (error instanceof PaymentProviderError) {
+      if (error.retryable) {
+        await enqueueProviderRecovery(context.env.DB, provider.name, event.id);
+      }
       throw new ApiError(error.retryable ? 503 : 422, error.code, error.message);
     }
     throw error;

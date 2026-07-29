@@ -17,6 +17,8 @@ export type PermissionKey =
   | 'orders.fulfill'
   | 'orders.cancel'
   | 'orders.refund'
+  | 'operations.jobs.read'
+  | 'operations.replay'
 
 const rolePermissions: Record<Role, PermissionKey[]> = {
   admin: [
@@ -36,6 +38,8 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'orders.fulfill',
     'orders.cancel',
     'orders.refund',
+    'operations.jobs.read',
+    'operations.replay',
   ],
   editor: [
     'dashboard.read',
@@ -54,6 +58,8 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'orders.fulfill',
     'orders.cancel',
     'orders.refund',
+    'operations.jobs.read',
+    'operations.replay',
   ],
   viewer: [
     'dashboard.read',

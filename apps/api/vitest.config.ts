@@ -16,6 +16,7 @@ export default defineConfig(async () => {
             ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",
             ACCESS_JWKS: '{"keys":[]}',
             ENVIRONMENT: "staging",
+            EMAIL_FROM: "orders@staging.example.test",
             PUBLIC_ORIGIN: "https://staging.example.invalid",
             RESOURCE_NAMESPACE: "shoppp-staging",
             RESERVATION_TTL_MINUTES: "30",

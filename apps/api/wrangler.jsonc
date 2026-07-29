@@ -17,6 +17,7 @@
     "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
     "PAYMENT_CANCEL_URL": "https://storefront-development.example.invalid/checkout",
     "PAYMENT_SUCCESS_URL": "https://storefront-development.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
+    "EMAIL_FROM": "orders@development.example.invalid",
   },
   "triggers": {
     "crons": ["*/5 * * * *"],
@@ -35,6 +36,37 @@
       "binding": "MEDIA",
       "bucket_name": "shoppp-development-media",
       "preview_bucket_name": "shoppp-development-media-preview",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "NOTIFICATION_QUEUE",
+        "queue": "shoppp-development-notifications",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "shoppp-development-notifications",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "retry_delay": 60,
+        "dead_letter_queue": "shoppp-development-notifications-dlq",
+      },
+      {
+        "queue": "shoppp-development-notifications-dlq",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+      },
+    ],
+  },
+  "workflows": [
+    {
+      "name": "shoppp-development-notification-delivery",
+      "binding": "NOTIFICATION_WORKFLOW",
+      "class_name": "NotificationDeliveryWorkflow",
     },
   ],
   "env": {
@@ -57,6 +89,7 @@
         "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
         "PAYMENT_CANCEL_URL": "https://storefront-staging.example.invalid/checkout",
         "PAYMENT_SUCCESS_URL": "https://storefront-staging.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
+        "EMAIL_FROM": "orders@staging.example.invalid",
       },
       "d1_databases": [
         {
@@ -72,6 +105,37 @@
           "binding": "MEDIA",
           "bucket_name": "shoppp-staging-media",
           "preview_bucket_name": "shoppp-staging-media-preview",
+        },
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "NOTIFICATION_QUEUE",
+            "queue": "shoppp-staging-notifications",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "shoppp-staging-notifications",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "retry_delay": 60,
+            "dead_letter_queue": "shoppp-staging-notifications-dlq",
+          },
+          {
+            "queue": "shoppp-staging-notifications-dlq",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+          },
+        ],
+      },
+      "workflows": [
+        {
+          "name": "shoppp-staging-notification-delivery",
+          "binding": "NOTIFICATION_WORKFLOW",
+          "class_name": "NotificationDeliveryWorkflow",
         },
       ],
     },
@@ -94,6 +158,7 @@
         "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
         "PAYMENT_CANCEL_URL": "https://shop.example.invalid/checkout",
         "PAYMENT_SUCCESS_URL": "https://shop.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
+        "EMAIL_FROM": "orders@example.invalid",
       },
       "d1_databases": [
         {
@@ -109,6 +174,37 @@
           "binding": "MEDIA",
           "bucket_name": "shoppp-production-media",
           "preview_bucket_name": "shoppp-production-media-preview",
+        },
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "NOTIFICATION_QUEUE",
+            "queue": "shoppp-production-notifications",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "shoppp-production-notifications",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "retry_delay": 60,
+            "dead_letter_queue": "shoppp-production-notifications-dlq",
+          },
+          {
+            "queue": "shoppp-production-notifications-dlq",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+          },
+        ],
+      },
+      "workflows": [
+        {
+          "name": "shoppp-production-notification-delivery",
+          "binding": "NOTIFICATION_WORKFLOW",
+          "class_name": "NotificationDeliveryWorkflow",
         },
       ],
     },

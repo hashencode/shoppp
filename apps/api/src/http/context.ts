@@ -1,3 +1,5 @@
+import type { NotificationQueuePayload } from "../automation/queue-consumer";
+import type { NotificationWorkflowPayload } from "../automation/workflows";
 import type { Principal } from "../iam/permissions";
 
 export interface ApiBindings {
@@ -22,6 +24,11 @@ export interface ApiBindings {
   PAYMENT_SUCCESS_URL?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  EMAIL_FROM: string;
+  EMAIL_PROVIDER_API_KEY?: string;
+  EMAIL_PROVIDER_URL?: string;
+  NOTIFICATION_QUEUE?: Queue<NotificationQueuePayload>;
+  NOTIFICATION_WORKFLOW?: Workflow<NotificationWorkflowPayload>;
 }
 
 export interface ApiVariables {

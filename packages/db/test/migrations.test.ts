@@ -19,6 +19,7 @@ describe("D1 migrations", () => {
         "idempotency_claims",
         "inventory_items",
         "inventory_reservations",
+        "notification_attempts",
         "notification_jobs",
         "order_lines",
         "orders",
@@ -40,6 +41,35 @@ describe("D1 migrations", () => {
         "SELECT name FROM sqlite_schema WHERE type = 'index' AND name = 'shipping_methods_zone_idx'",
       ).first(),
     ).toEqual({ name: "shipping_methods_zone_idx" });
+    const notificationColumns = await env.DB.prepare("PRAGMA table_info(notification_jobs)").all<{
+      name: string;
+    }>();
+    expect(notificationColumns.results.map(({ name }) => name)).toEqual(
+      expect.arrayContaining([
+        "attempt_cycle_count",
+        "claim_expires_at",
+        "dead_lettered_at",
+        "kind",
+        "provider_message_id",
+        "provider_event_id",
+        "replay_count",
+      ]),
+    );
+    const job = await env.DB.prepare("SELECT id FROM notification_jobs LIMIT 1").first<{
+      id: string;
+    }>();
+    await env.DB.prepare(
+      `INSERT INTO notification_attempts
+         (id, job_id, attempt_number, result, started_at, completed_at)
+       VALUES ('attempt_immutable', ?, 1, 'sent', ?, ?)`,
+    )
+      .bind(job!.id, "2026-07-30T00:00:00.000Z", "2026-07-30T00:00:01.000Z")
+      .run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE notification_attempts SET result = 'exhausted' WHERE id = 'attempt_immutable'",
+      ).run(),
+    ).rejects.toThrow("immutable_notification_attempt");
     const foreignKeyViolations = await env.DB.prepare("PRAGMA foreign_key_check").all();
     expect(foreignKeyViolations.results).toEqual([]);
   });

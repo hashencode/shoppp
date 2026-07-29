@@ -215,7 +215,9 @@ export async function getOrderDetail(
         }>(),
       context.env.DB.prepare(
         `SELECT id, type, status, created_at
-           FROM notification_jobs WHERE order_id = ? ORDER BY created_at, id`,
+           FROM notification_jobs
+          WHERE order_id = ? AND kind = 'notification'
+          ORDER BY created_at, id`,
       )
         .bind(order.id)
         .all<{ created_at: string; id: string; status: string; type: string }>(),

@@ -6,6 +6,7 @@ import {
   ExclamationCircleOutlined,
   FormOutlined,
   ProfileOutlined,
+  ReloadOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
   SmileOutlined,
@@ -121,6 +122,22 @@ export const templateRoutes: TemplateRoute[] = [
       lazyPage(() =>
         import('../pages/fulfillment/fulfillment-page').then((m) => ({
           default: m.FulfillmentPage,
+        }))
+      ),
+  },
+  {
+    key: 'notification-recovery',
+    path: '/operations/jobs',
+    title: 'Automation recovery',
+    icon: createElement(ReloadOutlined),
+    permission: 'operations.jobs.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Operations', 'Automation recovery'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/operations/jobs/notification-jobs-page').then((m) => ({
+          default: m.NotificationJobsPage,
         }))
       ),
   },

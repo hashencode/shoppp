@@ -8,6 +8,7 @@ declare global {
       ACCESS_JWKS: string;
       DB: D1Database;
       ENVIRONMENT: "development" | "staging" | "production";
+      EMAIL_FROM: string;
       PUBLIC_ORIGIN: string;
       RESOURCE_NAMESPACE: string;
       RESERVATION_TTL_MINUTES?: string;

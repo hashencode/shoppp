@@ -482,6 +482,73 @@ export const refundEvents = sqliteTable(
   ],
 );
 
+export const notificationJobs = sqliteTable(
+  "notification_jobs",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id").references(() => orders.id, { onDelete: "restrict" }),
+    checkoutAttemptId: text("checkout_attempt_id").references(() => checkoutAttempts.id, {
+      onDelete: "restrict",
+    }),
+    providerEventId: text("provider_event_id").references(() => paymentEvents.id, {
+      onDelete: "restrict",
+    }),
+    kind: text("kind", { enum: ["notification", "provider_recovery"] })
+      .notNull()
+      .default("notification"),
+    type: text("type").notNull(),
+    deduplicationKey: text("deduplication_key").notNull().unique(),
+    payloadJson: text("payload_json").notNull(),
+    status: text("status", {
+      enum: ["pending", "processing", "sent", "failed", "dead_letter"],
+    }).notNull(),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    attemptCycleCount: integer("attempt_cycle_count").notNull().default(0),
+    nextAttemptAt: text("next_attempt_at"),
+    claimExpiresAt: text("claim_expires_at"),
+    enqueuedAt: text("enqueued_at"),
+    sentAt: text("sent_at"),
+    providerMessageId: text("provider_message_id"),
+    deadLetteredAt: text("dead_lettered_at"),
+    replayCount: integer("replay_count").notNull().default(0),
+    lastErrorCode: text("last_error_code"),
+    ...timestamps,
+  },
+  (table) => [
+    index("notification_jobs_dispatch_idx").on(
+      table.status,
+      table.nextAttemptAt,
+      table.enqueuedAt,
+      table.createdAt,
+    ),
+    index("notification_jobs_checkout_attempt_idx").on(table.checkoutAttemptId, table.createdAt),
+    index("notification_jobs_provider_event_idx").on(table.providerEventId, table.createdAt),
+  ],
+);
+
+export const notificationAttempts = sqliteTable(
+  "notification_attempts",
+  {
+    id: text("id").primaryKey(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => notificationJobs.id, { onDelete: "restrict" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    result: text("result", {
+      enum: ["sent", "retryable_failure", "permanent_failure", "exhausted"],
+    }).notNull(),
+    errorCode: text("error_code"),
+    providerMessageId: text("provider_message_id"),
+    startedAt: text("started_at").notNull(),
+    completedAt: text("completed_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("notification_attempts_job_number_unique").on(table.jobId, table.attemptNumber),
+    index("notification_attempts_job_idx").on(table.jobId, table.attemptNumber),
+  ],
+);
+
 export const idempotencyClaims = sqliteTable(
   "idempotency_claims",
   {

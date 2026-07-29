@@ -121,9 +121,72 @@ export const cancelOrderRequestSchema = z
   })
   .strict();
 
+export const notificationJobStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "sent",
+  "failed",
+  "dead_letter",
+]);
+
+export const notificationAttemptSchema = z
+  .object({
+    attemptNumber: z.int().positive(),
+    completedAt: isoDateTimeSchema,
+    errorCode: z.string().nullable().optional(),
+    id: z.string().min(1),
+    providerMessageId: z.string().nullable().optional(),
+    result: z.enum(["sent", "retryable_failure", "permanent_failure", "exhausted"]),
+    startedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const notificationJobSchema = z
+  .object({
+    attemptCount: z.int().nonnegative(),
+    attempts: z.array(notificationAttemptSchema),
+    createdAt: isoDateTimeSchema,
+    deadLetteredAt: isoDateTimeSchema.nullable().optional(),
+    id: z.string().min(1),
+    kind: z.enum(["notification", "provider_recovery"]),
+    lastErrorCode: z.string().nullable().optional(),
+    maxAttempts: z.int().positive(),
+    nextAttemptAt: isoDateTimeSchema.nullable().optional(),
+    orderReference: z
+      .string()
+      .regex(/^ORD-[A-Z0-9]{6,20}$/)
+      .nullable()
+      .optional(),
+    recipient: z.string().min(3),
+    replayCount: z.int().nonnegative(),
+    sentAt: isoDateTimeSchema.nullable().optional(),
+    status: notificationJobStatusSchema,
+    type: z.enum([
+      "order_receipt",
+      "payment_failed",
+      "cancellation",
+      "refund",
+      "shipment",
+      "payment_reconciliation",
+    ]),
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const replayNotificationJobRequestSchema = z
+  .object({
+    confirm: z.literal(true),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
 export type AdminOrder = z.infer<typeof adminOrderSchema>;
 export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
 export type CancelOrderRequest = z.infer<typeof cancelOrderRequestSchema>;
 export type FulfillmentTransitionRequest = z.infer<typeof fulfillmentTransitionRequestSchema>;
+export type NotificationAttempt = z.infer<typeof notificationAttemptSchema>;
+export type NotificationJob = z.infer<typeof notificationJobSchema>;
+export type NotificationJobStatus = z.infer<typeof notificationJobStatusSchema>;
 export type OrderTimelineEntry = z.infer<typeof orderTimelineEntrySchema>;
 export type RefundRequest = z.infer<typeof refundRequestSchema>;
+export type ReplayNotificationJobRequest = z.infer<typeof replayNotificationJobRequestSchema>;

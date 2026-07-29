@@ -3,6 +3,8 @@ import { describe, expect, test } from "bun:test";
 import {
   cancelOrderRequestSchema,
   fulfillmentTransitionRequestSchema,
+  notificationJobSchema,
+  replayNotificationJobRequestSchema,
   refundRequestSchema,
   adminOrderSchema,
 } from "../src/admin";
@@ -193,5 +195,38 @@ describe("public contracts", () => {
         trackingNumber: "DHL-TRACK-001",
       }).trackingNumber,
     ).toBe("DHL-TRACK-001");
+    expect(
+      replayNotificationJobRequestSchema.parse({
+        confirm: true,
+        reason: "Provider configuration corrected",
+      }).confirm,
+    ).toBe(true);
+    expect(() =>
+      replayNotificationJobRequestSchema.parse({
+        confirm: false,
+        reason: "Provider configuration corrected",
+      }),
+    ).toThrow();
+  });
+
+  test("validates operator-visible notification and provider recovery jobs", () => {
+    expect(
+      notificationJobSchema.parse({
+        attemptCount: 3,
+        attempts: [],
+        createdAt: "2026-07-30T00:00:00.000Z",
+        deadLetteredAt: "2026-07-30T00:03:00.000Z",
+        id: "recover-payment-event-001",
+        kind: "provider_recovery",
+        lastErrorCode: "stripe_unreachable",
+        maxAttempts: 3,
+        orderReference: null,
+        recipient: "Provider · stripe",
+        replayCount: 0,
+        status: "dead_letter",
+        type: "payment_reconciliation",
+        updatedAt: "2026-07-30T00:03:00.000Z",
+      }).kind,
+    ).toBe("provider_recovery");
   });
 });
