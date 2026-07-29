@@ -37,6 +37,26 @@ describe("API shell", () => {
     await seedOperator("operations");
   });
 
+  test("publishes environment-scoped checkout security configuration without caching", async () => {
+    const app = createApp();
+    const response = await app.fetch(new Request("https://api.example.test/platform/config"), {
+      ...env,
+      TURNSTILE_REQUIRED: "true",
+      TURNSTILE_SITE_KEY: "staging-site-key",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toMatchObject({
+      data: {
+        turnstile: {
+          required: true,
+          siteKey: "staging-site-key",
+        },
+      },
+    });
+  });
+
   test("maps an enabled Access identity and reaches an allowed use case", async () => {
     const app = createApp({
       accessVerifier: async () => ({

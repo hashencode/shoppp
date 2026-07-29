@@ -31,7 +31,9 @@ An infrastructure owner must:
 3. Add staging URLs, representative product/order identifiers, authorized and prohibited Access
    service identities, and a CI-only Stripe test card as environment-owned values.
 4. Put Worker secrets in Cloudflare with `wrangler secret put --env <environment>`. Confirm the
-   Stripe webhook points to that environment's `/webhooks/stripe` endpoint.
+   Stripe webhook points to that environment's `/webhooks/stripe` endpoint. Replace each API
+   environment's `TURNSTILE_SITE_KEY` placeholder with the public key paired to that environment's
+   secret; staging and production keys must be distinct.
 5. Seed the representative catalog (at least 1,000 products and 5,000 variants), one last-unit
    purchase fixture, roles, launch settings, shipping zones, and policy text.
 6. Configure alerts for Worker errors, failed catalog builds, queue exhaustion, webhook
@@ -50,6 +52,11 @@ Dispatch `Deploy immutable commerce release` with a unique release ID. The workf
    versions from the same commit and deploys the same release tag. The production job runs
    `release:validate -- --promotion`; this hashes the downloaded outputs and requires an exact match
    with staging evidence. It does not rebuild environment-sensitive or nondeterministic output.
+
+The storefront obtains its environment-specific Turnstile public key at runtime from the same-origin
+`/api/platform/config` endpoint. This keeps the static storefront byte-identical across staging and
+production while preserving separate Turnstile key/secret pairs. Missing or inconsistent challenge
+configuration fails closed and disables checkout.
 
 Record the workflow URL, release report, Cloudflare version IDs, staging journey report, approver,
 Stripe reconciliation, Access result, alert-delivery test, backup ID, and production smoke result in

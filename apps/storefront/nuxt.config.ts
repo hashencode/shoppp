@@ -58,7 +58,6 @@ export default defineNuxtConfig({
       siteOrigin: catalogRelease.site.origin,
       releaseId: catalogRelease.releaseId,
       freshnessHours: catalogRelease.site.freshnessHours,
-      turnstileSiteKey: process.env.NUXT_PUBLIC_TURNSTILE_SITE_KEY || "",
     },
   },
   typescript: { strict: true, typeCheck: true },

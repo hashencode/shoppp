@@ -6,6 +6,7 @@ import type {
   CreateCartRequest,
   OrderAccess,
   Product,
+  PublicRuntimeConfiguration,
   ShippingQuoteRequest,
   UpdateCartLineRequest,
 } from "@shoppp/contracts";
@@ -30,6 +31,8 @@ export const useCommerceApi = () => {
     api<ApiData<Product>>(`/catalog/products/${encodeURIComponent(slug)}/live`, {
       query: { currency },
     });
+  const getPublicRuntimeConfiguration = () =>
+    api<ApiData<PublicRuntimeConfiguration>>("/platform/config");
   const createCart = (input: CreateCartRequest) =>
     api<ApiData<{ cart: Cart; token: string }>>("/cart", {
       body: input,
@@ -86,6 +89,7 @@ export const useCommerceApi = () => {
     getCart,
     getLiveProduct,
     getOrderAccess,
+    getPublicRuntimeConfiguration,
     quoteShipping,
     removeCartLine,
     updateCartLine,

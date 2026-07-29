@@ -18,6 +18,7 @@ import {
   replayNotificationJobRequestSchema,
   refundRequestSchema,
   shippingQuoteRequestSchema,
+  publicRuntimeConfigurationSchema,
   updateCartLineRequestSchema,
   updateLaunchConfigurationRequestSchema,
 } from "@shoppp/contracts";
@@ -207,6 +208,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/cart/*", publicCors);
   app.use("/catalog/*", publicCors);
   app.use("/checkout/*", publicCors);
+  app.use("/platform/*", publicCors);
   app.use(
     "/checkout/sessions",
     protectCheckoutSubmission({
@@ -218,6 +220,20 @@ export function createApp(options: CreateAppOptions = {}) {
     }),
   );
   app.use("/orders/*", publicCors);
+  app.get("/platform/config", (context) => {
+    const required = context.env.TURNSTILE_REQUIRED === "true";
+    const configuration = publicRuntimeConfigurationSchema.parse({
+      turnstile: {
+        required,
+        siteKey: required ? context.env.TURNSTILE_SITE_KEY?.trim() || null : null,
+      },
+    });
+    context.header("Cache-Control", "no-store");
+    return context.json({
+      data: configuration,
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.get("/catalog/products/:slug/live", async (context) => {
     const currency = (context.req.query("currency") ?? "USD").toUpperCase();
     if (!/^[A-Z]{3}$/.test(currency)) {

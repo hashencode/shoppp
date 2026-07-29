@@ -46,6 +46,7 @@ async function readiness(
   environment: ApiEnvironment["Bindings"]["ENVIRONMENT"],
   configuredReservationTtl: string | undefined,
   turnstileRequired: string | undefined,
+  turnstileSiteKey: string | undefined,
   turnstileSecret: string | undefined,
   backupConfigured: boolean,
 ): Promise<LaunchConfigurationStatus["issues"]> {
@@ -87,6 +88,12 @@ async function readiness(
     issues.push({
       code: "turnstile_secret_missing",
       message: "Turnstile is required but its server-side secret is not configured.",
+    });
+  }
+  if (turnstileRequired === "true" && !turnstileSiteKey) {
+    issues.push({
+      code: "turnstile_site_key_missing",
+      message: "Turnstile is required but its environment-specific public site key is missing.",
     });
   }
   if (!backupConfigured) {
@@ -187,6 +194,7 @@ export async function getLaunchConfiguration(
     context.env.ENVIRONMENT,
     context.env.RESERVATION_TTL_MINUTES,
     context.env.TURNSTILE_REQUIRED,
+    context.env.TURNSTILE_SITE_KEY,
     context.env.TURNSTILE_SECRET,
     Boolean(
       context.env.CLOUDFLARE_ACCOUNT_ID &&

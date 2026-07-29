@@ -24,6 +24,7 @@ declare global {
       RESTORE_DB: D1Database;
       STOREFRONT_ORIGIN: string;
       TEST_MIGRATIONS: D1Migration[];
+      TURNSTILE_SITE_KEY?: string;
     }
   }
 }

@@ -12,6 +12,7 @@ import { cartSchema } from "../src/cart";
 import { productSchema } from "../src/catalog";
 import { checkoutRequestSchema } from "../src/checkout";
 import { inventoryAdjustmentRequestSchema, inventoryReservationSchema } from "../src/inventory";
+import { publicRuntimeConfigurationSchema } from "../src/platform";
 
 const product = {
   description: "A durable travel bottle.",
@@ -37,6 +38,21 @@ const product = {
 };
 
 describe("public contracts", () => {
+  test("requires fail-closed public security configuration", () => {
+    expect(
+      publicRuntimeConfigurationSchema.parse({
+        turnstile: { required: true, siteKey: "environment-site-key" },
+      }),
+    ).toEqual({
+      turnstile: { required: true, siteKey: "environment-site-key" },
+    });
+    expect(() =>
+      publicRuntimeConfigurationSchema.parse({
+        turnstile: { required: true, siteKey: null },
+      }),
+    ).toThrow();
+  });
+
   test("accepts catalog, cart, checkout, and admin order DTOs without persistence fields", () => {
     expect(productSchema.parse(product).slug).toBe("travel-bottle");
     expect(

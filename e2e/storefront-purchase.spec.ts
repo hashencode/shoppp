@@ -15,7 +15,9 @@ test("AE1-AE3: a guest buys the representative last unit through Stripe hosted c
   await expect(page).toHaveURL(/\/cart\/?$/);
   await page.getByRole("link", { name: "Check delivery options" }).click();
   await fillShippingAddress(page);
-  await expect(page.getByRole("button", { name: "Continue to secure payment" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Continue to secure payment" })).toBeEnabled({
+    timeout: 60_000,
+  });
   await page.getByRole("button", { name: "Continue to secure payment" }).click();
 
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });

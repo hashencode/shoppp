@@ -88,12 +88,40 @@ export const launchReadinessIssueSchema = z
       "shipping_method_unavailable",
       "oversell_policy_mismatch",
       "reservation_ttl_mismatch",
+      "turnstile_site_key_missing",
       "turnstile_secret_missing",
       "backup_export_missing",
     ]),
     message: z.string().min(1),
   })
   .strict();
+
+export const publicRuntimeConfigurationSchema = z
+  .object({
+    turnstile: z
+      .object({
+        required: z.boolean(),
+        siteKey: z.string().trim().min(1).nullable(),
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.turnstile.required && !value.turnstile.siteKey) {
+      context.addIssue({
+        code: "custom",
+        message: "A Turnstile site key is required when the challenge is enabled.",
+        path: ["turnstile", "siteKey"],
+      });
+    }
+    if (!value.turnstile.required && value.turnstile.siteKey) {
+      context.addIssue({
+        code: "custom",
+        message: "A disabled Turnstile challenge must not publish a site key.",
+        path: ["turnstile", "siteKey"],
+      });
+    }
+  });
 
 export const launchConfigurationStatusSchema = z
   .object({
@@ -153,6 +181,7 @@ export type AuditQuery = z.infer<typeof auditQuerySchema>;
 export type LaunchConfiguration = z.infer<typeof launchConfigurationSchema>;
 export type LaunchConfigurationStatus = z.infer<typeof launchConfigurationStatusSchema>;
 export type OperationalHealth = z.infer<typeof operationalHealthSchema>;
+export type PublicRuntimeConfiguration = z.infer<typeof publicRuntimeConfigurationSchema>;
 export type UpdateLaunchConfigurationRequest = z.infer<
   typeof updateLaunchConfigurationRequestSchema
 >;

@@ -22,15 +22,36 @@ const selectedMethod = ref<string>();
 const termsAccepted = ref(false);
 const turnstileToken = ref("");
 const turnstileRenderKey = ref(0);
-const config = useRuntimeConfig();
-const turnstileRequired = computed(() => Boolean(config.public.turnstileSiteKey));
+const turnstileRequired = ref(true);
+const turnstileSiteKey = ref("");
+const securityConfigurationLoading = ref(true);
+const securityConfigurationError = ref("");
+const commerceApi = useCommerceApi();
 
 useSeoMeta({ title: "Checkout | Shoppp", robots: "noindex, nofollow" });
 useHead({ meta: [{ name: "referrer", content: "no-referrer" }] });
 onMounted(async () => {
-  const current = await ensure().catch(() => null);
-  if (current?.shippingAddress) Object.assign(address, current.shippingAddress);
-  selectedMethod.value = current?.selectedShippingMethodId ?? undefined;
+  const [currentResult, configurationResult] = await Promise.allSettled([
+    ensure(),
+    commerceApi.getPublicRuntimeConfiguration(),
+  ]);
+  if (currentResult.status === "fulfilled") {
+    const current = currentResult.value;
+    if (current?.shippingAddress) Object.assign(address, current.shippingAddress);
+    selectedMethod.value = current?.selectedShippingMethodId ?? undefined;
+  }
+  if (configurationResult.status === "fulfilled") {
+    turnstileRequired.value = configurationResult.value.data.turnstile.required;
+    turnstileSiteKey.value = configurationResult.value.data.turnstile.siteKey ?? "";
+    if (turnstileRequired.value && !turnstileSiteKey.value) {
+      securityConfigurationError.value =
+        "Checkout security is not configured. Please try again later.";
+    }
+  } else {
+    securityConfigurationError.value =
+      "Checkout security could not be verified. Refresh the page before continuing.";
+  }
+  securityConfigurationLoading.value = false;
 });
 
 const refreshQuote = async () => {
@@ -102,13 +123,18 @@ const continueToPayment = async () => {
         v-if="turnstileRequired"
         :key="turnstileRenderKey"
         v-model="turnstileToken"
-        :sitekey="config.public.turnstileSiteKey"
+        :sitekey="turnstileSiteKey"
       />
+      <p v-if="securityConfigurationError" class="form-error" role="alert">
+        {{ securityConfigurationError }}
+      </p>
       <button
         class="buy-button"
         type="submit"
         :disabled="
           busy ||
+          securityConfigurationLoading ||
+          Boolean(securityConfigurationError) ||
           !cart?.canCheckout ||
           !selectedMethod ||
           !termsAccepted ||

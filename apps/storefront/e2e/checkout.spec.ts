@@ -65,6 +65,13 @@ test("checkout persists the opaque access token and displays only provider-verif
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^\/api/, "");
+    if (path === "/platform/config") {
+      await route.fulfill({
+        contentType: "application/json",
+        json: { data: { turnstile: { required: false, siteKey: null } } },
+      });
+      return;
+    }
     if (path === "/cart") {
       await route.fulfill({ contentType: "application/json", json: { data: cart } });
       return;

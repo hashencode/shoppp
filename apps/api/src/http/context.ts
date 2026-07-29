@@ -34,6 +34,7 @@ export interface ApiBindings {
   STRIPE_WEBHOOK_SECRET?: string;
   TURNSTILE_HOSTNAMES?: string;
   TURNSTILE_REQUIRED?: string;
+  TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET?: string;
   EMAIL_FROM: string;
   EMAIL_PROVIDER_API_KEY?: string;

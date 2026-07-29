@@ -15,6 +15,7 @@ function snapshots() {
       apiVariables: {
         ENVIRONMENT: "staging",
         TURNSTILE_REQUIRED: "true",
+        TURNSTILE_SITE_KEY: "staging-site-key",
         STOREFRONT_ORIGIN: "https://shop.staging.example.com",
         PAYMENT_SUCCESS_URL: "https://shop.staging.example.com/checkout/complete",
         PAYMENT_CANCEL_URL: "https://shop.staging.example.com/checkout",
@@ -36,6 +37,7 @@ function snapshots() {
       apiVariables: {
         ENVIRONMENT: "production",
         TURNSTILE_REQUIRED: "true",
+        TURNSTILE_SITE_KEY: "production-site-key",
         STOREFRONT_ORIGIN: "https://shop.example.com",
         PAYMENT_SUCCESS_URL: "https://shop.example.com/checkout/complete",
         PAYMENT_CANCEL_URL: "https://shop.example.com/checkout",
@@ -67,6 +69,14 @@ describe("environment isolation", () => {
     fixture[1]!.endpointValues.push("https://shop.example.invalid");
     expect(() => verifySnapshots(fixture, { strictProduction: true })).toThrow(
       /placeholder resources/,
+    );
+  });
+
+  test("fails closed when Turnstile environments share a site key", () => {
+    const fixture = snapshots();
+    fixture[1]!.endpointValues.push("staging-site-key");
+    expect(() => verifySnapshots(fixture)).toThrow(
+      /share deployment resources|references a staging resource/,
     );
   });
 });

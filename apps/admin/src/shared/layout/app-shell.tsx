@@ -205,7 +205,10 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
 
     return routes.find((route) => route.path === location.pathname)?.title ?? selectedRoute?.title
   }, [location.pathname, routes, selectedRoute?.title])
-  const breadcrumbItems = routes.find((route) => route.path === location.pathname)?.breadcrumb ?? []
+  const breadcrumbItems = useMemo(
+    () => routes.find((route) => route.path === location.pathname)?.breadcrumb ?? [],
+    [location.pathname, routes]
+  )
   const shouldShowBreadcrumb = breadcrumbItems.length > 0
   const routeBreadcrumbItems = useMemo<RouteBreadcrumbItem[]>(
     () =>

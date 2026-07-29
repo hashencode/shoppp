@@ -45,6 +45,7 @@ const ENDPOINT_VARIABLES = new Set([
   "STOREFRONT_ORIGIN",
   "PAYMENT_CANCEL_URL",
   "PAYMENT_SUCCESS_URL",
+  "TURNSTILE_SITE_KEY",
   "TURNSTILE_HOSTNAMES",
   "EMAIL_FROM",
 ]);
@@ -150,6 +151,7 @@ export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]>
 function looksPlaceholder(value: string): boolean {
   return (
     value.includes(".invalid") ||
+    value.includes("replace-with-") ||
     /^0{8,}/.test(value.replaceAll("-", "")) ||
     /(?:development|staging|production)-audience$/.test(value)
   );
