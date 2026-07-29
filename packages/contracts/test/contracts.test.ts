@@ -4,6 +4,7 @@ import { adminOrderSchema } from "../src/admin";
 import { cartSchema } from "../src/cart";
 import { productSchema } from "../src/catalog";
 import { checkoutRequestSchema } from "../src/checkout";
+import { inventoryAdjustmentRequestSchema, inventoryReservationSchema } from "../src/inventory";
 
 const product = {
   description: "A durable travel bottle.",
@@ -116,6 +117,36 @@ describe("public contracts", () => {
         },
         shippingMethodId: "ship_01J00000000000000000000000",
       }),
+    ).toThrow();
+  });
+
+  test("validates reservation lifecycle responses and reasoned inventory adjustments", () => {
+    expect(
+      inventoryReservationSchema.parse({
+        expiresAt: "2026-07-30T00:30:00.000Z",
+        id: "irg_01J00000000000000000000000",
+        lines: [
+          {
+            id: "ir_01J00000000000000000000000",
+            quantity: 1,
+            variantId: "var_01J00000000000000000000000",
+            warehouseId: "wh_01J00000000000000000000000",
+          },
+        ],
+        status: "active",
+      }).status,
+    ).toBe("active");
+    expect(
+      inventoryAdjustmentRequestSchema.parse({
+        quantityDelta: -1,
+        reason: "Damaged stock removal",
+      }).quantityDelta,
+    ).toBe(-1);
+    expect(() =>
+      inventoryAdjustmentRequestSchema.parse({ quantityDelta: 0, reason: "No change" }),
+    ).toThrow();
+    expect(() =>
+      inventoryAdjustmentRequestSchema.parse({ quantityDelta: 1, reason: "" }),
     ).toThrow();
   });
 });

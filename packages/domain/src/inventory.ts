@@ -1,3 +1,5 @@
+import type { ReservationStatus } from "./order-state";
+
 export interface InventoryPosition {
   readonly onHand: number;
   readonly oversellLimit: number;
@@ -8,6 +10,47 @@ function assertQuantity(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new RangeError(`${label} must be a safe non-negative integer.`);
   }
+}
+
+const terminalReservationStatuses: readonly ReservationStatus[] = [
+  "confirmed",
+  "expired",
+  "released",
+];
+
+export function assertInventoryAdjustment(
+  quantityDelta: number,
+  position: InventoryPosition,
+): InventoryPosition {
+  if (!Number.isSafeInteger(quantityDelta) || quantityDelta === 0) {
+    throw new RangeError("Inventory adjustment must be a non-zero safe integer.");
+  }
+  availableQuantity(position);
+  const onHand = position.onHand + quantityDelta;
+  if (!Number.isSafeInteger(onHand) || onHand < 0) {
+    throw new RangeError("Inventory adjustment cannot make on-hand quantity negative.");
+  }
+  const next = { ...position, onHand };
+  if (position.reserved > onHand + position.oversellLimit) {
+    throw new RangeError("Inventory adjustment cannot invalidate active reservations.");
+  }
+  return next;
+}
+
+export function isReservationExpired(expiresAt: string, now: string): boolean {
+  const expiry = Date.parse(expiresAt);
+  const boundary = Date.parse(now);
+  if (!Number.isFinite(expiry) || !Number.isFinite(boundary)) {
+    throw new RangeError("Reservation timestamps must be valid ISO date-times.");
+  }
+  return expiry <= boundary;
+}
+
+export function canTransitionReservation(
+  current: ReservationStatus,
+  next: ReservationStatus,
+): boolean {
+  return current === next || (current === "active" && terminalReservationStatuses.includes(next));
 }
 
 export function availableQuantity(position: InventoryPosition): number {

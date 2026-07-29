@@ -2,6 +2,7 @@ import {
   BarChartOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  DatabaseOutlined,
   ExclamationCircleOutlined,
   FormOutlined,
   ProfileOutlined,
@@ -56,6 +57,22 @@ export const templateRoutes: TemplateRoute[] = [
       lazyPage(() =>
         import('../pages/catalog/catalog-form-page').then((m) => ({
           default: m.CatalogFormPage,
+        }))
+      ),
+  },
+  {
+    key: 'inventory',
+    path: '/inventory',
+    title: 'Inventory',
+    icon: createElement(DatabaseOutlined),
+    permission: 'inventory.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Inventory'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/inventory/inventory-page').then((m) => ({
+          default: m.InventoryPage,
         }))
       ),
   },

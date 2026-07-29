@@ -16,6 +16,7 @@ export interface ApiBindings {
   MEDIA_PUBLIC_ORIGIN: string;
   STOREFRONT_ORIGIN: string;
   TAX_MODE: "zero";
+  RESERVATION_TTL_MINUTES?: string;
 }
 
 export interface ApiVariables {

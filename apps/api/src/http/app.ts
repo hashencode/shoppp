@@ -6,6 +6,8 @@ import {
   acknowledgeCartAdjustmentsSchema,
   addCartLineRequestSchema,
   createCartRequestSchema,
+  createInventoryReservationRequestSchema,
+  inventoryAdjustmentRequestSchema,
   shippingQuoteRequestSchema,
   updateCartLineRequestSchema,
 } from "@shoppp/contracts";
@@ -25,6 +27,8 @@ import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { recordAuditEvent } from "../iam/audit";
 import { requirePermission } from "../iam/permissions";
+import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
+import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
 import {
   adminAuthentication,
@@ -192,6 +196,18 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.post("/cart/reservations", idempotency("inventory.reservations.create"), async (context) => {
+    const cart = await requireCart(context);
+    await parseJson(context, createInventoryReservationRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    return context.json(
+      {
+        data: await createCartReservation(context, cart),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    );
+  });
   app.get("/build/catalog/releases/:id", async (context) => {
     const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
     if (!expectedToken || expectedToken.length < 32) {
@@ -298,6 +314,33 @@ export function createApp(options: CreateAppOptions = {}) {
         },
         202,
       );
+    },
+  );
+  app.get("/admin/inventory", async (context) => {
+    await requirePermission(context, "inventory.read", { type: "inventory_item" });
+    return context.json(await listInventory(context));
+  });
+  app.get("/admin/inventory/:variantId/:warehouseId", async (context) => {
+    const variantId = context.req.param("variantId");
+    const warehouseId = context.req.param("warehouseId");
+    await requirePermission(context, "inventory.read", {
+      id: variantId,
+      type: "inventory_item",
+    });
+    return context.json(await getInventoryHistory(context, variantId, warehouseId));
+  });
+  app.post(
+    "/admin/inventory/:variantId/:warehouseId/adjustments",
+    idempotency("inventory.adjust"),
+    async (context) => {
+      const variantId = context.req.param("variantId");
+      const warehouseId = context.req.param("warehouseId");
+      await requirePermission(context, "inventory.adjust", {
+        id: variantId,
+        type: "inventory_item",
+      });
+      const input = await parseJson(context, inventoryAdjustmentRequestSchema);
+      return context.json(await adjustInventory(context, variantId, warehouseId, input), 201);
     },
   );
   app.get("/admin/orders", async (context) => {

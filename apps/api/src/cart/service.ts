@@ -17,7 +17,7 @@ import { configuredTaxPort } from "../pricing/tax";
 
 type CartContext = Context<ApiEnvironment>;
 
-interface CartRow {
+export interface CartRow {
   currency: string;
   expires_at: string;
   id: string;

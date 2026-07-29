@@ -147,6 +147,7 @@ export const inventoryReservations = sqliteTable(
   "inventory_reservations",
   {
     id: text("id").primaryKey(),
+    groupId: text("group_id"),
     cartId: text("cart_id"),
     checkoutAttemptId: text("checkout_attempt_id"),
     variantId: text("variant_id").notNull(),
@@ -180,6 +181,47 @@ export const carts = sqliteTable(
     ...timestamps,
   },
   (table) => [index("carts_status_expiry_idx").on(table.status, table.expiresAt)],
+);
+
+export const inventoryReservationGroups = sqliteTable(
+  "inventory_reservation_groups",
+  {
+    id: text("id").primaryKey(),
+    cartId: text("cart_id").references(() => carts.id, { onDelete: "set null" }),
+    idempotencyKey: text("idempotency_key").unique(),
+    status: text("status", {
+      enum: ["active", "confirmed", "expired", "released"],
+    }).notNull(),
+    expiresAt: text("expires_at").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index("inventory_reservation_groups_expiry_idx").on(table.status, table.expiresAt, table.id),
+  ],
+);
+
+export const inventoryReservationEvents = sqliteTable(
+  "inventory_reservation_events",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => inventoryReservationGroups.id, { onDelete: "restrict" }),
+    reservationId: text("reservation_id")
+      .notNull()
+      .references(() => inventoryReservations.id, { onDelete: "restrict" }),
+    eventType: text("event_type", {
+      enum: ["created", "confirmed", "expired", "released"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("inventory_reservation_events_type_unique").on(
+      table.reservationId,
+      table.eventType,
+    ),
+    index("inventory_reservation_events_group_idx").on(table.groupId, table.createdAt, table.id),
+  ],
 );
 
 export const cartLines = sqliteTable(

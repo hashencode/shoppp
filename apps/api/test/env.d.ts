@@ -10,6 +10,7 @@ declare global {
       ENVIRONMENT: "development" | "staging" | "production";
       PUBLIC_ORIGIN: string;
       RESOURCE_NAMESPACE: string;
+      RESERVATION_TTL_MINUTES?: string;
       MEDIA: R2Bucket;
       TEST_MIGRATIONS: D1Migration[];
     }

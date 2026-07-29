@@ -11,6 +11,8 @@ export type PermissionKey =
   | 'catalog.read'
   | 'catalog.write'
   | 'catalog.publish'
+  | 'inventory.read'
+  | 'inventory.adjust'
 
 const rolePermissions: Record<Role, PermissionKey[]> = {
   admin: [
@@ -24,6 +26,8 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'catalog.read',
     'catalog.write',
     'catalog.publish',
+    'inventory.read',
+    'inventory.adjust',
   ],
   editor: [
     'dashboard.read',
@@ -36,6 +40,8 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'catalog.read',
     'catalog.write',
     'catalog.publish',
+    'inventory.read',
+    'inventory.adjust',
   ],
   viewer: [
     'dashboard.read',
@@ -45,6 +51,7 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'result.read',
     'exception.read',
     'catalog.read',
+    'inventory.read',
   ],
 }
 
