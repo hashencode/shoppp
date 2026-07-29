@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import type {
   CreateHostedSessionInput,
+  CreateRefundInput,
   PaymentProvider,
+  ProviderRefund,
   ProviderSession,
   VerifiedProviderEvent,
 } from "../../src/payments/port";
@@ -40,6 +42,7 @@ class FakePaymentProvider implements PaymentProvider {
       currency: input.snapshot.currency,
       expiresAt: input.expiresAt,
       id: `cs_test_${input.attemptId}`,
+      paymentId: `pi_test_${input.attemptId}`,
       paymentState: "pending",
       url: `https://checkout.stripe.test/${input.attemptId}`,
     };
@@ -49,6 +52,22 @@ class FakePaymentProvider implements PaymentProvider {
   readonly sessions = new Map<string, ProviderSession>();
   createError: PaymentProviderError | null = null;
   retrieveError: PaymentProviderError | null = null;
+
+  async createRefund(_input: CreateRefundInput): Promise<ProviderRefund> {
+    throw new PaymentProviderError(
+      "refund_not_supported",
+      "Refund not supported in this test.",
+      false,
+    );
+  }
+
+  async retrieveRefund(_id: string): Promise<ProviderRefund> {
+    throw new PaymentProviderError(
+      "refund_not_supported",
+      "Refund not supported in this test.",
+      false,
+    );
+  }
 
   async retrieveSession(id: string): Promise<ProviderSession> {
     if (this.retrieveError) throw this.retrieveError;

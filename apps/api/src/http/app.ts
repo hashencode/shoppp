@@ -5,10 +5,13 @@ import * as z from "zod";
 import {
   acknowledgeCartAdjustmentsSchema,
   addCartLineRequestSchema,
+  cancelOrderRequestSchema,
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
   checkoutRequestSchema,
+  fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
+  refundRequestSchema,
   shippingQuoteRequestSchema,
   updateCartLineRequestSchema,
 } from "@shoppp/contracts";
@@ -26,6 +29,7 @@ import {
 import { createProduct, getProduct, listProducts, updateProduct } from "../catalog/products";
 import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
+import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { recordAuditEvent } from "../iam/audit";
 import { requirePermission } from "../iam/permissions";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
@@ -39,10 +43,13 @@ import {
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
 import { getGuestOrderAccess } from "../orders/guest-access";
+import { cancelOrder } from "../orders/cancel";
+import { getOrderDetail, listOrders } from "../orders/queries";
 import { PaymentProviderError, type PaymentProvider } from "../payments/port";
 import { createHostedCheckout } from "../payments/session";
 import { createStripePaymentProvider } from "../payments/stripe-adapter";
 import { processPaymentWebhook } from "../payments/webhook";
+import { refundOrder } from "../refunds/service";
 import {
   createPreviewToken,
   defaultBuildTrigger,
@@ -62,12 +69,6 @@ export interface CreateAppOptions {
   readonly paymentProvider?: PaymentProvider;
 }
 
-const refundSchema = z
-  .object({
-    amount: z.int().positive(),
-    reason: z.string().min(3).max(500),
-  })
-  .strict();
 const idempotentTestSchema = z.object({ value: z.string().min(1) }).strict();
 
 export function createApp(options: CreateAppOptions = {}) {
@@ -401,16 +402,89 @@ export function createApp(options: CreateAppOptions = {}) {
   );
   app.get("/admin/orders", async (context) => {
     await requirePermission(context, "orders.read", { type: "order" });
-    return context.json({ data: [], meta: { requestId: context.get("requestId") } });
+    return context.json(await listOrders(context));
   });
-  app.post("/admin/orders/:reference/refunds", async (context) => {
-    await requirePermission(context, "orders.refund", {
-      id: context.req.param("reference"),
-      type: "order",
+  app.get("/admin/orders/:reference", async (context) => {
+    const reference = context.req.param("reference");
+    await requirePermission(context, "orders.read", { id: reference, type: "order" });
+    return context.json({
+      data: await getOrderDetail(context, reference),
+      meta: { requestId: context.get("requestId") },
     });
-    await parseJson(context, refundSchema);
-    throw new ApiError(404, "order_not_found", "The order was not found.");
   });
+  app.post(
+    "/admin/orders/:reference/fulfillment",
+    async (context, next) => {
+      const reference = context.req.param("reference");
+      await requirePermission(context, "orders.fulfill", { id: reference, type: "order" });
+      await next();
+    },
+    idempotency("orders.fulfillment"),
+    async (context) => {
+      const reference = context.req.param("reference");
+      const input = await parseJson(context, fulfillmentTransitionRequestSchema);
+      return context.json({
+        data: await transitionOrderFulfillment(context, reference, input),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/orders/:reference/refunds",
+    async (context, next) => {
+      const reference = context.req.param("reference");
+      await requirePermission(context, "orders.refund", { id: reference, type: "order" });
+      await next();
+    },
+    idempotency("orders.refund"),
+    async (context) => {
+      const reference = context.req.param("reference");
+      const input = await parseJson(context, refundRequestSchema);
+      try {
+        return context.json({
+          data: await refundOrder(
+            context,
+            reference,
+            input,
+            options.paymentProvider ?? createStripePaymentProvider(context.env),
+          ),
+          meta: { requestId: context.get("requestId") },
+        });
+      } catch (error) {
+        if (!(error instanceof PaymentProviderError)) throw error;
+        const apiError = new ApiError(error.retryable ? 503 : 422, error.code, error.message);
+        return context.json(errorEnvelope(apiError, context.get("requestId")), apiError.status);
+      }
+    },
+  );
+  app.post(
+    "/admin/orders/:reference/cancel",
+    async (context, next) => {
+      const reference = context.req.param("reference");
+      await requirePermission(context, "orders.cancel", { id: reference, type: "order" });
+      await next();
+    },
+    idempotency("orders.cancel"),
+    async (context) => {
+      const reference = context.req.param("reference");
+      const input = await parseJson(context, cancelOrderRequestSchema);
+      try {
+        return context.json({
+          data: await cancelOrder(
+            context,
+            reference,
+            input,
+            options.paymentProvider ?? createStripePaymentProvider(context.env),
+          ),
+          meta: { requestId: context.get("requestId") },
+        });
+      } catch (error) {
+        if (!(error instanceof PaymentProviderError)) throw error;
+        const apiError = new ApiError(error.retryable ? 503 : 422, error.code, error.message);
+        return context.json(errorEnvelope(apiError, context.get("requestId")), apiError.status);
+      }
+    },
+  );
   app.post("/admin/test/idempotent", idempotency("test.idempotent"), async (context) => {
     await requirePermission(context, "operations.replay", { type: "test" });
     const input = await parseJson(context, idempotentTestSchema);

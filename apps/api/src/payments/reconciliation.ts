@@ -143,6 +143,16 @@ export async function reconcilePaymentEvent(
   const at = new Date().toISOString();
   if (authoritative.paymentState === "approved") {
     try {
+      if (authoritative.paymentId) {
+        await db
+          .prepare(
+            `UPDATE checkout_attempts
+                SET provider_payment_id = ?, updated_at = ?
+              WHERE id = ? AND provider_payment_id IS NULL`,
+          )
+          .bind(authoritative.paymentId, at, attempt.id)
+          .run();
+      }
       const order = await createPaidOrderFromAttempt(db, attempt.id, at);
       await markProviderEvent(db, {
         checkoutAttemptId: attempt.id,

@@ -293,6 +293,7 @@ export const checkoutAttempts = sqliteTable("checkout_attempts", {
   reservationGroupId: text("reservation_group_id"),
   provider: text("provider").notNull(),
   providerSessionId: text("provider_session_id").unique(),
+  providerPaymentId: text("provider_payment_id"),
   providerSessionUrl: text("provider_session_url"),
   providerStatus: text("provider_status"),
   lastProviderEventCreatedAt: text("last_provider_event_created_at"),
@@ -343,6 +344,7 @@ export const orders = sqliteTable("orders", {
     .notNull()
     .unique()
     .references(() => checkoutAttempts.id, { onDelete: "restrict" }),
+  providerPaymentId: text("provider_payment_id"),
   email: text("email").notNull(),
   currency: text("currency").notNull(),
   subtotalAmount: integer("subtotal_amount").notNull(),
@@ -397,6 +399,86 @@ export const paymentEvents = sqliteTable(
   (table) => [
     uniqueIndex("payment_events_provider_event_unique").on(table.provider, table.providerEventId),
     index("payment_events_order_idx").on(table.orderId, table.receivedAt),
+  ],
+);
+
+export const refunds = sqliteTable(
+  "refunds",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "restrict" }),
+    providerRefundId: text("provider_refund_id").unique(),
+    idempotencyKey: text("idempotency_key").unique(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    reason: text("reason").notNull(),
+    status: text("status", { enum: ["pending", "succeeded", "failed", "canceled"] }).notNull(),
+    providerStatus: text("provider_status"),
+    requestedBy: text("requested_by"),
+    completedAt: text("completed_at"),
+    ...timestamps,
+  },
+  (table) => [index("refunds_order_created_idx").on(table.orderId, table.createdAt, table.id)],
+);
+
+export const fulfillmentEvents = sqliteTable(
+  "fulfillment_events",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "restrict" }),
+    fromStatus: text("from_status").notNull(),
+    toStatus: text("to_status").notNull(),
+    trackingNumber: text("tracking_number"),
+    carrier: text("carrier"),
+    actorId: text("actor_id"),
+    reason: text("reason"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("fulfillment_events_transition_unique").on(table.orderId, table.toStatus),
+    index("fulfillment_events_order_idx").on(table.orderId, table.createdAt),
+  ],
+);
+
+export const orderEvents = sqliteTable(
+  "order_events",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "restrict" }),
+    fromStatus: text("from_status").notNull(),
+    toStatus: text("to_status").notNull(),
+    actorId: text("actor_id"),
+    reason: text("reason").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("order_events_transition_unique").on(table.orderId, table.toStatus),
+    index("order_events_order_idx").on(table.orderId, table.createdAt, table.id),
+  ],
+);
+
+export const refundEvents = sqliteTable(
+  "refund_events",
+  {
+    id: text("id").primaryKey(),
+    refundId: text("refund_id")
+      .notNull()
+      .references(() => refunds.id, { onDelete: "restrict" }),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status").notNull(),
+    providerRefundId: text("provider_refund_id"),
+    reason: text("reason"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("refund_events_transition_unique").on(table.refundId, table.toStatus),
+    index("refund_events_refund_idx").on(table.refundId, table.createdAt, table.id),
   ],
 );
 

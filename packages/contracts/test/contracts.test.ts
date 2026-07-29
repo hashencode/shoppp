@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { adminOrderSchema } from "../src/admin";
+import {
+  cancelOrderRequestSchema,
+  fulfillmentTransitionRequestSchema,
+  refundRequestSchema,
+  adminOrderSchema,
+} from "../src/admin";
 import { cartSchema } from "../src/cart";
 import { productSchema } from "../src/catalog";
 import { checkoutRequestSchema } from "../src/checkout";
@@ -150,5 +155,43 @@ describe("public contracts", () => {
     expect(() =>
       inventoryAdjustmentRequestSchema.parse({ quantityDelta: 1, reason: "" }),
     ).toThrow();
+  });
+
+  test("requires explicit confirmation and shipment facts for sensitive order operations", () => {
+    expect(
+      refundRequestSchema.parse({
+        amount: 500,
+        confirm: true,
+        reason: "Customer service adjustment",
+      }).amount,
+    ).toBe(500);
+    expect(() =>
+      refundRequestSchema.parse({
+        amount: 500,
+        reason: "Customer service adjustment",
+      }),
+    ).toThrow();
+    expect(
+      cancelOrderRequestSchema.parse({
+        confirm: true,
+        reason: "Customer canceled before fulfillment",
+      }).confirm,
+    ).toBe(true);
+    expect(() =>
+      fulfillmentTransitionRequestSchema.parse({
+        confirm: true,
+        reason: "Handed to carrier",
+        toStatus: "shipped",
+      }),
+    ).toThrow();
+    expect(
+      fulfillmentTransitionRequestSchema.parse({
+        carrier: "DHL",
+        confirm: true,
+        reason: "Handed to carrier",
+        toStatus: "shipped",
+        trackingNumber: "DHL-TRACK-001",
+      }).trackingNumber,
+    ).toBe("DHL-TRACK-001");
   });
 });

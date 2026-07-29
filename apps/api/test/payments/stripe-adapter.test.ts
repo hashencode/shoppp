@@ -33,9 +33,21 @@ function stripeSession(paymentStatus: "paid" | "unpaid" = "unpaid") {
     expires_at: NOW_SECONDS + 1800,
     id: "cs_test_checkout_001",
     metadata: { checkout_attempt_id: "chk_01J00000000000000000000000" },
+    payment_intent: "pi_test_checkout_001",
     payment_status: paymentStatus,
     status: paymentStatus === "paid" ? "complete" : "open",
     url: "https://checkout.stripe.test/c/pay/cs_test_checkout_001",
+  };
+}
+
+function stripeRefund() {
+  return {
+    amount: 500,
+    created: NOW_SECONDS,
+    currency: "usd",
+    id: "re_test_refund_001",
+    payment_intent: "pi_test_checkout_001",
+    status: "succeeded",
   };
 }
 
@@ -147,5 +159,53 @@ describe("Stripe hosted Checkout adapter", () => {
       message: "The payment provider could not be reached.",
       retryable: true,
     });
+  });
+
+  test("creates and retrieves an idempotent provider refund with exact facts", async () => {
+    const requests: string[] = [];
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push(String(input));
+      if (init?.method === "POST") {
+        const body = init.body as URLSearchParams;
+        expect(body.get("payment_intent")).toBe("pi_test_checkout_001");
+        expect(body.get("amount")).toBe("500");
+        expect(body.get("metadata[order_id]")).toBe("ord_test_001");
+        expect(body.get("metadata[refund_id]")).toBe("ref_test_001");
+        expect(new Headers(init.headers).get("Idempotency-Key")).toBe("refund-idempotency-0001");
+      }
+      return Response.json(stripeRefund());
+    });
+    const provider = new StripePaymentProvider({
+      fetcher: fetcher as typeof fetch,
+      now: () => NOW_SECONDS * 1_000,
+      secretKey: "sk_test_secret",
+      webhookSecret: WEBHOOK_SECRET,
+    });
+
+    await expect(
+      provider.createRefund({
+        amount: 500,
+        currency: "USD",
+        idempotencyKey: "refund-idempotency-0001",
+        orderId: "ord_test_001",
+        paymentId: "pi_test_checkout_001",
+        refundId: "ref_test_001",
+      }),
+    ).resolves.toEqual({
+      amount: 500,
+      createdAt: new Date(NOW_SECONDS * 1_000).toISOString(),
+      currency: "USD",
+      id: "re_test_refund_001",
+      paymentId: "pi_test_checkout_001",
+      status: "succeeded",
+    });
+    await expect(provider.retrieveRefund("re_test_refund_001")).resolves.toMatchObject({
+      id: "re_test_refund_001",
+      status: "succeeded",
+    });
+    expect(requests).toEqual([
+      "https://api.stripe.com/v1/refunds",
+      "https://api.stripe.com/v1/refunds/re_test_refund_001",
+    ]);
   });
 });

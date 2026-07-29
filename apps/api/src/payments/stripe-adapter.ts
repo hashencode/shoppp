@@ -3,7 +3,9 @@ import * as z from "zod";
 import {
   PaymentProviderError,
   type CreateHostedSessionInput,
+  type CreateRefundInput,
   type PaymentProvider,
+  type ProviderRefund,
   type ProviderSession,
   type VerifiedProviderEvent,
 } from "./port";
@@ -17,6 +19,7 @@ const stripeSessionSchema = z
     expires_at: z.number().int().positive(),
     id: z.string().min(1),
     metadata: z.record(z.string(), z.string()).optional(),
+    payment_intent: z.string().nullable().optional(),
     payment_status: z.enum(["paid", "unpaid", "no_payment_required"]),
     status: z.enum(["open", "complete", "expired"]).nullable(),
     url: z.string().url().nullable().optional(),
@@ -28,6 +31,16 @@ const stripeEventSchema = z
     data: z.object({ object: z.unknown() }).passthrough(),
     id: z.string().min(1),
     type: z.string().min(1),
+  })
+  .passthrough();
+const stripeRefundSchema = z
+  .object({
+    amount: z.number().int().positive(),
+    created: z.number().int().nonnegative(),
+    currency: z.string().min(3),
+    id: z.string().min(1),
+    payment_intent: z.string().min(1),
+    status: z.enum(["pending", "succeeded", "failed", "canceled"]),
   })
   .passthrough();
 
@@ -66,6 +79,7 @@ function normalizeSession(session: z.infer<typeof stripeSessionSchema>): Provide
     currency: session.currency.toUpperCase(),
     expiresAt: isoFromSeconds(session.expires_at),
     id: session.id,
+    ...(session.payment_intent ? { paymentId: session.payment_intent } : {}),
     paymentState: paymentState(session),
     ...(session.url ? { url: session.url } : {}),
   };
@@ -230,6 +244,63 @@ export class StripePaymentProvider implements PaymentProvider {
       );
     }
     return normalizeSession(parsed.data);
+  }
+
+  async createRefund(input: CreateRefundInput): Promise<ProviderRefund> {
+    const body = new URLSearchParams();
+    body.set("payment_intent", input.paymentId);
+    body.set("amount", String(input.amount));
+    body.set("metadata[order_id]", input.orderId);
+    body.set("metadata[refund_id]", input.refundId);
+    const parsed = stripeRefundSchema.safeParse(
+      await this.#request("/refunds", {
+        body,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Idempotency-Key": input.idempotencyKey,
+        },
+        method: "POST",
+      }),
+    );
+    if (!parsed.success) {
+      throw new PaymentProviderError(
+        "stripe_refund_response_invalid",
+        "Stripe returned an invalid refund.",
+        true,
+      );
+    }
+    return {
+      amount: parsed.data.amount,
+      createdAt: isoFromSeconds(parsed.data.created),
+      currency: parsed.data.currency.toUpperCase(),
+      id: parsed.data.id,
+      paymentId: parsed.data.payment_intent,
+      status: parsed.data.status,
+    };
+  }
+
+  async retrieveRefund(id: string): Promise<ProviderRefund> {
+    if (!/^re_[A-Za-z0-9_]+$/.test(id)) {
+      throw new PaymentProviderError("stripe_refund_invalid", "Stripe refund is invalid.", false);
+    }
+    const parsed = stripeRefundSchema.safeParse(
+      await this.#request(`/refunds/${encodeURIComponent(id)}`, { method: "GET" }),
+    );
+    if (!parsed.success) {
+      throw new PaymentProviderError(
+        "stripe_refund_response_invalid",
+        "Stripe returned an invalid refund.",
+        true,
+      );
+    }
+    return {
+      amount: parsed.data.amount,
+      createdAt: isoFromSeconds(parsed.data.created),
+      currency: parsed.data.currency.toUpperCase(),
+      id: parsed.data.id,
+      paymentId: parsed.data.payment_intent,
+      status: parsed.data.status,
+    };
   }
 
   async retrieveSession(id: string): Promise<ProviderSession> {

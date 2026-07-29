@@ -8,6 +8,7 @@ interface CheckoutAttemptRow {
   guest_access_expires_at: string | null;
   guest_access_token_hash: string | null;
   id: string;
+  provider_payment_id: string | null;
   reservation_group_id: string | null;
   shipping_address_json: string;
   shipping_amount: number;
@@ -50,7 +51,8 @@ export async function createPaidOrderFromAttempt(
     .prepare(
       `SELECT id, reservation_group_id, email, snapshot_json, guest_access_token_hash,
               guest_access_expires_at, currency, subtotal_amount, discount_amount,
-              shipping_amount, tax_amount, grand_total_amount, shipping_address_json
+              shipping_amount, tax_amount, grand_total_amount, shipping_address_json,
+              provider_payment_id
          FROM checkout_attempts WHERE id = ?`,
     )
     .bind(checkoutAttemptId)
@@ -74,10 +76,11 @@ export async function createPaidOrderFromAttempt(
       .prepare(
         `INSERT OR IGNORE INTO orders
            (id, public_reference, guest_access_token_hash, guest_access_expires_at,
-            checkout_attempt_id, email, currency, subtotal_amount, discount_amount,
+            checkout_attempt_id, provider_payment_id, email, currency, subtotal_amount,
+            discount_amount,
             shipping_amount, tax_amount, grand_total_amount, payment_status, order_status,
             fulfillment_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'confirmed',
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'confirmed',
                  'unfulfilled', ?, ?)`,
       )
       .bind(
@@ -86,6 +89,7 @@ export async function createPaidOrderFromAttempt(
         attempt.guest_access_token_hash,
         attempt.guest_access_expires_at,
         attempt.id,
+        attempt.provider_payment_id,
         attempt.email,
         attempt.currency,
         attempt.subtotal_amount,

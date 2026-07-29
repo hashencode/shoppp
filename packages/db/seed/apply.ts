@@ -109,10 +109,11 @@ export async function seedLaunchFixture(db: D1Database): Promise<void> {
       .prepare(
         `INSERT OR IGNORE INTO checkout_attempts
            (id, cart_id, reservation_group_id, provider, provider_session_id,
+            provider_payment_id,
             idempotency_key, currency, subtotal_amount, discount_amount, shipping_amount,
             tax_amount, grand_total_amount, shipping_address_json, email, snapshot_json,
             guest_access_token_hash, guest_access_expires_at, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         "checkout_fixture_0001",
@@ -120,6 +121,7 @@ export async function seedLaunchFixture(db: D1Database): Promise<void> {
         "irg_fixture_0001",
         "stripe",
         "cs_test_fixture",
+        "pi_test_fixture",
         "checkout-fixture-key",
         "USD",
         2_500,
@@ -138,7 +140,7 @@ export async function seedLaunchFixture(db: D1Database): Promise<void> {
       ),
     db
       .prepare(
-        "INSERT OR IGNORE INTO orders (id, public_reference, guest_access_token_hash, guest_access_expires_at, checkout_attempt_id, email, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, grand_total_amount, payment_status, order_status, fulfillment_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO orders (id, public_reference, guest_access_token_hash, guest_access_expires_at, checkout_attempt_id, provider_payment_id, email, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, grand_total_amount, payment_status, order_status, fulfillment_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         "ord_fixture_0001",
@@ -146,6 +148,7 @@ export async function seedLaunchFixture(db: D1Database): Promise<void> {
         fixtureOrderAccessHash,
         "2026-08-29T00:00:00.000Z",
         "checkout_fixture_0001",
+        "pi_test_fixture",
         "shopper@example.test",
         "USD",
         2_500,
@@ -195,6 +198,24 @@ export async function seedLaunchFixture(db: D1Database): Promise<void> {
         0,
         2_500,
         "USD",
+      ),
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO notification_jobs
+           (id, order_id, type, deduplication_key, payload_json, status,
+            attempt_count, next_attempt_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+      )
+      .bind(
+        "notify_fixture_order_receipt",
+        "ord_fixture_0001",
+        "order_receipt",
+        "order.receipt:ord_fixture_0001",
+        '{"orderId":"ord_fixture_0001"}',
+        "pending",
+        NOW,
+        NOW,
+        NOW,
       ),
   ]);
 }

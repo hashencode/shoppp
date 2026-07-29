@@ -43,6 +43,7 @@ export interface ProviderSession {
   readonly currency: string;
   readonly expiresAt: string;
   readonly id: string;
+  readonly paymentId?: string;
   readonly paymentState: ProviderPaymentState;
   readonly url?: string;
 }
@@ -68,9 +69,31 @@ export interface VerifiedProviderEvent {
     | "ignored";
 }
 
+export type ProviderRefundStatus = "pending" | "succeeded" | "failed" | "canceled";
+
+export interface ProviderRefund {
+  readonly amount: number;
+  readonly createdAt: string;
+  readonly currency: string;
+  readonly id: string;
+  readonly paymentId: string;
+  readonly status: ProviderRefundStatus;
+}
+
+export interface CreateRefundInput {
+  readonly amount: number;
+  readonly currency: string;
+  readonly idempotencyKey: string;
+  readonly orderId: string;
+  readonly paymentId: string;
+  readonly refundId: string;
+}
+
 export interface PaymentProvider {
   readonly name: "stripe";
   createHostedSession(input: CreateHostedSessionInput): Promise<ProviderSession>;
+  createRefund(input: CreateRefundInput): Promise<ProviderRefund>;
+  retrieveRefund(id: string): Promise<ProviderRefund>;
   retrieveSession(id: string): Promise<ProviderSession>;
   verifyWebhook(rawPayload: string, signature: string): Promise<VerifiedProviderEvent>;
 }

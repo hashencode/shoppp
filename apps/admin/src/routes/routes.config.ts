@@ -6,6 +6,7 @@ import {
   ExclamationCircleOutlined,
   FormOutlined,
   ProfileOutlined,
+  ShoppingCartOutlined,
   ShoppingOutlined,
   SmileOutlined,
   TableOutlined,
@@ -73,6 +74,53 @@ export const templateRoutes: TemplateRoute[] = [
       lazyPage(() =>
         import('../pages/inventory/inventory-page').then((m) => ({
           default: m.InventoryPage,
+        }))
+      ),
+  },
+  {
+    key: 'orders',
+    path: '/orders',
+    title: 'Orders',
+    icon: createElement(ShoppingCartOutlined),
+    permission: 'orders.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Orders'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/orders/order-list-page').then((m) => ({
+          default: m.OrderListPage,
+        }))
+      ),
+  },
+  {
+    key: 'order-detail',
+    path: '/orders/:reference',
+    title: 'Order',
+    icon: createElement(ShoppingCartOutlined),
+    permission: 'orders.read',
+    inMenu: false,
+    breadcrumb: ['Orders', 'Order'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/orders/order-detail').then((m) => ({
+          default: m.OrderDetailPage,
+        }))
+      ),
+  },
+  {
+    key: 'fulfillment',
+    path: '/fulfillment',
+    title: 'Fulfillment',
+    icon: createElement(ShoppingCartOutlined),
+    permission: 'orders.fulfill',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Fulfillment'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/fulfillment/fulfillment-page').then((m) => ({
+          default: m.FulfillmentPage,
         }))
       ),
   },
