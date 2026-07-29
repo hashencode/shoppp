@@ -1,0 +1,36 @@
+{
+  "name": "shoppp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.5",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun tools/run-workspace-script.ts build --if-present",
+    "check:boundaries": "bun tools/check-boundaries.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . && bun run check:boundaries",
+    "release:validate": "bun run lint && bun run typecheck && bun run test && bun run test:workers && bun run build && bun run verify:static && bun run test:e2e && bun run test:a11y && bun run test:perf",
+    "test": "bun test tools packages && bun tools/run-workspace-script.ts test --if-present",
+    "test:a11y": "bun tools/run-workspace-script.ts test:a11y --if-present",
+    "test:admin-browser": "bun tools/run-workspace-script.ts test:browser --if-present --workspace=@shoppp/admin",
+    "test:e2e": "bun tools/run-workspace-script.ts test:e2e --if-present",
+    "test:perf": "bun tools/run-workspace-script.ts test:perf --if-present",
+    "test:workers": "bun tools/run-workspace-script.ts test:workers --if-present",
+    "typecheck": "tsc --noEmit -p tsconfig.tools.json && bun tools/run-workspace-script.ts typecheck --if-present",
+    "verify:static": "bun tools/run-workspace-script.ts verify:static --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/bun": "1.3.5",
+    "eslint": "10.7.0",
+    "globals": "17.7.0",
+    "prettier": "3.9.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.64.0"
+  }
+}

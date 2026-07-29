@@ -1,0 +1,9 @@
+bun.lock
+coverage
+dist
+docs/plans
+node_modules
+.nuxt
+.output
+playwright-report
+test-results
