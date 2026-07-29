@@ -1,0 +1,17 @@
+{
+  "name": "@shoppp/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./inventory": "./src/inventory.ts",
+    "./money": "./src/money.ts",
+    "./order-state": "./src/order-state.ts",
+    "./pricing": "./src/pricing.ts"
+  },
+  "scripts": {
+    "test": "bun test test",
+    "typecheck": "tsc --noEmit"
+  }
+}
