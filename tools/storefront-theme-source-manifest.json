@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "themes": [
+    {
+      "allowlist": [],
+      "importedAt": null,
+      "importedFiles": [],
+      "ownershipApproval": null,
+      "sourceIdentity": null,
+      "sourceRevision": null,
+      "themeId": "decor"
+    },
+    {
+      "allowlist": [],
+      "importedAt": null,
+      "importedFiles": [],
+      "ownershipApproval": null,
+      "sourceIdentity": null,
+      "sourceRevision": null,
+      "themeId": "fashion"
+    }
+  ]
+}
