@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -62,7 +62,12 @@ export async function generateThemeFidelityReport(options: {
     for (const viewport of ["desktop", "mobile"] as const) {
       const expected = referenceMetadata.viewports.find(({ id }) => id === viewport);
       const actual = implementationMetadata.viewports.find(({ id }) => id === viewport);
-      if (!expected || !actual || expected.width !== actual.width) {
+      if (
+        !expected ||
+        !actual ||
+        expected.width !== actual.width ||
+        expected.height !== actual.height
+      ) {
         throw new Error(`${themeId} ${viewport} capture viewport dimensions do not match.`);
       }
       const referencePath = join(resolve(options.referenceRoot), themeId, `${viewport}.png`);
@@ -121,6 +126,8 @@ export async function generateThemeFidelityReport(options: {
         2,
       )}\n`,
     );
+  } else {
+    await rm(join(outputRoot, "approval.json"), { force: true });
   }
   return reportPath;
 }

@@ -18,7 +18,11 @@ function png(width: number, height: number): Uint8Array {
   return bytes;
 }
 
-async function captureRoot(themeId: "fashion" | "decor", width = 1440): Promise<string> {
+async function captureRoot(
+  themeId: "fashion" | "decor",
+  width = 1440,
+  desktopViewportHeight = 1000,
+): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "shoppp-fidelity-"));
   roots.push(root);
   await mkdir(join(root, themeId), { recursive: true });
@@ -32,7 +36,7 @@ async function captureRoot(themeId: "fashion" | "decor", width = 1440): Promise<
       state: "initial-home",
       themeId,
       viewports: [
-        { height: 1000, id: "desktop", width: 1440 },
+        { height: desktopViewportHeight, id: "desktop", width: 1440 },
         { height: 915, id: "mobile", width: 412 },
       ],
     }),
@@ -53,7 +57,15 @@ describe("theme fidelity report", () => {
       referenceRoot,
       themes: ["fashion"],
     });
+    await writeFile(join(outputRoot, "approval.json"), '{"commit":"stale"}\n');
     expect(await readFile(report, "utf8")).toContain("does not imply approval");
+    await generateThemeFidelityReport({
+      commit: "abcdef1234567",
+      implementationRoot,
+      outputRoot,
+      referenceRoot,
+      themes: ["fashion"],
+    });
     await expect(readFile(join(outputRoot, "approval.json"))).rejects.toThrow();
   });
 
@@ -66,6 +78,16 @@ describe("theme fidelity report", () => {
       generateThemeFidelityReport({
         commit: "abcdef1234567",
         implementationRoot,
+        outputRoot,
+        referenceRoot,
+        themes: ["fashion"],
+      }),
+    ).rejects.toThrow("dimensions");
+    const wrongHeightRoot = await captureRoot("fashion", 1440, 900);
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        implementationRoot: wrongHeightRoot,
         outputRoot,
         referenceRoot,
         themes: ["fashion"],
