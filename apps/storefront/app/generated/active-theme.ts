@@ -3,6 +3,8 @@
 
 import type { ExperienceSnapshot } from "@shoppp/contracts";
 import type { ThemeRegistry } from "../theme-engine/registry";
+import type { ThemeAssetMap } from "../theme-engine/assets";
+import type { ExperienceFixtureRegistry } from "../theme-engine/view-models";
 
 export const activeThemeId = "production-fallback";
 export const activeExperienceSnapshot: ExperienceSnapshot | null = null;
@@ -10,4 +12,6 @@ export const activeThemeRegistry = {
   blocks: {},
   sections: {},
 } as const satisfies ThemeRegistry;
+export const activeThemeAssets = {} as const satisfies ThemeAssetMap;
+export const activeThemeFixtures = {} as const satisfies ExperienceFixtureRegistry;
 export const activePreviewOrigin: string | null = null;

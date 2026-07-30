@@ -4,11 +4,23 @@ import type { PageTemplate } from "@shoppp/contracts";
 import {
   activeExperienceSnapshot,
   activePreviewOrigin,
+  activeThemeAssets,
+  activeThemeFixtures,
   activeThemeId,
   activeThemeRegistry,
 } from "./generated/active-theme";
+import {
+  createThemeAssetResolver,
+  mergeExperienceFixtureRegistries,
+} from "./theme-engine/assets";
 import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
+
+const selectedFixtures = mergeExperienceFixtureRegistries(
+  experienceFixtureRegistry,
+  activeThemeFixtures,
+);
+const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
 
 const route = useRoute();
 const pageType = computed<PageTemplate["pageType"]>(() => {
@@ -57,8 +69,9 @@ if (activeExperienceSnapshot && previewOrigin) {
     <ThemeRenderer
       v-if="previewTemplate"
       :bindings="activeExperienceSnapshot?.bindings ?? []"
-      :fixtures="experienceFixtureRegistry"
+      :fixtures="selectedFixtures"
       :registry="activeThemeRegistry"
+      :resolve-asset="resolveThemeAsset"
       :template="previewTemplate"
     />
     <main v-else-if="activeExperienceSnapshot">

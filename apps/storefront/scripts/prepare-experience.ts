@@ -102,6 +102,8 @@ function productionFallbackSource(): string {
 
 import type { ExperienceSnapshot } from "@shoppp/contracts";
 import type { ThemeRegistry } from "../theme-engine/registry";
+import type { ThemeAssetMap } from "../theme-engine/assets";
+import type { ExperienceFixtureRegistry } from "../theme-engine/view-models";
 
 export const activeThemeId = "production-fallback";
 export const activeExperienceSnapshot: ExperienceSnapshot | null = null;
@@ -109,6 +111,8 @@ export const activeThemeRegistry = {
   blocks: {},
   sections: {},
 } as const satisfies ThemeRegistry;
+export const activeThemeAssets = {} as const satisfies ThemeAssetMap;
+export const activeThemeFixtures = {} as const satisfies ExperienceFixtureRegistry;
 export const activePreviewOrigin: string | null = null;
 `;
 }
@@ -132,7 +136,11 @@ export function renderActiveThemeModule({
 // The static import below is selected before Nuxt compilation.
 
 import type { ExperienceSnapshot } from "@shoppp/contracts";
-import { themeRegistry as selectedThemeRegistry } from "${modulePath}";
+import {
+  themeAssets as selectedThemeAssets,
+  themeFixtures as selectedThemeFixtures,
+  themeRegistry as selectedThemeRegistry,
+} from "${modulePath}";
 
 export const activeThemeId = ${JSON.stringify(input.themeId)};
 export const activeExperienceSnapshot = ${JSON.stringify(
@@ -141,6 +149,8 @@ export const activeExperienceSnapshot = ${JSON.stringify(
     2,
   )} as const satisfies ExperienceSnapshot;
 export const activeThemeRegistry = selectedThemeRegistry;
+export const activeThemeAssets = selectedThemeAssets;
+export const activeThemeFixtures = selectedThemeFixtures;
 export const activePreviewOrigin = ${JSON.stringify(input.expectedOrigin)};
 `;
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FixtureBinding, PageTemplate } from "@shoppp/contracts";
 
+import type { ThemeAssetResolver } from "./assets";
 import { coreThemeRegistry } from "./core-registry";
 import { composeThemeRegistries, renderTemplatePlan, type ThemeRegistry } from "./registry";
 import {
@@ -13,6 +14,7 @@ const properties = defineProps<{
   bindings: readonly FixtureBinding[];
   fixtures: ExperienceFixtureRegistry;
   registry: ThemeRegistry;
+  resolveAsset: ThemeAssetResolver;
   template: PageTemplate;
 }>();
 
@@ -43,6 +45,7 @@ const plan = computed(() =>
       <component
         :is="section.component"
         :instance="section.instance"
+        :resolve-asset="properties.resolveAsset"
         :view-model="section.viewModel"
       >
         <component
@@ -50,6 +53,7 @@ const plan = computed(() =>
           v-for="block in section.blocks"
           :key="block.instance.id"
           :instance="block.instance"
+          :resolve-asset="properties.resolveAsset"
           :view-model="block.viewModel"
         />
       </component>

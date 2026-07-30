@@ -205,6 +205,13 @@ const stateViewModelSchema = z
     message: copySchema,
   })
   .strict();
+const themeSectionViewModelSchema = z
+  .object({
+    ...stateShape,
+    data: z.record(z.string(), z.unknown()),
+    kind: z.literal("theme-section"),
+  })
+  .strict();
 
 export const presentationViewModelSchema = z.discriminatedUnion("kind", [
   navigationViewModelSchema,
@@ -222,6 +229,7 @@ export const presentationViewModelSchema = z.discriminatedUnion("kind", [
   orderViewModelSchema,
   policyViewModelSchema,
   stateViewModelSchema,
+  themeSectionViewModelSchema,
 ]);
 
 export const experienceFixtureSchema = z
