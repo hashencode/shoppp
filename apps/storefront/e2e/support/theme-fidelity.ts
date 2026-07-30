@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { themeViewports } from "./theme-viewports";
 
@@ -41,8 +41,13 @@ export async function captureThemeEvidence(
   });
   expect(imageDiagnostics).toEqual([]);
   await mkdir(`${root}/${themeId}`, { recursive: true });
+  const metadataPath = `${root}/${themeId}/metadata.json`;
+  const temporaryMetadataPath = `${metadataPath}.${process.pid}.${testInfo.project.name.replaceAll(
+    /[^a-z0-9-]/gi,
+    "-",
+  )}.tmp`;
   await writeFile(
-    `${root}/${themeId}/metadata.json`,
+    temporaryMetadataPath,
     `${JSON.stringify(
       {
         capturedAt: new Date().toISOString(),
@@ -58,6 +63,7 @@ export async function captureThemeEvidence(
       2,
     )}\n`,
   );
+  await rename(temporaryMetadataPath, metadataPath);
   await page.screenshot({
     animations: "disabled",
     fullPage: true,

@@ -65,19 +65,26 @@ test("Fashion home matches the reference inventory and native interactions", asy
   await expect(serviceIcons).toHaveCount(4);
   expect(
     await serviceIcons.evaluateAll((images) =>
-      images.map((image) => ({
-        height: image.getAttribute("height"),
-        naturalHeight: (image as HTMLImageElement).naturalHeight,
-        naturalWidth: (image as HTMLImageElement).naturalWidth,
-        source: (image as HTMLImageElement).getAttribute("src"),
-        width: image.getAttribute("width"),
-      })),
+      images.map((image) => {
+        const box = image.getBoundingClientRect();
+        return {
+          height: image.getAttribute("height"),
+          naturalHeight: (image as HTMLImageElement).naturalHeight,
+          naturalWidth: (image as HTMLImageElement).naturalWidth,
+          renderedHeight: box.height,
+          renderedWidth: box.width,
+          source: (image as HTMLImageElement).getAttribute("src"),
+          width: image.getAttribute("width"),
+        };
+      }),
     ),
   ).toEqual([
     expect.objectContaining({
       height: "48",
       naturalHeight: 512,
       naturalWidth: 512,
+      renderedHeight: 48,
+      renderedWidth: 48,
       source: expect.stringContaining("service-box"),
       width: "48",
     }),
@@ -85,6 +92,8 @@ test("Fashion home matches the reference inventory and native interactions", asy
       height: "48",
       naturalHeight: 512,
       naturalWidth: 512,
+      renderedHeight: 48,
+      renderedWidth: 48,
       source: expect.stringContaining("service-return"),
       width: "48",
     }),
@@ -92,6 +101,8 @@ test("Fashion home matches the reference inventory and native interactions", asy
       height: "48",
       naturalHeight: 512,
       naturalWidth: 512,
+      renderedHeight: 48,
+      renderedWidth: 48,
       source: expect.stringContaining("service-payment"),
       width: "48",
     }),
@@ -99,6 +110,8 @@ test("Fashion home matches the reference inventory and native interactions", asy
       height: "48",
       naturalHeight: 512,
       naturalWidth: 512,
+      renderedHeight: 48,
+      renderedWidth: 48,
       source: expect.stringContaining("service-support"),
       width: "48",
     }),

@@ -63,33 +63,39 @@ test("Decor home matches the furniture inventory and native interactions", async
   await expect(page.getByRole("button", { name: "Next furniture" }).locator("svg")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Next product" }).locator("svg")).toHaveCount(1);
   await expect(page.locator(".decor-footer-social svg")).toHaveCount(4);
+  await page.locator(".decor-category-icon-list").scrollIntoViewIfNeeded();
+  await page.locator(".decor-category-icon-list img").evaluateAll(async (images) => {
+    await Promise.all(images.map((image) => (image as HTMLImageElement).decode()));
+  });
   expect(
     await page.locator(".decor-category-icon-list img").evaluateAll((images) =>
       images.map((image) => {
         const element = image as HTMLImageElement;
+        const box = element.getBoundingClientRect();
         return {
           height: element.getAttribute("height"),
           naturalHeight: element.naturalHeight,
           naturalWidth: element.naturalWidth,
+          renderedHeight: box.height,
+          renderedWidth: box.width,
           source: element.currentSrc,
           width: element.getAttribute("width"),
         };
       }),
     ),
-  ).toEqual([
-    expect.objectContaining({
-      height: "65",
-      naturalHeight: 65,
-      naturalWidth: 65,
-      source: expect.stringContaining("icon-01"),
-      width: "65",
-    }),
-    expect.objectContaining({ source: expect.stringContaining("icon-03") }),
-    expect.objectContaining({ source: expect.stringContaining("icon-02") }),
-    expect.objectContaining({ source: expect.stringContaining("icon-10") }),
-    expect.objectContaining({ source: expect.stringContaining("icon-04") }),
-    expect.objectContaining({ source: expect.stringContaining("icon-05") }),
-  ]);
+  ).toEqual(
+    ["01", "03", "02", "10", "04", "05"].map((id) =>
+      expect.objectContaining({
+        height: "65",
+        naturalHeight: 65,
+        naturalWidth: 65,
+        renderedHeight: 65,
+        renderedWidth: 65,
+        source: expect.stringContaining(`icon-${id}`),
+        width: "65",
+      }),
+    ),
+  );
   await page.locator(".decor-services").scrollIntoViewIfNeeded();
   await page.locator(".decor-services img").evaluateAll(async (images) => {
     await Promise.all(images.map((image) => (image as HTMLImageElement).decode()));
@@ -98,10 +104,13 @@ test("Decor home matches the furniture inventory and native interactions", async
     await page.locator(".decor-services img").evaluateAll((images) =>
       images.map((image) => {
         const element = image as HTMLImageElement;
+        const box = element.getBoundingClientRect();
         return {
           height: element.getAttribute("height"),
           naturalHeight: element.naturalHeight,
           naturalWidth: element.naturalWidth,
+          renderedHeight: box.height,
+          renderedWidth: box.width,
           source: element.currentSrc,
           width: element.getAttribute("width"),
         };
@@ -113,6 +122,8 @@ test("Decor home matches the furniture inventory and native interactions", async
         height: "50",
         naturalHeight: 50,
         naturalWidth: 60,
+        renderedHeight: 50,
+        renderedWidth: 60,
         source: expect.stringContaining(`icon-${id}`),
         width: "60",
       }),
