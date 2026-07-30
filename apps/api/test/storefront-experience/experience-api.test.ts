@@ -148,16 +148,7 @@ describe("storefront experience API", () => {
       data: expect.arrayContaining([expect.objectContaining({ id: draftId })]),
     });
     const override = {
-      operations: [
-        { instanceId: "home-story", kind: "set-visibility", visible: false },
-        {
-          instanceId: "home-hero",
-          kind: "set-setting",
-          settingId: "heading",
-          value: "A deliberate fixture edit.",
-        },
-        { instanceId: "home-hero", kind: "reset-setting", settingId: "heading" },
-      ],
+      operations: [{ instanceId: "fashion-magazine", kind: "set-visibility", visible: false }],
       presetId: "editorial",
       schemaVersion: 1,
       templateId: "fashion-home",
@@ -262,7 +253,7 @@ describe("storefront experience API", () => {
               {
                 operations: [
                   {
-                    instanceId: "home-hero",
+                    instanceId: "fashion-hero",
                     kind: "set-setting",
                     settingId: "heading",
                     value: "<script>alert(1)</script>",
@@ -288,7 +279,7 @@ describe("storefront experience API", () => {
         {
           operations: [
             {
-              instanceId: "home-hero",
+              instanceId: "fashion-hero",
               kind: "set-setting",
               settingId: "heading",
               value: 42,
@@ -535,7 +526,7 @@ describe("storefront experience API", () => {
             template.id === "fashion-home"
               ? {
                   ...template,
-                  sections: template.sections.filter(({ id }) => id !== "home-story"),
+                  sections: template.sections.filter(({ id }) => id !== "fashion-magazine"),
                 }
               : template,
           ),
@@ -566,10 +557,9 @@ describe("storefront experience API", () => {
         {
           operations: [
             {
-              instanceId: "home-story",
-              kind: "set-setting",
-              settingId: "heading",
-              value: "Merchant-authored story heading",
+              instanceId: "fashion-magazine",
+              kind: "set-visibility",
+              visible: false,
             },
           ],
           presetId: "editorial",
@@ -666,7 +656,7 @@ describe("storefront experience API", () => {
     expect(await conflict.json()).toMatchObject({
       data: {
         conflicts: expect.arrayContaining([
-          expect.objectContaining({ code: "instance-removed", instanceId: "home-story" }),
+          expect.objectContaining({ code: "instance-removed", instanceId: "fashion-magazine" }),
         ]),
       },
     });
