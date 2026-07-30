@@ -1,13 +1,56 @@
 # Fashion Theme Source Provenance
 
-No Crafto asset has been imported.
-
-- Source identity: pending verification
-- Source revision: pending verification
-- Ownership approval: pending verification
-- Imported assets: none
+- Source identity: `local://craftohtml-10/html/demo-fashion-store.html`
+- Source revision: `craftohtml-10-user-supplied-2026-07-30`
+- Imported on: 2026-07-30
+- Ownership approval: User supplied the Crafto source package and explicitly requested faithful local reconstruction using its assets.
+- Import policy: allowlist-only binary assets; source code, vendor runtimes, global CSS, handlers, metadata, symlinks, and generated output are excluded.
 - Manifest: `../../../../../tools/storefront-theme-source-manifest.json`
 
-Future imports must use the allowlist-only `tools/import-storefront-theme.ts` path. Original Vue,
-CSS, templates, fixtures, and reviewed internal icon components are repository code and must not
-be described as copied Crafto assets.
+## Imported assets
+
+- `assets/fonts/figtree-latin.woff2` from `fonts/figtree-latin.woff2` — SIL Open Font License 1.1; self-hosted Google Fonts binary.; SHA-256 `4ba7d3d096695818fe0686be4f1e82c6b05134e18a22260336130335027462dd`
+- `assets/fonts/outfit-latin.woff2` from `fonts/outfit-latin.woff2` — SIL Open Font License 1.1; self-hosted Google Fonts binary.; SHA-256 `6c18d579fd87c3776be068b762cbc83fde3acb543d49eabd3ade842eb987e887`
+- `assets/images/demo-fashion-store-banner-01.jpg` from `images/demo-fashion-store-banner-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `1708a6311f634aec006daa0ea2dfea8a6e8f19eb121a16a8b5231fcc6d268cf0`
+- `assets/images/demo-fashion-store-banner-02.jpg` from `images/demo-fashion-store-banner-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `4f8245aecd192df6b4b1ead77fe5aaa211b23eb9b01c03cf98ec3d442025ce53`
+- `assets/images/demo-fashion-store-banner-03.jpg` from `images/demo-fashion-store-banner-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `8deea3d0b3392f9d2c4872bded5e6e7a79f1846a42fb022cdae78448154cd387`
+- `assets/images/demo-fashion-store-banner-04.jpg` from `images/demo-fashion-store-banner-04.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `883fc43d0433068bd38118e35abdd70952b8ac1e923f1b7e2198185c1264ae90`
+- `assets/images/demo-fashion-store-blog-01.jpg` from `images/demo-fashion-store-blog-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `1514609f28c77275a7b30b97505876743bae54c0dd102ba83ec4ee898dbe6e01`
+- `assets/images/demo-fashion-store-blog-02.jpg` from `images/demo-fashion-store-blog-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `b248fd9851f936bff6885d43b5ded907a16350074507afe7fa4c86828532d500`
+- `assets/images/demo-fashion-store-blog-06.jpg` from `images/demo-fashion-store-blog-06.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `ac48f5694af7fb3d99209971edc3473e312886c0fa0c9b071053e69686419e65`
+- `assets/images/demo-fashion-store-blog-07.jpg` from `images/demo-fashion-store-blog-07.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `511aaefd2059dc26bc351e42b8103be3728dc71805837149e16ef0d9e5441351`
+- `assets/images/demo-fashion-store-collection-slider-01.jpg` from `images/demo-fashion-store-collection-slider-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `67db2784659d660311b38419e26126f6a912ee76bb811d7f09dc3b4aa9fb980a`
+- `assets/images/demo-fashion-store-collection-slider-02.jpg` from `images/demo-fashion-store-collection-slider-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2e892b21c9e3a995c47f7c2095c5bc08a5edbbe4dcf3bb266b87bf8297c38e6b`
+- `assets/images/demo-fashion-store-collection-slider-03.jpg` from `images/demo-fashion-store-collection-slider-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `622e9a9115c2681ab779a15597292d92427020d68be01c3766487d333e7140a9`
+- `assets/images/demo-fashion-store-collection-slider-04.jpg` from `images/demo-fashion-store-collection-slider-04.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `b517b160c105d1c8815432a805ddc44b97dd2a943532da7ff996ca8eff8c9023`
+- `assets/images/demo-fashion-store-logo-black.png` from `images/demo-fashion-store-logo-black.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `3e8fd148512a72a149feba53f86d40f66b8ad6e67438e8b7faa346ba7bfc904f`
+- `assets/images/demo-fashion-store-logo-black@2x.png` from `images/demo-fashion-store-logo-black@2x.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `5c780bc0498b82afa22a6321c4019cd7220bb5d18eb53ee7961c105c57181df4`
+- `assets/images/demo-fashion-store-logo-white.png` from `images/demo-fashion-store-logo-white.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `a9ea5365b6e446ddd799ebad684419dcef8b0d7330a0498ba89da6b46277014d`
+- `assets/images/demo-fashion-store-logo-white@2x.png` from `images/demo-fashion-store-logo-white@2x.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `ad976be2c59e44c355bb955c428415a786f5d6bf95da98fff0a677845fd0aa67`
+- `assets/images/demo-fashion-store-menu-banner-01.jpg` from `images/demo-fashion-store-menu-banner-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2be049c11d646b53984d241e0bc5b3586c569cff55f78f0ad04e3c57bc85ee2d`
+- `assets/images/demo-fashion-store-menu-banner-02.jpg` from `images/demo-fashion-store-menu-banner-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `8c555e9d9a945f828d609613c717fd55b4d518fef36946ff5998035f9cc2abe1`
+- `assets/images/demo-fashion-store-menu-category-01.jpg` from `images/demo-fashion-store-menu-category-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `e59bfb144bd48706538fbd1c6d301c964f816abdac7c3146cd7c429b8df9739b`
+- `assets/images/demo-fashion-store-menu-category-02.jpg` from `images/demo-fashion-store-menu-category-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2d3dd50d40a63091ce4ddf9963ca608d446475f3279d77e71bf0b7122118ea38`
+- `assets/images/demo-fashion-store-menu-category-03.jpg` from `images/demo-fashion-store-menu-category-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `12b32909fd742b105fa4c1fb39e20bea5d1a387a39cf3776bd7bb28e875fe994`
+- `assets/images/demo-fashion-store-menu-category-04.jpg` from `images/demo-fashion-store-menu-category-04.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `bbaaffdda0e060f18ea096bd2ec018e11ddd2936615e6d5aa90fd8a102ec5e74`
+- `assets/images/demo-fashion-store-menu-category-05.jpg` from `images/demo-fashion-store-menu-category-05.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `b2ab38ca9a7114a5398e1469887eaa205abde378bfefaae56938cfa9728c0515`
+- `assets/images/demo-fashion-store-menu-category-06.jpg` from `images/demo-fashion-store-menu-category-06.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `738404e198ecddc3bad6c448ea25eae1871f8d56e2a23cf4c4162dd04fd46537`
+- `assets/images/demo-fashion-store-product-01.jpg` from `images/demo-fashion-store-product-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `122cd167d1607ee04b72f59bf0d395a70949b26904bfec53a2b4be552f007acd`
+- `assets/images/demo-fashion-store-product-02.jpg` from `images/demo-fashion-store-product-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `655216f6aded4aa1a4c0b5712743980914b8ef5bd9ef76d23b3ead7c30fef336`
+- `assets/images/demo-fashion-store-product-03.jpg` from `images/demo-fashion-store-product-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `5138c57ca1eb4ca54c6d0f6cef7c6c7ac5de9cca5fdfb98f987a66101ca5d37c`
+- `assets/images/demo-fashion-store-product-04.jpg` from `images/demo-fashion-store-product-04.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `5848f4f20df14f31952d04303d98e7373c2a6cc0d2d6f2cdd7aef7eeeb7d6144`
+- `assets/images/demo-fashion-store-product-05.jpg` from `images/demo-fashion-store-product-05.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `cd175015ebc05ee31c91f7c31cd42ab245203a715b360f0896064c4f1e8c1925`
+- `assets/images/demo-fashion-store-product-06.jpg` from `images/demo-fashion-store-product-06.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `f780317b132509f768771bdab49fb766a3b0f04cf6d064454d69847124d893b1`
+- `assets/images/demo-fashion-store-product-07.jpg` from `images/demo-fashion-store-product-07.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `b9518521d9e818bfc83126352eb19ccc47ebf5fac15fb10d84c6efc515c3d067`
+- `assets/images/demo-fashion-store-product-08.jpg` from `images/demo-fashion-store-product-08.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `e8304ce3d80b692f2c3b0588d5b165d65fb93692a3496a8c0a5cca5176d80ca6`
+- `assets/images/demo-fashion-store-product-09.jpg` from `images/demo-fashion-store-product-09.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `426c2fdcc90c2953baedcc6c6ac5ae1b07be6f32bf92766771b63d3296c774b2`
+- `assets/images/demo-fashion-store-product-10.jpg` from `images/demo-fashion-store-product-10.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `432c2e84cf46f3746f48c4af7c8dd458a77060d61ad52b537a6ab08b3661c2da`
+- `assets/images/demo-fashion-store-product-11.jpg` from `images/demo-fashion-store-product-11.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `8557694146e693f81b6f8b7372bfaec3f00d27b0eaa06a3ec6b6d35ba84f928e`
+- `assets/images/demo-fashion-store-product-12.jpg` from `images/demo-fashion-store-product-12.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `99ed051d2d7e1679ffd4cce3cdf515e189338aeb75cb3f248dd2bb9c84efed62`
+- `assets/images/demo-fashion-store-slider-01.jpg` from `images/demo-fashion-store-slider-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `b4814ac964c8eacc074e2041cf015441c3757215082a2e8915ea5d4f746a794a`
+- `assets/images/demo-fashion-store-slider-02.jpg` from `images/demo-fashion-store-slider-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `60947e2b88610e3e181e4e3b51d8a5536ced6c5f879fbc408fadbd93e6df7e1b`
+- `assets/images/demo-fashion-store-slider-03.jpg` from `images/demo-fashion-store-slider-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `a6ff2034fbb8e546908c7b2535507d5bf152debbccb5cc000f234f0b13ef1525`
+
+## Local implementation
+
+Theme templates, Vue components, CSS, and internal icon components are original reviewed repository code. No Crafto JavaScript, jQuery, Revolution Slider, PHP handler, or global vendor stylesheet is imported.
