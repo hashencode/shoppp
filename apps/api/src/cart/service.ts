@@ -7,7 +7,11 @@ import type {
   ShippingQuoteRequest,
   UpdateCartLineRequest,
 } from "@shoppp/contracts";
-import { MAX_CART_LINE_QUANTITY } from "@shoppp/contracts";
+import {
+  launchConfigurationSchema,
+  MAX_CART_LINE_QUANTITY,
+  type LaunchConfiguration,
+} from "@shoppp/contracts";
 import { calculatePricing, createMoney, quoteShippingMethods } from "@shoppp/domain";
 import type { Context } from "hono";
 
@@ -64,6 +68,10 @@ interface ShippingMethodRow {
   min_weight_grams: number | null;
   name: string;
   price_amount: number;
+}
+
+interface LaunchConfigurationRow {
+  value_json: string;
 }
 
 function publicId(prefix: string): string {
@@ -215,9 +223,9 @@ function upsertAdjustment(
   return [...adjustments.filter((item) => item.key !== adjustment.key), adjustment];
 }
 
-async function lineRows(db: D1Database, cart: CartRow): Promise<LineRow[]> {
+function lineRowsStatement(db: D1Database, cart: CartRow): D1PreparedStatement {
   const now = new Date().toISOString();
-  const rows = await db
+  return db
     .prepare(
       `SELECT cl.variant_id, cl.quantity, p.name AS product_name, v.title AS variant_name,
               v.weight_grams,
@@ -237,20 +245,11 @@ async function lineRows(db: D1Database, cart: CartRow): Promise<LineRow[]> {
         WHERE cl.cart_id = ?
         ORDER BY cl.created_at, cl.id`,
     )
-    .bind(cart.currency, now, now, cart.id)
-    .all<LineRow>();
-  return rows.results;
+    .bind(cart.currency, now, now, cart.id);
 }
 
-async function shippingQuotes(
-  db: D1Database,
-  cart: CartRow,
-  subtotalAmount: number,
-  totalWeightGrams: number,
-): Promise<ShippingMethodQuote[]> {
-  if (!cart.shipping_country) return [];
-  const configuration = await loadRuntimeLaunchConfiguration(db);
-  const rows = await db
+function shippingMethodRowsStatement(db: D1Database, countryCode: string): D1PreparedStatement {
+  return db
     .prepare(
       `SELECT sm.id, sm.name, sm.calculation_type, sm.price_amount, sm.currency,
               sm.free_threshold_amount, sm.min_weight_grams, sm.max_weight_grams
@@ -260,11 +259,30 @@ async function shippingQuotes(
         WHERE sz.status = 'active' AND sm.status = 'active' AND szc.country_code = ?
         ORDER BY sm.created_at, sm.id`,
     )
-    .bind(cart.shipping_country)
-    .all<ShippingMethodRow>();
+    .bind(countryCode);
+}
+
+function launchConfigurationStatement(db: D1Database): D1PreparedStatement {
+  return db.prepare("SELECT value_json FROM settings WHERE key = 'launch_configuration'");
+}
+
+function parseLaunchConfiguration(row: LaunchConfigurationRow | null): LaunchConfiguration | null {
+  if (!row) return null;
+  const parsed = launchConfigurationSchema.safeParse(JSON.parse(row.value_json));
+  if (!parsed.success) throw new Error("launch_configuration_invalid");
+  return parsed.data;
+}
+
+function shippingQuotes(
+  cart: CartRow,
+  subtotalAmount: number,
+  totalWeightGrams: number,
+  rows: ShippingMethodRow[],
+  configuration: LaunchConfiguration | null,
+): ShippingMethodQuote[] {
   return quoteShippingMethods({
     currency: cart.currency,
-    methods: rows.results
+    methods: rows
       .filter((row) => !configuration || configuration.shippingMethodIds.includes(row.id))
       .map((row) => ({
         calculationType: row.calculation_type,
@@ -281,12 +299,14 @@ async function shippingQuotes(
   });
 }
 
-export async function quoteCart(
+async function buildCartQuote(
   db: D1Database,
   cart: CartRow,
   taxMode: ApiEnvironment["Bindings"]["TAX_MODE"],
+  rows: LineRow[],
+  shippingMethodRows: ShippingMethodRow[],
+  configuration: LaunchConfiguration | null,
 ): Promise<Cart> {
-  const rows = await lineRows(db, cart);
   const context = parsePricingContext(cart.pricing_context_json);
   let pending = [...context.pendingAdjustments];
   const dynamic: CartAdjustment[] = [];
@@ -330,7 +350,7 @@ export async function quoteCart(
   }
   const subtotal = rows.reduce((sum, row) => sum + (row.unit_price ?? 0) * row.quantity, 0);
   const totalWeight = rows.reduce((sum, row) => sum + row.weight_grams * row.quantity, 0);
-  const methods = await shippingQuotes(db, cart, subtotal, totalWeight);
+  const methods = shippingQuotes(cart, subtotal, totalWeight, shippingMethodRows, configuration);
   const selected = methods.find((method) => method.id === cart.shipping_method_id) ?? null;
   if (cart.shipping_method_id && !selected) {
     dynamic.push({
@@ -382,6 +402,31 @@ export async function quoteCart(
     shippingMethods: methods,
     totals,
   };
+}
+
+export async function quoteCart(
+  db: D1Database,
+  cart: CartRow,
+  taxMode: ApiEnvironment["Bindings"]["TAX_MODE"],
+): Promise<Cart> {
+  const statements = [lineRowsStatement(db, cart)];
+  if (cart.shipping_country) {
+    statements.push(
+      launchConfigurationStatement(db),
+      shippingMethodRowsStatement(db, cart.shipping_country),
+    );
+  }
+  const results = await db.batch(statements);
+  const rows = results[0]!.results as unknown as LineRow[];
+  const configuration = cart.shipping_country
+    ? parseLaunchConfiguration(
+        (results[1]!.results as unknown as LaunchConfigurationRow[])[0] ?? null,
+      )
+    : null;
+  const shippingMethodRows = cart.shipping_country
+    ? (results[2]!.results as unknown as ShippingMethodRow[])
+    : [];
+  return buildCartQuote(db, cart, taxMode, rows, shippingMethodRows, configuration);
 }
 
 export async function createCart(
@@ -562,7 +607,30 @@ export async function setCartShipping(
   cart: CartRow,
   input: ShippingQuoteRequest,
 ): Promise<Cart> {
-  const configuration = await loadRuntimeLaunchConfiguration(context.env.DB);
+  const updated = {
+    ...cart,
+    shipping_address_json: JSON.stringify(input.shippingAddress),
+    shipping_country: input.shippingAddress.countryCode,
+    shipping_method_id: input.shippingMethodId ?? null,
+  };
+  const batchResults = await context.env.DB.batch([
+    launchConfigurationStatement(context.env.DB),
+    context.env.DB.prepare(
+      `SELECT sz.id
+             FROM shipping_zones sz
+             JOIN shipping_zone_countries szc ON szc.zone_id = sz.id
+            WHERE sz.status = 'active' AND szc.country_code = ? LIMIT 1`,
+    ).bind(input.shippingAddress.countryCode),
+    lineRowsStatement(context.env.DB, updated),
+    shippingMethodRowsStatement(context.env.DB, input.shippingAddress.countryCode),
+  ]);
+  const configurationResult = batchResults[0]!;
+  const zoneResult = batchResults[1]!;
+  const lineResult = batchResults[2]!;
+  const shippingMethodResult = batchResults[3]!;
+  const configuration = parseLaunchConfiguration(
+    (configurationResult.results as unknown as LaunchConfigurationRow[])[0] ?? null,
+  );
   if (
     configuration &&
     !configuration.shippingCountries.includes(input.shippingAddress.countryCode)
@@ -574,14 +642,7 @@ export async function setCartShipping(
       [{ path: ["shippingAddress", "countryCode"] }],
     );
   }
-  const zone = await context.env.DB.prepare(
-    `SELECT sz.id
-       FROM shipping_zones sz
-       JOIN shipping_zone_countries szc ON szc.zone_id = sz.id
-      WHERE sz.status = 'active' AND szc.country_code = ? LIMIT 1`,
-  )
-    .bind(input.shippingAddress.countryCode)
-    .first();
+  const zone = (zoneResult.results as unknown as Array<{ id: string }>)[0];
   if (!zone) {
     throw new ApiError(
       422,
@@ -590,13 +651,14 @@ export async function setCartShipping(
       [{ path: ["shippingAddress", "countryCode"] }],
     );
   }
-  const updated = {
-    ...cart,
-    shipping_address_json: JSON.stringify(input.shippingAddress),
-    shipping_country: input.shippingAddress.countryCode,
-    shipping_method_id: input.shippingMethodId ?? null,
-  };
-  const quote = await quoteCart(context.env.DB, updated, context.env.TAX_MODE);
+  const quote = await buildCartQuote(
+    context.env.DB,
+    updated,
+    context.env.TAX_MODE,
+    lineResult.results as unknown as LineRow[],
+    shippingMethodResult.results as unknown as ShippingMethodRow[],
+    configuration,
+  );
   if (
     input.shippingMethodId &&
     !quote.shippingMethods.some((method) => method.id === input.shippingMethodId)
