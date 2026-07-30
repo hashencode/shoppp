@@ -24,6 +24,7 @@ export interface PreviewArtifactBucket {
 export interface PreviewAccessEnvironment {
   PREVIEW_ARTIFACTS: PreviewArtifactBucket;
   PREVIEW_AUTH: PreviewAuthorizationService;
+  PREVIEW_AUTH_TOKEN: string;
   PREVIEW_ORIGIN: string;
 }
 
@@ -232,6 +233,7 @@ async function authorize(
   const response = await environment.PREVIEW_AUTH.fetch(
     new Request("https://preview-auth.internal/internal/preview/authorize", {
       headers: {
+        Authorization: `Bearer ${environment.PREVIEW_AUTH_TOKEN}`,
         Cookie: `__Host-shoppp-preview=${session}`,
         "X-Preview-Origin": new URL(request.url).origin,
       },
@@ -255,6 +257,71 @@ async function authorize(
   return value as PreviewAuthorization;
 }
 
+async function redeemGrant(
+  request: Request,
+  environment: PreviewAccessEnvironment,
+  origin: string,
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return responseWithSecurity("Method not allowed.", origin, 405);
+  }
+  if (request.headers.get("Origin") !== origin) {
+    return responseWithSecurity("Preview origin is not authorized.", origin, 403);
+  }
+  const contentLength = Number(request.headers.get("Content-Length") ?? "0");
+  if (contentLength > 1024) {
+    return responseWithSecurity("Preview grant payload is too large.", origin, 413);
+  }
+  let grant: string;
+  try {
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > 1024) throw new Error();
+    const body = JSON.parse(rawBody) as { grant?: unknown };
+    if (
+      typeof body.grant !== "string" ||
+      body.grant.length < 32 ||
+      body.grant.length > 256 ||
+      !/^[A-Za-z0-9_-]+$/.test(body.grant)
+    ) {
+      throw new Error();
+    }
+    grant = body.grant;
+  } catch {
+    return responseWithSecurity("Preview grant is invalid.", origin, 422);
+  }
+  const redemption = await environment.PREVIEW_AUTH.fetch(
+    new Request("https://preview-auth.internal/internal/preview/redeem", {
+      body: JSON.stringify({ grant, origin }),
+      headers: {
+        Authorization: `Bearer ${environment.PREVIEW_AUTH_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    }),
+  );
+  if (!redemption.ok) {
+    return responseWithSecurity("Preview grant is invalid or expired.", origin, 403);
+  }
+  const value = (await redemption.json()) as {
+    data?: { expiresAt?: unknown; session?: unknown };
+  };
+  if (
+    typeof value.data?.session !== "string" ||
+    !/^[A-Za-z0-9_-]{32,256}$/.test(value.data.session) ||
+    typeof value.data.expiresAt !== "string" ||
+    Date.parse(value.data.expiresAt) <= Date.now()
+  ) {
+    return responseWithSecurity("Preview authorization failed.", origin, 502);
+  }
+  const headers = securityHeaders(origin);
+  headers.set("Location", "/");
+  headers.set(
+    "Set-Cookie",
+    `__Host-shoppp-preview=${value.data.session}; Path=/; Expires=${new Date(value.data.expiresAt).toUTCString()}; Secure; HttpOnly; SameSite=Strict`,
+  );
+  return new Response(null, { headers, status: 303 });
+}
+
 export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
   const now = options.now ?? (() => new Date());
   return async (request: Request, environment: PreviewAccessEnvironment): Promise<Response> => {
@@ -275,6 +342,16 @@ export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
         configuredOrigin.origin,
         403,
       );
+    }
+    if (!environment.PREVIEW_AUTH_TOKEN || environment.PREVIEW_AUTH_TOKEN.length < 32) {
+      return responseWithSecurity(
+        "Preview authorization is not configured.",
+        configuredOrigin.origin,
+        500,
+      );
+    }
+    if (requestUrl.pathname === "/__preview/session") {
+      return redeemGrant(request, environment, configuredOrigin.origin);
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return responseWithSecurity("Method not allowed.", configuredOrigin.origin, 405);

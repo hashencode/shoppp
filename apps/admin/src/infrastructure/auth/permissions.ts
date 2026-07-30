@@ -25,6 +25,10 @@ export type PermissionKey =
   | 'settings.write'
   | 'audit.read'
   | 'privacy.manage'
+  | 'themes.read'
+  | 'themes.write'
+  | 'themes.approve'
+  | 'themes.preview'
 
 const rolePermissions: Record<Role, PermissionKey[]> = {
   admin: [
@@ -52,8 +56,21 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'settings.write',
     'audit.read',
     'privacy.manage',
+    'themes.read',
+    'themes.write',
+    'themes.approve',
+    'themes.preview',
   ],
-  catalog_manager: ['catalog.read', 'catalog.write', 'catalog.publish', 'inventory.read'],
+  catalog_manager: [
+    'catalog.read',
+    'catalog.write',
+    'catalog.publish',
+    'inventory.read',
+    'themes.read',
+    'themes.write',
+    'themes.approve',
+    'themes.preview',
+  ],
   operations: [
     'catalog.read',
     'inventory.read',
@@ -65,6 +82,7 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'audit.read',
     'operations.replay',
     'operations.jobs.read',
+    'themes.read',
   ],
   support: ['catalog.read', 'inventory.read', 'orders.read'],
   analyst: [
@@ -95,6 +113,10 @@ const rolePermissions: Record<Role, PermissionKey[]> = {
     'reporting.export',
     'operations.jobs.read',
     'operations.replay',
+    'themes.read',
+    'themes.write',
+    'themes.approve',
+    'themes.preview',
   ],
   viewer: [
     'dashboard.read',

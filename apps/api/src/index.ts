@@ -6,6 +6,7 @@ import {
   dispatchPendingNotifications,
 } from "./automation/queue-consumer";
 import { startScheduledD1Backup } from "./operations/d1-backup";
+import { cleanupExpiredStorefrontPreviews } from "./storefront-experience/cleanup";
 
 export { NotificationDeliveryWorkflow } from "./automation/workflows";
 export { D1BackupWorkflow } from "./operations/d1-backup";
@@ -23,6 +24,7 @@ export default {
       await startScheduledD1Backup(env.BACKUP_WORKFLOW, controller.scheduledTime);
       return;
     }
+    await cleanupExpiredStorefrontPreviews(env, new Date(controller.scheduledTime));
     await expireDueReservations(env.DB);
     if (env.NOTIFICATION_QUEUE) {
       await dispatchPendingNotifications(env.DB, env.NOTIFICATION_QUEUE);

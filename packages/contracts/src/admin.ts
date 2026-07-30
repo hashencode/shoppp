@@ -7,6 +7,16 @@ import {
   pricingTotalsSchema,
 } from "./common";
 import { guestOrderLineSchema, shippingAddressSchema } from "./checkout";
+import {
+  blockDefinitionSchema,
+  fixtureBindingSchema,
+  sectionDefinitionSchema,
+  storefrontIdentifierSchema,
+  storefrontSemverSchema,
+  storefrontThemeDescriptorSchema,
+  themeOverrideSchema,
+  themePresetSchema,
+} from "./storefront-experience";
 
 export const adminRoleSchema = z.enum([
   "admin",
@@ -34,6 +44,10 @@ export const adminPermissionSchema = z.enum([
   "privacy.manage",
   "operations.replay",
   "operations.jobs.read",
+  "themes.read",
+  "themes.write",
+  "themes.approve",
+  "themes.preview",
 ]);
 
 export const adminSessionSchema = z
@@ -218,6 +232,120 @@ export const replayNotificationJobRequestSchema = z
   })
   .strict();
 
+const experienceReasonSchema = z.string().trim().min(3).max(500);
+
+export const adminStorefrontThemeSchema = z
+  .object({
+    ...storefrontThemeDescriptorSchema.shape,
+    componentRegistry: z
+      .object({
+        blocks: z.array(blockDefinitionSchema).max(60),
+        sections: z.array(sectionDefinitionSchema).max(60),
+      })
+      .strict(),
+    fixtureBindings: z.array(fixtureBindingSchema).max(100),
+    presetDefinitions: z.array(themePresetSchema).min(1).max(20),
+  })
+  .strict();
+
+export const storefrontExperienceDraftInputSchema = z
+  .object({
+    bindings: z.array(fixtureBindingSchema).max(100),
+    experienceId: storefrontIdentifierSchema,
+    overrides: z.array(themeOverrideSchema).max(10),
+    presetId: storefrontIdentifierSchema,
+    themeId: storefrontIdentifierSchema,
+    themeVersion: storefrontSemverSchema,
+  })
+  .strict();
+
+export const createStorefrontExperienceDraftRequestSchema = z
+  .object({
+    draft: storefrontExperienceDraftInputSchema,
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
+export const updateStorefrontExperienceDraftRequestSchema = z
+  .object({
+    bindings: z.array(fixtureBindingSchema).max(100),
+    expectedVersion: z.int().positive(),
+    overrides: z.array(themeOverrideSchema).max(10),
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
+export const validateStorefrontExperienceDraftRequestSchema = z
+  .object({
+    expectedVersion: z.int().positive(),
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
+export const resolveStorefrontExperienceDraftRequestSchema =
+  validateStorefrontExperienceDraftRequestSchema;
+
+export const approveStorefrontExperienceDraftRequestSchema = z
+  .object({
+    confirm: z.literal(true),
+    expectedVersion: z.int().positive(),
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
+export const storefrontExperienceMigrationDryRunRequestSchema = z
+  .object({
+    expectedVersion: z.int().positive(),
+    reason: experienceReasonSchema,
+    targetConfigurationSchemaVersion: z.int().positive(),
+    targetThemeVersion: storefrontSemverSchema,
+  })
+  .strict();
+
+export const approveStorefrontExperienceMigrationRequestSchema = z
+  .object({
+    confirm: z.literal(true),
+    expectedVersion: z.int().positive(),
+    migrationId: storefrontIdentifierSchema,
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
+export const storefrontExperienceBuildResultSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      artifactDigest: z.string().regex(/^[a-f0-9]{64}$/),
+      artifactPrefix: z.string().regex(/^snapshots\/[a-z][a-z0-9-]{2,99}\/[a-f0-9]{64}$/),
+      expiresAt: isoDateTimeSchema,
+      status: z.literal("deployed"),
+    })
+    .strict(),
+  z
+    .object({
+      failureCode: storefrontIdentifierSchema,
+      status: z.literal("failed"),
+    })
+    .strict(),
+]);
+
+export const createStorefrontPreviewGrantRequestSchema = z
+  .object({
+    origin: z.url().refine((value) => new URL(value).protocol === "https:"),
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
+export const redeemStorefrontPreviewGrantRequestSchema = z
+  .object({
+    grant: z
+      .string()
+      .min(32)
+      .max(256)
+      .regex(/^[A-Za-z0-9_-]+$/),
+    origin: z.url().refine((value) => new URL(value).protocol === "https:"),
+  })
+  .strict();
+
 export type AdminOrder = z.infer<typeof adminOrderSchema>;
 export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
 export type AdminPermission = z.infer<typeof adminPermissionSchema>;
@@ -231,3 +359,33 @@ export type NotificationJobStatus = z.infer<typeof notificationJobStatusSchema>;
 export type OrderTimelineEntry = z.infer<typeof orderTimelineEntrySchema>;
 export type RefundRequest = z.infer<typeof refundRequestSchema>;
 export type ReplayNotificationJobRequest = z.infer<typeof replayNotificationJobRequestSchema>;
+export type ApproveStorefrontExperienceDraftRequest = z.infer<
+  typeof approveStorefrontExperienceDraftRequestSchema
+>;
+export type AdminStorefrontTheme = z.infer<typeof adminStorefrontThemeSchema>;
+export type ApproveStorefrontExperienceMigrationRequest = z.infer<
+  typeof approveStorefrontExperienceMigrationRequestSchema
+>;
+export type CreateStorefrontExperienceDraftRequest = z.infer<
+  typeof createStorefrontExperienceDraftRequestSchema
+>;
+export type CreateStorefrontPreviewGrantRequest = z.infer<
+  typeof createStorefrontPreviewGrantRequestSchema
+>;
+export type RedeemStorefrontPreviewGrantRequest = z.infer<
+  typeof redeemStorefrontPreviewGrantRequestSchema
+>;
+export type ResolveStorefrontExperienceDraftRequest = z.infer<
+  typeof resolveStorefrontExperienceDraftRequestSchema
+>;
+export type StorefrontExperienceBuildResult = z.infer<typeof storefrontExperienceBuildResultSchema>;
+export type StorefrontExperienceDraftInput = z.infer<typeof storefrontExperienceDraftInputSchema>;
+export type StorefrontExperienceMigrationDryRunRequest = z.infer<
+  typeof storefrontExperienceMigrationDryRunRequestSchema
+>;
+export type UpdateStorefrontExperienceDraftRequest = z.infer<
+  typeof updateStorefrontExperienceDraftRequestSchema
+>;
+export type ValidateStorefrontExperienceDraftRequest = z.infer<
+  typeof validateStorefrontExperienceDraftRequestSchema
+>;

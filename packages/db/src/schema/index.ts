@@ -637,3 +637,180 @@ export const auditEvents = sqliteTable(
   },
   (table) => [index("audit_target_idx").on(table.targetType, table.targetId, table.createdAt)],
 );
+
+export const storefrontExperienceDrafts = sqliteTable(
+  "storefront_experience_drafts",
+  {
+    id: text("id").primaryKey(),
+    experienceId: text("experience_id").notNull(),
+    themeId: text("theme_id").notNull(),
+    themeVersion: text("theme_version").notNull(),
+    configurationSchemaVersion: integer("configuration_schema_version").notNull(),
+    presetId: text("preset_id").notNull(),
+    bindingsJson: text("bindings_json").notNull(),
+    overridesJson: text("overrides_json").notNull(),
+    version: integer("version").notNull().default(1),
+    createdBy: text("created_by").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index("storefront_experience_drafts_experience_idx").on(table.experienceId, table.updatedAt),
+    check("storefront_experience_drafts_version_positive", sql`${table.version} > 0`),
+    check(
+      "storefront_experience_drafts_schema_positive",
+      sql`${table.configurationSchemaVersion} > 0`,
+    ),
+  ],
+);
+
+export const storefrontExperienceValidations = sqliteTable(
+  "storefront_experience_validations",
+  {
+    id: text("id").primaryKey(),
+    draftId: text("draft_id")
+      .notNull()
+      .references(() => storefrontExperienceDrafts.id, { onDelete: "restrict" }),
+    draftVersion: integer("draft_version").notNull(),
+    status: text("status", { enum: ["valid", "invalid"] }).notNull(),
+    issuesJson: text("issues_json").notNull(),
+    resolvedTemplatesJson: text("resolved_templates_json").notNull(),
+    validatedBy: text("validated_by").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("storefront_experience_validations_draft_version_unique").on(
+      table.draftId,
+      table.draftVersion,
+    ),
+    check("storefront_experience_validations_version_positive", sql`${table.draftVersion} > 0`),
+  ],
+);
+
+export const storefrontExperienceMigrations = sqliteTable(
+  "storefront_experience_migrations",
+  {
+    id: text("id").primaryKey(),
+    draftId: text("draft_id")
+      .notNull()
+      .references(() => storefrontExperienceDrafts.id, { onDelete: "restrict" }),
+    draftVersion: integer("draft_version").notNull(),
+    sourceThemeVersion: text("source_theme_version").notNull(),
+    sourceConfigurationSchemaVersion: integer("source_configuration_schema_version").notNull(),
+    targetThemeVersion: text("target_theme_version").notNull(),
+    targetConfigurationSchemaVersion: integer("target_configuration_schema_version").notNull(),
+    migratedOverridesJson: text("migrated_overrides_json").notNull(),
+    conflictsJson: text("conflicts_json").notNull(),
+    status: text("status", { enum: ["dry_run", "approved"] }).notNull(),
+    createdBy: text("created_by").notNull(),
+    approvedBy: text("approved_by"),
+    approvedAt: text("approved_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("storefront_experience_migrations_target_unique").on(
+      table.draftId,
+      table.draftVersion,
+      table.targetThemeVersion,
+      table.targetConfigurationSchemaVersion,
+    ),
+  ],
+);
+
+export const storefrontExperienceSnapshots = sqliteTable(
+  "storefront_experience_snapshots",
+  {
+    id: text("id").primaryKey(),
+    deduplicationKey: text("deduplication_key").notNull().unique(),
+    experienceId: text("experience_id").notNull(),
+    sourceDraftId: text("source_draft_id")
+      .notNull()
+      .references(() => storefrontExperienceDrafts.id, { onDelete: "restrict" }),
+    sourceDraftVersion: integer("source_draft_version").notNull(),
+    sourceValidationId: text("source_validation_id")
+      .notNull()
+      .references(() => storefrontExperienceValidations.id, { onDelete: "restrict" }),
+    migrationId: text("migration_id").references(() => storefrontExperienceMigrations.id, {
+      onDelete: "restrict",
+    }),
+    kind: text("kind", { enum: ["preview", "approved"] }).notNull(),
+    themeId: text("theme_id").notNull(),
+    themeVersion: text("theme_version").notNull(),
+    configurationSchemaVersion: integer("configuration_schema_version").notNull(),
+    snapshotJson: text("snapshot_json").notNull(),
+    createdBy: text("created_by").notNull(),
+    approvedBy: text("approved_by"),
+    approvedAt: text("approved_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("storefront_experience_snapshots_experience_idx").on(table.experienceId, table.createdAt),
+  ],
+);
+
+export const storefrontPreviewBuilds = sqliteTable(
+  "storefront_preview_builds",
+  {
+    id: text("id").primaryKey(),
+    snapshotId: text("snapshot_id")
+      .notNull()
+      .references(() => storefrontExperienceSnapshots.id, { onDelete: "restrict" }),
+    attempt: integer("attempt").notNull(),
+    status: text("status", {
+      enum: ["pending", "building", "deployed", "failed", "expired"],
+    }).notNull(),
+    correlationId: text("correlation_id"),
+    artifactDigest: text("artifact_digest"),
+    artifactPrefix: text("artifact_prefix"),
+    failureCode: text("failure_code"),
+    expiresAt: text("expires_at"),
+    completedAt: text("completed_at"),
+    cleanedAt: text("cleaned_at"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("storefront_preview_builds_snapshot_attempt_unique").on(
+      table.snapshotId,
+      table.attempt,
+    ),
+    index("storefront_preview_builds_cleanup_idx").on(table.status, table.expiresAt),
+  ],
+);
+
+export const storefrontPreviewGrants = sqliteTable(
+  "storefront_preview_grants",
+  {
+    id: text("id").primaryKey(),
+    snapshotId: text("snapshot_id")
+      .notNull()
+      .references(() => storefrontExperienceSnapshots.id, { onDelete: "restrict" }),
+    buildId: text("build_id")
+      .notNull()
+      .references(() => storefrontPreviewBuilds.id, { onDelete: "restrict" }),
+    grantDigest: text("grant_digest").notNull().unique(),
+    origin: text("origin").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    redeemedAt: text("redeemed_at"),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("storefront_preview_grants_expiry_idx").on(table.expiresAt, table.redeemedAt)],
+);
+
+export const storefrontPreviewSessions = sqliteTable(
+  "storefront_preview_sessions",
+  {
+    id: text("id").primaryKey(),
+    snapshotId: text("snapshot_id")
+      .notNull()
+      .references(() => storefrontExperienceSnapshots.id, { onDelete: "restrict" }),
+    buildId: text("build_id")
+      .notNull()
+      .references(() => storefrontPreviewBuilds.id, { onDelete: "restrict" }),
+    sessionDigest: text("session_digest").notNull().unique(),
+    origin: text("origin").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("storefront_preview_sessions_expiry_idx").on(table.expiresAt)],
+);

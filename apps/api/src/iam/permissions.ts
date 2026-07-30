@@ -22,7 +22,11 @@ export type PermissionKey =
   | "settings.write"
   | "privacy.manage"
   | "operations.replay"
-  | "operations.jobs.read";
+  | "operations.jobs.read"
+  | "themes.read"
+  | "themes.write"
+  | "themes.approve"
+  | "themes.preview";
 
 export interface Principal {
   readonly displayName: string;
@@ -50,10 +54,23 @@ const ALL_PERMISSIONS: readonly PermissionKey[] = [
   "privacy.manage",
   "operations.replay",
   "operations.jobs.read",
+  "themes.read",
+  "themes.write",
+  "themes.approve",
+  "themes.preview",
 ];
 const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly PermissionKey[]>> = {
   admin: ALL_PERMISSIONS,
-  catalog_manager: ["catalog.read", "catalog.write", "catalog.publish", "inventory.read"],
+  catalog_manager: [
+    "catalog.read",
+    "catalog.write",
+    "catalog.publish",
+    "inventory.read",
+    "themes.read",
+    "themes.write",
+    "themes.approve",
+    "themes.preview",
+  ],
   operations: [
     "catalog.read",
     "inventory.read",
@@ -65,6 +82,7 @@ const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly PermissionKey[]>> = 
     "audit.read",
     "operations.replay",
     "operations.jobs.read",
+    "themes.read",
   ],
   support: ["catalog.read", "inventory.read", "orders.read"],
   analyst: ["catalog.read", "inventory.read", "orders.read", "reporting.read", "reporting.export"],

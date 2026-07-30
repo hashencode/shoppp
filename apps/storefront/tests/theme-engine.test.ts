@@ -379,6 +379,7 @@ describe("private preview artifacts", () => {
       {
         PREVIEW_ARTIFACTS: bucket,
         PREVIEW_AUTH: auth,
+        PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
         PREVIEW_ORIGIN: "https://preview.example.test",
       },
     );
@@ -393,6 +394,52 @@ describe("private preview artifacts", () => {
       "https://preview.example.test",
     );
     expect(response.headers.get("Content-Security-Policy")).toContain("connect-src 'none'");
+  });
+
+  test("redeems a grant only through POST and sets a strict host-only session cookie", async () => {
+    const grant = "grant_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const authRequests: Request[] = [];
+    const handler = createPreviewAccessHandler();
+    const response = await handler(
+      new Request("https://preview.example.test/__preview/session", {
+        body: JSON.stringify({ grant }),
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://preview.example.test",
+        },
+        method: "POST",
+      }),
+      {
+        PREVIEW_ARTIFACTS: new MemoryBucket(),
+        PREVIEW_AUTH: {
+          fetch: async (request) => {
+            authRequests.push(request);
+            return Response.json({
+              data: {
+                expiresAt: "2099-07-30T02:00:00.000Z",
+                session: "session_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+              },
+            });
+          },
+        },
+        PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
+        PREVIEW_ORIGIN: "https://preview.example.test",
+      },
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("Location")).toBe("/");
+    expect(response.headers.get("Location")).not.toContain(grant);
+    expect(response.headers.get("Set-Cookie")).toContain(
+      "__Host-shoppp-preview=session_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    );
+    expect(response.headers.get("Set-Cookie")).toContain("Path=/; Expires=");
+    expect(response.headers.get("Set-Cookie")).toContain("Secure; HttpOnly; SameSite=Strict");
+    expect(authRequests).toHaveLength(1);
+    expect(authRequests[0]?.url).toBe("https://preview-auth.internal/internal/preview/redeem");
+    expect(authRequests[0]?.headers.get("Authorization")).toBe(
+      "Bearer preview-auth-token-000000000000000001",
+    );
   });
 
   test("returns authorization or real 404 responses without crossing prefixes", async () => {
@@ -411,6 +458,7 @@ describe("private preview artifacts", () => {
             origin: "https://preview.example.test",
           }),
       },
+      PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
       PREVIEW_ORIGIN: "https://preview.example.test",
     };
 

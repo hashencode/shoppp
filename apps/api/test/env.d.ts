@@ -15,6 +15,10 @@ declare global {
       GUEST_ORDER_TOKEN_TTL_HOURS?: string;
       PAYMENT_CANCEL_URL?: string;
       PAYMENT_SUCCESS_URL?: string;
+      PREVIEW_ARTIFACTS: R2Bucket;
+      PREVIEW_BUILD_CALLBACK_TOKEN: string;
+      PREVIEW_ORIGIN: string;
+      PREVIEW_SERVICE_TOKEN: string;
       STRIPE_SECRET_KEY?: string;
       STRIPE_WEBHOOK_SECRET?: string;
       MEDIA: R2Bucket;

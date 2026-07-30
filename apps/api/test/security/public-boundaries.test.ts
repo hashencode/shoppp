@@ -186,4 +186,31 @@ describe("public submission trust boundaries", () => {
       ).status,
     ).toBe(413);
   });
+
+  test("exposes no public draft, snapshot, grant, build, or preview route", async () => {
+    const app = createApp();
+    const responses = await Promise.all([
+      app.fetch(request("/admin/storefront-experiences/themes"), env),
+      app.fetch(
+        request("/internal/preview/authorize", {
+          headers: {
+            Cookie: `__Host-shoppp-preview=${"a".repeat(32)}`,
+            "X-Preview-Origin": env.PREVIEW_ORIGIN,
+          },
+          method: "POST",
+        }),
+        env,
+      ),
+      app.fetch(request("/build/storefront-experiences/snapshots/snapshot-private-fixture"), env),
+      app.fetch(request("/preview/grants"), env),
+      app.fetch(request("/__theme-preview/snapshot-private-fixture"), env),
+    ]);
+    expect(responses.map(({ status }) => status)).toEqual([401, 401, 401, 404, 404]);
+    expect(
+      responses.every(
+        (response) =>
+          response.headers.get("Cache-Control") === "private, no-store" || response.status === 404,
+      ),
+    ).toBe(true);
+  });
 });

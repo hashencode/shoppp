@@ -7,6 +7,7 @@
     "ENVIRONMENT": "development",
     "RESOURCE_NAMESPACE": "shoppp-development",
     "PUBLIC_ORIGIN": "https://development.example.invalid",
+    "PREVIEW_ORIGIN": "https://preview-development.example.invalid",
     "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
     "ACCESS_AUDIENCE": "development-audience",
     "MEDIA_PUBLIC_ORIGIN": "https://media-development.example.invalid",
@@ -55,6 +56,11 @@
       "binding": "BACKUP_BUCKET",
       "bucket_name": "shoppp-development-d1-backups",
       "preview_bucket_name": "shoppp-development-d1-backups-preview",
+    },
+    {
+      "binding": "PREVIEW_ARTIFACTS",
+      "bucket_name": "shoppp-development-preview-artifacts",
+      "preview_bucket_name": "shoppp-development-preview-artifacts-preview",
     },
   ],
   "ratelimits": [
@@ -127,6 +133,7 @@
         "ENVIRONMENT": "staging",
         "RESOURCE_NAMESPACE": "shoppp-staging",
         "PUBLIC_ORIGIN": "https://shoppp-api-staging.hashencode.workers.dev",
+        "PREVIEW_ORIGIN": "https://preview-staging.example.invalid",
         "ACCESS_ISSUER": "https://hashencode.cloudflareaccess.com",
         "ACCESS_AUDIENCE": "25b9bf3fb5e9611012d068230a4320ae2fb70c6e9ab682d0fb615c9c36f226a0",
         "MEDIA_PUBLIC_ORIGIN": "https://pub-9d69c563922a48908ace4fc05c1f3fc5.r2.dev",
@@ -179,6 +186,11 @@
           "binding": "BACKUP_BUCKET",
           "bucket_name": "shoppp-staging-d1-backups",
           "preview_bucket_name": "shoppp-staging-d1-backups-preview",
+        },
+        {
+          "binding": "PREVIEW_ARTIFACTS",
+          "bucket_name": "shoppp-storefront-preview-artifacts",
+          "preview_bucket_name": "shoppp-storefront-preview-artifacts-preview",
         },
       ],
       "ratelimits": [
@@ -251,6 +263,7 @@
         "ENVIRONMENT": "production",
         "RESOURCE_NAMESPACE": "shoppp-production",
         "PUBLIC_ORIGIN": "https://api.example.invalid",
+        "PREVIEW_ORIGIN": "https://preview.example.invalid",
         "ACCESS_ISSUER": "https://shoppp.cloudflareaccess.com",
         "ACCESS_AUDIENCE": "production-audience",
         "MEDIA_PUBLIC_ORIGIN": "https://media.example.invalid",
@@ -297,6 +310,11 @@
           "binding": "BACKUP_BUCKET",
           "bucket_name": "shoppp-production-d1-backups",
           "preview_bucket_name": "shoppp-production-d1-backups-preview",
+        },
+        {
+          "binding": "PREVIEW_ARTIFACTS",
+          "bucket_name": "shoppp-production-preview-artifacts",
+          "preview_bucket_name": "shoppp-production-preview-artifacts-preview",
         },
       ],
       "ratelimits": [
