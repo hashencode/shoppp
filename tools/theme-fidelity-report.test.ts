@@ -28,6 +28,8 @@ async function captureRoot(themeId: "fashion" | "decor", width = 1440): Promise<
     join(root, themeId, "metadata.json"),
     JSON.stringify({
       capturedAt: "2026-07-30T00:00:00.000Z",
+      commit: "abcdef1234567",
+      state: "initial-home",
       themeId,
       viewports: [
         { height: 1000, id: "desktop", width: 1440 },

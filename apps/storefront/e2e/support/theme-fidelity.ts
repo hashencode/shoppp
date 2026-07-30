@@ -40,6 +40,8 @@ export async function captureThemeEvidence(
     `${JSON.stringify(
       {
         capturedAt: new Date().toISOString(),
+        commit: process.env.THEME_FIDELITY_COMMIT ?? "uncommitted",
+        state: "initial-home",
         themeId,
         viewports: [
           { height: 1000, id: "desktop", width: 1440 },

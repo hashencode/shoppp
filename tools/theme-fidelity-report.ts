@@ -6,6 +6,8 @@ export type FidelityThemeId = "decor" | "fashion";
 
 interface CaptureMetadata {
   capturedAt: string;
+  commit?: string;
+  state?: string;
   themeId: FidelityThemeId;
   viewports: { height: number; id: "desktop" | "mobile"; width: number }[];
 }
@@ -49,6 +51,14 @@ export async function generateThemeFidelityReport(options: {
   for (const themeId of themes) {
     const referenceMetadata = await metadata(resolve(options.referenceRoot), themeId);
     const implementationMetadata = await metadata(resolve(options.implementationRoot), themeId);
+    if (implementationMetadata.commit !== options.commit) {
+      throw new Error(`${themeId} implementation capture does not match commit ${options.commit}.`);
+    }
+    if (implementationMetadata.state !== "initial-home") {
+      throw new Error(
+        `${themeId} implementation capture does not represent the initial home state.`,
+      );
+    }
     for (const viewport of ["desktop", "mobile"] as const) {
       const expected = referenceMetadata.viewports.find(({ id }) => id === viewport);
       const actual = implementationMetadata.viewports.find(({ id }) => id === viewport);
