@@ -14,6 +14,17 @@ export default defineConfig({
   timeout: 10 * 60_000,
   expect: { timeout: 20_000 },
   reporter: [["list"], ["html", { outputFolder: "../playwright-report", open: "never" }]],
+  projects: [
+    {
+      name: "provider-purchase",
+      testMatch: "storefront-purchase.spec.ts",
+    },
+    {
+      name: "release-operations",
+      dependencies: ["provider-purchase"],
+      testIgnore: "storefront-purchase.spec.ts",
+    },
+  ],
   use: {
     ...devices["Desktop Chrome"],
     baseURL: storefront,

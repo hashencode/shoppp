@@ -12,7 +12,7 @@ test("AE4/AE7: forged returns fail closed and an exhausted notification replays 
   const headers = {
     ...accessHeaders(),
     "Content-Type": "application/json",
-    "Idempotency-Key": `release-replay-${jobId}`,
+    "Idempotency-Key": `release-replay-${jobId}-${crypto.randomUUID()}`,
   };
   const body = { confirm: true, reason: "Release recovery proof" };
   const first = await request.post(adminApiUrl(`/admin/operations/jobs/${jobId}/replay`), {

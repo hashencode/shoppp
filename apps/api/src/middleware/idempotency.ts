@@ -20,7 +20,9 @@ export function idempotency(scope: string): MiddlewareHandler<ApiEnvironment> {
       );
     }
     const body = await context.req.raw.clone().text();
+    const principal = context.var.principal;
     const credential =
+      (principal ? `principal:${principal.subject}` : undefined) ??
       context.req.header("authorization") ??
       context.req.header("cf-access-jwt-assertion") ??
       "anonymous";
