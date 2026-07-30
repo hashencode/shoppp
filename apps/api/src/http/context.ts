@@ -37,6 +37,7 @@ export interface ApiBindings {
   TURNSTILE_REQUIRED?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET?: string;
+  TURNSTILE_TEST_MODE?: string;
   EMAIL_FROM: string;
   EMAIL_PROVIDER_API_KEY?: string;
   EMAIL_PROVIDER_URL?: string;

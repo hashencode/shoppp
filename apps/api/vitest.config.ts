@@ -29,6 +29,7 @@ export default defineConfig(async () => {
             TEST_MIGRATIONS: migrations,
             TURNSTILE_HOSTNAMES: "storefront-staging.example.invalid",
             TURNSTILE_REQUIRED: "false",
+            TURNSTILE_TEST_MODE: "false",
           },
         },
         wrangler: {

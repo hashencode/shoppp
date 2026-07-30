@@ -175,6 +175,12 @@ export function verifySnapshots(
       snapshot.apiVariables.TURNSTILE_REQUIRED === "true",
       `${snapshot.environment} must fail closed with Turnstile enabled`,
     );
+    if (snapshot.environment === "production") {
+      assert(
+        snapshot.apiVariables.TURNSTILE_TEST_MODE !== "true",
+        "production cannot enable Turnstile test mode",
+      );
+    }
   }
 
   const stagingResources = new Set([

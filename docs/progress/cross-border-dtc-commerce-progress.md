@@ -28,7 +28,7 @@ The plan remains the read-only authority.
 | U11  | Complete        | D1 transactional outbox, privacy-minimal Cloudflare Queue payloads, stable Workflow identities, five customer templates, replaceable idempotent email adapter, asynchronous payment-provider reconciliation, append-only bounded attempts, retry/DLQ handling, masked operator visibility, and audited same-identity replay pass Worker 64/64, D1 6/6, admin 243/243, browser 6/6 + storefront 9/9, type/build/lint/format/table-width gates.                                                                                                                                                                                                                                                                  |
 | U14  | Complete        | Immutable environment/test-mode reporting facts, integer minor-unit gross/refund/net/count/AOV definitions, explicit currency and IANA/DST windows, prior-window labels, reconcilable order drill-down, stable search/pagination, permission/ownership/expiry/audit controls, and bounded asynchronous fixed-length CSV streaming to isolated R2 pass Worker 71/71, D1 6/6, admin 246/246, browser 7/7, type/build/lint/format/table-width gates.                                                                                                                                                                                                                                                              |
 | U12  | Complete        | Credential-scoped checkout rate limiting, exact-origin/body guards, action/hostname-bound Turnstile, centralized recursive redaction, structured request/Analytics Engine telemetry, no-store admin responses, server-verified launch gates, runtime commercial settings, stable audit browsing, six complete configurable policy disclosures, hashed-subject privacy operations with seven-day R2 exports and immutable retention decisions, and a scheduled D1-to-R2 Workflow with isolated seeded restore reconciliation pass Worker 83/83, D1 6/6, admin 246/246 + browser 8/8, storefront 8/8, Playwright 16/25 applicable, WCAG 4/4, Lighthouse/bundle, type/build/lint/format/static/table-width gates. |
-| U13  | Staging partial | All three staging Workers, Cloudflare data resources, Access allow/deny identities, CI deployment credentials, immutable catalog fixture, remote D1 migrations, public routes, rotating Access JWKS verification, Stripe test-mode secrets/webhook, Cloudflare Email Service binding, and a successful D1/R2 backup plus isolated restore drill are provisioned. The full local gate passes (tools 27/27, Worker 98/98, admin 249/249, storefront 18/18, contracts 7/7, domain 24/24, seed 1/1, plus lint/typecheck/build). Provider-backed purchase/refund/retry, email receipt, alert delivery, rollback rehearsal, and manual accessibility/device evidence remain pending.                                 |
+| U13  | Staging partial | All three staging Workers, Cloudflare data resources, Access allow/deny identities, CI deployment credentials, immutable catalog fixture, remote D1 migrations, public routes, rotating Access JWKS verification, Stripe test-mode secrets/webhook, Cloudflare Email Service binding, and a successful D1/R2 backup plus isolated restore drill are provisioned. The full local gate passes (tools 34/34 plus all workspace tests, Worker tests, lint, typecheck, and format). A provider-backed purchase and Cloudflare Email Service receipt have completed. Provider-backed fulfillment/refund/retry, alert delivery, rollback rehearsal, and manual accessibility/device evidence remain pending.          |
 
 ## Staging provisioning evidence
 
@@ -44,12 +44,15 @@ The plan remains the read-only authority.
   and order transitions. The local workerd/D1 suite passes.
 - Analytics Engine is enabled with `shoppp_staging_observability`. A staging Turnstile widget is
   bound to the API Worker; its secret was written directly to Worker secret storage and only its
-  public site key is committed.
+  public site key is committed. Automated staging purchase journeys use Cloudflare's official
+  always-pass testing pair with an explicit staging-only verifier mode; environment isolation
+  rejects that mode in production.
 - The staging API, admin, and storefront are deployed at
   `shoppp-api-staging.hashencode.workers.dev`,
   `shoppp-admin-staging.hashencode.workers.dev`, and
   `shoppp-storefront-staging.hashencode.workers.dev`. API health and runtime Turnstile config
-  return successfully. API version `a1808b98-b5bf-4701-913e-94f19a908042` is deployed at 100%.
+  return successfully. API version `a9026de8-1549-472c-9433-f475fde7f334` and storefront version
+  `4b0a23ae-5bde-476a-af74-8c8b28f3d728` are deployed at 100%.
   Cloudflare Access protects the admin with a Service Auth policy: an allowlisted service token
   reaches `/api/admin/session` as the seeded `admin` identity, while both anonymous traffic and a
   second non-allowlisted service token receive 403. The API verifies the real service-token JWT
@@ -67,6 +70,16 @@ The plan remains the read-only authority.
   foreign-key checking is clean, and the same browser flow now returns 200 with
   `canCheckout=true`, the selected $13.50 method, and an authoritative $142.50 total. The launch
   configuration contract now rejects malformed shipping method identifiers before persistence.
+- The live checkout then exposed two runtime-only defects that local mocks had hidden: the
+  Turnstile component mounted before its asynchronous public Site Key arrived, and the Stripe
+  adapter invoked the Worker-native `fetch` with the provider instance as its receiver. Focused
+  browser and adapter regressions now cover both boundaries. A live staging purchase used Stripe
+  test mode to charge the exact $142.50 quote, received and reconciled the signed provider event,
+  confirmed order `ORD-5048B7589121`, cleared the cart, and rendered the opaque guest order view
+  from immutable item, address, shipping, amount, and currency snapshots. The receipt job was
+  enqueued by the five-minute Cron, completed once through the Queue and Workflow, and was accepted
+  by Cloudflare Email Service for the verified launch destination with one successful attempt and
+  no recorded error.
 - The GitHub `staging` environment contains the three application URLs, immutable release ID,
   build-manifest token, Cloudflare account ID, authorized/prohibited Access credentials, and an
   active one-year account-owned Cloudflare API token with Workers, D1, R2, and Queue deployment
@@ -90,9 +103,9 @@ The plan remains the read-only authority.
   resolves exactly one opaque `/orders/<token>` segment through its Worker asset binding, while
   preserving the browser URL and excluding `/orders/access`; focused route tests, the static build,
   and static SEO inspection pass.
-- Staging remains non-releasable until the human Turnstile check and provider-backed
-  purchase/refund/retry/email journeys are completed, the exhausted-notification and alert
-  destinations are exercised, and rollback plus manual accessibility/device evidence are recorded.
+- Staging remains non-releasable until the provider-backed fulfillment/refund/retry journeys are
+  completed, the exhausted-notification and alert destinations are exercised, and rollback plus
+  manual accessibility/device evidence are recorded.
   Staging and production may share this Cloudflare account because AE8 requires isolated resources,
   credentials, domains, and provider targets—not a distinct account ID.
 

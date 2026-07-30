@@ -192,7 +192,8 @@ export class StripePaymentProvider implements PaymentProvider {
         false,
       );
     }
-    this.#fetch = options.fetcher ?? fetch;
+    const fetcher = options.fetcher ?? fetch;
+    this.#fetch = (input, init) => fetcher(input, init);
     this.#now = options.now ?? Date.now;
     this.#secretKey = options.secretKey;
     this.#webhookSecret = options.webhookSecret;

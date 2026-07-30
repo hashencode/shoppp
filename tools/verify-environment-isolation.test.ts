@@ -20,6 +20,7 @@ function snapshots() {
         RESOURCE_NAMESPACE: "shoppp-staging",
         TURNSTILE_REQUIRED: "true",
         TURNSTILE_SITE_KEY: "staging-site-key",
+        TURNSTILE_TEST_MODE: "false",
         STOREFRONT_ORIGIN: "https://shop.staging.example.com",
         PAYMENT_SUCCESS_URL: "https://shop.staging.example.com/checkout/complete",
         PAYMENT_CANCEL_URL: "https://shop.staging.example.com/checkout",
@@ -46,6 +47,7 @@ function snapshots() {
         RESOURCE_NAMESPACE: "shoppp-production",
         TURNSTILE_REQUIRED: "true",
         TURNSTILE_SITE_KEY: "production-site-key",
+        TURNSTILE_TEST_MODE: "false",
         STOREFRONT_ORIGIN: "https://shop.example.com",
         PAYMENT_SUCCESS_URL: "https://shop.example.com/checkout/complete",
         PAYMENT_CANCEL_URL: "https://shop.example.com/checkout",
@@ -103,5 +105,11 @@ describe("environment isolation", () => {
     expect(() => verifySnapshots(fixture)).toThrow(
       /share deployment resources|references a staging resource/,
     );
+  });
+
+  test("fails closed when production enables Turnstile test mode", () => {
+    const fixture = snapshots();
+    fixture[1]!.apiVariables.TURNSTILE_TEST_MODE = "true";
+    expect(() => verifySnapshots(fixture)).toThrow(/production cannot enable Turnstile test mode/);
   });
 });

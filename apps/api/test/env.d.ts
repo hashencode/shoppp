@@ -24,6 +24,7 @@ declare global {
       STOREFRONT_ORIGIN: string;
       TEST_MIGRATIONS: D1Migration[];
       TURNSTILE_SITE_KEY?: string;
+      TURNSTILE_TEST_MODE?: string;
     }
   }
 }

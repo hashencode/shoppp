@@ -40,7 +40,9 @@ An infrastructure owner must:
 4. Put Worker secrets in Cloudflare with `wrangler secret put --env <environment>`. Confirm the
    Stripe webhook points to that environment's `/webhooks/stripe` endpoint. Replace each API
    environment's `TURNSTILE_SITE_KEY` placeholder with the public key paired to that environment's
-   secret; staging and production keys must be distinct.
+   secret; staging and production keys must be distinct. Automated staging journeys may use
+   Cloudflare's official testing pair with `TURNSTILE_TEST_MODE=true`; the isolation verifier
+   rejects that mode in production.
 5. Seed the representative catalog (at least 1,000 products and 5,000 variants), one last-unit
    purchase fixture, roles, launch settings, shipping zones, and policy text.
 6. Before the first storefront release only, apply staging migrations and bootstrap the staging API
