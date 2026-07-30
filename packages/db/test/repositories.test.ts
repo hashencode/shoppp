@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { reserveInventory } from "../src/repositories/inventory";
+import { InsufficientInventoryError, reserveInventory } from "../src/repositories/inventory";
 import { recordProviderEvent } from "../src/repositories/payment-events";
 import { seedLaunchFixture } from "../seed/apply";
 
@@ -11,16 +11,17 @@ describe("D1 repositories", () => {
   });
 
   test("AE2: two reservation writes cannot both claim the last unit", async () => {
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
     const attempts = await Promise.allSettled([
       reserveInventory(env.DB, {
-        expiresAt: "2026-07-30T00:15:00.000Z",
+        expiresAt,
         id: "res_first",
         quantity: 1,
         variantId: "var_fixture_0001",
         warehouseId: "wh_primary",
       }),
       reserveInventory(env.DB, {
-        expiresAt: "2026-07-30T00:15:00.000Z",
+        expiresAt,
         id: "res_second",
         quantity: 1,
         variantId: "var_fixture_0001",
@@ -29,7 +30,11 @@ describe("D1 repositories", () => {
     ]);
 
     expect(attempts.filter(({ status }) => status === "fulfilled")).toHaveLength(1);
-    expect(attempts.filter(({ status }) => status === "rejected")).toHaveLength(1);
+    const rejected = attempts.filter(
+      (attempt): attempt is PromiseRejectedResult => attempt.status === "rejected",
+    );
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBeInstanceOf(InsufficientInventoryError);
     const inventory = await env.DB.prepare(
       "SELECT on_hand_quantity, reserved_quantity FROM inventory_items WHERE variant_id = ? AND warehouse_id = ?",
     )
