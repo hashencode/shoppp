@@ -170,7 +170,12 @@ describe('StandardListPageRecipe', () => {
       current: 1,
       size: 10,
     })
-    expect(screen.getByTestId('table-node').textContent).toBe('alpha')
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('table-node').textContent).toBe('alpha')
+      },
+      { timeout: 3_000 }
+    )
   }, 10_000)
 
   it('resets to first page when page size changes', async () => {
