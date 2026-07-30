@@ -151,7 +151,7 @@ function looksPlaceholder(value: string): boolean {
 
 export function verifySnapshots(
   snapshots: EnvironmentSnapshot[],
-  options: { strictProduction?: boolean } = {},
+  options: { strictEnvironment?: EnvironmentName | "all" } = {},
 ): void {
   const staging = snapshots.find((snapshot) => snapshot.environment === "staging");
   const production = snapshots.find((snapshot) => snapshot.environment === "production");
@@ -235,15 +235,16 @@ export function verifySnapshots(
     "production payment cancel target crosses storefront origin",
   );
 
-  if (options.strictProduction) {
-    const strictValues = [
-      ...staging.applicationNames,
-      ...staging.resourceIdentifiers,
-      ...staging.endpointValues,
-      ...production.applicationNames,
-      ...production.resourceIdentifiers,
-      ...production.endpointValues,
-    ];
+  if (options.strictEnvironment) {
+    const strictSnapshots =
+      options.strictEnvironment === "all"
+        ? snapshots
+        : snapshots.filter((snapshot) => snapshot.environment === options.strictEnvironment);
+    const strictValues = strictSnapshots.flatMap((snapshot) => [
+      ...snapshot.applicationNames,
+      ...snapshot.resourceIdentifiers,
+      ...snapshot.endpointValues,
+    ]);
     const placeholders = strictValues.filter(looksPlaceholder);
     assert(
       placeholders.length === 0,
@@ -255,7 +256,7 @@ export function verifySnapshots(
 export async function verifyEnvironmentIsolation(
   options: {
     root?: string;
-    strictProduction?: boolean;
+    strictEnvironment?: EnvironmentName | "all";
   } = {},
 ): Promise<EnvironmentSnapshot[]> {
   const snapshots = await loadSnapshots(options.root);
@@ -270,7 +271,9 @@ if (import.meta.main) {
       strict: { type: "boolean", default: false },
     },
   });
-  const snapshots = await verifyEnvironmentIsolation({ strictProduction: values.strict });
+  const snapshots = await verifyEnvironmentIsolation({
+    ...(values.strict ? { strictEnvironment: "all" as const } : {}),
+  });
   console.log(
     `Environment isolation verified for ${snapshots.map((entry) => entry.environment).join(" and ")}${values.strict ? " (strict)" : ""}.`,
   );

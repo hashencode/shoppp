@@ -233,7 +233,7 @@ export async function validateRelease(options: {
   });
 
   const snapshots = await verifyEnvironmentIsolation({
-    strictProduction: strictEnvironment,
+    ...(strictEnvironment ? { strictEnvironment: options.target } : {}),
   });
   if (strictEnvironment && !options.promotion) {
     const staging = snapshots.find((snapshot) => snapshot.environment === "staging");

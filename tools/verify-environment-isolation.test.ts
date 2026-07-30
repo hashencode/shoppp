@@ -91,10 +91,24 @@ describe("environment isolation", () => {
     expect(() => verifySnapshots(fixture)).toThrow(/crosses storefront origin/);
   });
 
-  test("strict release mode rejects placeholders", () => {
+  test("strict production mode rejects production placeholders", () => {
     const fixture = snapshots();
     fixture[1]!.endpointValues.push("https://shop.example.invalid");
-    expect(() => verifySnapshots(fixture, { strictProduction: true })).toThrow(
+    expect(() => verifySnapshots(fixture, { strictEnvironment: "production" })).toThrow(
+      /placeholder resources/,
+    );
+  });
+
+  test("strict staging mode ignores production placeholders", () => {
+    const fixture = snapshots();
+    fixture[1]!.endpointValues.push("https://shop.example.invalid");
+    expect(() => verifySnapshots(fixture, { strictEnvironment: "staging" })).not.toThrow();
+  });
+
+  test("strict staging mode rejects staging placeholders", () => {
+    const fixture = snapshots();
+    fixture[0]!.endpointValues.push("https://shop.staging.example.invalid");
+    expect(() => verifySnapshots(fixture, { strictEnvironment: "staging" })).toThrow(
       /placeholder resources/,
     );
   });
