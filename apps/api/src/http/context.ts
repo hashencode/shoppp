@@ -32,6 +32,7 @@ export interface ApiBindings {
   PAYMENT_SUCCESS_URL?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  EMAIL?: SendEmail;
   TURNSTILE_HOSTNAMES?: string;
   TURNSTILE_REQUIRED?: string;
   TURNSTILE_SITE_KEY?: string;

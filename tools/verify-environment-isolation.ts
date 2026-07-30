@@ -50,12 +50,7 @@ const ENDPOINT_VARIABLES = new Set([
   "EMAIL_FROM",
 ]);
 
-const ID_VARIABLES = new Set([
-  "CLOUDFLARE_ACCOUNT_ID",
-  "D1_DATABASE_ID",
-  "RESOURCE_NAMESPACE",
-  "ACCESS_AUDIENCE",
-]);
+const ID_VARIABLES = new Set(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ACCESS_AUDIENCE"]);
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -71,9 +66,7 @@ function collectResources(value: unknown, parentKey = ""): string[] {
   for (const [key, entry] of Object.entries(value)) {
     if (
       typeof entry === "string" &&
-      (RESOURCE_KEYS.has(key) ||
-        (key === "name" && parentKey === "workflows") ||
-        (parentKey === "vars" && ID_VARIABLES.has(key)))
+      (RESOURCE_KEYS.has(key) || (key === "name" && parentKey === "workflows"))
     ) {
       result.push(entry);
     }
@@ -137,7 +130,6 @@ export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]>
     const endpointValues = Object.entries(apiVariables)
       .filter(([key]) => ENDPOINT_VARIABLES.has(key))
       .map(([, value]) => value);
-
     return {
       environment,
       applicationNames: unique(applicationNames),
@@ -189,11 +181,17 @@ export function verifySnapshots(
     ...staging.applicationNames,
     ...staging.resourceIdentifiers,
     ...staging.endpointValues,
+    ...Object.entries(staging.apiVariables)
+      .filter(([key]) => ID_VARIABLES.has(key))
+      .map(([, value]) => value),
   ]);
   const productionResources = new Set([
     ...production.applicationNames,
     ...production.resourceIdentifiers,
     ...production.endpointValues,
+    ...Object.entries(production.apiVariables)
+      .filter(([key]) => ID_VARIABLES.has(key))
+      .map(([, value]) => value),
   ]);
   const crossover = [...stagingResources].filter((value) => productionResources.has(value));
   assert(

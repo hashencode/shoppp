@@ -23,7 +23,7 @@
     "D1_DATABASE_ID": "00000000-0000-0000-0000-000000000010",
   },
   "triggers": {
-    "crons": ["*/5 * * * *"],
+    "crons": ["*/5 * * * *", "0 0 * * *"],
   },
   "d1_databases": [
     {
@@ -114,14 +114,13 @@
       "name": "shoppp-development-d1-backup",
       "binding": "BACKUP_WORKFLOW",
       "class_name": "D1BackupWorkflow",
-      "schedules": ["0 0 * * *"],
     },
   ],
   "env": {
     "staging": {
       "name": "shoppp-api-staging",
       "triggers": {
-        "crons": ["*/5 * * * *"],
+        "crons": ["*/5 * * * *", "0 0 * * *"],
       },
       "vars": {
         "ENVIRONMENT": "staging",
@@ -136,13 +135,19 @@
         "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
         "PAYMENT_CANCEL_URL": "https://shoppp-storefront-staging.hashencode.workers.dev/checkout",
         "PAYMENT_SUCCESS_URL": "https://shoppp-storefront-staging.hashencode.workers.dev/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
-        "EMAIL_FROM": "orders@shoppp-staging.hashencode.workers.dev",
+        "EMAIL_FROM": "orders@cdncdncdn.online",
         "TURNSTILE_REQUIRED": "true",
         "TURNSTILE_SITE_KEY": "0x4AAAAAAEBRLp3a3K1o2E6j",
         "TURNSTILE_HOSTNAMES": "shoppp-storefront-staging.hashencode.workers.dev",
         "CLOUDFLARE_ACCOUNT_ID": "449e7f42fe4c4e55d5c674e2e7c57c8d",
         "D1_DATABASE_ID": "0c84c9e0-5ef1-4897-815e-5ec7efb7582e",
       },
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "destination_address": "364461035@qq.com",
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -232,14 +237,13 @@
           "name": "shoppp-staging-d1-backup",
           "binding": "BACKUP_WORKFLOW",
           "class_name": "D1BackupWorkflow",
-          "schedules": ["0 0 * * *"],
         },
       ],
     },
     "production": {
       "name": "shoppp-api-production",
       "triggers": {
-        "crons": ["*/5 * * * *"],
+        "crons": ["*/5 * * * *", "0 0 * * *"],
       },
       "vars": {
         "ENVIRONMENT": "production",
@@ -258,7 +262,7 @@
         "TURNSTILE_REQUIRED": "true",
         "TURNSTILE_SITE_KEY": "replace-with-production-turnstile-site-key",
         "TURNSTILE_HOSTNAMES": "shop.example.invalid",
-        "CLOUDFLARE_ACCOUNT_ID": "00000000000000000000000000000003",
+        "CLOUDFLARE_ACCOUNT_ID": "449e7f42fe4c4e55d5c674e2e7c57c8d",
         "D1_DATABASE_ID": "00000000-0000-0000-0000-000000000030",
       },
       "d1_databases": [
@@ -350,7 +354,6 @@
           "name": "shoppp-production-d1-backup",
           "binding": "BACKUP_WORKFLOW",
           "class_name": "D1BackupWorkflow",
-          "schedules": ["0 0 * * *"],
         },
       ],
     },

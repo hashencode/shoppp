@@ -7,6 +7,19 @@ on:
         description: Approved immutable catalog release ID
         required: true
         type: string
+      promote_production:
+        description: Promote the proven candidate to production
+        required: true
+        default: false
+        type: boolean
+      production_confirmation:
+        description: Type PROMOTE <release-id> when production promotion is intended
+        required: false
+        type: string
+      production_backup_id:
+        description: Recent approved production backup ID
+        required: false
+        type: string
 
 concurrency:
   group: commerce-production
@@ -185,8 +198,31 @@ jobs:
             --data '{"status":"failed","failureCode":"staging_proof_failed"}' \
             "$API_E2E_BASE_URL/build/catalog/releases/$RELEASE_ID/status"
 
-  promote-production:
+  approve-production:
     needs: [validate, prove-staging]
+    if: ${{ inputs.promote_production }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      approved_by: ${{ steps.approval.outputs.approved_by }}
+      backup_id: ${{ steps.approval.outputs.backup_id }}
+    steps:
+      - id: approval
+        name: Record explicit production approval
+        env:
+          APPROVED_BY: ${{ github.actor }}
+          PRODUCTION_BACKUP_ID: ${{ inputs.production_backup_id }}
+          PRODUCTION_CONFIRMATION: ${{ inputs.production_confirmation }}
+          RELEASE_ID: ${{ inputs.release_id }}
+        run: |
+          test "$PRODUCTION_CONFIRMATION" = "PROMOTE $RELEASE_ID"
+          [[ "$PRODUCTION_BACKUP_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
+          printf 'approved_by=%s\n' "$APPROVED_BY" >> "$GITHUB_OUTPUT"
+          printf 'backup_id=%s\n' "$PRODUCTION_BACKUP_ID" >> "$GITHUB_OUTPUT"
+
+  promote-production:
+    needs: [validate, prove-staging, approve-production]
+    if: ${{ inputs.promote_production }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: production
@@ -203,9 +239,26 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: validated-${{ inputs.release_id }}
+      - name: Verify recent production backup before migration
+        env:
+          PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
+        run: |
+          backup_json="$(
+            cd apps/api
+            bunx wrangler d1 execute DB \
+              --env production \
+              --remote \
+              --json \
+              --command "SELECT id FROM d1_backup_runs WHERE id = '$PRODUCTION_BACKUP_ID' AND environment = 'production' AND status = 'ready' AND datetime(completed_at) >= datetime('now', '-24 hours') LIMIT 1"
+          )"
+          jq --exit-status \
+            --arg id "$PRODUCTION_BACKUP_ID" \
+            'any(.[]?.results[]?; .id == $id)' \
+            <<< "$backup_json" >/dev/null
       - name: Revalidate approved promotion against staging evidence
         env:
-          RELEASE_APPROVED_BY: ${{ github.actor }}
+          RELEASE_APPROVED_BY: ${{ needs.approve-production.outputs.approved_by }}
+          RELEASE_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
           RELEASE_STRICT_ENVIRONMENT: "true"
           RELEASE_TARGET: production
           STAGING_RELEASE_REPORT: artifacts/releases/${{ inputs.release_id }}.json
@@ -219,7 +272,10 @@ jobs:
           (cd apps/admin && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets dist --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
           (cd apps/storefront && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets .output/public --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
       - name: Deploy production versions after environment approval
+        env:
+          APPROVED_BY: ${{ needs.approve-production.outputs.approved_by }}
+          PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
         run: |
-          (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
-          (cd apps/admin && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
-          (cd apps/storefront && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
+          (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
+          (cd apps/admin && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
+          (cd apps/storefront && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)

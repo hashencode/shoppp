@@ -13,7 +13,11 @@ function snapshots() {
         "https://shop.staging.example.com/checkout",
       ],
       apiVariables: {
+        ACCESS_AUDIENCE: "staging-access-audience",
+        CLOUDFLARE_ACCOUNT_ID: "shared-cloudflare-account",
+        D1_DATABASE_ID: "staging-db-id",
         ENVIRONMENT: "staging",
+        RESOURCE_NAMESPACE: "shoppp-staging",
         TURNSTILE_REQUIRED: "true",
         TURNSTILE_SITE_KEY: "staging-site-key",
         STOREFRONT_ORIGIN: "https://shop.staging.example.com",
@@ -35,7 +39,11 @@ function snapshots() {
         "https://shop.example.com/checkout",
       ],
       apiVariables: {
+        ACCESS_AUDIENCE: "production-access-audience",
+        CLOUDFLARE_ACCOUNT_ID: "shared-cloudflare-account",
+        D1_DATABASE_ID: "production-db-id",
         ENVIRONMENT: "production",
+        RESOURCE_NAMESPACE: "shoppp-production",
         TURNSTILE_REQUIRED: "true",
         TURNSTILE_SITE_KEY: "production-site-key",
         STOREFRONT_ORIGIN: "https://shop.example.com",
@@ -50,6 +58,23 @@ describe("environment isolation", () => {
   test("accepts distinct staging and production resources", () => {
     expect(() => verifySnapshots(snapshots())).not.toThrow();
   });
+
+  test("allows one Cloudflare account when every mutable resource remains distinct", () => {
+    const fixture = snapshots();
+    expect(fixture[0]!.apiVariables.CLOUDFLARE_ACCOUNT_ID).toBe(
+      fixture[1]!.apiVariables.CLOUDFLARE_ACCOUNT_ID,
+    );
+    expect(() => verifySnapshots(fixture)).not.toThrow();
+  });
+
+  test.each(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ACCESS_AUDIENCE"])(
+    "fails closed when %s crosses environments",
+    (variable) => {
+      const fixture = snapshots();
+      fixture[1]!.apiVariables[variable] = fixture[0]!.apiVariables[variable]!;
+      expect(() => verifySnapshots(fixture)).toThrow(/share deployment resources/);
+    },
+  );
 
   test("fails closed when a binding crosses environments", () => {
     const fixture = snapshots();
