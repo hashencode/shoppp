@@ -1,17 +1,33 @@
 import "./tokens.css";
-
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import DecorFeature from "./components/DecorFeature.vue";
+import DecorCategoryShowcase from "./components/DecorCategoryShowcase.vue";
+import DecorClientStrip from "./components/DecorClientStrip.vue";
+import DecorCollectionFeature from "./components/DecorCollectionFeature.vue";
 import DecorFooter from "./components/DecorFooter.vue";
 import DecorHeader from "./components/DecorHeader.vue";
-import DecorLayeredHero from "./components/DecorLayeredHero.vue";
+import DecorHeroCarousel from "./components/DecorHeroCarousel.vue";
+import DecorJournal from "./components/DecorJournal.vue";
+import DecorMarquee from "./components/DecorMarquee.vue";
+import DecorProductTabs from "./components/DecorProductTabs.vue";
+import DecorServiceStrip from "./components/DecorServiceStrip.vue";
+import { decorHomeFixtures } from "./fixtures/home";
+import { themeAssets } from "./resources";
 
 export const themeRegistry = {
   blocks: {},
   sections: {
-    "decor.feature": DecorFeature,
+    "decor.category-showcase": DecorCategoryShowcase,
+    "decor.client-strip": DecorClientStrip,
+    "decor.collection-feature": DecorCollectionFeature,
     "decor.footer": DecorFooter,
     "decor.header": DecorHeader,
-    "decor.layered-hero": DecorLayeredHero,
+    "decor.hero-carousel": DecorHeroCarousel,
+    "decor.journal": DecorJournal,
+    "decor.marquee": DecorMarquee,
+    "decor.product-tabs": DecorProductTabs,
+    "decor.service-strip": DecorServiceStrip,
   },
 } as const satisfies ThemeRegistry;
+
+export { themeAssets };
+export const themeFixtures = decorHomeFixtures;

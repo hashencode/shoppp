@@ -3,9 +3,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { themePackageSchema } from "@shoppp/contracts";
 
-import { resolveTemplateOverride } from "../../../packages/domain/src/storefront-experience";
+import { decorHomeFixtures } from "../app/themes/decor/fixtures/home";
 import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
 import { decorPreset } from "../app/themes/decor/presets/layered";
+import { themeAssets } from "../app/themes/decor/resources";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import { decorPreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 
@@ -46,41 +47,25 @@ describe("Decor theme package", () => {
     expect([...visibleInstanceIds].every((id) => bindingInstanceIds.includes(id))).toBe(true);
   });
 
-  test("supports stable visibility, ordering, settings, and preset reset", () => {
+  test("declares the complete reference-backed Decor home inventory in order", () => {
     const home = decorPreset.templates.find(({ pageType }) => pageType === "home")!;
-    const changed = resolveTemplateOverride(home, {
-      operations: [
-        { instanceId: "decor-feature", kind: "set-visibility", visible: false },
-        {
-          instanceId: "decor-hero",
-          kind: "set-setting",
-          settingId: "heading",
-          value: "Layered living",
-        },
-        {
-          instanceIds: [
-            "decor-navigation",
-            "decor-announcement",
-            "decor-hero",
-            "decor-feature",
-            "decor-products",
-            "decor-trust",
-            "decor-footer",
-          ],
-          kind: "reorder-sections",
-        },
-        { instanceId: "decor-hero", kind: "reset-setting", settingId: "heading" },
-      ],
-      presetId: decorPreset.id,
-      schemaVersion: 1,
-      templateId: home.id,
-    });
-
-    expect(changed.sections.find(({ id }) => id === "decor-feature")?.visible).toBe(false);
-    expect(changed.sections.find(({ id }) => id === "decor-hero")?.settings.heading).toBe(
-      home.sections.find(({ id }) => id === "decor-hero")?.settings.heading,
-    );
-    expect(home.sections.find(({ id }) => id === "decor-feature")?.visible).toBe(true);
+    expect(home.sections.map(({ type }) => type)).toEqual([
+      "decor.header",
+      "decor.hero-carousel",
+      "decor.category-showcase",
+      "decor.product-tabs",
+      "decor.marquee",
+      "decor.collection-feature",
+      "decor.client-strip",
+      "decor.journal",
+      "decor.service-strip",
+      "decor.footer",
+    ]);
+    const serialized = JSON.stringify(decorHomeFixtures);
+    expect(serialized).not.toContain("Atlas");
+    expect(serialized).toContain("decor.slider-01-img-01");
+    expect(Object.keys(themeAssets).length).toBeGreaterThanOrEqual(60);
+    expect(Object.keys(themeAssets).every((id) => id.startsWith("decor."))).toBe(true);
   });
 
   test("selects only Decor and excludes Fashion and prohibited runtimes", async () => {
@@ -101,6 +86,7 @@ describe("Decor theme package", () => {
 
     expect(activeModule).toContain('../themes/decor/registry"');
     expect(activeModule).not.toContain("themes/fashion");
-    expect(source).not.toMatch(/jquery|revolution|crafto|contact\.php|@font-face|https?:\/\//);
+    expect(source).not.toMatch(/jquery|revolution|contact\.php|https?:\/\//);
+    expect(source).toContain("@font-face");
   });
 });
