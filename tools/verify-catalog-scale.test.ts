@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { representativeCatalog } from "./verify-catalog-scale";
+import { catalogFixtureEnvironment, representativeCatalog } from "./verify-catalog-scale";
 
 describe("representative catalog fixture", () => {
   test("contains the release-contract scale with unique routes and identifiers", () => {
@@ -13,5 +13,13 @@ describe("representative catalog fixture", () => {
     expect(
       release.collections.reduce((count, collection) => count + collection.productSlugs.length, 0),
     ).toBe(1_000);
+  });
+
+  test("isolates scale builds from a selected remote catalog release", () => {
+    expect(catalogFixtureEnvironment("/tmp/catalog-scale.json")).toEqual({
+      NUXT_CATALOG_RELEASE_FILE: "/tmp/catalog-scale.json",
+      NUXT_CATALOG_RELEASE_TOKEN: "",
+      NUXT_CATALOG_RELEASE_URL: "",
+    });
   });
 });
