@@ -111,6 +111,9 @@ The plan remains the read-only authority.
   proved allowlisted and prohibited Access identities, fail-closed forged returns and unsigned
   webhooks, idempotent exhausted-notification replay, failed-publication last-known-good behavior,
   machine-visible operator alerting, public/protected/cache boundaries, and automated accessibility.
+- Replayed job `proof-notification-30534041570-1` subsequently completed through the staging
+  Queue/Workflow and was accepted by Cloudflare Email Service. Its durable final state is `sent`
+  with four total attempts, one attempt cycle, one replay, a provider message ID, and no error.
 - The staging latency probe used 20 samples and four concurrent checkout mutations. Its p95 was
   409 ms for catalog reads, 372 ms for cart reads, and 716 ms for checkout mutations. The workflow
   then rolled API, admin, and storefront back, health-checked all three boundaries, and restored
