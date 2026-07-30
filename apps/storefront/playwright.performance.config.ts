@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: process.env.STOREFRONT_PERF_BASE_URL
     ? undefined
     : {
-        command: `bun run build && wrangler dev --port ${port} --local`,
+        command: `bun run build && bun scripts/serve-performance.ts`,
         url: baseURL,
         reuseExistingServer: false,
         timeout: 120_000,
