@@ -16,6 +16,11 @@ const decorPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.decor.config.ts",
 );
+const architecturePath = resolve(
+  import.meta.dir,
+  "../docs/architecture/storefront-theme-platform.md",
+);
+const fidelityRunbookPath = resolve(import.meta.dir, "../docs/runbooks/storefront-preview.md");
 
 describe("production promotion workflow", () => {
   test("defaults to staging-only and requires explicit release confirmation", async () => {
@@ -105,5 +110,20 @@ describe("storefront theme browser matrix", () => {
     expect(productionIgnore).toContain('"fashion-theme.spec.ts"');
     expect(fashion).toContain('testMatch: "fashion-theme.spec.ts"');
     expect(decor).toContain('testMatch: "decor-theme.spec.ts"');
+  });
+
+  test("keeps fidelity evidence scoped to home and requires explicit review", async () => {
+    const [fashion, decor, architecture, runbook] = await Promise.all([
+      readFile(fashionPlaywrightPath, "utf8"),
+      readFile(decorPlaywrightPath, "utf8"),
+      readFile(architecturePath, "utf8"),
+      readFile(fidelityRunbookPath, "utf8"),
+    ]);
+
+    expect(fashion).toContain("width: 768");
+    expect(decor).toContain("width: 768");
+    expect(architecture).toContain("reference-fidelity scope is the home template only");
+    expect(runbook).toMatch(/does not activate a\s+production theme/);
+    expect(runbook).toContain("Do not create `approval.json`");
   });
 });

@@ -26,6 +26,7 @@ describe("release validation", () => {
       "lint",
       "types",
       "theme-contracts",
+      "fidelity-contract",
       "unit-contract",
       "worker-integration",
       "admin-browser",

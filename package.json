@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && bun run check:boundaries && bun tools/run-workspace-script.ts lint --if-present",
+    "report:theme-fidelity": "bun tools/theme-fidelity-report.ts",
     "release:validate": "bun tools/release-validate.ts",
     "test": "bun test tools && bun tools/run-workspace-script.ts test --if-present",
     "test:a11y": "bun tools/run-workspace-script.ts test:a11y --if-present",

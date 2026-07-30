@@ -15,6 +15,7 @@ const outputPath = (route: string) =>
 const budget = 200 * 1024;
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".map", ".txt", ".xml"]);
 const codeExtensions = new Set([".css", ".js", ".map"]);
+const imageExtensions = new Set([".avif", ".jpg", ".jpeg", ".png", ".webp"]);
 
 async function outputFiles(directory: string): Promise<string[]> {
   const files: string[] = [];
@@ -94,6 +95,9 @@ for (const file of files) {
   if (prohibitedRuntime.test(runtimeSurface)) {
     throw new Error(`Storefront output contains a prohibited upstream runtime in ${file}.`);
   }
+  if (/fonts\.(?:googleapis|gstatic)\.com/i.test(runtimeSurface)) {
+    throw new Error(`Storefront output contains an external font request in ${file}.`);
+  }
   for (const [inactiveTheme, pattern] of inactiveThemePatterns) {
     if (containsInactiveTheme(file, contents, inactiveTheme, pattern)) {
       throw new Error(
@@ -105,6 +109,27 @@ for (const file of files) {
     throw new Error(
       `Production storefront output contains preview artifact or credential material in ${file}.`,
     );
+  }
+}
+
+if (activeThemeId === "fashion" || activeThemeId === "decor") {
+  const themedImages = files.filter(
+    (file) =>
+      imageExtensions.has(extname(file).toLowerCase()) &&
+      file.toLowerCase().includes(`demo-${activeThemeId}-store`),
+  );
+  const expectedFont =
+    activeThemeId === "fashion" ? /(?:figtree|outfit)-latin/i : /plus-jakarta-sans-latin/i;
+  if (themedImages.length < 10) {
+    throw new Error(`${activeThemeId} output is missing its selected reference image set.`);
+  }
+  if (!files.some((file) => extname(file) === ".woff2" && expectedFont.test(file))) {
+    throw new Error(`${activeThemeId} output is missing its selected self-hosted font.`);
+  }
+} else {
+  const previewFont = /(?:figtree|outfit|plus-jakarta-sans)-latin/i;
+  if (files.some((file) => previewFont.test(file))) {
+    throw new Error("Production fallback contains a preview theme font.");
   }
 }
 

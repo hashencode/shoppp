@@ -43,6 +43,12 @@ Theme assets remain inside their namespaced package until compilation. Matrix ve
 each output for inactive-theme namespaces and prohibited Crafto runtimes. The final production
 build verifies that it contains neither theme preview code nor preview credentials.
 
+The Fashion and Decor reference-fidelity scope is the home template only. Collection, product,
+cart, checkout, order, and policy templates remain complete platform-regression routes, but they
+are not represented as reproductions of the supplied reference pages. Reference imagery and
+self-hosted fonts enter the selected build through the theme asset resolver; the source matrix
+verifies every imported binary is allowlisted and recorded in that theme's provenance file.
+
 ## Preview trust boundary
 
 A preview build is a private, content-addressed artifact under:
@@ -78,6 +84,9 @@ change the production active theme.
 - `tools/generate-storefront-theme-catalog.ts --check` detects generated catalog drift.
 - Per-theme Playwright and Lighthouse suites verify complete fixture routes, responsive behavior,
   no-JavaScript content, accessibility, and performance.
+- Desktop and mobile home captures remain separate from source references. The fidelity report
+  binds implementation evidence to its theme, initial state, viewport, and commit, and creates no
+  approval record until a user explicitly accepts the comparison.
 - `apps/storefront/scripts/check-bundle-budget.ts` enforces JavaScript and selected-theme output
   isolation.
 - `tools/release-validate.ts` runs the full matrix before rebuilding the unchanged production
