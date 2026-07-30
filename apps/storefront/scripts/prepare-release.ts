@@ -182,12 +182,9 @@ await writeFile(
 );
 await writeFile(
   resolve(root, "public/_redirects"),
-  `${[
-    ...routeManifest.redirects.map(
-      (redirect) => `${redirect.from} ${redirect.to} ${redirect.status}`,
-    ),
-    "/orders/* /orders/access/index.html 200",
-  ].join("\n")}\n`,
+  `${routeManifest.redirects
+    .map((redirect) => `${redirect.from} ${redirect.to} ${redirect.status}`)
+    .join("\n")}\n`,
 );
 
 console.log(`Prepared ${routes.length} static routes from ${release.releaseId}.`);

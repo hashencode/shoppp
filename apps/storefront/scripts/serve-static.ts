@@ -1,6 +1,8 @@
 import { readFile, stat } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 
+import { orderAccessAssetPath } from "../worker/order-assets";
+
 const publicRoot = resolve(import.meta.dir, "../.output/public");
 const port = Number(Bun.argv[2] || 3421);
 
@@ -85,7 +87,7 @@ Bun.serve({
       return new Response(null, { headers: { Location: rule.to }, status: rule.status });
     }
 
-    const pathname = rule?.status === 200 ? rule.to : url.pathname;
+    const pathname = orderAccessAssetPath(rule?.status === 200 ? rule.to : url.pathname);
     const file = await publicFile(pathname);
     if (file) return staticResponse(file, request);
 
