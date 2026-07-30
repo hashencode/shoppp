@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: process.env.STOREFRONT_PERF_BASE_URL
     ? undefined
     : {
-        command: `bun run build && bun scripts/serve-performance.ts`,
+        command: `bun run build && bun scripts/serve-static.ts ${port}`,
         url: baseURL,
         reuseExistingServer: false,
         timeout: 120_000,

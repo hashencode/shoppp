@@ -48,6 +48,11 @@ The plan remains the read-only authority.
   emit purchase exactly once.
 - The final review has no surviving local findings. Evidence:
   `/tmp/compound-engineering/ce-code-review/shoppp-20260730-full/review.json`.
+- Local storefront browser gates now use the generated static artifact through a shared,
+  gzip-capable test server that applies the release `_redirects` file. This keeps E2E,
+  accessibility, and Lighthouse measurements on the exact deployable output while reserving the
+  Wrangler Service Binding path for integration/staging validation; unmocked commerce API calls
+  fail with 503 and the privacy-minimal analytics beacon is explicitly acknowledged.
 - Latest local gates: tools 20/20; admin unit 249/249 and browser 8/8; storefront unit 18/18;
   contracts 7/7; domain 24/24; Worker API 93/93 and D1 6/6; admin Playwright 7/7; storefront
   Playwright 10/10 applicable; WCAG/keyboard 4/4; plus format, lint, typecheck, production build,
