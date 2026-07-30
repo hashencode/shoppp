@@ -4,6 +4,7 @@ import type { PageTemplate } from "@shoppp/contracts";
 import {
   activeExperienceSnapshot,
   activePreviewOrigin,
+  activeThemeId,
   activeThemeRegistry,
 } from "./generated/active-theme";
 import { experienceFixtureRegistry } from "../fixtures/experience";
@@ -31,7 +32,7 @@ const previewTitle = computed(
       cart: "Preview bag",
       checkout: "Checkout presentation",
       collection: "Fixture collection",
-      home: "Fashion storefront",
+      home: `${activeThemeId[0]?.toUpperCase()}${activeThemeId.slice(1)} storefront`,
       order: "Order status presentation",
       policy: "Fixture policy",
       product: "Fixture product",
