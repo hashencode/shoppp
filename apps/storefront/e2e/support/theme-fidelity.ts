@@ -28,10 +28,14 @@ export async function captureThemeEvidence(
     return;
   }
   await page.evaluate(async () => {
+    const images = [...document.images];
+    for (const image of images) image.loading = "eager";
     for (let top = 0; top < document.documentElement.scrollHeight; top += innerHeight * 0.8) {
       scrollTo(0, top);
       await new Promise((resolvePromise) => setTimeout(resolvePromise, 50));
     }
+    scrollTo(0, document.documentElement.scrollHeight);
+    await Promise.all(images.map((image) => image.decode().catch(() => undefined)));
     scrollTo(0, 0);
   });
   const viewport = testInfo.project.name.includes("mobile") ? "mobile" : "desktop";
