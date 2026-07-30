@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:decor": "playwright test --config playwright.decor.config.ts",
     "test:fashion": "playwright test --config playwright.fashion.config.ts",
+    "test:fidelity": "bun test ../../tools/theme-fidelity-report.test.ts",
     "test:perf": "playwright test --config playwright.performance.config.ts",
     "test:perf:decor": "STOREFRONT_THEME=decor playwright test --config playwright.performance.config.ts",
     "test:perf:fashion": "STOREFRONT_THEME=fashion playwright test --config playwright.performance.config.ts",

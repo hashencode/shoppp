@@ -9,10 +9,7 @@ import {
   activeThemeId,
   activeThemeRegistry,
 } from "./generated/active-theme";
-import {
-  createThemeAssetResolver,
-  mergeExperienceFixtureRegistries,
-} from "./theme-engine/assets";
+import { createThemeAssetResolver, mergeExperienceFixtureRegistries } from "./theme-engine/assets";
 import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 

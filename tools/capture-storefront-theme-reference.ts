@@ -77,7 +77,10 @@ interface CapturePage {
 }
 
 async function sweep(page: CapturePage): Promise<void> {
-  await page.getByRole("button", { name: /allow cookies/i }).click({ timeout: 1_000 }).catch(() => {});
+  await page
+    .getByRole("button", { name: /allow cookies/i })
+    .click({ timeout: 1_000 })
+    .catch(() => {});
   await page.evaluate(async () => {
     const step = Math.max(500, Math.floor(innerHeight * 0.75));
     for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
@@ -120,7 +123,8 @@ export async function captureReference(options: {
     port: 0,
     async fetch(request) {
       const requestUrl = new URL(request.url);
-      const requestPath = decodeURIComponent(requestUrl.pathname.replace(/^\/+/, "")) || config.entry;
+      const requestPath =
+        decodeURIComponent(requestUrl.pathname.replace(/^\/+/, "")) || config.entry;
       const normalized = normalize(requestPath);
       const filePath = resolve(root, normalized);
       const relativePath = relative(root, filePath);
@@ -131,7 +135,9 @@ export async function captureReference(options: {
       ) {
         return new Response("Not found", { status: 404 });
       }
-      const contents = await Bun.file(filePath).arrayBuffer().catch(() => null);
+      const contents = await Bun.file(filePath)
+        .arrayBuffer()
+        .catch(() => null);
       if (!contents) return new Response("Not found", { status: 404 });
       return new Response(contents, { headers: { "content-type": contentType(filePath) } });
     },

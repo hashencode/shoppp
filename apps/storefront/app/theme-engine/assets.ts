@@ -18,9 +18,18 @@ export function validateThemeAssets(
     if (!pattern.test(assetId)) {
       throw new Error(`Theme asset ${assetId} does not use the ${themeId} namespace.`);
     }
+    const isRuntimeSameOrigin = (() => {
+      if (typeof globalThis.location === "undefined") return false;
+      try {
+        return new URL(path).origin === globalThis.location.origin;
+      } catch {
+        return false;
+      }
+    })();
     const isBuildLocal =
       path.startsWith("/") ||
       path.startsWith("file:") ||
+      isRuntimeSameOrigin ||
       /^data:image\/(?:avif|jpeg|png|webp);base64,[a-zA-Z0-9+/=]+$/.test(path);
     if (!isBuildLocal || path.startsWith("//") || path.includes("..")) {
       throw new Error(`Theme asset ${assetId} must resolve to a same-origin build asset.`);

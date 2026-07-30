@@ -91,7 +91,10 @@ export const decorHomeFixtures = {
       },
       clients: {
         data: {
-          items: Array.from({ length: 5 }, (_, index) => `decor.client-${String(index + 1).padStart(2, "0")}`),
+          items: Array.from(
+            { length: 5 },
+            (_, index) => `decor.client-${String(index + 1).padStart(2, "0")}`,
+          ),
         },
         kind: "theme-section",
         state: "populated",
@@ -129,7 +132,10 @@ export const decorHomeFixtures = {
             Information: ["About us", "Contact us", "FAQs", "Payment"],
             Account: ["My account", "Orders", "Checkout", "Wishlist"],
           },
-          payments: Array.from({ length: 4 }, (_, index) => `decor.payment-icon-${String(index + 1).padStart(2, "0")}`),
+          payments: Array.from(
+            { length: 4 },
+            (_, index) => `decor.payment-icon-${String(index + 1).padStart(2, "0")}`,
+          ),
         },
         kind: "theme-section",
         state: "populated",

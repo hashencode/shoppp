@@ -52,7 +52,11 @@ export const fashionPreset = {
         section({ capabilities: [], id: "fashion-categories", type: "fashion.category-tiles" }),
         section({ capabilities: [], id: "fashion-bestsellers", type: "fashion.product-showcase" }),
         section({ capabilities: [], id: "fashion-promotion", type: "fashion.promo-band" }),
-        section({ capabilities: [], id: "fashion-collection", type: "fashion.collection-carousel" }),
+        section({
+          capabilities: [],
+          id: "fashion-collection",
+          type: "fashion.collection-carousel",
+        }),
         section({ capabilities: [], id: "fashion-featured", type: "fashion.product-showcase" }),
         section({ capabilities: [], id: "fashion-magazine", type: "fashion.magazine" }),
         footer(),

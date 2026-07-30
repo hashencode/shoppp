@@ -31,9 +31,9 @@ describe("selected theme resources", () => {
     expect(resolveAsset("fashion.hero-01")).toContain("hero-01");
     expect(() => resolveAsset("fashion.missing")).toThrow("missing");
     expect(() => resolveAsset("decor.hero-01")).toThrow("namespace");
-    expect(() => validateThemeAssets("fashion", { "fashion.hero": "https://example.test/x.jpg" })).toThrow(
-      "same-origin",
-    );
+    expect(() =>
+      validateThemeAssets("fashion", { "fashion.hero": "https://example.test/x.jpg" }),
+    ).toThrow("same-origin");
     expect(() =>
       validateThemeAssets("fashion", {
         "fashion.hero": "/assets/one.jpg",
@@ -49,11 +49,13 @@ describe("selected theme resources", () => {
     expect(Object.keys(merged)).toEqual(["core-populated", "fashion-home"]);
     expect(merged["fashion-home"]?.viewModels.hero?.kind).toBe("theme-section");
     expect(() =>
-      mergeExperienceFixtureRegistries(core, { "core-populated": { ...fixture, id: "core-populated" } }),
+      mergeExperienceFixtureRegistries(core, {
+        "core-populated": { ...fixture, id: "core-populated" },
+      }),
     ).toThrow("duplicate");
-    expect(() =>
-      mergeExperienceFixtureRegistries(core, { mismatch: fixture }),
-    ).toThrow("stable ID");
+    expect(() => mergeExperienceFixtureRegistries(core, { mismatch: fixture })).toThrow(
+      "stable ID",
+    );
   });
 
   test("generates selected assets and fixtures while production stays empty", () => {

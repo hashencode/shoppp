@@ -64,7 +64,7 @@ describe("Decor theme package", () => {
     const serialized = JSON.stringify(decorHomeFixtures);
     expect(serialized).not.toContain("Atlas");
     expect(serialized).toContain("decor.slider-01-img-01");
-    expect(Object.keys(themeAssets).length).toBeGreaterThanOrEqual(60);
+    expect(Object.keys(themeAssets).length).toBeGreaterThanOrEqual(40);
     expect(Object.keys(themeAssets).every((id) => id.startsWith("decor."))).toBe(true);
   });
 

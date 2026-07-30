@@ -59,17 +59,24 @@ export const fashionHomeFixtures = {
       },
       services: {
         data: {
-          items: ["Free shipping over $130", "Easy 30-day returns", "Secure protected payment", "Friendly support"],
+          items: [
+            "Free shipping over $130",
+            "Easy 30-day returns",
+            "Secure protected payment",
+            "Friendly support",
+          ],
         },
         kind: "theme-section",
         state: "populated",
       },
       categories: {
         data: {
-          items: ["Women", "Men", "Accessories", "Outerwear", "Dresses", "Shoes"].map((name, index) => ({
-            assetId: `fashion.menu-category-${String(index + 1).padStart(2, "0")}`,
-            name,
-          })),
+          items: ["Women", "Men", "Accessories", "Outerwear", "Dresses", "Shoes"].map(
+            (name, index) => ({
+              assetId: `fashion.menu-category-${String(index + 1).padStart(2, "0")}`,
+              name,
+            }),
+          ),
         },
         kind: "theme-section",
         state: "populated",

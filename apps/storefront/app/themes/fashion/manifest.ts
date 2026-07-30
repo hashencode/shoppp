@@ -1,4 +1,8 @@
-import type { SectionDefinition, StorefrontThemeDescriptor, ThemeManifest } from "@shoppp/contracts";
+import type {
+  SectionDefinition,
+  StorefrontThemeDescriptor,
+  ThemeManifest,
+} from "@shoppp/contracts";
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
 
 const visualTypes = [
@@ -55,8 +59,8 @@ export const fashionManifest = {
   provenance: {
     approvedAt: "2026-07-30T00:00:00.000Z",
     approvedBy: "shoppp-theme-team",
-    license: "Repository implementation with user-authorized Crafto visual assets",
-    source: "local://craftohtml-10/demo-fashion-store.html",
+    license: "Repository implementation with user-authorized reference assets",
+    source: "local://user-supplied/demo-fashion-store.html",
   },
   supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "order", "policy"],
   themeVersion: "1.0.0",

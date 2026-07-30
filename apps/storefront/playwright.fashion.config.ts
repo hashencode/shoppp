@@ -17,19 +17,36 @@ export default defineConfig({
   projects: [
     {
       name: "fashion-desktop",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], viewport: { height: 1000, width: 1440 } },
     },
     {
       name: "fashion-mobile",
-      use: { ...devices["Pixel 7"] },
+      use: {
+        ...devices["Pixel 7"],
+        deviceScaleFactor: 1,
+        viewport: { height: 915, width: 412 },
+      },
+    },
+    {
+      name: "fashion-tablet",
+      use: { ...devices["Desktop Chrome"], viewport: { height: 1024, width: 768 } },
     },
     {
       name: "fashion-no-js",
-      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
+      use: {
+        ...devices["Desktop Chrome"],
+        javaScriptEnabled: false,
+        viewport: { height: 1000, width: 1440 },
+      },
     },
     {
       name: "fashion-reduced-motion",
-      use: { ...devices["Pixel 7"], reducedMotion: "reduce" },
+      use: {
+        ...devices["Pixel 7"],
+        deviceScaleFactor: 1,
+        reducedMotion: "reduce",
+        viewport: { height: 915, width: 412 },
+      },
     },
   ],
   webServer: {

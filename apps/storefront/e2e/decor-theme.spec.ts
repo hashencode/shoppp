@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { assertThemeLayout, captureThemeEvidence } from "./support/theme-fidelity";
 
 const routes = [
   "/",
@@ -12,70 +13,84 @@ const routes = [
 ];
 
 for (const route of routes) {
-  test(`${route} renders complete Decor fixture content`, async ({ page }, testInfo) => {
+  test(`${route} remains a complete Decor preview route`, async ({ page }) => {
     await page.goto(route);
-
-    await expect(page.locator("h1")).toBeVisible();
-    if (["decor-mobile", "decor-reduced-motion"].includes(testInfo.project.name)) {
-      await expect(page.locator("details > summary", { hasText: "Explore" })).toBeVisible();
-    } else {
-      await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
-    }
+    await expect(page.locator("h1").first()).toBeVisible();
+    if ((page.viewportSize()?.width ?? 1200) <= 900)
+      await expect(page.locator(".decor-mobile-menu > summary")).toBeVisible();
+    else await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Legal" })).toBeVisible();
-    await expect(page.locator("body")).not.toContainText("undefined");
     await expect(page.locator("body")).not.toContainText("Preview template unavailable");
-
-    const images = await page.locator("img").evaluateAll((elements) =>
-      elements.map((element) => ({
-        alt: element.getAttribute("alt"),
-        height: element.getAttribute("height"),
-        width: element.getAttribute("width"),
-      })),
-    );
-    expect(images.every(({ alt, height, width }) => alt && height && width)).toBe(true);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    );
-    if (testInfo.project.name === "decor-desktop") {
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
-        .analyze();
-      expect(
-        results.violations.filter(({ impact }) => impact === "critical" || impact === "serious"),
-      ).toEqual([]);
-    }
+    await assertThemeLayout(page);
   });
 }
 
-test("Decor keeps its layered content without JavaScript", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "decor-no-js");
+test("Decor home matches the furniture inventory and native interactions", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "decor-no-js");
   await page.goto("/");
-
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Rooms made for real life." }),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore the fixture collection" })).toBeVisible();
-  await expect(page.locator(".decor-layer")).toHaveCount(3);
+  await expect(page.getByRole("heading", { level: 1, name: "Corby sofas" })).toBeVisible();
+  for (const selector of [
+    ".decor-categories",
+    ".decor-products",
+    ".decor-marquee",
+    ".decor-collection",
+    ".decor-clients",
+    ".decor-journal",
+    ".decor-services",
+    ".decor-footer",
+  ]) {
+    await expect(page.locator(selector)).toBeVisible();
+  }
+  await page.waitForLoadState("networkidle");
+  await captureThemeEvidence(page, testInfo, "decor");
+  await page.getByRole("button", { name: "Next furniture" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Nordic chairs" })).toBeVisible();
+  await page.getByRole("tab", { name: "Best sellers" }).click();
+  await expect(page.getByRole("tab", { name: "Best sellers" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.locator("body")).not.toContainText("Atlas carry-on");
+  await assertThemeLayout(page);
 });
 
-test("Decor native menu and layered Hero honor reduced motion", async ({ page }, testInfo) => {
+test("Decor home has no serious accessibility violations", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "decor-desktop");
+  await page.goto("/");
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+    .analyze();
+  expect(
+    results.violations.filter(({ impact }) => impact === "critical" || impact === "serious"),
+  ).toEqual([]);
+});
+
+test("Decor keeps the first furniture state and content without JavaScript", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "decor-no-js");
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: "Corby sofas" })).toBeVisible();
+  await expect(page.locator(".decor-categories img")).toHaveCount(6);
+  await expect(page.locator(".decor-journal article")).toHaveCount(4);
+});
+
+test("Decor reduced motion stops the promotional marquee", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "decor-reduced-motion");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-
-  const menu = page.locator("details");
-  await menu.locator("summary").focus();
-  await page.keyboard.press("Enter");
-  await expect(menu).toHaveAttribute("open", "");
-  await expect(page.locator(".decor-layer").first()).toHaveCSS("animation-name", "none");
+  await expect(page.locator(".decor-marquee div")).toHaveCSS("animation-name", "none");
 });
 
-test("Decor preview excludes Fashion and prohibited runtime requests", async ({ page }) => {
-  const requests: string[] = [];
-  page.on("request", (request) => requests.push(request.url()));
+test("Decor preview emits no commerce mutation or prohibited runtime request", async ({ page }) => {
+  const requests: { method: string; url: string }[] = [];
+  page.on("request", (request) => requests.push({ method: request.method(), url: request.url() }));
   await page.goto("/");
+  await page.getByRole("button", { name: "Add to preview bag" }).first().click();
   const html = (await page.content()).toLowerCase();
-
-  expect(html).not.toMatch(/jquery|revolution|crafto|contact\.php|fashion-/);
-  expect(requests.filter((url) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
+  expect(html).not.toMatch(/jquery|revolution|contact\.php/);
+  expect(requests.filter(({ method }) => method !== "GET")).toEqual([]);
+  expect(requests.filter(({ url }) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
 });

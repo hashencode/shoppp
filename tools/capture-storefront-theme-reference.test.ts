@@ -25,25 +25,34 @@ async function fixture(themeId: "decor" | "fashion"): Promise<string> {
 }
 
 describe("reference source validation", () => {
-  test.each(["fashion", "decor"] as const)("accepts the approved %s entry and first hero", async (themeId) => {
-    const root = await fixture(themeId);
-    await expect(validateReferenceSource(root, referenceCaptureConfigs[themeId])).resolves.toEqual({
-      entryPath: join(root, referenceCaptureConfigs[themeId].entry),
-      heroPath: join(root, referenceCaptureConfigs[themeId].firstHero),
-    });
-  });
+  test.each(["fashion", "decor"] as const)(
+    "accepts the approved %s entry and first hero",
+    async (themeId) => {
+      const root = await fixture(themeId);
+      await expect(
+        validateReferenceSource(root, referenceCaptureConfigs[themeId]),
+      ).resolves.toEqual({
+        entryPath: join(root, referenceCaptureConfigs[themeId].entry),
+        heroPath: join(root, referenceCaptureConfigs[themeId].firstHero),
+      });
+    },
+  );
 
   test("fails clearly when the entry point, first hero, or expected reference is missing", async () => {
     const root = await fixture("fashion");
     const config = referenceCaptureConfigs.fashion;
     await rm(join(root, config.firstHero));
-    await expect(validateReferenceSource(root, config)).rejects.toThrow("expected first hero is missing");
+    await expect(validateReferenceSource(root, config)).rejects.toThrow(
+      "expected first hero is missing",
+    );
 
     await writeFile(join(root, config.firstHero), "fixture");
     await writeFile(join(root, config.entry), "<main>wrong hero</main>");
     await expect(validateReferenceSource(root, config)).rejects.toThrow("does not reference");
 
     await rm(join(root, config.entry));
-    await expect(validateReferenceSource(root, config)).rejects.toThrow("HTML entry point is missing");
+    await expect(validateReferenceSource(root, config)).rejects.toThrow(
+      "HTML entry point is missing",
+    );
   });
 });

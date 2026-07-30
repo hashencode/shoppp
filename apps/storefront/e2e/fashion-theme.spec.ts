@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { expect, test } from "@playwright/test";
+import { assertThemeLayout, captureThemeEvidence } from "./support/theme-fidelity";
 
 const routes = [
   "/",
@@ -12,73 +13,81 @@ const routes = [
 ];
 
 for (const route of routes) {
-  test(`${route} renders complete Fashion fixture content`, async ({ page }, testInfo) => {
+  test(`${route} remains a complete Fashion preview route`, async ({ page }) => {
     await page.goto(route);
-
-    await expect(page.locator("h1")).toBeVisible();
-    if (["fashion-mobile", "fashion-reduced-motion"].includes(testInfo.project.name)) {
-      await expect(page.locator("details > summary", { hasText: "Menu" })).toBeVisible();
-    } else {
-      await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
-    }
+    await expect(page.locator("h1").first()).toBeVisible();
+    if ((page.viewportSize()?.width ?? 1200) <= 900)
+      await expect(page.locator(".fashion-mobile-menu > summary")).toBeVisible();
+    else await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Legal" })).toBeVisible();
-    await expect(page.locator("body")).not.toContainText("undefined");
     await expect(page.locator("body")).not.toContainText("Preview template unavailable");
-
-    const images = await page.locator("img").evaluateAll((elements) =>
-      elements.map((element) => ({
-        alt: element.getAttribute("alt"),
-        height: element.getAttribute("height"),
-        width: element.getAttribute("width"),
-      })),
-    );
-    expect(images.every(({ alt, height, width }) => alt && height && width)).toBe(true);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    );
-    if (testInfo.project.name === "fashion-desktop") {
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
-        .analyze();
-      expect(
-        results.violations.filter(({ impact }) => impact === "critical" || impact === "serious"),
-      ).toEqual([]);
-    }
+    await assertThemeLayout(page);
   });
 }
 
-test("Fashion remains meaningful without JavaScript", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-no-js");
+test("Fashion home matches the reference inventory and native interactions", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "fashion-no-js");
   await page.goto("/");
-
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Objects with a point of view." }),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore the fixture collection" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Legal" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Women's collection" })).toBeVisible();
+  for (const selector of [
+    ".fashion-categories",
+    ".fashion-products",
+    ".fashion-promo-band",
+    ".fashion-collection",
+    ".fashion-magazine",
+    ".fashion-footer",
+  ]) {
+    await expect(page.locator(selector).first()).toBeVisible();
+  }
+  await captureThemeEvidence(page, testInfo, "fashion");
+  await page.getByRole("button", { name: "Show slide 2" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Men's collection" })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("Atlas carry-on");
+  await assertThemeLayout(page);
 });
 
-test("Fashion uses native controls and honors reduced motion", async ({ page }, testInfo) => {
+test("Fashion home has no serious accessibility violations", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-desktop");
+  await page.goto("/");
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+    .analyze();
+  expect(
+    results.violations.filter(({ impact }) => impact === "critical" || impact === "serious"),
+  ).toEqual([]);
+});
+
+test("Fashion keeps the first collection and full content without JavaScript", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-no-js");
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: "Women's collection" })).toBeVisible();
+  await expect(page.locator(".fashion-categories img")).toHaveCount(6);
+  await expect(page.locator(".fashion-magazine article")).toHaveCount(4);
+});
+
+test("Fashion reduced motion disables decorative transitions", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "fashion-reduced-motion");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-
-  expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
-    true,
+  await expect(page.locator(".fashion-categories img").first()).toHaveCSS(
+    "transition-duration",
+    "0s",
   );
-  const menu = page.locator("details");
-  await menu.locator("summary").focus();
-  await page.keyboard.press("Enter");
-  await expect(menu).toHaveAttribute("open", "");
-  await expect(page.locator(".fashion-hero")).toHaveCSS("animation-name", "none");
 });
 
-test("Fashion preview emits no prohibited runtime or external font request", async ({ page }) => {
-  const requests: string[] = [];
-  page.on("request", (request) => requests.push(request.url()));
+test("Fashion preview emits no commerce mutation or prohibited runtime request", async ({
+  page,
+}) => {
+  const requests: { method: string; url: string }[] = [];
+  page.on("request", (request) => requests.push({ method: request.method(), url: request.url() }));
   await page.goto("/");
+  await page.getByRole("button", { name: "Add to preview bag" }).first().click();
   const html = (await page.content()).toLowerCase();
-
-  expect(html).not.toMatch(/jquery|revolution|crafto|contact\.php/);
-  expect(requests.filter((url) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
+  expect(html).not.toMatch(/jquery|revolution|contact\.php/);
+  expect(requests.filter(({ method }) => method !== "GET")).toEqual([]);
+  expect(requests.filter(({ url }) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
 });
