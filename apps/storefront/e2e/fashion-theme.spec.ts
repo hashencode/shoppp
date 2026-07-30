@@ -41,9 +41,15 @@ test("Fashion home matches the reference inventory and native interactions", asy
   ]) {
     await expect(page.locator(selector).first()).toBeVisible();
   }
+  await expect(page.locator(".fashion-hero-slide img").first()).toHaveAttribute(
+    "fetchpriority",
+    "high",
+  );
+  await expect(page.locator(".fashion-hero-slide img").nth(1)).toHaveAttribute("loading", "lazy");
   await captureThemeEvidence(page, testInfo, "fashion");
   await page.getByRole("button", { name: "Show slide 2" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Men's collection" })).toBeVisible();
+  await expect(page.locator(".fashion-hero-slide").nth(1).locator("img")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Atlas carry-on");
   await assertThemeLayout(page);
 });

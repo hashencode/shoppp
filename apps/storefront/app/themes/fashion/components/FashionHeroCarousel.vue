@@ -13,9 +13,19 @@ const data = computed(() =>
     ? (properties.viewModel.data as unknown as HeroData)
     : null,
 );
+useHead(() => ({
+  link: data.value?.slides[0]
+    ? [
+        {
+          as: "image",
+          fetchpriority: "high",
+          href: properties.resolveAsset(data.value.slides[0].assetId),
+          rel: "preload",
+        },
+      ]
+    : [],
+}));
 const current = ref(0);
-const paused = ref(false);
-let timer: ReturnType<typeof setInterval> | undefined;
 function select(index: number): void {
   const count = data.value?.slides.length ?? 1;
   current.value = (index + count) % count;
@@ -24,13 +34,6 @@ function keydown(event: KeyboardEvent): void {
   if (event.key === "ArrowRight") select(current.value + 1);
   if (event.key === "ArrowLeft") select(current.value - 1);
 }
-onMounted(() => {
-  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-    timer = setInterval(() => {
-      if (!paused.value && document.visibilityState === "visible") select(current.value + 1);
-    }, 6_000);
-});
-onBeforeUnmount(() => timer && clearInterval(timer));
 </script>
 
 <template>
@@ -41,10 +44,6 @@ onBeforeUnmount(() => timer && clearInterval(timer));
     aria-label="Seasonal collections"
     tabindex="0"
     @keydown="keydown"
-    @mouseenter="paused = true"
-    @mouseleave="paused = false"
-    @focusin="paused = true"
-    @focusout="paused = false"
   >
     <aside class="fashion-social-rail" aria-label="Social channels">
       <span>Instagram</span><span>Twitter</span><span>Dribbble</span><span>Facebook</span>
@@ -61,7 +60,8 @@ onBeforeUnmount(() => timer && clearInterval(timer));
         :alt="`${slide.heading} campaign portrait`"
         width="1920"
         height="1080"
-        fetchpriority="high"
+        :fetchpriority="index === 0 ? 'high' : 'auto'"
+        :loading="index === 0 ? 'eager' : 'lazy'"
       />
       <div class="fashion-hero-copy">
         <p>{{ slide.eyebrow }}</p>

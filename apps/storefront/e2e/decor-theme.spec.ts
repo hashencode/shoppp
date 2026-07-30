@@ -43,10 +43,18 @@ test("Decor home matches the furniture inventory and native interactions", async
   ]) {
     await expect(page.locator(selector)).toBeVisible();
   }
+  await expect(page.locator(".decor-hero-product").first()).toHaveAttribute(
+    "fetchpriority",
+    "high",
+  );
+  await expect(page.locator(".decor-hero-product").nth(1)).toHaveAttribute("loading", "lazy");
   await page.waitForLoadState("networkidle");
   await captureThemeEvidence(page, testInfo, "decor");
   await page.getByRole("button", { name: "Next furniture" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Nordic chairs" })).toBeVisible();
+  await expect(
+    page.locator(".decor-hero-slide").nth(1).locator(".decor-hero-product"),
+  ).toBeVisible();
   await page.getByRole("tab", { name: "Best sellers" }).click();
   await expect(page.getByRole("tab", { name: "Best sellers" })).toHaveAttribute(
     "aria-selected",

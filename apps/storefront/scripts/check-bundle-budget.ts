@@ -98,6 +98,12 @@ for (const file of files) {
   if (/fonts\.(?:googleapis|gstatic)\.com/i.test(runtimeSurface)) {
     throw new Error(`Storefront output contains an external font request in ${file}.`);
   }
+  if (
+    extname(file) === ".html" &&
+    /<link\b(?=[^>]*\brel=["']prefetch["'])(?=[^>]*\bas=["']image["'])[^>]*>/i.test(contents)
+  ) {
+    throw new Error(`Storefront output eagerly prefetches non-critical images in ${file}.`);
+  }
   for (const [inactiveTheme, pattern] of inactiveThemePatterns) {
     if (containsInactiveTheme(file, contents, inactiveTheme, pattern)) {
       throw new Error(

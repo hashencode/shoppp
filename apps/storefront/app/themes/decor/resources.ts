@@ -83,6 +83,9 @@ export const themeAssets = validateThemeAssets("decor", {
   "decor.product-slider-03": asset55,
   "decor.slider-01-img-01": asset57,
   "decor.slider-01-img-02": asset58,
+  "decor.slider-01-accent-mobile":
+    "/theme-preview-generated/demo-decor-store-slider-01-accent-mobile.webp",
+  "decor.slider-01-mobile": "/theme-preview-generated/demo-decor-store-slider-01-mobile.webp",
   "decor.slider-02-img-04": asset61,
   "decor.slider-02-img-05": asset62,
   "decor.slider-03-img-07": asset65,

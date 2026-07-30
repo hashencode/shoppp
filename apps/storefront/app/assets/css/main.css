@@ -1,6 +1,3 @@
-@import "tailwindcss";
-@import "@nuxt/ui";
-
 :root {
   --ink: #10201b;
   --muted: #53625c;
@@ -128,6 +125,11 @@ select:focus-visible {
 }
 .section h1 {
   font-size: clamp(2.5rem, 7vw, 5.5rem);
+}
+.section > ul a {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
 }
 .section h2 {
   font-size: clamp(2rem, 5vw, 4rem);

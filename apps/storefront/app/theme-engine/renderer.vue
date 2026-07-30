@@ -40,7 +40,7 @@ const plan = computed(() =>
 </script>
 
 <template>
-  <div class="site-shell">
+  <main id="preview-content" class="site-shell" tabindex="-1">
     <template v-for="section in plan" :key="section.instance.id">
       <component
         :is="section.component"
@@ -57,11 +57,6 @@ const plan = computed(() =>
           :view-model="block.viewModel"
         />
       </component>
-      <span
-        v-if="section.instance.capabilities.includes('focus.skip-link')"
-        id="preview-content"
-        tabindex="-1"
-      />
     </template>
-  </div>
+  </main>
 </template>

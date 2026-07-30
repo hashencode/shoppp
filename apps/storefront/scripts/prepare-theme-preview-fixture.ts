@@ -1,7 +1,8 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { fixtureBindingSchema } from "@shoppp/contracts";
+import sharp from "sharp";
 import * as z from "zod";
 
 import { decorManifest } from "../app/themes/decor/manifest";
@@ -96,6 +97,29 @@ async function main(): Promise<void> {
     themeId === "fashion"
       ? await fashionPreviewBuildInput("https://preview.example.test")
       : await decorPreviewBuildInput("https://preview.example.test");
+  const generatedAssetRoot = resolve(import.meta.dir, "../public/theme-preview-generated");
+  await rm(generatedAssetRoot, { force: true, recursive: true });
+  if (themeId === "decor") {
+    await mkdir(generatedAssetRoot, { recursive: true });
+    await sharp(
+      resolve(
+        import.meta.dir,
+        "../app/themes/decor/assets/images/demo-decor-store-slider-01-img-01.png",
+      ),
+    )
+      .resize({ width: 720, withoutEnlargement: true })
+      .webp({ alphaQuality: 80, quality: 76 })
+      .toFile(resolve(generatedAssetRoot, "demo-decor-store-slider-01-mobile.webp"));
+    await sharp(
+      resolve(
+        import.meta.dir,
+        "../app/themes/decor/assets/images/demo-decor-store-slider-01-img-02.jpg",
+      ),
+    )
+      .resize({ width: 412, withoutEnlargement: true })
+      .webp({ quality: 68 })
+      .toFile(resolve(generatedAssetRoot, "demo-decor-store-slider-01-accent-mobile.webp"));
+  }
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(input, null, 2)}\n`);
   console.log(`Prepared ${themeId} preview fixture at ${outputPath}.`);

@@ -35,6 +35,8 @@ export const decorHomeFixtures = {
               accentAssetId: "decor.slider-01-img-02",
               assetId: "decor.slider-01-img-01",
               heading: "Corby sofas",
+              mobileAccentAssetId: "decor.slider-01-accent-mobile",
+              mobileAssetId: "decor.slider-01-mobile",
               price: "$199.00",
             },
             {

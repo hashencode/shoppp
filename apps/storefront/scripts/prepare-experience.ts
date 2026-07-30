@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -181,6 +181,9 @@ async function main(): Promise<void> {
       throw new Error("Preview build mode requires STOREFRONT_EXPERIENCE_FILE.");
     }
     input = { environment: "production" };
+  }
+  if (input.environment === "production") {
+    await rm(resolve(root, "public/theme-preview-generated"), { force: true, recursive: true });
   }
   await prepareExperience({
     catalog: storefrontThemeCatalog,

@@ -62,7 +62,7 @@ if (activeExperienceSnapshot && previewOrigin) {
 </script>
 
 <template>
-  <UApp>
+  <div class="app-shell">
     <ThemeRenderer
       v-if="previewTemplate"
       :bindings="activeExperienceSnapshot?.bindings ?? []"
@@ -78,5 +78,5 @@ if (activeExperienceSnapshot && previewOrigin) {
     <NuxtLayout v-else>
       <NuxtPage />
     </NuxtLayout>
-  </UApp>
+  </div>
 </template>
