@@ -28,19 +28,13 @@ function minimalThirdTheme(): ThemeMatrixEntry {
   for (const preset of entry.package.presets) {
     for (const template of preset.templates) {
       for (const section of template.sections) {
-        if (section.type === "fashion.masthead") section.type = "core.navigation";
-        if (section.type === "fashion.footer") {
-          section.type = "core.footer";
-          section.settings = {};
-        }
-        if (section.type === "fashion.editorial-hero") {
-          section.type = "core.hero";
-          section.settings = {};
-        }
-        if (section.type === "fashion.story") {
-          section.type = "core.editorial";
-          section.settings = {};
-        }
+        if (section.type.startsWith("core.")) continue;
+        section.type = section.capabilities.includes("navigation.primary")
+          ? "core.navigation"
+          : section.capabilities.includes("legal.links")
+            ? "core.footer"
+            : "core.editorial";
+        section.settings = {};
       }
     }
   }
