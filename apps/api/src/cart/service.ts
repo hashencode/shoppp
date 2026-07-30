@@ -113,15 +113,17 @@ function cartToken(context: CartContext): string {
   return match[1];
 }
 
-export async function requireCart(context: CartContext): Promise<CartRow> {
-  const tokenHash = await sha256(cartToken(context));
-  const cart = await context.env.DB.prepare(
-    `SELECT id, currency, pricing_context_json, shipping_country, shipping_address_json,
-            shipping_method_id, status, expires_at
-       FROM carts WHERE public_token_hash = ?`,
-  )
-    .bind(tokenHash)
-    .first<CartRow>();
+function cartRowStatement(db: D1Database, tokenHash: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, currency, pricing_context_json, shipping_country, shipping_address_json,
+              shipping_method_id, status, expires_at
+         FROM carts WHERE public_token_hash = ?`,
+    )
+    .bind(tokenHash);
+}
+
+async function assertUsableCart(context: CartContext, cart: CartRow | null): Promise<CartRow> {
   if (!cart) {
     throw new ApiError(401, "cart_token_invalid", "The guest cart token is invalid.");
   }
@@ -136,6 +138,12 @@ export async function requireCart(context: CartContext): Promise<CartRow> {
     throw new ApiError(409, "cart_expired", "This cart has expired. Start a new cart to continue.");
   }
   return cart;
+}
+
+export async function requireCart(context: CartContext): Promise<CartRow> {
+  const tokenHash = await sha256(cartToken(context));
+  const cart = await cartRowStatement(context.env.DB, tokenHash).first<CartRow>();
+  return assertUsableCart(context, cart);
 }
 
 async function authoritativeVariant(
@@ -246,6 +254,33 @@ function lineRowsStatement(db: D1Database, cart: CartRow): D1PreparedStatement {
         ORDER BY cl.created_at, cl.id`,
     )
     .bind(cart.currency, now, now, cart.id);
+}
+
+function lineRowsByCartTokenStatement(db: D1Database, tokenHash: string): D1PreparedStatement {
+  const now = new Date().toISOString();
+  return db
+    .prepare(
+      `SELECT cl.variant_id, cl.quantity, p.name AS product_name, v.title AS variant_name,
+              v.weight_grams,
+              (SELECT pr.amount
+                 FROM prices pr
+                 JOIN price_lists pl ON pl.id = pr.price_list_id
+                WHERE pr.variant_id = v.id AND pl.currency = c.currency
+                  AND pl.status = 'active'
+                  AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
+                  AND (pl.ends_at IS NULL OR pl.ends_at > ?)
+                ORDER BY pl.code LIMIT 1) AS unit_price,
+              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+                                         i.reserved_quantity - i.backordered_quantity)
+                          FROM inventory_items i WHERE i.variant_id = v.id), 0) AS available_quantity
+         FROM carts c
+         JOIN cart_lines cl ON cl.cart_id = c.id
+         JOIN product_variants v ON v.id = cl.variant_id
+         JOIN products p ON p.id = v.product_id
+        WHERE c.public_token_hash = ?
+        ORDER BY cl.created_at, cl.id`,
+    )
+    .bind(now, now, tokenHash);
 }
 
 function shippingMethodRowsStatement(db: D1Database, countryCode: string): D1PreparedStatement {
@@ -604,16 +639,11 @@ export async function acknowledgeAdjustments(
 
 export async function setCartShipping(
   context: CartContext,
-  cart: CartRow,
   input: ShippingQuoteRequest,
 ): Promise<Cart> {
-  const updated = {
-    ...cart,
-    shipping_address_json: JSON.stringify(input.shippingAddress),
-    shipping_country: input.shippingAddress.countryCode,
-    shipping_method_id: input.shippingMethodId ?? null,
-  };
+  const tokenHash = await sha256(cartToken(context));
   const batchResults = await context.env.DB.batch([
+    cartRowStatement(context.env.DB, tokenHash),
     launchConfigurationStatement(context.env.DB),
     context.env.DB.prepare(
       `SELECT sz.id
@@ -621,13 +651,24 @@ export async function setCartShipping(
              JOIN shipping_zone_countries szc ON szc.zone_id = sz.id
             WHERE sz.status = 'active' AND szc.country_code = ? LIMIT 1`,
     ).bind(input.shippingAddress.countryCode),
-    lineRowsStatement(context.env.DB, updated),
+    lineRowsByCartTokenStatement(context.env.DB, tokenHash),
     shippingMethodRowsStatement(context.env.DB, input.shippingAddress.countryCode),
   ]);
-  const configurationResult = batchResults[0]!;
-  const zoneResult = batchResults[1]!;
-  const lineResult = batchResults[2]!;
-  const shippingMethodResult = batchResults[3]!;
+  const cartResult = batchResults[0]!;
+  const configurationResult = batchResults[1]!;
+  const zoneResult = batchResults[2]!;
+  const lineResult = batchResults[3]!;
+  const shippingMethodResult = batchResults[4]!;
+  const cart = await assertUsableCart(
+    context,
+    (cartResult.results as unknown as CartRow[])[0] ?? null,
+  );
+  const updated = {
+    ...cart,
+    shipping_address_json: JSON.stringify(input.shippingAddress),
+    shipping_country: input.shippingAddress.countryCode,
+    shipping_method_id: input.shippingMethodId ?? null,
+  };
   const configuration = parseLaunchConfiguration(
     (configurationResult.results as unknown as LaunchConfigurationRow[])[0] ?? null,
   );

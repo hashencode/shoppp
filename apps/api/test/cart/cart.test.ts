@@ -396,4 +396,41 @@ describe("guest cart authority", () => {
       error: { code: "shipping_destination_unavailable" },
     });
   });
+
+  test("preserves cart expiry checks when quoting shipping in one D1 batch", async () => {
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-expired-00001" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    await env.DB.prepare("UPDATE carts SET expires_at = ?").bind("2020-01-01T00:00:00.000Z").run();
+
+    const quote = await app.fetch(
+      cartRequest("/cart/shipping", data.token, {
+        body: JSON.stringify({
+          shippingAddress: {
+            city: "Portland",
+            countryCode: "US",
+            line1: "100 Market Street",
+            name: "Example Shopper",
+            postalCode: "97205",
+          },
+        }),
+        headers: { "Idempotency-Key": "cart-shipping-expired-001" },
+        method: "PUT",
+      }),
+      env,
+    );
+
+    expect(quote.status).toBe(409);
+    expect(await quote.json()).toMatchObject({ error: { code: "cart_expired" } });
+    expect(await env.DB.prepare("SELECT status FROM carts LIMIT 1").first()).toEqual({
+      status: "expired",
+    });
+  });
 });
