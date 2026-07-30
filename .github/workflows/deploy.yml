@@ -150,6 +150,26 @@ jobs:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
+      - name: Prepare representative last-unit inventory
+        run: |
+          PROOF_INVENTORY_JSON="$(curl --fail --silent --show-error \
+            --header "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+            "$ADMIN_E2E_BASE_URL/api/admin/inventory?query=ATLAS-BLK&pageSize=1")"
+          PROOF_INVENTORY_AVAILABLE="$(jq -er '.data[0].available' <<<"$PROOF_INVENTORY_JSON")"
+          PROOF_INVENTORY_VARIANT="$(jq -er '.data[0].variantId' <<<"$PROOF_INVENTORY_JSON")"
+          PROOF_INVENTORY_WAREHOUSE="$(jq -er '.data[0].warehouseId' <<<"$PROOF_INVENTORY_JSON")"
+          PROOF_INVENTORY_DELTA="$((1 - PROOF_INVENTORY_AVAILABLE))"
+          if [ "$PROOF_INVENTORY_DELTA" -ne 0 ]; then
+            curl --fail --silent --show-error \
+              --request POST \
+              --header "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
+              --header "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+              --header "Content-Type: application/json" \
+              --header "Idempotency-Key: staging-last-unit-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+              --data "{\"quantityDelta\":$PROOF_INVENTORY_DELTA,\"reason\":\"Staging release last-unit fixture\"}" \
+              "$ADMIN_E2E_BASE_URL/api/admin/inventory/$PROOF_INVENTORY_VARIANT/$PROOF_INVENTORY_WAREHOUSE/adjustments"
+          fi
       - name: Seed isolated staging journey fixtures
         working-directory: apps/api
         run: |

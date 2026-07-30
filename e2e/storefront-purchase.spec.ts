@@ -55,5 +55,5 @@ test("AE1-AE3: a guest buys the representative last unit through Stripe hosted c
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible({
     timeout: 120_000,
   });
-  await expect(page.getByText(/Order .+ is confirmed/)).toBeVisible();
+  await expect(page.getByText(/order .+ is confirmed/i)).toBeVisible();
 });

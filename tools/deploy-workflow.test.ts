@@ -30,4 +30,21 @@ describe("production promotion workflow", () => {
       "RELEASE_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}",
     );
   });
+
+  test("prepares isolated and auditable staging journey fixtures", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+
+    expect(workflow).toContain("Prepare representative last-unit inventory");
+    expect(workflow).toContain(
+      "$ADMIN_E2E_BASE_URL/api/admin/inventory/$PROOF_INVENTORY_VARIANT/$PROOF_INVENTORY_WAREHOUSE/adjustments",
+    );
+    expect(workflow).toContain("Staging release last-unit fixture");
+    expect(workflow).toContain(
+      "E2E_EXHAUSTED_NOTIFICATION_ID: proof-notification-${{ github.run_id }}-${{ github.run_attempt }}",
+    );
+    expect(workflow).toContain(
+      "E2E_FAILED_CATALOG_RELEASE_ID: proof-catalog-failure-${{ github.run_id }}-${{ github.run_attempt }}",
+    );
+    expect(workflow).toContain("Remove transient staging proof fixtures");
+  });
 });
