@@ -8,10 +8,14 @@
     "./inventory": "./src/inventory.ts",
     "./money": "./src/money.ts",
     "./order-state": "./src/order-state.ts",
-    "./pricing": "./src/pricing.ts"
+    "./pricing": "./src/pricing.ts",
+    "./storefront-experience": "./src/storefront-experience.ts"
   },
   "scripts": {
     "test": "bun test test",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shoppp/contracts": "workspace:*"
   }
 }

@@ -10,7 +10,8 @@
     "./catalog": "./src/catalog.ts",
     "./checkout": "./src/checkout.ts",
     "./inventory": "./src/inventory.ts",
-    "./reporting": "./src/reporting.ts"
+    "./reporting": "./src/reporting.ts",
+    "./storefront-experience": "./src/storefront-experience.ts"
   },
   "scripts": {
     "test": "bun test test",
