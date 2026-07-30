@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { themeViewports } from "./theme-viewports";
 
 export async function assertThemeLayout(page: Page): Promise<void> {
   const layout = await page.evaluate(() => ({
@@ -44,8 +45,8 @@ export async function captureThemeEvidence(
         state: "initial-home",
         themeId,
         viewports: [
-          { height: 1000, id: "desktop", width: 1440 },
-          { height: 915, id: "mobile", width: 412 },
+          { ...themeViewports.desktop, id: "desktop" },
+          { ...themeViewports.mobile, id: "mobile" },
         ],
       },
       null,

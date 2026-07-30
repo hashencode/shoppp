@@ -63,9 +63,10 @@ describe("Fashion theme package", () => {
       "fashion.footer",
     ]);
     const serialized = JSON.stringify(fashionHomeFixtures);
+    const fixtureAssetIds = new Set(serialized.match(/fashion\.[a-z0-9-]+/g) ?? []);
     expect(serialized).not.toContain("Atlas");
     expect(serialized).toContain("fashion.slider-01");
-    expect(Object.keys(themeAssets).length).toBeGreaterThanOrEqual(40);
+    expect([...fixtureAssetIds].every((id) => id in themeAssets)).toBe(true);
     expect(Object.keys(themeAssets).every((id) => id.startsWith("fashion."))).toBe(true);
   });
 

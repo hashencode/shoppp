@@ -120,8 +120,8 @@ describe("storefront theme browser matrix", () => {
       readFile(fidelityRunbookPath, "utf8"),
     ]);
 
-    expect(fashion).toContain("width: 768");
-    expect(decor).toContain("width: 768");
+    expect(fashion).toContain("themeViewports.tablet");
+    expect(decor).toContain("themeViewports.tablet");
     expect(architecture).toContain("reference-fidelity scope is the home template only");
     expect(runbook).toMatch(/does not activate a\s+production theme/);
     expect(runbook).toContain("Do not create `approval.json`");

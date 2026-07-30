@@ -62,9 +62,10 @@ describe("Decor theme package", () => {
       "decor.footer",
     ]);
     const serialized = JSON.stringify(decorHomeFixtures);
+    const fixtureAssetIds = new Set(serialized.match(/decor\.[a-z0-9-]+/g) ?? []);
     expect(serialized).not.toContain("Atlas");
     expect(serialized).toContain("decor.slider-01-img-01");
-    expect(Object.keys(themeAssets).length).toBeGreaterThanOrEqual(40);
+    expect([...fixtureAssetIds].every((id) => id in themeAssets)).toBe(true);
     expect(Object.keys(themeAssets).every((id) => id.startsWith("decor."))).toBe(true);
   });
 

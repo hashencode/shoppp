@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { themeViewports } from "./e2e/support/theme-viewports";
 
 const port = Number(process.env.STOREFRONT_DECOR_PORT || 3425);
 const baseURL = `http://127.0.0.1:${port}`;
@@ -17,26 +18,26 @@ export default defineConfig({
   projects: [
     {
       name: "decor-desktop",
-      use: { ...devices["Desktop Chrome"], viewport: { height: 1000, width: 1440 } },
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.desktop },
     },
     {
       name: "decor-mobile",
       use: {
         ...devices["Pixel 7"],
         deviceScaleFactor: 1,
-        viewport: { height: 915, width: 412 },
+        viewport: themeViewports.mobile,
       },
     },
     {
       name: "decor-tablet",
-      use: { ...devices["Desktop Chrome"], viewport: { height: 1024, width: 768 } },
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.tablet },
     },
     {
       name: "decor-no-js",
       use: {
         ...devices["Desktop Chrome"],
         javaScriptEnabled: false,
-        viewport: { height: 1000, width: 1440 },
+        viewport: themeViewports.desktop,
       },
     },
     {
@@ -45,7 +46,7 @@ export default defineConfig({
         ...devices["Pixel 7"],
         deviceScaleFactor: 1,
         reducedMotion: "reduce",
-        viewport: { height: 915, width: 412 },
+        viewport: themeViewports.mobile,
       },
     },
   ],
