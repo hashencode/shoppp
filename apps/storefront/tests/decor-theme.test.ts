@@ -69,6 +69,49 @@ describe("Decor theme package", () => {
     expect(Object.keys(themeAssets).every((id) => id.startsWith("decor."))).toBe(true);
   });
 
+  test("maps original Crafto category and service artwork to namespaced assets", async () => {
+    expect(
+      [
+        "decor.icon-01",
+        "decor.icon-03",
+        "decor.icon-02",
+        "decor.icon-10",
+        "decor.icon-04",
+        "decor.icon-05",
+        "decor.icon-06",
+        "decor.icon-07",
+        "decor.icon-08",
+        "decor.icon-09",
+      ].every((id) => id in themeAssets),
+    ).toBe(true);
+    expect(
+      ["decor.main-banner-01", "decor.main-banner-02", "decor.main-banner-03"].every(
+        (id) => id in themeAssets,
+      ),
+    ).toBe(true);
+    const [categorySource, serviceSource, iconMap] = await Promise.all([
+      readFile(
+        resolve(import.meta.dir, "../app/themes/decor/components/DecorCategoryShowcase.vue"),
+        "utf8",
+      ),
+      readFile(
+        resolve(import.meta.dir, "../app/themes/decor/components/DecorServiceStrip.vue"),
+        "utf8",
+      ),
+      readFile(
+        resolve(import.meta.dir, "../../../docs/architecture/storefront-theme-icon-map.md"),
+        "utf8",
+      ),
+    ]);
+    expect(categorySource).toContain('width="65"');
+    expect(categorySource).toContain('height="65"');
+    expect(serviceSource).toContain('width="60"');
+    expect(serviceSource).toContain('height="50"');
+    expect(serviceSource).not.toContain("@lucide/vue");
+    expect(iconMap).toContain("demo-decor-store-icon-06.png");
+    expect(iconMap).toContain("Original 60 × 50 PNG");
+  });
+
   test("selects only Decor and excludes Fashion and prohibited runtimes", async () => {
     const input = await decorPreviewBuildInput("https://preview.example.test");
     const activeModule = renderActiveThemeModule({

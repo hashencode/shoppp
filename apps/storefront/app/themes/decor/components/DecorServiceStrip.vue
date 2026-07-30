@@ -2,7 +2,7 @@
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
-  items: { assetId: string; label: string }[];
+  items: { assetId: string; detail: string; label: string }[];
 }
 const p = defineProps<{ resolveAsset: ThemeAssetResolver; viewModel: PresentationViewModel }>();
 const data = computed(() =>
@@ -12,10 +12,10 @@ const data = computed(() =>
 <template>
   <section v-if="data" class="decor-services">
     <article v-for="item in data.items" :key="item.assetId">
-      <img :src="p.resolveAsset(item.assetId)" alt="" width="72" height="72" loading="lazy" />
+      <img :src="p.resolveAsset(item.assetId)" alt="" width="60" height="50" loading="lazy" />
       <div>
         <h2>{{ item.label }}</h2>
-        <p>Simple, thoughtful service.</p>
+        <p>{{ item.detail }}</p>
       </div>
     </article>
   </section>

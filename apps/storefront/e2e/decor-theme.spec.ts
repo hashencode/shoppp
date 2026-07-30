@@ -29,6 +29,12 @@ test("Decor home matches the furniture inventory and native interactions", async
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === "decor-no-js");
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Corby sofas" })).toBeVisible();
   for (const selector of [
@@ -57,7 +63,62 @@ test("Decor home matches the furniture inventory and native interactions", async
   await expect(page.getByRole("button", { name: "Next furniture" }).locator("svg")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Next product" }).locator("svg")).toHaveCount(1);
   await expect(page.locator(".decor-footer-social svg")).toHaveCount(4);
-  expect(await page.locator("body").innerText()).not.toMatch(/[⌕▢▣＋←→◉♥◎]/);
+  expect(
+    await page.locator(".decor-category-icon-list img").evaluateAll((images) =>
+      images.map((image) => {
+        const element = image as HTMLImageElement;
+        return {
+          height: element.getAttribute("height"),
+          naturalHeight: element.naturalHeight,
+          naturalWidth: element.naturalWidth,
+          source: element.currentSrc,
+          width: element.getAttribute("width"),
+        };
+      }),
+    ),
+  ).toEqual([
+    expect.objectContaining({
+      height: "65",
+      naturalHeight: 65,
+      naturalWidth: 65,
+      source: expect.stringContaining("icon-01"),
+      width: "65",
+    }),
+    expect.objectContaining({ source: expect.stringContaining("icon-03") }),
+    expect.objectContaining({ source: expect.stringContaining("icon-02") }),
+    expect.objectContaining({ source: expect.stringContaining("icon-10") }),
+    expect.objectContaining({ source: expect.stringContaining("icon-04") }),
+    expect.objectContaining({ source: expect.stringContaining("icon-05") }),
+  ]);
+  await page.locator(".decor-services").scrollIntoViewIfNeeded();
+  await page.locator(".decor-services img").evaluateAll(async (images) => {
+    await Promise.all(images.map((image) => (image as HTMLImageElement).decode()));
+  });
+  expect(
+    await page.locator(".decor-services img").evaluateAll((images) =>
+      images.map((image) => {
+        const element = image as HTMLImageElement;
+        return {
+          height: element.getAttribute("height"),
+          naturalHeight: element.naturalHeight,
+          naturalWidth: element.naturalWidth,
+          source: element.currentSrc,
+          width: element.getAttribute("width"),
+        };
+      }),
+    ),
+  ).toEqual(
+    ["06", "07", "08", "09"].map((id) =>
+      expect.objectContaining({
+        height: "50",
+        naturalHeight: 50,
+        naturalWidth: 60,
+        source: expect.stringContaining(`icon-${id}`),
+        width: "60",
+      }),
+    ),
+  );
+  expect(await page.locator("body").innerText()).not.toMatch(/[⌕▢▣＋←→◉◎]/);
   await page.waitForLoadState("networkidle");
   await captureThemeEvidence(page, testInfo, "decor");
   await page.getByRole("button", { name: "Next furniture" }).click();
@@ -71,6 +132,53 @@ test("Decor home matches the furniture inventory and native interactions", async
     "true",
   );
   await expect(page.locator("body")).not.toContainText("Atlas carry-on");
+  expect(
+    await page.evaluate(() => {
+      const ids = [...document.querySelectorAll("[id]")].map(({ id }) => id);
+      return ids.filter((id, index) => ids.indexOf(id) !== index);
+    }),
+  ).toEqual([]);
+  await assertThemeLayout(page);
+  expect(consoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
+test("Decor product tabs expose roving keyboard semantics", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "decor-desktop");
+  await page.goto("/");
+  const bestSellers = page.getByRole("tab", { name: "Best sellers" });
+  const newArrivals = page.getByRole("tab", { name: "New arrivals" });
+  await bestSellers.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(newArrivals).toBeFocused();
+  await expect(newArrivals).toHaveAttribute("aria-selected", "true");
+  await expect(bestSellers).toHaveAttribute("tabindex", "-1");
+  await page.keyboard.press("Home");
+  await expect(bestSellers).toBeFocused();
+  await expect(bestSellers).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "decor-tab-0");
+});
+
+test("Decor mobile menu stays attached to the header and grids match the reference", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "decor-mobile");
+  await page.goto("/");
+  await page.locator(".decor-mobile-menu > summary").click();
+  const geometry = await page.evaluate(() => {
+    const header = document.querySelector(".decor-nav")!.getBoundingClientRect();
+    const menu = document.querySelector(".decor-mobile-menu nav")!.getBoundingClientRect();
+    return { headerBottom: header.bottom, menuTop: menu.top };
+  });
+  expect(Math.abs(geometry.menuTop - geometry.headerBottom)).toBeLessThanOrEqual(2);
+  expect(
+    await page.evaluate(() =>
+      [".decor-category-banners", ".decor-product-grid"].map(
+        (selector) =>
+          getComputedStyle(document.querySelector(selector)!).gridTemplateColumns.split(" ").length,
+      ),
+    ),
+  ).toEqual([1, 1]);
   await assertThemeLayout(page);
 });
 
@@ -91,7 +199,7 @@ test("Decor keeps the first furniture state and content without JavaScript", asy
   test.skip(testInfo.project.name !== "decor-no-js");
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Corby sofas" })).toBeVisible();
-  await expect(page.locator(".decor-categories img")).toHaveCount(6);
+  await expect(page.locator(".decor-categories img")).toHaveCount(9);
   await expect(page.locator(".decor-journal article")).toHaveCount(4);
 });
 

@@ -1,16 +1,14 @@
 import type { ExperienceFixtureRegistry } from "../../../theme-engine/view-models";
 
 const products = [
-  ["decor.product-01", "Table clock", "$129"],
-  ["decor.product-03", "Ceramic vase", "$89"],
-  ["decor.product-05", "Decorative plants", "$69"],
-  ["decor.product-06", "Ceramic pot", "$74"],
-  ["decor.product-09", "Ceramic container", "$99"],
-  ["decor.product-10", "Design wall clock", "$149"],
-  ["decor.product-12", "Ceramic mug", "$42"],
-  ["decor.product-13", "Ceramic plate", "$58"],
-  ["decor.product-14", "Wood stool", "$179"],
-  ["decor.product-15", "Organic vessel", "$96"],
+  ["decor.product-01", "Table clock", "$23.00"],
+  ["decor.product-14", "Wood stool", "$54.00"],
+  ["decor.product-12", "Ceramic mug", "$15.00"],
+  ["decor.product-05", "Decorative plants", "$35.00"],
+  ["decor.product-06", "Ceramic pot", "$23.00"],
+  ["decor.product-13", "Ceramic plate", "$15.00"],
+  ["decor.product-09", "Ceramic container", "$35.00"],
+  ["decor.product-10", "Design wall clock", "$19.00"],
 ].map(([assetId, name, price]) => ({ assetId, name, price }));
 
 export const decorHomeFixtures = {
@@ -22,7 +20,8 @@ export const decorHomeFixtures = {
       header: {
         data: {
           announcement: "Free delivery on orders over €120.",
-          brand: "Fieldhouse",
+          brand: "decshop",
+          brandAssetId: "decor.logo-black",
           navigation: ["Home", "Shop", "Collections", "Pages", "Journal", "Contact"],
         },
         kind: "theme-section",
@@ -58,18 +57,25 @@ export const decorHomeFixtures = {
       },
       categories: {
         data: {
-          items: ["Living room", "Bed room", "Lighting", "Fabrics sofa", "Kitchen", "Decor"].map(
-            (name, index) => ({
-              assetId: `decor.menu-category-${String(index + 1).padStart(2, "0")}`,
-              name,
-            }),
-          ),
+          banners: [
+            ["decor.main-banner-01", "Wooden classic table", "large"],
+            ["decor.main-banner-02", "Pottery products", "small"],
+            ["decor.main-banner-03", "Florence compact", "small"],
+          ].map(([assetId, name, size]) => ({ assetId, name, size })),
+          featured: [
+            ["decor.icon-01", "Lamp", "02"],
+            ["decor.icon-03", "Stool", "03"],
+            ["decor.icon-02", "Chair", "05"],
+            ["decor.icon-10", "Cabinet", "03"],
+            ["decor.icon-04", "Light", "08"],
+            ["decor.icon-05", "Sofa", "04"],
+          ].map(([assetId, name, count]) => ({ assetId, count, name })),
         },
         kind: "theme-section",
         state: "populated",
       },
       products: {
-        data: { categories: ["New arrivals", "Best sellers", "Featured"], products },
+        data: { categories: ["Best sellers", "New arrivals"], products },
         kind: "theme-section",
         state: "populated",
       },
@@ -81,7 +87,7 @@ export const decorHomeFixtures = {
       collection: {
         data: {
           bannerAssetId: "decor.banner-04",
-          heading: "A lounge collection shaped for slow afternoons",
+          heading: "Lounge collection",
           products: [
             ["decor.product-slider-01", "Wooden cabinet"],
             ["decor.product-slider-02", "Modern chair"],
@@ -117,18 +123,19 @@ export const decorHomeFixtures = {
       services: {
         data: {
           items: [
-            ["decor.icon-06", "Free delivery"],
-            ["decor.icon-07", "Money-back guarantee"],
-            ["decor.icon-08", "Secure payment"],
-            ["decor.icon-09", "Friendly support"],
-          ].map(([assetId, label]) => ({ assetId, label })),
+            ["decor.icon-06", "Free shipping", "Free return & exchange"],
+            ["decor.icon-07", "Store locator", "Find nearest store"],
+            ["decor.icon-08", "Secure payment", "100% secure method"],
+            ["decor.icon-09", "Online support", "24/7 support center"],
+          ].map(([assetId, label, detail]) => ({ assetId, detail, label })),
         },
         kind: "theme-section",
         state: "populated",
       },
       footer: {
         data: {
-          brand: "Fieldhouse",
+          brand: "decshop",
+          brandAssetId: "decor.logo-white",
           columns: {
             Categories: ["Bed room", "Living room", "Lighting", "Fabric sofas"],
             Information: ["About us", "Contact us", "FAQs", "Payment"],

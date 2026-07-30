@@ -4,6 +4,7 @@ import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
   brand: string;
+  brandAssetId?: string;
   columns: Record<string, string[]>;
   payments?: string[];
 }
@@ -19,10 +20,19 @@ const data = computed<Data | null>(() => {
 });
 </script>
 <template>
-  <footer v-if="data" class="decor-footer">
+  <footer v-if="data" id="decor-footer" class="decor-footer">
     <div class="decor-footer-grid">
-      <section>
-        <strong><i></i>{{ data.brand }}</strong>
+      <section id="decor-contact">
+        <strong>
+          <img
+            v-if="data.brandAssetId"
+            :src="p.resolveAsset(data.brandAssetId)"
+            :alt="data.brand"
+            width="167"
+            height="36"
+          />
+          <template v-else><i></i>{{ data.brand }}</template>
+        </strong>
         <p>Objects chosen to make everyday rooms feel personal.</p>
         <nav class="decor-footer-social" aria-label="Social channels">
           <a href="#" aria-label="Photo sharing"
@@ -61,7 +71,8 @@ const data = computed<Data | null>(() => {
     </div>
     <nav aria-label="Legal">
       <NuxtLink to="/policies/privacy">Privacy policy</NuxtLink
-      ><NuxtLink to="/policies/terms">Terms of service</NuxtLink><span>© 2026 Fieldhouse</span>
+      ><NuxtLink to="/policies/terms">Terms of service</NuxtLink
+      ><span>© 2026 {{ data.brand }}</span>
     </nav>
   </footer>
 </template>

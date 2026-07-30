@@ -9,10 +9,21 @@ import asset7 from "./assets/images/demo-decor-store-client-02.png";
 import asset8 from "./assets/images/demo-decor-store-client-03.png";
 import asset9 from "./assets/images/demo-decor-store-client-04.png";
 import asset10 from "./assets/images/demo-decor-store-client-05.png";
-import asset17 from "./assets/images/demo-decor-store-icon-06.png";
-import asset18 from "./assets/images/demo-decor-store-icon-07.png";
-import asset19 from "./assets/images/demo-decor-store-icon-08.png";
-import asset20 from "./assets/images/demo-decor-store-icon-09.png";
+import categoryLamp from "./assets/images/demo-decor-store-icon-01.png?no-inline";
+import categoryChair from "./assets/images/demo-decor-store-icon-02.png?no-inline";
+import categoryStool from "./assets/images/demo-decor-store-icon-03.png?no-inline";
+import categoryLight from "./assets/images/demo-decor-store-icon-04.png?no-inline";
+import categorySofa from "./assets/images/demo-decor-store-icon-05.png?no-inline";
+import asset17 from "./assets/images/demo-decor-store-icon-06.png?no-inline";
+import asset18 from "./assets/images/demo-decor-store-icon-07.png?no-inline";
+import asset19 from "./assets/images/demo-decor-store-icon-08.png?no-inline";
+import asset20 from "./assets/images/demo-decor-store-icon-09.png?no-inline";
+import categoryCabinet from "./assets/images/demo-decor-store-icon-10.png?no-inline";
+import logoBlack from "./assets/images/demo-decor-store-logo-black.png?no-inline";
+import logoWhite from "./assets/images/demo-decor-store-logo-white.png?no-inline";
+import mainBanner1 from "./assets/images/demo-decor-store-main-banner-01.jpg";
+import mainBanner2 from "./assets/images/demo-decor-store-main-banner-02.jpg";
+import mainBanner3 from "./assets/images/demo-decor-store-main-banner-03.jpg";
 import asset33 from "./assets/images/demo-decor-store-menu-category-01.jpg";
 import asset34 from "./assets/images/demo-decor-store-menu-category-02.jpg";
 import asset35 from "./assets/images/demo-decor-store-menu-category-03.jpg";
@@ -54,10 +65,21 @@ export const themeAssets = validateThemeAssets("decor", {
   "decor.client-03": asset8,
   "decor.client-04": asset9,
   "decor.client-05": asset10,
+  "decor.icon-01": categoryLamp,
+  "decor.icon-02": categoryChair,
+  "decor.icon-03": categoryStool,
+  "decor.icon-04": categoryLight,
+  "decor.icon-05": categorySofa,
   "decor.icon-06": asset17,
   "decor.icon-07": asset18,
   "decor.icon-08": asset19,
   "decor.icon-09": asset20,
+  "decor.icon-10": categoryCabinet,
+  "decor.logo-black": logoBlack,
+  "decor.logo-white": logoWhite,
+  "decor.main-banner-01": mainBanner1,
+  "decor.main-banner-02": mainBanner2,
+  "decor.main-banner-03": mainBanner3,
   "decor.menu-category-01": asset33,
   "decor.menu-category-02": asset34,
   "decor.menu-category-03": asset35,

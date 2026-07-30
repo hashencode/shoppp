@@ -24,9 +24,9 @@ const current = ref(0);
         loading="lazy"
       />
       <div>
-        <small>Limited collection</small>
+        <small>Save up to 50% off</small>
         <h2>{{ data.heading }}</h2>
-        <a href="#decor-products">Shop collection</a>
+        <a href="#decor-products">Explore category</a>
       </div>
     </div>
     <div class="decor-collection-product">

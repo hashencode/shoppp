@@ -29,6 +29,10 @@ export default defineConfig({
       },
     },
     {
+      name: "decor-laptop",
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.laptop },
+    },
+    {
       name: "decor-tablet",
       use: { ...devices["Desktop Chrome"], viewport: themeViewports.tablet },
     },
