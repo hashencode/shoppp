@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { fillShippingAddress, requiredEnvironment } from "./support";
 
+test.describe.configure({ retries: 0 });
+
 test("AE1-AE3: a guest buys the representative last unit through Stripe hosted checkout", async ({
   page,
 }) => {
@@ -32,6 +34,20 @@ test("AE1-AE3: a guest buys the representative last unit through Stripe hosted c
   await page.locator('input[name="cardCvc"], input[autocomplete="cc-csc"]').first().fill("123");
   const name = page.locator('input[name="billingName"], input[autocomplete="name"]').first();
   if (await name.isVisible()) await name.fill("Release Buyer");
+  const postalCode = page.getByRole("textbox", { name: /ZIP|postal code/i }).first();
+  if (await postalCode.isVisible()) await postalCode.fill("97205");
+  const saveInformation = page.getByRole("checkbox", {
+    name: /Save my information for faster checkout/i,
+  });
+  if ((await saveInformation.isVisible()) && (await saveInformation.isChecked())) {
+    await saveInformation.uncheck();
+  }
+  const agentDisclosure = page.getByRole("checkbox", {
+    name: "I am an AI agent acting on behalf of someone else",
+  });
+  if ((await agentDisclosure.isVisible()) && !(await agentDisclosure.isChecked())) {
+    await agentDisclosure.check();
+  }
   await page.getByRole("button", { name: /Pay|Complete/ }).click();
 
   await page.waitForURL(/\/checkout\/complete/, { timeout: 120_000 });
