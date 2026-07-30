@@ -75,9 +75,7 @@ function containsInactiveTheme(
 }
 
 function embeddedCode(contents: string): string {
-  return [
-    ...contents.matchAll(/<(?:script|style)\b[\s\S]*?<\/(?:script|style)>|<link\b[^>]*>/gi),
-  ]
+  return [...contents.matchAll(/<(?:script|style)\b[\s\S]*?<\/(?:script|style)>|<link\b[^>]*>/gi)]
     .map(([match]) => match)
     .join("\n");
 }
