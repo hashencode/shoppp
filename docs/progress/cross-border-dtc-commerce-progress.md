@@ -6,7 +6,7 @@ The plan remains the read-only authority.
 
 ## Current state
 
-- Active unit: U13 — Prove release readiness end to end
+- Active unit: U13 — Provision staging and prove release readiness end to end
 - Branch: `codex/feat-cross-border-dtc`
 - Goal mode: active
 - Last updated: 2026-07-30
@@ -28,7 +28,50 @@ The plan remains the read-only authority.
 | U11  | Complete          | D1 transactional outbox, privacy-minimal Cloudflare Queue payloads, stable Workflow identities, five customer templates, replaceable idempotent email adapter, asynchronous payment-provider reconciliation, append-only bounded attempts, retry/DLQ handling, masked operator visibility, and audited same-identity replay pass Worker 64/64, D1 6/6, admin 243/243, browser 6/6 + storefront 9/9, type/build/lint/format/table-width gates.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | U14  | Complete          | Immutable environment/test-mode reporting facts, integer minor-unit gross/refund/net/count/AOV definitions, explicit currency and IANA/DST windows, prior-window labels, reconcilable order drill-down, stable search/pagination, permission/ownership/expiry/audit controls, and bounded asynchronous fixed-length CSV streaming to isolated R2 pass Worker 71/71, D1 6/6, admin 246/246, browser 7/7, type/build/lint/format/table-width gates.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | U12  | Complete          | Credential-scoped checkout rate limiting, exact-origin/body guards, action/hostname-bound Turnstile, centralized recursive redaction, structured request/Analytics Engine telemetry, no-store admin responses, server-verified launch gates, runtime commercial settings, stable audit browsing, six complete configurable policy disclosures, hashed-subject privacy operations with seven-day R2 exports and immutable retention decisions, and a scheduled D1-to-R2 Workflow with isolated seeded restore reconciliation pass Worker 83/83, D1 6/6, admin 246/246 + browser 8/8, storefront 8/8, Playwright 16/25 applicable, WCAG 4/4, Lighthouse/bundle, type/build/lint/format/static/table-width gates.                                                                                                                                                                                                                                                                                                                                                                         |
-| U13  | Ready for staging | Versioned release reports, exact approved catalog-manifest sourcing, prebundled/no-rebuild Worker deployment, source/build secret and card scanning, strict AE8 environment isolation, environment-neutral Service Binding gateways and runtime Turnstile public configuration, static/admin security headers, immutable staging-to-production promotion, protected production approval, real staging purchase/recovery/fulfillment/refund/publication/accessibility journeys, staging p95 probes, and automated rollback/redeploy rehearsal are implemented. The complete local immutable-candidate gate passes: tools 19/19, Worker 84/84 + D1 6/6, admin 246/246 + browser 8/8 + Playwright 7/7, storefront 9/18 applicable, WCAG 4/4, mobile Lighthouse performance 98/94/94, JS 157,415/204,800 bytes, and clean frozen-install/format/lint/type/build/static gates. Strict validation correctly blocks missing live catalog/build credentials and non-routable placeholder staging resources, so deployed staging evidence remains pending human-owned environment provisioning. |
+| U13  | Staging partial    | All three staging Workers, Cloudflare data resources, Access allow/deny identities, CI deployment credentials, immutable catalog fixture, remote D1 migrations, public routes, and rotating Access JWKS verification are provisioned and proven. The full local gate passes (tools 27/27, Worker 98/98, admin 249/249, storefront 18/18, contracts 7/7, domain 24/24, seed 1/1, plus lint/typecheck/build). Provider-backed purchase/refund/retry journeys, alerts, paid scheduled backup, rollback rehearsal, protected production approval, and cross-account AE8 proof remain blocked on owner/provider inputs. |
+
+## Staging provisioning evidence
+
+- The feature branch is pushed to `hashencode/shoppp`; the `staging` and `production` GitHub
+  environments exist. The current private-repository plan does not support required reviewers, so
+  the production approval gate is not yet enforceable.
+- Cloudflare D1 databases, preview databases, isolated R2 buckets, notification queues and DLQs
+  exist for both named environments. The staging D1 has all 11 migrations applied. Migrations
+  0005-0007 use trigger syntax accepted by the remote D1 migration splitter and retain the same
+  abort invariants; a read-only remote query confirms ledger entries 1-11 and the deployed
+  `SELECT RAISE ... WHERE` trigger bodies for inventory, payment/order convergence, fulfillment,
+  and order transitions. The local workerd/D1 suite passes.
+- Analytics Engine is enabled with `shoppp_staging_observability`. A staging Turnstile widget is
+  bound to the API Worker; its secret was written directly to Worker secret storage and only its
+  public site key is committed.
+- The staging API, admin, and storefront are deployed at
+  `shoppp-api-staging.hashencode.workers.dev`,
+  `shoppp-admin-staging.hashencode.workers.dev`, and
+  `shoppp-storefront-staging.hashencode.workers.dev`. API health and runtime Turnstile config
+  return successfully. API version `79f549f5-bf7c-4b85-a4c3-c5d56d40d673` is deployed at 100%.
+  Cloudflare Access protects the admin with a Service Auth policy: an allowlisted service token
+  reaches `/api/admin/session` as the seeded `admin` identity, while both anonymous traffic and a
+  second non-allowlisted service token receive 403. The API verifies the real service-token JWT
+  shape (`type=app`, stable `common_name`) against the configured Access issuer and audience using
+  the rotating remote JWKS endpoint; unknown signing key IDs trigger a refresh, and focused tests
+  cover malformed service identities and key rotation.
+- Staging contains a deployable Atlas Carry-on commercial-journey fixture with USD/EUR prices,
+  exactly one unit of inventory, US shipping, an R2-hosted media asset, launch configuration, and
+  the deployed immutable catalog release `representative-release-2026-07-30`. The live product API,
+  media URL, product page, order shell, and three Worker health/routes return successfully.
+- The GitHub `staging` environment contains the three application URLs, immutable release ID,
+  build-manifest token, Cloudflare account ID, authorized/prohibited Access credentials, and an
+  active one-year account-owned Cloudflare API token with Workers, D1, R2, and Queue deployment
+  permissions. Secrets were written directly to GitHub/Worker secret stores and are not committed.
+- Cloudflare Static Assets rejects a wildcard order-shell rewrite as a loop. The storefront now
+  resolves exactly one opaque `/orders/<token>` segment through its Worker asset binding, while
+  preserving the browser URL and excluding `/orders/access`; focused route tests, the static build,
+  and static SEO inspection pass.
+- Staging remains non-releasable until Stripe test-mode credentials, webhook ownership and test
+  card input, the email-provider endpoint/key, exhausted-notification fixture, alert destinations,
+  and the provider-backed purchase/refund/retry journeys are configured and executed. The scheduled
+  D1 backup Workflow also requires a Workers Paid plan. Finally, the current Cloudflare login
+  exposes only one account, but AE8 requires distinct staging and production account IDs.
 
 ## Final local hardening pass
 
@@ -74,17 +117,14 @@ The plan remains the read-only authority.
 
 ## Staging handoff
 
-The implementation intentionally fails closed until the infrastructure owner replaces `.invalid`
-domains and zero-value D1/account identifiers in the Wrangler configurations. The strict check also
-requires distinct staging/production Worker names, D1, R2, Queue, Workflow, Analytics Engine,
-rate-limit, Service Binding, Access audience, payment callback, media, and storefront resources.
-It also requires distinct environment-specific Turnstile public site keys paired with separately
-stored Worker secrets; the storefront fetches the key at runtime so this does not alter the
-immutable static artifact.
+Staging infrastructure, the three Workers, Access policy/identities, deployment token, and one-unit
+commercial fixture are provisioned. The strict check intentionally continues to fail closed because
+Stripe/email provider credentials and journey references, protected production approval, a paid
+Workers plan for scheduled backup, and a separately owned production Cloudflare account are not yet
+available.
 
-Once those inputs and GitHub environment values exist, dispatch
-`.github/workflows/deploy.yml`. It validates one clean candidate, deploys tagged Cloudflare
-Versions, executes the provider-backed root staging suite and p95 checks, rolls all three staging
-applications back to their last-known-good versions, restores the candidate, and pauses at the
-protected production approval environment. Evidence is stored as versioned release and browser
-artifacts.
+After those inputs exist, dispatch `.github/workflows/deploy.yml`. It validates one clean candidate,
+deploys tagged Cloudflare Versions, executes the provider-backed root staging suite and p95 checks,
+rolls all three staging applications back to their last-known-good versions, restores the
+candidate, and pauses at the protected production approval environment. Evidence is stored as
+versioned release and browser artifacts.
