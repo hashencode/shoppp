@@ -480,10 +480,8 @@ export const experienceDraftSchema = z
   })
   .strict();
 
-export const experienceSnapshotSchema = z
+const experienceSnapshotBaseSchema = z
   .object({
-    approvedAt: z.iso.datetime(),
-    approvedBy: z.string().trim().min(1).max(120),
     bindings: z.array(fixtureBindingSchema).max(100),
     configurationSchemaVersion: z.int().positive(),
     experienceId: storefrontIdentifierSchema,
@@ -497,6 +495,19 @@ export const experienceSnapshotSchema = z
     version: z.int().positive(),
   })
   .strict();
+
+export const experienceSnapshotSchema = z.discriminatedUnion("kind", [
+  experienceSnapshotBaseSchema.extend({
+    approvedAt: z.null(),
+    approvedBy: z.null(),
+    kind: z.literal("preview"),
+  }),
+  experienceSnapshotBaseSchema.extend({
+    approvedAt: z.iso.datetime(),
+    approvedBy: z.string().trim().min(1).max(120),
+    kind: z.literal("approved"),
+  }),
+]);
 
 export const storefrontThemeDescriptorSchema = z
   .object({

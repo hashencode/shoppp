@@ -282,6 +282,40 @@ describe("storefront experience API", () => {
     );
     expect(unsafe.status).toBe(422);
 
+    const wrongSettingType = await createDraft(app, "theme-setting-type-create-0001", {
+      ...draftInput,
+      overrides: [
+        {
+          operations: [
+            {
+              instanceId: "home-hero",
+              kind: "set-setting",
+              settingId: "heading",
+              value: 42,
+            },
+          ],
+          presetId: "editorial",
+          schemaVersion: 1,
+          templateId: "fashion-home",
+        },
+      ],
+    });
+    expect(wrongSettingType.response.status).toBe(201);
+    const wrongSettingValidation = await validateDraft(
+      app,
+      wrongSettingType.body.data.id,
+      1,
+      "theme-setting-type-validate-0001",
+    );
+    expect(await wrongSettingValidation.json()).toMatchObject({
+      data: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: "resolved_template_invalid" }),
+        ]),
+        status: "invalid",
+      },
+    });
+
     const invalid = await createDraft(app, "theme-required-create-0001", {
       ...draftInput,
       overrides: [
@@ -687,7 +721,12 @@ describe("storefront experience API", () => {
     expect(manifest.status).toBe(200);
     expect(await manifest.json()).toMatchObject({
       environment: "preview",
-      snapshot: { id: first.data.snapshot.id },
+      snapshot: {
+        approvedAt: null,
+        approvedBy: null,
+        id: first.data.snapshot.id,
+        kind: "preview",
+      },
       themeId: "fashion",
     });
 
@@ -746,6 +785,26 @@ describe("storefront experience API", () => {
       );
     expect((await deployedRequest()).status).toBe(200);
     expect((await deployedRequest()).status).toBe(200);
+    const conflictingResult = await app.fetch(
+      request(`/build/storefront-experiences/builds/${retry.data.build.id}/status`, {
+        body: JSON.stringify({
+          ...deployedPayload,
+          artifactDigest: "c".repeat(64),
+          artifactPrefix: `snapshots/${retry.data.snapshot.id}/${"c".repeat(64)}`,
+        }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": "theme-build-result-conflict-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(conflictingResult.status).toBe(409);
+    expect(await conflictingResult.json()).toMatchObject({
+      error: { code: "storefront_preview_build_result_conflict" },
+    });
     const stable = await previewRequest("theme-build-preview-0003");
     expect(await stable.json()).toMatchObject({
       data: {

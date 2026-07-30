@@ -14,6 +14,7 @@ const outputPath = (route: string) =>
   route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
 const budget = 200 * 1024;
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".map", ".txt", ".xml"]);
+const codeExtensions = new Set([".css", ".js", ".map"]);
 
 async function outputFiles(directory: string): Promise<string[]> {
   const files: string[] = [];
@@ -56,13 +57,47 @@ const inactiveThemePatterns = inactiveThemes.map(
 const previewMaterial =
   /(?:grant_[A-Za-z0-9_-]+|__preview\/session|snapshot-[a-z0-9-]+\/[a-f0-9]{64})/i;
 
-for (const file of files.filter((candidate) => textExtensions.has(extname(candidate)))) {
-  const contents = `${file}\n${await readFile(resolve(output, file), "utf8")}`;
-  if (prohibitedRuntime.test(contents)) {
+function containsInactiveTheme(
+  file: string,
+  contents: string,
+  theme: string,
+  pattern: RegExp,
+): boolean {
+  if (pattern.test(file)) return true;
+  const extension = extname(file);
+  if (codeExtensions.has(extension)) return pattern.test(contents);
+  if (extension !== ".html") return false;
+  const structuralMarker = new RegExp(
+    `(?:class|id|data-theme)=["'][^"']*${theme}(?:[._-]|["'])`,
+    "i",
+  );
+  return structuralMarker.test(contents);
+}
+
+function embeddedCode(contents: string): string {
+  return [
+    ...contents.matchAll(/<(?:script|style)\b[\s\S]*?<\/(?:script|style)>|<link\b[^>]*>/gi),
+  ]
+    .map(([match]) => match)
+    .join("\n");
+}
+
+for (const file of files) {
+  if (extname(file) === ".php" || prohibitedRuntime.test(file)) {
+    throw new Error(`Storefront output contains a prohibited upstream runtime in ${file}.`);
+  }
+  if (!textExtensions.has(extname(file))) continue;
+  const contents = await readFile(resolve(output, file), "utf8");
+  const runtimeSurface = codeExtensions.has(extname(file))
+    ? contents
+    : extname(file) === ".html"
+      ? embeddedCode(contents)
+      : "";
+  if (prohibitedRuntime.test(runtimeSurface)) {
     throw new Error(`Storefront output contains a prohibited upstream runtime in ${file}.`);
   }
   for (const [inactiveTheme, pattern] of inactiveThemePatterns) {
-    if (pattern.test(contents)) {
+    if (containsInactiveTheme(file, contents, inactiveTheme, pattern)) {
       throw new Error(
         `${activeThemeId} output contains inactive ${inactiveTheme} theme code or assets in ${file}.`,
       );

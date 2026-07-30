@@ -382,6 +382,7 @@ describe("storefront experience contracts", () => {
       configurationSchemaVersion: 1,
       experienceId: "experience-fashion",
       id: "snapshot-fashion-1",
+      kind: "approved",
       overrides: [
         {
           operations: [
@@ -406,5 +407,45 @@ describe("storefront experience contracts", () => {
     });
 
     expect(experienceSnapshotSchema.parse(JSON.parse(JSON.stringify(snapshot)))).toEqual(snapshot);
+  });
+
+  test("distinguishes preview snapshots from explicitly approved snapshots", () => {
+    const approved = experienceSnapshotSchema.parse({
+      approvedAt: "2026-07-30T01:00:00.000Z",
+      approvedBy: "operator-1",
+      bindings: [],
+      configurationSchemaVersion: 1,
+      experienceId: "experience-fashion",
+      id: "snapshot-fashion-approved",
+      kind: "approved",
+      overrides: [],
+      platformContractVersion: "1.0.0",
+      provenance: validThemePackage.manifest.provenance,
+      resolvedTemplates: editorialPreset.templates,
+      themeId: "fashion",
+      themeVersion: "1.0.0",
+      version: 1,
+    });
+
+    expect(
+      experienceSnapshotSchema.parse({
+        ...approved,
+        approvedAt: null,
+        approvedBy: null,
+        id: "snapshot-fashion-preview",
+        kind: "preview",
+      }),
+    ).toMatchObject({
+      approvedAt: null,
+      approvedBy: null,
+      kind: "preview",
+    });
+    expect(() =>
+      experienceSnapshotSchema.parse({
+        ...approved,
+        approvedAt: null,
+        approvedBy: null,
+      }),
+    ).toThrow();
   });
 });

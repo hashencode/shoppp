@@ -33,7 +33,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -274,10 +274,12 @@ export const ThemeEditorPage = ({
   )
   const [migration, setMigration] = useState<StorefrontExperienceMigration | null>(null)
   const [upgradeThemeKey, setUpgradeThemeKey] = useState('')
+  const loadRequest = useRef(0)
   const dirty = !equalValue(templates, savedTemplates)
   const blocker = useBlocker(dirty)
 
   const load = useCallback(async () => {
+    const request = ++loadRequest.current
     if (!draftId) {
       setError('The experience draft ID is missing.')
       setLoading(false)
@@ -295,6 +297,7 @@ export const ThemeEditorPage = ({
           id === nextDraft.themeId && themeVersion === nextDraft.themeVersion
       )
       if (!nextTheme) throw new Error('The exact approved theme package is no longer available.')
+      if (request !== loadRequest.current) return
       const nextTemplates = resolveDraftTemplates(nextTheme, nextDraft)
       setDraft(nextDraft)
       setTheme(nextTheme)
@@ -312,15 +315,19 @@ export const ThemeEditorPage = ({
         upgrade ? `${upgrade.id}@${upgrade.themeVersion}@${upgrade.configurationSchemaVersion}` : ''
       )
     } catch (cause) {
+      if (request !== loadRequest.current) return
       setError(normalizeApiError(cause).message)
     } finally {
-      setLoading(false)
+      if (request === loadRequest.current) setLoading(false)
     }
   }, [draftId])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      loadRequest.current += 1
+    }
   }, [load])
 
   useEffect(() => {
@@ -335,14 +342,22 @@ export const ThemeEditorPage = ({
 
   useEffect(() => {
     if (!build || !['pending', 'building'].includes(build.status)) return
+    let cancelled = false
+    const buildId = build.id
     const timer = window.setTimeout(async () => {
       try {
-        setBuild(await fetchStorefrontPreviewBuild(build.id))
+        const nextBuild = await fetchStorefrontPreviewBuild(buildId)
+        if (!cancelled) {
+          setBuild((current) => (current?.id === buildId ? nextBuild : current))
+        }
       } catch (cause) {
-        setError(normalizeApiError(cause).message)
+        if (!cancelled) setError(normalizeApiError(cause).message)
       }
     }, pollIntervalMs)
-    return () => window.clearTimeout(timer)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [build, pollIntervalMs])
 
   const activeTemplate = templates.find(({ id }) => id === activeTemplateId) ?? templates[0]
@@ -939,7 +954,7 @@ export const ThemeEditorPage = ({
               No preview has been requested for this editor session.
             </Typography.Text>
           )}
-          {build?.status === 'deployed' && previewSnapshot ? (
+          {build?.status === 'deployed' && previewSnapshot?.id === build.snapshotId ? (
             <Button
               icon={<EyeOutlined aria-hidden />}
               disabled={!previewOrigin || busy}

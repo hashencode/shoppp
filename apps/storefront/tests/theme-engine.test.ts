@@ -87,6 +87,7 @@ const snapshot = {
   configurationSchemaVersion: 1,
   experienceId: "experience-fashion",
   id: "snapshot-fashion-1",
+  kind: "approved",
   overrides: [],
   platformContractVersion: "1.0.0",
   provenance: {

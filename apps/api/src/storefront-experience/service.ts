@@ -375,6 +375,21 @@ function resolveDraft(
       return [];
     }
   });
+  const resolvedPackage = themePackageSchema.safeParse({
+    manifest: selectedPackage.manifest,
+    presets: selectedPackage.presets.map((candidate) =>
+      candidate.id === preset.id ? { ...candidate, templates: resolvedTemplates } : candidate,
+    ),
+  });
+  if (!resolvedPackage.success) {
+    for (const issue of resolvedPackage.error.issues.slice(0, 20)) {
+      issues.push({
+        code: "resolved_template_invalid",
+        message: issue.message,
+        path: issue.path.join("."),
+      });
+    }
+  }
   const visibleInstanceIds = new Set(
     resolvedTemplates.flatMap(({ sections }) =>
       sections.flatMap((section) => [
@@ -737,12 +752,13 @@ async function insertSnapshot(
     snapshotOverrides = JSON.parse(migration.migrated_overrides_json) as ThemeOverride[];
   }
   const snapshot = experienceSnapshotSchema.parse({
-    approvedAt: now,
-    approvedBy: principal.id,
+    approvedAt: input.kind === "approved" ? now : null,
+    approvedBy: input.kind === "approved" ? principal.id : null,
     bindings: parseBindings(input.row.bindings_json),
     configurationSchemaVersion: input.package.manifest.configurationSchemaVersion,
     experienceId: input.row.experience_id,
     id,
+    kind: input.kind,
     overrides: snapshotOverrides,
     platformContractVersion: input.package.manifest.platformContractVersion,
     provenance: input.package.manifest.provenance,

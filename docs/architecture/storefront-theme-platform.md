@@ -25,6 +25,9 @@ A package declares a half-open compatible platform range. CI rejects invalid sem
 duplicate IDs, incomplete provenance, unsupported ranges, missing page templates, invalid required
 capabilities, descriptor drift, and a configuration schema without a contiguous migration chain.
 Upgrades are explicit dry runs; they never rewrite an approved snapshot.
+The render-snapshot contract carries an explicit `kind`: preview snapshots have null approval
+metadata, while approved snapshots require both an approver and approval timestamp. This keeps a
+validated preview from being misrepresented as an approval at the build boundary.
 
 Source-controlled manifests feed one generated catalog for the API and storefront. Admin reads the
 API descriptor and does not keep a separate theme or field list.

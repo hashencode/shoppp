@@ -68,6 +68,24 @@ async function buildRow(db: D1Database, id: string): Promise<BuildRow> {
   return row;
 }
 
+function buildResultMatches(row: BuildRow, result: StorefrontExperienceBuildResult): boolean {
+  if (row.status !== result.status) return false;
+  return result.status === "deployed"
+    ? row.artifact_digest === result.artifactDigest &&
+        row.artifact_prefix === result.artifactPrefix &&
+        row.expires_at === result.expiresAt
+    : row.failure_code === result.failureCode;
+}
+
+function assertMatchingBuildResult(row: BuildRow, result: StorefrontExperienceBuildResult): void {
+  if (buildResultMatches(row, result)) return;
+  throw new ApiError(
+    409,
+    "storefront_preview_build_result_conflict",
+    "The preview build already recorded a different terminal result.",
+  );
+}
+
 async function auditBuildStart(
   context: Context<ApiEnvironment>,
   buildId: string,
@@ -228,7 +246,10 @@ export async function recordStorefrontExperienceBuildResult(
   result: StorefrontExperienceBuildResult,
 ) {
   const current = await buildRow(context.env.DB, buildId);
-  if (current.status === result.status) return mapBuild(current);
+  if (current.status === result.status) {
+    assertMatchingBuildResult(current, result);
+    return mapBuild(current);
+  }
   if (current.status !== "building") {
     throw new ApiError(
       409,
@@ -266,7 +287,10 @@ export async function recordStorefrontExperienceBuildResult(
     .run();
   if (changed.meta.changes !== 1) {
     const reconciled = await buildRow(context.env.DB, buildId);
-    if (reconciled.status === result.status) return mapBuild(reconciled);
+    if (reconciled.status === result.status) {
+      assertMatchingBuildResult(reconciled, result);
+      return mapBuild(reconciled);
+    }
     throw new ApiError(
       409,
       "storefront_preview_build_transition_conflict",
