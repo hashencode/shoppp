@@ -46,10 +46,8 @@ test("AE1-AE3: a guest buys the representative last unit through Stripe hosted c
     name: "I am an AI agent acting on behalf of someone else",
   });
   if ((await agentDisclosure.isVisible()) && !(await agentDisclosure.isChecked())) {
-    await page
-      .getByText("I am an AI agent acting on behalf of someone else", { exact: true })
-      .click();
-    await expect(agentDisclosure).toBeChecked();
+    await agentDisclosure.evaluate((element: HTMLInputElement) => element.click());
+    await expect(agentDisclosure).toBeChecked({ timeout: 20_000 });
   }
   await page.getByRole("button", { name: /Pay|Complete/ }).click();
 

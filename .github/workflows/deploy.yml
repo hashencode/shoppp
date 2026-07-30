@@ -179,12 +179,20 @@ jobs:
           "
       - name: Verify public and protected deployment boundaries
         run: bunx playwright test --config e2e/playwright.config.ts
-      - name: Remove synthetic catalog failure
+      - name: Remove transient staging proof fixtures
         if: always()
         working-directory: apps/api
         run: |
           bunx wrangler d1 execute DB --env staging --remote \
-            --command "DELETE FROM catalog_releases WHERE id = '$E2E_FAILED_CATALOG_RELEASE_ID';"
+            --command "
+              DELETE FROM catalog_releases
+               WHERE id = '$E2E_FAILED_CATALOG_RELEASE_ID'
+                 AND failure_code = 'release_proof_synthetic';
+              DELETE FROM notification_jobs
+               WHERE id = '$E2E_EXHAUSTED_NOTIFICATION_ID'
+                 AND status = 'dead_letter'
+                 AND last_error_code = 'release_proof_synthetic';
+            "
       - name: Enforce staging API p95 targets
         run: bun run test:staging-latency
       - name: Demonstrate last-known-good rollback
