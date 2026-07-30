@@ -786,6 +786,7 @@ export type ExperienceDraft = z.infer<typeof experienceDraftSchema>;
 export type ExperienceSnapshot = z.infer<typeof experienceSnapshotSchema>;
 export type FixtureBinding = z.infer<typeof fixtureBindingSchema>;
 export type PageTemplate = z.infer<typeof pageTemplateSchema>;
+export type SectionInstance = z.infer<typeof sectionInstanceSchema>;
 export type StorefrontAction = z.infer<typeof storefrontActionSchema>;
 export type StorefrontThemeDescriptor = z.infer<typeof storefrontThemeDescriptorSchema>;
 export type ThemeManifest = z.infer<typeof themeManifestSchema>;

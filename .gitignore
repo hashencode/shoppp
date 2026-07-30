@@ -9,6 +9,7 @@
 coverage/
 dist/
 worker-dist/
+preview-worker-dist/
 apps/storefront/dist
 apps/storefront/app/generated/collections/
 apps/storefront/app/generated/products/

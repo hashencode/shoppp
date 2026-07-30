@@ -1,0 +1,107 @@
+name: Build private storefront preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_id:
+        description: Approved immutable experience snapshot ID
+        required: true
+        type: string
+
+concurrency:
+  group: storefront-preview-${{ inputs.snapshot_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: preview
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PREVIEW_API_TOKEN: ${{ secrets.PREVIEW_BUILD_TOKEN }}
+      PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}
+      PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
+      SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+      STOREFRONT_BUILD_MODE: preview
+      STOREFRONT_EXPERIENCE_FILE: ${{ github.workspace }}/artifacts/preview/build-input.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - name: Validate immutable snapshot identifier
+        run: |
+          if [[ ! "$SNAPSHOT_ID" =~ ^[a-z][a-z0-9-]{2,99}$ ]]; then
+            echo "Invalid immutable snapshot identifier." >&2
+            exit 1
+          fi
+      - name: Fetch fixed build input from the preview authority
+        run: |
+          mkdir -p artifacts/preview
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
+            "$PREVIEW_API_URL/internal/experience-snapshots/$SNAPSHOT_ID/build-input" \
+            --output "$STOREFRONT_EXPERIENCE_FILE"
+          jq -e \
+            --arg origin "$PREVIEW_ORIGIN" \
+            --arg snapshot "$SNAPSHOT_ID" \
+            '.environment == "preview" and .expectedOrigin == $origin and .snapshot.id == $snapshot' \
+            "$STOREFRONT_EXPERIENCE_FILE" >/dev/null
+      - name: Build and verify isolated static preview
+        run: |
+          bun run --cwd apps/storefront build
+          bun run --cwd apps/storefront verify:static
+      - name: Describe content-addressed preview artifact
+        id: artifact
+        run: |
+          ARTIFACT_JSON="$(bun apps/storefront/scripts/package-preview-artifact.ts \
+            --snapshot-id="$SNAPSHOT_ID" \
+            --output="apps/storefront/.output/public" \
+            --manifest="artifacts/preview/artifact-manifest.json")"
+          printf '%s\n' "$ARTIFACT_JSON" > artifacts/preview/deployment.json
+          printf 'prefix=%s\n' "$(jq -r '.prefix' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
+          printf 'digest=%s\n' "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
+      - name: Upload immutable files to the private preview bucket
+        run: |
+          while IFS= read -r ITEM; do
+            PATH_VALUE="$(jq -r '.path' <<<"$ITEM")"
+            SOURCE_VALUE="$(jq -r '.sourcePath' <<<"$ITEM")"
+            CONTENT_TYPE="$(jq -r '.contentType' <<<"$ITEM")"
+            bunx wrangler r2 object put \
+              "shoppp-storefront-preview-artifacts/${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
+              --file "$SOURCE_VALUE" \
+              --content-type "$CONTENT_TYPE" \
+              --remote
+          done < <(jq -c '.files[]' artifacts/preview/deployment.json)
+          bunx wrangler r2 object put \
+            "shoppp-storefront-preview-artifacts/${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
+            --file artifacts/preview/artifact-manifest.json \
+            --content-type "application/json; charset=utf-8" \
+            --remote
+      - name: Deploy the isolated preview access Worker
+        working-directory: apps/storefront
+        run: |
+          bunx wrangler deploy \
+            --config wrangler.preview.jsonc \
+            --var "PREVIEW_ORIGIN:$PREVIEW_ORIGIN"
+      - name: Report the exact preview artifact to the authority
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{"artifactDigest":"${{ steps.artifact.outputs.digest }}","artifactPrefix":"${{ steps.artifact.outputs.prefix }}"}' \
+            "$PREVIEW_API_URL/internal/experience-snapshots/$SNAPSHOT_ID/artifact"
+      - name: Preserve private build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-build-${{ inputs.snapshot_id }}
+          path: artifacts/preview/
+          if-no-files-found: error
+          retention-days: 7

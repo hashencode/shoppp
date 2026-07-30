@@ -1,6 +1,7 @@
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
 
+const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
 const redirectRules = Object.fromEntries(
   manifest.redirects.map((redirect) => [
     redirect.from,
@@ -19,6 +20,7 @@ export default defineNuxtConfig({
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
+        ...(previewBuild ? [{ name: "robots", content: "noindex, nofollow" }] : []),
       ],
     },
   },
@@ -54,6 +56,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
+      analyticsEnabled: !previewBuild,
       apiBase: "/api",
       siteOrigin: catalogRelease.site.origin,
       releaseId: catalogRelease.releaseId,
