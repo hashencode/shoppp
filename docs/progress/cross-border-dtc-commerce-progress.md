@@ -60,6 +60,13 @@ The plan remains the read-only authority.
   exactly one unit of inventory, US shipping, an R2-hosted media asset, launch configuration, and
   the deployed immutable catalog release `representative-release-2026-07-30`. The live product API,
   media URL, product page, order shell, and three Worker health/routes return successfully.
+- A live checkout probe exposed manually seeded short shipping identifiers that bypassed the admin
+  contract and caused `PUT /api/cart/shipping` to return 422 before Turnstile or payment handling.
+  The zone, method, and launch-configuration references were repaired to contract-valid public IDs,
+  with machine audit event `staging.shipping_identifier.repair`. Remote `quick_check` is `ok`,
+  foreign-key checking is clean, and the same browser flow now returns 200 with
+  `canCheckout=true`, the selected $13.50 method, and an authoritative $142.50 total. The launch
+  configuration contract now rejects malformed shipping method identifiers before persistence.
 - The GitHub `staging` environment contains the three application URLs, immutable release ID,
   build-manifest token, Cloudflare account ID, authorized/prohibited Access credentials, and an
   active one-year account-owned Cloudflare API token with Workers, D1, R2, and Queue deployment

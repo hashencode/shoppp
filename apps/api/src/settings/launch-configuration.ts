@@ -33,7 +33,7 @@ function defaultConfiguration(context: Context<ApiEnvironment>): LaunchConfigura
     reservationTtlMinutes: Number(context.env.RESERVATION_TTL_MINUTES ?? "30"),
     sellableCurrencies: ["USD"],
     shippingCountries: ["US"],
-    shippingMethodIds: ["standard"],
+    shippingMethodIds: ["ship_01J00000000000000000000000"],
     supportEmail: context.env.EMAIL_FROM,
     taxMode: "zero",
     webhookConfigured: Boolean(context.env.STRIPE_WEBHOOK_SECRET),

@@ -137,6 +137,39 @@ describe("launch controls, audit, and operational health", () => {
     });
   });
 
+  test("rejects launch configuration that references a malformed shipping method ID", async () => {
+    const app = createApp({ accessVerifier });
+    const initial = await app.fetch(adminRequest("/admin/settings/launch"), env);
+    const initialBody = (await initial.json()) as {
+      data: { configuration: LaunchConfiguration };
+    };
+    const response = await app.fetch(
+      adminRequest("/admin/settings/launch", {
+        body: JSON.stringify({
+          configuration: {
+            ...initialBody.data.configuration,
+            shippingMethodIds: ["ship_staging_us"],
+          },
+          confirm: true,
+          reason: "Reject malformed shipping method identifier",
+        }),
+        headers: { "Idempotency-Key": "settings-launch-invalid-shipping-id-0001" },
+        method: "PUT",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: {
+        code: "validation_failed",
+        details: expect.arrayContaining([
+          expect.objectContaining({ path: ["configuration", "shippingMethodIds", 0] }),
+        ]),
+      },
+    });
+  });
+
   test("redacts stored metadata and provides stable cursor audit browsing", async () => {
     await recordAuditEvent(env.DB, {
       action: "privacy.test",
