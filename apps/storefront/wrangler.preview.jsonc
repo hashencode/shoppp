@@ -18,6 +18,7 @@
     },
   ],
   "vars": {
+    "PREVIEW_HANDOFF_ORIGIN": "https://admin-staging.example.invalid",
     "PREVIEW_ORIGIN": "https://preview-staging.example.invalid",
   },
 }

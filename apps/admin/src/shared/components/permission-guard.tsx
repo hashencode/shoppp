@@ -1,7 +1,10 @@
+import React from 'react'
 import type { PropsWithChildren } from 'react'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission, type PermissionKey } from '../../infrastructure/auth/permissions'
 import { ForbiddenPage } from '../../pages/forbidden-page'
+
+void React
 
 type PermissionGuardProps = PropsWithChildren<{
   permission: PermissionKey

@@ -380,6 +380,7 @@ describe("private preview artifacts", () => {
         PREVIEW_ARTIFACTS: bucket,
         PREVIEW_AUTH: auth,
         PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
+        PREVIEW_HANDOFF_ORIGIN: "https://admin.example.test",
         PREVIEW_ORIGIN: "https://preview.example.test",
       },
     );
@@ -400,31 +401,46 @@ describe("private preview artifacts", () => {
     const grant = "grant_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const authRequests: Request[] = [];
     const handler = createPreviewAccessHandler();
-    const response = await handler(
+    const environment = {
+      PREVIEW_ARTIFACTS: new MemoryBucket(),
+      PREVIEW_AUTH: {
+        fetch: async (request: Request) => {
+          authRequests.push(request);
+          return Response.json({
+            data: {
+              expiresAt: "2099-07-30T02:00:00.000Z",
+              session: "session_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            },
+          });
+        },
+      },
+      PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
+      PREVIEW_HANDOFF_ORIGIN: "https://admin.example.test",
+      PREVIEW_ORIGIN: "https://preview.example.test",
+    };
+    const rejected = await handler(
       new Request("https://preview.example.test/__preview/session", {
-        body: JSON.stringify({ grant }),
+        body: new URLSearchParams({ grant }),
         headers: {
-          "Content-Type": "application/json",
-          Origin: "https://preview.example.test",
+          "Content-Type": "application/x-www-form-urlencoded",
+          Origin: "https://attacker.example.test",
         },
         method: "POST",
       }),
-      {
-        PREVIEW_ARTIFACTS: new MemoryBucket(),
-        PREVIEW_AUTH: {
-          fetch: async (request) => {
-            authRequests.push(request);
-            return Response.json({
-              data: {
-                expiresAt: "2099-07-30T02:00:00.000Z",
-                session: "session_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-              },
-            });
-          },
+      environment,
+    );
+    expect(rejected.status).toBe(403);
+    expect(authRequests).toHaveLength(0);
+    const response = await handler(
+      new Request("https://preview.example.test/__preview/session", {
+        body: new URLSearchParams({ grant }),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Origin: "https://admin.example.test",
         },
-        PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
-        PREVIEW_ORIGIN: "https://preview.example.test",
-      },
+        method: "POST",
+      }),
+      environment,
     );
 
     expect(response.status).toBe(303);
@@ -459,6 +475,7 @@ describe("private preview artifacts", () => {
           }),
       },
       PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
+      PREVIEW_HANDOFF_ORIGIN: "https://admin.example.test",
       PREVIEW_ORIGIN: "https://preview.example.test",
     };
 

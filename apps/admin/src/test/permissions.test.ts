@@ -47,4 +47,22 @@ describe('permission policy', () => {
     expect(hasPermission('admin', 'catalog.write', apiPermissions)).toBe(false)
     expect(hasPermission('support', 'orders.read', [])).toBe(false)
   })
+
+  it('enforces the storefront theme lifecycle permission matrix', () => {
+    for (const permission of [
+      'themes.read',
+      'themes.write',
+      'themes.preview',
+      'themes.approve',
+    ] as const) {
+      expect(hasPermission('admin', permission)).toBe(true)
+      expect(hasPermission('catalog_manager', permission)).toBe(true)
+      expect(hasPermission('support', permission)).toBe(false)
+      expect(hasPermission('analyst', permission)).toBe(false)
+    }
+    expect(hasPermission('operations', 'themes.read')).toBe(true)
+    expect(hasPermission('operations', 'themes.write')).toBe(false)
+    expect(hasPermission('operations', 'themes.preview')).toBe(false)
+    expect(hasPermission('operations', 'themes.approve')).toBe(false)
+  })
 })

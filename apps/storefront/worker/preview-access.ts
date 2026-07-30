@@ -25,6 +25,7 @@ export interface PreviewAccessEnvironment {
   PREVIEW_ARTIFACTS: PreviewArtifactBucket;
   PREVIEW_AUTH: PreviewAuthorizationService;
   PREVIEW_AUTH_TOKEN: string;
+  PREVIEW_HANDOFF_ORIGIN: string;
   PREVIEW_ORIGIN: string;
 }
 
@@ -265,7 +266,7 @@ async function redeemGrant(
   if (request.method !== "POST") {
     return responseWithSecurity("Method not allowed.", origin, 405);
   }
-  if (request.headers.get("Origin") !== origin) {
+  if (request.headers.get("Origin") !== environment.PREVIEW_HANDOFF_ORIGIN) {
     return responseWithSecurity("Preview origin is not authorized.", origin, 403);
   }
   const contentLength = Number(request.headers.get("Content-Length") ?? "0");
@@ -276,7 +277,11 @@ async function redeemGrant(
   try {
     const rawBody = await request.text();
     if (new TextEncoder().encode(rawBody).byteLength > 1024) throw new Error();
-    const body = JSON.parse(rawBody) as { grant?: unknown };
+    const contentType = request.headers.get("Content-Type")?.split(";", 1)[0]?.trim();
+    const body =
+      contentType === "application/x-www-form-urlencoded"
+        ? { grant: new URLSearchParams(rawBody).get("grant") }
+        : (JSON.parse(rawBody) as { grant?: unknown });
     if (
       typeof body.grant !== "string" ||
       body.grant.length < 32 ||

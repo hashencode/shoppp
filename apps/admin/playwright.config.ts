@@ -44,6 +44,11 @@ export default defineConfig({
     ? undefined
     : {
         command: `bun run dev:${envMode} -- --port ${port}`,
+        env: {
+          ...process.env,
+          PUBLIC_PREVIEW_ORIGIN:
+            process.env.PUBLIC_PREVIEW_ORIGIN || 'https://preview.example.test',
+        },
         url: `${origin}${appBasePath}/login`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
