@@ -140,6 +140,7 @@ jobs:
       E2E_PROHIBITED_CF_ACCESS_CLIENT_SECRET: ${{ secrets.PROHIBITED_CF_ACCESS_CLIENT_SECRET }}
       E2E_ORDER_REFERENCE: ${{ vars.ORDER_REFERENCE }}
       E2E_PRODUCT_SLUG: ${{ vars.PRODUCT_SLUG }}
+      STAGING_CHECKOUT_CONCURRENCY: "4"
       E2E_EXHAUSTED_NOTIFICATION_ID: proof-notification-${{ github.run_id }}-${{ github.run_attempt }}
       E2E_FAILED_CATALOG_RELEASE_ID: proof-catalog-failure-${{ github.run_id }}-${{ github.run_attempt }}
       E2E_LAST_KNOWN_GOOD_RELEASE_ID: ${{ vars.LAST_KNOWN_GOOD_RELEASE_ID }}
