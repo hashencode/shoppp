@@ -14,6 +14,11 @@ export function accessHeaders(kind: "authorized" | "prohibited" = "authorized") 
   };
 }
 
+export function adminApiUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${requiredEnvironment("ADMIN_E2E_BASE_URL")}/api${normalizedPath}`;
+}
+
 export async function adminContext(
   browser: Browser,
   kind: "authorized" | "prohibited" = "authorized",

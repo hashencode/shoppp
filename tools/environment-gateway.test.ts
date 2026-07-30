@@ -4,8 +4,25 @@ import storefrontWorker, {
   staticAssetRequest as storefrontAssetRequest,
   upstreamApiRequest as storefrontRequest,
 } from "../apps/storefront/worker";
+import { adminApiUrl } from "../e2e/support";
 
 describe("environment-neutral API gateways", () => {
+  test("staging admin proofs use the Access-protected same-origin API gateway", () => {
+    const previous = process.env.ADMIN_E2E_BASE_URL;
+    process.env.ADMIN_E2E_BASE_URL = "https://admin.staging.example.test/";
+    try {
+      expect(adminApiUrl("/admin/session")).toBe(
+        "https://admin.staging.example.test/api/admin/session",
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.ADMIN_E2E_BASE_URL;
+      } else {
+        process.env.ADMIN_E2E_BASE_URL = previous;
+      }
+    }
+  });
+
   test.each([
     ["storefront", storefrontRequest],
     ["admin", adminRequest],

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { accessHeaders, requiredEnvironment } from "./support";
+import { accessHeaders, adminApiUrl, requiredEnvironment } from "./support";
 
 test("AE4/AE7: forged returns fail closed and an exhausted notification replays idempotently", async ({
   page,
@@ -8,7 +8,6 @@ test("AE4/AE7: forged returns fail closed and an exhausted notification replays 
   await page.goto("/checkout/complete?session_id=forged-release-proof");
   await expect(page.getByText(/return URL cannot confirm payment/i)).toBeVisible();
 
-  const api = requiredEnvironment("API_E2E_BASE_URL");
   const jobId = requiredEnvironment("E2E_EXHAUSTED_NOTIFICATION_ID");
   const headers = {
     ...accessHeaders(),
@@ -16,11 +15,11 @@ test("AE4/AE7: forged returns fail closed and an exhausted notification replays 
     "Idempotency-Key": `release-replay-${jobId}`,
   };
   const body = { confirm: true, reason: "Release recovery proof" };
-  const first = await request.post(`${api}/admin/operations/jobs/${jobId}/replay`, {
+  const first = await request.post(adminApiUrl(`/admin/operations/jobs/${jobId}/replay`), {
     headers,
     data: body,
   });
-  const second = await request.post(`${api}/admin/operations/jobs/${jobId}/replay`, {
+  const second = await request.post(adminApiUrl(`/admin/operations/jobs/${jobId}/replay`), {
     headers,
     data: body,
   });

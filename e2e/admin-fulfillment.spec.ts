@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { accessHeaders, adminContext, requiredEnvironment } from "./support";
+import { accessHeaders, adminApiUrl, adminContext, requiredEnvironment } from "./support";
 
 test("AE5: authorized operator fulfills and partially refunds the staged order", async ({
   browser,
@@ -9,7 +9,7 @@ test("AE5: authorized operator fulfills and partially refunds the staged order",
   const page = await context.newPage();
   await page.goto(`${requiredEnvironment("ADMIN_E2E_BASE_URL")}/orders/${reference}`);
 
-  await expect(page.getByText(`Order ${reference}`)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: reference })).toBeVisible();
   await page.getByRole("button", { name: "Mark picking" }).click();
   await page.getByRole("textbox", { name: "Reason" }).fill("Staging release fulfillment proof");
   await page.getByRole("button", { name: "Confirm operation" }).click();
@@ -24,9 +24,8 @@ test("AE5: authorized operator fulfills and partially refunds the staged order",
 });
 
 test("AE6: prohibited operator is denied by the API boundary", async ({ request }) => {
-  const api = requiredEnvironment("API_E2E_BASE_URL");
   const reference = requiredEnvironment("E2E_ORDER_REFERENCE");
-  const response = await request.post(`${api}/admin/orders/${reference}/refunds`, {
+  const response = await request.post(adminApiUrl(`/admin/orders/${reference}/refunds`), {
     headers: {
       ...accessHeaders("prohibited"),
       "Content-Type": "application/json",

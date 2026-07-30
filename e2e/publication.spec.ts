@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { accessHeaders, requiredEnvironment } from "./support";
+import { accessHeaders, adminApiUrl, requiredEnvironment } from "./support";
 
 test("failed publication keeps the recorded last-known-good storefront live and alerts operators", async ({
   page,
@@ -11,10 +11,9 @@ test("failed publication keeps the recorded last-known-good storefront live and 
   expect(response?.ok()).toBeTruthy();
   expect(await response!.text()).toContain(releaseId);
 
-  const health = await request.get(
-    `${requiredEnvironment("API_E2E_BASE_URL")}/admin/operations/health`,
-    { headers: accessHeaders() },
-  );
+  const health = await request.get(adminApiUrl("/admin/operations/health"), {
+    headers: accessHeaders(),
+  });
   expect(health.ok()).toBeTruthy();
   const payload = (await health.json()) as {
     data: { failures: { catalogBuilds: number }; status: string };
