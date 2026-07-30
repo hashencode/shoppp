@@ -47,6 +47,7 @@ export interface ApiBindings {
 }
 
 export interface ApiVariables {
+  idempotencyFinalizationStatements?: D1PreparedStatement[];
   principal: Principal;
   requestId: string;
 }

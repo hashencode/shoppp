@@ -317,6 +317,16 @@ describe("guest cart authority", () => {
         totals: { grandTotal: 14_250, shippingTotal: 1_350 },
       },
     });
+    expect(
+      await env.DB.prepare(
+        `SELECT state, response_status
+           FROM idempotency_claims
+          WHERE scope = 'cart.shipping.quote' AND key = 'cart-shipping-quote-001'`,
+      ).first(),
+    ).toEqual({ response_status: 200, state: "completed" });
+    expect(await env.DB.prepare("SELECT shipping_method_id FROM carts LIMIT 1").first()).toEqual({
+      shipping_method_id: ids.weight,
+    });
     const unavailableMethod = await app.fetch(
       cartRequest("/cart/shipping", data.token, {
         body: JSON.stringify({

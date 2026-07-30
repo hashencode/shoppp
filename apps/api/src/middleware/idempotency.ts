@@ -81,12 +81,14 @@ export function idempotency(scope: string): MiddlewareHandler<ApiEnvironment> {
 
     await next();
     const responseBody = await context.res.clone().text();
-    await context.env.DB.prepare(
-      `UPDATE idempotency_claims
+    const finalizationStatements = context.get("idempotencyFinalizationStatements") ?? [];
+    await context.env.DB.batch([
+      ...finalizationStatements,
+      context.env.DB.prepare(
+        `UPDATE idempotency_claims
          SET response_status = ?, response_body_json = ?, state = 'completed', updated_at = ?
          WHERE id = ?`,
-    )
-      .bind(context.res.status, responseBody, new Date().toISOString(), claimId)
-      .run();
+      ).bind(context.res.status, responseBody, new Date().toISOString(), claimId),
+    ]);
   };
 }
