@@ -27,14 +27,13 @@ const navigation = () =>
     capabilities: ["navigation.primary", "focus.skip-link"],
     id: "site-navigation",
     required: true,
-    type: "fashion.masthead",
+    type: "fashion.header",
   });
 const footer = () =>
   section({
     capabilities: ["legal.links"],
     id: "site-footer",
     required: true,
-    settings: { note: "Private fixture preview · no live commerce activity" },
     type: "fashion.footer",
   });
 
@@ -48,28 +47,14 @@ export const fashionPreset = {
       requiredCapabilities: ["navigation.primary", "focus.skip-link", "legal.links"],
       sections: [
         navigation(),
-        section({ capabilities: [], id: "announcement", type: "core.announcement" }),
-        section({
-          capabilities: [],
-          id: "home-hero",
-          settings: {
-            alignment: "left",
-            body: "A fixture-backed editorial storefront presentation.",
-            heading: "Objects with a point of view.",
-          },
-          type: "fashion.editorial-hero",
-        }),
-        section({ capabilities: [], id: "home-products", type: "core.product-grid" }),
-        section({
-          capabilities: [],
-          id: "home-story",
-          settings: {
-            body: "An optional editorial chapter controlled by a stable instance ID.",
-            heading: "Material, form, and restraint.",
-          },
-          type: "fashion.story",
-        }),
-        section({ capabilities: [], id: "trust-strip", type: "core.trust-strip" }),
+        section({ capabilities: [], id: "fashion-hero", type: "fashion.hero-carousel" }),
+        section({ capabilities: [], id: "fashion-services", type: "fashion.service-strip" }),
+        section({ capabilities: [], id: "fashion-categories", type: "fashion.category-tiles" }),
+        section({ capabilities: [], id: "fashion-bestsellers", type: "fashion.product-showcase" }),
+        section({ capabilities: [], id: "fashion-promotion", type: "fashion.promo-band" }),
+        section({ capabilities: [], id: "fashion-collection", type: "fashion.collection-carousel" }),
+        section({ capabilities: [], id: "fashion-featured", type: "fashion.product-showcase" }),
+        section({ capabilities: [], id: "fashion-magazine", type: "fashion.magazine" }),
         footer(),
       ],
     },

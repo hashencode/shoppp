@@ -1,17 +1,31 @@
 import "./tokens.css";
-
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import FashionEditorialHero from "./components/FashionEditorialHero.vue";
+import FashionCategoryTiles from "./components/FashionCategoryTiles.vue";
+import FashionCollectionCarousel from "./components/FashionCollectionCarousel.vue";
 import FashionFooter from "./components/FashionFooter.vue";
-import FashionMasthead from "./components/FashionMasthead.vue";
-import FashionStory from "./components/FashionStory.vue";
+import FashionHeader from "./components/FashionHeader.vue";
+import FashionHeroCarousel from "./components/FashionHeroCarousel.vue";
+import FashionMagazine from "./components/FashionMagazine.vue";
+import FashionProductShowcase from "./components/FashionProductShowcase.vue";
+import FashionPromoBand from "./components/FashionPromoBand.vue";
+import FashionServiceStrip from "./components/FashionServiceStrip.vue";
+import { fashionHomeFixtures } from "./fixtures/home";
+import { themeAssets } from "./resources";
 
 export const themeRegistry = {
   blocks: {},
   sections: {
-    "fashion.editorial-hero": FashionEditorialHero,
+    "fashion.category-tiles": FashionCategoryTiles,
+    "fashion.collection-carousel": FashionCollectionCarousel,
     "fashion.footer": FashionFooter,
-    "fashion.masthead": FashionMasthead,
-    "fashion.story": FashionStory,
+    "fashion.header": FashionHeader,
+    "fashion.hero-carousel": FashionHeroCarousel,
+    "fashion.magazine": FashionMagazine,
+    "fashion.product-showcase": FashionProductShowcase,
+    "fashion.promo-band": FashionPromoBand,
+    "fashion.service-strip": FashionServiceStrip,
   },
 } as const satisfies ThemeRegistry;
+
+export { themeAssets };
+export const themeFixtures = fashionHomeFixtures;

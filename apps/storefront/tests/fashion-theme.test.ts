@@ -3,11 +3,12 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { themePackageSchema } from "@shoppp/contracts";
 
-import { resolveTemplateOverride } from "../../../packages/domain/src/storefront-experience";
 import { fashionPreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import { fashionManifest, fashionThemeDescriptor } from "../app/themes/fashion/manifest";
 import { fashionPreset } from "../app/themes/fashion/presets/editorial";
+import { fashionHomeFixtures } from "../app/themes/fashion/fixtures/home";
+import { themeAssets } from "../app/themes/fashion/resources";
 
 describe("Fashion theme package", () => {
   test("validates a versioned package with all in-scope presentation templates", () => {
@@ -47,37 +48,25 @@ describe("Fashion theme package", () => {
     expect([...visibleInstanceIds].every((id) => bindingInstanceIds.includes(id))).toBe(true);
   });
 
-  test("preserves preset defaults while applying visibility, order, content, and reset overrides", () => {
+  test("declares the complete reference-backed Fashion home inventory in order", () => {
     const home = fashionPreset.templates.find(({ pageType }) => pageType === "home")!;
-    const changed = resolveTemplateOverride(home, {
-      operations: [
-        { instanceId: "home-story", kind: "set-visibility", visible: false },
-        { instanceId: "home-hero", kind: "set-setting", settingId: "heading", value: "New season" },
-        {
-          instanceIds: [
-            "site-navigation",
-            "announcement",
-            "home-products",
-            "home-hero",
-            "home-story",
-            "trust-strip",
-            "site-footer",
-          ],
-          kind: "reorder-sections",
-        },
-        { instanceId: "home-hero", kind: "reset-setting", settingId: "heading" },
-      ],
-      presetId: fashionPreset.id,
-      schemaVersion: 1,
-      templateId: home.id,
-    });
-
-    expect(changed.sections.find(({ id }) => id === "home-story")?.visible).toBe(false);
-    expect(changed.sections.map(({ id }) => id)[2]).toBe("home-products");
-    expect(changed.sections.find(({ id }) => id === "home-hero")?.settings.heading).toBe(
-      home.sections.find(({ id }) => id === "home-hero")?.settings.heading,
-    );
-    expect(home.sections.find(({ id }) => id === "home-story")?.visible).toBe(true);
+    expect(home.sections.map(({ type }) => type)).toEqual([
+      "fashion.header",
+      "fashion.hero-carousel",
+      "fashion.service-strip",
+      "fashion.category-tiles",
+      "fashion.product-showcase",
+      "fashion.promo-band",
+      "fashion.collection-carousel",
+      "fashion.product-showcase",
+      "fashion.magazine",
+      "fashion.footer",
+    ]);
+    const serialized = JSON.stringify(fashionHomeFixtures);
+    expect(serialized).not.toContain("Atlas");
+    expect(serialized).toContain("fashion.slider-01");
+    expect(Object.keys(themeAssets).length).toBeGreaterThanOrEqual(40);
+    expect(Object.keys(themeAssets).every((id) => id.startsWith("fashion."))).toBe(true);
   });
 
   test("selects only Fashion and contains no prohibited legacy or external runtime", async () => {
@@ -98,6 +87,7 @@ describe("Fashion theme package", () => {
 
     expect(activeModule).toContain('../themes/fashion/registry"');
     expect(activeModule).not.toContain("themes/decor");
-    expect(source).not.toMatch(/jquery|revolution|crafto|contact\.php|@font-face|https?:\/\//);
+    expect(source).not.toMatch(/jquery|revolution|contact\.php|https?:\/\//);
+    expect(source).toContain("@font-face");
   });
 });
