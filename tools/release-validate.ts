@@ -45,10 +45,12 @@ export const RELEASE_GATES: GateDefinition[] = [
   { name: "format", command: ["bun", "run", "format:check"] },
   { name: "lint", command: ["bun", "run", "lint"] },
   { name: "types", command: ["bun", "run", "typecheck"] },
+  { name: "theme-contracts", command: ["bun", "run", "verify:themes"] },
   { name: "unit-contract", command: ["bun", "run", "test"] },
   { name: "worker-integration", command: ["bun", "run", "test:workers"] },
   { name: "admin-browser", command: ["bun", "run", "test:admin-browser"] },
   { name: "representative-catalog", command: ["bun", "run", "test:catalog-scale"] },
+  { name: "theme-matrix", command: ["bun", "run", "test:theme-matrix"] },
   { name: "production-builds", command: ["bun", "run", "build"] },
   { name: "static-output", command: ["bun", "run", "verify:static"] },
   { name: "browser-journeys", command: ["bun", "run", "test:e2e"] },
@@ -201,10 +203,28 @@ async function runGate(gate: GateDefinition): Promise<GateResult> {
 }
 
 async function writeReport(report: ReleaseReport): Promise<string> {
+  assertReleaseReportContainsNoPreviewSecrets(report);
   await mkdir(REPORT_DIRECTORY, { recursive: true });
   const path = resolve(REPORT_DIRECTORY, `${safeReleaseId(report.releaseId)}.json`);
   await writeFile(path, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
   return path;
+}
+
+export function assertReleaseReportContainsNoPreviewSecrets(report: unknown): void {
+  const candidate = report as { artifactDigests?: Record<string, string> };
+  for (const path of Object.keys(candidate.artifactDigests ?? {})) {
+    assert(
+      !/(?:^|[/_-])preview(?:[/_.-]|$)/i.test(path),
+      "production release reports must not include preview artifacts",
+    );
+  }
+  const serialized = JSON.stringify(report);
+  assert(
+    !/(?:grant_[A-Za-z0-9_-]{16,}|__preview\/session|authorization["':\s]+bearer)/i.test(
+      serialized,
+    ),
+    "production release reports must not include preview credentials",
+  );
 }
 
 export async function validateRelease(options: {

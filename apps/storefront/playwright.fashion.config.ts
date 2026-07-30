@@ -33,7 +33,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `bun run build:preview:fashion && bun scripts/serve-static.ts ${port}`,
+    command: `bun run build:preview:fashion && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,

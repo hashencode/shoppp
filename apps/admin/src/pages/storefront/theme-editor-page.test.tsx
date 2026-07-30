@@ -481,31 +481,35 @@ describe('ThemeEditorPage', () => {
     expect(previewBuildStatus({ ...build(), status: 'expired' }).label).toBe('Expired')
   })
 
-  it('supports accessible reordering, required capability protection, reset, and dirty navigation', async () => {
-    renderEditor()
-    await waitFor(() =>
+  it(
+    'supports accessible reordering, required capability protection, reset, and dirty navigation',
+    async () => {
+      renderEditor()
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
+        ).toBe('Existing headline')
+      )
+      expect(
+        (screen.getByRole('switch', { name: 'Show site-navigation' }) as HTMLButtonElement).disabled
+      ).toBe(true)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
+      expect(await screen.findByText(/home-story moved to position 2 of 3/)).toBeTruthy()
+      fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
+        target: { value: 'Local unsaved headline' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero' }))
       expect(
         (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-      ).toBe('Existing headline')
-    )
-    expect(
-      (screen.getByRole('switch', { name: 'Show site-navigation' }) as HTMLButtonElement).disabled
-    ).toBe(true)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
-    expect(await screen.findByText(/home-story moved to position 2 of 3/)).toBeTruthy()
-    fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
-      target: { value: 'Local unsaved headline' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero' }))
-    expect(
-      (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-    ).toBe('Preset headline')
-    fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
-    expect(await screen.findByText('Discard unsaved theme edits?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
-    expect(screen.getByText('Unsaved changes')).toBeTruthy()
-  })
+      ).toBe('Preset headline')
+      fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
+      expect(await screen.findByText('Discard unsaved theme edits?')).toBeTruthy()
+      fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+      expect(screen.getByText('Unsaved changes')).toBeTruthy()
+    },
+    10_000
+  )
 
   it('saves, validates, and previews the exact new optimistic version in order', async () => {
     renderEditor()

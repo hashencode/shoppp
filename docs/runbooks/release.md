@@ -8,11 +8,12 @@ Every candidate starts from a clean commit and runs:
 bun run release:validate -- --release-id <release-id>
 ```
 
-The command performs the locked install, formatting, lint, type, unit, Worker, admin-browser,
-representative-catalog, production-build, static-output, end-to-end, accessibility, and performance
-gates. It also checks
+The command performs the locked install, formatting, lint, type, theme-contract, unit, Worker,
+admin-browser, representative-catalog, full Fashion/Decor theme-matrix, production-build,
+static-output, end-to-end, accessibility, and performance gates. It also checks
 staging/production isolation and writes `artifacts/releases/<release-id>.json` with the commit,
-individual gate outcomes, and SHA-256 digests for all three deployable outputs and D1 migrations.
+individual gate outcomes, and SHA-256 digests for all three production deployable outputs and D1
+migrations. Preview artifacts and credentials are rejected from the production report.
 The build gate prebundles all three Worker entrypoints. Deployment uses those saved bundles with
 Wrangler `--no-bundle`; deploy jobs never rebuild Worker code.
 

@@ -6,10 +6,15 @@ import { chromium, expect, test } from "@playwright/test";
 const manifest = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../app/generated/route-manifest.json"), "utf8"),
 ) as { routes: string[] };
+const theme = process.env.STOREFRONT_THEME ?? "production-fallback";
 const routes = [
   "/",
   manifest.routes.find((route) => route.startsWith("/collections/")),
   manifest.routes.find((route) => route.startsWith("/products/")),
+  "/cart",
+  "/checkout",
+  "/orders/fixture-order",
+  manifest.routes.find((route) => route.startsWith("/policies/")),
 ].filter((route): route is string => Boolean(route));
 const thresholds = {
   accessibility: 0.95,
@@ -17,6 +22,18 @@ const thresholds = {
   performance: 0.9,
   seo: 1,
 } as const;
+const routeThresholds = (route: string) => ({
+  ...thresholds,
+  // Private previews and production transaction shells are intentionally noindex, which
+  // Lighthouse reports as an SEO deduction. verify-static.ts separately enforces their
+  // canonical metadata, meaningful HTML, noindex tags, and sitemap exclusion.
+  seo:
+    theme !== "production-fallback"
+      ? 0.65
+      : ["/cart", "/checkout"].includes(route) || route.startsWith("/orders/")
+        ? 0.5
+        : 1,
+});
 
 function lighthouseChromePath(): string {
   if (process.env.LIGHTHOUSE_CHROME_PATH) return process.env.LIGHTHOUSE_CHROME_PATH;
@@ -49,7 +66,7 @@ function lighthouseChromePath(): string {
   return existsSync(executable) ? executable : chromiumPath;
 }
 
-test("core storefront routes meet mobile Lighthouse budgets", async ({ baseURL }) => {
+test(`${theme} storefront routes meet mobile Lighthouse budgets`, async ({ baseURL }) => {
   const [{ launch }, { default: lighthouse }] = await Promise.all([
     import("chrome-launcher"),
     import("lighthouse"),
@@ -60,6 +77,7 @@ test("core storefront routes meet mobile Lighthouse budgets", async ({ baseURL }
   });
   try {
     for (const route of routes) {
+      const expected = routeThresholds(route);
       const auditRoute = () =>
         lighthouse(`${baseURL}${route}`, {
           formFactor: "mobile",
@@ -91,7 +109,7 @@ test("core storefront routes meet mobile Lighthouse budgets", async ({ baseURL }
             `Lighthouse runtime error for ${route}: ${result.lhr.runtimeError.code} ${result.lhr.runtimeError.message}`,
           );
         }
-        const missedBudget = Object.entries(thresholds).some(
+        const missedBudget = Object.entries(expected).some(
           ([category, threshold]) => (result!.lhr.categories[category]?.score ?? 0) < threshold,
         );
         if (!missedBudget || attempt === 2) break;
@@ -99,7 +117,7 @@ test("core storefront routes meet mobile Lighthouse budgets", async ({ baseURL }
         result = await auditRoute();
         if (!result) throw new Error(`Lighthouse did not return a retry result for ${route}.`);
       }
-      for (const [category, threshold] of Object.entries(thresholds)) {
+      for (const [category, threshold] of Object.entries(expected)) {
         const lighthouseCategory = result.lhr.categories[category];
         const score = lighthouseCategory?.score ?? 0;
         const failedAudits = (lighthouseCategory?.auditRefs ?? [])

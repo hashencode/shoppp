@@ -16,10 +16,14 @@
     "test:e2e": "playwright test",
     "test:decor": "playwright test --config playwright.decor.config.ts",
     "test:fashion": "playwright test --config playwright.fashion.config.ts",
-    "test:perf": "bun scripts/check-bundle-budget.ts && playwright test --config playwright.performance.config.ts",
+    "test:perf": "playwright test --config playwright.performance.config.ts",
+    "test:perf:decor": "STOREFRONT_THEME=decor playwright test --config playwright.performance.config.ts",
+    "test:perf:fashion": "STOREFRONT_THEME=fashion playwright test --config playwright.performance.config.ts",
     "test:preview": "playwright test e2e/theme-preview.spec.ts",
+    "test:themes": "bun run test:fashion && bun run test:perf:fashion && bun run test:decor && bun run test:perf:decor",
     "typecheck": "nuxt typecheck",
-    "verify:static": "bun scripts/verify-static.ts"
+    "verify:static": "bun scripts/verify-static.ts",
+    "verify:themes": "bun scripts/verify-themes.ts"
   },
   "dependencies": {
     "@shoppp/contracts": "workspace:*",

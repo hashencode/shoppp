@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const workflowPath = resolve(import.meta.dir, "../.github/workflows/deploy.yml");
+const previewWorkflowPath = resolve(import.meta.dir, "../.github/workflows/preview-storefront.yml");
 
 describe("production promotion workflow", () => {
   test("defaults to staging-only and requires explicit release confirmation", async () => {
@@ -47,5 +48,34 @@ describe("production promotion workflow", () => {
       "E2E_FAILED_CATALOG_RELEASE_ID: proof-catalog-failure-${{ github.run_id }}-${{ github.run_attempt }}",
     );
     expect(workflow).toContain("Remove transient staging proof fixtures");
+  });
+});
+
+describe("private storefront preview workflow", () => {
+  test("uses exact build and snapshot identities with authenticated idempotent callbacks", async () => {
+    const workflow = await readFile(previewWorkflowPath, "utf8");
+
+    expect(workflow).toContain("build_id:");
+    expect(workflow).toContain("snapshot_id:");
+    expect(workflow).toContain(
+      "$PREVIEW_API_URL/build/storefront-experiences/snapshots/$SNAPSHOT_ID",
+    );
+    expect(workflow).toContain(
+      "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status",
+    );
+    expect(workflow).toContain("Idempotency-Key: preview-build-result-$BUILD_ID");
+    expect(workflow).toContain('"status":"deployed"');
+    expect(workflow).toContain('"status":"failed"');
+  });
+
+  test("validates exact origins and configures a separate Admin handoff origin", async () => {
+    const workflow = await readFile(previewWorkflowPath, "utf8");
+
+    expect(workflow).toContain(
+      'for (const name of ["PREVIEW_API_URL", "PREVIEW_HANDOFF_ORIGIN", "PREVIEW_ORIGIN"])',
+    );
+    expect(workflow).toContain('url.protocol !== "https:" || url.origin !== value');
+    expect(workflow).toContain('--var "PREVIEW_HANDOFF_ORIGIN:$PREVIEW_HANDOFF_ORIGIN"');
+    expect(workflow).not.toMatch(/grant_[A-Za-z0-9_-]{16,}/);
   });
 });
