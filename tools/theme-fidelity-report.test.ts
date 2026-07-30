@@ -27,7 +27,9 @@ async function captureRoot(
   roots.push(root);
   await mkdir(join(root, themeId), { recursive: true });
   await writeFile(join(root, themeId, "desktop.png"), png(width, 1000));
-  await writeFile(join(root, themeId, "mobile.png"), png(412, 915));
+  await writeFile(join(root, themeId, "laptop.png"), png(1024, 900));
+  await writeFile(join(root, themeId, "tablet.png"), png(768, 1024));
+  await writeFile(join(root, themeId, "mobile.png"), png(390, 844));
   await writeFile(
     join(root, themeId, "metadata.json"),
     JSON.stringify({
@@ -37,7 +39,9 @@ async function captureRoot(
       themeId,
       viewports: [
         { height: desktopViewportHeight, id: "desktop", width: 1440 },
-        { height: 915, id: "mobile", width: 412 },
+        { height: 900, id: "laptop", width: 1024 },
+        { height: 1024, id: "tablet", width: 768 },
+        { height: 844, id: "mobile", width: 390 },
       ],
     }),
   );
@@ -57,8 +61,12 @@ describe("theme fidelity report", () => {
       referenceRoot,
       themes: ["fashion"],
     });
+    const contents = await readFile(report, "utf8");
     await writeFile(join(outputRoot, "approval.json"), '{"commit":"stale"}\n');
-    expect(await readFile(report, "utf8")).toContain("does not imply approval");
+    expect(contents).toContain("does not imply approval");
+    expect(contents.match(/<section>/g)).toHaveLength(4);
+    expect(contents).toContain("fashion · laptop");
+    expect(contents).toContain("fashion · tablet");
     await generateThemeFidelityReport({
       commit: "abcdef1234567",
       implementationRoot,

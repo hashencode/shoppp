@@ -17,12 +17,12 @@ const data = computed<FooterData | null>(() => {
 });
 </script>
 <template>
-  <footer v-if="data" class="fashion-footer">
+  <footer v-if="data" id="fashion-footer" class="fashion-footer">
     <div class="fashion-footer-top">
       <strong><span>ML</span>{{ data.brand }}</strong>
       <nav aria-label="Footer">
-        <a href="/">Home</a><a href="#fashion-products">Shop</a
-        ><a href="#fashion-categories">Collection</a><a href="#fashion-products">Magazine</a>
+        <a href="/">Home</a><a href="#fashion-bestsellers">Shop</a
+        ><a href="#fashion-categories">Collection</a><a href="#fashion-magazine">Magazine</a>
       </nav>
     </div>
     <div class="fashion-footer-grid">
@@ -30,7 +30,7 @@ const data = computed<FooterData | null>(() => {
         <h2>{{ heading }}</h2>
         <a v-for="link in links" :key="link" href="#">{{ link }}</a>
       </section>
-      <section>
+      <section id="fashion-contact">
         <h2>Become a member</h2>
         <p>Join now and get 20% extra discount.</p>
         <label

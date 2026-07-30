@@ -51,6 +51,17 @@
 - `assets/images/demo-fashion-store-slider-02.jpg` from `images/demo-fashion-store-slider-02.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `60947e2b88610e3e181e4e3b51d8a5536ced6c5f879fbc408fadbd93e6df7e1b`
 - `assets/images/demo-fashion-store-slider-03.jpg` from `images/demo-fashion-store-slider-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `a6ff2034fbb8e546908c7b2535507d5bf152debbccb5cc000f234f0b13ef1525`
 
+## Derived reference glyph assets
+
+These small SVGs contain only the named path extracted from the user-supplied
+`fonts/icomoon.svg`. They replace the four reference service glyphs without loading the Crafto
+icon font or global stylesheet.
+
+- `assets/icons/service-box.svg` from glyph `U+E6E5` (`line-icon-Box-Close`) — SHA-256 `01492165aa15e1c0da1f4fc6d017d58f8bdcc14de56b14afcff29676a804c433`
+- `assets/icons/service-return.svg` from glyph `U+EBD7` (`line-icon-Reload-3`) — SHA-256 `e4ecb461a4740e302bfdfb18b8f6102a54606dcf2613ada79b9a274b6ae5a8f6`
+- `assets/icons/service-payment.svg` from glyph `U+E7C3` (`line-icon-Credit-Card2`) — SHA-256 `b388c9b604d44cdfcbcfb993a5312e91b18c88f0ba8216832d4a7ac2c06b82a4`
+- `assets/icons/service-support.svg` from glyph `U+EB58` (`line-icon-Phone-2`) — SHA-256 `4f0650323672a3bf927f58fb09c5e538e1f524fa6402aface8765acdb21fe988`
+
 ## Local implementation
 
 Theme templates, Vue components, CSS, and internal icon components are original reviewed repository code. No Crafto JavaScript, jQuery, Revolution Slider, PHP handler, or global vendor stylesheet is imported.

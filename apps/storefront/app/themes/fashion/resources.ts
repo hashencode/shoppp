@@ -40,6 +40,10 @@ import asset37 from "./assets/images/demo-fashion-store-product-12.jpg";
 import asset38 from "./assets/images/demo-fashion-store-slider-01.jpg";
 import asset39 from "./assets/images/demo-fashion-store-slider-02.jpg";
 import asset40 from "./assets/images/demo-fashion-store-slider-03.jpg";
+import serviceBox from "./assets/icons/service-box.svg?no-inline";
+import servicePayment from "./assets/icons/service-payment.svg?no-inline";
+import serviceReturn from "./assets/icons/service-return.svg?no-inline";
+import serviceSupport from "./assets/icons/service-support.svg?no-inline";
 
 export const themeAssets = validateThemeAssets("fashion", {
   "fashion.figtree-latin": asset0,
@@ -83,4 +87,8 @@ export const themeAssets = validateThemeAssets("fashion", {
   "fashion.slider-01": asset38,
   "fashion.slider-02": asset39,
   "fashion.slider-03": asset40,
+  "fashion.service-box": serviceBox,
+  "fashion.service-payment": servicePayment,
+  "fashion.service-return": serviceReturn,
+  "fashion.service-support": serviceSupport,
 });

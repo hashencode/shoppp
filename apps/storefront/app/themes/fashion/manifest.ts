@@ -12,6 +12,8 @@ const visualTypes = [
   "fashion.product-showcase",
   "fashion.promo-band",
   "fashion.collection-carousel",
+  "fashion.brand-strip",
+  "fashion.promise-strip",
   "fashion.magazine",
 ] as const;
 

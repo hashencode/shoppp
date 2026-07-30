@@ -21,13 +21,11 @@ export async function captureThemeEvidence(
   themeId: "decor" | "fashion",
 ): Promise<void> {
   const root = process.env.THEME_FIDELITY_CAPTURE_ROOT;
-  if (
-    !root ||
-    !["desktop", "mobile"].some((viewport) => testInfo.project.name.includes(viewport))
-  ) {
-    return;
-  }
-  await page.evaluate(async () => {
+  const viewport = (Object.keys(themeViewports) as Array<keyof typeof themeViewports>).find((id) =>
+    testInfo.project.name.includes(id),
+  );
+  if (!root || !viewport) return;
+  const imageDiagnostics = await page.evaluate(async () => {
     const images = [...document.images];
     for (const image of images) image.loading = "eager";
     for (let top = 0; top < document.documentElement.scrollHeight; top += innerHeight * 0.8) {
@@ -37,8 +35,11 @@ export async function captureThemeEvidence(
     scrollTo(0, document.documentElement.scrollHeight);
     await Promise.all(images.map((image) => image.decode().catch(() => undefined)));
     scrollTo(0, 0);
+    return images
+      .filter((image) => image.currentSrc && image.naturalWidth === 0)
+      .map((image) => image.currentSrc);
   });
-  const viewport = testInfo.project.name.includes("mobile") ? "mobile" : "desktop";
+  expect(imageDiagnostics).toEqual([]);
   await mkdir(`${root}/${themeId}`, { recursive: true });
   await writeFile(
     `${root}/${themeId}/metadata.json`,
@@ -48,10 +49,10 @@ export async function captureThemeEvidence(
         commit: process.env.THEME_FIDELITY_COMMIT ?? "uncommitted",
         state: "initial-home",
         themeId,
-        viewports: [
-          { ...themeViewports.desktop, id: "desktop" },
-          { ...themeViewports.mobile, id: "mobile" },
-        ],
+        viewports: Object.entries(themeViewports).map(([id, dimensions]) => ({
+          ...dimensions,
+          id,
+        })),
       },
       null,
       2,

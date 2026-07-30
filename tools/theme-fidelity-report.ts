@@ -3,13 +3,16 @@ import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export type FidelityThemeId = "decor" | "fashion";
+export type FidelityViewportId = "desktop" | "laptop" | "tablet" | "mobile";
+
+export const fidelityViewportIds: FidelityViewportId[] = ["desktop", "laptop", "tablet", "mobile"];
 
 interface CaptureMetadata {
   capturedAt: string;
   commit?: string;
   state?: string;
   themeId: FidelityThemeId;
-  viewports: { height: number; id: "desktop" | "mobile"; width: number }[];
+  viewports: { height: number; id: FidelityViewportId; width: number }[];
 }
 
 function pngDimensions(contents: Uint8Array): { height: number; width: number } {
@@ -59,7 +62,7 @@ export async function generateThemeFidelityReport(options: {
         `${themeId} implementation capture does not represent the initial home state.`,
       );
     }
-    for (const viewport of ["desktop", "mobile"] as const) {
+    for (const viewport of fidelityViewportIds) {
       const expected = referenceMetadata.viewports.find(({ id }) => id === viewport);
       const actual = implementationMetadata.viewports.find(({ id }) => id === viewport);
       if (

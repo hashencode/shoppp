@@ -24,12 +24,12 @@ function move(direction: number): void {
 }
 </script>
 <template>
-  <section v-if="data" class="fashion-collection">
+  <section v-if="data" id="fashion-collection" class="fashion-collection">
     <div class="fashion-collection-copy">
       <small>Lookbook 2026</small>
       <h2>{{ data.heading }}</h2>
       <p>Fresh silhouettes and tactile layers selected for the season ahead.</p>
-      <a href="#fashion-products">View collection</a>
+      <a href="#fashion-featured">View collection</a>
     </div>
     <div
       ref="rail"

@@ -29,6 +29,7 @@ export const fashionHomeFixtures = {
         data: {
           announcement: "Enjoy free delivery on orders over $100.",
           brand: "Mode / Life",
+          brandAssetId: "fashion.logo-black",
           navigation: ["Home", "Shop", "Collection", "Magazine", "Pages", "Contact"],
         },
         kind: "theme-section",
@@ -60,10 +61,26 @@ export const fashionHomeFixtures = {
       services: {
         data: {
           items: [
-            "Free shipping over $130",
-            "Easy 30-day returns",
-            "Secure protected payment",
-            "Friendly support",
+            {
+              assetId: "fashion.service-box",
+              detail: "Free shipping on first order",
+              label: "Free shipping",
+            },
+            {
+              assetId: "fashion.service-return",
+              detail: "Moneyback guarantee",
+              label: "15 days returns",
+            },
+            {
+              assetId: "fashion.service-payment",
+              detail: "100% protected payment",
+              label: "Secure payment",
+            },
+            {
+              assetId: "fashion.service-support",
+              detail: "24/7 days a week support",
+              label: "Online support",
+            },
           ],
         },
         kind: "theme-section",
@@ -71,18 +88,16 @@ export const fashionHomeFixtures = {
       },
       categories: {
         data: {
-          items: ["Women", "Men", "Accessories", "Outerwear", "Dresses", "Shoes"].map(
-            (name, index) => ({
-              assetId: `fashion.menu-category-${String(index + 1).padStart(2, "0")}`,
-              name,
-            }),
-          ),
+          items: ["Women", "Men", "Accessories", "Kids"].map((name, index) => ({
+            assetId: `fashion.banner-${String(index + 1).padStart(2, "0")}`,
+            name,
+          })),
         },
         kind: "theme-section",
         state: "populated",
       },
       bestsellers: {
-        data: { heading: "Best seller products", products: products.slice(0, 8) },
+        data: { heading: "Best seller products", products: products.slice(0, 10) },
         kind: "theme-section",
         state: "populated",
       },
@@ -104,8 +119,24 @@ export const fashionHomeFixtures = {
         kind: "theme-section",
         state: "populated",
       },
+      brands: {
+        data: { items: ["ASOS", "CHANEL", "GUCCI", "CELINE", "adidas"] },
+        kind: "theme-section",
+        state: "populated",
+      },
       featured: {
-        data: { heading: "Featured products", products: products.slice(4) },
+        data: { heading: "Featured products", products: products.slice(6, 11) },
+        kind: "theme-section",
+        state: "populated",
+      },
+      promises: {
+        data: {
+          items: [
+            "Get 20% off for your first order",
+            "The fashion core collection",
+            "100% secure protected payment",
+          ],
+        },
         kind: "theme-section",
         state: "populated",
       },

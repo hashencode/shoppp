@@ -14,9 +14,12 @@ const data = computed(() =>
     ? (properties.viewModel.data as unknown as ProductData)
     : null,
 );
+const sectionId = computed(() =>
+  data.value?.heading.toLowerCase().includes("best") ? "fashion-bestsellers" : "fashion-featured",
+);
 </script>
 <template>
-  <section v-if="data" id="fashion-products" class="fashion-products">
+  <section v-if="data" :id="sectionId" class="fashion-products">
     <h2>{{ data.heading }}</h2>
     <div class="fashion-product-grid">
       <article v-for="product in data.products" :key="product.assetId">

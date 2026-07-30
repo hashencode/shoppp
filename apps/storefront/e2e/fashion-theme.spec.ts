@@ -29,6 +29,12 @@ test("Fashion home matches the reference inventory and native interactions", asy
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === "fashion-no-js");
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Women's collection" })).toBeVisible();
   for (const selector of [
@@ -36,6 +42,8 @@ test("Fashion home matches the reference inventory and native interactions", asy
     ".fashion-products",
     ".fashion-promo-band",
     ".fashion-collection",
+    ".fashion-brands",
+    ".fashion-promises",
     ".fashion-magazine",
     ".fashion-footer",
   ]) {
@@ -53,17 +61,142 @@ test("Fashion home matches the reference inventory and native interactions", asy
   await expect(
     page.locator('.fashion-nav-actions button[aria-label="Preview bag"] svg'),
   ).toHaveCount(1);
-  await expect(page.locator(".fashion-service-strip svg")).toHaveCount(4);
+  const serviceIcons = page.locator(".fashion-service-strip img");
+  await expect(serviceIcons).toHaveCount(4);
+  expect(
+    await serviceIcons.evaluateAll((images) =>
+      images.map((image) => ({
+        height: image.getAttribute("height"),
+        naturalHeight: (image as HTMLImageElement).naturalHeight,
+        naturalWidth: (image as HTMLImageElement).naturalWidth,
+        source: (image as HTMLImageElement).getAttribute("src"),
+        width: image.getAttribute("width"),
+      })),
+    ),
+  ).toEqual([
+    expect.objectContaining({
+      height: "48",
+      naturalHeight: 512,
+      naturalWidth: 512,
+      source: expect.stringContaining("service-box"),
+      width: "48",
+    }),
+    expect.objectContaining({
+      height: "48",
+      naturalHeight: 512,
+      naturalWidth: 512,
+      source: expect.stringContaining("service-return"),
+      width: "48",
+    }),
+    expect.objectContaining({
+      height: "48",
+      naturalHeight: 512,
+      naturalWidth: 512,
+      source: expect.stringContaining("service-payment"),
+      width: "48",
+    }),
+    expect.objectContaining({
+      height: "48",
+      naturalHeight: 512,
+      naturalWidth: 512,
+      source: expect.stringContaining("service-support"),
+      width: "48",
+    }),
+  ]);
   await expect(page.getByRole("button", { name: "Next collections" }).locator("svg")).toHaveCount(
     1,
   );
   expect(await page.locator("body").innerText()).not.toMatch(/[⌕♙▢↗↺✓♡←→]/);
+  expect(
+    await page.evaluate(() => {
+      const ids = [...document.querySelectorAll("[id]")].map(({ id }) => id);
+      return ids.filter((id, index) => ids.indexOf(id) !== index);
+    }),
+  ).toEqual([]);
+  await expect(page.locator("#fashion-bestsellers")).toHaveCount(1);
+  await expect(page.locator("#fashion-featured")).toHaveCount(1);
   await captureThemeEvidence(page, testInfo, "fashion");
   await page.getByRole("button", { name: "Show slide 2" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Men's collection" })).toBeVisible();
   await expect(page.locator(".fashion-hero-slide").nth(1).locator("img")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Atlas carry-on");
   await assertThemeLayout(page);
+  expect(consoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
+test("Fashion navigation keeps centered logo, split groups, and distinct destinations", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "fashion-no-js");
+  await page.goto("/");
+  const mobile = (page.viewportSize()?.width ?? 1_440) <= 900;
+  const expectedDestinations = [
+    "/",
+    "#fashion-bestsellers",
+    "#fashion-categories",
+    "#fashion-magazine",
+    "#fashion-footer",
+    "#fashion-contact",
+  ];
+  if (mobile) {
+    await page.locator(".fashion-mobile-menu > summary").click();
+    const links = page.locator(".fashion-mobile-menu nav a");
+    await expect(links).toHaveCount(6);
+    expect(
+      await links.evaluateAll((items) => items.map((item) => item.getAttribute("href"))),
+    ).toEqual(expectedDestinations);
+    return;
+  }
+
+  await expect(
+    page.locator(".fashion-nav-left > .fashion-nav-item > .fashion-nav-link"),
+  ).toHaveText(["Home", "Shop", "Collection"]);
+  await expect(
+    page.locator(".fashion-nav-right > .fashion-nav-item > .fashion-nav-link"),
+  ).toHaveText(["Magazine", "Pages", "Contact"]);
+  const links = page.locator(".fashion-desktop-nav .fashion-nav-link");
+  expect(
+    await links.evaluateAll((items) => items.map((item) => item.getAttribute("href"))),
+  ).toEqual(expectedDestinations);
+  const geometry = await page.evaluate(() => {
+    const box = (selector: string) =>
+      document.querySelector(selector)?.getBoundingClientRect() ?? new DOMRect();
+    const left = box(".fashion-nav-left");
+    const logo = box(".fashion-brand");
+    const right = box(".fashion-nav-right");
+    return {
+      centeredDelta: Math.abs(logo.left + logo.width / 2 - innerWidth / 2),
+      leftBeforeLogo: left.right <= logo.left,
+      rightAfterLogo: right.left >= logo.right,
+    };
+  });
+  expect(geometry.centeredDelta).toBeLessThanOrEqual(2);
+  expect(geometry.leftBeforeLogo).toBe(true);
+  expect(geometry.rightAfterLogo).toBe(true);
+
+  const shopToggle = page.getByRole("button", { name: "Open Shop menu" });
+  await shopToggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(shopToggle).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Escape");
+  await expect(shopToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(shopToggle).toBeFocused();
+});
+
+test("Fashion mobile category and product grids follow the single-column reference", async ({
+  page,
+}, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"));
+  await page.goto("/");
+  const columns = await page.evaluate(() => ({
+    categories: getComputedStyle(document.querySelector(".fashion-categories")!)
+      .gridTemplateColumns,
+    products: getComputedStyle(document.querySelector(".fashion-product-grid")!)
+      .gridTemplateColumns,
+  }));
+  expect(columns.categories.split(" ")).toHaveLength(1);
+  expect(columns.products.split(" ")).toHaveLength(1);
 });
 
 test("Fashion home has no serious accessibility violations", async ({ page }, testInfo) => {
@@ -83,7 +216,7 @@ test("Fashion keeps the first collection and full content without JavaScript", a
   test.skip(testInfo.project.name !== "fashion-no-js");
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Women's collection" })).toBeVisible();
-  await expect(page.locator(".fashion-categories img")).toHaveCount(6);
+  await expect(page.locator(".fashion-categories img")).toHaveCount(4);
   await expect(page.locator(".fashion-magazine article")).toHaveCount(4);
 });
 

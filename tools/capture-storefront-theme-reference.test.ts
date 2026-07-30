@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 
 import {
   referenceCaptureConfigs,
+  referenceCaptureViewports,
   validateReferenceSource,
 } from "./capture-storefront-theme-reference";
 
@@ -25,6 +26,15 @@ async function fixture(themeId: "decor" | "fashion"): Promise<string> {
 }
 
 describe("reference source validation", () => {
+  test("captures every approved fidelity width with stable viewport identities", () => {
+    expect(referenceCaptureViewports).toEqual([
+      { height: 1000, id: "desktop", width: 1440 },
+      { height: 900, id: "laptop", width: 1024 },
+      { height: 1024, id: "tablet", width: 768 },
+      { height: 844, id: "mobile", width: 390 },
+    ]);
+  });
+
   test.each(["fashion", "decor"] as const)(
     "accepts the approved %s entry and first hero",
     async (themeId) => {

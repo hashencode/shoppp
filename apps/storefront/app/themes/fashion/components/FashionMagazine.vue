@@ -16,7 +16,7 @@ const data = computed(() =>
 );
 </script>
 <template>
-  <section v-if="data" class="fashion-magazine">
+  <section v-if="data" id="fashion-magazine" class="fashion-magazine">
     <h2>{{ data.heading }}</h2>
     <div>
       <article v-for="item in data.items" :key="item.assetId">

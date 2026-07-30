@@ -60,10 +60,26 @@
     },
     {
       "fixtureId": "fashion-home",
+      "id": "fashion-brands-binding",
+      "instanceId": "fashion-brands",
+      "kind": "fixture",
+      "resource": "brands",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
       "id": "fashion-featured-binding",
       "instanceId": "fashion-featured",
       "kind": "fixture",
       "resource": "featured",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
+      "id": "fashion-promises-binding",
+      "instanceId": "fashion-promises",
+      "kind": "fixture",
+      "resource": "promises",
       "state": "populated"
     },
     {

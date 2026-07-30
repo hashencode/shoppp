@@ -58,7 +58,9 @@ describe("Fashion theme package", () => {
       "fashion.product-showcase",
       "fashion.promo-band",
       "fashion.collection-carousel",
+      "fashion.brand-strip",
       "fashion.product-showcase",
+      "fashion.promise-strip",
       "fashion.magazine",
       "fashion.footer",
     ]);
@@ -68,6 +70,39 @@ describe("Fashion theme package", () => {
     expect(serialized).toContain("fashion.slider-01");
     expect([...fixtureAssetIds].every((id) => id in themeAssets)).toBe(true);
     expect(Object.keys(themeAssets).every((id) => id.startsWith("fashion."))).toBe(true);
+  });
+
+  test("maps the four large Fashion services to original Crafto glyph assets", async () => {
+    const services = fashionHomeFixtures["fashion-home"].viewModels.services.data.items;
+    expect(services.map(({ assetId }) => assetId)).toEqual([
+      "fashion.service-box",
+      "fashion.service-return",
+      "fashion.service-payment",
+      "fashion.service-support",
+    ]);
+    expect(services.map(({ label }) => label)).toEqual([
+      "Free shipping",
+      "15 days returns",
+      "Secure payment",
+      "Online support",
+    ]);
+    expect(services.every(({ assetId }) => assetId in themeAssets)).toBe(true);
+
+    const [component, iconMap] = await Promise.all([
+      readFile(
+        resolve(import.meta.dir, "../app/themes/fashion/components/FashionServiceStrip.vue"),
+        "utf8",
+      ),
+      readFile(
+        resolve(import.meta.dir, "../../../docs/architecture/storefront-theme-icon-map.md"),
+        "utf8",
+      ),
+    ]);
+    expect(component).not.toContain("@lucide/vue");
+    expect(component).toContain("resolveAsset(item.assetId)");
+    for (const glyph of ["U+E6E5", "U+EBD7", "U+E7C3", "U+EB58"]) {
+      expect(iconMap).toContain(glyph);
+    }
   });
 
   test("selects only Fashion and contains no prohibited legacy or external runtime", async () => {

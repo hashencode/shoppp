@@ -23,6 +23,13 @@ export const referenceCaptureConfigs = {
   },
 } as const satisfies Record<ReferenceThemeId, ReferenceCaptureConfig>;
 
+export const referenceCaptureViewports = [
+  { height: 1_000, id: "desktop", width: 1_440 },
+  { height: 900, id: "laptop", width: 1_024 },
+  { height: 1_024, id: "tablet", width: 768 },
+  { height: 844, id: "mobile", width: 390 },
+] as const;
+
 export async function validateReferenceSource(
   sourceRoot: string,
   config: ReferenceCaptureConfig,
@@ -76,19 +83,17 @@ interface CapturePage {
   waitForTimeout(milliseconds: number): Promise<void>;
 }
 
-async function sweep(page: CapturePage): Promise<void> {
+interface ReferencePageDiagnostics {
+  brokenImages: string[];
+  documentHeight: number;
+  imageCount: number;
+}
+
+async function stabilizeReferencePage(page: CapturePage): Promise<ReferencePageDiagnostics> {
   await page
     .getByRole("button", { name: /allow cookies/i })
     .click({ timeout: 1_000 })
     .catch(() => {});
-  await page.evaluate(async () => {
-    const step = Math.max(500, Math.floor(innerHeight * 0.75));
-    for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
-      scrollTo(0, y);
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, 80));
-    }
-    scrollTo(0, 0);
-  });
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -103,10 +108,91 @@ async function sweep(page: CapturePage): Promise<void> {
         transform: none !important;
         visibility: visible !important;
       }
-      #cookies-model, .cookie-message, .scroll-progress { display: none !important; }
+      #cookies-model, .cookie-message, .scroll-progress,
+      .theme-demos, .all-demo, .buy-theme, .mfp-wrap, .mfp-bg {
+        display: none !important;
+      }
     `,
   });
+  const diagnostics = await page.evaluate(async () => {
+    const delay = (milliseconds: number) =>
+      new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
+    document.querySelectorAll("img").forEach((image) => {
+      image.loading = "eager";
+      const lazySource = image.getAttribute("data-src");
+      if (lazySource && !image.getAttribute("src")) image.setAttribute("src", lazySource);
+      const lazySourceSet = image.getAttribute("data-srcset");
+      if (lazySourceSet && !image.getAttribute("srcset"))
+        image.setAttribute("srcset", lazySourceSet);
+    });
+    if ("fonts" in document) await document.fonts.ready;
+
+    let previousHeight = 0;
+    let stablePasses = 0;
+    for (let pass = 0; pass < 4 && stablePasses < 2; pass += 1) {
+      const step = Math.max(360, Math.floor(innerHeight * 0.65));
+      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+        scrollTo(0, y);
+        await delay(100);
+      }
+      scrollTo(0, document.documentElement.scrollHeight);
+      await delay(180);
+      const currentHeight = document.documentElement.scrollHeight;
+      stablePasses = currentHeight === previousHeight ? stablePasses + 1 : 0;
+      previousHeight = currentHeight;
+    }
+
+    const images = [...document.images];
+    await Promise.all(
+      images.map(async (image) => {
+        if (!image.complete) {
+          await Promise.race([
+            new Promise<void>((resolvePromise) => {
+              image.addEventListener("load", () => resolvePromise(), { once: true });
+              image.addEventListener("error", () => resolvePromise(), { once: true });
+            }),
+            delay(5_000),
+          ]);
+        }
+        await image.decode().catch(() => undefined);
+      }),
+    );
+    document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0);
+    });
+    document
+      .querySelectorAll<HTMLElement>(
+        ".swiper-pagination-bullet:first-child, .tp-bullet:first-child",
+      )
+      .forEach((control) => control.click());
+    scrollTo(0, 0);
+    await delay(250);
+    return {
+      brokenImages: images
+        .filter((image) => image.currentSrc && image.naturalWidth === 0)
+        .map((image) => image.currentSrc),
+      documentHeight: document.documentElement.scrollHeight,
+      imageCount: images.length,
+    };
+  });
   await page.waitForTimeout(250);
+  if (diagnostics.brokenImages.length > 0) {
+    throw new Error(
+      `Reference page has ${diagnostics.brokenImages.length} broken images: ${diagnostics.brokenImages
+        .slice(0, 5)
+        .join(", ")}`,
+    );
+  }
+  return diagnostics;
 }
 
 export async function captureReference(options: {
@@ -145,26 +231,24 @@ export async function captureReference(options: {
   const browser = await chromium.launch();
   const outputRoot = resolve(options.outputRoot, options.themeId);
   await mkdir(outputRoot, { recursive: true });
-  const captures = [
-    { height: 1_000, id: "desktop", width: 1_440 },
-    { height: 915, id: "mobile", width: 412 },
-  ] as const;
+  const captures: Array<(typeof referenceCaptureViewports)[number] & ReferencePageDiagnostics> = [];
   try {
-    for (const capture of captures) {
+    for (const viewport of referenceCaptureViewports) {
       const page = await browser.newPage({
         reducedMotion: "reduce",
-        viewport: { height: capture.height, width: capture.width },
+        viewport: { height: viewport.height, width: viewport.width },
       });
       const response = await page.goto(`http://127.0.0.1:${server.port}/${config.entry}`, {
-        waitUntil: "networkidle",
+        waitUntil: "load",
       });
       if (!response?.ok()) throw new Error(`Reference page failed to load: ${config.entry}`);
-      await sweep(page);
+      const diagnostics = await stabilizeReferencePage(page);
       await page.screenshot({
         animations: "disabled",
         fullPage: true,
-        path: join(outputRoot, `${capture.id}.png`),
+        path: join(outputRoot, `${viewport.id}.png`),
       });
+      captures.push({ ...viewport, ...diagnostics });
       await page.close();
     }
     await writeFile(
@@ -204,7 +288,7 @@ async function main(): Promise<void> {
     );
   }
   await captureReference({ outputRoot, sourceRoot, themeId });
-  console.log(`Captured deterministic ${themeId} desktop and mobile references.`);
+  console.log(`Captured deterministic ${themeId} references at 1440, 1024, 768, and 390px.`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) await main();
