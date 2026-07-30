@@ -6,6 +6,7 @@ import {
   activePreviewOrigin,
   activeThemeRegistry,
 } from "./generated/active-theme";
+import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 
 const route = useRoute();
@@ -38,6 +39,8 @@ if (activeExperienceSnapshot && previewOrigin) {
   <UApp>
     <ThemeRenderer
       v-if="previewTemplate"
+      :bindings="activeExperienceSnapshot?.bindings ?? []"
+      :fixtures="experienceFixtureRegistry"
       :registry="activeThemeRegistry"
       :template="previewTemplate"
     />

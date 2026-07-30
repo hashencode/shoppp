@@ -373,6 +373,7 @@ describe("storefront experience contracts", () => {
         {
           fixtureId: "fashion-populated",
           id: "home-products",
+          instanceId: "hero",
           kind: "fixture",
           resource: "product-list",
           state: "populated",
