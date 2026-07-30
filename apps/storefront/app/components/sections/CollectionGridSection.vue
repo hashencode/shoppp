@@ -10,7 +10,7 @@ defineProps<{ viewModel: PresentationViewModel }>();
     class="section"
     aria-labelledby="collection-grid-title"
   >
-    <h2 id="collection-grid-title">{{ viewModel.heading }}</h2>
+    <h1 id="collection-grid-title">{{ viewModel.heading }}</h1>
     <ul>
       <li v-for="collection in viewModel.collections" :key="collection.id">
         <NuxtLink

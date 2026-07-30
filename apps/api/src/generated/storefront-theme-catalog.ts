@@ -3,4 +3,27 @@
 
 import type { StorefrontThemeDescriptor } from "@shoppp/contracts";
 
-export const storefrontThemeCatalog = [] as const satisfies readonly StorefrontThemeDescriptor[];
+export const storefrontThemeCatalog = [
+  {
+    "configurationSchemaVersion": 1,
+    "id": "fashion",
+    "platformCompatibility": {
+      "maxExclusive": "2.0.0",
+      "min": "1.0.0"
+    },
+    "platformContractVersion": "1.0.0",
+    "presets": [
+      "editorial"
+    ],
+    "supportedPageTemplates": [
+      "home",
+      "collection",
+      "product",
+      "cart",
+      "checkout",
+      "order",
+      "policy"
+    ],
+    "themeVersion": "1.0.0"
+  }
+] as const satisfies readonly StorefrontThemeDescriptor[];

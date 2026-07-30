@@ -1,5 +1,7 @@
 bun.lock
 apps/admin
+apps/api/src/generated/storefront-theme-catalog.ts
+apps/storefront/app/generated/theme-catalog.ts
 coverage
 dist
 docs/plans

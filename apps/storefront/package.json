@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run prepare:release && bun run prepare:experience && nuxt generate && bun scripts/finalize-static.ts && wrangler deploy --dry-run --outdir worker-dist --env=\"\"",
+    "build:preview:fashion": "bun scripts/prepare-theme-preview-fixture.ts fashion && STOREFRONT_BUILD_MODE=preview STOREFRONT_EXPERIENCE_FILE=fixtures/experience/.generated/fashion-preview-input.json bun run build",
     "build:preview-worker": "wrangler deploy --dry-run --config wrangler.preview.jsonc --outdir preview-worker-dist",
     "dev": "bun run prepare:release && bun run prepare:experience && nuxt dev",
     "prepare:experience": "bun scripts/prepare-experience.ts",
@@ -12,6 +13,7 @@
     "test": "bun test tests",
     "test:a11y": "playwright test --config playwright.a11y.config.ts",
     "test:e2e": "playwright test",
+    "test:fashion": "playwright test --config playwright.fashion.config.ts",
     "test:perf": "bun scripts/check-bundle-budget.ts && playwright test --config playwright.performance.config.ts",
     "test:preview": "playwright test e2e/theme-preview.spec.ts",
     "typecheck": "nuxt typecheck",

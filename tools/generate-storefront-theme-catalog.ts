@@ -5,15 +5,20 @@ import {
   storefrontThemeDescriptorSchema,
   type StorefrontThemeDescriptor,
 } from "../packages/contracts/src/storefront-experience";
+import { fashionThemeDescriptor } from "../apps/storefront/app/themes/fashion/manifest";
 
 export interface StorefrontThemeCatalogOptions {
   descriptors: readonly StorefrontThemeDescriptor[];
   outputs: readonly string[];
 }
 
-export const STOREFRONT_THEME_MANIFEST_ALLOWLIST = [] as const;
+export const STOREFRONT_THEME_MANIFEST_ALLOWLIST = [
+  "apps/storefront/app/themes/fashion/manifest.ts",
+] as const;
 
-export const storefrontThemeDescriptors: readonly StorefrontThemeDescriptor[] = [];
+export const storefrontThemeDescriptors: readonly StorefrontThemeDescriptor[] = [
+  fashionThemeDescriptor,
+];
 
 function normalizeDescriptors(
   descriptors: readonly StorefrontThemeDescriptor[],

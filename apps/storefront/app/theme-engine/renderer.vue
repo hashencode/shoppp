@@ -53,7 +53,11 @@ const plan = computed(() =>
           :view-model="block.viewModel"
         />
       </component>
-      <span v-if="section.instance.type === 'core.navigation'" id="preview-content" tabindex="-1" />
+      <span
+        v-if="section.instance.capabilities.includes('focus.skip-link')"
+        id="preview-content"
+        tabindex="-1"
+      />
     </template>
   </div>
 </template>

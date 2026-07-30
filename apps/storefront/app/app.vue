@@ -25,12 +25,28 @@ const previewTemplate = computed(() =>
     (template) => template.pageType === pageType.value,
   ),
 );
+const previewTitle = computed(
+  () =>
+    ({
+      cart: "Preview bag",
+      checkout: "Checkout presentation",
+      collection: "Fixture collection",
+      home: "Fashion storefront",
+      order: "Order status presentation",
+      policy: "Fixture policy",
+      product: "Fixture product",
+    })[pageType.value],
+);
 
 const previewOrigin = activePreviewOrigin;
 if (activeExperienceSnapshot && previewOrigin) {
-  useSeoMeta({ robots: "noindex, nofollow" });
+  useSeoMeta({
+    description: "A private fixture-backed storefront theme preview.",
+    robots: "noindex, nofollow",
+  });
   useHead(() => ({
-    link: [{ href: new URL(route.path, previewOrigin).href, rel: "canonical" }],
+    link: [{ rel: "canonical", href: new URL(route.path, previewOrigin).href }],
+    title: `${previewTitle.value} · Private fixture preview`,
   }));
 }
 </script>
