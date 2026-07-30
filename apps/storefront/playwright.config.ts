@@ -5,7 +5,12 @@ const baseURL = process.env.STOREFRONT_E2E_BASE_URL || `http://127.0.0.1:${port}
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: ["a11y.spec.ts", "performance.spec.ts"],
+  testIgnore: [
+    "a11y.spec.ts",
+    "decor-theme.spec.ts",
+    "fashion-theme.spec.ts",
+    "performance.spec.ts",
+  ],
   outputDir: "test-results",
   fullyParallel: true,
   reporter: "list",

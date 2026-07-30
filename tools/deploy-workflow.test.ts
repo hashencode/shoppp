@@ -4,6 +4,18 @@ import { resolve } from "node:path";
 
 const workflowPath = resolve(import.meta.dir, "../.github/workflows/deploy.yml");
 const previewWorkflowPath = resolve(import.meta.dir, "../.github/workflows/preview-storefront.yml");
+const storefrontPlaywrightPath = resolve(
+  import.meta.dir,
+  "../apps/storefront/playwright.config.ts",
+);
+const fashionPlaywrightPath = resolve(
+  import.meta.dir,
+  "../apps/storefront/playwright.fashion.config.ts",
+);
+const decorPlaywrightPath = resolve(
+  import.meta.dir,
+  "../apps/storefront/playwright.decor.config.ts",
+);
 
 describe("production promotion workflow", () => {
   test("defaults to staging-only and requires explicit release confirmation", async () => {
@@ -77,5 +89,21 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain('url.protocol !== "https:" || url.origin !== value');
     expect(workflow).toContain('--var "PREVIEW_HANDOFF_ORIGIN:$PREVIEW_HANDOFF_ORIGIN"');
     expect(workflow).not.toMatch(/grant_[A-Za-z0-9_-]{16,}/);
+  });
+});
+
+describe("storefront theme browser matrix", () => {
+  test("keeps theme-only assertions out of the production fallback suite", async () => {
+    const [production, fashion, decor] = await Promise.all([
+      readFile(storefrontPlaywrightPath, "utf8"),
+      readFile(fashionPlaywrightPath, "utf8"),
+      readFile(decorPlaywrightPath, "utf8"),
+    ]);
+    const productionIgnore = production.match(/testIgnore:\s*\[([\s\S]*?)\],/)?.[1];
+
+    expect(productionIgnore).toContain('"decor-theme.spec.ts"');
+    expect(productionIgnore).toContain('"fashion-theme.spec.ts"');
+    expect(fashion).toContain('testMatch: "fashion-theme.spec.ts"');
+    expect(decor).toContain('testMatch: "decor-theme.spec.ts"');
   });
 });
