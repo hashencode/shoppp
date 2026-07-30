@@ -5,7 +5,6 @@ import type { Principal } from "../iam/permissions";
 export interface ApiBindings {
   ACCESS_AUDIENCE: string;
   ACCESS_ISSUER: string;
-  ACCESS_JWKS: string;
   ANALYTICS_RATE_LIMITER?: RateLimit;
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW?: Workflow;

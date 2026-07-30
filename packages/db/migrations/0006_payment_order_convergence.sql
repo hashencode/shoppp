@@ -31,9 +31,8 @@ BEGIN
    WHERE variant_id = NEW.variant_id
      AND warehouse_id = NEW.warehouse_id
      AND on_hand_quantity + oversell_limit - reserved_quantity - backordered_quantity >= NEW.quantity;
-  SELECT CASE
-    WHEN changes() != 1 THEN RAISE(ABORT, 'inventory_unavailable')
-  END;
+  SELECT RAISE(ABORT, 'inventory_unavailable')
+   WHERE changes() != 1;
   INSERT INTO inventory_reservation_events
     (id, group_id, reservation_id, event_type, created_at)
   VALUES
@@ -58,9 +57,8 @@ BEGIN
    WHERE variant_id = OLD.variant_id
      AND warehouse_id = OLD.warehouse_id
      AND reserved_quantity >= OLD.quantity;
-  SELECT CASE
-    WHEN changes() != 1 THEN RAISE(ABORT, 'inventory_conservation_violation')
-  END;
+  SELECT RAISE(ABORT, 'inventory_conservation_violation')
+   WHERE changes() != 1;
   INSERT INTO stock_ledger_entries
     (id, variant_id, warehouse_id, quantity_delta, reason, reference_type,
      reference_id, actor_id, created_at)
@@ -89,9 +87,8 @@ BEGIN
      AND on_hand_quantity + NEW.quantity_delta >= 0
      AND reserved_quantity + backordered_quantity <=
        on_hand_quantity + NEW.quantity_delta + oversell_limit;
-  SELECT CASE
-    WHEN changes() != 1 THEN RAISE(ABORT, 'inventory_adjustment_invalid')
-  END;
+  SELECT RAISE(ABORT, 'inventory_adjustment_invalid')
+   WHERE changes() != 1;
 END;
 --> statement-breakpoint
 ALTER TABLE checkout_attempts ADD COLUMN reservation_group_id TEXT
@@ -142,12 +139,13 @@ WHEN NOT EXISTS (
   SELECT 1 FROM orders WHERE checkout_attempt_id = NEW.checkout_attempt_id
 )
 BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT RAISE(ABORT, 'active_reservation_required')
+   WHERE NOT EXISTS (
     SELECT 1
       FROM checkout_attempts ca
       JOIN inventory_reservation_groups rg ON rg.id = ca.reservation_group_id
      WHERE ca.id = NEW.checkout_attempt_id AND rg.status = 'active'
-  ) THEN RAISE(ABORT, 'active_reservation_required') END;
+  );
 END;
 --> statement-breakpoint
 CREATE TRIGGER orders_confirm_checkout_inventory

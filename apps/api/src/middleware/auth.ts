@@ -1,14 +1,17 @@
-import type { JSONWebKeySet } from "jose";
 import type { MiddlewareHandler } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
-import { verifyAccessJwt, type AccessIdentity } from "../iam/access-jwt";
+import {
+  verifyAccessJwt,
+  type AccessIdentity,
+  type AccessVerificationConfig,
+} from "../iam/access-jwt";
 import { isAdminRole } from "../iam/permissions";
 
 export type AccessVerifier = (
   token: string,
-  config: { audience: string; issuer: string; jwks: JSONWebKeySet },
+  config: AccessVerificationConfig,
 ) => Promise<AccessIdentity>;
 
 export function adminAuthentication(
@@ -24,7 +27,6 @@ export function adminAuthentication(
       identity = await accessVerifier(token, {
         audience: context.env.ACCESS_AUDIENCE,
         issuer: context.env.ACCESS_ISSUER,
-        jwks: JSON.parse(context.env.ACCESS_JWKS) as JSONWebKeySet,
       });
     } catch {
       throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");

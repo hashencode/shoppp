@@ -5,7 +5,6 @@ declare global {
     interface Env {
       ACCESS_AUDIENCE: string;
       ACCESS_ISSUER: string;
-      ACCESS_JWKS: string;
       BACKUP_BUCKET: R2Bucket;
       DB: D1Database;
       ENVIRONMENT: "development" | "staging" | "production";

@@ -48,40 +48,32 @@ CREATE UNIQUE INDEX stock_ledger_business_effect_unique
 CREATE TRIGGER fulfillment_events_validate_insert
 BEFORE INSERT ON fulfillment_events
 BEGIN
-  SELECT CASE
-    WHEN NOT EXISTS (
+  SELECT RAISE(ABORT, 'fulfillment_state_conflict')
+   WHERE NOT EXISTS (
       SELECT 1 FROM orders
        WHERE id = NEW.order_id
          AND fulfillment_status = NEW.from_status
          AND order_status <> 'canceled'
-    )
-    THEN RAISE(ABORT, 'fulfillment_state_conflict')
-  END;
-  SELECT CASE
-    WHEN NOT EXISTS (
+    );
+  SELECT RAISE(ABORT, 'fulfillment_payment_not_approved')
+   WHERE NOT EXISTS (
       SELECT 1 FROM orders
        WHERE id = NEW.order_id
          AND payment_status IN ('paid', 'partially_refunded')
-    )
-    THEN RAISE(ABORT, 'fulfillment_payment_not_approved')
-  END;
-  SELECT CASE
-    WHEN NOT (
+    );
+  SELECT RAISE(ABORT, 'fulfillment_transition_invalid')
+   WHERE NOT (
       (NEW.from_status = 'unfulfilled' AND NEW.to_status = 'picking') OR
       (NEW.from_status = 'picking' AND NEW.to_status = 'packed') OR
       (NEW.from_status = 'packed' AND NEW.to_status = 'shipped') OR
       (NEW.from_status = 'shipped' AND NEW.to_status = 'delivered')
-    )
-    THEN RAISE(ABORT, 'fulfillment_transition_invalid')
-  END;
-  SELECT CASE
-    WHEN NEW.to_status = 'shipped'
+    );
+  SELECT RAISE(ABORT, 'shipment_tracking_required')
+   WHERE NEW.to_status = 'shipped'
      AND (
        NEW.carrier IS NULL OR length(trim(NEW.carrier)) = 0 OR
        NEW.tracking_number IS NULL OR length(trim(NEW.tracking_number)) = 0
-     )
-    THEN RAISE(ABORT, 'shipment_tracking_required')
-  END;
+     );
 END;
 --> statement-breakpoint
 CREATE TRIGGER fulfillment_events_apply_insert
@@ -101,21 +93,17 @@ END;
 CREATE TRIGGER order_events_validate_insert
 BEFORE INSERT ON order_events
 BEGIN
-  SELECT CASE
-    WHEN NEW.to_status <> 'canceled'
-    THEN RAISE(ABORT, 'order_transition_invalid')
-  END;
-  SELECT CASE
-    WHEN NOT EXISTS (
+  SELECT RAISE(ABORT, 'order_transition_invalid')
+   WHERE NEW.to_status <> 'canceled';
+  SELECT RAISE(ABORT, 'order_cancellation_ineligible')
+   WHERE NOT EXISTS (
       SELECT 1 FROM orders
        WHERE id = NEW.order_id
          AND order_status = NEW.from_status
          AND order_status = 'confirmed'
          AND fulfillment_status = 'unfulfilled'
          AND payment_status IN ('refunded', 'canceled')
-    )
-    THEN RAISE(ABORT, 'order_cancellation_ineligible')
-  END;
+    );
 END;
 --> statement-breakpoint
 CREATE TRIGGER order_events_apply_insert

@@ -15,12 +15,12 @@ export default defineConfig(async () => {
           bindings: {
             ACCESS_AUDIENCE: "test-audience",
             ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",
-            ACCESS_JWKS: '{"keys":[]}',
             ENVIRONMENT: "staging",
             EMAIL_FROM: "orders@staging.example.test",
             PUBLIC_ORIGIN: "https://staging.example.invalid",
             RESOURCE_NAMESPACE: "shoppp-staging",
             RESERVATION_TTL_MINUTES: "30",
+            STOREFRONT_ORIGIN: "https://storefront-staging.example.invalid",
             GUEST_ORDER_TOKEN_TTL_HOURS: "720",
             PAYMENT_CANCEL_URL: "https://storefront-staging.example.invalid/checkout",
             PAYMENT_SUCCESS_URL:
