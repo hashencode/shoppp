@@ -1,5 +1,5 @@
 const SAMPLE_COUNT = 20;
-const DEFAULT_CHECKOUT_CONCURRENCY = 4;
+const DEFAULT_CHECKOUT_CONCURRENCY = 3;
 
 function required(name: string): string {
   const value = process.env[name]?.trim().replace(/\/$/, "");

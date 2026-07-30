@@ -670,18 +670,18 @@ export async function setCartShipping(
       [{ path: ["shippingMethodId"] }],
     );
   }
-  context.set("idempotencyFinalizationStatements", [
-    context.env.DB.prepare(
-      `UPDATE carts
+  await context.env.DB.prepare(
+    `UPDATE carts
         SET shipping_country = ?, shipping_address_json = ?, shipping_method_id = ?, updated_at = ?
       WHERE id = ?`,
-    ).bind(
+  )
+    .bind(
       input.shippingAddress.countryCode,
       JSON.stringify(input.shippingAddress),
       input.shippingMethodId ?? null,
       new Date().toISOString(),
       cart.id,
-    ),
-  ]);
+    )
+    .run();
   return quote;
 }

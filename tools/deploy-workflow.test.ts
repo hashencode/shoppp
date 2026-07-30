@@ -39,7 +39,7 @@ describe("production promotion workflow", () => {
       "$ADMIN_E2E_BASE_URL/api/admin/inventory/$PROOF_INVENTORY_VARIANT/$PROOF_INVENTORY_WAREHOUSE/adjustments",
     );
     expect(workflow).toContain("Staging release last-unit fixture");
-    expect(workflow).toContain('STAGING_CHECKOUT_CONCURRENCY: "4"');
+    expect(workflow).toContain('STAGING_CHECKOUT_CONCURRENCY: "3"');
     expect(workflow).toContain(
       "E2E_EXHAUSTED_NOTIFICATION_ID: proof-notification-${{ github.run_id }}-${{ github.run_attempt }}",
     );
