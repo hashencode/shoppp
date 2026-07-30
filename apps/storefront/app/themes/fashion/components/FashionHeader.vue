@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MapPin, Search, ShoppingBag, UserRound, UsersRound } from "@lucide/vue";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface HeaderData {
   announcement: string;
@@ -25,7 +26,8 @@ const data = computed<HeaderData | null>(() => {
     <p class="fashion-announcement">{{ data.announcement }} <strong>Shop now</strong></p>
     <div class="fashion-nav-shell">
       <div class="fashion-nav-meta" aria-hidden="true">
-        <span>⌖ Find stores</span><span>◎ 100k followers</span>
+        <span><MapPin :size="14" :stroke-width="1.7" /> Find stores</span
+        ><span><UsersRound :size="14" :stroke-width="1.7" /> 100k followers</span>
       </div>
       <NuxtLink class="fashion-brand" to="/" aria-label="Mode Life home"
         ><span>ML</span>{{ data.brand }}</NuxtLink
@@ -34,9 +36,13 @@ const data = computed<HeaderData | null>(() => {
         <a v-for="item in data.navigation" :key="item" href="#fashion-categories">{{ item }}</a>
       </nav>
       <div class="fashion-nav-actions" aria-label="Store utilities">
-        <button type="button" aria-label="Search">⌕</button
-        ><button type="button" aria-label="Account">♙</button
-        ><button type="button" aria-label="Preview bag">▢<sup>0</sup></button>
+        <button type="button" aria-label="Search">
+          <Search aria-hidden="true" :size="19" :stroke-width="1.7" /></button
+        ><button type="button" aria-label="Account">
+          <UserRound aria-hidden="true" :size="19" :stroke-width="1.7" /></button
+        ><button type="button" aria-label="Preview bag">
+          <ShoppingBag aria-hidden="true" :size="19" :stroke-width="1.7" /><sup>0</sup>
+        </button>
       </div>
       <details class="fashion-mobile-menu">
         <summary>Menu</summary>

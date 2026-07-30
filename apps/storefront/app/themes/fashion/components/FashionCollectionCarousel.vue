@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface CollectionData {
@@ -48,8 +49,11 @@ function move(direction: number): void {
       </article>
     </div>
     <div class="fashion-collection-controls">
-      <button type="button" aria-label="Previous collections" @click="move(-1)">←</button
-      ><button type="button" aria-label="Next collections" @click="move(1)">→</button>
+      <button type="button" aria-label="Previous collections" @click="move(-1)">
+        <ArrowLeft aria-hidden="true" :size="18" :stroke-width="1.7" /></button
+      ><button type="button" aria-label="Next collections" @click="move(1)">
+        <ArrowRight aria-hidden="true" :size="18" :stroke-width="1.7" />
+      </button>
     </div>
   </section>
 </template>

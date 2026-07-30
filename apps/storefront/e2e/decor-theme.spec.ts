@@ -48,6 +48,16 @@ test("Decor home matches the furniture inventory and native interactions", async
     "high",
   );
   await expect(page.locator(".decor-hero-product").nth(1)).toHaveAttribute("loading", "lazy");
+  await expect(page.locator('.decor-actions button[aria-label="Search"] svg')).toHaveCount(1);
+  await expect(page.locator('.decor-actions button[aria-label="Preview bag"] svg')).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Shop now" }).locator("svg")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Add to preview bag" }).first().locator("svg"),
+  ).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Next furniture" }).locator("svg")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Next product" }).locator("svg")).toHaveCount(1);
+  await expect(page.locator(".decor-footer-social svg")).toHaveCount(4);
+  expect(await page.locator("body").innerText()).not.toMatch(/[⌕▢▣＋←→◉♥◎]/);
   await page.waitForLoadState("networkidle");
   await captureThemeEvidence(page, testInfo, "decor");
   await page.getByRole("button", { name: "Next furniture" }).click();

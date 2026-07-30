@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight, ShoppingBag } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface HeroData {
@@ -131,15 +132,20 @@ function select(index: number): void {
         <p>
           Price starting from <strong>{{ slide.price }}</strong>
         </p>
-        <a href="#decor-products">▣ Shop now</a>
+        <a href="#decor-products"
+          ><ShoppingBag aria-hidden="true" :size="15" :stroke-width="1.7" />Shop now</a
+        >
       </div>
     </article>
     <div class="decor-hero-controls">
-      <button type="button" aria-label="Previous furniture" @click="select(current - 1)">←</button
+      <button type="button" aria-label="Previous furniture" @click="select(current - 1)">
+        <ArrowLeft aria-hidden="true" :size="18" :stroke-width="1.7" /></button
       ><span
         >{{ String(current + 1).padStart(2, "0") }} /
         {{ String(data.slides.length).padStart(2, "0") }}</span
-      ><button type="button" aria-label="Next furniture" @click="select(current + 1)">→</button>
+      ><button type="button" aria-label="Next furniture" @click="select(current + 1)">
+        <ArrowRight aria-hidden="true" :size="18" :stroke-width="1.7" />
+      </button>
     </div>
   </section>
 </template>

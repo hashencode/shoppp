@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Search, ShoppingBag } from "@lucide/vue";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface HeaderData {
   announcement: string;
@@ -31,8 +32,10 @@ const data = computed<HeaderData | null>(() => {
         <a v-for="item in data.navigation" :key="item" href="#decor-categories">{{ item }}</a>
       </nav>
       <div class="decor-actions">
-        <button type="button" aria-label="Search">⌕</button
-        ><button type="button" aria-label="Preview bag">▢<sup>0</sup></button
+        <button type="button" aria-label="Search">
+          <Search aria-hidden="true" :size="19" :stroke-width="1.7" /></button
+        ><button type="button" aria-label="Preview bag">
+          <ShoppingBag aria-hidden="true" :size="19" :stroke-width="1.7" /><sup>0</sup></button
         ><button type="button" aria-label="Account">My account</button>
       </div>
       <details class="decor-mobile-menu">

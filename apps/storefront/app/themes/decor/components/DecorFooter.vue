@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Camera, Globe2, Heart, UsersRound } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
@@ -23,7 +24,20 @@ const data = computed<Data | null>(() => {
       <section>
         <strong><i></i>{{ data.brand }}</strong>
         <p>Objects chosen to make everyday rooms feel personal.</p>
-        <div class="decor-footer-social">f ◉ ♥ ◎</div>
+        <nav class="decor-footer-social" aria-label="Social channels">
+          <a href="#" aria-label="Photo sharing"
+            ><Camera aria-hidden="true" :size="17" :stroke-width="1.7"
+          /></a>
+          <a href="#" aria-label="Community"
+            ><UsersRound aria-hidden="true" :size="17" :stroke-width="1.7"
+          /></a>
+          <a href="#" aria-label="Favorites"
+            ><Heart aria-hidden="true" :size="17" :stroke-width="1.7"
+          /></a>
+          <a href="#" aria-label="Website"
+            ><Globe2 aria-hidden="true" :size="17" :stroke-width="1.7"
+          /></a>
+        </nav>
       </section>
       <section v-for="(links, heading) in data.columns" :key="heading">
         <h2>{{ heading }}</h2>

@@ -27,6 +27,7 @@
     "verify:themes": "bun scripts/verify-themes.ts"
   },
   "dependencies": {
+    "@lucide/vue": "^1.24.0",
     "@nuxt/image": "2.1.0",
     "@pinia/nuxt": "1.0.1",
     "@shoppp/contracts": "workspace:*",

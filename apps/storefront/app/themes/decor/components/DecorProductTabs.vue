@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
@@ -48,7 +49,9 @@ const shown = computed(() => {
         /></a>
         <h3>{{ product.name }}</h3>
         <p>{{ product.price }}</p>
-        <button type="button" aria-label="Add to preview bag">＋</button>
+        <button type="button" aria-label="Add to preview bag">
+          <Plus aria-hidden="true" :size="18" :stroke-width="1.7" />
+        </button>
       </article>
     </div>
   </section>

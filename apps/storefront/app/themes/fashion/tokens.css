@@ -90,6 +90,11 @@ a {
   font-size: 0.75rem;
   color: #555;
 }
+.fashion-nav-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
 .fashion-brand {
   justify-self: center;
   display: flex;
@@ -128,11 +133,22 @@ a {
   gap: 0.4rem;
 }
 .fashion-nav-actions button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
   border: 0;
   background: none;
   min-width: 2rem;
   min-height: 2rem;
   cursor: pointer;
+}
+.fashion-nav-actions sup {
+  position: absolute;
+  top: 0;
+  right: -0.05rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
 }
 .fashion-mobile-menu {
   display: none;
@@ -224,11 +240,14 @@ a {
   margin: 0;
   padding: 1.45rem 2rem;
   border-right: 1px solid var(--fashion-line);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
   font-weight: 600;
 }
-.fashion-service-strip b {
-  margin-right: 0.7rem;
+.fashion-service-strip svg {
+  flex: 0 0 auto;
   color: #8a7500;
 }
 .fashion-categories {
@@ -387,6 +406,8 @@ a {
   gap: 0.4rem;
 }
 .fashion-collection-controls button {
+  display: inline-grid;
+  place-items: center;
   width: 2.7rem;
   height: 2.7rem;
   border: 1px solid #ddd;

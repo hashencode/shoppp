@@ -46,6 +46,18 @@ test("Fashion home matches the reference inventory and native interactions", asy
     "high",
   );
   await expect(page.locator(".fashion-hero-slide img").nth(1)).toHaveAttribute("loading", "lazy");
+  await expect(page.locator('.fashion-nav-actions button[aria-label="Search"] svg')).toHaveCount(1);
+  await expect(page.locator('.fashion-nav-actions button[aria-label="Account"] svg')).toHaveCount(
+    1,
+  );
+  await expect(
+    page.locator('.fashion-nav-actions button[aria-label="Preview bag"] svg'),
+  ).toHaveCount(1);
+  await expect(page.locator(".fashion-service-strip svg")).toHaveCount(4);
+  await expect(page.getByRole("button", { name: "Next collections" }).locator("svg")).toHaveCount(
+    1,
+  );
+  expect(await page.locator("body").innerText()).not.toMatch(/[⌕♙▢↗↺✓♡←→]/);
   await captureThemeEvidence(page, testInfo, "fashion");
   await page.getByRole("button", { name: "Show slide 2" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Men's collection" })).toBeVisible();

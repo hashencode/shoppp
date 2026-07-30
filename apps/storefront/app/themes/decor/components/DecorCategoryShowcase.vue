@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowRight } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
@@ -22,8 +23,8 @@ const data = computed(() =>
         :alt="item.name"
         width="520"
         height="620"
-        loading="lazy"
-      /><span>{{ item.name }} <b>→</b></span></a
-    >
+        loading="lazy" /><span
+        >{{ item.name }} <ArrowRight aria-hidden="true" :size="17" :stroke-width="1.7" /></span
+    ></a>
   </section>
 </template>

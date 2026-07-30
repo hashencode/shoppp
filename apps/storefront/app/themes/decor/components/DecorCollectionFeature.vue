@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
@@ -50,14 +51,14 @@ const current = ref(0);
           aria-label="Previous product"
           @click="current = (current - 1 + data.products.length) % data.products.length"
         >
-          ←</button
+          <ArrowLeft aria-hidden="true" :size="18" :stroke-width="1.7" /></button
         ><span>{{ current + 1 }} / {{ data.products.length }}</span
         ><button
           type="button"
           aria-label="Next product"
           @click="current = (current + 1) % data.products.length"
         >
-          →
+          <ArrowRight aria-hidden="true" :size="18" :stroke-width="1.7" />
         </button>
       </div>
     </div>
