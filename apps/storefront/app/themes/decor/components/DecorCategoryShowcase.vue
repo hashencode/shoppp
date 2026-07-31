@@ -26,7 +26,7 @@ const data = computed(() =>
         <h2>Featured categories</h2>
       </header>
       <div class="decor-category-icon-list">
-        <a v-for="item in data.featured" :key="item.assetId" href="#decor-products">
+        <a v-for="item in data.featured" :key="item.assetId" href="/#decor-products">
           <span>
             <img
               :src="properties.resolveAsset(item.assetId)"
@@ -45,7 +45,7 @@ const data = computed(() =>
       <a
         v-for="item in data.banners"
         :key="item.assetId"
-        href="#decor-products"
+        href="/#decor-products"
         :class="{ 'decor-category-banner-large': item.size === 'large' }"
       >
         <img

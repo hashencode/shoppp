@@ -66,7 +66,7 @@ function keydown(event: KeyboardEvent): void {
       <div class="fashion-hero-copy">
         <p>{{ slide.eyebrow }}</p>
         <h1>{{ slide.heading }}</h1>
-        <a href="#fashion-bestsellers">View collection</a>
+        <a href="/#fashion-bestsellers">View collection</a>
       </div>
     </article>
     <div class="fashion-hero-pagination" aria-label="Choose collection">

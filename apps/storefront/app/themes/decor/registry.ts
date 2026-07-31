@@ -8,6 +8,7 @@ import DecorHeader from "./components/DecorHeader.vue";
 import DecorHeroCarousel from "./components/DecorHeroCarousel.vue";
 import DecorJournal from "./components/DecorJournal.vue";
 import DecorMarquee from "./components/DecorMarquee.vue";
+import DecorProductDetails from "./components/DecorProductDetails.vue";
 import DecorProductTabs from "./components/DecorProductTabs.vue";
 import DecorServiceStrip from "./components/DecorServiceStrip.vue";
 import { decorHomeFixtures } from "./fixtures/home";
@@ -24,6 +25,7 @@ export const themeRegistry = {
     "decor.hero-carousel": DecorHeroCarousel,
     "decor.journal": DecorJournal,
     "decor.marquee": DecorMarquee,
+    "decor.product-details": DecorProductDetails,
     "decor.product-tabs": DecorProductTabs,
     "decor.service-strip": DecorServiceStrip,
   },

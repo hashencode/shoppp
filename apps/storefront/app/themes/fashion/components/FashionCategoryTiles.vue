@@ -16,7 +16,7 @@ const data = computed(() =>
 </script>
 <template>
   <section v-if="data" id="fashion-categories" class="fashion-categories">
-    <a v-for="item in data.items" :key="item.assetId" href="#fashion-bestsellers"
+    <a v-for="item in data.items" :key="item.assetId" href="/#fashion-bestsellers"
       ><img
         :src="properties.resolveAsset(item.assetId)"
         :alt="`${item.name} collection`"

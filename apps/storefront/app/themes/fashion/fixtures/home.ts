@@ -1,29 +1,41 @@
 import type { ExperienceFixtureRegistry } from "../../../theme-engine/view-models";
 
-const products = Array.from({ length: 12 }, (_, index) => ({
+const productNames = [
+  "Textured sweater",
+  "Traveller shirt",
+  "Crewneck sweatshirt",
+  "Skinny trousers",
+  "Everyday tee",
+  "Relaxed overshirt",
+  "Tailored jacket",
+  "Pleated skirt",
+  "Modern cardigan",
+  "Minimal dress",
+  "Soft knit polo",
+  "Wide-leg trouser",
+] as const;
+const prices = [189, 289, 199, 259, 129, 219, 349, 229, 279, 319, 199, 249] as const;
+const comparePrices = [200, 350, 250, 300, 160, 260, 420, 270, 330, 380, 240, 290] as const;
+const products = productNames.map((name, index) => ({
   assetId: `fashion.product-${String(index + 1).padStart(2, "0")}`,
-  name: [
-    "Textured sweater",
-    "Traveller shirt",
-    "Crewneck sweatshirt",
-    "Skinny trousers",
-    "Everyday tee",
-    "Relaxed overshirt",
-    "Tailored jacket",
-    "Pleated skirt",
-    "Modern cardigan",
-    "Minimal dress",
-    "Soft knit polo",
-    "Wide-leg trouser",
-  ][index],
-  price: `$${[189, 289, 199, 259, 129, 219, 349, 229, 279, 319, 199, 249][index]}`,
+  category: index % 2 === 0 ? "Women" : "Men",
+  colors: ["Ochre", "Indigo", "Sage"],
+  comparePrice: `$${comparePrices[index]}.00`,
+  description:
+    "A relaxed everyday layer with a considered silhouette, soft hand feel and durable finish.",
+  name,
+  price: `$${prices[index]}.00`,
+  sizes: ["S", "M", "L", "XL"],
+  sku: `ML-${String(index + 1).padStart(4, "0")}`,
+  slug: name.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+  vendor: index % 3 === 0 ? "Zalando" : "Mode / Life",
 }));
 
 export const fashionHomeFixtures = {
   "fashion-home": {
     id: "fashion-home",
     label: "Fashion reference-backed home presentation",
-    pageTypes: ["home"],
+    pageTypes: ["home", "product"],
     viewModels: {
       header: {
         data: {
@@ -126,6 +138,14 @@ export const fashionHomeFixtures = {
       },
       featured: {
         data: { heading: "Featured products", products: products.slice(6, 11) },
+        kind: "theme-section",
+        state: "populated",
+      },
+      product: {
+        data: {
+          products,
+          relatedHeading: "You may also like",
+        },
         kind: "theme-section",
         state: "populated",
       },

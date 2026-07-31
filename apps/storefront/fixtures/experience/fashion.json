@@ -123,7 +123,7 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
       "id": "fashion-product-binding",
       "instanceId": "product-main",
       "kind": "fixture",

@@ -25,6 +25,12 @@ const decorSectionDefinitions = [
   },
   ...visualTypes.map((type) => ({ allowedBlockTypes: [], capabilities: [], settings: [], type })),
   {
+    allowedBlockTypes: [],
+    capabilities: ["product.details", "product.action"],
+    settings: [],
+    type: "decor.product-details",
+  },
+  {
     allowedBlockTypes: ["core.link"],
     capabilities: ["legal.links"],
     settings: [],

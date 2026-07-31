@@ -1,21 +1,35 @@
 import type { ExperienceFixtureRegistry } from "../../../theme-engine/view-models";
 
-const products = [
-  ["decor.product-01", "Table clock", "$23.00"],
-  ["decor.product-14", "Wood stool", "$54.00"],
-  ["decor.product-12", "Ceramic mug", "$15.00"],
-  ["decor.product-05", "Decorative plants", "$35.00"],
-  ["decor.product-06", "Ceramic pot", "$23.00"],
-  ["decor.product-13", "Ceramic plate", "$15.00"],
-  ["decor.product-09", "Ceramic container", "$35.00"],
-  ["decor.product-10", "Design wall clock", "$19.00"],
-].map(([assetId, name, price]) => ({ assetId, name, price }));
+const productRows: readonly (readonly [string, string, string, string | undefined])[] = [
+  ["decor.product-01", "Table clock", "$23.00", "$30.00"],
+  ["decor.product-14", "Wood stool", "$54.00", undefined],
+  ["decor.product-12", "Ceramic mug", "$15.00", "$20.00"],
+  ["decor.product-05", "Decorative plants", "$35.00", "$40.00"],
+  ["decor.product-06", "Ceramic pot", "$23.00", undefined],
+  ["decor.product-13", "Ceramic plate", "$15.00", "$20.00"],
+  ["decor.product-09", "Ceramic container", "$35.00", undefined],
+  ["decor.product-10", "Design wall clock", "$19.00", "$25.00"],
+];
+const products = productRows.map(([assetId, name, price, comparePrice], index) => ({
+  assetId,
+  category: index < 4 ? "Home decor" : "Living room",
+  colors: ["Natural", "Blue", "Walnut"],
+  comparePrice,
+  description:
+    "A considered home object shaped with tactile materials, balanced proportions and an easy everyday purpose.",
+  name,
+  price,
+  sizes: ["Small", "Medium", "Large"],
+  sku: `DS-${String(index + 1).padStart(4, "0")}`,
+  slug: name.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+  vendor: "Decshop studio",
+}));
 
 export const decorHomeFixtures = {
   "decor-home": {
     id: "decor-home",
     label: "Decor reference-backed home presentation",
-    pageTypes: ["home"],
+    pageTypes: ["home", "product"],
     viewModels: {
       header: {
         data: {
@@ -76,6 +90,14 @@ export const decorHomeFixtures = {
       },
       products: {
         data: { categories: ["Best sellers", "New arrivals"], products },
+        kind: "theme-section",
+        state: "populated",
+      },
+      product: {
+        data: {
+          products,
+          relatedHeading: "Related products",
+        },
         kind: "theme-section",
         state: "populated",
       },

@@ -7,6 +7,7 @@ import FashionFooter from "./components/FashionFooter.vue";
 import FashionHeader from "./components/FashionHeader.vue";
 import FashionHeroCarousel from "./components/FashionHeroCarousel.vue";
 import FashionMagazine from "./components/FashionMagazine.vue";
+import FashionProductDetails from "./components/FashionProductDetails.vue";
 import FashionProductShowcase from "./components/FashionProductShowcase.vue";
 import FashionPromoBand from "./components/FashionPromoBand.vue";
 import FashionPromiseStrip from "./components/FashionPromiseStrip.vue";
@@ -24,6 +25,7 @@ export const themeRegistry = {
     "fashion.header": FashionHeader,
     "fashion.hero-carousel": FashionHeroCarousel,
     "fashion.magazine": FashionMagazine,
+    "fashion.product-details": FashionProductDetails,
     "fashion.product-showcase": FashionProductShowcase,
     "fashion.promo-band": FashionPromoBand,
     "fashion.promise-strip": FashionPromiseStrip,

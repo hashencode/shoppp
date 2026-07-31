@@ -31,6 +31,12 @@ const fashionSectionDefinitions = [
     type,
   })),
   {
+    allowedBlockTypes: [],
+    capabilities: ["product.details", "product.action"],
+    settings: [],
+    type: "fashion.product-details",
+  },
+  {
     allowedBlockTypes: ["core.link"],
     capabilities: ["legal.links"],
     settings: [],

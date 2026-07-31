@@ -26,7 +26,7 @@ const current = ref(0);
       <div>
         <small>Save up to 50% off</small>
         <h2>{{ data.heading }}</h2>
-        <a href="#decor-products">Explore category</a>
+        <a href="/#decor-products">Explore category</a>
       </div>
     </div>
     <div class="decor-collection-product">

@@ -15,20 +15,33 @@ const data = computed<FooterData | null>(() => {
     };
   return null;
 });
+
+function destination(label: string): string {
+  const routes: Record<string, string> = {
+    "About us": "/#fashion-footer",
+    "Contact us": "/#fashion-contact",
+    "My account": "/#fashion-contact",
+    "Orders tracking": "/#fashion-contact",
+    "Our store": "/#fashion-contact",
+    "Shipping & delivery": "/policies/shipping",
+    "Terms & conditions": "/policies/terms",
+  };
+  return routes[label] ?? "/#fashion-categories";
+}
 </script>
 <template>
   <footer v-if="data" id="fashion-footer" class="fashion-footer">
     <div class="fashion-footer-top">
       <strong><span>ML</span>{{ data.brand }}</strong>
       <nav aria-label="Footer">
-        <a href="/">Home</a><a href="#fashion-bestsellers">Shop</a
-        ><a href="#fashion-categories">Collection</a><a href="#fashion-magazine">Magazine</a>
+        <a href="/">Home</a><a href="/#fashion-bestsellers">Shop</a
+        ><a href="/#fashion-categories">Collection</a><a href="/#fashion-magazine">Magazine</a>
       </nav>
     </div>
     <div class="fashion-footer-grid">
       <section v-for="(links, heading) in data.columns" :key="heading">
         <h2>{{ heading }}</h2>
-        <a v-for="link in links" :key="link" href="#">{{ link }}</a>
+        <a v-for="link in links" :key="link" :href="destination(link)">{{ link }}</a>
       </section>
       <section id="fashion-contact">
         <h2>Become a member</h2>

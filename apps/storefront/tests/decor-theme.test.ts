@@ -69,6 +69,20 @@ describe("Decor theme package", () => {
     expect(Object.keys(themeAssets).every((id) => id.startsWith("decor."))).toBe(true);
   });
 
+  test("binds unique Decor products to the dedicated namespaced product template", () => {
+    const productTemplate = decorPreset.templates.find(({ pageType }) => pageType === "product")!;
+    expect(productTemplate.sections.find(({ id }) => id === "decor-product")).toMatchObject({
+      capabilities: ["product.details", "product.action"],
+      type: "decor.product-details",
+    });
+    const products = decorHomeFixtures["decor-home"].viewModels.product.data.products;
+    expect(new Set(products.map(({ slug }) => slug)).size).toBe(products.length);
+    expect(products.map(({ slug }) => slug)).not.toContain("atlas-carry-on");
+    expect(
+      decorManifest.componentRegistry.sections.some(({ type }) => type === "decor.product-details"),
+    ).toBe(true);
+  });
+
   test("maps original Crafto category and service artwork to namespaced assets", async () => {
     expect(
       [

@@ -107,7 +107,7 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "decor-home",
       "id": "decor-product-binding",
       "instanceId": "decor-product",
       "kind": "fixture",

@@ -91,7 +91,7 @@ export const fashionPreset = {
           capabilities: ["product.details", "product.action"],
           id: "product-main",
           required: true,
-          type: "core.product",
+          type: "fashion.product-details",
         }),
         section({ capabilities: [], id: "trust-strip", type: "core.trust-strip" }),
         footer(),

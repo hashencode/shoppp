@@ -132,7 +132,7 @@ function select(index: number): void {
         <p>
           Price starting from <strong>{{ slide.price }}</strong>
         </p>
-        <a href="#decor-products"
+        <a href="/#decor-products"
           ><ShoppingBag aria-hidden="true" :size="15" :stroke-width="1.7" />Shop now</a
         >
       </div>

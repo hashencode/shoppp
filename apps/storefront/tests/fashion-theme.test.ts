@@ -72,6 +72,22 @@ describe("Fashion theme package", () => {
     expect(Object.keys(themeAssets).every((id) => id.startsWith("fashion."))).toBe(true);
   });
 
+  test("binds unique Fashion products to the dedicated namespaced product template", () => {
+    const productTemplate = fashionPreset.templates.find(({ pageType }) => pageType === "product")!;
+    expect(productTemplate.sections.find(({ id }) => id === "product-main")).toMatchObject({
+      capabilities: ["product.details", "product.action"],
+      type: "fashion.product-details",
+    });
+    const products = fashionHomeFixtures["fashion-home"].viewModels.product.data.products;
+    expect(new Set(products.map(({ slug }) => slug)).size).toBe(products.length);
+    expect(products.map(({ slug }) => slug)).not.toContain("atlas-carry-on");
+    expect(
+      fashionManifest.componentRegistry.sections.some(
+        ({ type }) => type === "fashion.product-details",
+      ),
+    ).toBe(true);
+  });
+
   test("maps the four large Fashion services to original Crafto glyph assets", async () => {
     const services = fashionHomeFixtures["fashion-home"].viewModels.services.data.items;
     expect(services.map(({ assetId }) => assetId)).toEqual([

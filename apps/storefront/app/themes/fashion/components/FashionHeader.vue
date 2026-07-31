@@ -34,24 +34,24 @@ const data = computed<HeaderData | null>(() => {
 
 const destinations = [
   "/",
-  "#fashion-bestsellers",
-  "#fashion-categories",
-  "#fashion-magazine",
-  "#fashion-footer",
-  "#fashion-contact",
+  "/#fashion-bestsellers",
+  "/#fashion-categories",
+  "/#fashion-magazine",
+  "/#fashion-footer",
+  "/#fashion-contact",
 ] as const;
 const menus: Record<string, NavigationLink["menu"]> = {
   Collection: [
-    { href: "#fashion-categories", label: "Shop categories" },
-    { href: "#fashion-collection", label: "New arrivals" },
+    { href: "/#fashion-categories", label: "Shop categories" },
+    { href: "/#fashion-collection", label: "New arrivals" },
   ],
   Pages: [
-    { href: "#fashion-magazine", label: "Magazine" },
-    { href: "#fashion-footer", label: "Store information" },
+    { href: "/#fashion-magazine", label: "Magazine" },
+    { href: "/#fashion-footer", label: "Store information" },
   ],
   Shop: [
-    { href: "#fashion-bestsellers", label: "Best sellers" },
-    { href: "#fashion-featured", label: "Featured products" },
+    { href: "/#fashion-bestsellers", label: "Best sellers" },
+    { href: "/#fashion-featured", label: "Featured products" },
   ],
 };
 const links = computed<NavigationLink[]>(() =>
@@ -64,6 +64,21 @@ const links = computed<NavigationLink[]>(() =>
 const leftLinks = computed(() => links.value.slice(0, 3));
 const rightLinks = computed(() => links.value.slice(3, 6));
 const openMenu = ref<string | null>(null);
+const utilityMessage = ref("");
+const router = useRouter();
+const utilityMessages = {
+  account: "Account access is disabled in this private preview.",
+  bag: "Your preview bag is empty.",
+  search: "Search is available as a visual preview.",
+} as const;
+
+watch(
+  () => router.currentRoute.value.fullPath,
+  () => {
+    openMenu.value = null;
+    utilityMessage.value = "";
+  },
+);
 
 function toggleMenu(label: string): void {
   openMenu.value = openMenu.value === label ? null : label;
@@ -75,6 +90,10 @@ async function closeMenu(): Promise<void> {
   if (!label) return;
   await nextTick();
   document.querySelector<HTMLButtonElement>(`[data-menu-toggle="${label}"]`)?.focus();
+}
+
+function showUtility(label: keyof typeof utilityMessages): void {
+  utilityMessage.value = utilityMessages[label];
 }
 </script>
 
@@ -172,14 +191,17 @@ async function closeMenu(): Promise<void> {
       </NuxtLink>
 
       <div class="fashion-nav-actions" aria-label="Store utilities">
-        <button type="button" aria-label="Search">
+        <button type="button" aria-label="Search" @click="showUtility('search')">
           <Search aria-hidden="true" :size="19" :stroke-width="1.7" /></button
-        ><button type="button" aria-label="Account">
+        ><button type="button" aria-label="Account" @click="showUtility('account')">
           <UserRound aria-hidden="true" :size="19" :stroke-width="1.7" /></button
-        ><button type="button" aria-label="Preview bag">
+        ><button type="button" aria-label="Preview bag" @click="showUtility('bag')">
           <ShoppingBag aria-hidden="true" :size="19" :stroke-width="1.7" /><sup>0</sup>
         </button>
       </div>
+      <p v-if="utilityMessage" class="fashion-utility-message" role="status">
+        {{ utilityMessage }}
+      </p>
 
       <details class="fashion-mobile-menu">
         <summary>Menu</summary>

@@ -19,15 +19,17 @@ const selectedFixtures = mergeExperienceFixtureRegistries(
 );
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
 
-const route = useRoute();
+const router = useRouter();
+const currentRoute = computed(() => router.currentRoute.value);
 const pageType = computed<PageTemplate["pageType"]>(() => {
-  if (route.path === "/") return "home";
-  if (route.path === "/cart") return "cart";
-  if (route.path.startsWith("/checkout")) return "checkout";
-  if (route.path.startsWith("/collections/")) return "collection";
-  if (route.path.startsWith("/orders/")) return "order";
-  if (route.path.startsWith("/policies/")) return "policy";
-  if (route.path.startsWith("/products/")) return "product";
+  const path = currentRoute.value.path;
+  if (path === "/") return "home";
+  if (path === "/cart") return "cart";
+  if (path.startsWith("/checkout")) return "checkout";
+  if (path.startsWith("/collections/")) return "collection";
+  if (path.startsWith("/orders/")) return "order";
+  if (path.startsWith("/policies/")) return "policy";
+  if (path.startsWith("/products/")) return "product";
   return "home";
 });
 const previewTemplate = computed(() =>
@@ -55,7 +57,7 @@ if (activeExperienceSnapshot && previewOrigin) {
     robots: "noindex, nofollow",
   });
   useHead(() => ({
-    link: [{ rel: "canonical", href: new URL(route.path, previewOrigin).href }],
+    link: [{ rel: "canonical", href: new URL(currentRoute.value.path, previewOrigin).href }],
     title: `${previewTitle.value} · Private fixture preview`,
   }));
 }

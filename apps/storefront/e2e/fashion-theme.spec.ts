@@ -5,7 +5,7 @@ import { assertThemeLayout, captureThemeEvidence } from "./support/theme-fidelit
 const routes = [
   "/",
   "/collections/travel-essentials",
-  "/products/atlas-carry-on",
+  "/products/textured-sweater",
   "/cart",
   "/checkout",
   "/orders/fixture-order",
@@ -128,6 +128,7 @@ test("Fashion home matches the reference inventory and native interactions", asy
   ).toEqual([]);
   await expect(page.locator("#fashion-bestsellers")).toHaveCount(1);
   await expect(page.locator("#fashion-featured")).toHaveCount(1);
+  await expect(page.locator('a[href="#"]')).toHaveCount(0);
   await captureThemeEvidence(page, testInfo, "fashion");
   await page.getByRole("button", { name: "Show slide 2" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Men's collection" })).toBeVisible();
@@ -146,11 +147,11 @@ test("Fashion navigation keeps centered logo, split groups, and distinct destina
   const mobile = (page.viewportSize()?.width ?? 1_440) <= 900;
   const expectedDestinations = [
     "/",
-    "#fashion-bestsellers",
-    "#fashion-categories",
-    "#fashion-magazine",
-    "#fashion-footer",
-    "#fashion-contact",
+    "/#fashion-bestsellers",
+    "/#fashion-categories",
+    "/#fashion-magazine",
+    "/#fashion-footer",
+    "/#fashion-contact",
   ];
   if (mobile) {
     await page.locator(".fashion-mobile-menu > summary").click();
@@ -197,6 +198,52 @@ test("Fashion navigation keeps centered logo, split groups, and distinct destina
   await expect(shopToggle).toBeFocused();
 });
 
+test("Fashion products keep distinct destinations, reference typography, and hover actions", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-desktop");
+  await page.goto("/");
+  const cards = page.locator("#fashion-bestsellers .fashion-product-card");
+  await expect(cards).toHaveCount(10);
+  const destinations = await cards
+    .locator(".fashion-product-link")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  expect(new Set(destinations).size).toBe(10);
+  expect(destinations).not.toContain("/products/atlas-carry-on");
+
+  const firstCard = cards.first();
+  await firstCard.hover();
+  await expect(
+    firstCard.getByRole("button", { name: "Add Textured sweater to preview bag" }),
+  ).toBeVisible();
+  await expect(firstCard.getByRole("button", { name: "Save Textured sweater" })).toBeVisible();
+  await expect(firstCard.getByRole("link", { name: "Quick shop Textured sweater" })).toBeVisible();
+  await expect(firstCard.locator("h3")).toHaveCSS("font-size", "19px");
+  await expect(firstCard.locator("h3")).toHaveCSS("font-weight", "500");
+  await expect(page.locator(".fashion-nav-link").first()).toHaveCSS("font-size", "19px");
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByRole("status")).toContainText("Search is available");
+
+  await firstCard.locator(".fashion-product-link").click();
+  await expect(page).toHaveURL(/\/products\/textured-sweater\/?$/);
+  await expect(page.locator(".fashion-utility-message")).toHaveCount(0);
+  await expect(page.locator(".fashion-product-detail")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Textured sweater" })).toBeVisible();
+  expect(
+    await page.locator(".fashion-product-primary-image").evaluate((image) => {
+      return (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0;
+    }),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Add to preview bag" }).click();
+  await expect(page.locator(".fashion-product-message")).toContainText(
+    "Textured sweater added to the preview bag",
+  );
+  const descriptionTab = page.getByRole("tab", { name: "Description" });
+  await descriptionTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Additional information" })).toBeFocused();
+});
+
 test("Fashion mobile category and product grids follow the single-column reference", async ({
   page,
 }, testInfo) => {
@@ -210,6 +257,12 @@ test("Fashion mobile category and product grids follow the single-column referen
   }));
   expect(columns.categories.split(" ")).toHaveLength(1);
   expect(columns.products.split(" ")).toHaveLength(1);
+  await expect(
+    page
+      .locator("#fashion-bestsellers .fashion-product-card")
+      .first()
+      .getByRole("button", { name: "Add Textured sweater to preview bag" }),
+  ).toBeVisible();
 });
 
 test("Fashion home has no serious accessibility violations", async ({ page }, testInfo) => {
@@ -249,7 +302,7 @@ test("Fashion preview emits no commerce mutation or prohibited runtime request",
   const requests: { method: string; url: string }[] = [];
   page.on("request", (request) => requests.push({ method: request.method(), url: request.url() }));
   await page.goto("/");
-  await page.getByRole("button", { name: "Add to preview bag" }).first().click();
+  await page.getByRole("button", { name: "Add Textured sweater to preview bag" }).first().click();
   const html = (await page.content()).toLowerCase();
   expect(html).not.toMatch(/jquery|revolution|contact\.php/);
   expect(requests.filter(({ method }) => method !== "GET")).toEqual([]);

@@ -25,12 +25,30 @@ const data = computed<HeaderData | null>(() => {
 });
 const destinations = [
   "/",
-  "#decor-products",
-  "#decor-categories",
-  "#decor-footer",
-  "#decor-journal",
-  "#decor-contact",
+  "/#decor-products",
+  "/#decor-categories",
+  "/#decor-footer",
+  "/#decor-journal",
+  "/#decor-contact",
 ];
+const utilityMessage = ref("");
+const router = useRouter();
+const utilityMessages = {
+  account: "Account access is disabled in this private preview.",
+  bag: "Your preview bag is empty.",
+  search: "Search is available as a visual preview.",
+} as const;
+
+watch(
+  () => router.currentRoute.value.fullPath,
+  () => {
+    utilityMessage.value = "";
+  },
+);
+
+function showUtility(label: keyof typeof utilityMessages): void {
+  utilityMessage.value = utilityMessages[label];
+}
 </script>
 <template>
   <header v-if="data" class="decor-header">
@@ -54,24 +72,29 @@ const destinations = [
         <a
           v-for="(item, index) in data.navigation"
           :key="item"
-          :href="destinations[index] ?? '#decor-categories'"
+          :href="destinations[index] ?? '/#decor-categories'"
           >{{ item }}</a
         >
       </nav>
       <div class="decor-actions">
-        <button type="button" aria-label="Search">
+        <button type="button" aria-label="Search" @click="showUtility('search')">
           <Search aria-hidden="true" :size="19" :stroke-width="1.7" /></button
-        ><button type="button" aria-label="Preview bag">
+        ><button type="button" aria-label="Preview bag" @click="showUtility('bag')">
           <ShoppingBag aria-hidden="true" :size="19" :stroke-width="1.7" /><sup>0</sup></button
-        ><button type="button" aria-label="Account">My account</button>
+        ><button type="button" aria-label="Account" @click="showUtility('account')">
+          My account
+        </button>
       </div>
+      <p v-if="utilityMessage" class="decor-utility-message" role="status">
+        {{ utilityMessage }}
+      </p>
       <details class="decor-mobile-menu">
         <summary>Menu</summary>
         <nav aria-label="Mobile navigation">
           <a
             v-for="(item, index) in data.navigation"
             :key="item"
-            :href="destinations[index] ?? '#decor-categories'"
+            :href="destinations[index] ?? '/#decor-categories'"
             >{{ item }}</a
           >
         </nav>

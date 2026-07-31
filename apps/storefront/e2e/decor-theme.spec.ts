@@ -5,7 +5,7 @@ import { assertThemeLayout, captureThemeEvidence } from "./support/theme-fidelit
 const routes = [
   "/",
   "/collections/travel-essentials",
-  "/products/atlas-carry-on",
+  "/products/table-clock",
   "/cart",
   "/checkout",
   "/orders/fixture-order",
@@ -58,7 +58,7 @@ test("Decor home matches the furniture inventory and native interactions", async
   await expect(page.locator('.decor-actions button[aria-label="Preview bag"] svg')).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Shop now" }).locator("svg")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "Add to preview bag" }).first().locator("svg"),
+    page.getByRole("button", { name: "Add Table clock to preview bag" }).first().locator("svg"),
   ).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Next furniture" }).locator("svg")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Next product" }).locator("svg")).toHaveCount(1);
@@ -130,6 +130,7 @@ test("Decor home matches the furniture inventory and native interactions", async
     ),
   );
   expect(await page.locator("body").innerText()).not.toMatch(/[⌕▢▣＋←→◉◎]/);
+  await expect(page.locator('a[href="#"]')).toHaveCount(0);
   await page.waitForLoadState("networkidle");
   await captureThemeEvidence(page, testInfo, "decor");
   await page.getByRole("button", { name: "Next furniture" }).click();
@@ -170,6 +171,65 @@ test("Decor product tabs expose roving keyboard semantics", async ({ page }, tes
   await expect(page.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "decor-tab-0");
 });
 
+test("Decor products keep distinct destinations, reference typography, and hover actions", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "decor-desktop");
+  await page.goto("/");
+  const cards = page.locator("#decor-product-panel .decor-product-card");
+  await expect(cards).toHaveCount(8);
+  const destinations = await cards
+    .locator(".decor-product-link")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  expect(new Set(destinations).size).toBe(8);
+  expect(destinations).not.toContain("/products/atlas-carry-on");
+
+  const firstCard = cards.first();
+  await firstCard.hover();
+  await expect(firstCard.getByRole("button", { name: "Save Table clock" })).toBeVisible();
+  await expect(
+    firstCard.getByRole("button", { name: "Add Table clock to preview bag" }),
+  ).toBeVisible();
+  await expect(firstCard.getByRole("link", { name: "Quick shop Table clock" })).toBeVisible();
+  await expect(firstCard.locator("h3")).toHaveCSS("font-size", "17px");
+  await expect(firstCard.locator("h3")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".decor-nav > nav a").first()).toHaveCSS("font-size", "17px");
+  await expect(page.locator(".decor-nav > nav a").first()).toHaveCSS("font-weight", "600");
+  expect(
+    await page
+      .locator(".decor-nav > nav a")
+      .evaluateAll((items) => items.map((item) => item.getAttribute("href"))),
+  ).toEqual([
+    "/",
+    "/#decor-products",
+    "/#decor-categories",
+    "/#decor-footer",
+    "/#decor-journal",
+    "/#decor-contact",
+  ]);
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByRole("status")).toContainText("Search is available");
+
+  await firstCard.locator(".decor-product-link").click();
+  await expect(page).toHaveURL(/\/products\/table-clock\/?$/);
+  await expect(page.locator(".decor-utility-message")).toHaveCount(0);
+  await expect(page.locator(".decor-product-detail")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Table clock" })).toBeVisible();
+  expect(
+    await page.locator(".decor-product-primary-image").evaluate((image) => {
+      return (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0;
+    }),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Add to preview bag" }).click();
+  await expect(page.locator(".decor-product-message")).toContainText(
+    "Table clock added to the preview bag",
+  );
+  const descriptionTab = page.getByRole("tab", { name: "Description" });
+  await descriptionTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Additional information" })).toBeFocused();
+});
+
 test("Decor mobile menu stays attached to the header and grids match the reference", async ({
   page,
 }, testInfo) => {
@@ -190,6 +250,12 @@ test("Decor mobile menu stays attached to the header and grids match the referen
       ),
     ),
   ).toEqual([1, 1]);
+  await expect(
+    page
+      .locator("#decor-product-panel .decor-product-card")
+      .first()
+      .getByRole("button", { name: "Add Table clock to preview bag" }),
+  ).toBeVisible();
   await assertThemeLayout(page);
 });
 
@@ -225,7 +291,7 @@ test("Decor preview emits no commerce mutation or prohibited runtime request", a
   const requests: { method: string; url: string }[] = [];
   page.on("request", (request) => requests.push({ method: request.method(), url: request.url() }));
   await page.goto("/");
-  await page.getByRole("button", { name: "Add to preview bag" }).first().click();
+  await page.getByRole("button", { name: "Add Table clock to preview bag" }).first().click();
   const html = (await page.content()).toLowerCase();
   expect(html).not.toMatch(/jquery|revolution|contact\.php/);
   expect(requests.filter(({ method }) => method !== "GET")).toEqual([]);

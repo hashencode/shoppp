@@ -18,6 +18,19 @@ const data = computed<Data | null>(() => {
     };
   return null;
 });
+const socialMessage = ref("");
+
+function destination(label: string): string {
+  const routes: Record<string, string> = {
+    "About us": "/#decor-footer",
+    "Contact us": "/#decor-contact",
+    "My account": "/#decor-contact",
+    Checkout: "/checkout",
+    Orders: "/#decor-contact",
+    Payment: "/policies/terms",
+  };
+  return routes[label] ?? "/#decor-categories";
+}
 </script>
 <template>
   <footer v-if="data" id="decor-footer" class="decor-footer">
@@ -35,23 +48,40 @@ const data = computed<Data | null>(() => {
         </strong>
         <p>Objects chosen to make everyday rooms feel personal.</p>
         <nav class="decor-footer-social" aria-label="Social channels">
-          <a href="#" aria-label="Photo sharing"
-            ><Camera aria-hidden="true" :size="17" :stroke-width="1.7"
-          /></a>
-          <a href="#" aria-label="Community"
-            ><UsersRound aria-hidden="true" :size="17" :stroke-width="1.7"
-          /></a>
-          <a href="#" aria-label="Favorites"
-            ><Heart aria-hidden="true" :size="17" :stroke-width="1.7"
-          /></a>
-          <a href="#" aria-label="Website"
-            ><Globe2 aria-hidden="true" :size="17" :stroke-width="1.7"
-          /></a>
+          <button
+            type="button"
+            aria-label="Photo sharing"
+            @click="socialMessage = 'Photo sharing is not connected in this preview.'"
+          >
+            <Camera aria-hidden="true" :size="17" :stroke-width="1.7" />
+          </button>
+          <button
+            type="button"
+            aria-label="Community"
+            @click="socialMessage = 'Community is not connected in this preview.'"
+          >
+            <UsersRound aria-hidden="true" :size="17" :stroke-width="1.7" />
+          </button>
+          <button
+            type="button"
+            aria-label="Favorites"
+            @click="socialMessage = 'Favorites are available in this preview session only.'"
+          >
+            <Heart aria-hidden="true" :size="17" :stroke-width="1.7" />
+          </button>
+          <button
+            type="button"
+            aria-label="Website"
+            @click="socialMessage = 'This is the local preview website.'"
+          >
+            <Globe2 aria-hidden="true" :size="17" :stroke-width="1.7" />
+          </button>
         </nav>
+        <p class="decor-social-message" aria-live="polite">{{ socialMessage }}</p>
       </section>
       <section v-for="(links, heading) in data.columns" :key="heading">
         <h2>{{ heading }}</h2>
-        <a v-for="link in links" :key="link" href="#">{{ link }}</a>
+        <a v-for="link in links" :key="link" :href="destination(link)">{{ link }}</a>
       </section>
       <section>
         <h2>Newsletter</h2>

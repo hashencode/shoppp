@@ -29,7 +29,7 @@ function move(direction: number): void {
       <small>Lookbook 2026</small>
       <h2>{{ data.heading }}</h2>
       <p>Fresh silhouettes and tactile layers selected for the season ahead.</p>
-      <a href="#fashion-featured">View collection</a>
+      <a href="/#fashion-featured">View collection</a>
     </div>
     <div
       ref="rail"

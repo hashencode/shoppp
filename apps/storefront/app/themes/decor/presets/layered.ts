@@ -89,7 +89,7 @@ export const decorPreset = {
           capabilities: ["product.details", "product.action"],
           id: "decor-product",
           required: true,
-          type: "core.product",
+          type: "decor.product-details",
         }),
         section({ capabilities: [], id: "decor-trust", type: "core.trust-strip" }),
         footer(),
