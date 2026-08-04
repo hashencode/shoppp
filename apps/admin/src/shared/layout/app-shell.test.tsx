@@ -6,6 +6,8 @@ import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { ThemeProvider } from '../contexts/theme-context'
 import { AppShell } from './app-shell'
 import { useRoutePageMeta } from './route-page-meta-context'
+import { authContextFixture } from '../../test/auth-context-fixture'
+import type { AuthContextValue } from '../../infrastructure/auth/auth-context'
 
 void React
 
@@ -35,22 +37,20 @@ if (!window.ResizeObserver) {
   window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
-const renderShell = (options?: { onLogout?: () => void }) => {
+const renderShell = (options?: {
+  auth?: Partial<AuthContextValue>
+  onLogout?: () => void
+}) => {
   const onLogout = options?.onLogout ?? (() => undefined)
 
   return render(
     <AuthContext.Provider
-      value={{
-        isAuthenticated: true,
-        role: 'admin',
-        displayName: 'Alice Admin',
+      value={authContextFixture({
         accountName: 'alice.account',
-        setRole: () => undefined,
-        setDisplayName: () => undefined,
-        setAccountName: () => undefined,
-        login: () => undefined,
+        displayName: 'Alice Admin',
+        ...options?.auth,
         logout: onLogout,
-      }}
+      })}
     >
       <ThemeProvider>
         <MemoryRouter initialEntries={['/']}>
@@ -93,17 +93,10 @@ const RouteMetaProbe = () => {
 const renderShellWithRouteMeta = () =>
   render(
     <AuthContext.Provider
-      value={{
-        isAuthenticated: true,
-        role: 'admin',
-        displayName: 'Alice Admin',
+      value={authContextFixture({
         accountName: 'alice.account',
-        setRole: () => undefined,
-        setDisplayName: () => undefined,
-        setAccountName: () => undefined,
-        login: () => undefined,
-        logout: () => undefined,
-      }}
+        displayName: 'Alice Admin',
+      })}
     >
       <ThemeProvider>
         <MemoryRouter initialEntries={['/alpha']}>
@@ -172,8 +165,20 @@ describe('AppShell', () => {
 
     await waitFor(() => {
       expect(logoutCalled).toBe(true)
-      expect(screen.getByText('登录页')).toBeTruthy()
     })
+  })
+
+  it('does not render human profile controls for a service session', async () => {
+    renderShell({
+      auth: {
+        accountName: 'catalog-build-service',
+        displayName: 'Catalog build service',
+        principalKind: 'service',
+      },
+    })
+    fireEvent.click(screen.getByText('catalog-build-service'))
+    await waitFor(() => expect(screen.getByText('色彩模式')).toBeTruthy())
+    expect(screen.queryByText('点击复制账号')).toBeNull()
   })
 
   it('provides current route title and breadcrumb meta to content recipes', () => {

@@ -114,7 +114,9 @@ export async function resolvePrincipal(
   )
     .bind(row.role_id)
     .all<{ permission_key: string }>();
-  if (permissionRows.results.some(({ permission_key }) => !registeredPermissions.has(permission_key))) {
+  if (
+    permissionRows.results.some(({ permission_key }) => !registeredPermissions.has(permission_key))
+  ) {
     await auditMappedDenial(context, row, "unknown_permission_catalog_entry");
     throw new ApiError(
       403,
@@ -184,7 +186,7 @@ export function adminAuthentication(
     const principal = await resolvePrincipal(context, identity);
     if (!principal) {
       logAccessDenial(context, "access_identity_unmapped", identity.principalKind);
-      throw new ApiError(401, "identity_not_enabled", "The Access identity is not enabled.");
+      throw new ApiError(401, "identity_unmapped", "The Access identity is not enabled.");
     }
     context.set("principal", principal);
     await next();

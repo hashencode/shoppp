@@ -46,6 +46,17 @@ export async function acceptAdminInvitation(
     .bind(email, now)
     .first<{ display_name: string | null; id: string; role_id: string; version: number }>();
   if (!invitation) {
+    const expired = await context.env.DB.prepare(
+      `SELECT id FROM admin_invitations
+          WHERE normalized_email = ?
+            AND (status = 'expired' OR (status = 'pending' AND expires_at <= ?))
+          LIMIT 1`,
+    )
+      .bind(email, now)
+      .first<{ id: string }>();
+    if (expired) {
+      throw new ApiError(401, "invitation_expired", "Admin access is not active.");
+    }
     throw new ApiError(
       401,
       "active_invitation_required",

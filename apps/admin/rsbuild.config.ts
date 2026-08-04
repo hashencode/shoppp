@@ -29,9 +29,6 @@ export default defineConfig(({ command, envMode }) => {
       entry: {
         index: './src/main.tsx',
       },
-      define: {
-        __ENABLE_TEMPLATE_ROUTES__: command === 'dev',
-      },
     },
     html: {
       template: './index.html',

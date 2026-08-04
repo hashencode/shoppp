@@ -1,98 +1,105 @@
 import React, {
   createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type PropsWithChildren,
 } from 'react'
-import { fetchAdminSession } from '../../services/auth/api'
+import type { AdminSession } from '@shoppp/contracts'
+import { acceptAdminInvitation, fetchAdminSession } from '../../services/auth/api'
 import type { PermissionKey } from './permissions'
 import type { Role } from '../../shared/types/roles'
 
-const AUTH_STORAGE_KEY = 'codex-admin-auth'
-const AUTH_ACCOUNT_STORAGE_KEY = 'codex-admin-account'
-const DEFAULT_DISPLAY_NAME = 'Access operator'
-const DEFAULT_ACCOUNT_NAME = 'unverified-access-identity'
-const templateAuthentication =
-  typeof __ENABLE_TEMPLATE_ROUTES__ === 'undefined' || __ENABLE_TEMPLATE_ROUTES__
+export type AuthStatus =
+  | 'loading'
+  | 'authenticated'
+  | 'access-required'
+  | 'invitation-required'
+  | 'invitation-expired'
+  | 'disabled'
+  | 'forbidden'
 
-type LoginPayload = {
-  role?: Role
-  displayName?: string
-  accountName?: string
+export type AuthContextValue = {
+  accountName: string
+  displayName: string
+  isAuthenticated: boolean
+  isLoading: boolean
+  logout: () => void
+  permissions?: readonly PermissionKey[]
+  principalKind?: AdminSession['principalKind']
+  refreshSession: () => Promise<void>
+  role: Role
+  session: AdminSession | null
+  sessionError: string | null
+  status: AuthStatus
 }
 
-type AuthContextValue = {
-  accessManaged?: boolean
-  isAuthenticated: boolean
-  isLoading?: boolean
-  role: Role
-  permissions?: readonly PermissionKey[]
-  displayName: string
-  accountName: string
-  sessionError?: string | null
-  refreshSession?: () => Promise<void>
-  setRole: (role: Role) => void
-  setDisplayName: (displayName: string) => void
-  setAccountName: (accountName: string) => void
-  login: (payload?: LoginPayload) => void
-  logout: () => void
+type ErrorShape = Error & { code?: string; status?: number }
+
+const statusForError = (error: ErrorShape): AuthStatus => {
+  if (error.code === 'identity_not_enabled') return 'disabled'
+  if (error.code === 'invitation_expired') return 'invitation-expired'
+  if (error.status === 403) return 'forbidden'
+  return 'access-required'
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 void React
 
+export const useAuthState = () => {
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuthState must be used inside AuthProvider')
+  return context
+}
+
 export const AuthProvider = ({ children }: PropsWithChildren) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (!templateAuthentication || typeof window === 'undefined') {
-      return false
-    }
-
-    return window.localStorage.getItem(AUTH_STORAGE_KEY) === '1'
-  })
-  const [role, setRole] = useState<Role>('admin')
-  const [permissions, setPermissions] = useState<readonly PermissionKey[] | undefined>()
-  const [displayName, setDisplayName] = useState(DEFAULT_DISPLAY_NAME)
-  const [accountName, setAccountName] = useState(() => {
-    if (!templateAuthentication || typeof window === 'undefined') {
-      return DEFAULT_ACCOUNT_NAME
-    }
-
-    return window.localStorage.getItem(AUTH_ACCOUNT_STORAGE_KEY) || DEFAULT_ACCOUNT_NAME
-  })
-  const [isLoading, setIsLoading] = useState(!templateAuthentication)
+  const [session, setSession] = useState<AdminSession | null>(null)
+  const [status, setStatus] = useState<AuthStatus>('loading')
   const [sessionError, setSessionError] = useState<string | null>(null)
   const sessionRequest = useRef(0)
 
   const refreshSession = useCallback(async () => {
-    if (templateAuthentication) {
-      setIsLoading(false)
-      return
-    }
     const request = ++sessionRequest.current
-    setIsLoading(true)
+    setStatus('loading')
     setSessionError(null)
     try {
-      const session = await fetchAdminSession()
+      let nextSession: AdminSession
+      try {
+        nextSession = await fetchAdminSession()
+      } catch (error) {
+        const sessionFailure = error as ErrorShape
+        if (sessionFailure.code !== 'identity_unmapped') throw error
+        try {
+          nextSession = await acceptAdminInvitation()
+        } catch (onboardingError) {
+          const failure = onboardingError as ErrorShape
+          if (request !== sessionRequest.current) return
+          setSession(null)
+          setStatus(
+            failure.code === 'active_invitation_required'
+              ? 'invitation-required'
+              : failure.code === 'invitation_expired'
+                ? 'invitation-expired'
+                : failure.status === 403
+                  ? 'forbidden'
+                  : 'invitation-required'
+          )
+          setSessionError(failure.message)
+          return
+        }
+      }
       if (request !== sessionRequest.current) return
-      setRole(session.role.key)
-      setPermissions(session.permissions)
-      setDisplayName(session.displayName)
-      setAccountName(session.principalKind === 'human' ? session.email : session.serviceName)
-      setIsAuthenticated(true)
+      setSession(nextSession)
+      setStatus('authenticated')
     } catch (error) {
       if (request !== sessionRequest.current) return
-      setIsAuthenticated(false)
-      setPermissions(undefined)
-      setSessionError(
-        error instanceof Error
-          ? error.message
-          : 'Cloudflare Access session could not be verified.'
-      )
-    } finally {
-      if (request === sessionRequest.current) setIsLoading(false)
+      const failure = error as ErrorShape
+      setSession(null)
+      setStatus(statusForError(failure))
+      setSessionError(failure.message || 'Cloudflare Access session could not be verified.')
     }
   }, [])
 
@@ -104,68 +111,34 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
   }, [refreshSession])
 
-  const login = useCallback((payload?: LoginPayload) => {
-    if (!templateAuthentication) {
-      void refreshSession()
-      return
-    }
-    const nextAccountName =
-      payload?.accountName?.trim() || payload?.displayName?.trim() || DEFAULT_ACCOUNT_NAME
-
-    setIsAuthenticated(true)
-    setPermissions(undefined)
-    setRole(payload?.role ?? 'admin')
-    setDisplayName(payload?.displayName?.trim() ? payload.displayName : DEFAULT_DISPLAY_NAME)
-    setAccountName(nextAccountName)
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(AUTH_STORAGE_KEY, '1')
-      window.localStorage.setItem(AUTH_ACCOUNT_STORAGE_KEY, nextAccountName)
-    }
-  }, [refreshSession])
-
   const logout = useCallback(() => {
     sessionRequest.current += 1
-    setIsAuthenticated(false)
-    setPermissions(undefined)
-    if (!templateAuthentication && typeof window !== 'undefined') {
-      window.location.assign('/cdn-cgi/access/logout')
-      return
-    }
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY)
-      window.localStorage.removeItem(AUTH_ACCOUNT_STORAGE_KEY)
-    }
+    setSession(null)
+    setStatus('access-required')
+    window.location.assign('/cdn-cgi/access/logout')
   }, [])
 
-  const value = useMemo(
+  const value = useMemo<AuthContextValue>(
     () => ({
-      isAuthenticated,
-      isLoading,
-      accessManaged: !templateAuthentication,
-      role,
-      permissions,
-      displayName,
-      accountName,
-      refreshSession,
-      sessionError,
-      setRole,
-      setDisplayName,
-      setAccountName,
-      login,
+      accountName:
+        session?.principalKind === 'human'
+          ? session.email
+          : session?.principalKind === 'service'
+            ? session.serviceName
+            : '',
+      displayName: session?.displayName ?? '',
+      isAuthenticated: status === 'authenticated',
+      isLoading: status === 'loading',
       logout,
+      permissions: session?.permissions,
+      principalKind: session?.principalKind,
+      refreshSession,
+      role: session?.role.key ?? 'unauthenticated',
+      session,
+      sessionError,
+      status,
     }),
-    [
-      accountName,
-      displayName,
-      isAuthenticated,
-      isLoading,
-      role,
-      permissions,
-      login,
-      logout,
-      refreshSession,
-      sessionError,
-    ]
+    [logout, refreshSession, session, sessionError, status]
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

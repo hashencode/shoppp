@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
-import { AuthProvider } from '../../infrastructure/auth/auth-context'
-import { useAuth } from '../../infrastructure/auth/use-auth'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import type { Role } from '../../shared/types/roles'
+import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { CatalogListPage } from './catalog-list-page'
 
 void React
@@ -55,20 +54,13 @@ const server = setupServer(
   })
 )
 
-const SetRole = ({ role }: { role: Role }) => {
-  const auth = useAuth()
-  useEffect(() => auth.setRole(role), [auth, role])
-  return null
-}
-
 const renderPage = (role: Role = 'admin') =>
   render(
-    <AuthProvider>
-      <SetRole role={role} />
+    <AuthTestProvider role={role}>
       <ThemeProvider>
         <CatalogListPage />
       </ThemeProvider>
-    </AuthProvider>
+    </AuthTestProvider>
   )
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))

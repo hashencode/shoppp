@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, beforeAll, afterAll, afterEach } from '@rstest/core'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import { AuthProvider } from '../../../infrastructure/auth/auth-context'
+import { AuthTestProvider } from '../../../test/auth-context-fixture'
 import { templateHandlers } from '../../../infrastructure/msw/handlers/template-handlers'
 import { ThemeProvider } from '../../../shared/contexts/theme-context'
 import { TableQueryPage } from './table-query-page'
@@ -56,11 +56,11 @@ const server = setupServer(...templateHandlers)
 
 const renderPage = () => {
   return render(
-    <AuthProvider>
+    <AuthTestProvider>
       <ThemeProvider>
         <TableQueryPage />
       </ThemeProvider>
-    </AuthProvider>
+    </AuthTestProvider>
   )
 }
 

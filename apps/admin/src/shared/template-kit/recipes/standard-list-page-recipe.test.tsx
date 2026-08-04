@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import type { TablePaginationConfig } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { AuthProvider } from '../../../infrastructure/auth/auth-context'
-import { useAuth } from '../../../infrastructure/auth/use-auth'
+import { AuthTestProvider } from '../../../test/auth-context-fixture'
 import { ThemeProvider } from '../../contexts/theme-context'
 import type { Role } from '../../types/roles'
 import { StandardListPageRecipe } from './standard-list-page-recipe'
@@ -67,23 +66,11 @@ type VirtualScrollSnapshot = {
   }
 }
 
-const AuthRoleInitializer = ({ children, role }: { children: React.ReactNode; role: Role }) => {
-  const { setRole } = useAuth()
-
-  useEffect(() => {
-    setRole(role)
-  }, [role, setRole])
-
-  return children
-}
-
 const renderWithTheme = (node: React.ReactNode, role: Role = 'admin') => {
   return render(
-    <AuthProvider>
-      <AuthRoleInitializer role={role}>
-        <ThemeProvider>{node}</ThemeProvider>
-      </AuthRoleInitializer>
-    </AuthProvider>
+    <AuthTestProvider role={role}>
+      <ThemeProvider>{node}</ThemeProvider>
+    </AuthTestProvider>
   )
 }
 

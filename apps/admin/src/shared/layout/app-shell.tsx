@@ -14,7 +14,6 @@ import {
   Dropdown,
   Layout,
   Menu,
-  Switch,
   message,
   theme,
   Typography,
@@ -25,22 +24,11 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import {
-  getStoredMswEnabled,
-  isMswGlobalToggleAvailable,
-  setStoredMswEnabled,
-} from '../../infrastructure/msw/config'
-import {
   RoutePageMetaProvider,
   type RouteBreadcrumbItem,
 } from './route-page-meta-context'
 import { useTheme, type FormContentAlign, type ThemeMode } from '../contexts/theme-context'
 import { getDisplayNameAvatarText, normalizeDisplayName } from '../utils/display-name'
-
-const templateRoutesEnabled =
-  typeof __ENABLE_TEMPLATE_ROUTES__ !== 'undefined' && __ENABLE_TEMPLATE_ROUTES__
-const loadMocking = templateRoutesEnabled
-  ? () => import('../../infrastructure/msw/browser')
-  : undefined
 
 const { Header, Content, Sider } = Layout
 void React
@@ -84,7 +72,7 @@ type AppShellProps = {
 export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { accessManaged, role, permissions, displayName, accountName, logout } = useAuth()
+  const { role, permissions, displayName, accountName, logout, principalKind } = useAuth()
   const {
     formContentAlign,
     mode,
@@ -95,8 +83,6 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   const { token } = theme.useToken()
 
   const [collapsed, setCollapsed] = useState(false)
-  const [mswEnabled, setMswEnabled] = useState(getStoredMswEnabled)
-  const [switchLoading, setSwitchLoading] = useState(false)
 
   const menuRoutes = useMemo(() => {
     return routes.filter(
@@ -235,10 +221,6 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
 
   const handleLogout = () => {
     logout()
-    if (!accessManaged) {
-      void message.success('已退出登录')
-      navigate('/login')
-    }
   }
 
   const copyAccount = async () => {
@@ -282,18 +264,24 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   )
 
   const userMenuItems: MenuProps['items'] = [
-    {
-      key: 'profile-account',
-      label: (
-        <div className="flex flex-col">
-          <Typography.Text style={{ color: token.colorText }}>{accountDisplayName}</Typography.Text>
-          <Typography.Text type="secondary" className="text-xs">
-            点击复制账号
-          </Typography.Text>
-        </div>
-      ),
-    },
-    { type: 'divider' },
+    ...(principalKind === 'human'
+      ? [
+          {
+            key: 'profile-account',
+            label: (
+              <div className="flex flex-col">
+                <Typography.Text style={{ color: token.colorText }}>
+                  {accountDisplayName}
+                </Typography.Text>
+                <Typography.Text type="secondary" className="text-xs">
+                  点击复制账号
+                </Typography.Text>
+              </div>
+            ),
+          },
+          { type: 'divider' as const },
+        ]
+      : []),
     {
       key: 'theme-mode',
       icon: <SunOutlined />,
@@ -349,30 +337,6 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     }
   }
 
-  const handleMswSwitchChange = async (checked: boolean) => {
-    if (!isMswGlobalToggleAvailable || !loadMocking || switchLoading) {
-      return
-    }
-
-    setSwitchLoading(true)
-    try {
-      const { disableMocking, enableMocking } = await loadMocking()
-      if (checked) {
-        await enableMocking()
-      } else {
-        disableMocking()
-      }
-
-      setMswEnabled(checked)
-      setStoredMswEnabled(checked)
-      void message.success(checked ? 'MSW 已开启（全局）' : 'MSW 已关闭（全局）')
-    } catch {
-      void message.error(`MSW ${checked ? '开启' : '关闭'}失败，请重试`)
-    } finally {
-      setSwitchLoading(false)
-    }
-  }
-
   return (
     <Layout className="h-screen overflow-hidden" style={appShellStyle}>
       <Header
@@ -394,16 +358,6 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
 
         <div className="flex items-center gap-2">
           {headerExtra}
-          {isMswGlobalToggleAvailable && (
-            <Switch
-              checked={mswEnabled}
-              loading={switchLoading}
-              checkedChildren="MSW"
-              unCheckedChildren="MSW"
-              aria-label="全局 MSW 开关"
-              onChange={(checked) => void handleMswSwitchChange(checked)}
-            />
-          )}
           <Dropdown
             menu={{ items: userMenuItems, onClick: handleUserMenuClick, expandIcon: null }}
             placement="bottomRight"

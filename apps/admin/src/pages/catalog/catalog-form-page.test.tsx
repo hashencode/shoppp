@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/co
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter } from 'react-router-dom'
-import { AuthProvider } from '../../infrastructure/auth/auth-context'
+import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { CatalogFormPage } from './catalog-form-page'
 
@@ -79,11 +79,11 @@ const server = setupServer(
 const renderReadonly = () =>
   render(
     <MemoryRouter initialEntries={['/catalog/products/form?mode=readonly&id=product-001']}>
-      <AuthProvider>
+      <AuthTestProvider permissions={['catalog.read']}>
         <ThemeProvider>
           <CatalogFormPage />
         </ThemeProvider>
-      </AuthProvider>
+      </AuthTestProvider>
     </MemoryRouter>
   )
 

@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthContext } from '../../../infrastructure/auth/auth-context'
+import { authContextFixture } from '../../../test/auth-context-fixture'
 import { templateHandlers } from '../../../infrastructure/msw/handlers/template-handlers'
 import { LIST_REFRESH_EVENT } from '../../../shared/constants/list-refresh-channel'
 import { BasicFormPage } from './basic-form-page'
@@ -73,18 +74,11 @@ const renderPage = (entry: string) => {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <AuthContext.Provider
-        value={{
-          isAuthenticated: true,
-          role: 'admin',
-          permissions: ['catalog.read', 'catalog.write'],
-          displayName: '管理员',
+        value={authContextFixture({
           accountName: 'admin',
-          setRole: () => undefined,
-          setDisplayName: () => undefined,
-          setAccountName: () => undefined,
-          login: () => undefined,
-          logout: () => undefined,
-        }}
+          displayName: '管理员',
+          permissions: ['catalog.read', 'catalog.write'],
+        })}
       >
         <Routes>
           <Route path="/template/list/table/form" element={<BasicFormPage />} />

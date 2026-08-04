@@ -245,10 +245,7 @@ const commerceRoutes: TemplateRoute[] = [
   },
 ]
 
-const templateRoutesEnabled =
-  typeof __ENABLE_TEMPLATE_ROUTES__ !== 'undefined' && __ENABLE_TEMPLATE_ROUTES__
-const developmentTemplateRoutes: TemplateRoute[] = templateRoutesEnabled
-  ? [
+export const developmentTemplateRouteLibrary: TemplateRoute[] = [
   {
     key: 'welcome',
     path: '/template',
@@ -443,12 +440,10 @@ const developmentTemplateRoutes: TemplateRoute[] = templateRoutesEnabled
         }))
       ),
   },
-    ]
-  : []
+]
 
 export const templateRoutes: TemplateRoute[] = [
   ...commerceRoutes,
-  ...developmentTemplateRoutes,
   {
     key: 'exception-404',
     path: '*',
