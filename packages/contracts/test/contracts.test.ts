@@ -1,9 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  ADMIN_PERMISSION_CATALOG,
+  ADMIN_PERMISSION_KEYS,
+  adminInvitationStatusSchema,
   cancelOrderRequestSchema,
   fulfillmentTransitionRequestSchema,
+  humanAdminSessionSchema,
   notificationJobSchema,
+  adminPermissionSchema,
+  serviceAdminSessionSchema,
   replayNotificationJobRequestSchema,
   refundRequestSchema,
   adminOrderSchema,
@@ -258,5 +264,90 @@ describe("public contracts", () => {
         updatedAt: "2026-07-30T00:03:00.000Z",
       }).kind,
     ).toBe("provider_recovery");
+  });
+});
+
+describe("admin IAM contracts", () => {
+  test("keeps the permission registry unique, categorized, and schema-backed", () => {
+    expect(new Set(ADMIN_PERMISSION_KEYS).size).toBe(ADMIN_PERMISSION_KEYS.length);
+    expect(ADMIN_PERMISSION_CATALOG.map(({ key }) => key)).toEqual([...ADMIN_PERMISSION_KEYS]);
+    expect(
+      ADMIN_PERMISSION_CATALOG.every(
+        ({ category, description, label }) =>
+          category.length > 0 && description.length > 0 && label.length > 0,
+      ),
+    ).toBe(true);
+    expect(() => adminPermissionSchema.parse("unknown.permission")).toThrow();
+  });
+
+  test("includes identity-management permissions in the canonical catalog", () => {
+    expect(ADMIN_PERMISSION_KEYS).toContain("iam.users.read");
+    expect(ADMIN_PERMISSION_KEYS).toContain("iam.users.write");
+    expect(ADMIN_PERMISSION_KEYS).toContain("iam.roles.read");
+    expect(ADMIN_PERMISSION_KEYS).toContain("iam.roles.write");
+  });
+
+  test("rejects unknown principal and invitation status values", () => {
+    expect(() =>
+      humanAdminSessionSchema.parse({
+        displayName: "Operator",
+        email: "operator@example.test",
+        environment: "test",
+        identityId: "identity-1",
+        permissions: ["catalog.read"],
+        principalKind: "robot",
+        role: {
+          enabled: true,
+          id: "role-1",
+          key: "support",
+          name: "Support",
+          protected: false,
+          system: true,
+          version: 1,
+        },
+      }),
+    ).toThrow();
+    expect(() => adminInvitationStatusSchema.parse("deleted")).toThrow();
+  });
+
+  test("keeps human and service sessions strictly discriminated", () => {
+    expect(() =>
+      humanAdminSessionSchema.parse({
+        displayName: "Operator",
+        environment: "test",
+        identityId: "identity-1",
+        permissions: ["catalog.read"],
+        principalKind: "human",
+        role: {
+          enabled: true,
+          id: "role-1",
+          key: "support",
+          name: "Support",
+          protected: false,
+          system: true,
+          version: 1,
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      serviceAdminSessionSchema.parse({
+        displayName: "CI",
+        email: "ci@example.test",
+        environment: "test",
+        identityId: "identity-2",
+        permissions: ["catalog.read"],
+        principalKind: "service",
+        role: {
+          enabled: true,
+          id: "role-2",
+          key: "ci",
+          name: "CI",
+          protected: false,
+          system: false,
+          version: 1,
+        },
+        serviceName: "ci-test",
+      }),
+    ).toThrow();
   });
 });

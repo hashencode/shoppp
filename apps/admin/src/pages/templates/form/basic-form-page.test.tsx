@@ -76,6 +76,7 @@ const renderPage = (entry: string) => {
         value={{
           isAuthenticated: true,
           role: 'admin',
+          permissions: ['catalog.read', 'catalog.write'],
           displayName: '管理员',
           accountName: 'admin',
           setRole: () => undefined,

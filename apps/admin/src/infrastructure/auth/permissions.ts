@@ -1,121 +1,12 @@
+import type { AdminPermission } from '@shoppp/contracts'
 import type { Role } from '../../shared/types/roles'
 
-export type PermissionKey =
-  | 'dashboard.read'
-  | 'list.read'
-  | 'form.read'
-  | 'form.write'
-  | 'profile.read'
-  | 'result.read'
-  | 'exception.read'
-  | 'catalog.read'
-  | 'catalog.write'
-  | 'catalog.publish'
-  | 'inventory.read'
-  | 'inventory.adjust'
-  | 'orders.read'
-  | 'orders.fulfill'
-  | 'orders.cancel'
-  | 'orders.refund'
-  | 'reporting.read'
-  | 'reporting.export'
-  | 'operations.jobs.read'
-  | 'operations.replay'
-  | 'settings.read'
-  | 'settings.write'
-  | 'audit.read'
-  | 'privacy.manage'
-
-const rolePermissions: Record<Role, PermissionKey[]> = {
-  admin: [
-    'dashboard.read',
-    'list.read',
-    'form.read',
-    'form.write',
-    'profile.read',
-    'result.read',
-    'exception.read',
-    'catalog.read',
-    'catalog.write',
-    'catalog.publish',
-    'inventory.read',
-    'inventory.adjust',
-    'orders.read',
-    'orders.fulfill',
-    'orders.cancel',
-    'orders.refund',
-    'reporting.read',
-    'reporting.export',
-    'operations.jobs.read',
-    'operations.replay',
-    'settings.read',
-    'settings.write',
-    'audit.read',
-    'privacy.manage',
-  ],
-  catalog_manager: ['catalog.read', 'catalog.write', 'catalog.publish', 'inventory.read'],
-  operations: [
-    'catalog.read',
-    'inventory.read',
-    'inventory.adjust',
-    'orders.read',
-    'orders.fulfill',
-    'orders.cancel',
-    'orders.refund',
-    'audit.read',
-    'operations.replay',
-    'operations.jobs.read',
-  ],
-  support: ['catalog.read', 'inventory.read', 'orders.read'],
-  analyst: [
-    'catalog.read',
-    'inventory.read',
-    'orders.read',
-    'reporting.read',
-    'reporting.export',
-  ],
-  editor: [
-    'dashboard.read',
-    'list.read',
-    'form.read',
-    'form.write',
-    'profile.read',
-    'result.read',
-    'exception.read',
-    'catalog.read',
-    'catalog.write',
-    'catalog.publish',
-    'inventory.read',
-    'inventory.adjust',
-    'orders.read',
-    'orders.fulfill',
-    'orders.cancel',
-    'orders.refund',
-    'reporting.read',
-    'reporting.export',
-    'operations.jobs.read',
-    'operations.replay',
-  ],
-  viewer: [
-    'dashboard.read',
-    'list.read',
-    'form.read',
-    'profile.read',
-    'result.read',
-    'exception.read',
-    'catalog.read',
-    'inventory.read',
-    'orders.read',
-    'reporting.read',
-  ],
-}
+export type PermissionKey = AdminPermission
 
 export const hasPermission = (
-  role: Role,
+  _role: Role,
   permission: PermissionKey,
   authoritativePermissions?: readonly PermissionKey[]
 ): boolean => {
-  return authoritativePermissions !== undefined
-    ? authoritativePermissions.includes(permission)
-    : rolePermissions[role].includes(permission)
+  return authoritativePermissions?.includes(permission) ?? false
 }

@@ -72,7 +72,7 @@ const routeMetaRoutes = [
     path: '/alpha',
     title: 'Alpha 页面',
     icon: null,
-    permission: 'dashboard.read' as const,
+    permission: 'catalog.read' as const,
     inMenu: true,
     breadcrumb: ['一级导航', 'Alpha 页面'],
   },

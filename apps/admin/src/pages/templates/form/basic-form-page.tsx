@@ -84,6 +84,8 @@ export const BasicFormPage = () => {
     searchParams,
     role,
     permissions,
+    readPermission: 'catalog.read',
+    writePermission: 'catalog.write',
   })
   const {
     detailLoading,

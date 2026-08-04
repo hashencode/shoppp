@@ -77,10 +77,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     try {
       const session = await fetchAdminSession()
       if (request !== sessionRequest.current) return
-      setRole(session.role)
+      setRole(session.role.key)
       setPermissions(session.permissions)
       setDisplayName(session.displayName)
-      setAccountName(session.email)
+      setAccountName(session.principalKind === 'human' ? session.email : session.serviceName)
       setIsAuthenticated(true)
     } catch (error) {
       if (request !== sessionRequest.current) return

@@ -635,7 +635,7 @@ describe('StandardListPageRecipe', () => {
       filterFields: [],
       createAction: {
         label: '新增数据',
-        permission: 'form.write',
+        permission: 'catalog.write',
       },
       buildColumns: () => [],
       buildTableNode: ({ dataSource }) => <div>{dataSource[0]?.name}</div>,

@@ -1,28 +1,12 @@
 import type { Context } from "hono";
+import { ADMIN_PERMISSION_KEYS, type AdminPermission } from "@shoppp/contracts";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "./audit";
 
 export type AdminRole = "admin" | "catalog_manager" | "operations" | "support" | "analyst";
-export type PermissionKey =
-  | "catalog.read"
-  | "catalog.write"
-  | "catalog.publish"
-  | "inventory.read"
-  | "inventory.adjust"
-  | "orders.read"
-  | "orders.fulfill"
-  | "orders.cancel"
-  | "orders.refund"
-  | "reporting.read"
-  | "reporting.export"
-  | "audit.read"
-  | "settings.read"
-  | "settings.write"
-  | "privacy.manage"
-  | "operations.replay"
-  | "operations.jobs.read";
+export type PermissionKey = AdminPermission;
 
 export interface Principal {
   readonly displayName: string;
@@ -32,25 +16,7 @@ export interface Principal {
   readonly subject: string;
 }
 
-const ALL_PERMISSIONS: readonly PermissionKey[] = [
-  "catalog.read",
-  "catalog.write",
-  "catalog.publish",
-  "inventory.read",
-  "inventory.adjust",
-  "orders.read",
-  "orders.fulfill",
-  "orders.cancel",
-  "orders.refund",
-  "reporting.read",
-  "reporting.export",
-  "audit.read",
-  "settings.read",
-  "settings.write",
-  "privacy.manage",
-  "operations.replay",
-  "operations.jobs.read",
-];
+const ALL_PERMISSIONS: readonly PermissionKey[] = ADMIN_PERMISSION_KEYS;
 const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly PermissionKey[]>> = {
   admin: ALL_PERMISSIONS,
   catalog_manager: ["catalog.read", "catalog.write", "catalog.publish", "inventory.read"],
