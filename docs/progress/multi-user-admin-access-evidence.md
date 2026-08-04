@@ -15,8 +15,8 @@ Status vocabulary:
 
 ## Current authorization decision
 
-**Not production-ready.** Local implementation gates through build are green. The test Access
-service-principal run, separate real-human test IdP/MFA journey, production identity-plane
+**Not production-ready.** The complete 13-gate local staging release validator is green. The test
+Access service-principal run, separate real-human test IdP/MFA journey, production identity-plane
 provisioning, two named enabled protected production administrators, recent production backup, and
 named promotion approval remain external gates. The workflow fails closed when any is absent.
 
@@ -48,20 +48,20 @@ named promotion approval remain external gates. The workflow fails closed when a
 
 ## Local automated gates (2026-08-04)
 
-| Verification Contract gate      | Result                                                                                                          |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `bun install --frozen-lockfile` | Pass; 1,298 installs checked, no changes.                                                                       |
-| `bun run lint`                  | Pass; ESLint and import-boundary checks clean.                                                                  |
-| `bun run typecheck`             | Pass for tools, root E2E, admin, API, storefront, contracts, DB, and domain.                                    |
-| `bun run test`                  | Pass: tools 77, admin 268, storefront 18, contracts 11, DB fixture 1, domain 24.                                |
-| `bun run test:workers`          | Pass: API 143/143 and DB/migration 10/10.                                                                       |
-| `bun run test:admin-browser`    | Pass: 9/9, including IAM narrow-layout keyboard interaction.                                                    |
-| `bun run build`                 | Pass: admin/API/storefront production builds and all Worker dry-runs.                                           |
-| Admin local Playwright          | Pass: 7/7 against the built candidate with explicit `/admin/session` network fixtures and no stored auth state. |
-| U8 tool contract                | Pass: deploy/release tests 11/11 before U9; final root tools suite includes those checks.                       |
-| U8 remote service proof         | Environment pending: exact command fails closed at missing `E2E_CF_ACCESS_CLIENT_ID` in this local workspace.   |
-| Staging release validation      | Pending clean committed candidate and test environment proof.                                                   |
-| Production release validation   | Production pending by design.                                                                                   |
+| Verification Contract gate      | Result                                                                                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun install --frozen-lockfile` | Pass; 1,298 installs checked, no changes.                                                                                                    |
+| `bun run lint`                  | Pass; ESLint and import-boundary checks clean.                                                                                               |
+| `bun run typecheck`             | Pass for tools, root E2E, admin, API, storefront, contracts, DB, and domain.                                                                 |
+| `bun run test`                  | Pass: tools 77, admin 268, storefront 18, contracts 11, DB fixture 1, domain 24.                                                             |
+| `bun run test:workers`          | Pass: API 143/143 and DB/migration 10/10.                                                                                                    |
+| `bun run test:admin-browser`    | Pass: 9/9, including IAM narrow-layout keyboard interaction.                                                                                 |
+| `bun run build`                 | Pass: admin/API/storefront production builds and all Worker dry-runs.                                                                        |
+| Admin local Playwright          | Pass: 7/7 against the built candidate with explicit `/admin/session` network fixtures and no stored auth state.                              |
+| U8 tool contract                | Pass: deploy/release tests 11/11 before U9; final root tools suite includes those checks.                                                    |
+| U8 remote service proof         | Environment pending: exact command fails closed at missing `E2E_CF_ACCESS_CLIENT_ID` in this local workspace.                                |
+| Staging release validation      | Pass on committed candidate `eca485a`: all 13 gates and artifact digests recorded in release report `eca485a97996-2026-08-04T08-41-12-358Z`. |
+| Production release validation   | Production pending by design.                                                                                                                |
 
 ## Two-D1 topology
 
