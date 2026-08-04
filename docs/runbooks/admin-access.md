@@ -2,8 +2,8 @@
 
 Human administrators authenticate directly with an environment-local email and password. The API
 stores only a salted PBKDF2 hash, issues an opaque `HttpOnly` session cookie, and resolves the
-current role and permission set from D1 on every protected request. Cloudflare Access is not part of
-the human login path.
+current role and permission set from D1 on every protected request. No external identity proxy is
+required for the administrator login path.
 
 ## Environment boundaries
 
@@ -88,6 +88,12 @@ invitations, and are audited as machines. Rotate test and production service tok
 Provision a token for an existing service principal with `ADMIN_SERVICE_TOKEN` and
 `bun run provision:admin-service`; production requires the exact confirmation emitted by the tool.
 
+Migration `0014` rewrites the compatibility email value for every service principal and replaces
+the insert/update triggers so future service rows receive the application-owned marker. The
+physical column default remains historical because rebuilding this heavily referenced identity
+table would endanger inbound actor foreign keys; the trigger is the authoritative writer, and the
+migration suite verifies both facts.
+
 ## Local development
 
 Copy `.env.example`, then run:
@@ -97,7 +103,7 @@ bun --filter @shoppp/admin dev
 ```
 
 The preflight accepts only the staging/test API and verifies that it is bound to `shoppp-staging`.
-The local proxy preserves application cookies and never forwards a Cloudflare Access assertion.
+The local proxy preserves application cookies and forwards API requests to the test Worker.
 
 ## Verification
 

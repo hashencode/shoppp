@@ -143,7 +143,14 @@ describe("production promotion workflow", () => {
     expect(workflow).toContain(
       "ADMIN_SERVICE_TOKEN: ${{ secrets.PROHIBITED_ADMIN_SERVICE_TOKEN }}",
     );
-    expect(workflow).not.toContain("CF_ACCESS_CLIENT_SECRET");
+    for (const forbidden of [
+      ["CF", "ACCESS"].join("_"),
+      ["Cf", "Access", "Jwt", "Assertion"].join("-"),
+      ["ACCESS", "AUDIENCE"].join("_"),
+      ["ACCESS", "ISSUER"].join("_"),
+    ]) {
+      expect(workflow).not.toContain(forbidden);
+    }
   });
 
   test("keeps rollback artifacts without activating authentication-incompatible workers", async () => {

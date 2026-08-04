@@ -7,7 +7,7 @@ import { ADMIN_ROLE_IDS, seedHumanAdmin, seedServiceAdmin } from "../fixtures/ad
 
 function appFor(subject: string) {
   return createApp({
-    accessVerifier: async () => ({
+    testIdentityVerifier: async () => ({
       email: `${subject}@example.test`,
       principalKind: "human",
       subject,
@@ -19,7 +19,7 @@ function request(path: string, init: RequestInit = {}) {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
@@ -152,7 +152,7 @@ describe("admin inventory adjustments", () => {
       subject: "inventory-automation",
     });
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         principalKind: "service",
         serviceName: "inventory-automation",
         subject: "inventory-automation",

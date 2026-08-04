@@ -8,7 +8,7 @@ function request(path: string, body?: unknown): Request {
   return new Request(`https://api.example.test${path}`, {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
@@ -19,12 +19,12 @@ function request(path: string, body?: unknown): Request {
 
 function humanApp(subject: string, email = `${subject}@example.test`) {
   return createApp({
-    accessVerifier: async () => ({ email, principalKind: "human", subject }),
+    testIdentityVerifier: async () => ({ email, principalKind: "human", subject }),
   });
 }
 
 const serviceApp = createApp({
-  accessVerifier: async () => ({
+  testIdentityVerifier: async () => ({
     principalKind: "service",
     serviceName: "iam-controller",
     subject: "iam-controller",

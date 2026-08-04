@@ -11,9 +11,7 @@ interface Environment {
 export function upstreamApiRequest(request: Request): Request {
   const url = new URL(request.url);
   url.pathname = url.pathname.slice("/api".length) || "/";
-  const upstream = new Request(url, request);
-  upstream.headers.delete("Cf-Access-Jwt-Assertion");
-  return upstream;
+  return new Request(url, request);
 }
 
 export default {

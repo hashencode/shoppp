@@ -116,14 +116,13 @@ the reviewer appends the results described in `admin-access.md`. The workflow:
     `release:validate -- --promotion`; this hashes the downloaded outputs and requires an exact match
     with staging evidence. It does not rebuild environment-sensitive or nondeterministic output.
 
-The IAM schema migration remains additive, but the immediately preceding API authenticates through
-Cloudflare Access and cannot consume the new password sessions or service credentials. Because
-Cloudflare Access is retired from the normal administrator path in this release, the staging gate
-does not briefly activate that authentication-incomplete version and mistake public health for a
+The IAM schema migration remains additive, but API versions from before password authentication
+cannot consume the current password sessions or service credentials. The staging gate therefore
+does not briefly activate an authentication-incomplete version and mistake public health for a
 valid rollback. It verifies that all saved versions still exist and retains the pre-migration D1
-export. During this cutover, use a forward compatibility fix by default; activate the older API only
-when its isolated Access credential and protected `/api/admin/session` proof are both available, or
-after restoring the matching verified D1 backup under the destructive-restore approval process.
+export. During this cutover, use a forward compatibility fix by default. Activate an older API only
+when it independently proves a protected `/api/admin/session`, or after restoring the matching
+verified D1 backup under the destructive-restore approval process.
 
 The storefront obtains its environment-specific Turnstile public key at runtime from the same-origin
 `/api/platform/config` endpoint. This keeps the static storefront byte-identical across staging and

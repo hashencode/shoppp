@@ -6,8 +6,6 @@ export const ADMIN_ROLE_IDS = {
   support: "role_support",
 } as const;
 
-export const ACCESS_SERVICE_EMAIL_MARKER = "service-auth@cloudflare-access.invalid";
-
 interface HumanAdminFixture {
   readonly displayName?: string;
   readonly email?: string;

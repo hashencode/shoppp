@@ -79,7 +79,7 @@ async function seedReportingOrder(input: {
 
 function appFor(subject: string) {
   return createApp({
-    accessVerifier: async () => ({
+    testIdentityVerifier: async () => ({
       email: `${subject}@example.test`,
       principalKind: "human",
       subject,
@@ -91,7 +91,7 @@ function request(path: string, init: RequestInit = {}) {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",

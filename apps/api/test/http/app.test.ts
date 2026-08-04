@@ -148,7 +148,7 @@ function adminRequest(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
@@ -194,9 +194,9 @@ describe("API shell", () => {
     });
   });
 
-  test("maps an enabled Access identity and reaches an allowed use case", async () => {
+  test("maps an enabled injected test identity and reaches an allowed use case", async () => {
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "access-user-001@example.test",
         principalKind: "human",
         subject: "access-user-001",
@@ -236,7 +236,7 @@ describe("API shell", () => {
 
   test("denies expired, malformed, or unmapped identities without leaking tokens", async () => {
     const denied = createApp({
-      accessVerifier: async () => {
+      testIdentityVerifier: async () => {
         throw new Error("invalid test-token");
       },
     });
@@ -247,7 +247,7 @@ describe("API shell", () => {
     expect(body).not.toContain("test-token");
 
     const unmapped = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "missing@example.test",
         principalKind: "human",
         subject: "missing-subject",
@@ -263,9 +263,27 @@ describe("API shell", () => {
     ).toBe(0);
   });
 
+  test("does not trust injected or retired perimeter identity headers in production", async () => {
+    const legacyIdentityHeader = ["Cf", "Access", "Jwt", "Assertion"].join("-");
+    const response = await createApp().fetch(
+      adminRequest("/admin/orders", {
+        headers: {
+          [legacyIdentityHeader]: "retired-perimeter-token",
+          "X-Test-Admin-Identity": "test-token",
+        },
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      error: { code: "admin_login_required" },
+    });
+  });
+
   test("reloads role permissions from D1 on every request", async () => {
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "access-user-001@example.test",
         principalKind: "human",
         subject: "access-user-001",
@@ -304,7 +322,7 @@ describe("API shell", () => {
       subject: "permission-matrix",
     });
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "permission-matrix@example.test",
         principalKind: "human",
         subject: "permission-matrix",
@@ -348,7 +366,7 @@ describe("API shell", () => {
       principalKind: "human" as const,
       subject: "access-user-001",
     });
-    const app = createApp({ accessVerifier: humanVerifier });
+    const app = createApp({ testIdentityVerifier: humanVerifier });
 
     await env.DB.prepare("UPDATE admin_identities SET enabled = 0 WHERE id = ?")
       .bind("admin-access-user-001")
@@ -367,7 +385,7 @@ describe("API shell", () => {
       .run();
 
     const mismatched = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         principalKind: "service",
         serviceName: "access-user-001",
         subject: "access-user-001",
@@ -391,7 +409,7 @@ describe("API shell", () => {
   test("AE6: refund permission is enforced inside the use case and denial is audited", async () => {
     await seedOperator("support", "support-user");
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "support-user@example.test",
         principalKind: "human",
         subject: "support-user",
@@ -417,7 +435,7 @@ describe("API shell", () => {
   test("replays a completed idempotent mutation and rejects key reuse with another body", async () => {
     await seedOperator("operations", "access-user-002");
     const app = createApp({
-      accessVerifier: async (token) => {
+      testIdentityVerifier: async (token) => {
         const subject =
           token === "different-principal-token" ? "access-user-002" : "access-user-001";
         return { email: `${subject}@example.test`, principalKind: "human", subject };
@@ -471,7 +489,7 @@ describe("API shell", () => {
       adminRequest("/admin/test/idempotent", {
         body: JSON.stringify({ value: "first" }),
         headers: {
-          "Cf-Access-Jwt-Assertion": "rotated-token",
+          "X-Test-Admin-Identity": "rotated-token",
           "Idempotency-Key": "idempotency-key-0001",
         },
         method: "POST",
@@ -485,7 +503,7 @@ describe("API shell", () => {
       adminRequest("/admin/test/idempotent", {
         body: JSON.stringify({ value: "first" }),
         headers: {
-          "Cf-Access-Jwt-Assertion": "different-principal-token",
+          "X-Test-Admin-Identity": "different-principal-token",
           "Idempotency-Key": "idempotency-key-0001",
         },
         method: "POST",

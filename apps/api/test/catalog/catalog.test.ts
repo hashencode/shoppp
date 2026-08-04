@@ -51,7 +51,7 @@ function request(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
       ...init.headers,
@@ -70,7 +70,7 @@ function productRequest(body: unknown, path = "/admin/catalog/products"): Reques
 function appFor(subject = "catalog-user", buildTrigger = vi.fn()) {
   return {
     app: createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: `${subject}@example.test`,
         principalKind: "human",
         subject,

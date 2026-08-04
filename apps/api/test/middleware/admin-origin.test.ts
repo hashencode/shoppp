@@ -11,7 +11,7 @@ function mutationRequest(headers: HeadersInit = {}): Request {
   return new Request("https://api.example.test/admin/orders/ORD-TEST/refunds", {
     body: JSON.stringify({ amount: 100, reason: "Origin middleware fixture" }),
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       ...headers,
     },
@@ -31,7 +31,7 @@ describe("admin mutation origin protection", () => {
   test("accepts an exact human origin with same-origin Fetch Metadata", async () => {
     await seedHumanAdmin(env.DB, { roleId: ADMIN_ROLE_IDS.support });
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "admin@example.test",
         principalKind: "human",
         subject: "access-admin-fixture",
@@ -45,35 +45,34 @@ describe("admin mutation origin protection", () => {
     expect(await response.json()).toMatchObject({ error: { code: "permission_denied" } });
   });
 
-  test("accepts the exact test tunnel origin but never permits it in production", async () => {
-    const tunnelHostname = "admin-dev-test.example.com";
+  test("rejects a retired tunnel origin in staging and production", async () => {
+    const tunnelOrigin = "https://admin-dev-test.example.com";
     await seedHumanAdmin(env.DB, { roleId: ADMIN_ROLE_IDS.support });
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "admin@example.test",
         principalKind: "human",
         subject: "access-admin-fixture",
       }),
     });
     const headers = {
-      Origin: `https://${tunnelHostname}`,
+      Origin: tunnelOrigin,
       "Sec-Fetch-Site": "same-origin",
     };
 
     const testResponse = await app.fetch(mutationRequest(headers), {
       ...env,
       ADMIN_ORIGIN,
-      ADMIN_TUNNEL_HOSTNAME: tunnelHostname,
       ENVIRONMENT: "staging",
     });
-    expect(await testResponse.json()).toMatchObject({ error: { code: "permission_denied" } });
+    expect(testResponse.status).toBe(403);
+    expect(await testResponse.json()).toMatchObject({ error: { code: "admin_origin_denied" } });
 
     expect(
       isAllowedAdminBrowserOrigin(
         {
           ...env,
           ADMIN_ORIGIN,
-          ADMIN_TUNNEL_HOSTNAME: tunnelHostname,
           ENVIRONMENT: "production",
         },
         headers.Origin,
@@ -90,7 +89,7 @@ describe("admin mutation origin protection", () => {
   ])("rejects a human mutation with %s", async (_case, headers) => {
     await seedHumanAdmin(env.DB, { roleId: ADMIN_ROLE_IDS.support });
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "admin@example.test",
         principalKind: "human",
         subject: "access-admin-fixture",
@@ -104,7 +103,7 @@ describe("admin mutation origin protection", () => {
   test("allows a typed service principal to omit browser headers and audits it as a machine", async () => {
     await seedServiceAdmin(env.DB, { roleId: ADMIN_ROLE_IDS.support });
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         principalKind: "service",
         serviceName: "access-service-fixture",
         subject: "access-service-fixture",

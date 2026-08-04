@@ -6,7 +6,8 @@ import { ADMIN_PERMISSION_CATALOG } from "@shoppp/contracts";
 import { seedLaunchFixture } from "../seed/apply";
 
 const NOW = "2026-07-30T00:00:00.000Z";
-const SERVICE_EMAIL_MARKER = "service-auth@cloudflare-access.invalid";
+const LEGACY_SERVICE_EMAIL_MARKER = "service-auth@cloudflare-access.invalid";
+const SERVICE_EMAIL_MARKER = "service-auth@shoppp.invalid";
 
 async function expectPreIamSchema(db: D1Database): Promise<void> {
   const iamMigrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
@@ -199,7 +200,7 @@ describe("D1 migrations", () => {
       [
         "identity_service",
         "ci-test-service",
-        SERVICE_EMAIL_MARKER,
+        LEGACY_SERVICE_EMAIL_MARKER,
         "CI test service",
         "operations",
       ],
@@ -399,6 +400,25 @@ describe("D1 migrations", () => {
         "SELECT email, role FROM admin_identities WHERE id = 'identity_constraints'",
       ).first(),
     ).toEqual({ email: "constraints@example.test", role: "support" });
+    await env.DB.prepare(
+      `INSERT INTO admin_identities
+        (id, principal_kind, access_subject, normalized_email, display_name, role_id,
+         enabled, version, created_at, updated_at)
+       VALUES ('identity_service_marker', 'service', 'service-marker', NULL, 'Service marker',
+               'role_operations', 1, 1, ?, ?)`,
+    )
+      .bind(NOW, NOW)
+      .run();
+    expect(
+      await env.DB.prepare(
+        "SELECT email, role FROM admin_identities WHERE id = 'identity_service_marker'",
+      ).first(),
+    ).toEqual({ email: SERVICE_EMAIL_MARKER, role: "operations" });
+    expect(
+      await env.DB.prepare(
+        "SELECT dflt_value AS defaultValue FROM pragma_table_info('admin_identities') WHERE name = 'email'",
+      ).first(),
+    ).toEqual({ defaultValue: `'${LEGACY_SERVICE_EMAIL_MARKER}'` });
     await expect(
       env.DB.prepare(humanInsert)
         .bind(

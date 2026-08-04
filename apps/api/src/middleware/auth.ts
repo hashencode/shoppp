@@ -5,19 +5,19 @@ import { ADMIN_PERMISSION_KEYS, type AdminPermission } from "@shoppp/contracts";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
-import {
-  verifyAccessJwt,
-  type AccessIdentity,
-  type AccessVerificationConfig,
-} from "../iam/access-jwt";
 import type { Principal } from "../iam/permissions";
 import { hashOpaqueToken } from "../iam/passwords";
 import { safeRequestPath } from "../security/redaction";
 
-export type AccessVerifier = (
-  token: string,
-  config: AccessVerificationConfig,
-) => Promise<AccessIdentity>;
+export type AdminIdentityClaim =
+  | { readonly email: string; readonly principalKind: "human"; readonly subject: string }
+  | {
+      readonly principalKind: "service";
+      readonly serviceName: string;
+      readonly subject: string;
+    };
+
+export type TestIdentityVerifier = (token: string) => Promise<AdminIdentityClaim>;
 
 interface PrincipalRow {
   readonly access_subject: string;
@@ -39,10 +39,10 @@ const registeredPermissions = new Set<string>(ADMIN_PERMISSION_KEYS);
 export const ADMIN_SESSION_COOKIE = "shoppp_admin_session";
 type ApiContext = Context<ApiEnvironment>;
 
-export function logAccessDenial(
+export function logAuthenticationDenial(
   context: ApiContext,
   reason: string,
-  principalKind?: AccessIdentity["principalKind"],
+  principalKind?: AdminIdentityClaim["principalKind"],
 ): void {
   console.warn(
     JSON.stringify({
@@ -75,7 +75,7 @@ async function auditMappedDenial(
 
 export async function resolvePrincipal(
   context: ApiContext,
-  identity: AccessIdentity,
+  identity: AdminIdentityClaim,
 ): Promise<Principal | null> {
   const row = await context.env.DB.prepare(
     `SELECT identity.id, identity.principal_kind, identity.access_subject,
@@ -93,18 +93,26 @@ export async function resolvePrincipal(
 
   if (row.enabled !== 1 || row.role_enabled !== 1) {
     await auditMappedDenial(context, row, "identity_or_role_disabled");
-    throw new ApiError(401, "identity_not_enabled", "The Access identity is not enabled.");
+    throw new ApiError(401, "identity_not_enabled", "The administrator identity is not enabled.");
   }
   if (row.principal_kind !== identity.principalKind) {
     await auditMappedDenial(context, row, "principal_kind_mismatch");
-    throw new ApiError(401, "identity_claim_mismatch", "The Access identity does not match.");
+    throw new ApiError(
+      401,
+      "identity_claim_mismatch",
+      "The administrator identity does not match.",
+    );
   }
   if (
     identity.principalKind === "human" &&
     row.normalized_email !== identity.email.trim().toLowerCase()
   ) {
     await auditMappedDenial(context, row, "verified_email_mismatch");
-    throw new ApiError(401, "identity_claim_mismatch", "The Access identity does not match.");
+    throw new ApiError(
+      401,
+      "identity_claim_mismatch",
+      "The administrator identity does not match.",
+    );
   }
 
   const permissionRows = await context.env.DB.prepare(
@@ -247,16 +255,33 @@ async function resolveServiceCredential(
 }
 
 export function adminAuthentication(
-  accessVerifier?: AccessVerifier,
-  options: { allowHumanAccessIdentity?: boolean } = {},
+  testIdentityVerifier?: TestIdentityVerifier,
 ): MiddlewareHandler<ApiEnvironment> {
   return async (context, next) => {
     const sessionToken = getCookie(context, ADMIN_SESSION_COOKIE);
     if (sessionToken) {
       const principal = await resolvePasswordSession(context, sessionToken);
       if (!principal) {
-        logAccessDenial(context, "admin_session_invalid", "human");
+        logAuthenticationDenial(context, "admin_session_invalid", "human");
         throw new ApiError(401, "admin_session_invalid", "The administrator session is invalid.");
+      }
+      context.set("principal", principal);
+      await next();
+      return;
+    }
+    const testIdentityToken = context.req.header("X-Test-Admin-Identity");
+    if (testIdentityVerifier && testIdentityToken) {
+      let identity: AdminIdentityClaim;
+      try {
+        identity = await testIdentityVerifier(testIdentityToken);
+      } catch {
+        logAuthenticationDenial(context, "test_identity_invalid");
+        throw new ApiError(401, "admin_identity_invalid", "Administrator authentication failed.");
+      }
+      const principal = await resolvePrincipal(context, identity);
+      if (!principal) {
+        logAuthenticationDenial(context, "admin_identity_unmapped", identity.principalKind);
+        throw new ApiError(401, "identity_unmapped", "The administrator identity is not enabled.");
       }
       context.set("principal", principal);
       await next();
@@ -266,48 +291,14 @@ export function adminAuthentication(
     if (authorization?.startsWith("Bearer ")) {
       const principal = await resolveServiceCredential(context, authorization.slice(7).trim());
       if (!principal) {
-        logAccessDenial(context, "service_credential_invalid", "service");
+        logAuthenticationDenial(context, "service_credential_invalid", "service");
         throw new ApiError(401, "service_credential_invalid", "Service authentication failed.");
       }
       context.set("principal", principal);
       await next();
       return;
     }
-    if (!accessVerifier) {
-      logAccessDenial(context, "admin_login_required");
-      throw new ApiError(401, "admin_login_required", "Administrator login is required.");
-    }
-    const token = context.req.header("Cf-Access-Jwt-Assertion");
-    if (!token) {
-      logAccessDenial(context, "access_assertion_missing");
-      throw new ApiError(401, "access_required", "Cloudflare Access authentication is required.");
-    }
-    let identity: AccessIdentity;
-    try {
-      identity = await accessVerifier(token, {
-        audience: context.env.ACCESS_AUDIENCE,
-        issuer: context.env.ACCESS_ISSUER,
-      });
-    } catch {
-      logAccessDenial(context, "access_assertion_invalid");
-      throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
-    }
-    if (identity.principalKind === "human" && !options.allowHumanAccessIdentity) {
-      logAccessDenial(context, "password_authentication_required", "human");
-      throw new ApiError(
-        401,
-        "password_authentication_required",
-        "Use the administrator account and password login.",
-      );
-    }
-    const principal = await resolvePrincipal(context, identity);
-    if (!principal) {
-      logAccessDenial(context, "access_identity_unmapped", identity.principalKind);
-      throw new ApiError(401, "identity_unmapped", "The Access identity is not enabled.");
-    }
-    context.set("principal", principal);
-    await next();
+    logAuthenticationDenial(context, "admin_login_required");
+    throw new ApiError(401, "admin_login_required", "Administrator login is required.");
   };
 }
-
-export const defaultAccessVerifier: AccessVerifier = verifyAccessJwt;

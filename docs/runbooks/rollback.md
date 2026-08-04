@@ -36,9 +36,9 @@ one real-human session, one service session, the enabled protected-human count, 
 permissions, and recent IAM audit events. If the older code cannot safely interpret the current IAM
 schema, roll forward with a compatibility fix; do not reverse migration `0012_admin_iam.sql`.
 
-Do not activate a pre-password-auth API during a rehearsal after retiring Cloudflare Access unless
-the rollback package also retains an isolated Access credential and proves a protected session.
-Migration `0013_admin_password_auth.sql` is additive, but its password sessions and service
+Do not activate a pre-password-auth API during a rehearsal unless that rollback package can
+independently prove a protected administrator session. Migration `0013_admin_password_auth.sql` is
+additive, but its password sessions and service
 credentials are not usable by the older Worker. Without a verified old authentication path, a
 code-only rollback can leave public health green while administrators are locked out. The staging
 gate therefore verifies saved rollback artifacts without activating that incomplete rollback path.

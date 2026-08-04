@@ -46,18 +46,6 @@ describe("environment-neutral API gateways", () => {
     },
   );
 
-  test("admin always strips obsolete Cloudflare Access assertions", () => {
-    const protectedRequest = new Request("https://admin.staging.example.test/api/admin/session", {
-      headers: { "Cf-Access-Jwt-Assertion": "access-assertion" },
-    });
-    expect(adminRequest(protectedRequest).headers.get("Cf-Access-Jwt-Assertion")).toBeNull();
-
-    const bypassRequest = new Request("http://localhost:3000/api/admin/session", {
-      headers: { "Cf-Access-Jwt-Assertion": "spoofed-assertion" },
-    });
-    expect(adminRequest(bypassRequest).headers.get("Cf-Access-Jwt-Assertion")).toBeNull();
-  });
-
   test("storefront serves opaque order routes from the private order shell", () => {
     const source = new Request(
       "https://shop.example.test/orders/order_access_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?source=checkout",

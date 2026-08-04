@@ -11,7 +11,7 @@ function adminRequest(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
@@ -20,7 +20,7 @@ function adminRequest(path: string, init: RequestInit = {}): Request {
   });
 }
 
-const accessVerifier = async () => ({
+const testIdentityVerifier = async () => ({
   email: "platform-admin@example.test",
   principalKind: "human" as const,
   subject: "platform-admin",
@@ -48,7 +48,7 @@ describe("launch controls, audit, and operational health", () => {
   });
 
   test("reports incomplete launch gates and persists a confirmed, audited configuration", async () => {
-    const app = createApp({ accessVerifier });
+    const app = createApp({ testIdentityVerifier });
     const initial = await app.fetch(adminRequest("/admin/settings/launch"), env);
     const initialBody = (await initial.json()) as {
       data: { configuration: LaunchConfiguration; issues: { code: string }[]; ready: boolean };
@@ -105,7 +105,7 @@ describe("launch controls, audit, and operational health", () => {
   });
 
   test("rejects internally inconsistent or incomplete launch configuration", async () => {
-    const app = createApp({ accessVerifier });
+    const app = createApp({ testIdentityVerifier });
     const initial = await app.fetch(adminRequest("/admin/settings/launch"), env);
     const initialBody = (await initial.json()) as {
       data: { configuration: LaunchConfiguration };
@@ -133,7 +133,7 @@ describe("launch controls, audit, and operational health", () => {
   });
 
   test("rejects launch configuration that references a malformed shipping method ID", async () => {
-    const app = createApp({ accessVerifier });
+    const app = createApp({ testIdentityVerifier });
     const initial = await app.fetch(adminRequest("/admin/settings/launch"), env);
     const initialBody = (await initial.json()) as {
       data: { configuration: LaunchConfiguration };
@@ -184,7 +184,7 @@ describe("launch controls, audit, and operational health", () => {
       result: "succeeded",
       targetType: "privacy_request",
     });
-    const app = createApp({ accessVerifier });
+    const app = createApp({ testIdentityVerifier });
     const first = await app.fetch(adminRequest("/admin/audit?action=privacy.test&pageSize=1"), env);
     const firstBody = (await first.json()) as {
       data: { metadata: Record<string, unknown> }[];
@@ -208,7 +208,7 @@ describe("launch controls, audit, and operational health", () => {
 
   test("exposes bounded health signals and never logs query-string personal data", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
-    const app = createApp({ accessVerifier });
+    const app = createApp({ testIdentityVerifier });
     const response = await app.fetch(
       adminRequest("/admin/operations/health?email=shopper@example.test"),
       env,

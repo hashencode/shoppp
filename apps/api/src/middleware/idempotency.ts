@@ -24,7 +24,6 @@ export function idempotency(scope: string): MiddlewareHandler<ApiEnvironment> {
     const credential =
       (principal ? `principal:${principal.subject}` : undefined) ??
       context.req.header("authorization") ??
-      context.req.header("cf-access-jwt-assertion") ??
       "anonymous";
     const requestHash = await sha256(
       `${context.req.method}:${context.req.path}:${credential}:${body}`,

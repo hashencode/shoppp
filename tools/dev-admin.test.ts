@@ -37,11 +37,11 @@ describe("password-authenticated admin development preflight", () => {
     ).resolves.toBeUndefined();
   });
 
-  test("exposes one normal test-only development script with no Access tunnel", async () => {
+  test("exposes one normal test-only development script with no external tunnel", async () => {
     const packageJson = JSON.parse(
       await readFile(resolve(import.meta.dir, "../apps/admin/package.json"), "utf8"),
     ) as { scripts: Record<string, string> };
     expect(packageJson.scripts.dev).toBe("bun --env-file=../../.env ../../tools/dev-admin.ts");
-    expect(JSON.stringify(packageJson.scripts)).not.toMatch(/cloudflared|Access tunnel/i);
+    expect(JSON.stringify(packageJson.scripts)).not.toMatch(/cloudflared|tunnel/i);
   });
 });

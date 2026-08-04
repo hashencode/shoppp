@@ -4,8 +4,6 @@ declare global {
   namespace Cloudflare {
     interface Env {
       AUTH_TOKEN_SECRET: string;
-      ACCESS_AUDIENCE: string;
-      ACCESS_ISSUER: string;
       ADMIN_ORIGIN: string;
       BACKUP_BUCKET: R2Bucket;
       DB: D1Database;

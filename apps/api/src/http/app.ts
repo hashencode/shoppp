@@ -56,7 +56,6 @@ import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
-import { acceptAdminInvitation } from "../iam/bootstrap";
 import { createAdminRole, getAdminRole, listAdminRoles, updateAdminRole } from "../iam/admin-roles";
 import { getAdminUser, listAdminUsers, updateAdminUser } from "../iam/admin-users";
 import {
@@ -77,12 +76,7 @@ import {
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
-import {
-  adminAuthentication,
-  logAccessDenial,
-  resolvePrincipal,
-  type AccessVerifier,
-} from "../middleware/auth";
+import { adminAuthentication, type TestIdentityVerifier } from "../middleware/auth";
 import { adminOriginProtection, isAllowedAdminBrowserOrigin } from "../middleware/admin-origin";
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
@@ -130,7 +124,7 @@ import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
 
 export interface CreateAppOptions {
-  readonly accessVerifier?: AccessVerifier;
+  readonly testIdentityVerifier?: TestIdentityVerifier;
   readonly analyticsRateLimiter?: RateLimiter;
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
@@ -576,65 +570,7 @@ export function createApp(options: CreateAppOptions = {}) {
     await confirmPasswordReset(context, input);
     return context.body(null, 204);
   });
-  const accessVerifier = options.accessVerifier;
-  app.post("/admin/onboarding", async (context) => {
-    if (options.accessVerifier === undefined) {
-      throw new ApiError(
-        410,
-        "password_activation_required",
-        "Use the account activation link to set a password.",
-      );
-    }
-    const token = context.req.header("Cf-Access-Jwt-Assertion");
-    if (!token) {
-      logAccessDenial(context, "access_assertion_missing");
-      throw new ApiError(401, "access_required", "Cloudflare Access authentication is required.");
-    }
-    let identity;
-    try {
-      identity = await accessVerifier!(token, {
-        audience: context.env.ACCESS_AUDIENCE,
-        issuer: context.env.ACCESS_ISSUER,
-      });
-    } catch {
-      logAccessDenial(context, "access_assertion_invalid");
-      throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
-    }
-    if (
-      identity.principalKind === "human" &&
-      !isAllowedAdminBrowserOrigin(
-        context.env,
-        context.req.header("Origin"),
-        context.req.header("Sec-Fetch-Site"),
-      )
-    ) {
-      throw new ApiError(403, "admin_origin_denied", "The admin request origin is not allowed.");
-    }
-    let acceptance;
-    try {
-      acceptance = await acceptAdminInvitation(context, identity);
-    } catch (error) {
-      if (error instanceof ApiError && error.status < 500) {
-        logAccessDenial(context, error.code, identity.principalKind);
-      }
-      throw error;
-    }
-    const principal = await resolvePrincipal(context, identity);
-    if (!principal) {
-      throw new ApiError(500, "invitation_acceptance_failed", "Invitation acceptance failed.");
-    }
-    context.set("principal", principal);
-    return context.json({
-      data: adminSessionData(context),
-      meta: { accepted: acceptance.accepted, requestId: context.get("requestId") },
-    });
-  });
-  app.use(
-    "/admin/*",
-    adminAuthentication(accessVerifier, {
-      allowHumanAccessIdentity: options.accessVerifier !== undefined,
-    }),
-  );
+  app.use("/admin/*", adminAuthentication(options.testIdentityVerifier));
   app.use("/admin/*", adminOriginProtection());
   app.get("/admin/session", (context) => {
     return context.json({

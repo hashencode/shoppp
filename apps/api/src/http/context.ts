@@ -4,11 +4,8 @@ import type { Principal } from "../iam/permissions";
 
 export interface ApiBindings {
   AUTH_TOKEN_SECRET?: string;
-  ACCESS_AUDIENCE: string;
-  ACCESS_ISSUER: string;
   ADMIN_ORIGIN: string;
   ADMIN_DEVELOPMENT_ORIGIN?: string;
-  ADMIN_TUNNEL_HOSTNAME?: string;
   ANALYTICS_RATE_LIMITER?: RateLimit;
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW?: Workflow;

@@ -6,7 +6,7 @@ import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 function appFor(subject: string) {
   return createApp({
-    accessVerifier: async () => ({
+    testIdentityVerifier: async () => ({
       email: `${subject}@example.test`,
       principalKind: "human",
       subject,
@@ -18,7 +18,7 @@ function request(path: string, body?: unknown, idempotencyKey?: string): Request
   return new Request(`https://api.example.test${path}`, {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",

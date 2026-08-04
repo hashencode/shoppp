@@ -9,7 +9,7 @@ function request(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "privacy-admin-token",
+      "X-Test-Admin-Identity": "privacy-admin-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
@@ -19,7 +19,7 @@ function request(path: string, init: RequestInit = {}): Request {
 }
 
 const app = createApp({
-  accessVerifier: async () => ({
+  testIdentityVerifier: async () => ({
     email: "privacy-admin@example.test",
     principalKind: "human",
     subject: "privacy-admin",

@@ -14,8 +14,6 @@ export default defineConfig(async () => {
           r2Buckets: ["BACKUP_BUCKET", "MEDIA", "PRIVACY_EXPORTS", "REPORT_EXPORTS"],
           bindings: {
             AUTH_TOKEN_SECRET: "test-auth-token-secret-that-is-at-least-32-characters",
-            ACCESS_AUDIENCE: "test-audience",
-            ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",
             ADMIN_ORIGIN: "https://admin.example.test",
             ENVIRONMENT: "staging",
             EMAIL_FROM: "orders@staging.example.test",

@@ -12,7 +12,7 @@ function request(path: string, init: RequestInit = {}) {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
@@ -61,7 +61,7 @@ beforeAll(async () => {
 describe("notification recovery API", () => {
   test("authorized operations staff can list and idempotently replay a dead letter", async () => {
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "notification-operator@example.test",
         principalKind: "human",
         subject: "notification-operator",
@@ -114,7 +114,7 @@ describe("notification recovery API", () => {
 
   test("support staff cannot list or directly replay recovery jobs and denial is audited", async () => {
     const app = createApp({
-      accessVerifier: async () => ({
+      testIdentityVerifier: async () => ({
         email: "notification-support@example.test",
         principalKind: "human",
         subject: "notification-support",

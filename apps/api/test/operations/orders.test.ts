@@ -170,7 +170,7 @@ class OperationsPaymentProvider implements PaymentProvider {
 
 function appFor(subject: string, paymentProvider?: PaymentProvider) {
   return createApp({
-    accessVerifier: async () => ({
+    testIdentityVerifier: async () => ({
       email: `${subject}@example.test`,
       principalKind: "human",
       subject,
@@ -188,7 +188,7 @@ function request(
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
