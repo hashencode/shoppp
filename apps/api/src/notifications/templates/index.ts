@@ -1,5 +1,7 @@
 import type { NotificationType } from "../port";
 
+type CommerceNotificationType = Exclude<NotificationType, "admin_invitation">;
+
 export interface NotificationOrderSnapshot {
   readonly currency: string;
   readonly email: string;
@@ -34,7 +36,7 @@ function money(amount: number, currency: string): string {
   return new Intl.NumberFormat("en", { currency, style: "currency" }).format(amount / 100);
 }
 
-function titleFor(type: NotificationType): string {
+function titleFor(type: CommerceNotificationType): string {
   switch (type) {
     case "order_receipt":
       return "Order confirmed";
@@ -49,7 +51,7 @@ function titleFor(type: NotificationType): string {
   }
 }
 
-function detailFor(type: NotificationType, facts: NotificationTemplateFacts): string {
+function detailFor(type: CommerceNotificationType, facts: NotificationTemplateFacts): string {
   switch (type) {
     case "order_receipt":
       return `We received your order for ${money(facts.order.grandTotal, facts.order.currency)}.`;
@@ -67,7 +69,7 @@ function detailFor(type: NotificationType, facts: NotificationTemplateFacts): st
 }
 
 export function renderNotificationTemplate(
-  type: NotificationType,
+  type: CommerceNotificationType,
   facts: NotificationTemplateFacts,
   storefrontOrigin: string,
 ): RenderedNotification {
@@ -87,5 +89,23 @@ export function renderNotificationTemplate(
     )}</p><p><a href="${escapeHtml(accessUrl)}">View your order securely</a></p>`,
     subject: `${title} · ${reference}`,
     text,
+  };
+}
+
+export function renderInvitationNotificationTemplate(input: {
+  adminOrigin: string;
+  displayName: string | null;
+}): RenderedNotification {
+  const signInUrl = `${input.adminOrigin.replace(/\/$/, "")}/`;
+  const greeting = input.displayName ? `Hello ${input.displayName},` : "Hello,";
+  const subject = "Your Shoppp admin invitation";
+  return {
+    html: `<h1>${escapeHtml(subject)}</h1><p>${escapeHtml(
+      greeting,
+    )}</p><p>You have been invited to Shoppp admin.</p><p><a href="${escapeHtml(
+      signInUrl,
+    )}">Sign in through Cloudflare Access</a></p>`,
+    subject,
+    text: `${greeting}\n\nYou have been invited to Shoppp admin.\n\nSign in through Cloudflare Access: ${signInUrl}`,
   };
 }

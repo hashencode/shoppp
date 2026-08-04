@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "bun tools/run-workspace-script.ts build --if-present",
+    "bootstrap:admin": "bun tools/bootstrap-admin.ts",
     "check:boundaries": "bun tools/check-boundaries.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

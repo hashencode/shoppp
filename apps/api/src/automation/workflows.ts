@@ -12,6 +12,7 @@ import {
   type NotificationType,
 } from "../notifications/port";
 import {
+  renderInvitationNotificationTemplate,
   renderNotificationTemplate,
   type NotificationOrderSnapshot,
   type NotificationTemplateFacts,
@@ -39,8 +40,49 @@ interface OrderFactsRow {
   public_reference: string;
 }
 
-function isNotificationType(value: string): value is NotificationType {
+type CommerceNotificationType = Exclude<NotificationType, "admin_invitation">;
+
+function isNotificationType(value: string): value is CommerceNotificationType {
   return ["order_receipt", "payment_failed", "cancellation", "refund", "shipment"].includes(value);
+}
+
+async function invitationMessage(
+  db: D1Database,
+  job: ClaimedNotificationJob,
+  adminOrigin: string,
+  from: string,
+  now: string,
+): Promise<EmailMessage> {
+  const payload = JSON.parse(job.payloadJson) as { invitationId?: unknown };
+  if (typeof payload.invitationId !== "string") {
+    throw new EmailProviderError(
+      "invitation_payload_invalid",
+      "Invitation payload invalid.",
+      false,
+    );
+  }
+  const invitation = await db
+    .prepare(
+      `SELECT normalized_email, display_name FROM admin_invitations
+        WHERE id = ? AND status = 'pending' AND expires_at > ?`,
+    )
+    .bind(payload.invitationId, now)
+    .first<{ display_name: string | null; normalized_email: string }>();
+  if (!invitation) {
+    throw new EmailProviderError("invitation_inactive", "Invitation is no longer active.", false);
+  }
+  const rendered = renderInvitationNotificationTemplate({
+    adminOrigin,
+    displayName: invitation.display_name,
+  });
+  return {
+    from,
+    html: rendered.html,
+    idempotencyKey: job.deduplicationKey,
+    subject: rendered.subject,
+    text: rendered.text,
+    to: invitation.normalized_email,
+  };
 }
 
 function parsePayload(value: string): {
@@ -135,11 +177,18 @@ export async function deliverNotificationJob(
   jobId: string,
   now = new Date().toISOString(),
   from = "orders@shoppp.example",
+  adminOrigin = storefrontOrigin,
 ): Promise<NotificationDeliveryResult> {
   const job = await claimNotificationJob(db, jobId, now);
   if (!job) return { status: await currentStatus(db, jobId) };
   const startedAt = now;
   try {
+    if (job.type === "admin_invitation") {
+      const result = await provider.send(await invitationMessage(db, job, adminOrigin, from, now));
+      const completedAt = completedAtAfter(startedAt);
+      await recordAutomationSuccess(db, job, result.id, startedAt, completedAt);
+      return { status: "sent" };
+    }
     if (!isNotificationType(job.type)) {
       throw new EmailProviderError(
         "notification_type_invalid",
@@ -188,6 +237,7 @@ export async function deliverAutomationJob(
   now = new Date().toISOString(),
   from = "orders@shoppp.example",
   onPurchaseConfirmed?: () => void,
+  adminOrigin = storefrontOrigin,
 ): Promise<NotificationDeliveryResult> {
   const job = await db
     .prepare("SELECT kind FROM notification_jobs WHERE id = ?")
@@ -196,7 +246,7 @@ export async function deliverAutomationJob(
   if (job?.kind === "provider_recovery") {
     return deliverProviderRecoveryJob(db, paymentProvider, jobId, now, onPurchaseConfirmed);
   }
-  return deliverNotificationJob(db, emailProvider, storefrontOrigin, jobId, now, from);
+  return deliverNotificationJob(db, emailProvider, storefrontOrigin, jobId, now, from, adminOrigin);
 }
 
 export class NotificationDeliveryWorkflow extends WorkflowEntrypoint<
@@ -231,6 +281,7 @@ export class NotificationDeliveryWorkflow extends WorkflowEntrypoint<
               writeCommerceEvent(this.env.OBSERVABILITY, this.env.ENVIRONMENT, {
                 event: "purchase_confirmed",
               }),
+            this.env.ADMIN_ORIGIN,
           ),
       );
       if (result.status !== "retry") return result;

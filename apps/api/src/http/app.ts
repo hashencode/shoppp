@@ -5,6 +5,9 @@ import * as z from "zod";
 import {
   acknowledgeCartAdjustmentsSchema,
   addCartLineRequestSchema,
+  adminInvitationListQuerySchema,
+  adminListQuerySchema,
+  adminUserListQuerySchema,
   auditQuerySchema,
   cancelOrderRequestSchema,
   catalogBuildResultSchema,
@@ -13,16 +16,22 @@ import {
   createPrivacyRequestSchema,
   checkoutRequestSchema,
   commerceFunnelEventSchema,
+  createAdminInvitationRequestSchema,
+  createAdminRoleRequestSchema,
   fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
   reportExportRequestSchema,
   reportingQuerySchema,
   replayNotificationJobRequestSchema,
+  resendAdminInvitationRequestSchema,
+  revokeAdminInvitationRequestSchema,
   refundRequestSchema,
   shippingQuoteRequestSchema,
   publicRuntimeConfigurationSchema,
   publicIdSchema,
   updateCartLineRequestSchema,
+  updateAdminRoleRequestSchema,
+  updateAdminUserRequestSchema,
   updateLaunchConfigurationRequestSchema,
   upsertShippingZoneRequestSchema,
 } from "@shoppp/contracts";
@@ -42,6 +51,15 @@ import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
+import { acceptAdminInvitation } from "../iam/bootstrap";
+import { createAdminRole, listAdminRoles, updateAdminRole } from "../iam/admin-roles";
+import { listAdminUsers, updateAdminUser } from "../iam/admin-users";
+import {
+  createAdminInvitation,
+  listAdminInvitations,
+  resendAdminInvitation,
+  revokeAdminInvitation,
+} from "../iam/invitations";
 import { requirePermission } from "../iam/permissions";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
@@ -49,6 +67,8 @@ import { uploadCatalogMedia } from "../media/uploads";
 import {
   adminAuthentication,
   defaultAccessVerifier,
+  logAccessDenial,
+  resolvePrincipal,
   type AccessVerifier,
 } from "../middleware/auth";
 import { adminOriginProtection } from "../middleware/admin-origin";
@@ -107,6 +127,22 @@ export interface CreateAppOptions {
   readonly checkoutRateLimiter?: RateLimiter;
   readonly turnstileRequired?: boolean;
   readonly turnstileVerifier?: TurnstileVerifier;
+}
+
+function adminSessionData(context: Context<ApiEnvironment>) {
+  const principal = context.get("principal");
+  return {
+    displayName: principal.displayName,
+    environment:
+      context.env.ENVIRONMENT === "production" ? ("production" as const) : ("test" as const),
+    identityId: principal.id,
+    permissions: principal.permissions,
+    principalKind: principal.principalKind,
+    role: principal.role,
+    ...(principal.principalKind === "human"
+      ? { email: principal.email }
+      : { serviceName: principal.serviceName }),
+  };
 }
 
 const notificationJobQuerySchema = z
@@ -453,23 +489,147 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Cache-Control", "private, no-store");
     await next();
   });
-  app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
+  const accessVerifier = options.accessVerifier ?? defaultAccessVerifier;
+  app.post("/admin/onboarding", async (context) => {
+    if (
+      context.req.header("Origin") !== context.env.ADMIN_ORIGIN ||
+      context.req.header("Sec-Fetch-Site") !== "same-origin"
+    ) {
+      throw new ApiError(403, "admin_origin_denied", "The admin request origin is not allowed.");
+    }
+    const token = context.req.header("Cf-Access-Jwt-Assertion");
+    if (!token) {
+      logAccessDenial(context, "access_assertion_missing");
+      throw new ApiError(401, "access_required", "Cloudflare Access authentication is required.");
+    }
+    let identity;
+    try {
+      identity = await accessVerifier(token, {
+        audience: context.env.ACCESS_AUDIENCE,
+        issuer: context.env.ACCESS_ISSUER,
+      });
+    } catch {
+      logAccessDenial(context, "access_assertion_invalid");
+      throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
+    }
+    let acceptance;
+    try {
+      acceptance = await acceptAdminInvitation(context, identity);
+    } catch (error) {
+      if (error instanceof ApiError && error.status < 500) {
+        logAccessDenial(context, error.code, identity.principalKind);
+      }
+      throw error;
+    }
+    const principal = await resolvePrincipal(context, identity);
+    if (!principal) {
+      throw new ApiError(500, "invitation_acceptance_failed", "Invitation acceptance failed.");
+    }
+    context.set("principal", principal);
+    return context.json({
+      data: adminSessionData(context),
+      meta: { accepted: acceptance.accepted, requestId: context.get("requestId") },
+    });
+  });
+  app.use("/admin/*", adminAuthentication(accessVerifier));
   app.use("/admin/*", adminOriginProtection());
   app.get("/admin/session", (context) => {
-    const principal = context.get("principal");
-    const environment = context.env.ENVIRONMENT === "production" ? "production" : "test";
     return context.json({
-      data: {
-        displayName: principal.displayName,
-        environment,
-        identityId: principal.id,
-        permissions: principal.permissions,
-        principalKind: principal.principalKind,
-        role: principal.role,
-        ...(principal.principalKind === "human"
-          ? { email: principal.email }
-          : { serviceName: principal.serviceName }),
+      data: adminSessionData(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/users", async (context) => {
+    await requirePermission(context, "iam.users.read", { type: "admin_identity" });
+    const query = adminUserListQuerySchema.safeParse(context.req.query());
+    if (!query.success) throw new ApiError(422, "validation_failed", "Invalid user query.");
+    return context.json({
+      data: await listAdminUsers(context.env.DB, query.data),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.patch("/admin/iam/users/:id", async (context) => {
+    await requirePermission(context, "iam.users.write", {
+      id: context.req.param("id"),
+      type: "admin_identity",
+    });
+    const input = await parseJson(context, updateAdminUserRequestSchema);
+    return context.json({
+      data: await updateAdminUser(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/invitations", async (context) => {
+    await requirePermission(context, "iam.users.read", { type: "admin_invitation" });
+    const query = adminInvitationListQuerySchema.safeParse(context.req.query());
+    if (!query.success) throw new ApiError(422, "validation_failed", "Invalid invitation query.");
+    return context.json({
+      data: await listAdminInvitations(context.env.DB, query.data),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/iam/invitations", async (context) => {
+    await requirePermission(context, "iam.users.write", { type: "admin_invitation" });
+    const input = await parseJson(context, createAdminInvitationRequestSchema);
+    const result = await createAdminInvitation(context, input);
+    return context.json(
+      {
+        data: result.invitation,
+        meta: { requestId: context.get("requestId"), reused: result.reused },
       },
+      result.reused ? 200 : 201,
+    );
+  });
+  app.post("/admin/iam/invitations/:id/resend", async (context) => {
+    await requirePermission(context, "iam.users.write", {
+      id: context.req.param("id"),
+      type: "admin_invitation",
+    });
+    const input = await parseJson(context, resendAdminInvitationRequestSchema);
+    return context.json({
+      data: await resendAdminInvitation(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/iam/invitations/:id/revoke", async (context) => {
+    await requirePermission(context, "iam.users.write", {
+      id: context.req.param("id"),
+      type: "admin_invitation",
+    });
+    const input = await parseJson(context, revokeAdminInvitationRequestSchema);
+    return context.json({
+      data: await revokeAdminInvitation(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/roles", async (context) => {
+    await requirePermission(context, "iam.roles.read", { type: "admin_role" });
+    const query = adminListQuerySchema.safeParse(context.req.query());
+    if (!query.success) throw new ApiError(422, "validation_failed", "Invalid role query.");
+    return context.json({
+      data: await listAdminRoles(context.env.DB, query.data),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/iam/roles", async (context) => {
+    await requirePermission(context, "iam.roles.write", { type: "admin_role" });
+    const input = await parseJson(context, createAdminRoleRequestSchema);
+    return context.json(
+      {
+        data: await createAdminRole(context, input),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    );
+  });
+  app.patch("/admin/iam/roles/:id", async (context) => {
+    await requirePermission(context, "iam.roles.write", {
+      id: context.req.param("id"),
+      type: "admin_role",
+    });
+    const input = await parseJson(context, updateAdminRoleRequestSchema);
+    return context.json({
+      data: await updateAdminRole(context, context.req.param("id"), input),
       meta: { requestId: context.get("requestId") },
     });
   });

@@ -36,7 +36,7 @@ interface PrincipalRow {
 const registeredPermissions = new Set<string>(ADMIN_PERMISSION_KEYS);
 type ApiContext = Context<ApiEnvironment>;
 
-function securityLog(
+export function logAccessDenial(
   context: ApiContext,
   reason: string,
   principalKind?: AccessIdentity["principalKind"],
@@ -70,7 +70,7 @@ async function auditMappedDenial(
   });
 }
 
-async function loadPrincipal(
+export async function resolvePrincipal(
   context: ApiContext,
   identity: AccessIdentity,
 ): Promise<Principal | null> {
@@ -168,7 +168,7 @@ export function adminAuthentication(
   return async (context, next) => {
     const token = context.req.header("Cf-Access-Jwt-Assertion");
     if (!token) {
-      securityLog(context, "access_assertion_missing");
+      logAccessDenial(context, "access_assertion_missing");
       throw new ApiError(401, "access_required", "Cloudflare Access authentication is required.");
     }
     let identity: AccessIdentity;
@@ -178,12 +178,12 @@ export function adminAuthentication(
         issuer: context.env.ACCESS_ISSUER,
       });
     } catch {
-      securityLog(context, "access_assertion_invalid");
+      logAccessDenial(context, "access_assertion_invalid");
       throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
     }
-    const principal = await loadPrincipal(context, identity);
+    const principal = await resolvePrincipal(context, identity);
     if (!principal) {
-      securityLog(context, "access_identity_unmapped", identity.principalKind);
+      logAccessDenial(context, "access_identity_unmapped", identity.principalKind);
       throw new ApiError(401, "identity_not_enabled", "The Access identity is not enabled.");
     }
     context.set("principal", principal);

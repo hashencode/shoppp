@@ -333,7 +333,7 @@ CREATE TABLE admin_invitations (
   role_id TEXT NOT NULL REFERENCES admin_roles(id) ON DELETE RESTRICT,
   status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'revoked', 'expired')),
   idempotency_key TEXT NOT NULL UNIQUE CHECK (length(trim(idempotency_key)) BETWEEN 8 AND 128),
-  invited_by_id TEXT NOT NULL REFERENCES admin_identities(id) ON DELETE RESTRICT,
+  invited_by_id TEXT REFERENCES admin_identities(id) ON DELETE RESTRICT,
   accepted_identity_id TEXT REFERENCES admin_identities(id) ON DELETE RESTRICT,
   expires_at TEXT NOT NULL,
   accepted_at TEXT,

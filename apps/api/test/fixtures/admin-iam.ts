@@ -13,7 +13,7 @@ interface HumanAdminFixture {
   readonly email?: string;
   readonly enabled?: boolean;
   readonly id?: string;
-  readonly roleId?: (typeof ADMIN_ROLE_IDS)[keyof typeof ADMIN_ROLE_IDS];
+  readonly roleId?: string;
   readonly subject?: string;
 }
 
@@ -21,7 +21,7 @@ interface ServiceAdminFixture {
   readonly displayName?: string;
   readonly enabled?: boolean;
   readonly id?: string;
-  readonly roleId?: (typeof ADMIN_ROLE_IDS)[keyof typeof ADMIN_ROLE_IDS];
+  readonly roleId?: string;
   readonly subject?: string;
 }
 
