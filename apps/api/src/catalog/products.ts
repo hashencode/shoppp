@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 import type { ProductDraftInput } from "./schemas";
 
 type CatalogContext = Context<ApiEnvironment>;
@@ -296,7 +297,7 @@ export async function createProduct(context: CatalogContext, input: ProductDraft
   await recordAuditEvent(context.env.DB, {
     action: "catalog.create",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     requestId: context.get("requestId"),
     result: "succeeded",
@@ -432,10 +433,11 @@ export async function updateProduct(
     }
     throw error;
   }
+  const principal = context.get("principal");
   await recordAuditEvent(context.env.DB, {
     action: "catalog.update",
-    actorId: context.get("principal").id,
-    actorType: "admin",
+    actorId: principal.id,
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     requestId: context.get("requestId"),
     result: "succeeded",

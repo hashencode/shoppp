@@ -5,8 +5,7 @@ import type { LaunchConfiguration } from "@shoppp/contracts";
 
 import { createApp } from "../../src/http/app";
 import { recordAuditEvent } from "../../src/iam/audit";
-
-const NOW = "2026-07-30T00:00:00.000Z";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 function adminRequest(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
@@ -14,6 +13,8 @@ function adminRequest(path: string, init: RequestInit = {}): Request {
     headers: {
       "Cf-Access-Jwt-Assertion": "test-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...init.headers,
     },
   });
@@ -21,24 +22,18 @@ function adminRequest(path: string, init: RequestInit = {}): Request {
 
 const accessVerifier = async () => ({
   email: "platform-admin@example.test",
+  principalKind: "human" as const,
   subject: "platform-admin",
 });
 
 async function seedAdmin(): Promise<void> {
-  await env.DB.prepare(
-    `INSERT INTO admin_identities
-       (id, access_subject, email, display_name, role, enabled, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'admin', 1, ?, ?)`,
-  )
-    .bind(
-      "admin-platform",
-      "platform-admin",
-      "platform-admin@example.test",
-      "Platform Admin",
-      NOW,
-      NOW,
-    )
-    .run();
+  await seedHumanAdmin(env.DB, {
+    displayName: "Platform Admin",
+    email: "platform-admin@example.test",
+    id: "admin-platform",
+    roleId: ADMIN_ROLE_IDS.admin,
+    subject: "platform-admin",
+  });
 }
 
 describe("launch controls, audit, and operational health", () => {

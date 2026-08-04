@@ -3,8 +3,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
 import { createApp } from "../../src/http/app";
-
-const NOW = "2026-07-30T00:00:00.000Z";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 function request(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
@@ -12,6 +11,8 @@ function request(path: string, init: RequestInit = {}): Request {
     headers: {
       "Cf-Access-Jwt-Assertion": "privacy-admin-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...init.headers,
     },
   });
@@ -20,20 +21,20 @@ function request(path: string, init: RequestInit = {}): Request {
 const app = createApp({
   accessVerifier: async () => ({
     email: "privacy-admin@example.test",
+    principalKind: "human",
     subject: "privacy-admin",
   }),
 });
 
 beforeAll(async () => {
   await seedLaunchFixture(env.DB);
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO admin_identities
-       (id, access_subject, email, display_name, role, enabled, created_at, updated_at)
-     VALUES ('admin-privacy', 'privacy-admin', 'privacy-admin@example.test',
-             'Privacy Admin', 'admin', 1, ?, ?)`,
-  )
-    .bind(NOW, NOW)
-    .run();
+  await seedHumanAdmin(env.DB, {
+    displayName: "Privacy Admin",
+    email: "privacy-admin@example.test",
+    id: "admin-privacy",
+    roleId: ADMIN_ROLE_IDS.admin,
+    subject: "privacy-admin",
+  });
 });
 
 describe("privacy request operations", () => {

@@ -5,6 +5,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 import { getOrderDetail } from "../orders/queries";
 
 interface OperationalOrder {
@@ -24,7 +25,7 @@ async function denied(
   await recordAuditEvent(context.env.DB, {
     action: "orders.fulfill",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: `aud_${crypto.randomUUID().replaceAll("-", "")}`,
     metadata: { code, fulfillmentStatus: order.fulfillment_status },
     reason,
@@ -136,7 +137,7 @@ export async function transitionOrderFulfillment(
   await recordAuditEvent(context.env.DB, {
     action: "orders.fulfill",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: `aud_${crypto.randomUUID().replaceAll("-", "")}`,
     metadata: {
       carrier: input.carrier,

@@ -5,15 +5,26 @@ import { createApp } from "../../src/http/app";
 import { recordAuditEvent } from "../../src/iam/audit";
 import { requirePermission } from "../../src/iam/permissions";
 import { idempotency } from "../../src/middleware/idempotency";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 const NOW = "2026-07-30T00:00:00.000Z";
 
 async function seedOperator(role: string, subject = "access-user-001"): Promise<void> {
-  await env.DB.prepare(
-    "INSERT INTO admin_identities (id, access_subject, email, display_name, role, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
-  )
-    .bind(`admin-${subject}`, subject, `${subject}@example.test`, subject, role, NOW, NOW)
-    .run();
+  const roleId = {
+    admin: ADMIN_ROLE_IDS.admin,
+    analyst: ADMIN_ROLE_IDS.analyst,
+    catalog_manager: ADMIN_ROLE_IDS.catalogManager,
+    operations: ADMIN_ROLE_IDS.operations,
+    support: ADMIN_ROLE_IDS.support,
+  }[role];
+  if (!roleId) throw new Error(`Unknown fixture role: ${role}`);
+  await seedHumanAdmin(env.DB, {
+    displayName: subject,
+    email: `${subject}@example.test`,
+    id: `admin-${subject}`,
+    roleId,
+    subject,
+  });
 }
 
 function adminRequest(path: string, init: RequestInit = {}): Request {
@@ -22,6 +33,8 @@ function adminRequest(path: string, init: RequestInit = {}): Request {
     headers: {
       "Cf-Access-Jwt-Assertion": "test-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...init.headers,
     },
   });
@@ -33,6 +46,9 @@ describe("API shell", () => {
       env.DB.prepare("DELETE FROM idempotency_claims"),
       env.DB.prepare("DELETE FROM audit_events"),
       env.DB.prepare("DELETE FROM admin_identities"),
+      env.DB.prepare("DELETE FROM admin_role_permissions WHERE permission_key = 'unknown.permission'"),
+      env.DB.prepare("DELETE FROM admin_permission_definitions WHERE permission_key = 'unknown.permission'"),
+      env.DB.prepare("UPDATE admin_roles SET enabled = 1"),
     ]);
     await seedOperator("operations");
   });
@@ -61,6 +77,7 @@ describe("API shell", () => {
     const app = createApp({
       accessVerifier: async () => ({
         email: "access-user-001@example.test",
+        principalKind: "human",
         subject: "access-user-001",
       }),
     });
@@ -78,9 +95,20 @@ describe("API shell", () => {
     expect(await session.json()).toMatchObject({
       data: {
         displayName: "access-user-001",
+        environment: "test",
         email: "access-user-001@example.test",
+        identityId: "admin-access-user-001",
         permissions: expect.arrayContaining(["orders.read", "orders.refund"]),
-        role: "operations",
+        principalKind: "human",
+        role: {
+          enabled: true,
+          id: ADMIN_ROLE_IDS.operations,
+          key: "operations",
+          name: "Operations",
+          protected: false,
+          system: true,
+          version: 1,
+        },
       },
     });
   });
@@ -100,17 +128,95 @@ describe("API shell", () => {
     const unmapped = createApp({
       accessVerifier: async () => ({
         email: "missing@example.test",
+        principalKind: "human",
         subject: "missing-subject",
       }),
     });
     expect((await unmapped.fetch(adminRequest("/admin/orders"), env)).status).toBe(401);
+    expect(
+      (
+        await env.DB.prepare("SELECT COUNT(*) AS count FROM audit_events").first<{ count: number }>()
+      )?.count,
+    ).toBe(0);
+  });
+
+  test("reloads role permissions from D1 on every request", async () => {
+    const app = createApp({
+      accessVerifier: async () => ({
+        email: "access-user-001@example.test",
+        principalKind: "human",
+        subject: "access-user-001",
+      }),
+    });
+    expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(200);
+
+    await env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = ? AND permission_key = 'orders.read'",
+    )
+      .bind(ADMIN_ROLE_IDS.operations)
+      .run();
+    expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(403);
+
+    await env.DB.prepare(
+      "INSERT INTO admin_role_permissions (role_id, permission_key, created_at) VALUES (?, 'orders.read', ?)",
+    )
+      .bind(ADMIN_ROLE_IDS.operations, NOW)
+      .run();
+    expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(200);
+  });
+
+  test("rejects disabled identities, disabled roles, kind mismatches, and unknown permission drift", async () => {
+    const humanVerifier = async () => ({
+      email: "access-user-001@example.test",
+      principalKind: "human" as const,
+      subject: "access-user-001",
+    });
+    const app = createApp({ accessVerifier: humanVerifier });
+
+    await env.DB.prepare("UPDATE admin_identities SET enabled = 0 WHERE id = ?")
+      .bind("admin-access-user-001")
+      .run();
+    expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(401);
+    await env.DB.prepare("UPDATE admin_identities SET enabled = 1 WHERE id = ?")
+      .bind("admin-access-user-001")
+      .run();
+
+    await env.DB.prepare("UPDATE admin_roles SET enabled = 0 WHERE id = ?")
+      .bind(ADMIN_ROLE_IDS.operations)
+      .run();
+    expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(401);
+    await env.DB.prepare("UPDATE admin_roles SET enabled = 1 WHERE id = ?")
+      .bind(ADMIN_ROLE_IDS.operations)
+      .run();
+
+    const mismatched = createApp({
+      accessVerifier: async () => ({
+        principalKind: "service",
+        serviceName: "access-user-001",
+        subject: "access-user-001",
+      }),
+    });
+    expect((await mismatched.fetch(adminRequest("/admin/orders"), env)).status).toBe(401);
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO admin_permission_definitions
+          (permission_key, category, label, description, sort_order, created_at)
+         VALUES ('unknown.permission', 'iam', 'Unknown', 'Drift fixture.', 99, ?)`,
+      ).bind(NOW),
+      env.DB.prepare(
+        "INSERT INTO admin_role_permissions (role_id, permission_key, created_at) VALUES (?, 'unknown.permission', ?)",
+      ).bind(ADMIN_ROLE_IDS.operations, NOW),
+    ]);
+    expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(403);
   });
 
   test("AE6: refund permission is enforced inside the use case and denial is audited", async () => {
     await seedOperator("support", "support-user");
     const app = createApp({
       accessVerifier: async () => ({
-        email: "support@example.test",
+        email: "support-user@example.test",
+        principalKind: "human",
         subject: "support-user",
       }),
     });
@@ -137,7 +243,7 @@ describe("API shell", () => {
       accessVerifier: async (token) => {
         const subject =
           token === "different-principal-token" ? "access-user-002" : "access-user-001";
-        return { email: `${subject}@example.test`, subject };
+        return { email: `${subject}@example.test`, principalKind: "human", subject };
       },
     });
     app.post("/admin/test/idempotent", idempotency("test.idempotent"), async (context) => {

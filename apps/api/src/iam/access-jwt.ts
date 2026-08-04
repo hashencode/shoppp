@@ -8,10 +8,19 @@ import {
   type RemoteJWKSetOptions,
 } from "jose";
 
-export interface AccessIdentity {
+export interface HumanAccessIdentity {
   readonly email: string;
+  readonly principalKind: "human";
   readonly subject: string;
 }
+
+export interface ServiceAccessIdentity {
+  readonly principalKind: "service";
+  readonly serviceName: string;
+  readonly subject: string;
+}
+
+export type AccessIdentity = HumanAccessIdentity | ServiceAccessIdentity;
 
 export interface AccessVerificationConfig {
   readonly audience: string;
@@ -52,17 +61,23 @@ export async function verifyAccessJwt(
     issuer: config.issuer,
   };
   const { payload } = await jwtVerify(token, resolveKeySet(config), options);
-  if (typeof payload.sub === "string" && typeof payload.email === "string") {
-    return { email: payload.email, subject: payload.sub };
+  if (payload.type === "app") {
+    if (typeof payload.common_name === "string" && payload.common_name.trim().length > 0) {
+      const serviceName = payload.common_name.trim();
+      return { principalKind: "service", serviceName, subject: serviceName };
+    }
+    throw new Error("Access token is missing required identity claims.");
   }
   if (
-    payload.type === "app" &&
-    typeof payload.common_name === "string" &&
-    payload.common_name.length > 0
+    typeof payload.sub === "string" &&
+    payload.sub.length > 0 &&
+    typeof payload.email === "string" &&
+    payload.email.trim().length > 0
   ) {
     return {
-      email: "service-auth@cloudflare-access.invalid",
-      subject: payload.common_name,
+      email: payload.email.trim().toLowerCase(),
+      principalKind: "human",
+      subject: payload.sub,
     };
   }
   throw new Error("Access token is missing required identity claims.");

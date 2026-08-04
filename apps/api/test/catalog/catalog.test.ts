@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createApp } from "../../src/http/app";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 const NOW = "2026-07-30T00:00:00.000Z";
 
@@ -46,19 +47,13 @@ async function resetCatalog(): Promise<void> {
   ]);
 }
 
-async function seedOperator(role: string, subject = "catalog-user"): Promise<void> {
-  await env.DB.prepare(
-    "INSERT INTO admin_identities (id, access_subject, email, display_name, role, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
-  )
-    .bind(`admin-${subject}`, subject, `${subject}@example.test`, subject, role, NOW, NOW)
-    .run();
-}
-
 function request(path: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
       "Cf-Access-Jwt-Assertion": "test-token",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...init.headers,
     },
   });
@@ -77,6 +72,7 @@ function appFor(subject = "catalog-user", buildTrigger = vi.fn()) {
     app: createApp({
       accessVerifier: async () => ({
         email: `${subject}@example.test`,
+        principalKind: "human",
         subject,
       }),
       buildTrigger,
@@ -105,7 +101,12 @@ async function uploadValidMedia(app: ReturnType<typeof createApp>): Promise<void
 describe("catalog management and publishing", () => {
   beforeEach(async () => {
     await resetCatalog();
-    await seedOperator("catalog_manager");
+    await seedHumanAdmin(env.DB, {
+      email: "catalog-user@example.test",
+      id: "admin-catalog-user",
+      roleId: ADMIN_ROLE_IDS.catalogManager,
+      subject: "catalog-user",
+    });
   });
 
   test("creates a complete draft, previews it, and publishes one correlated build", async () => {
@@ -454,7 +455,12 @@ describe("catalog management and publishing", () => {
   });
 
   test("allows a view-only operator to read but denies and audits mutation", async () => {
-    await seedOperator("support", "support-user");
+    await seedHumanAdmin(env.DB, {
+      email: "support-user@example.test",
+      id: "admin-support-user",
+      roleId: ADMIN_ROLE_IDS.support,
+      subject: "support-user",
+    });
     const { app } = appFor("support-user");
 
     expect((await app.fetch(request("/admin/catalog/products"), env)).status).toBe(200);

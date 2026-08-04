@@ -6,6 +6,7 @@ import * as z from "zod";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 
 const inventoryListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -243,7 +244,7 @@ export async function adjustInventory(
   await recordAuditEvent(context.env.DB, {
     action: "inventory.adjust",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: publicId("aud"),
     metadata: { quantityDelta: input.quantityDelta, warehouseId },
     reason: input.reason,

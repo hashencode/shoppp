@@ -1,51 +1,41 @@
 import type { Context } from "hono";
-import { ADMIN_PERMISSION_KEYS, type AdminPermission } from "@shoppp/contracts";
+import type { AdminPermission, AdminRoleSummary } from "@shoppp/contracts";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "./audit";
 
-export type AdminRole = "admin" | "catalog_manager" | "operations" | "support" | "analyst";
 export type PermissionKey = AdminPermission;
 
-export interface Principal {
+interface PrincipalBase {
   readonly displayName: string;
-  readonly email: string;
   readonly id: string;
-  readonly role: AdminRole;
+  readonly permissions: readonly PermissionKey[];
+  readonly role: AdminRoleSummary;
   readonly subject: string;
 }
 
-const ALL_PERMISSIONS: readonly PermissionKey[] = ADMIN_PERMISSION_KEYS;
-const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly PermissionKey[]>> = {
-  admin: ALL_PERMISSIONS,
-  catalog_manager: ["catalog.read", "catalog.write", "catalog.publish", "inventory.read"],
-  operations: [
-    "catalog.read",
-    "inventory.read",
-    "inventory.adjust",
-    "orders.read",
-    "orders.fulfill",
-    "orders.cancel",
-    "orders.refund",
-    "audit.read",
-    "operations.replay",
-    "operations.jobs.read",
-  ],
-  support: ["catalog.read", "inventory.read", "orders.read"],
-  analyst: ["catalog.read", "inventory.read", "orders.read", "reporting.read", "reporting.export"],
-};
-
-export function isAdminRole(value: string): value is AdminRole {
-  return value in ROLE_PERMISSIONS;
+export interface HumanPrincipal extends PrincipalBase {
+  readonly email: string;
+  readonly principalKind: "human";
 }
 
-export function permissionsForRole(role: AdminRole): readonly PermissionKey[] {
-  return ROLE_PERMISSIONS[role];
+export interface ServicePrincipal extends PrincipalBase {
+  readonly principalKind: "service";
+  readonly serviceName: string;
 }
 
-export function hasPermission(role: AdminRole, permission: PermissionKey): boolean {
-  return ROLE_PERMISSIONS[role].includes(permission);
+export type Principal = HumanPrincipal | ServicePrincipal;
+
+export function actorTypeForPrincipal(principal: Principal): "admin" | "machine" {
+  return principal.principalKind === "service" ? "machine" : "admin";
+}
+
+export function hasPermission(
+  permissions: readonly PermissionKey[],
+  permission: PermissionKey,
+): boolean {
+  return permissions.includes(permission);
 }
 
 export async function requirePermission(
@@ -54,13 +44,13 @@ export async function requirePermission(
   target?: { id?: string; type: string },
 ): Promise<void> {
   const principal = context.get("principal");
-  if (hasPermission(principal.role, permission)) {
+  if (hasPermission(principal.permissions, permission)) {
     return;
   }
   await recordAuditEvent(context.env.DB, {
     action: permission,
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     requestId: context.get("requestId"),
     result: "denied",

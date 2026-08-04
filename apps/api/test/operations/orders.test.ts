@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
 import { createApp } from "../../src/http/app";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 import type {
   CreateHostedSessionInput,
   CreateRefundInput,
@@ -14,16 +15,6 @@ import type {
 
 const NOW = "2026-07-30T00:00:00.000Z";
 let operationSequence = 0;
-
-async function seedOperator(role: string, subject: string): Promise<void> {
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO admin_identities
-       (id, access_subject, email, display_name, role, enabled, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-  )
-    .bind(`admin-${subject}`, subject, `${subject}@example.test`, subject, role, NOW, NOW)
-    .run();
-}
 
 async function seedOperationalOrder(label: string) {
   operationSequence += 1;
@@ -181,6 +172,7 @@ function appFor(subject: string, paymentProvider?: PaymentProvider) {
   return createApp({
     accessVerifier: async () => ({
       email: `${subject}@example.test`,
+      principalKind: "human",
       subject,
     }),
     ...(paymentProvider ? { paymentProvider } : {}),
@@ -198,6 +190,8 @@ function request(
     headers: {
       "Cf-Access-Jwt-Assertion": "test-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       ...init.headers,
     },
@@ -207,8 +201,18 @@ function request(
 describe("order operations", () => {
   beforeEach(async () => {
     await seedLaunchFixture(env.DB);
-    await seedOperator("operations", "order-operator");
-    await seedOperator("support", "order-viewer");
+    await seedHumanAdmin(env.DB, {
+      email: "order-operator@example.test",
+      id: "admin-order-operator",
+      roleId: ADMIN_ROLE_IDS.operations,
+      subject: "order-operator",
+    });
+    await seedHumanAdmin(env.DB, {
+      email: "order-viewer@example.test",
+      id: "admin-order-viewer",
+      roleId: ADMIN_ROLE_IDS.support,
+      subject: "order-viewer",
+    });
   });
 
   test("lists searchable orders and exposes one immutable operational timeline", async () => {

@@ -15,6 +15,7 @@ export default defineConfig(async () => {
           bindings: {
             ACCESS_AUDIENCE: "test-audience",
             ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",
+            ADMIN_ORIGIN: "https://admin.example.test",
             ENVIRONMENT: "staging",
             EMAIL_FROM: "orders@staging.example.test",
             PUBLIC_ORIGIN: "https://staging.example.invalid",

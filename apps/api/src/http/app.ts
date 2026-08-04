@@ -42,7 +42,7 @@ import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
-import { permissionsForRole, requirePermission } from "../iam/permissions";
+import { requirePermission } from "../iam/permissions";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
@@ -51,6 +51,7 @@ import {
   defaultAccessVerifier,
   type AccessVerifier,
 } from "../middleware/auth";
+import { adminOriginProtection } from "../middleware/admin-origin";
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
 import { getGuestOrderAccess } from "../orders/guest-access";
@@ -453,14 +454,21 @@ export function createApp(options: CreateAppOptions = {}) {
     await next();
   });
   app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
+  app.use("/admin/*", adminOriginProtection());
   app.get("/admin/session", (context) => {
     const principal = context.get("principal");
+    const environment = context.env.ENVIRONMENT === "production" ? "production" : "test";
     return context.json({
       data: {
         displayName: principal.displayName,
-        email: principal.email,
-        permissions: permissionsForRole(principal.role),
+        environment,
+        identityId: principal.id,
+        permissions: principal.permissions,
+        principalKind: principal.principalKind,
         role: principal.role,
+        ...(principal.principalKind === "human"
+          ? { email: principal.email }
+          : { serviceName: principal.serviceName }),
       },
       meta: { requestId: context.get("requestId") },
     });

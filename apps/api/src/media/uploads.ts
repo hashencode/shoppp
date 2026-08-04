@@ -3,15 +3,14 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal, requirePermission } from "../iam/permissions";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024;
 
 export async function uploadCatalogMedia(context: Context<ApiEnvironment>) {
   const key = decodeURIComponent(context.req.path.slice("/admin/media/".length));
-  await (
-    await import("../iam/permissions")
-  ).requirePermission(context, "catalog.write", {
+  await requirePermission(context, "catalog.write", {
     id: key,
     type: "media",
   });
@@ -37,10 +36,11 @@ export async function uploadCatalogMedia(context: Context<ApiEnvironment>) {
     httpMetadata: { contentType },
     customMetadata: { uploadedBy: context.get("principal").id },
   });
+  const principal = context.get("principal");
   await recordAuditEvent(context.env.DB, {
     action: "catalog.media.upload",
-    actorId: context.get("principal").id,
-    actorType: "admin",
+    actorId: principal.id,
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     metadata: { contentType, size: body.byteLength },
     requestId: context.get("requestId"),

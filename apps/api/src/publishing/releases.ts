@@ -5,6 +5,7 @@ import { getProduct } from "../catalog/products";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 import { buildCatalogReleaseManifest } from "./build-manifest";
 import type { CatalogBuildResult } from "@shoppp/contracts";
 
@@ -216,7 +217,7 @@ export async function publishProduct(
     await recordAuditEvent(context.env.DB, {
       action: "catalog.publish",
       actorId: principal.id,
-      actorType: "admin",
+      actorType: actorTypeForPrincipal(principal),
       id: crypto.randomUUID(),
       metadata: { buildCorrelationId: build.correlationId },
       reason,

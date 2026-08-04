@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 import type { PaymentProvider } from "../payments/port";
 import { createRefundEffect } from "../refunds/service";
 import { getOrderDetail } from "./queries";
@@ -28,7 +29,7 @@ async function auditCancellation(
   await recordAuditEvent(context.env.DB, {
     action: "orders.cancel",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: `aud_${crypto.randomUUID().replaceAll("-", "")}`,
     metadata,
     reason,

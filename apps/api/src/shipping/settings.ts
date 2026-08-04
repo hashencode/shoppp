@@ -8,6 +8,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { prepareAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 
 interface ZoneRow {
   id: string;
@@ -188,7 +189,7 @@ export async function upsertShippingZone(
     prepareAuditEvent(context.env.DB, {
       action: input.zone.id ? "shipping.zone.update" : "shipping.zone.create",
       actorId: principal.id,
-      actorType: "admin",
+      actorType: actorTypeForPrincipal(principal),
       id: crypto.randomUUID(),
       metadata: {
         countries: input.zone.countries,

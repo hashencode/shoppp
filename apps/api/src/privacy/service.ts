@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 
 const EXPORT_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
 
@@ -181,7 +182,7 @@ export async function createPrivacyRequest(
   await recordAuditEvent(context.env.DB, {
     action: `privacy.${input.type}.complete`,
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     metadata: {
       decision,
@@ -230,7 +231,7 @@ export async function downloadPrivacyExport(
   await recordAuditEvent(context.env.DB, {
     action: "privacy.export.download",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     requestId: context.get("requestId"),
     result: "succeeded",

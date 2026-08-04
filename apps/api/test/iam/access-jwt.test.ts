@@ -49,6 +49,7 @@ describe("Cloudflare Access JWT verification", () => {
       }),
     ).resolves.toEqual({
       email: "operator@example.test",
+      principalKind: "human",
       subject: "access-user-001",
     });
   });
@@ -66,7 +67,8 @@ describe("Cloudflare Access JWT verification", () => {
         jwks,
       }),
     ).resolves.toEqual({
-      email: "service-auth@cloudflare-access.invalid",
+      principalKind: "service",
+      serviceName: "service-token-001.access",
       subject: "service-token-001.access",
     });
   });
@@ -95,6 +97,7 @@ describe("Cloudflare Access JWT verification", () => {
       }),
     ).resolves.toEqual({
       email: "operator@example.test",
+      principalKind: "human",
       subject: "access-user-001",
     });
 
@@ -108,6 +111,7 @@ describe("Cloudflare Access JWT verification", () => {
       }),
     ).resolves.toEqual({
       email: "operator@example.test",
+      principalKind: "human",
       subject: "access-user-002",
     });
     expect(fetchCount).toBe(2);
@@ -160,6 +164,7 @@ describe("Cloudflare Access JWT verification", () => {
 
   test.each([
     ["empty", ""],
+    ["whitespace-only", "   "],
     ["missing", undefined],
     ["non-string", 42],
   ])("rejects an app token with an %s common_name", async (_case, commonName) => {
@@ -168,6 +173,25 @@ describe("Cloudflare Access JWT verification", () => {
       payload.common_name = commonName;
     }
     const malformedService = await accessToken({ payload });
+
+    await expect(
+      verifyAccessJwt(malformedService.token, {
+        audience: "test-audience",
+        issuer: "https://shoppp.cloudflareaccess.com",
+        jwks: malformedService.jwks,
+      }),
+    ).rejects.toThrow("Access token is missing required identity claims.");
+  });
+
+  test("does not reinterpret an app token with human-looking claims as a human", async () => {
+    const malformedService = await accessToken({
+      payload: {
+        common_name: "",
+        email: "operator@example.test",
+        type: "app",
+      },
+      subject: "access-user-001",
+    });
 
     await expect(
       verifyAccessJwt(malformedService.token, {

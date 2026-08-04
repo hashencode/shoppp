@@ -7,6 +7,7 @@ import type { Context } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 
 const SETTING_KEY = "launch_configuration";
 
@@ -228,7 +229,7 @@ export async function updateLaunchConfiguration(
   await recordAuditEvent(context.env.DB, {
     action: "settings.launch.update",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     metadata: {
       defaultCurrency: input.configuration.defaultCurrency,

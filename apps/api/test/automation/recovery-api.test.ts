@@ -3,19 +3,10 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
 import { createApp } from "../../src/http/app";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 const NOW = "2026-07-30T02:00:00.000Z";
 const JOB_ID = "notify_recovery_api_001";
-
-async function seedOperator(role: string, subject: string): Promise<void> {
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO admin_identities
-       (id, access_subject, email, display_name, role, enabled, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-  )
-    .bind(`admin-${subject}`, subject, `${subject}@example.test`, subject, role, NOW, NOW)
-    .run();
-}
 
 function request(path: string, init: RequestInit = {}) {
   return new Request(`https://api.example.test${path}`, {
@@ -23,6 +14,8 @@ function request(path: string, init: RequestInit = {}) {
     headers: {
       "Cf-Access-Jwt-Assertion": "test-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...init.headers,
     },
   });
@@ -30,8 +23,18 @@ function request(path: string, init: RequestInit = {}) {
 
 beforeAll(async () => {
   await seedLaunchFixture(env.DB);
-  await seedOperator("operations", "notification-operator");
-  await seedOperator("support", "notification-support");
+  await seedHumanAdmin(env.DB, {
+    email: "notification-operator@example.test",
+    id: "admin-notification-operator",
+    roleId: ADMIN_ROLE_IDS.operations,
+    subject: "notification-operator",
+  });
+  await seedHumanAdmin(env.DB, {
+    email: "notification-support@example.test",
+    id: "admin-notification-support",
+    roleId: ADMIN_ROLE_IDS.support,
+    subject: "notification-support",
+  });
   const order = await env.DB.prepare("SELECT id FROM orders ORDER BY id LIMIT 1").first<{
     id: string;
   }>();
@@ -60,6 +63,7 @@ describe("notification recovery API", () => {
     const app = createApp({
       accessVerifier: async () => ({
         email: "notification-operator@example.test",
+        principalKind: "human",
         subject: "notification-operator",
       }),
     });
@@ -112,6 +116,7 @@ describe("notification recovery API", () => {
     const app = createApp({
       accessVerifier: async () => ({
         email: "notification-support@example.test",
+        principalKind: "human",
         subject: "notification-support",
       }),
     });
