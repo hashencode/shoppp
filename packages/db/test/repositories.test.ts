@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
+import { ADMIN_PERMISSION_KEYS } from "@shoppp/contracts";
 
 import { InsufficientInventoryError, reserveInventory } from "../src/repositories/inventory";
 import { recordProviderEvent } from "../src/repositories/payment-events";
@@ -82,5 +83,45 @@ describe("D1 repositories", () => {
     await expect(
       env.DB.prepare("DELETE FROM order_lines WHERE id = ?").bind("line_fixture_0001").run(),
     ).rejects.toThrow("immutable");
+  });
+
+  test("keeps seeded roles data-driven and the protected admin equal to the permission catalog", async () => {
+    const roles = await env.DB.prepare(
+      `SELECT role.key, role.protected, role.system, role.enabled,
+              COUNT(role_permission.permission_key) AS permissionCount
+         FROM admin_roles role
+         LEFT JOIN admin_role_permissions role_permission ON role_permission.role_id = role.id
+        GROUP BY role.id
+        ORDER BY role.key`,
+    ).all<{
+      enabled: number;
+      key: string;
+      permissionCount: number;
+      protected: number;
+      system: number;
+    }>();
+    expect(roles.results).toEqual([
+      {
+        enabled: 1,
+        key: "admin",
+        permissionCount: ADMIN_PERMISSION_KEYS.length,
+        protected: 1,
+        system: 1,
+      },
+      { enabled: 1, key: "analyst", permissionCount: 5, protected: 0, system: 1 },
+      { enabled: 1, key: "catalog_manager", permissionCount: 4, protected: 0, system: 1 },
+      { enabled: 1, key: "operations", permissionCount: 10, protected: 0, system: 1 },
+      { enabled: 1, key: "support", permissionCount: 3, protected: 0, system: 1 },
+    ]);
+    expect(
+      (
+        await env.DB.prepare(
+          `SELECT permission_key
+             FROM admin_role_permissions
+            WHERE role_id = 'role_admin'
+            ORDER BY permission_key`,
+        ).all<{ permission_key: string }>()
+      ).results.map(({ permission_key }) => permission_key),
+    ).toEqual([...ADMIN_PERMISSION_KEYS].sort());
   });
 });

@@ -14,6 +14,108 @@ const timestamps = {
   updatedAt: text("updated_at").notNull(),
 };
 
+export const adminPermissionDefinitions = sqliteTable(
+  "admin_permission_definitions",
+  {
+    permissionKey: text("permission_key").primaryKey(),
+    category: text("category").notNull(),
+    label: text("label").notNull(),
+    description: text("description").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [uniqueIndex("admin_permission_definitions_sort_unique").on(table.sortOrder)],
+);
+
+export const adminRoles = sqliteTable(
+  "admin_roles",
+  {
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    isProtected: integer("protected", { mode: "boolean" }).notNull().default(false),
+    isSystem: integer("system", { mode: "boolean" }).notNull().default(false),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    version: integer("version").notNull().default(1),
+    ...timestamps,
+  },
+  (table) => [uniqueIndex("admin_roles_key_unique").on(table.key)],
+);
+
+export const adminRolePermissions = sqliteTable(
+  "admin_role_permissions",
+  {
+    roleId: text("role_id")
+      .notNull()
+      .references(() => adminRoles.id, { onDelete: "restrict" }),
+    permissionKey: text("permission_key")
+      .notNull()
+      .references(() => adminPermissionDefinitions.permissionKey, { onDelete: "restrict" }),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.roleId, table.permissionKey] }),
+    index("admin_role_permissions_permission_idx").on(table.permissionKey, table.roleId),
+  ],
+);
+
+export const adminIdentities = sqliteTable(
+  "admin_identities",
+  {
+    id: text("id").primaryKey(),
+    principalKind: text("principal_kind", { enum: ["human", "service"] }).notNull(),
+    accessSubject: text("access_subject").notNull().unique(),
+    normalizedEmail: text("normalized_email"),
+    displayName: text("display_name").notNull(),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => adminRoles.id, { onDelete: "restrict" }),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    version: integer("version").notNull().default(1),
+    lastSeenAt: text("last_seen_at"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("admin_identities_human_email_unique")
+      .on(table.normalizedEmail)
+      .where(sql`${table.principalKind} = 'human'`),
+    index("admin_identities_role_enabled_idx").on(table.roleId, table.enabled, table.principalKind),
+  ],
+);
+
+export const adminInvitations = sqliteTable(
+  "admin_invitations",
+  {
+    id: text("id").primaryKey(),
+    normalizedEmail: text("normalized_email").notNull(),
+    displayName: text("display_name"),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => adminRoles.id, { onDelete: "restrict" }),
+    status: text("status", { enum: ["pending", "accepted", "revoked", "expired"] }).notNull(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    invitedById: text("invited_by_id")
+      .notNull()
+      .references(() => adminIdentities.id, { onDelete: "restrict" }),
+    acceptedIdentityId: text("accepted_identity_id").references(() => adminIdentities.id, {
+      onDelete: "restrict",
+    }),
+    expiresAt: text("expires_at").notNull(),
+    acceptedAt: text("accepted_at"),
+    revokedAt: text("revoked_at"),
+    version: integer("version").notNull().default(1),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("admin_invitations_active_email_unique")
+      .on(table.normalizedEmail)
+      .where(sql`${table.status} = 'pending'`),
+    index("admin_invitations_role_status_idx").on(table.roleId, table.status, table.expiresAt),
+    index("admin_invitations_inviter_idx").on(table.invitedById, table.createdAt),
+  ],
+);
+
 export const products = sqliteTable(
   "products",
   {

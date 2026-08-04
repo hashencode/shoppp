@@ -11,5 +11,19 @@
       "preview_database_id": "00000000-0000-0000-0000-000000000001",
       "migrations_dir": "migrations",
     },
+    {
+      "binding": "LEGACY_DB",
+      "database_name": "shoppp-contract-legacy-test",
+      "database_id": "00000000-0000-0000-0000-000000000002",
+      "preview_database_id": "00000000-0000-0000-0000-000000000003",
+      "migrations_dir": "migrations",
+    },
+    {
+      "binding": "INVALID_LEGACY_DB",
+      "database_name": "shoppp-contract-invalid-legacy-test",
+      "database_id": "00000000-0000-0000-0000-000000000004",
+      "preview_database_id": "00000000-0000-0000-0000-000000000005",
+      "migrations_dir": "migrations",
+    },
   ],
 }
