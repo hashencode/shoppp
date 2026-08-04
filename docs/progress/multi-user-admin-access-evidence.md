@@ -53,14 +53,15 @@ named promotion approval remain external gates. The workflow fails closed when a
 | `bun install --frozen-lockfile` | Pass; 1,298 installs checked, no changes.                                                                                                    |
 | `bun run lint`                  | Pass; ESLint and import-boundary checks clean.                                                                                               |
 | `bun run typecheck`             | Pass for tools, root E2E, admin, API, storefront, contracts, DB, and domain.                                                                 |
-| `bun run test`                  | Pass: tools 77, admin 268, storefront 18, contracts 11, DB fixture 1, domain 24.                                                             |
+| `bun run test`                  | Pass: tools 82, admin 268, storefront 18, contracts 11, DB fixture 1, domain 24.                                                             |
 | `bun run test:workers`          | Pass: API 143/143 and DB/migration 10/10.                                                                                                    |
 | `bun run test:admin-browser`    | Pass: 9/9, including IAM narrow-layout keyboard interaction.                                                                                 |
 | `bun run build`                 | Pass: admin/API/storefront production builds and all Worker dry-runs.                                                                        |
 | Admin local Playwright          | Pass: 7/7 against the built candidate with explicit `/admin/session` network fixtures and no stored auth state.                              |
 | U8 tool contract                | Pass: deploy/release tests 11/11 before U9; final root tools suite includes those checks.                                                    |
 | U8 remote service proof         | Environment pending: exact command fails closed at missing `E2E_CF_ACCESS_CLIENT_ID` in this local workspace.                                |
-| Staging release validation      | Pass on committed candidate `eca485a`: all 13 gates and artifact digests recorded in release report `eca485a97996-2026-08-04T08-41-12-358Z`. |
+| Staging release validation      | Pass on committed candidate `fdb50aa`: all 13 gates and artifact digests recorded in release report `fdb50aa54aff-2026-08-04T09-09-45-974Z`. |
+| Strict staging isolation        | Fails closed only on the unprovisioned `test-admin-access-application` and `test-admin-idp-assignment` placeholders.                         |
 | Production release validation   | Production pending by design.                                                                                                                |
 
 ## Two-D1 topology
