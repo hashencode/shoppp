@@ -188,7 +188,8 @@ function looksPlaceholder(value: string): boolean {
     value.includes(".invalid") ||
     value.includes("replace-with-") ||
     /^0{8,}/.test(value.replaceAll("-", "")) ||
-    /(?:development|staging|production)-audience$/.test(value)
+    /(?:development|staging|production)-audience$/.test(value) ||
+    /(?:test|staging|production)-admin-(?:access-application|idp-assignment)$/.test(value)
   );
 }
 
@@ -323,6 +324,9 @@ export function verifySnapshots(
       ...snapshot.applicationNames,
       ...snapshot.resourceIdentifiers,
       ...snapshot.endpointValues,
+      ...Object.entries(snapshot.apiVariables)
+        .filter(([key]) => ID_VARIABLES.has(key))
+        .map(([, value]) => value),
     ]);
     const placeholders = strictValues.filter(looksPlaceholder);
     assert(

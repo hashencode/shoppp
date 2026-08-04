@@ -73,7 +73,7 @@ describe("environment isolation", () => {
     const actual = await loadSnapshots();
     expect(actual.map(({ remoteDatabaseIdentities }) => remoteDatabaseIdentities)).toEqual([
       ["0c84c9e0-5ef1-4897-815e-5ec7efb7582e::shoppp-staging"],
-      ["00000000-0000-0000-0000-000000000030::shoppp-production"],
+      ["e17ef1dc-d87c-40c7-b218-e4827d815168::shoppp-production"],
     ]);
   });
 
@@ -177,6 +177,24 @@ describe("environment isolation", () => {
       /placeholder resources/,
     );
   });
+
+  test.each([
+    ["staging", "ACCESS_APPLICATION_ID", "test-admin-access-application"],
+    ["staging", "IDP_ASSIGNMENT_ID", "test-admin-idp-assignment"],
+    ["production", "ACCESS_AUDIENCE", "production-audience"],
+    ["production", "ACCESS_APPLICATION_ID", "production-admin-access-application"],
+    ["production", "IDP_ASSIGNMENT_ID", "production-admin-idp-assignment"],
+  ] as const)(
+    "strict %s mode rejects placeholder %s identity metadata",
+    (environment, variable, placeholder) => {
+      const fixture = snapshots();
+      const snapshot = fixture.find((entry) => entry.environment === environment)!;
+      snapshot.apiVariables[variable] = placeholder;
+      expect(() => verifySnapshots(fixture, { strictEnvironment: environment })).toThrow(
+        /placeholder resources/,
+      );
+    },
+  );
 
   test("fails closed when Turnstile environments share a site key", () => {
     const fixture = snapshots();
