@@ -1,12 +1,8 @@
 import {
-  BarChartOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   DatabaseOutlined,
   ExclamationCircleOutlined,
   FormOutlined,
   FileTextOutlined,
-  ProfileOutlined,
   ReloadOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
@@ -15,8 +11,6 @@ import {
   SafetyCertificateOutlined,
   SettingOutlined,
   GlobalOutlined,
-  SmileOutlined,
-  TableOutlined,
   TeamOutlined,
   KeyOutlined,
 } from '@ant-design/icons'
@@ -297,203 +291,6 @@ const commerceRoutes: TemplateRoute[] = [
     component: () =>
       lazyPage(() =>
         import('../pages/iam/role-detail-page').then((m) => ({ default: m.RoleDetailPage }))
-      ),
-  },
-]
-
-export const developmentTemplateRouteLibrary: TemplateRoute[] = [
-  {
-    key: 'welcome',
-    path: '/template',
-    title: '欢迎',
-    icon: createElement(SmileOutlined),
-    permission: 'catalog.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))
-      ),
-  },
-  {
-    key: 'analysis',
-    path: '/template/dashboard/analysis',
-    title: '仪表盘',
-    icon: createElement(BarChartOutlined),
-    permission: 'reporting.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/dashboard/analysis-page').then((m) => ({
-          default: m.AnalysisPage,
-        }))
-      ),
-  },
-  {
-    key: 'table-query',
-    path: '/template/list/table',
-    title: '查询列表',
-    icon: createElement(TableOutlined),
-    permission: 'catalog.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/list/table-query-page').then((m) => ({
-          default: m.TableQueryPage,
-        }))
-      ),
-  },
-  {
-    key: 'list-prompt-generator',
-    path: '/dev/list/prompt-generator',
-    title: '列表提示词生成',
-    icon: createElement(TableOutlined),
-    permission: 'catalog.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/list/list-prompt-generator-page').then((m) => ({
-          default: m.ListPromptGeneratorPage,
-        }))
-      ),
-  },
-  {
-    key: 'basic-form',
-    path: '/template/list/table/form',
-    title: '基础表单',
-    icon: createElement(FormOutlined),
-    permission: 'catalog.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['表单页', '基础表单'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/form/basic-form-page').then((m) => ({
-          default: m.BasicFormPage,
-        }))
-      ),
-  },
-  {
-    key: 'step-form',
-    path: '/template/form/step-form',
-    title: '分步表单',
-    icon: createElement(FormOutlined),
-    permission: 'catalog.write',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['表单页', '分步表单'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/form/step-form-page').then((m) => ({ default: m.StepFormPage }))
-      ),
-  },
-  {
-    key: 'advanced-form',
-    path: '/template/form/advanced-form',
-    title: '高级表单',
-    icon: createElement(FormOutlined),
-    permission: 'catalog.write',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['表单页', '高级表单'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/form/advanced-form-page').then((m) => ({
-          default: m.AdvancedFormPage,
-        }))
-      ),
-  },
-  {
-    key: 'basic-profile',
-    path: '/template/profile/basic',
-    title: '详情页',
-    icon: createElement(ProfileOutlined),
-    permission: 'settings.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/profile/basic-profile-page').then((m) => ({
-          default: m.BasicProfilePage,
-        }))
-      ),
-  },
-  {
-    key: 'result-success',
-    path: '/template/result/success',
-    title: '成功页',
-    icon: createElement(CheckCircleOutlined),
-    permission: 'reporting.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['结果页', '成功页'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/dashboard/result-success-page').then((m) => ({
-          default: m.ResultSuccessPage,
-        }))
-      ),
-  },
-  {
-    key: 'result-fail',
-    path: '/template/result/fail',
-    title: '失败页',
-    icon: createElement(CloseCircleOutlined),
-    permission: 'reporting.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['结果页', '失败页'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/dashboard/result-fail-page').then((m) => ({
-          default: m.ResultFailPage,
-        }))
-      ),
-  },
-  {
-    key: 'exception-403',
-    path: '/template/exception/403',
-    title: '403',
-    icon: createElement(ExclamationCircleOutlined),
-    permission: 'catalog.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['异常页', '403'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/exception/forbidden-page').then((m) => ({
-          default: m.ForbiddenPage,
-        }))
-      ),
-  },
-  {
-    key: 'exception-500',
-    path: '/template/exception/500',
-    title: '500',
-    icon: createElement(ExclamationCircleOutlined),
-    permission: 'catalog.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['异常页', '500'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/exception/server-error-page').then((m) => ({
-          default: m.ServerErrorPage,
-        }))
       ),
   },
 ]
