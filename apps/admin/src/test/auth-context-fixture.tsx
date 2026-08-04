@@ -8,17 +8,6 @@ import type { Role } from '../shared/types/roles'
 
 void React
 
-const READ_ONLY_PERMISSIONS: readonly AdminPermission[] = [
-  'catalog.read',
-  'inventory.read',
-  'orders.read',
-  'reporting.read',
-  'operations.jobs.read',
-]
-
-export const testPermissionsForRole = (role: Role): readonly AdminPermission[] =>
-  role === 'viewer' ? READ_ONLY_PERMISSIONS : ADMIN_PERMISSION_KEYS
-
 export const authContextFixture = (
   overrides: Partial<AuthContextValue> = {}
 ): AuthContextValue => ({
@@ -44,7 +33,7 @@ export const AuthTestProvider = ({
 }: PropsWithChildren<{ permissions?: readonly AdminPermission[]; role?: Role }>) => (
   <AuthContext.Provider
     value={authContextFixture({
-      permissions: permissions ?? testPermissionsForRole(role),
+      permissions: permissions ?? ADMIN_PERMISSION_KEYS,
       role,
     })}
   >

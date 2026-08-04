@@ -97,21 +97,30 @@ describe("environment isolation", () => {
     "ADMIN_ORIGIN",
     "IDP_ASSIGNMENT_ID",
     "SERVICE_CREDENTIAL_REF",
-  ])(
-    "fails closed when %s crosses environments",
-    (variable) => {
-      const fixture = snapshots();
-      fixture[1]!.apiVariables[variable] = fixture[0]!.apiVariables[variable]!;
-      expect(() => verifySnapshots(fixture)).toThrow(
-        /share deployment resources|ADMIN_HOSTNAME must match/,
-      );
-    },
-  );
+  ])("fails closed when %s crosses environments", (variable) => {
+    const fixture = snapshots();
+    fixture[1]!.apiVariables[variable] = fixture[0]!.apiVariables[variable]!;
+    expect(() => verifySnapshots(fixture)).toThrow(
+      /share deployment resources|ADMIN_HOSTNAME must match|D1_DATABASE_ID must match/,
+    );
+  });
 
   test("fails closed when a third shared remote development database is configured", () => {
     const fixture = snapshots();
     fixture[0]!.remoteDatabaseIdentities.push("development-db-id::shoppp-development");
-    expect(() => verifySnapshots(fixture)).toThrow(/exactly one remote D1|exactly two shared remote D1/i);
+    expect(() => verifySnapshots(fixture)).toThrow(
+      /exactly one remote D1|exactly two shared remote D1/i,
+    );
+  });
+
+  test("fails closed when either environment renames or misidentifies its canonical D1", () => {
+    const renamed = snapshots();
+    renamed[0]!.remoteDatabaseIdentities = ["staging-db-id::shoppp-test"];
+    expect(() => verifySnapshots(renamed)).toThrow(/shoppp-staging/);
+
+    const mismatched = snapshots();
+    mismatched[1]!.apiVariables.D1_DATABASE_ID = "other-production-db-id";
+    expect(() => verifySnapshots(mismatched)).toThrow(/must match its bound remote D1/);
   });
 
   test("does not count disposable local migration databases as shared remote D1", () => {

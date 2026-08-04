@@ -5,7 +5,7 @@ import { hasPermission } from '../infrastructure/auth/permissions'
 describe('permission policy', () => {
   it('denies every permission when the API did not supply an authoritative set', () => {
     expect(hasPermission('admin', 'catalog.read')).toBe(false)
-    expect(hasPermission('viewer', 'catalog.read')).toBe(false)
+    expect(hasPermission('read_only_operator', 'catalog.read')).toBe(false)
   })
 
   it('uses only the API permission set as the authority', () => {
@@ -23,7 +23,7 @@ describe('permission policy', () => {
   })
 
   it('does not let frontend-only role names grant business actions', () => {
-    expect(hasPermission('editor', 'catalog.write')).toBe(false)
-    expect(hasPermission('viewer', 'orders.read')).toBe(false)
+    expect(hasPermission('catalog_operator', 'catalog.write')).toBe(false)
+    expect(hasPermission('support_operator', 'orders.read')).toBe(false)
   })
 })

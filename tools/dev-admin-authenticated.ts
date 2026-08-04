@@ -1,4 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { parseJsonc } from "./lib/jsonc";
 export { shouldForwardAccessAssertion } from "../apps/admin/authenticated-dev-policy";
 
 type Environment = Record<string, string | undefined>;
@@ -12,6 +14,18 @@ export interface AuthenticatedDevelopmentConfig {
 }
 
 const ROOT = resolve(import.meta.dir, "..");
+
+interface ApiWranglerConfig {
+  readonly env?: {
+    readonly staging?: {
+      readonly d1_databases?: readonly {
+        readonly database_id?: string;
+        readonly database_name?: string;
+      }[];
+      readonly vars?: Record<string, string>;
+    };
+  };
+}
 
 function required(environment: Environment, name: string): string {
   const value = environment[name]?.trim();
@@ -50,7 +64,9 @@ export function resolveAuthenticatedDevelopmentConfig(
     throw new Error("TEST_API_ORIGIN must be an absolute HTTPS test API origin.");
   }
   if (/production/i.test(apiUrl.hostname) || !/(?:staging|test)/i.test(apiUrl.hostname)) {
-    throw new Error("TEST_API_ORIGIN must identify the allowlisted staging/test API, never production.");
+    throw new Error(
+      "TEST_API_ORIGIN must identify the allowlisted staging/test API, never production.",
+    );
   }
   if (
     !tunnelHostname.includes(".") ||
@@ -79,10 +95,45 @@ export function authenticatedDevelopmentCommands(config: AuthenticatedDevelopmen
   } as const;
 }
 
+export async function verifyAuthenticatedDevelopmentContract(
+  config: AuthenticatedDevelopmentConfig,
+  root = ROOT,
+): Promise<void> {
+  const source = await readFile(resolve(root, "apps/api/wrangler.jsonc"), "utf8");
+  const staging = parseJsonc<ApiWranglerConfig>(source).env?.staging;
+  if (!staging) throw new Error("The API Wrangler config is missing env.staging.");
+  const databases = staging.d1_databases ?? [];
+  if (databases.length !== 1) {
+    throw new Error("The staging API must bind exactly one test D1 database.");
+  }
+  const database = databases[0];
+  const variables = staging.vars ?? {};
+  if (
+    !database?.database_id ||
+    database.database_id !== variables.D1_DATABASE_ID ||
+    config.databaseId !== database.database_id
+  ) {
+    throw new Error("TEST_D1_DATABASE_ID must equal the staging API test D1 binding.");
+  }
+  if (database.database_name !== "shoppp-staging") {
+    throw new Error("Authenticated development requires the named shoppp-staging test D1.");
+  }
+  if (config.apiProxyTarget !== variables.PUBLIC_ORIGIN) {
+    throw new Error("TEST_API_ORIGIN must equal the staging API PUBLIC_ORIGIN.");
+  }
+  if (config.accessAudience !== variables.ACCESS_AUDIENCE) {
+    throw new Error("TEST_ACCESS_AUDIENCE must equal the staging Access audience.");
+  }
+  if (config.tunnelHostname !== normalizedHostname(variables.ADMIN_TUNNEL_HOSTNAME ?? "")) {
+    throw new Error("ADMIN_TUNNEL_HOSTNAME must equal the staging API tunnel allowlist.");
+  }
+}
+
 export async function runAuthenticatedDevelopment(
   environment: Environment = process.env,
 ): Promise<number> {
   const config = resolveAuthenticatedDevelopmentConfig(environment);
+  await verifyAuthenticatedDevelopmentContract(config);
   const commands = authenticatedDevelopmentCommands(config);
   const childEnvironment = {
     ...process.env,

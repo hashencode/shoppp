@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { ADMIN_PERMISSION_KEYS, type AdminPermission } from "@shoppp/contracts";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { createApp } from "../../src/http/app";
@@ -8,6 +9,122 @@ import { idempotency } from "../../src/middleware/idempotency";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 const NOW = "2026-07-30T00:00:00.000Z";
+
+interface AdminRoutePermission {
+  readonly method: "GET" | "PATCH" | "POST" | "PUT";
+  readonly path: string;
+  readonly permission: AdminPermission;
+}
+
+const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
+  { method: "GET", path: "/admin/iam/users", permission: "iam.users.read" },
+  { method: "PATCH", path: "/admin/iam/users/:id", permission: "iam.users.write" },
+  { method: "GET", path: "/admin/iam/users/:id", permission: "iam.users.read" },
+  { method: "GET", path: "/admin/iam/invitations", permission: "iam.users.read" },
+  { method: "POST", path: "/admin/iam/invitations", permission: "iam.users.write" },
+  {
+    method: "POST",
+    path: "/admin/iam/invitations/:id/resend",
+    permission: "iam.users.write",
+  },
+  {
+    method: "POST",
+    path: "/admin/iam/invitations/:id/revoke",
+    permission: "iam.users.write",
+  },
+  { method: "GET", path: "/admin/iam/roles", permission: "iam.roles.read" },
+  { method: "POST", path: "/admin/iam/roles", permission: "iam.roles.write" },
+  { method: "PATCH", path: "/admin/iam/roles/:id", permission: "iam.roles.write" },
+  { method: "GET", path: "/admin/iam/roles/:id", permission: "iam.roles.read" },
+  { method: "GET", path: "/admin/settings/launch", permission: "settings.read" },
+  { method: "GET", path: "/admin/settings/shipping", permission: "settings.read" },
+  {
+    method: "PUT",
+    path: "/admin/settings/shipping/zones/:id",
+    permission: "settings.write",
+  },
+  {
+    method: "POST",
+    path: "/admin/settings/shipping/zones",
+    permission: "settings.write",
+  },
+  { method: "PUT", path: "/admin/settings/launch", permission: "settings.write" },
+  { method: "GET", path: "/admin/audit", permission: "audit.read" },
+  { method: "GET", path: "/admin/operations/health", permission: "settings.read" },
+  { method: "GET", path: "/admin/privacy/requests", permission: "privacy.manage" },
+  { method: "POST", path: "/admin/privacy/requests", permission: "privacy.manage" },
+  {
+    method: "GET",
+    path: "/admin/privacy/requests/:id/download",
+    permission: "privacy.manage",
+  },
+  { method: "GET", path: "/admin/catalog/products", permission: "catalog.read" },
+  { method: "GET", path: "/admin/catalog/products/:id", permission: "catalog.read" },
+  { method: "POST", path: "/admin/catalog/products", permission: "catalog.write" },
+  { method: "PUT", path: "/admin/catalog/products/:id", permission: "catalog.write" },
+  { method: "PUT", path: "/admin/media/*", permission: "catalog.write" },
+  {
+    method: "POST",
+    path: "/admin/catalog/products/:id/preview",
+    permission: "catalog.read",
+  },
+  {
+    method: "POST",
+    path: "/admin/catalog/products/:id/publish",
+    permission: "catalog.publish",
+  },
+  { method: "GET", path: "/admin/inventory", permission: "inventory.read" },
+  {
+    method: "GET",
+    path: "/admin/inventory/:variantId/:warehouseId",
+    permission: "inventory.read",
+  },
+  {
+    method: "POST",
+    path: "/admin/inventory/:variantId/:warehouseId/adjustments",
+    permission: "inventory.adjust",
+  },
+  { method: "GET", path: "/admin/orders", permission: "orders.read" },
+  { method: "GET", path: "/admin/reporting/revenue", permission: "reporting.read" },
+  { method: "GET", path: "/admin/reporting/orders", permission: "reporting.read" },
+  { method: "POST", path: "/admin/reporting/exports", permission: "reporting.export" },
+  {
+    method: "GET",
+    path: "/admin/reporting/exports/:id",
+    permission: "reporting.export",
+  },
+  {
+    method: "GET",
+    path: "/admin/reporting/exports/:id/download",
+    permission: "reporting.export",
+  },
+  { method: "GET", path: "/admin/orders/:reference", permission: "orders.read" },
+  {
+    method: "POST",
+    path: "/admin/orders/:reference/fulfillment",
+    permission: "orders.fulfill",
+  },
+  {
+    method: "POST",
+    path: "/admin/orders/:reference/refunds",
+    permission: "orders.refund",
+  },
+  {
+    method: "POST",
+    path: "/admin/orders/:reference/cancel",
+    permission: "orders.cancel",
+  },
+  { method: "GET", path: "/admin/operations/jobs", permission: "operations.jobs.read" },
+  {
+    method: "POST",
+    path: "/admin/operations/jobs/:id/replay",
+    permission: "operations.replay",
+  },
+] as const;
+
+function concreteAdminPath(path: string): string {
+  return path.replaceAll(/:[A-Za-z][A-Za-z0-9]*/g, "fixture").replace("*", "catalog/proof.png");
+}
 
 async function seedOperator(role: string, subject = "access-user-001"): Promise<void> {
   const roleId = {
@@ -46,8 +163,12 @@ describe("API shell", () => {
       env.DB.prepare("DELETE FROM idempotency_claims"),
       env.DB.prepare("DELETE FROM audit_events"),
       env.DB.prepare("DELETE FROM admin_identities"),
-      env.DB.prepare("DELETE FROM admin_role_permissions WHERE permission_key = 'unknown.permission'"),
-      env.DB.prepare("DELETE FROM admin_permission_definitions WHERE permission_key = 'unknown.permission'"),
+      env.DB.prepare(
+        "DELETE FROM admin_role_permissions WHERE permission_key = 'unknown.permission'",
+      ),
+      env.DB.prepare(
+        "DELETE FROM admin_permission_definitions WHERE permission_key = 'unknown.permission'",
+      ),
       env.DB.prepare("UPDATE admin_roles SET enabled = 1"),
     ]);
     await seedOperator("operations");
@@ -135,7 +256,9 @@ describe("API shell", () => {
     expect((await unmapped.fetch(adminRequest("/admin/orders"), env)).status).toBe(401);
     expect(
       (
-        await env.DB.prepare("SELECT COUNT(*) AS count FROM audit_events").first<{ count: number }>()
+        await env.DB.prepare("SELECT COUNT(*) AS count FROM audit_events").first<{
+          count: number;
+        }>()
       )?.count,
     ).toBe(0);
   });
@@ -163,6 +286,60 @@ describe("API shell", () => {
       .bind(ADMIN_ROLE_IDS.operations, NOW)
       .run();
     expect((await app.fetch(adminRequest("/admin/orders"), env)).status).toBe(200);
+  });
+
+  test("denies every registered admin route when its permission is absent", async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_roles
+          (id, key, name, protected, system, enabled, version, created_at, updated_at)
+         VALUES ('role_permission_matrix', 'permission_matrix', 'Permission matrix', 0, 0, 1, 1, ?, ?)`,
+      ).bind(NOW, NOW),
+      env.DB.prepare("DELETE FROM admin_role_permissions WHERE role_id = 'role_permission_matrix'"),
+    ]);
+    await seedHumanAdmin(env.DB, {
+      email: "permission-matrix@example.test",
+      id: "permission-matrix",
+      roleId: "role_permission_matrix",
+      subject: "permission-matrix",
+    });
+    const app = createApp({
+      accessVerifier: async () => ({
+        email: "permission-matrix@example.test",
+        principalKind: "human",
+        subject: "permission-matrix",
+      }),
+    });
+
+    for (const [index, route] of ADMIN_ROUTE_PERMISSIONS.entries()) {
+      const response = await app.fetch(
+        adminRequest(concreteAdminPath(route.path), {
+          ...(route.method === "GET" ? {} : { body: "{}" }),
+          headers: { "Idempotency-Key": `permission-matrix-${index}` },
+          method: route.method,
+        }),
+        env,
+      );
+      const body = (await response.json()) as {
+        error?: { code?: string };
+        meta?: { requestId?: string };
+      };
+      expect(`${route.method} ${route.path}: ${response.status}`).toBe(
+        `${route.method} ${route.path}: 403`,
+      );
+      expect(body.error?.code).toBe("permission_denied");
+      expect(
+        await env.DB.prepare(
+          "SELECT action, actor_type, result FROM audit_events WHERE request_id = ? LIMIT 1",
+        )
+          .bind(body.meta?.requestId)
+          .first(),
+      ).toEqual({ action: route.permission, actor_type: "admin", result: "denied" });
+    }
+
+    expect(
+      [...new Set(ADMIN_ROUTE_PERMISSIONS.map(({ permission }) => permission))].sort(),
+    ).toEqual([...ADMIN_PERMISSION_KEYS].sort());
   });
 
   test("rejects disabled identities, disabled roles, kind mismatches, and unknown permission drift", async () => {

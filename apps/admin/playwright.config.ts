@@ -1,17 +1,5 @@
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { loadEnvFile } from 'node:process'
 import { defineConfig, devices } from '@playwright/test'
 import { normalizeAppBasePath } from './src/shared/utils/normalize-app-base-path'
-
-const supportedModes = new Set(['development', 'test', 'production'])
-const envMode = process.env.E2E_ENV_MODE?.trim() || 'test'
-if (!supportedModes.has(envMode)) {
-  throw new Error('E2E_ENV_MODE 仅支持 development、test 或 production。')
-}
-
-const envFile = resolve(process.cwd(), `.env.${envMode}`)
-if (existsSync(envFile)) loadEnvFile(envFile)
 
 const appBasePath = normalizeAppBasePath(process.env.PUBLIC_APP_BASE)
 
@@ -43,7 +31,7 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-        command: `bun run dev:${envMode} -- --port ${port}`,
+        command: `bunx rsbuild preview --host 127.0.0.1 --port ${port}`,
         url: `${origin}${appBasePath}/login`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

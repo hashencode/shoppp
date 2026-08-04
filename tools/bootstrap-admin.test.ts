@@ -12,7 +12,7 @@ describe("guarded administrator bootstrap command", () => {
     const commands: string[][] = [];
     await runBootstrapAdmin(
       {
-        databaseIdentity: "shoppp-test",
+        databaseIdentity: "shoppp-staging",
         email: "Admin@Example.test",
         environment: "test",
       },
@@ -41,10 +41,28 @@ describe("guarded administrator bootstrap command", () => {
     });
   });
 
+  test("rejects database identities outside the canonical two-database model", () => {
+    expect(() =>
+      validateBootstrapOptions({
+        databaseIdentity: "shoppp-test",
+        email: "admin@example.test",
+        environment: "test",
+      }),
+    ).toThrow(/shoppp-staging/);
+    expect(() =>
+      validateBootstrapOptions({
+        confirmation: "BOOTSTRAP_PRODUCTION:shoppp-staging:admin@example.test",
+        databaseIdentity: "shoppp-staging",
+        email: "admin@example.test",
+        environment: "production",
+      }),
+    ).toThrow(/shoppp-production/);
+  });
+
   test("builds guarded SQL with an invitation and audit but no password or bearer secret", () => {
     const sql = buildBootstrapSql(
       {
-        databaseIdentity: "shoppp-test",
+        databaseIdentity: "shoppp-staging",
         email: "admin@example.test",
         environment: "test",
       },
@@ -52,6 +70,7 @@ describe("guarded administrator bootstrap command", () => {
       "2026-08-04T00:00:00.000Z",
     );
     expect(sql).toContain("invalid_count = 0");
+    expect(sql).toContain("WHEN 1 THEN 0 ELSE 1 END");
     expect(sql).toContain("iam.bootstrap.invitation");
     expect(sql).toContain("admin_invitation");
     expect(sql).not.toMatch(/password|bearer|access_token/i);
@@ -62,7 +81,7 @@ describe("guarded administrator bootstrap command", () => {
     await expect(
       runBootstrapAdmin(
         {
-          databaseIdentity: "shoppp-test",
+          databaseIdentity: "shoppp-staging",
           email: "admin@example.test",
           environment: "test",
         },

@@ -1,11 +1,10 @@
 import React from 'react'
-import type { ReportExport, ReportOrderRow } from '@shoppp/contracts'
+import type { AdminPermission, ReportExport, ReportOrderRow } from '@shoppp/contracts'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
-import type { Role } from '../../shared/types/roles'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { OrderReportPage } from './order-report-page'
 
@@ -68,9 +67,9 @@ const server = setupServer(
   })
 )
 
-const renderPage = (role: Role) =>
+const renderPage = (permissions: readonly AdminPermission[]) =>
   render(
-    <AuthTestProvider role={role}>
+    <AuthTestProvider role="reporting_operator" permissions={permissions}>
       <ThemeProvider>
         <OrderReportPage />
       </ThemeProvider>
@@ -87,7 +86,7 @@ afterAll(() => server.close())
 
 describe('OrderReportPage', () => {
   it('shows reconcilable rows while hiding export from a read-only operator', async () => {
-    renderPage('viewer')
+    renderPage(['reporting.read'])
     await waitFor(() => expect(screen.getByText('ORD-REPORT01')).toBeTruthy())
     expect(screen.getByText('shopper@example.test')).toBeTruthy()
     expect(screen.getByText('$25.00')).toBeTruthy()
@@ -97,7 +96,7 @@ describe('OrderReportPage', () => {
   })
 
   it('requires a reason and explicit confirmation before creating an audited export', async () => {
-    renderPage('editor')
+    renderPage(['reporting.read', 'reporting.export'])
     await waitFor(() => expect(screen.getByRole('button', { name: 'Export CSV' })).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
     expect(

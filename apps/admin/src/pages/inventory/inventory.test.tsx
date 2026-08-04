@@ -1,10 +1,10 @@
 import React from 'react'
+import type { AdminPermission } from '@shoppp/contracts'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
-import type { Role } from '../../shared/types/roles'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { InventoryPage } from './inventory-page'
 
@@ -72,9 +72,9 @@ const server = setupServer(
   })
 )
 
-const renderPage = (role: Role) =>
+const renderPage = (permissions: readonly AdminPermission[]) =>
   render(
-    <AuthTestProvider role={role}>
+    <AuthTestProvider role="inventory_operator" permissions={permissions}>
       <ThemeProvider>
         <InventoryPage />
       </ThemeProvider>
@@ -90,7 +90,7 @@ afterAll(() => server.close())
 
 describe('InventoryPage', () => {
   it('reconciles inventory totals and exposes append-only history', async () => {
-    renderPage('viewer')
+    renderPage(['inventory.read'])
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
     expect(screen.getByText('10')).toBeTruthy()
     expect(screen.getByText('3')).toBeTruthy()
@@ -103,7 +103,7 @@ describe('InventoryPage', () => {
   })
 
   it('requires a non-zero quantity and reason before submitting an authorized adjustment', async () => {
-    renderPage('editor')
+    renderPage(['inventory.read', 'inventory.adjust'])
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Adjust' }))
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Quantity delta' }), {

@@ -1,11 +1,11 @@
 import React from 'react'
+import { ADMIN_PERMISSION_KEYS, type AdminPermission } from '@shoppp/contracts'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import type { TablePaginationConfig } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { AuthTestProvider } from '../../../test/auth-context-fixture'
 import { ThemeProvider } from '../../contexts/theme-context'
-import type { Role } from '../../types/roles'
 import { StandardListPageRecipe } from './standard-list-page-recipe'
 import type { StandardListPageSpec } from '../specs/standard-list-page-spec'
 import {
@@ -66,9 +66,12 @@ type VirtualScrollSnapshot = {
   }
 }
 
-const renderWithTheme = (node: React.ReactNode, role: Role = 'admin') => {
+const renderWithTheme = (
+  node: React.ReactNode,
+  permissions: readonly AdminPermission[] = ADMIN_PERMISSION_KEYS
+) => {
   return render(
-    <AuthTestProvider role={role}>
+    <AuthTestProvider role="test_operator" permissions={permissions}>
       <ThemeProvider>{node}</ThemeProvider>
     </AuthTestProvider>
   )
@@ -628,7 +631,7 @@ describe('StandardListPageRecipe', () => {
       buildTableNode: ({ dataSource }) => <div>{dataSource[0]?.name}</div>,
     }
 
-    const { container } = renderWithTheme(<StandardListPageRecipe spec={spec} />, 'viewer')
+    const { container } = renderWithTheme(<StandardListPageRecipe spec={spec} />, ['catalog.read'])
 
     await screen.findByText('demo')
 

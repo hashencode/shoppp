@@ -2,11 +2,8 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { createApp } from "../../src/http/app";
-import {
-  ADMIN_ROLE_IDS,
-  seedHumanAdmin,
-  seedServiceAdmin,
-} from "../fixtures/admin-iam";
+import { isAllowedAdminBrowserOrigin } from "../../src/middleware/admin-origin";
+import { ADMIN_ROLE_IDS, seedHumanAdmin, seedServiceAdmin } from "../fixtures/admin-iam";
 
 const ADMIN_ORIGIN = "https://admin.example.test";
 
@@ -46,6 +43,43 @@ describe("admin mutation origin protection", () => {
     );
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ error: { code: "permission_denied" } });
+  });
+
+  test("accepts the exact test tunnel origin but never permits it in production", async () => {
+    const tunnelHostname = "admin-dev-test.example.com";
+    await seedHumanAdmin(env.DB, { roleId: ADMIN_ROLE_IDS.support });
+    const app = createApp({
+      accessVerifier: async () => ({
+        email: "admin@example.test",
+        principalKind: "human",
+        subject: "access-admin-fixture",
+      }),
+    });
+    const headers = {
+      Origin: `https://${tunnelHostname}`,
+      "Sec-Fetch-Site": "same-origin",
+    };
+
+    const testResponse = await app.fetch(mutationRequest(headers), {
+      ...env,
+      ADMIN_ORIGIN,
+      ADMIN_TUNNEL_HOSTNAME: tunnelHostname,
+      ENVIRONMENT: "staging",
+    });
+    expect(await testResponse.json()).toMatchObject({ error: { code: "permission_denied" } });
+
+    expect(
+      isAllowedAdminBrowserOrigin(
+        {
+          ...env,
+          ADMIN_ORIGIN,
+          ADMIN_TUNNEL_HOSTNAME: tunnelHostname,
+          ENVIRONMENT: "production",
+        },
+        headers.Origin,
+        headers["Sec-Fetch-Site"],
+      ),
+    ).toBe(false);
   });
 
   test.each([

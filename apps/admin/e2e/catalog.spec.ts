@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test'
+import { mockAdminSession } from './support'
 
 test('operator can publish a catalog draft and triggers exactly one build request', async ({
   page,
 }) => {
+  await mockAdminSession(page)
   let publishCount = 0
   await page.route('**/admin/catalog/products**', async (route) => {
     const request = route.request()
@@ -37,10 +39,7 @@ test('operator can publish a catalog draft and triggers exactly one build reques
     })
   })
 
-  await page.goto('/login')
-  await page.getByPlaceholder('用户名').fill('catalog-manager')
-  await page.getByPlaceholder('密码').fill('correct-horse-battery-staple')
-  await page.getByRole('button', { name: '登 录' }).click()
+  await page.goto('/catalog/products')
 
   await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Carry-on', exact: true })).toBeVisible()

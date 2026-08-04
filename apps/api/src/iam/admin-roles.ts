@@ -8,7 +8,7 @@ import type { Context } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
-import { prepareAuditEvent, recordAuditEvent } from "./audit";
+import { prepareAuditEvent, prepareConditionalAuditEvent, recordAuditEvent } from "./audit";
 import { actorTypeForPrincipal, type Principal } from "./permissions";
 
 interface RoleRow {
@@ -111,23 +111,44 @@ function assertPermissionSubset(
 }
 
 export async function loadAssignableRole(
-  db: D1Database,
-  principal: Principal,
+  context: Context<ApiEnvironment>,
   roleId: string,
+  target: { action: string; id?: string; type: string },
 ): Promise<void> {
-  const role = await findRole(db, roleId);
+  const principal = context.get("principal");
+  const deny = async (status: 403 | 409, code: string, message: string): Promise<never> => {
+    await recordAuditEvent(context.env.DB, {
+      action: target.action,
+      actorId: principal.id,
+      actorType: actorTypeForPrincipal(principal),
+      id: crypto.randomUUID(),
+      metadata: { code, roleId },
+      reason: code,
+      requestId: context.get("requestId"),
+      result: "denied",
+      ...(target.id ? { targetId: target.id } : {}),
+      targetType: target.type,
+    });
+    throw new ApiError(status, code, message);
+  };
+  const role = await findRole(context.env.DB, roleId);
   if (!role || role.enabled !== 1) {
-    throw new ApiError(409, "role_unavailable", "The selected role is not enabled.");
+    return deny(409, "role_unavailable", "The selected role is not enabled.");
   }
   if (role.protected === 1 && !principal.role.protected) {
-    throw new ApiError(
+    return deny(
       403,
       "protected_role_assignment_denied",
       "Only a protected administrator may assign the protected role.",
     );
   }
-  const permissions = await permissionsForRole(db, roleId);
-  assertPermissionSubset(principal, permissions);
+  const permissions = await permissionsForRole(context.env.DB, roleId);
+  try {
+    assertPermissionSubset(principal, permissions);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return deny(error.status === 403 ? 403 : 409, error.code, error.message);
+  }
 }
 
 export async function listAdminRoles(
@@ -188,8 +209,25 @@ export async function createAdminRole(
   input: CreateAdminRoleRequest,
 ): Promise<AdminRole> {
   const principal = context.get("principal");
-  assertPermissionSubset(principal, input.permissions);
   const id = `role_${crypto.randomUUID().replaceAll("-", "")}`;
+  try {
+    assertPermissionSubset(principal, input.permissions);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    await recordAuditEvent(context.env.DB, {
+      action: "iam.roles.create",
+      actorId: principal.id,
+      actorType: actorTypeForPrincipal(principal),
+      id: crypto.randomUUID(),
+      metadata: { code: error.code },
+      reason: error.code,
+      requestId: context.get("requestId"),
+      result: "denied",
+      targetId: id,
+      targetType: "admin_role",
+    });
+    throw error;
+  }
   const now = new Date().toISOString();
   const role: RoleRow = {
     created_at: now,
@@ -289,7 +327,24 @@ export async function updateAdminRole(
   }
   const beforePermissions = await permissionsForRole(context.env.DB, roleId);
   const permissions = input.permissions ?? beforePermissions;
-  assertPermissionSubset(principal, permissions);
+  try {
+    assertPermissionSubset(principal, permissions);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    await recordAuditEvent(context.env.DB, {
+      action: "iam.roles.update",
+      actorId: principal.id,
+      actorType: actorTypeForPrincipal(principal),
+      id: crypto.randomUUID(),
+      metadata: { code: error.code },
+      reason: error.code,
+      requestId: context.get("requestId"),
+      result: "denied",
+      targetId: roleId,
+      targetType: "admin_role",
+    });
+    throw error;
+  }
   if (input.enabled === false) {
     const dependencies = await roleDependencyCounts(context.env.DB, roleId);
     if (dependencies.identities > 0 || dependencies.pendingInvitations > 0) {
@@ -297,53 +352,87 @@ export async function updateAdminRole(
     }
   }
   const now = new Date().toISOString();
-  const updated = await context.env.DB.prepare(
-    `UPDATE admin_roles
+  const nextEnabled = input.enabled === undefined ? before.enabled : input.enabled ? 1 : 0;
+  const nextVersion = input.expectedVersion + 1;
+  const committedRoleCondition = {
+    bindings: [roleId, nextVersion, now],
+    sql: "SELECT 1 FROM admin_roles WHERE id = ? AND version = ? AND updated_at = ?",
+  } as const;
+  const statements: D1PreparedStatement[] = [
+    context.env.DB.prepare(
+      `UPDATE admin_roles
           SET name = ?, description = ?, enabled = ?, version = version + 1, updated_at = ?
         WHERE id = ? AND version = ?
-      RETURNING id, key, name, description, protected, system, enabled, version,
-                created_at, updated_at`,
-  )
-    .bind(
+          AND (? = 0 OR (
+            NOT EXISTS (SELECT 1 FROM admin_identities WHERE role_id = ?)
+            AND NOT EXISTS (
+              SELECT 1 FROM admin_invitations
+               WHERE role_id = ? AND status = 'pending' AND expires_at > ?
+            )
+          ))`,
+    ).bind(
       input.name ?? before.name,
       input.description === undefined ? before.description : input.description,
-      input.enabled === undefined ? before.enabled : input.enabled ? 1 : 0,
+      nextEnabled,
       now,
       roleId,
       input.expectedVersion,
-    )
-    .first<RoleRow>();
-  if (!updated) {
-    throw new ApiError(409, "stale_role_version", "The role was changed by another request.");
-  }
+      input.enabled === false ? 1 : 0,
+      roleId,
+      roleId,
+      now,
+    ),
+  ];
   if (input.permissions) {
-    await context.env.DB.batch([
-      context.env.DB.prepare("DELETE FROM admin_role_permissions WHERE role_id = ?").bind(roleId),
+    statements.push(
+      context.env.DB.prepare(
+        `DELETE FROM admin_role_permissions
+          WHERE role_id = ? AND EXISTS (${committedRoleCondition.sql})`,
+      ).bind(roleId, ...committedRoleCondition.bindings),
       ...permissions.map((permission) =>
         context.env.DB.prepare(
           `INSERT INTO admin_role_permissions (role_id, permission_key, created_at)
-             VALUES (?, ?, ?)`,
-        ).bind(roleId, permission, now),
+             SELECT ?, ?, ? WHERE EXISTS (${committedRoleCondition.sql})`,
+        ).bind(roleId, permission, now, ...committedRoleCondition.bindings),
       ),
-    ]);
+    );
   }
-  await recordAuditEvent(context.env.DB, {
-    action: input.enabled === false ? "iam.roles.archive" : "iam.roles.update",
-    actorId: principal.id,
-    actorType: actorTypeForPrincipal(principal),
-    id: crypto.randomUUID(),
-    metadata: {
-      after: { enabled: updated.enabled === 1, permissions, version: updated.version },
-      before: {
-        enabled: before.enabled === 1,
-        permissions: beforePermissions,
-        version: before.version,
+  statements.push(
+    prepareConditionalAuditEvent(
+      context.env.DB,
+      {
+        action: input.enabled === false ? "iam.roles.archive" : "iam.roles.update",
+        actorId: principal.id,
+        actorType: actorTypeForPrincipal(principal),
+        id: crypto.randomUUID(),
+        metadata: {
+          after: { enabled: nextEnabled === 1, permissions, version: nextVersion },
+          before: {
+            enabled: before.enabled === 1,
+            permissions: beforePermissions,
+            version: before.version,
+          },
+        },
+        requestId: context.get("requestId"),
+        result: "succeeded",
+        targetId: roleId,
+        targetType: "admin_role",
       },
-    },
-    requestId: context.get("requestId"),
-    result: "succeeded",
-    targetId: roleId,
-    targetType: "admin_role",
-  });
+      committedRoleCondition,
+    ),
+  );
+  const [updateResult] = await context.env.DB.batch(statements);
+  if (updateResult?.meta.changes !== 1) {
+    const current = await findRole(context.env.DB, roleId);
+    if (current?.version === input.expectedVersion && input.enabled === false) {
+      const dependencies = await roleDependencyCounts(context.env.DB, roleId);
+      if (dependencies.identities > 0 || dependencies.pendingInvitations > 0) {
+        return auditRoleDenial(context, roleId, "role_has_dependencies", { ...dependencies });
+      }
+    }
+    throw new ApiError(409, "stale_role_version", "The role was changed by another request.");
+  }
+  const updated = await findRole(context.env.DB, roleId);
+  if (!updated) throw new ApiError(500, "role_update_failed", "The role update failed.");
   return { ...roleSummary(updated), description: updated.description, permissions };
 }

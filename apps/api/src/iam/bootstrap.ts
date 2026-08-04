@@ -3,13 +3,18 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import type { AccessIdentity, HumanAccessIdentity } from "./access-jwt";
-import { prepareAuditEvent } from "./audit";
+import { prepareAuditEvent, prepareConditionalAuditEvent } from "./audit";
 import { normalizeAdminEmail } from "./invitations";
 import { prepareInvitationNotification } from "./invitation-notifications";
 
 export function productionBootstrapConfirmation(databaseIdentity: string, email: string): string {
   return `BOOTSTRAP_PRODUCTION:${databaseIdentity}:${normalizeAdminEmail(email)}`;
 }
+
+const BOOTSTRAP_DATABASE_IDENTITIES = {
+  production: "shoppp-production",
+  test: "shoppp-staging",
+} as const;
 
 function requireHuman(identity: AccessIdentity): HumanAccessIdentity {
   if (identity.principalKind !== "human") {
@@ -65,40 +70,89 @@ export async function acceptAdminInvitation(
   }
   const identityId = `identity_${crypto.randomUUID().replaceAll("-", "")}`;
   const displayName = invitation.display_name ?? email.split("@")[0] ?? "Administrator";
+  const acceptedVersion = invitation.version + 1;
+  let results: D1Result<unknown>[];
   try {
-    await context.env.DB.batch([
+    results = await context.env.DB.batch([
       context.env.DB.prepare(
         `INSERT INTO admin_identities
              (id, principal_kind, access_subject, normalized_email, display_name, role_id,
               enabled, version, last_seen_at, created_at, updated_at)
-           VALUES (?, 'human', ?, ?, ?, ?, 1, 1, ?, ?, ?)`,
-      ).bind(identityId, identity.subject, email, displayName, invitation.role_id, now, now, now),
+           SELECT ?, 'human', ?, ?, ?, invitation.role_id, 1, 1, ?, ?, ?
+             FROM admin_invitations invitation
+             JOIN admin_roles role ON role.id = invitation.role_id
+            WHERE invitation.id = ?
+              AND invitation.normalized_email = ?
+              AND invitation.status = 'pending'
+              AND invitation.expires_at > ?
+              AND invitation.version = ?
+              AND role.enabled = 1`,
+      ).bind(
+        identityId,
+        identity.subject,
+        email,
+        displayName,
+        now,
+        now,
+        now,
+        invitation.id,
+        email,
+        now,
+        invitation.version,
+      ),
       context.env.DB.prepare(
         `UPDATE admin_invitations
               SET status = 'accepted', accepted_identity_id = ?, accepted_at = ?,
                   version = version + 1, updated_at = ?
             WHERE id = ? AND status = 'pending' AND expires_at > ? AND version = ?`,
       ).bind(identityId, now, now, invitation.id, now, invitation.version),
-      prepareAuditEvent(context.env.DB, {
-        action: "iam.invitations.accept",
-        actorId: identityId,
-        actorType: "admin",
-        id: crypto.randomUUID(),
-        metadata: {
-          after: {
-            roleId: invitation.role_id,
-            status: "accepted",
-            version: invitation.version + 1,
+      prepareConditionalAuditEvent(
+        context.env.DB,
+        {
+          action: "iam.invitations.accept",
+          actorId: identityId,
+          actorType: "admin",
+          id: crypto.randomUUID(),
+          metadata: {
+            after: {
+              roleId: invitation.role_id,
+              status: "accepted",
+              version: acceptedVersion,
+            },
+            before: { roleId: invitation.role_id, status: "pending", version: invitation.version },
           },
-          before: { roleId: invitation.role_id, status: "pending", version: invitation.version },
+          requestId: context.get("requestId"),
+          result: "succeeded",
+          targetId: invitation.id,
+          targetType: "admin_invitation",
         },
-        requestId: context.get("requestId"),
-        result: "succeeded",
-        targetId: invitation.id,
-        targetType: "admin_invitation",
-      }),
+        {
+          bindings: [invitation.id, identityId, acceptedVersion],
+          sql: "SELECT 1 FROM admin_invitations WHERE id = ? AND status = 'accepted' AND accepted_identity_id = ? AND version = ?",
+        },
+      ),
     ]);
-  } catch {
+  } catch (error) {
+    if (!String(error).includes("UNIQUE constraint")) throw error;
+    const winner = await context.env.DB.prepare(
+      `SELECT id FROM admin_identities
+          WHERE principal_kind = 'human' AND access_subject = ? AND normalized_email = ?
+            AND enabled = 1`,
+    )
+      .bind(identity.subject, email)
+      .first<{ id: string }>();
+    if (winner) return { accepted: false, identityId: winner.id };
+    throw new ApiError(
+      409,
+      "invitation_acceptance_conflict",
+      "The invitation was already claimed.",
+    );
+  }
+  if (
+    (results[0]?.meta.changes ?? 0) < 1 ||
+    results[1]?.meta.changes !== 1 ||
+    results[2]?.meta.changes !== 1
+  ) {
     const winner = await context.env.DB.prepare(
       `SELECT id FROM admin_identities
           WHERE principal_kind = 'human' AND access_subject = ? AND normalized_email = ?
@@ -126,8 +180,11 @@ export async function bootstrapFirstAdmin(
   },
 ): Promise<{ invitationId: string; reused: boolean }> {
   const email = normalizeAdminEmail(input.email);
-  if (!input.databaseIdentity.trim()) {
-    throw new Error("An explicit database identity is required.");
+  const expectedDatabaseIdentity = BOOTSTRAP_DATABASE_IDENTITIES[input.environment];
+  if (input.databaseIdentity !== expectedDatabaseIdentity) {
+    throw new Error(
+      `${input.environment} bootstrap must target ${expectedDatabaseIdentity}; received ${input.databaseIdentity}.`,
+    );
   }
   if (
     input.environment === "production" &&

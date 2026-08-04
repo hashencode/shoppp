@@ -6,6 +6,22 @@ import { recordAuditEvent } from "../iam/audit";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+export function isAllowedAdminBrowserOrigin(
+  environment: Pick<ApiEnvironment["Bindings"], "ADMIN_ORIGIN" | "ENVIRONMENT"> &
+    Partial<Pick<ApiEnvironment["Bindings"], "ADMIN_TUNNEL_HOSTNAME">>,
+  origin: string | undefined,
+  fetchSite: string | undefined,
+): boolean {
+  if (!origin || fetchSite !== "same-origin") return false;
+  if (origin === environment.ADMIN_ORIGIN) return true;
+  const tunnelHostname = environment.ADMIN_TUNNEL_HOSTNAME?.trim();
+  return (
+    environment.ENVIRONMENT !== "production" &&
+    Boolean(tunnelHostname) &&
+    origin === new URL(`https://${tunnelHostname}`).origin
+  );
+}
+
 export function adminOriginProtection(): MiddlewareHandler<ApiEnvironment> {
   return async (context, next) => {
     if (SAFE_METHODS.has(context.req.method)) {
@@ -19,11 +35,7 @@ export function adminOriginProtection(): MiddlewareHandler<ApiEnvironment> {
     }
     const origin = context.req.header("Origin");
     const fetchSite = context.req.header("Sec-Fetch-Site");
-    if (
-      !context.env.ADMIN_ORIGIN ||
-      origin !== context.env.ADMIN_ORIGIN ||
-      fetchSite !== "same-origin"
-    ) {
+    if (!isAllowedAdminBrowserOrigin(context.env, origin, fetchSite)) {
       await recordAuditEvent(context.env.DB, {
         action: "security.admin_origin",
         actorId: principal.id,

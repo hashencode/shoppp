@@ -45,7 +45,7 @@ const renderFormPage = (entry: string) =>
     </MemoryRouter>
   )
 
-const renderListPageWithViewerRole = () =>
+const renderListPageWithReadOnlyPermissions = () =>
   render(
     <MemoryRouter>
       <AuthContext.Provider
@@ -53,7 +53,7 @@ const renderListPageWithViewerRole = () =>
           accountName: 'guest',
           displayName: '访客',
           permissions: ['catalog.read'],
-          role: 'viewer',
+          role: 'read_only_operator',
         })}
       >
         {/* <XxxManagementPage /> */}
@@ -132,8 +132,8 @@ describe('XxxManagementPage', () => {
     })
   })
 
-  it('should hide write actions when role is viewer', async () => {
-    renderListPageWithViewerRole()
+  it('should hide write actions when authoritative write permission is absent', async () => {
+    renderListPageWithReadOnlyPermissions()
 
     await waitFor(() => {
       // expect(screen.getByText('示例记录')).toBeTruthy()

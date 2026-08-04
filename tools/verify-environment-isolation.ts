@@ -235,6 +235,17 @@ export function verifySnapshots(
       snapshot.remoteDatabaseIdentities.length === 1,
       `${snapshot.environment} must define exactly one remote D1 database identity`,
     );
+    const [databaseId, databaseName] = snapshot.remoteDatabaseIdentities[0]!.split("::");
+    const expectedDatabaseName =
+      snapshot.environment === "staging" ? "shoppp-staging" : "shoppp-production";
+    assert(
+      databaseName === expectedDatabaseName,
+      `${snapshot.environment} must bind only ${expectedDatabaseName}`,
+    );
+    assert(
+      databaseId === snapshot.apiVariables.D1_DATABASE_ID,
+      `${snapshot.environment} D1_DATABASE_ID must match its bound remote D1`,
+    );
     if (snapshot.environment === "production") {
       assert(
         snapshot.apiVariables.TURNSTILE_TEST_MODE !== "true",
@@ -244,10 +255,8 @@ export function verifySnapshots(
   }
 
   assert(
-    new Set([
-      ...staging.remoteDatabaseIdentities,
-      ...production.remoteDatabaseIdentities,
-    ]).size === 2,
+    new Set([...staging.remoteDatabaseIdentities, ...production.remoteDatabaseIdentities]).size ===
+      2,
     "test and production must define exactly two shared remote D1 database identities",
   );
 

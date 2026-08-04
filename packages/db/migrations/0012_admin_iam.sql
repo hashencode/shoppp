@@ -107,8 +107,10 @@ CREATE TABLE _admin_identities_new (
   principal_kind TEXT NOT NULL CHECK (principal_kind IN ('human', 'service')),
   access_subject TEXT NOT NULL UNIQUE,
   normalized_email TEXT,
+  email TEXT NOT NULL DEFAULT 'service-auth@cloudflare-access.invalid',
   display_name TEXT NOT NULL CHECK (length(trim(display_name)) BETWEEN 1 AND 160),
   role_id TEXT NOT NULL REFERENCES admin_roles(id) ON DELETE RESTRICT,
+  role TEXT NOT NULL DEFAULT '',
   enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
   version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
   last_seen_at TEXT,
@@ -122,14 +124,16 @@ CREATE TABLE _admin_identities_new (
 );
 --> statement-breakpoint
 INSERT INTO _admin_identities_new
-  (id, principal_kind, access_subject, normalized_email, display_name, role_id,
+  (id, principal_kind, access_subject, normalized_email, email, display_name, role_id, role,
    enabled, version, last_seen_at, created_at, updated_at)
 SELECT legacy.id,
        CASE WHEN legacy.email = 'service-auth@cloudflare-access.invalid' THEN 'service' ELSE 'human' END,
        legacy.access_subject,
        CASE WHEN legacy.email = 'service-auth@cloudflare-access.invalid' THEN NULL ELSE lower(trim(legacy.email)) END,
+       legacy.email,
        legacy.display_name,
        role.id,
+       legacy.role,
        legacy.enabled,
        1,
        NULL,
@@ -203,6 +207,30 @@ DELETE FROM privacy_requests;
 DROP TABLE admin_identities;
 --> statement-breakpoint
 ALTER TABLE _admin_identities_new RENAME TO admin_identities;
+--> statement-breakpoint
+CREATE TRIGGER admin_identities_legacy_columns_after_insert
+AFTER INSERT ON admin_identities
+BEGIN
+  UPDATE admin_identities
+     SET email = CASE
+           WHEN NEW.principal_kind = 'human' THEN NEW.normalized_email
+           ELSE 'service-auth@cloudflare-access.invalid'
+         END,
+         role = (SELECT key FROM admin_roles WHERE id = NEW.role_id)
+   WHERE id = NEW.id;
+END;
+--> statement-breakpoint
+CREATE TRIGGER admin_identities_legacy_columns_after_update
+AFTER UPDATE OF principal_kind, normalized_email, role_id ON admin_identities
+BEGIN
+  UPDATE admin_identities
+     SET email = CASE
+           WHEN NEW.principal_kind = 'human' THEN NEW.normalized_email
+           ELSE 'service-auth@cloudflare-access.invalid'
+         END,
+         role = (SELECT key FROM admin_roles WHERE id = NEW.role_id)
+   WHERE id = NEW.id;
+END;
 --> statement-breakpoint
 UPDATE stock_ledger_entries
    SET actor_id = (
@@ -358,6 +386,10 @@ CREATE INDEX admin_invitations_role_status_idx
 --> statement-breakpoint
 CREATE INDEX admin_invitations_inviter_idx
   ON admin_invitations(invited_by_id, created_at);
+--> statement-breakpoint
+CREATE INDEX notification_jobs_admin_invitation_delivery_idx
+  ON notification_jobs(type, payload_json, created_at, id)
+  WHERE type = 'admin_invitation';
 --> statement-breakpoint
 CREATE TABLE _admin_iam_integrity_check (
   invalid_count INTEGER NOT NULL CHECK (invalid_count = 0)

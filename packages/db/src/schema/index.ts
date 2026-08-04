@@ -67,10 +67,12 @@ export const adminIdentities = sqliteTable(
     principalKind: text("principal_kind", { enum: ["human", "service"] }).notNull(),
     accessSubject: text("access_subject").notNull().unique(),
     normalizedEmail: text("normalized_email"),
+    legacyEmail: text("email").notNull().default("service-auth@cloudflare-access.invalid"),
     displayName: text("display_name").notNull(),
     roleId: text("role_id")
       .notNull()
       .references(() => adminRoles.id, { onDelete: "restrict" }),
+    legacyRole: text("role").notNull().default(""),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     version: integer("version").notNull().default(1),
     lastSeenAt: text("last_seen_at"),
@@ -650,6 +652,9 @@ export const notificationJobs = sqliteTable(
     ),
     index("notification_jobs_checkout_attempt_idx").on(table.checkoutAttemptId, table.createdAt),
     index("notification_jobs_provider_event_idx").on(table.providerEventId, table.createdAt),
+    index("notification_jobs_admin_invitation_delivery_idx")
+      .on(table.type, table.payloadJson, table.createdAt, table.id)
+      .where(sql`${table.type} = 'admin_invitation'`),
   ],
 );
 

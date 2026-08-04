@@ -1,13 +1,11 @@
 import type { ReportExport, ReportOrderRow, RevenueReport } from '@shoppp/contracts'
 import { expect, test } from '@playwright/test'
+import { mockAdminSession } from './support'
 
 test('operator reconciles the labeled dashboard, drills down, and confirms a scoped export', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('codex-admin-auth', '1')
-    window.localStorage.setItem('codex-admin-account', 'reporting-e2e')
-  })
+  await mockAdminSession(page)
   const report: RevenueReport = {
     comparison: {
       endDate: '2026-06-30',

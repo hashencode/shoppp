@@ -55,11 +55,31 @@ const statusTag = (status: AdminUserStatus | AdminInvitationStatus) => {
   return <Tag color={colors[status]}>{labels[status]}</Tag>
 }
 
+const deliveryTag = (invitation: AdminInvitation) => {
+  if (!invitation.delivery) return <Tag>Not queued</Tag>
+  const labels = {
+    dead_letter: 'Delivery failed',
+    failed: 'Retry scheduled',
+    pending: 'Queued',
+    processing: 'Sending',
+    sent: 'Sent',
+  } as const
+  const colors = {
+    dead_letter: 'error',
+    failed: 'warning',
+    pending: 'processing',
+    processing: 'processing',
+    sent: 'success',
+  } as const
+  return <Tag color={colors[invitation.delivery.status]}>{labels[invitation.delivery.status]}</Tag>
+}
+
 export const UsersPage = () => {
   const navigate = useNavigate()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.users.write', permissions)
   const canReadRoles = hasPermission(roleKey, 'iam.roles.read', permissions)
+  const canInvite = canWrite && canReadRoles
   const [users, setUsers] = useState<AdminUser[]>([])
   const [invitations, setInvitations] = useState<AdminInvitation[]>([])
   const [roles, setRoles] = useState<AdminRole[]>([])
@@ -164,6 +184,11 @@ export const UsersPage = () => {
       render: (_: unknown, invitation: AdminInvitation) => statusTag(invitation.status),
     },
     {
+      key: 'delivery',
+      title: 'Email delivery',
+      render: (_: unknown, invitation: AdminInvitation) => deliveryTag(invitation),
+    },
+    {
       key: 'actions',
       title: 'Actions',
       width: 190,
@@ -216,7 +241,7 @@ export const UsersPage = () => {
           <h1 className="text-2xl font-semibold">Users and invitations</h1>
           <p className="text-slate-500">Manage human access. Authentication and passwords remain with the IdP.</p>
         </div>
-        {canWrite ? (
+        {canInvite ? (
           <Button
             type="primary"
             onClick={() => {
@@ -230,6 +255,14 @@ export const UsersPage = () => {
           </Button>
         ) : null}
       </div>
+
+      {canWrite && !canReadRoles ? (
+        <Alert
+          type="info"
+          showIcon
+          title="Invitation creation requires role visibility. You can still resend or revoke existing invitations."
+        />
+      ) : null}
 
       {loadError ? <Alert type="error" showIcon title={loadError} action={<Button onClick={() => void load()}>Retry</Button>} /> : null}
       <Input.Search
@@ -299,7 +332,7 @@ export const UsersPage = () => {
 
       <Modal
         title="Invite user"
-        open={inviteOpen}
+        open={canInvite && inviteOpen}
         okText="Send invitation"
         confirmLoading={saving}
         onCancel={() => setInviteOpen(false)}

@@ -33,6 +33,8 @@ interface ReleaseReport {
   approval?: {
     approvedBy: string;
     backupId: string;
+    humanAccessApprovedBy: string;
+    humanAccessEvidenceId: string;
     stagingReport: string;
   };
 }
@@ -134,17 +136,31 @@ export async function assertProductionApproval(options: {
   commit: string;
   approvedBy?: string;
   backupId?: string;
+  humanAccessApprovedBy?: string;
+  humanAccessEvidenceId?: string;
   stagingReport?: string;
 }): Promise<ReleaseReport | undefined> {
   if (options.target !== "production") return undefined;
   const approvedBy = options.approvedBy?.trim();
   const backupId = options.backupId?.trim();
+  const humanAccessApprovedBy = options.humanAccessApprovedBy?.trim();
+  const humanAccessEvidenceId = options.humanAccessEvidenceId?.trim();
   const stagingReport = options.stagingReport?.trim();
   assert(approvedBy, "production promotion requires RELEASE_APPROVED_BY");
   assert(backupId, "production promotion requires RELEASE_BACKUP_ID");
   assert(
     /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(backupId),
     "production backup ID contains unsafe characters",
+  );
+  assert(humanAccessEvidenceId, "production promotion requires RELEASE_HUMAN_ACCESS_EVIDENCE_ID");
+  assert(
+    /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(humanAccessEvidenceId),
+    "human access evidence ID contains unsafe characters",
+  );
+  assert(humanAccessApprovedBy, "production promotion requires RELEASE_HUMAN_ACCESS_APPROVED_BY");
+  assert(
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(humanAccessApprovedBy),
+    "human access approver contains unsafe characters",
   );
   assert(stagingReport, "production promotion requires STAGING_RELEASE_REPORT");
   const reportPath = resolve(ROOT, stagingReport);
@@ -227,6 +243,12 @@ export async function validateRelease(options: {
     commit,
     ...(process.env.RELEASE_APPROVED_BY ? { approvedBy: process.env.RELEASE_APPROVED_BY } : {}),
     ...(process.env.RELEASE_BACKUP_ID ? { backupId: process.env.RELEASE_BACKUP_ID } : {}),
+    ...(process.env.RELEASE_HUMAN_ACCESS_APPROVED_BY
+      ? { humanAccessApprovedBy: process.env.RELEASE_HUMAN_ACCESS_APPROVED_BY }
+      : {}),
+    ...(process.env.RELEASE_HUMAN_ACCESS_EVIDENCE_ID
+      ? { humanAccessEvidenceId: process.env.RELEASE_HUMAN_ACCESS_EVIDENCE_ID }
+      : {}),
     ...(process.env.STAGING_RELEASE_REPORT
       ? { stagingReport: process.env.STAGING_RELEASE_REPORT }
       : {}),
@@ -290,6 +312,8 @@ export async function validateRelease(options: {
           approval: {
             approvedBy: process.env.RELEASE_APPROVED_BY!,
             backupId: process.env.RELEASE_BACKUP_ID!,
+            humanAccessApprovedBy: process.env.RELEASE_HUMAN_ACCESS_APPROVED_BY!,
+            humanAccessEvidenceId: process.env.RELEASE_HUMAN_ACCESS_EVIDENCE_ID!,
             stagingReport: basename(process.env.STAGING_RELEASE_REPORT!),
           },
         }
@@ -303,6 +327,7 @@ if (import.meta.main) {
   const { values } = parseArgs({
     args: Bun.argv.slice(2),
     options: {
+      env: { type: "string" },
       target: { type: "string" },
       "release-id": { type: "string" },
       "strict-environment": { type: "boolean", default: false },
@@ -311,7 +336,7 @@ if (import.meta.main) {
   });
   const releaseId = values["release-id"] ?? process.env.RELEASE_ID;
   const result = await validateRelease({
-    target: releaseTarget(values.target ?? process.env.RELEASE_TARGET),
+    target: releaseTarget(values.env ?? values.target ?? process.env.RELEASE_TARGET),
     ...(releaseId ? { releaseId } : {}),
     strictEnvironment:
       values["strict-environment"] || process.env.RELEASE_STRICT_ENVIRONMENT === "true",

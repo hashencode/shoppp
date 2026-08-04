@@ -71,7 +71,7 @@ import {
   resolvePrincipal,
   type AccessVerifier,
 } from "../middleware/auth";
-import { adminOriginProtection } from "../middleware/admin-origin";
+import { adminOriginProtection, isAllowedAdminBrowserOrigin } from "../middleware/admin-origin";
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
 import { getGuestOrderAccess } from "../orders/guest-access";
@@ -491,12 +491,6 @@ export function createApp(options: CreateAppOptions = {}) {
   });
   const accessVerifier = options.accessVerifier ?? defaultAccessVerifier;
   app.post("/admin/onboarding", async (context) => {
-    if (
-      context.req.header("Origin") !== context.env.ADMIN_ORIGIN ||
-      context.req.header("Sec-Fetch-Site") !== "same-origin"
-    ) {
-      throw new ApiError(403, "admin_origin_denied", "The admin request origin is not allowed.");
-    }
     const token = context.req.header("Cf-Access-Jwt-Assertion");
     if (!token) {
       logAccessDenial(context, "access_assertion_missing");
@@ -511,6 +505,16 @@ export function createApp(options: CreateAppOptions = {}) {
     } catch {
       logAccessDenial(context, "access_assertion_invalid");
       throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
+    }
+    if (
+      identity.principalKind === "human" &&
+      !isAllowedAdminBrowserOrigin(
+        context.env,
+        context.req.header("Origin"),
+        context.req.header("Sec-Fetch-Site"),
+      )
+    ) {
+      throw new ApiError(403, "admin_origin_denied", "The admin request origin is not allowed.");
     }
     let acceptance;
     try {

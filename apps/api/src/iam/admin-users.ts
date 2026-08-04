@@ -3,7 +3,7 @@ import type { Context } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
-import { recordAuditEvent } from "./audit";
+import { prepareConditionalAuditEvent, recordAuditEvent } from "./audit";
 import { loadAssignableRole } from "./admin-roles";
 import { actorTypeForPrincipal } from "./permissions";
 
@@ -121,6 +121,7 @@ async function denied(
     actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     metadata: { code },
+    reason: code,
     requestId: context.get("requestId"),
     result: "denied",
     targetId: userId,
@@ -145,35 +146,77 @@ export async function updateAdminUser(
     return denied(context, userId, "protected_admin_change_denied", 403);
   }
   const nextRoleId = input.roleId ?? before.role_id;
-  if (input.roleId) await loadAssignableRole(context.env.DB, principal, input.roleId);
+  if (input.roleId) {
+    await loadAssignableRole(context, input.roleId, {
+      action: "iam.users.update",
+      id: userId,
+      type: "admin_identity",
+    });
+  }
   const nextEnabled = input.enabled === undefined ? before.enabled === 1 : input.enabled;
   const removesProtectedAdmin =
     before.enabled === 1 &&
     before.role_protected === 1 &&
     (!nextEnabled || nextRoleId !== before.role_id);
   const now = new Date().toISOString();
-  const updated = await context.env.DB.prepare(
-    `UPDATE admin_identities
+  const nextVersion = input.expectedVersion + 1;
+  const [updateResult] = await context.env.DB.batch([
+    context.env.DB.prepare(
+      `UPDATE admin_identities
           SET display_name = ?, enabled = ?, role_id = ?, version = version + 1, updated_at = ?
         WHERE id = ? AND principal_kind = 'human' AND version = ?
+          AND EXISTS (SELECT 1 FROM admin_roles WHERE id = ? AND enabled = 1)
           AND (? = 0 OR (
             SELECT COUNT(*) FROM admin_identities identity
             JOIN admin_roles role ON role.id = identity.role_id
             WHERE identity.principal_kind = 'human' AND identity.enabled = 1
               AND role.protected = 1 AND role.enabled = 1
           ) > 1)`,
-  )
-    .bind(
+    ).bind(
       input.displayName ?? before.display_name,
       nextEnabled ? 1 : 0,
       nextRoleId,
       now,
       userId,
       input.expectedVersion,
+      nextRoleId,
       removesProtectedAdmin ? 1 : 0,
+    ),
+    prepareConditionalAuditEvent(
+      context.env.DB,
+      {
+        action: "iam.users.update",
+        actorId: principal.id,
+        actorType: actorTypeForPrincipal(principal),
+        id: crypto.randomUUID(),
+        metadata: {
+          after: { enabled: nextEnabled, roleId: nextRoleId, version: nextVersion },
+          before: {
+            enabled: before.enabled === 1,
+            roleId: before.role_id,
+            version: before.version,
+          },
+        },
+        requestId: context.get("requestId"),
+        result: "succeeded",
+        targetId: userId,
+        targetType: "admin_identity",
+      },
+      {
+        bindings: [userId, nextVersion, now],
+        sql: "SELECT 1 FROM admin_identities WHERE id = ? AND version = ? AND updated_at = ?",
+      },
+    ),
+  ]);
+  if ((updateResult?.meta.changes ?? 0) < 1) {
+    const selectedRole = await context.env.DB.prepare(
+      "SELECT enabled FROM admin_roles WHERE id = ?",
     )
-    .run();
-  if (updated.meta.changes !== 1) {
+      .bind(nextRoleId)
+      .first<{ enabled: number }>();
+    if (!selectedRole || selectedRole.enabled !== 1) {
+      return denied(context, userId, "role_unavailable", 409);
+    }
     const current = await findUser(context.env.DB, userId);
     if (current?.version === input.expectedVersion && removesProtectedAdmin) {
       return denied(context, userId, "last_admin_change_denied", 409);
@@ -182,19 +225,5 @@ export async function updateAdminUser(
   }
   const after = await findUser(context.env.DB, userId);
   if (!after) throw new ApiError(500, "admin_user_update_failed", "The user update failed.");
-  await recordAuditEvent(context.env.DB, {
-    action: "iam.users.update",
-    actorId: principal.id,
-    actorType: actorTypeForPrincipal(principal),
-    id: crypto.randomUUID(),
-    metadata: {
-      after: { enabled: after.enabled === 1, roleId: after.role_id, version: after.version },
-      before: { enabled: before.enabled === 1, roleId: before.role_id, version: before.version },
-    },
-    requestId: context.get("requestId"),
-    result: "succeeded",
-    targetId: userId,
-    targetType: "admin_identity",
-  });
   return dto(after);
 }

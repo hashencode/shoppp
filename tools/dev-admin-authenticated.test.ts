@@ -5,6 +5,7 @@ import {
   authenticatedDevelopmentCommands,
   resolveAuthenticatedDevelopmentConfig,
   shouldForwardAccessAssertion,
+  verifyAuthenticatedDevelopmentContract,
 } from "./dev-admin-authenticated";
 
 const environment = () => ({
@@ -66,6 +67,23 @@ describe("authenticated admin development preflight", () => {
     });
   });
 
+  test("binds local development to the repository's sole staging API, Access audience, and D1", async () => {
+    const canonical = environment();
+    canonical.TEST_API_ORIGIN = "https://shoppp-api-staging.hashencode.workers.dev";
+    canonical.ADMIN_TUNNEL_HOSTNAME = "admin-dev-test.cdncdncdn.online";
+    canonical.TEST_ACCESS_AUDIENCE =
+      "25b9bf3fb5e9611012d068230a4320ae2fb70c6e9ab682d0fb615c9c36f226a0";
+    canonical.TEST_D1_DATABASE_ID = "0c84c9e0-5ef1-4897-815e-5ec7efb7582e";
+    await expect(
+      verifyAuthenticatedDevelopmentContract(resolveAuthenticatedDevelopmentConfig(canonical)),
+    ).resolves.toBeUndefined();
+
+    const drifted = { ...canonical, TEST_D1_DATABASE_ID: "another-test-database-id" };
+    await expect(
+      verifyAuthenticatedDevelopmentContract(resolveAuthenticatedDevelopmentConfig(drifted)),
+    ).rejects.toThrow(/staging API test D1 binding/);
+  });
+
   test("exposes no normal development or production dev script", async () => {
     const packageJson = JSON.parse(
       await readFile(resolve(import.meta.dir, "../apps/admin/package.json"), "utf8"),
@@ -78,9 +96,20 @@ describe("authenticated admin development preflight", () => {
   });
 
   test("forwards Access assertions only on the exact protected tunnel hostname", () => {
-    expect(shouldForwardAccessAssertion("admin-dev-test.example.com", "admin-dev-test.example.com")).toBe(true);
-    expect(shouldForwardAccessAssertion("admin-dev-test.example.com:443", "admin-dev-test.example.com")).toBe(true);
-    expect(shouldForwardAccessAssertion("localhost:3000", "admin-dev-test.example.com")).toBe(false);
-    expect(shouldForwardAccessAssertion("admin-dev-test.example.com.attacker.test", "admin-dev-test.example.com")).toBe(false);
+    expect(
+      shouldForwardAccessAssertion("admin-dev-test.example.com", "admin-dev-test.example.com"),
+    ).toBe(true);
+    expect(
+      shouldForwardAccessAssertion("admin-dev-test.example.com:443", "admin-dev-test.example.com"),
+    ).toBe(true);
+    expect(shouldForwardAccessAssertion("localhost:3000", "admin-dev-test.example.com")).toBe(
+      false,
+    );
+    expect(
+      shouldForwardAccessAssertion(
+        "admin-dev-test.example.com.attacker.test",
+        "admin-dev-test.example.com",
+      ),
+    ).toBe(false);
   });
 });

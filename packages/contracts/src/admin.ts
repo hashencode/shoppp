@@ -194,6 +194,13 @@ export const adminPrincipalKindSchema = z.enum(["human", "service"]);
 export const adminEnvironmentSchema = z.enum(["test", "production"]);
 export const adminUserStatusSchema = z.enum(["active", "disabled"]);
 export const adminInvitationStatusSchema = z.enum(["pending", "accepted", "revoked", "expired"]);
+export const notificationJobStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "sent",
+  "failed",
+  "dead_letter",
+]);
 
 export const adminRoleSummarySchema = z
   .object({
@@ -256,6 +263,14 @@ export const adminInvitationSchema = z
     acceptedAt: isoDateTimeSchema.nullable(),
     acceptedIdentityId: adminIdSchema.nullable(),
     createdAt: isoDateTimeSchema,
+    delivery: z
+      .object({
+        attemptCount: z.int().nonnegative(),
+        lastErrorCode: z.string().nullable(),
+        status: notificationJobStatusSchema,
+      })
+      .strict()
+      .nullable(),
     displayName: adminDisplayNameSchema.nullable(),
     email: adminEmailSchema,
     expiresAt: isoDateTimeSchema,
@@ -494,14 +509,6 @@ export const cancelOrderRequestSchema = z
     reason: z.string().trim().min(3).max(500),
   })
   .strict();
-
-export const notificationJobStatusSchema = z.enum([
-  "pending",
-  "processing",
-  "sent",
-  "failed",
-  "dead_letter",
-]);
 
 export const notificationAttemptSchema = z
   .object({

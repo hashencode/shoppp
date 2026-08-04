@@ -81,7 +81,7 @@ export const UserDetailPage = () => {
         displayName: values.displayName.trim(),
         enabled: values.status === 'active',
         expectedVersion: user.version,
-        roleId: values.roleId,
+        ...(values.roleId !== user.role.id ? { roleId: values.roleId } : {}),
       })
       setUser(updated)
       form.setFieldsValue({
@@ -116,6 +116,13 @@ export const UserDetailPage = () => {
       </div>
       {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>Reload</Button>} /> : null}
       {isSelf ? <Alert type="info" showIcon title="You cannot change your own role or status." /> : null}
+      {canWrite && !canReadRoles ? (
+        <Alert
+          type="info"
+          showIcon
+          title="Role visibility is not granted. You can update this user's display name or status, but not their role."
+        />
+      ) : null}
       {user?.status === 'active' && user.role.protected && !isSelf ? (
         <Alert
           type="warning"
@@ -154,7 +161,13 @@ export const UserDetailPage = () => {
               <Input />
             </Form.Item>
             <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
-              <Select options={assignableRoles.map((role) => ({ label: role.name, value: role.id }))} />
+              <Select
+                disabled={!canReadRoles}
+                options={(canReadRoles ? assignableRoles : [user.role]).map((role) => ({
+                  label: role.name,
+                  value: role.id,
+                }))}
+              />
             </Form.Item>
             <Form.Item name="status" label="Status" rules={[{ required: true }]}>
               <Select options={[{ label: 'Active', value: 'active' }, { label: 'Disabled', value: 'disabled' }]} />

@@ -325,6 +325,18 @@ describe("D1 migrations", () => {
         roleKey: "support",
       },
     ]);
+    expect(
+      await db
+        .prepare(
+          "SELECT id, email, role FROM admin_identities WHERE id IN ('identity_admin', 'identity_service') ORDER BY id",
+        )
+        .all(),
+    ).toMatchObject({
+      results: [
+        { email: "admin@example.test", id: "identity_admin", role: "admin" },
+        { email: SERVICE_EMAIL_MARKER, id: "identity_service", role: "operations" },
+      ],
+    });
     for (const [table, column, rowId, identityId] of [
       ["stock_ledger_entries", "actor_id", "ledger_actor_fixture", "identity_admin"],
       ["catalog_releases", "approved_by", "release_actor_fixture", "identity_catalog"],
@@ -369,6 +381,19 @@ describe("D1 migrations", () => {
         NOW,
       )
       .run();
+    expect(
+      await env.DB.prepare(
+        "SELECT email, role FROM admin_identities WHERE id = 'identity_constraints'",
+      ).first(),
+    ).toEqual({ email: "constraints@example.test", role: "admin" });
+    await env.DB.prepare(
+      "UPDATE admin_identities SET role_id = 'role_support' WHERE id = 'identity_constraints'",
+    ).run();
+    expect(
+      await env.DB.prepare(
+        "SELECT email, role FROM admin_identities WHERE id = 'identity_constraints'",
+      ).first(),
+    ).toEqual({ email: "constraints@example.test", role: "support" });
     await expect(
       env.DB.prepare(humanInsert)
         .bind(

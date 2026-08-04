@@ -152,6 +152,11 @@ describe("admin role lifecycle", () => {
     expect(await denied.json()).toMatchObject({
       error: { code: "permission_escalation_denied" },
     });
+    expect(
+      await env.DB.prepare(
+        "SELECT actor_type, reason, result FROM audit_events WHERE action = 'iam.roles.create' AND actor_id = 'delegated-manager' AND result = 'denied'",
+      ).first(),
+    ).toEqual({ actor_type: "admin", reason: "permission_escalation_denied", result: "denied" });
   });
 
   test("rejects caller-role edits while allowing metadata changes to non-protected system roles", async () => {

@@ -7,7 +7,7 @@ import { bootstrapFirstAdmin, productionBootstrapConfirmation } from "../../src/
 import { EmailProviderError, type EmailProvider } from "../../src/notifications/port";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
-function request(path: string, method = "GET", body?: unknown): Request {
+function request(path: string, method = "GET", body?: unknown, headers: HeadersInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     headers: {
@@ -15,6 +15,7 @@ function request(path: string, method = "GET", body?: unknown): Request {
       "Content-Type": "application/json",
       Origin: "https://admin.example.test",
       "Sec-Fetch-Site": "same-origin",
+      ...headers,
     },
     method,
   });
@@ -107,12 +108,40 @@ describe("admin invitation lifecycle", () => {
     );
     expect(revoked.status).toBe(200);
     expect(await revoked.json()).toMatchObject({ data: { status: "revoked", version: 3 } });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT action, actor_type, result FROM audit_events WHERE target_id = ? ORDER BY action",
+        )
+          .bind(body.data.id)
+          .all()
+      ).results,
+    ).toEqual([
+      { action: "iam.invitations.create", actor_type: "admin", result: "succeeded" },
+      { action: "iam.invitations.resend", actor_type: "admin", result: "succeeded" },
+      { action: "iam.invitations.revoke", actor_type: "admin", result: "succeeded" },
+    ]);
+    const revokeAudit = await env.DB.prepare(
+      "SELECT metadata_json FROM audit_events WHERE action = 'iam.invitations.revoke' AND target_id = ?",
+    )
+      .bind(body.data.id)
+      .first<{ metadata_json: string }>();
+    expect(JSON.parse(revokeAudit!.metadata_json)).toEqual({
+      after: { status: "revoked", version: 3 },
+      before: { status: "pending", version: 2 },
+    });
   });
 
   test("atomically accepts one exact normalized human identity and returns its session", async () => {
     await invite();
     const app = humanApp("operator-subject", "operator@example.com");
-    const accepted = await app.fetch(request("/admin/onboarding", "POST"), env);
+    const tunnelHostname = "admin-dev-test.example.com";
+    const accepted = await app.fetch(
+      request("/admin/onboarding", "POST", undefined, {
+        Origin: `https://${tunnelHostname}`,
+      }),
+      { ...env, ADMIN_TUNNEL_HOSTNAME: tunnelHostname, ENVIRONMENT: "staging" },
+    );
     expect(accepted.status).toBe(200);
     expect(await accepted.json()).toMatchObject({
       data: {
@@ -128,6 +157,11 @@ describe("admin invitation lifecycle", () => {
         "SELECT status, accepted_identity_id FROM admin_invitations WHERE normalized_email = 'operator@example.com'",
       ).first(),
     ).toMatchObject({ status: "accepted", accepted_identity_id: expect.any(String) });
+    expect(
+      await env.DB.prepare(
+        "SELECT actor_type, result FROM audit_events WHERE action = 'iam.invitations.accept' AND target_id = (SELECT id FROM admin_invitations WHERE normalized_email = 'operator@example.com')",
+      ).first(),
+    ).toEqual({ actor_type: "admin", result: "succeeded" });
   });
 
   test("allows exactly one winner in an invitation acceptance race", async () => {
@@ -150,6 +184,60 @@ describe("admin invitation lifecycle", () => {
     ).toEqual({ count: 1 });
   });
 
+  test("does not create an identity when the invitation is revoked before the acceptance batch", async () => {
+    const created = await invite("revoked-race@example.test", "invite-revoked-race-0001");
+    const invitationId = ((await created.json()) as { data: { id: string } }).data.id;
+    let intercepted = false;
+    const db = new Proxy(env.DB, {
+      get(target, property) {
+        if (property === "batch") {
+          return async (statements: D1PreparedStatement[]) => {
+            if (!intercepted) {
+              intercepted = true;
+              const revokedAt = new Date().toISOString();
+              await target
+                .prepare(
+                  `UPDATE admin_invitations
+                      SET status = 'revoked', revoked_at = ?, version = version + 1, updated_at = ?
+                    WHERE id = ?`,
+                )
+                .bind(revokedAt, revokedAt, invitationId)
+                .run();
+            }
+            return target.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const racedEnv = { ...env, DB: db };
+
+    const response = await humanApp("revoked-race-subject", "revoked-race@example.test").fetch(
+      request("/admin/onboarding", "POST"),
+      racedEnv,
+    );
+
+    expect(response.status).toBe(409);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM admin_identities WHERE normalized_email = 'revoked-race@example.test'",
+      ).first(),
+    ).toEqual({ count: 0 });
+    expect(
+      await env.DB.prepare("SELECT status FROM admin_invitations WHERE id = ?")
+        .bind(invitationId)
+        .first(),
+    ).toEqual({ status: "revoked" });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM audit_events WHERE action = 'iam.invitations.accept' AND target_id = ?",
+      )
+        .bind(invitationId)
+        .first(),
+    ).toEqual({ count: 0 });
+  });
+
   test("collapses concurrent invitation creation to one active record", async () => {
     const responses = await Promise.all([
       invite("concurrent@example.test", "invite-concurrent-a"),
@@ -163,9 +251,67 @@ describe("admin invitation lifecycle", () => {
     ).toEqual({ count: 1 });
   });
 
+  test("rejects creation when the selected role is archived before the write batch", async () => {
+    let intercepted = false;
+    const db = new Proxy(env.DB, {
+      get(target, property) {
+        if (property === "batch") {
+          return async (statements: D1PreparedStatement[]) => {
+            if (!intercepted) {
+              intercepted = true;
+              await target
+                .prepare("UPDATE admin_roles SET enabled = 0 WHERE id = ?")
+                .bind(ADMIN_ROLE_IDS.operations)
+                .run();
+            }
+            return target.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
+    try {
+      const response = await adminApp.fetch(
+        request("/admin/iam/invitations", "POST", {
+          email: "archived-role@example.test",
+          idempotencyKey: "invite-archived-role-0001",
+          roleId: ADMIN_ROLE_IDS.operations,
+        }),
+        { ...env, DB: db },
+      );
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ error: { code: "role_unavailable" } });
+      expect(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM admin_invitations WHERE normalized_email = 'archived-role@example.test'",
+        ).first(),
+      ).toEqual({ count: 0 });
+      expect(
+        await env.DB.prepare(
+          "SELECT reason, result FROM audit_events WHERE action = 'iam.invitations.create'",
+        ).first(),
+      ).toEqual({ reason: "role_unavailable", result: "denied" });
+    } finally {
+      await env.DB.prepare("UPDATE admin_roles SET enabled = 1 WHERE id = ?")
+        .bind(ADMIN_ROLE_IDS.operations)
+        .run();
+    }
+  });
+
   test("denies mismatched, absent, expired, and service invitation claims without creating users", async () => {
     const created = await invite("expected@example.test", "invite-denials-0001");
     const id = ((await created.json()) as { data: { id: string } }).data.id;
+    const missingOrigin = await humanApp("expected-subject", "expected@example.test").fetch(
+      new Request("https://api.example.test/admin/onboarding", {
+        headers: { "Cf-Access-Jwt-Assertion": "test-token" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(missingOrigin.status).toBe(403);
+    expect(await missingOrigin.json()).toMatchObject({ error: { code: "admin_origin_denied" } });
     expect(
       (
         await humanApp("wrong-subject", "wrong@example.test").fetch(
@@ -181,7 +327,17 @@ describe("admin invitation lifecycle", () => {
         subject: "invite-claimer",
       }),
     });
-    expect((await service.fetch(request("/admin/onboarding", "POST"), env)).status).toBe(403);
+    const serviceResponse = await service.fetch(
+      new Request("https://api.example.test/admin/onboarding", {
+        headers: { "Cf-Access-Jwt-Assertion": "test-token" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(serviceResponse.status).toBe(403);
+    expect(await serviceResponse.json()).toMatchObject({
+      error: { code: "human_invitation_required" },
+    });
     await env.DB.prepare("UPDATE admin_invitations SET expires_at = ? WHERE id = ?")
       .bind("2020-01-01T00:00:00.000Z", id)
       .run();
@@ -276,6 +432,24 @@ describe("admin invitation lifecycle", () => {
         .bind(invitationId)
         .first(),
     ).toEqual({ status: "pending" });
+    const listed = await adminApp.fetch(
+      request("/admin/iam/invitations?search=failure@example.test"),
+      env,
+    );
+    expect(await listed.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            delivery: {
+              attemptCount: 2,
+              lastErrorCode: "recipient_rejected",
+              status: "dead_letter",
+            },
+            status: "pending",
+          },
+        ],
+      },
+    });
   });
 
   test("bootstraps one protected invitation, reuses it, and refuses after activation", async () => {
@@ -284,12 +458,19 @@ describe("admin invitation lifecycle", () => {
       env.DB.prepare("DELETE FROM admin_identities"),
     ]);
     const input = {
-      databaseIdentity: "shoppp-test",
+      databaseIdentity: "shoppp-staging",
       email: "First.Admin@Example.test",
       environment: "test" as const,
     };
     const first = await bootstrapFirstAdmin(env.DB, input);
     expect(first.reused).toBe(false);
+    expect(
+      await env.DB.prepare(
+        "SELECT actor_type, result FROM audit_events WHERE action = 'iam.bootstrap.invitation' AND target_id = ?",
+      )
+        .bind(first.invitationId)
+        .first(),
+    ).toEqual({ actor_type: "machine", result: "succeeded" });
     await expect(bootstrapFirstAdmin(env.DB, input)).resolves.toEqual({
       invitationId: first.invitationId,
       reused: true,
@@ -308,6 +489,13 @@ describe("admin invitation lifecycle", () => {
         environment: "production",
       }),
     ).rejects.toThrow(/confirmation/);
+    await expect(
+      bootstrapFirstAdmin(env.DB, {
+        databaseIdentity: "shoppp-development",
+        email: "owner@example.test",
+        environment: "test",
+      }),
+    ).rejects.toThrow(/shoppp-staging/);
     expect(productionBootstrapConfirmation("shoppp-production", "Owner@Example.test")).toBe(
       "BOOTSTRAP_PRODUCTION:shoppp-production:owner@example.test",
     );

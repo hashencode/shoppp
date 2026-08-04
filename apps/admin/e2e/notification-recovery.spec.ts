@@ -1,11 +1,9 @@
 import type { NotificationJob } from '@shoppp/contracts'
 import { expect, test } from '@playwright/test'
+import { mockAdminSession } from './support'
 
 test('operator safely replays an exhausted notification', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('codex-admin-auth', '1')
-    window.localStorage.setItem('codex-admin-account', 'recovery-e2e')
-  })
+  await mockAdminSession(page)
   let job: NotificationJob = {
     attemptCount: 3,
     attempts: [

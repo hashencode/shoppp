@@ -2,25 +2,33 @@
 
 ## Boundary map
 
-| Boundary             | Credential                               | Server-side enforcement                                                                                             | Sensitive-data rule                                                                 |
-| -------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Public catalog       | None                                     | Published release and live catalog validation                                                                       | Public catalog facts only; cacheable by route policy                                |
-| Guest cart and order | Opaque `CartToken` or order-access token | Hash lookup, expiry, use-case validation, private/no-store responses                                                | Tokens never enter URLs except the guest order route and are normalized out of logs |
-| Checkout submission  | Cart token, origin, Turnstile token      | Exact storefront origin, 32 KiB body cap, credential-scoped rate limit, single-use Siteverify action/hostname check | Hosted payment only; no raw card data                                               |
-| Aggregate analytics  | Exact storefront origin                  | 1 KiB body cap, independent rate limit, allowlisted event and normalized route class                                | No URL, slug, guest token, cookie, IP, device, session, or personal identifier      |
-| Stripe webhook       | Provider signature                       | Raw-body HMAC verification, provider event uniqueness, monotonic convergence                                        | Payload is hashed; credentials and payloads are excluded from ordinary logs         |
-| Admin                | Cloudflare Access assertion              | Access JWT, enabled D1 identity, role permission inside each use case                                               | Private/no-store; denied actions are audited                                        |
-| Build machine        | Dedicated bearer secret                  | Release-scoped manifest endpoint and approved release status                                                        | Build credential is separate from shopper/admin credentials                         |
-| Queue and Workflow   | Cloudflare binding identity              | Minimal stable IDs, D1 claim/deduplication, bounded retry and DLQ                                                   | No personal data in queue payloads                                                  |
-| D1 export Workflow   | Account-scoped D1 export token           | Scheduled Workflow, environment-specific database ID and R2 bucket                                                  | Token is a Worker secret; backup content never enters logs                          |
+| Boundary             | Credential                               | Server-side enforcement                                                                                                                                                                         | Sensitive-data rule                                                                 |
+| -------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Public catalog       | None                                     | Published release and live catalog validation                                                                                                                                                   | Public catalog facts only; cacheable by route policy                                |
+| Guest cart and order | Opaque `CartToken` or order-access token | Hash lookup, expiry, use-case validation, private/no-store responses                                                                                                                            | Tokens never enter URLs except the guest order route and are normalized out of logs |
+| Checkout submission  | Cart token, origin, Turnstile token      | Exact storefront origin, 32 KiB body cap, credential-scoped rate limit, single-use Siteverify action/hostname check                                                                             | Hosted payment only; no raw card data                                               |
+| Aggregate analytics  | Exact storefront origin                  | 1 KiB body cap, independent rate limit, allowlisted event and normalized route class                                                                                                            | No URL, slug, guest token, cookie, IP, device, session, or personal identifier      |
+| Stripe webhook       | Provider signature                       | Raw-body HMAC verification, provider event uniqueness, monotonic convergence                                                                                                                    | Payload is hashed; credentials and payloads are excluded from ordinary logs         |
+| Admin human          | Cloudflare Access human assertion        | Exact issuer/audience, enabled human D1 identity, role permission, exact deployed admin origin or configured test tunnel origin for browser mutations; production never accepts a tunnel origin | Private/no-store; mapped denials and IAM mutations are audited                      |
+| Admin service        | Environment-owned Access service token   | Exact issuer/audience, enabled service D1 identity, role permission; service identities cannot use human onboarding                                                                             | Token values never enter D1, logs, artifacts, or the human user list                |
+| Build machine        | Dedicated bearer secret                  | Release-scoped manifest endpoint and approved release status                                                                                                                                    | Build credential is separate from shopper/admin credentials                         |
+| Queue and Workflow   | Cloudflare binding identity              | Minimal stable IDs, D1 claim/deduplication, bounded retry and DLQ                                                                                                                               | No personal data in queue payloads                                                  |
+| D1 export Workflow   | Account-scoped D1 export token           | Scheduled Workflow, environment-specific database ID and R2 bucket                                                                                                                              | Token is a Worker secret; backup content never enters logs                          |
 
 ## Environment isolation
 
-Development, staging, and production have distinct Worker names, D1 IDs, R2 buckets, rate-limit
-namespaces, Analytics Engine datasets, queues, Workflows, Access audiences, origins, webhook
-secrets, email settings, and storefront/admin deployments. Startup rejects a resource namespace
-that does not contain its declared environment, and rejects non-production bindings that name
-production.
+There are exactly two shared remote identity/data planes. Local authenticated development,
+remote-dependent automated tests, and the test deployment use `shoppp-staging`, the test D1. Only
+production uses `shoppp-production`, the production D1. Their IDs, credentials, backups, Worker
+names, admin hostnames, Access applications/audiences, IdP assignments, and service credentials are
+distinct. A disposable local Miniflare database is not a shared remote environment. No shared
+remote development D1 exists, and no development command can select production.
+
+Other stateful resources remain environment-owned: test and production have distinct R2 buckets,
+rate-limit namespaces, Analytics Engine datasets, queues, Workflows, origins, webhook secrets,
+email settings, and storefront/admin deployments. Startup and release validation reject a
+test/production crossover, a production-named non-production binding, or any third shared remote
+development database identity.
 
 Production secrets are configured with `wrangler secret put` and are intentionally absent from
 source. A production configuration is not launch-ready until the server confirms payment and
@@ -35,6 +43,11 @@ opaque order tokens, email, address, phone, authorization, cookies, provider sec
 card-like values are removed before console or Analytics Engine emission. Page analytics contain
 only a normalized route class; cart creation, checkout start, and confirmed purchase are counted
 at idempotent server milestones. Private endpoints set `Cache-Control: private, no-store`.
+
+Missing, malformed, wrong-issuer, and wrong-audience Access traffic is emitted only as redacted
+`security.access_denied` structured events and Cloudflare Access logs; it cannot amplify writes to
+D1. Once an identity is mapped, authentication and permission denials are written to the
+application audit trail. Human actors use `admin`; service actors use `machine`.
 
 ## Data lifecycle
 

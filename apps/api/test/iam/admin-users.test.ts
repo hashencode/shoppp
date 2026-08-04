@@ -141,6 +141,63 @@ describe("admin user lifecycle", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "protected_role_assignment_denied" },
     });
+    expect(
+      await env.DB.prepare(
+        "SELECT actor_type, reason, result FROM audit_events WHERE action = 'iam.users.update' AND target_id = 'operator-one'",
+      ).first(),
+    ).toEqual({
+      actor_type: "admin",
+      reason: "protected_role_assignment_denied",
+      result: "denied",
+    });
+  });
+
+  test("rejects assignment when the selected role is archived before the write batch", async () => {
+    let intercepted = false;
+    const db = new Proxy(env.DB, {
+      get(target, property) {
+        if (property === "batch") {
+          return async (statements: D1PreparedStatement[]) => {
+            if (!intercepted) {
+              intercepted = true;
+              await target
+                .prepare("UPDATE admin_roles SET enabled = 0 WHERE id = ?")
+                .bind(ADMIN_ROLE_IDS.support)
+                .run();
+            }
+            return target.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
+    try {
+      const response = await humanApp("admin-one").fetch(
+        request("/admin/iam/users/operator-one", {
+          expectedVersion: 1,
+          roleId: ADMIN_ROLE_IDS.support,
+        }),
+        { ...env, DB: db },
+      );
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ error: { code: "role_unavailable" } });
+      expect(
+        await env.DB.prepare(
+          "SELECT role_id, version FROM admin_identities WHERE id = 'operator-one'",
+        ).first(),
+      ).toEqual({ role_id: ADMIN_ROLE_IDS.operations, version: 1 });
+      expect(
+        await env.DB.prepare(
+          "SELECT reason, result FROM audit_events WHERE action = 'iam.users.update' AND target_id = 'operator-one'",
+        ).first(),
+      ).toEqual({ reason: "role_unavailable", result: "denied" });
+    } finally {
+      await env.DB.prepare("UPDATE admin_roles SET enabled = 1 WHERE id = ?")
+        .bind(ADMIN_ROLE_IDS.support)
+        .run();
+    }
   });
 
   test("serializes concurrent changes so an environment retains one human admin", async () => {

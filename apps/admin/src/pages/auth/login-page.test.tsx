@@ -45,11 +45,9 @@ const renderPage = () =>
 describe('Access session page', () => {
   beforeEach(() => {
     rstest.restoreAllMocks()
-    window.localStorage.setItem('codex-admin-auth', '1')
-    window.localStorage.setItem('codex-admin-account', 'legacy-admin')
   })
 
-  it('hydrates the authoritative API session and ignores stale local auth keys', async () => {
+  it('hydrates the authoritative API session without a browser credential state', async () => {
     rstest.spyOn(authApi, 'fetchAdminSession').mockResolvedValue(session)
     renderPage()
 
@@ -57,7 +55,6 @@ describe('Access session page', () => {
       expect(screen.getByTestId('auth-probe').textContent).toBe('authenticated:identity-alice')
     })
     expect(screen.queryByPlaceholderText(/用户名|密码|手机号|验证码/)).toBeNull()
-    expect(window.localStorage.getItem('codex-admin-auth')).toBe('1')
   })
 
   it('shows protected-host instructions and never offers a credential form', async () => {

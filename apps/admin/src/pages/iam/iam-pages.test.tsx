@@ -83,6 +83,11 @@ const expiredInvitation = {
   acceptedAt: null,
   acceptedIdentityId: null,
   createdAt: '2026-07-01T00:00:00.000Z',
+  delivery: {
+    attemptCount: 3,
+    lastErrorCode: 'recipient_rejected',
+    status: 'dead_letter',
+  },
   displayName: 'Expired Invite',
   email: 'expired@example.test',
   expiresAt: '2026-07-08T00:00:00.000Z',
@@ -206,6 +211,7 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
     expect(await screen.findByText('expired@example.test')).toBeTruthy()
     expect(screen.getAllByText('Expired').length).toBeGreaterThan(0)
+    expect(screen.getByText('Delivery failed')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Invite user/i })).toBeNull()
   })
 
@@ -222,6 +228,36 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
     await waitFor(() => expect(inviteAttempts).toBe(2))
     expect(await screen.findByText('Invitation created.')).toBeTruthy()
+  })
+
+  it('degrades user writes safely when role visibility is absent', async () => {
+    const usersView = renderPage(<UsersPage />, {
+      permissions: ['iam.users.read', 'iam.users.write'],
+    })
+    await waitFor(() => expect(screen.getByText('Alice Admin')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: /Invite user/i })).toBeNull()
+    expect(screen.getByText(/invitation creation requires role visibility/i)).toBeTruthy()
+    usersView.unmount()
+
+    let updateBody: Record<string, unknown> | undefined
+    server.use(
+      http.patch('*/admin/iam/users/:id', async ({ request }) => {
+        updateBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: { ...disabledUser, displayName: 'Renamed User' } })
+      })
+    )
+    renderPage(<UserDetailPage />, {
+      path: `/access/users/${disabledUser.id}`,
+      permissions: ['iam.users.read', 'iam.users.write'],
+    })
+    await waitFor(() => expect(screen.getByDisplayValue('Disabled User')).toBeTruthy())
+    expect(
+      screen.getByLabelText('Role').closest('.ant-select')?.classList.contains('ant-select-disabled')
+    ).toBe(true)
+    fireEvent.change(screen.getByLabelText('Display name'), { target: { value: 'Renamed User' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(updateBody).toBeTruthy())
+    expect(updateBody).not.toHaveProperty('roleId')
   })
 
   it('prevents self-modification', async () => {

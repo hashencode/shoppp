@@ -23,12 +23,7 @@ export async function adminContext(
   browser: Browser,
   kind: "authorized" | "prohibited" = "authorized",
 ): Promise<BrowserContext> {
-  const context = await browser.newContext({ extraHTTPHeaders: accessHeaders(kind) });
-  await context.addInitScript((operator) => {
-    window.localStorage.setItem("codex-admin-auth", "1");
-    window.localStorage.setItem("codex-admin-account", operator);
-  }, process.env.E2E_OPERATOR_EMAIL ?? kind);
-  return context;
+  return browser.newContext({ extraHTTPHeaders: accessHeaders(kind) });
 }
 
 export async function fillShippingAddress(page: Page): Promise<void> {

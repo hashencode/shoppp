@@ -66,17 +66,18 @@
 - Browser Mode 模板：`src/test/templates/new-page.browser.test.template.tsx`
 - Playwright E2E 模板：`e2e/templates/new-flow.e2e.template.spec.ts`
 
-## 9. E2E Login Credentials
-- 浏览器/E2E/API 调试登录信息统一读取 `E2E_TEST_USERNAME` / `E2E_TEST_PASSWORD`。
-- 调试时必须按当前运行环境选择对应 env 文件：`development` 使用 `.env.development`，`test` 使用 `.env.test`，`production` 使用 `.env.production`。
-- 不要把真实账号密码写进 spec、docs 或 memory；memory 只记录变量名和 env 选择规则。
-- E2E 模板必须在变量缺失时 fail fast，避免继续使用硬编码示例账号。
+## 9. E2E Access Sessions
+
+- Admin 不接受应用账号密码。真实环境 E2E 必须经过对应环境的 Cloudflare Access，并由 API 返回权威 `/admin/session`。
+- 本地 UI E2E 只允许在 Playwright 路由层返回显式测试 session；不得写入 localStorage、cookie、storage state 或运行时 fallback。
+- Access client ID/secret、JWT、cookie 和真人 IdP 凭据不得写入 spec、docs、trace 或仓库文件。
+- 真实服务身份和真人 IdP/MFA 证明由仓库根目录 `e2e/admin-access.spec.ts` 与发布工作流执行；缺少环境凭据必须 fail closed。
 
 ## 10. Playwright Execution and Artifacts
 
 - 无凭据公共入口冒烟：`bun run test:e2e -- e2e/scaffold-smoke.spec.ts`。
 - 子路径冒烟：`PUBLIC_APP_BASE=/admin bun run test:e2e -- e2e/scaffold-smoke.spec.ts`。
 - 仅校验用例发现：`bun run test:e2e -- --list`。
-- 默认由 Playwright 启动 `test` 模式开发服务器；连接外部环境时显式设置 `E2E_BASE_URL`，切换环境文件时设置 `E2E_ENV_MODE`。
-- 登录态文件只能写入已忽略的 `playwright/.auth/`，禁止提交到仓库。
+- 本地运行前先执行 `bun run build`；Playwright 只预览已构建候选，不启动 development/test dev 命令。连接已构建的外部候选时显式设置 `E2E_BASE_URL`。
+- 禁止创建或提交登录 storage state；测试 session 必须由每个 spec 显式路由并随 context 销毁。
 - `test-results/`、`playwright-report/`、`blob-report/` 可能包含页面截图、trace、请求数据或业务信息，均不得提交；应按最短必要周期保留并在共享前人工检查。
