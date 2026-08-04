@@ -1,4 +1,5 @@
 import type { Context, MiddlewareHandler } from "hono";
+import { getCookie } from "hono/cookie";
 import { ADMIN_PERMISSION_KEYS, type AdminPermission } from "@shoppp/contracts";
 
 import type { ApiEnvironment } from "../http/context";
@@ -10,6 +11,7 @@ import {
   type AccessVerificationConfig,
 } from "../iam/access-jwt";
 import type { Principal } from "../iam/permissions";
+import { hashOpaqueToken } from "../iam/passwords";
 import { safeRequestPath } from "../security/redaction";
 
 export type AccessVerifier = (
@@ -34,6 +36,7 @@ interface PrincipalRow {
 }
 
 const registeredPermissions = new Set<string>(ADMIN_PERMISSION_KEYS);
+export const ADMIN_SESSION_COOKIE = "shoppp_admin_session";
 type ApiContext = Context<ApiEnvironment>;
 
 export function logAccessDenial(
@@ -164,10 +167,116 @@ export async function resolvePrincipal(
       };
 }
 
+export async function resolvePrincipalById(
+  context: ApiContext,
+  identityId: string,
+): Promise<Principal | null> {
+  const identity = await context.env.DB.prepare(
+    `SELECT access_subject, normalized_email, principal_kind
+       FROM admin_identities WHERE id = ?`,
+  )
+    .bind(identityId)
+    .first<{
+      access_subject: string;
+      normalized_email: string | null;
+      principal_kind: "human" | "service";
+    }>();
+  if (!identity) return null;
+  return resolvePrincipal(
+    context,
+    identity.principal_kind === "human"
+      ? {
+          email: identity.normalized_email ?? "",
+          principalKind: "human",
+          subject: identity.access_subject,
+        }
+      : {
+          principalKind: "service",
+          serviceName: identity.access_subject,
+          subject: identity.access_subject,
+        },
+  );
+}
+
+async function resolvePasswordSession(
+  context: ApiContext,
+  token: string,
+): Promise<Principal | null> {
+  const tokenHash = await hashOpaqueToken(token);
+  const now = new Date().toISOString();
+  const session = await context.env.DB.prepare(
+    `SELECT session.id, session.identity_id
+       FROM admin_sessions session
+       JOIN admin_password_credentials credential ON credential.identity_id = session.identity_id
+      WHERE session.token_hash = ?
+        AND session.revoked_at IS NULL
+        AND session.expires_at > ?
+        AND session.password_version = credential.password_version`,
+  )
+    .bind(tokenHash, now)
+    .first<{ id: string; identity_id: string }>();
+  if (!session) return null;
+  const principal = await resolvePrincipalById(context, session.identity_id);
+  if (!principal || principal.principalKind !== "human") return null;
+  await context.env.DB.prepare("UPDATE admin_sessions SET last_seen_at = ? WHERE id = ?")
+    .bind(now, session.id)
+    .run();
+  return principal;
+}
+
+async function resolveServiceCredential(
+  context: ApiContext,
+  token: string,
+): Promise<Principal | null> {
+  const tokenHash = await hashOpaqueToken(token);
+  const now = new Date().toISOString();
+  const credential = await context.env.DB.prepare(
+    `SELECT id, identity_id
+       FROM admin_service_credentials
+      WHERE token_hash = ? AND enabled = 1 AND (expires_at IS NULL OR expires_at > ?)`,
+  )
+    .bind(tokenHash, now)
+    .first<{ id: string; identity_id: string }>();
+  if (!credential) return null;
+  const principal = await resolvePrincipalById(context, credential.identity_id);
+  if (!principal || principal.principalKind !== "service") return null;
+  await context.env.DB.prepare("UPDATE admin_service_credentials SET last_used_at = ? WHERE id = ?")
+    .bind(now, credential.id)
+    .run();
+  return principal;
+}
+
 export function adminAuthentication(
-  accessVerifier: AccessVerifier,
+  accessVerifier?: AccessVerifier,
+  options: { allowHumanAccessIdentity?: boolean } = {},
 ): MiddlewareHandler<ApiEnvironment> {
   return async (context, next) => {
+    const sessionToken = getCookie(context, ADMIN_SESSION_COOKIE);
+    if (sessionToken) {
+      const principal = await resolvePasswordSession(context, sessionToken);
+      if (!principal) {
+        logAccessDenial(context, "admin_session_invalid", "human");
+        throw new ApiError(401, "admin_session_invalid", "The administrator session is invalid.");
+      }
+      context.set("principal", principal);
+      await next();
+      return;
+    }
+    const authorization = context.req.header("Authorization");
+    if (authorization?.startsWith("Bearer ")) {
+      const principal = await resolveServiceCredential(context, authorization.slice(7).trim());
+      if (!principal) {
+        logAccessDenial(context, "service_credential_invalid", "service");
+        throw new ApiError(401, "service_credential_invalid", "Service authentication failed.");
+      }
+      context.set("principal", principal);
+      await next();
+      return;
+    }
+    if (!accessVerifier) {
+      logAccessDenial(context, "admin_login_required");
+      throw new ApiError(401, "admin_login_required", "Administrator login is required.");
+    }
     const token = context.req.header("Cf-Access-Jwt-Assertion");
     if (!token) {
       logAccessDenial(context, "access_assertion_missing");
@@ -182,6 +291,14 @@ export function adminAuthentication(
     } catch {
       logAccessDenial(context, "access_assertion_invalid");
       throw new ApiError(401, "invalid_access_token", "Cloudflare Access authentication failed.");
+    }
+    if (identity.principalKind === "human" && !options.allowHumanAccessIdentity) {
+      logAccessDenial(context, "password_authentication_required", "human");
+      throw new ApiError(
+        401,
+        "password_authentication_required",
+        "Use the administrator account and password login.",
+      );
     }
     const principal = await resolvePrincipal(context, identity);
     if (!principal) {

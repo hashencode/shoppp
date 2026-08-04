@@ -25,7 +25,7 @@ A reusable admin template built with React, TypeScript, Ant Design v6, Tailwind 
 
 - `src/routes` - route config, router builder, and provider
 - `src/routes/form-route-contract.ts` - form route mode contract utilities
-- `src/infrastructure/auth` - authoritative Access session and permission guards
+- `src/infrastructure/auth` - authoritative password session and permission guards
 - `src/infrastructure/http` - shared HTTP client and error normalization
 - `src/infrastructure/msw` - dev-only MSW bootstrap and handlers (`/dev` routes only)
 - `src/pages/home/*` - public pages

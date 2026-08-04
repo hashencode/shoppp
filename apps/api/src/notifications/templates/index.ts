@@ -1,6 +1,9 @@
 import type { NotificationType } from "../port";
 
-type CommerceNotificationType = Exclude<NotificationType, "admin_invitation">;
+type CommerceNotificationType = Exclude<
+  NotificationType,
+  "admin_invitation" | "admin_password_reset"
+>;
 
 export interface NotificationOrderSnapshot {
   readonly currency: string;
@@ -95,17 +98,33 @@ export function renderNotificationTemplate(
 export function renderInvitationNotificationTemplate(input: {
   adminOrigin: string;
   displayName: string | null;
+  token: string;
 }): RenderedNotification {
-  const signInUrl = `${input.adminOrigin.replace(/\/$/, "")}/`;
+  const activationUrl = `${input.adminOrigin.replace(/\/$/, "")}/activate?token=${encodeURIComponent(input.token)}`;
   const greeting = input.displayName ? `Hello ${input.displayName},` : "Hello,";
   const subject = "Your Shoppp admin invitation";
   return {
     html: `<h1>${escapeHtml(subject)}</h1><p>${escapeHtml(
       greeting,
     )}</p><p>You have been invited to Shoppp admin.</p><p><a href="${escapeHtml(
-      signInUrl,
-    )}">Sign in through Cloudflare Access</a></p>`,
+      activationUrl,
+    )}">Create your password</a></p>`,
     subject,
-    text: `${greeting}\n\nYou have been invited to Shoppp admin.\n\nSign in through Cloudflare Access: ${signInUrl}`,
+    text: `${greeting}\n\nYou have been invited to Shoppp admin.\n\nCreate your password: ${activationUrl}`,
+  };
+}
+
+export function renderAdminPasswordResetTemplate(input: {
+  adminOrigin: string;
+  displayName: string;
+  token: string;
+}): RenderedNotification {
+  const resetUrl = `${input.adminOrigin.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(input.token)}`;
+  const subject = "Reset your Shoppp admin password";
+  const greeting = `Hello ${input.displayName},`;
+  return {
+    html: `<h1>${escapeHtml(subject)}</h1><p>${escapeHtml(greeting)}</p><p>This link expires in 30 minutes and can be used once.</p><p><a href="${escapeHtml(resetUrl)}">Reset password</a></p>`,
+    subject,
+    text: `${greeting}\n\nThis link expires in 30 minutes and can be used once.\n\nReset password: ${resetUrl}`,
   };
 }

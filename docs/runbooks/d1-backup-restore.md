@@ -49,7 +49,7 @@ Never restore over staging or production. Create a disposable D1 database whose 
 session, and import it:
 
 This is a time-bounded recovery target, not a third shared environment. It must never be referenced
-by Wrangler environment configuration, local development, CI, Access, or a standing Worker binding.
+by Wrangler environment configuration, local development, CI, or a standing Worker binding.
 Record its owner and deletion deadline before creation; delete it after the reviewed drill. The only
 shared remote databases remain the test `shoppp-staging` D1 and production `shoppp-production` D1.
 

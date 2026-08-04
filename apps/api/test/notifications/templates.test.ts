@@ -43,6 +43,7 @@ test("admin invitation escapes display names and uses only the environment sign-
   const rendered = renderInvitationNotificationTemplate({
     adminOrigin: "https://admin-test.example.test/",
     displayName: '<Admin & "Owner">',
+    token: "signed-activation-token",
   });
   expect(rendered.html).toContain("&lt;Admin &amp; &quot;Owner&quot;&gt;");
   expect(rendered.text).toContain("https://admin-test.example.test/");

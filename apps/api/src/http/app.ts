@@ -5,8 +5,13 @@ import * as z from "zod";
 import {
   acknowledgeCartAdjustmentsSchema,
   addCartLineRequestSchema,
+  adminAccountActivationRequestSchema,
   adminInvitationListQuerySchema,
   adminListQuerySchema,
+  adminPasswordChangeRequestSchema,
+  adminPasswordLoginRequestSchema,
+  adminPasswordResetConfirmRequestSchema,
+  adminPasswordResetRequestSchema,
   adminUserListQuerySchema,
   auditQuerySchema,
   cancelOrderRequestSchema,
@@ -61,12 +66,19 @@ import {
   revokeAdminInvitation,
 } from "../iam/invitations";
 import { requirePermission } from "../iam/permissions";
+import {
+  activateAdminAccount,
+  changePassword,
+  confirmPasswordReset,
+  loginWithPassword,
+  logoutPasswordSession,
+  requestPasswordReset,
+} from "../iam/password-auth";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
 import {
   adminAuthentication,
-  defaultAccessVerifier,
   logAccessDenial,
   resolvePrincipal,
   type AccessVerifier,
@@ -125,8 +137,34 @@ export interface CreateAppOptions {
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
   readonly checkoutRateLimiter?: RateLimiter;
+  readonly exposePasswordResetToken?: boolean;
+  readonly passwordResetSecret?: string;
   readonly turnstileRequired?: boolean;
   readonly turnstileVerifier?: TurnstileVerifier;
+}
+
+function requireAdminBrowserOrigin(context: Context<ApiEnvironment>): void {
+  if (
+    !isAllowedAdminBrowserOrigin(
+      context.env,
+      context.req.header("Origin"),
+      context.req.header("Sec-Fetch-Site"),
+    )
+  ) {
+    throw new ApiError(403, "admin_origin_denied", "The admin request origin is not allowed.");
+  }
+}
+
+function passwordResetSecret(context: Context<ApiEnvironment>, options: CreateAppOptions): string {
+  const secret = options.passwordResetSecret ?? context.env.AUTH_TOKEN_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new ApiError(
+      500,
+      "admin_auth_not_configured",
+      "Administrator authentication is not configured.",
+    );
+  }
+  return secret;
 }
 
 function adminSessionData(context: Context<ApiEnvironment>) {
@@ -159,6 +197,8 @@ const notificationJobQuerySchema = z
         "refund",
         "shipment",
         "payment_reconciliation",
+        "admin_invitation",
+        "admin_password_reset",
       ])
       .optional(),
   })
@@ -489,8 +529,62 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Cache-Control", "private, no-store");
     await next();
   });
-  const accessVerifier = options.accessVerifier ?? defaultAccessVerifier;
+  app.post("/admin/auth/login", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminPasswordLoginRequestSchema);
+    context.set("principal", await loginWithPassword(context, input));
+    return context.json({
+      data: adminSessionData(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/auth/activate", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminAccountActivationRequestSchema);
+    context.set(
+      "principal",
+      await activateAdminAccount(context, input, passwordResetSecret(context, options)),
+    );
+    return context.json({
+      data: adminSessionData(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/auth/logout", async (context) => {
+    requireAdminBrowserOrigin(context);
+    await logoutPasswordSession(context);
+    return context.body(null, 204);
+  });
+  app.post("/admin/auth/password-reset/request", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminPasswordResetRequestSchema);
+    const result = await requestPasswordReset(context, input, {
+      exposeToken: options.exposePasswordResetToken === true,
+      secret: passwordResetSecret(context, options),
+    });
+    return context.json(
+      {
+        data: options.exposePasswordResetToken === true ? result : {},
+        meta: { requestId: context.get("requestId") },
+      },
+      202,
+    );
+  });
+  app.post("/admin/auth/password-reset/confirm", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminPasswordResetConfirmRequestSchema);
+    await confirmPasswordReset(context, input);
+    return context.body(null, 204);
+  });
+  const accessVerifier = options.accessVerifier;
   app.post("/admin/onboarding", async (context) => {
+    if (options.accessVerifier === undefined) {
+      throw new ApiError(
+        410,
+        "password_activation_required",
+        "Use the account activation link to set a password.",
+      );
+    }
     const token = context.req.header("Cf-Access-Jwt-Assertion");
     if (!token) {
       logAccessDenial(context, "access_assertion_missing");
@@ -498,7 +592,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }
     let identity;
     try {
-      identity = await accessVerifier(token, {
+      identity = await accessVerifier!(token, {
         audience: context.env.ACCESS_AUDIENCE,
         issuer: context.env.ACCESS_ISSUER,
       });
@@ -535,13 +629,23 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { accepted: acceptance.accepted, requestId: context.get("requestId") },
     });
   });
-  app.use("/admin/*", adminAuthentication(accessVerifier));
+  app.use(
+    "/admin/*",
+    adminAuthentication(accessVerifier, {
+      allowHumanAccessIdentity: options.accessVerifier !== undefined,
+    }),
+  );
   app.use("/admin/*", adminOriginProtection());
   app.get("/admin/session", (context) => {
     return context.json({
       data: adminSessionData(context),
       meta: { requestId: context.get("requestId") },
     });
+  });
+  app.post("/admin/auth/password/change", async (context) => {
+    const input = await parseJson(context, adminPasswordChangeRequestSchema);
+    await changePassword(context, input);
+    return context.body(null, 204);
   });
   app.get("/admin/iam/users", async (context) => {
     await requirePermission(context, "iam.users.read", { type: "admin_identity" });

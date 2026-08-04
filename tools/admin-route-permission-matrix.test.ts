@@ -21,8 +21,21 @@ describe("admin route permission matrix", () => {
         /\{\s*method:\s*"(GET|PATCH|POST|PUT)",\s*path:\s*"(\/admin\/[^"]+)",\s*permission:/g,
       ),
     ].map(([, method, path]) => `${method} ${path}`);
-    const authenticationOnly = ["GET /admin/session", "POST /admin/onboarding"];
+    const authenticationOnly = [
+      "GET /admin/session",
+      "POST /admin/auth/password/change",
+      "POST /admin/onboarding",
+    ];
+    const publicAuthentication = [
+      "POST /admin/auth/activate",
+      "POST /admin/auth/login",
+      "POST /admin/auth/logout",
+      "POST /admin/auth/password-reset/confirm",
+      "POST /admin/auth/password-reset/request",
+    ];
 
-    expect([...permissioned, ...authenticationOnly].sort()).toEqual(declared);
+    expect([...permissioned, ...authenticationOnly, ...publicAuthentication].sort()).toEqual(
+      declared,
+    );
   });
 });

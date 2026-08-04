@@ -21,7 +21,7 @@ on:
         required: false
         type: string
       human_access_evidence_id:
-        description: External evidence ID for the real-human test IdP and MFA proof
+        description: External evidence ID for the real-human password-login proof
         required: true
         type: string
 
@@ -165,6 +165,19 @@ jobs:
           ")"
           jq --exit-status 'any(.[]?.results[]?; ((.enabled_protected_admins // 0) | tonumber) > 0)' \
             <<<"$protected_admin_json" >/dev/null
+          credentialed_admin_json="$(bunx wrangler d1 execute shoppp-staging --env staging --remote --json --command "
+            SELECT COUNT(*) AS credentialed_protected_admins
+              FROM admin_identities identity
+              JOIN admin_roles role ON role.id = identity.role_id
+              JOIN admin_password_credentials credential ON credential.identity_id = identity.id
+             WHERE identity.principal_kind = 'human'
+               AND identity.enabled = 1
+               AND role.enabled = 1
+               AND role.protected = 1
+               AND credential.password_version > 0
+          ")"
+          jq --exit-status 'any(.[]?.results[]?; ((.credentialed_protected_admins // 0) | tonumber) > 0)' \
+            <<<"$credentialed_admin_json" >/dev/null
       - name: Deploy saved staging versions
         run: |
           (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
@@ -193,12 +206,12 @@ jobs:
       ADMIN_E2E_BASE_URL: ${{ vars.ADMIN_URL }}
       BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
       STOREFRONT_E2E_BASE_URL: ${{ vars.STOREFRONT_URL }}
-      E2E_CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-      E2E_CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      E2E_ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}
+      E2E_ADMIN_SERVICE_SUBJECT: ${{ vars.ADMIN_SERVICE_SUBJECT }}
       E2E_STRIPE_TEST_CARD: ${{ secrets.STRIPE_TEST_CARD }}
       E2E_OPERATOR_EMAIL: ${{ vars.OPERATOR_EMAIL }}
-      E2E_PROHIBITED_CF_ACCESS_CLIENT_ID: ${{ secrets.PROHIBITED_CF_ACCESS_CLIENT_ID }}
-      E2E_PROHIBITED_CF_ACCESS_CLIENT_SECRET: ${{ secrets.PROHIBITED_CF_ACCESS_CLIENT_SECRET }}
+      E2E_PROHIBITED_ADMIN_SERVICE_TOKEN: ${{ secrets.PROHIBITED_ADMIN_SERVICE_TOKEN }}
+      E2E_PROHIBITED_ADMIN_SERVICE_SUBJECT: ${{ vars.PROHIBITED_ADMIN_SERVICE_SUBJECT }}
       E2E_ORDER_REFERENCE: ${{ vars.ORDER_REFERENCE }}
       E2E_PRODUCT_SLUG: ${{ vars.PRODUCT_SLUG }}
       STAGING_CHECKOUT_CONCURRENCY: "4"
@@ -214,11 +227,32 @@ jobs:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
+      - name: Provision hashed staging service credential
+        env:
+          ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}
+        run: >-
+          bun run provision:admin-service --environment test --database shoppp-staging
+          --subject "$E2E_ADMIN_SERVICE_SUBJECT" --name "Staging release automation"
+      - name: Provision hashed staging prohibited service credential
+        env:
+          ADMIN_SERVICE_TOKEN: ${{ secrets.PROHIBITED_ADMIN_SERVICE_TOKEN }}
+        run: >-
+          bun run provision:admin-service --environment test --database shoppp-staging
+          --subject "$E2E_PROHIBITED_ADMIN_SERVICE_SUBJECT"
+          --name "Staging prohibited automation"
+      - name: Verify staging administrator auth secret
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "Origin: $ADMIN_E2E_BASE_URL" \
+            --header "Sec-Fetch-Site: same-origin" \
+            --data '{"email":"release-auth-secret-proof@example.test"}' \
+            "$ADMIN_E2E_BASE_URL/api/admin/auth/password-reset/request" >/dev/null
       - name: Prepare representative last-unit inventory
         run: |
           PROOF_INVENTORY_JSON="$(curl --fail --silent --show-error \
-            --header "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
-            --header "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+            --header "Authorization: Bearer $E2E_ADMIN_SERVICE_TOKEN" \
             "$ADMIN_E2E_BASE_URL/api/admin/inventory?query=ATLAS-BLK&pageSize=1")"
           PROOF_INVENTORY_AVAILABLE="$(jq -er '.data[0].available' <<<"$PROOF_INVENTORY_JSON")"
           PROOF_INVENTORY_VARIANT="$(jq -er '.data[0].variantId' <<<"$PROOF_INVENTORY_JSON")"
@@ -227,8 +261,7 @@ jobs:
           if [ "$PROOF_INVENTORY_DELTA" -ne 0 ]; then
             curl --fail --silent --show-error \
               --request POST \
-              --header "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
-              --header "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+              --header "Authorization: Bearer $E2E_ADMIN_SERVICE_TOKEN" \
               --header "Content-Type: application/json" \
               --header "Idempotency-Key: staging-last-unit-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
               --data "{\"quantityDelta\":$PROOF_INVENTORY_DELTA,\"reason\":\"Staging release last-unit fixture\"}" \
@@ -291,26 +324,14 @@ jobs:
             "
       - name: Enforce staging API p95 targets
         run: bun run test:staging-latency
-      - name: Demonstrate last-known-good rollback
+      - name: Verify last-known-good rollback artifacts remain available
         run: |
-          (cd apps/api && bunx wrangler rollback --env staging --message "$RELEASE_ID rollback rehearsal" --yes)
-          (cd apps/admin && bunx wrangler rollback --env staging --message "$RELEASE_ID rollback rehearsal" --yes)
-          (cd apps/storefront && bunx wrangler rollback --env staging --message "$RELEASE_ID rollback rehearsal" --yes)
-          curl --fail --silent --show-error "$API_E2E_BASE_URL/health"
-          curl --fail --silent --show-error "$STOREFRONT_E2E_BASE_URL/"
-          curl --fail --silent --show-error \
-            -H "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
-            "$ADMIN_E2E_BASE_URL/"
-          curl --fail --silent --show-error \
-            -H "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
-            "$ADMIN_E2E_BASE_URL/api/admin/session"
-      - name: Restore the validated staging versions
-        run: |
-          (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
-          (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
-          (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID rehearsal restore" --yes)
+          for component in apps/api apps/admin apps/storefront; do
+            versions="$(cd "$component" && bunx wrangler versions list --env staging --json)"
+            jq -e --arg release "$E2E_LAST_KNOWN_GOOD_RELEASE_ID" \
+              'any(.[]; .annotations["workers/message"] == $release)' \
+              <<<"$versions" >/dev/null
+          done
       - name: Record proven catalog deployment
         run: |
           curl --fail --silent --show-error \
@@ -350,7 +371,7 @@ jobs:
       evidence_id: ${{ steps.human-access.outputs.evidence_id }}
     steps:
       - id: human-access
-        name: Record real-human IdP and MFA proof
+        name: Record real-human password-login proof
         env:
           GH_TOKEN: ${{ github.token }}
           HUMAN_ACCESS_EVIDENCE_ID: ${{ inputs.human_access_evidence_id }}
@@ -372,7 +393,7 @@ jobs:
             --arg evidenceId "$HUMAN_ACCESS_EVIDENCE_ID" \
             --arg releaseId "$RELEASE_ID" \
             --arg runId "$GITHUB_RUN_ID" \
-            '{approvedBy: $approvedBy, assertion: "real-human test identity completed the Access IdP and MFA path; no credential or browser storage state was captured", evidenceId: $evidenceId, releaseId: $releaseId, runId: $runId}' \
+            '{approvedBy: $approvedBy, assertion: "real-human named test identity completed application password login; no password, cookie, or browser storage state was captured", evidenceId: $evidenceId, releaseId: $releaseId, runId: $runId}' \
             > "artifacts/access-evidence/${HUMAN_ACCESS_EVIDENCE_ID}.json"
           printf 'approved_by=%s\n' "$approved_by" >> "$GITHUB_OUTPUT"
           printf 'evidence_id=%s\n' "$HUMAN_ACCESS_EVIDENCE_ID" >> "$GITHUB_OUTPUT"
@@ -510,6 +531,19 @@ jobs:
           ")"
           jq --exit-status 'any(.[]?.results[]?; ((.enabled_protected_admins // 0) | tonumber) > 1)' \
             <<<"$protected_admin_json" >/dev/null
+          credentialed_admin_json="$(bunx wrangler d1 execute shoppp-production --env production --remote --json --command "
+            SELECT COUNT(*) AS credentialed_protected_admins
+              FROM admin_identities identity
+              JOIN admin_roles role ON role.id = identity.role_id
+              JOIN admin_password_credentials credential ON credential.identity_id = identity.id
+             WHERE identity.principal_kind = 'human'
+               AND identity.enabled = 1
+               AND role.enabled = 1
+               AND role.protected = 1
+               AND credential.password_version > 0
+          ")"
+          jq --exit-status 'any(.[]?.results[]?; ((.credentialed_protected_admins // 0) | tonumber) > 1)' \
+            <<<"$credentialed_admin_json" >/dev/null
       - name: Deploy production versions after environment approval
         env:
           APPROVED_BY: ${{ needs.approve-production.outputs.approved_by }}

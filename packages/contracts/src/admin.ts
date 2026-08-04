@@ -189,6 +189,24 @@ const adminRoleKeySchema = z
 const adminDisplayNameSchema = z.string().trim().min(1).max(160);
 const adminEmailSchema = z.email().max(254);
 const mutationVersionSchema = z.int().positive();
+export const adminPasswordSchema = z.string().min(12).max(128);
+export const adminAuthErrorCodeSchema = z.enum([
+  "account_activation_conflict",
+  "account_activation_failed",
+  "account_activation_invalid",
+  "admin_auth_not_configured",
+  "admin_login_required",
+  "admin_login_throttled",
+  "admin_session_invalid",
+  "current_password_invalid",
+  "human_password_required",
+  "identity_not_enabled",
+  "invalid_admin_credentials",
+  "password_change_conflict",
+  "password_reset_token_invalid",
+  "protected_admin_password_reset_denied",
+  "service_credential_invalid",
+]);
 
 export const adminPrincipalKindSchema = z.enum(["human", "service"]);
 export const adminEnvironmentSchema = z.enum(["test", "production"]);
@@ -244,6 +262,40 @@ export const adminSessionSchema = z.discriminatedUnion("principalKind", [
   humanAdminSessionSchema,
   serviceAdminSessionSchema,
 ]);
+
+export const adminPasswordLoginRequestSchema = z
+  .object({
+    email: adminEmailSchema,
+    password: adminPasswordSchema,
+  })
+  .strict();
+
+export const adminPasswordChangeRequestSchema = z
+  .object({
+    currentPassword: adminPasswordSchema,
+    newPassword: adminPasswordSchema,
+  })
+  .strict()
+  .refine(({ currentPassword, newPassword }) => currentPassword !== newPassword, {
+    message: "The new password must be different.",
+    path: ["newPassword"],
+  });
+
+export const adminPasswordResetRequestSchema = z.object({ email: adminEmailSchema }).strict();
+
+export const adminPasswordResetConfirmRequestSchema = z
+  .object({
+    newPassword: adminPasswordSchema,
+    token: z.string().trim().min(32).max(2048),
+  })
+  .strict();
+
+export const adminAccountActivationRequestSchema = z
+  .object({
+    password: adminPasswordSchema,
+    token: z.string().trim().min(32).max(2048),
+  })
+  .strict();
 
 export const adminUserSchema = z
   .object({
@@ -545,6 +597,8 @@ export const notificationJobSchema = z
       "refund",
       "shipment",
       "payment_reconciliation",
+      "admin_invitation",
+      "admin_password_reset",
     ]),
     updatedAt: isoDateTimeSchema,
   })
@@ -558,12 +612,20 @@ export const replayNotificationJobRequestSchema = z
   .strict();
 
 export type AdminOrder = z.infer<typeof adminOrderSchema>;
+export type AdminAccountActivationRequest = z.infer<typeof adminAccountActivationRequestSchema>;
 export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
 export type AdminEnvironment = z.infer<typeof adminEnvironmentSchema>;
+export type AdminAuthErrorCode = z.infer<typeof adminAuthErrorCodeSchema>;
 export type AdminInvitation = z.infer<typeof adminInvitationSchema>;
 export type AdminInvitationStatus = z.infer<typeof adminInvitationStatusSchema>;
 export type AdminPermission = z.infer<typeof adminPermissionSchema>;
 export type AdminPermissionCategory = z.infer<typeof adminPermissionCategorySchema>;
+export type AdminPasswordChangeRequest = z.infer<typeof adminPasswordChangeRequestSchema>;
+export type AdminPasswordLoginRequest = z.infer<typeof adminPasswordLoginRequestSchema>;
+export type AdminPasswordResetConfirmRequest = z.infer<
+  typeof adminPasswordResetConfirmRequestSchema
+>;
+export type AdminPasswordResetRequest = z.infer<typeof adminPasswordResetRequestSchema>;
 export type AdminPrincipalKind = z.infer<typeof adminPrincipalKindSchema>;
 export type AdminRole = z.infer<typeof adminRoleSchema>;
 export type AdminRoleSummary = z.infer<typeof adminRoleSummarySchema>;

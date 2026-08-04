@@ -16,7 +16,7 @@ individual gate outcomes, and SHA-256 digests for all three deployable outputs a
 The build gate prebundles all three Worker entrypoints. Deployment uses those saved bundles with
 Wrangler `--no-bundle`; deploy jobs never rebuild Worker code.
 
-Never put Cloudflare, Stripe, email-provider, Turnstile, or Access credentials in source, workflow
+Never put Cloudflare, Stripe, email-provider, Turnstile, administrator passwords, sessions, or service credentials in source, workflow
 defaults, build arguments, or the report. Repository configuration contains non-routable
 placeholders until an owner supplies the real resource IDs and domains. The deployment workflow
 uses strict environment validation, so placeholders and any staging/production crossover stop the
@@ -32,11 +32,11 @@ An infrastructure owner must:
    production. Do not create or bind a shared remote development database.
 2. Configure the GitHub `staging`, `staging-human-access`, and `production` environments. Test and
    production each receive their own Cloudflare API credential. `staging-human-access` must require
-   a named reviewer who is accountable for running the real-human IdP/MFA proof before approval.
+   a named reviewer who is accountable for running the real-human password-login proof.
    Production promotion remains off by default and additionally requires an exact confirmation
    phrase and a recent approved backup ID.
-3. Add test URLs, representative product/order identifiers, authorized and prohibited Access
-   service identities, a CI-only Stripe test card, and the staging API's `BUILD_MANIFEST_TOKEN` as
+3. Add test URLs, representative product/order identifiers, authorized and prohibited application
+   service credentials, a CI-only Stripe test card, and the staging API's `BUILD_MANIFEST_TOKEN` as
    environment-owned values. The same manifest token must be configured as a secret on the staging
    API Worker and in the GitHub `staging` environment.
 4. Put Worker secrets in Cloudflare with `wrangler secret put --env <environment>`. Confirm the
@@ -45,16 +45,15 @@ An infrastructure owner must:
    secret; staging and production keys must be distinct. Automated staging journeys may use
    Cloudflare's official testing pair with `TURNSTILE_TEST_MODE=true`; the isolation verifier
    rejects that mode in production.
-5. Configure distinct deny-by-default test and production Access applications, approved IdP
-   assignment groups, enforced MFA posture, and whole-hostname policies. Store only service token
-   references in configuration; token values belong in environment-owned GitHub secrets. Follow
-   `admin-access.md` for bootstrap, service mapping, revocation, and evidence.
+5. Configure distinct test and production `AUTH_TOKEN_SECRET` values and service Bearer tokens.
+   Store only service-token references in configuration; values belong in environment-owned
+   secrets. Follow `admin-access.md` for bootstrap, rotation, recovery, and evidence.
 6. Seed the representative catalog (at least 1,000 products and 5,000 variants), one last-unit
    purchase fixture, roles, launch settings, shipping zones, and policy text.
 7. Before the first storefront release only, apply test migrations and bootstrap the test API
    Worker from a locally validated commit so the immutable catalog-manifest endpoint is available.
    Later releases use the existing last-known-good API endpoint.
-8. Configure alerts for Worker errors, Access denial spikes, mapped IAM denials, failed catalog
+8. Configure alerts for Worker errors, login throttling spikes, IAM denials, failed catalog
    builds, queue exhaustion, webhook verification failures, backup failures, and the performance
    signals in the operations runbook.
 
@@ -84,7 +83,7 @@ Dispatch `Deploy immutable commerce release` with the approved immutable catalog
 strict staging build fetches that exact manifest from the staging API; absence, an ID mismatch, a
 cross-origin source, or a short/missing token stops the release before any upload.
 
-Allocate an external evidence ID for the human Access proof and pass it as
+Allocate an external evidence ID for the human password-login proof and pass it as
 `human_access_evidence_id`. The record may be created before dispatch, but it is not complete until
 the reviewer appends the results described in `admin-access.md`. The workflow:
 
@@ -95,12 +94,12 @@ the reviewer appends the results described in `admin-access.md`. The workflow:
    least one enabled protected human against either the legacy or dynamic IAM schema;
 3. applies migrations against the explicit `shoppp-staging --env staging` target, requires zero
    foreign-key violations and the protected human again, then deploys the saved versions;
-4. runs the service-principal access proof and the root test browser suite against public
-   storefront, Access-protected admin/API, Stripe test mode, queues, and the representative catalog;
+4. runs the service-principal credential proof and the root test browser suite against the public
+   storefront, password-authenticated admin/API, Stripe test mode, queues, and representative catalog;
 5. reports the catalog release as `deployed` through the authenticated, idempotent build callback
-   only after the staging journeys, latency gate, rollback, and validated-version restore pass;
-6. pauses at the reviewer-protected `staging-human-access` environment. A real test IdP account must
-   complete the MFA path without exporting credentials, cookies, or browser storage state. The job
+   only after the staging journeys, latency gate, and saved rollback-artifact availability check;
+6. pauses at the reviewer-protected `staging-human-access` environment. A real named test account
+   must complete password login without exporting credentials, cookies, or browser storage. The job
    records the reviewer and external evidence ID as a separate artifact;
 7. reports candidate validation, staging deployment, or staging proof failure as `failed`, which
    preserves the previous live storefront and raises the catalog health signal;
@@ -117,10 +116,14 @@ the reviewer appends the results described in `admin-access.md`. The workflow:
     `release:validate -- --promotion`; this hashes the downloaded outputs and requires an exact match
     with staging evidence. It does not rebuild environment-sensitive or nondeterministic output.
 
-The IAM migration is expand-contract for the rollback window: trigger-maintained legacy identity
-columns keep the immediately preceding API version readable while the new API uses typed principals
-and `role_id`. The staging rollback rehearsal must call the protected `/api/admin/session` endpoint,
-not only `/health`, before restoring the validated release tag.
+The IAM schema migration remains additive, but the immediately preceding API authenticates through
+Cloudflare Access and cannot consume the new password sessions or service credentials. Because
+Cloudflare Access is retired from the normal administrator path in this release, the staging gate
+does not briefly activate that authentication-incomplete version and mistake public health for a
+valid rollback. It verifies that all saved versions still exist and retains the pre-migration D1
+export. During this cutover, use a forward compatibility fix by default; activate the older API only
+when its isolated Access credential and protected `/api/admin/session` proof are both available, or
+after restoring the matching verified D1 backup under the destructive-restore approval process.
 
 The storefront obtains its environment-specific Turnstile public key at runtime from the same-origin
 `/api/platform/config` endpoint. This keeps the static storefront byte-identical across staging and
@@ -128,7 +131,7 @@ production while preserving separate Turnstile key/secret pairs. Missing or inco
 configuration fails closed and disables checkout.
 
 Record the workflow URL, release report, Cloudflare version IDs, staging journey report, approver,
-Stripe reconciliation, Access result, alert-delivery test, backup ID, and production smoke result in
+Stripe reconciliation, administrator authentication result, alert-delivery test, backup ID, and production smoke result in
 the release ticket. A failure before production leaves the existing production deployments
 untouched.
 
@@ -141,7 +144,7 @@ The release owner records:
 - responsive checks on representative current iOS Safari and Android Chrome devices;
 - Stripe test dashboard confirmation that one successful Checkout Session produced one order and
   that refund totals reconcile;
-- Cloudflare Access allow/deny behavior, the real-human IdP/MFA evidence ID and reviewer, service
+- password login/reset/change behavior, the real-human evidence ID and reviewer, service
   principal `machine` audit evidence, alert delivery, queue replay, D1 restore, and rollback;
 - mobile Lighthouse scores and storefront JavaScript budget from the immutable candidate.
 

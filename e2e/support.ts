@@ -9,8 +9,7 @@ export function requiredEnvironment(name: string): string {
 export function accessHeaders(kind: "authorized" | "prohibited" = "authorized") {
   const prefix = kind === "authorized" ? "" : "PROHIBITED_";
   return {
-    "CF-Access-Client-Id": requiredEnvironment(`E2E_${prefix}CF_ACCESS_CLIENT_ID`),
-    "CF-Access-Client-Secret": requiredEnvironment(`E2E_${prefix}CF_ACCESS_CLIENT_SECRET`),
+    Authorization: `Bearer ${requiredEnvironment(`E2E_${prefix}ADMIN_SERVICE_TOKEN`)}`,
   };
 }
 

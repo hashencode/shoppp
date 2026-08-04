@@ -66,12 +66,12 @@
 - Browser Mode 模板：`src/test/templates/new-page.browser.test.template.tsx`
 - Playwright E2E 模板：`e2e/templates/new-flow.e2e.template.spec.ts`
 
-## 9. E2E Access Sessions
+## 9. E2E Password Sessions
 
-- Admin 不接受应用账号密码。真实环境 E2E 必须经过对应环境的 Cloudflare Access，并由 API 返回权威 `/admin/session`。
-- 本地 UI E2E 只允许在 Playwright 路由层返回显式测试 session；不得写入 localStorage、cookie、storage state 或运行时 fallback。
-- Access client ID/secret、JWT、cookie 和真人 IdP 凭据不得写入 spec、docs、trace 或仓库文件。
-- 真实服务身份和真人 IdP/MFA 证明由仓库根目录 `e2e/admin-access.spec.ts` 与发布工作流执行；缺少环境凭据必须 fail closed。
+- Admin 使用应用账号密码和服务端 `HttpOnly` 会话，并由 API 返回权威 `/admin/session`。
+- 本地 UI E2E 可在 Playwright 路由层返回显式测试 session；不得写入 localStorage 或运行时 fallback。
+- 密码、会话 cookie、激活/重置 token 和服务 Bearer 凭据不得写入 spec、docs、trace 或仓库文件。
+- 真实人类账号与机器凭据证明由仓库根目录认证 E2E 和发布工作流执行；缺少环境凭据必须 fail closed。
 
 ## 10. Playwright Execution and Artifacts
 

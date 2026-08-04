@@ -9,7 +9,7 @@ export const RequireAuth = ({ children }: PropsWithChildren) => {
   const location = useLocation()
 
   if (isLoading) {
-    return <div role="status" aria-live="polite">Verifying Cloudflare Access session…</div>
+    return <div role="status" aria-live="polite">正在验证登录状态…</div>
   }
 
   if (!isAuthenticated) {
@@ -23,7 +23,7 @@ export const RedirectIfAuthenticated = ({ children }: PropsWithChildren) => {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
-    return <div role="status" aria-live="polite">Verifying Cloudflare Access session…</div>
+    return <div role="status" aria-live="polite">正在验证登录状态…</div>
   }
 
   if (isAuthenticated) {

@@ -15,6 +15,7 @@ const renderWithAuth = (status: AuthContextValue['status'], entry: string) =>
         displayName: '',
         isAuthenticated: status === 'authenticated',
         isLoading: status === 'loading',
+        login: async () => undefined,
         logout: () => undefined,
         permissions: undefined,
         principalKind: undefined,
@@ -50,20 +51,20 @@ const renderWithAuth = (status: AuthContextValue['status'], entry: string) =>
   )
 
 describe('auth-route-guards', () => {
-  it('renders a loading state while verifying Access', () => {
+  it('renders a loading state while verifying the session', () => {
     renderWithAuth('loading', '/protected')
     expect(screen.getByRole('status')).toBeTruthy()
   })
 
-  it.each(['access-required', 'invitation-required', 'invitation-expired', 'disabled', 'forbidden'] as const)(
-    'redirects %s sessions to the Access state page',
+  it.each(['login-required', 'disabled', 'forbidden'] as const)(
+    'redirects %s sessions to the login page',
     (status) => {
       renderWithAuth(status, '/protected')
       expect(screen.getByText('ACCESS_STATE_PAGE')).toBeTruthy()
     }
   )
 
-  it('redirects authenticated users away from the Access state page', () => {
+  it('redirects authenticated users away from the login page', () => {
     renderWithAuth('authenticated', '/login')
     expect(screen.getByText('HOME_PAGE')).toBeTruthy()
   })

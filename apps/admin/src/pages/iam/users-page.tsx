@@ -239,7 +239,7 @@ export const UsersPage = () => {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Users and invitations</h1>
-          <p className="text-slate-500">Manage human access. Authentication and passwords remain with the IdP.</p>
+          <p className="text-slate-500">Manage human accounts, activation, status, and role assignment.</p>
         </div>
         {canInvite ? (
           <Button

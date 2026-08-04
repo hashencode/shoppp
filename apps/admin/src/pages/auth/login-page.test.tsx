@@ -42,83 +42,71 @@ const renderPage = () =>
     </AuthProvider>
   )
 
-describe('Access session page', () => {
+describe('administrator password login', () => {
   beforeEach(() => {
     rstest.restoreAllMocks()
   })
 
-  it('hydrates the authoritative API session without a browser credential state', async () => {
+  it('hydrates an existing authoritative cookie session', async () => {
     rstest.spyOn(authApi, 'fetchAdminSession').mockResolvedValue(session)
     renderPage()
 
     await waitFor(() => {
       expect(screen.getByTestId('auth-probe').textContent).toBe('authenticated:identity-alice')
     })
-    expect(screen.queryByPlaceholderText(/用户名|密码|手机号|验证码/)).toBeNull()
   })
 
-  it('shows protected-host instructions and never offers a credential form', async () => {
+  it('offers email and password login when no session exists', async () => {
     rstest.spyOn(authApi, 'fetchAdminSession').mockRejectedValue(
-      Object.assign(new Error('Access required'), { code: 'access_required', status: 401 })
+      Object.assign(new Error('Session required'), { code: 'admin_session_invalid', status: 401 })
     )
+    rstest.spyOn(authApi, 'loginAdmin').mockResolvedValue(session)
     renderPage()
 
-    expect(await screen.findByText('Cloudflare Access session required')).toBeTruthy()
-    expect(screen.getByText(/protected test admin hostname/i)).toBeTruthy()
-    expect(screen.queryByRole('textbox')).toBeNull()
-    expect(screen.queryByText(/1234|账号密码登录|手机号登录/)).toBeNull()
-  })
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-probe').textContent).toBe('login-required:none')
+    })
 
-  it('attempts onboarding only for an explicitly unmapped Access identity', async () => {
-    rstest.spyOn(authApi, 'fetchAdminSession').mockRejectedValue(
-      Object.assign(new Error('Unmapped'), { code: 'identity_unmapped', status: 401 })
-    )
-    const accept = rstest.spyOn(authApi, 'acceptAdminInvitation').mockResolvedValue(session)
-    renderPage()
+    fireEvent.change(screen.getByLabelText('邮箱'), {
+      target: { value: 'alice@example.test' },
+    })
+    fireEvent.change(screen.getByLabelText('密码'), {
+      target: { value: 'correct horse battery staple' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
-    await waitFor(() => expect(accept).toHaveBeenCalledTimes(1))
-    expect(screen.getByTestId('auth-probe').textContent).toBe('authenticated:identity-alice')
-  })
-
-  it('renders invitation, disabled, and forbidden states without leaking membership', async () => {
-    const fetch = rstest.spyOn(authApi, 'fetchAdminSession')
-    fetch.mockRejectedValue(
-      Object.assign(new Error('Unmapped'), { code: 'identity_unmapped', status: 401 })
-    )
-    rstest.spyOn(authApi, 'acceptAdminInvitation').mockRejectedValue(
-      Object.assign(new Error('No invitation'), {
-        code: 'active_invitation_required',
-        status: 401,
+    await waitFor(() => {
+      expect(authApi.loginAdmin).toHaveBeenCalledWith({
+        email: 'alice@example.test',
+        password: 'correct horse battery staple',
       })
-    )
-    const { unmount } = renderPage()
-    expect(await screen.findByText('Admin invitation required')).toBeTruthy()
-    expect(screen.queryByText(/exists|expired for|operator@example/i)).toBeNull()
-    unmount()
-
-    fetch.mockRejectedValue(
-      Object.assign(new Error('Disabled'), { code: 'identity_not_enabled', status: 401 })
-    )
-    const disabledView = renderPage()
-    expect(await screen.findByText('Admin access disabled')).toBeTruthy()
-    disabledView.unmount()
-
-    fetch.mockRejectedValue(
-      Object.assign(new Error('Forbidden'), { code: 'authorization_state_invalid', status: 403 })
-    )
-    renderPage()
-    expect(await screen.findByText('Admin access forbidden')).toBeTruthy()
+      expect(screen.getByTestId('auth-probe').textContent).toBe('authenticated:identity-alice')
+    })
+    expect(screen.getByRole('link', { name: '忘记密码？' })).toBeTruthy()
   })
 
-  it('retries session verification from the Access-required state', async () => {
-    const fetch = rstest
-      .spyOn(authApi, 'fetchAdminSession')
-      .mockRejectedValueOnce(
-        Object.assign(new Error('Access required'), { code: 'access_required', status: 401 })
-      )
-      .mockResolvedValueOnce(session)
+  it('renders the API error after invalid credentials', async () => {
+    rstest.spyOn(authApi, 'fetchAdminSession').mockRejectedValue(
+      Object.assign(new Error('Session required'), { code: 'admin_session_invalid', status: 401 })
+    )
+    rstest.spyOn(authApi, 'loginAdmin').mockRejectedValue(
+      Object.assign(new Error('账号或密码错误'), { code: 'invalid_admin_credentials', status: 401 })
+    )
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: 'Verify Access session' }))
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-probe').textContent).toBe('login-required:none')
+    })
+
+    fireEvent.change(screen.getByLabelText('邮箱'), {
+      target: { value: 'alice@example.test' },
+    })
+    fireEvent.change(screen.getByLabelText('密码'), {
+      target: { value: 'wrong password value' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
+
+    expect(await screen.findByText('账号或密码错误')).toBeTruthy()
+    expect(screen.getByTestId('auth-probe').textContent).toBe('login-required:none')
   })
 })

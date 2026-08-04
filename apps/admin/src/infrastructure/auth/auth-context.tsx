@@ -9,16 +9,14 @@ import React, {
   type PropsWithChildren,
 } from 'react'
 import type { AdminSession } from '@shoppp/contracts'
-import { acceptAdminInvitation, fetchAdminSession } from '../../services/auth/api'
+import { fetchAdminSession, loginAdmin, logoutAdmin } from '../../services/auth/api'
 import type { PermissionKey } from './permissions'
 import type { Role } from '../../shared/types/roles'
 
 export type AuthStatus =
   | 'loading'
   | 'authenticated'
-  | 'access-required'
-  | 'invitation-required'
-  | 'invitation-expired'
+  | 'login-required'
   | 'disabled'
   | 'forbidden'
 
@@ -27,7 +25,8 @@ export type AuthContextValue = {
   displayName: string
   isAuthenticated: boolean
   isLoading: boolean
-  logout: () => void
+  login: (email: string, password: string) => Promise<void>
+  logout: () => void | Promise<void>
   permissions?: readonly PermissionKey[]
   principalKind?: AdminSession['principalKind']
   refreshSession: () => Promise<void>
@@ -41,9 +40,8 @@ type ErrorShape = Error & { code?: string; status?: number }
 
 const statusForError = (error: ErrorShape): AuthStatus => {
   if (error.code === 'identity_not_enabled') return 'disabled'
-  if (error.code === 'invitation_expired') return 'invitation-expired'
   if (error.status === 403) return 'forbidden'
-  return 'access-required'
+  return 'login-required'
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -66,31 +64,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     setStatus('loading')
     setSessionError(null)
     try {
-      let nextSession: AdminSession
-      try {
-        nextSession = await fetchAdminSession()
-      } catch (error) {
-        const sessionFailure = error as ErrorShape
-        if (sessionFailure.code !== 'identity_unmapped') throw error
-        try {
-          nextSession = await acceptAdminInvitation()
-        } catch (onboardingError) {
-          const failure = onboardingError as ErrorShape
-          if (request !== sessionRequest.current) return
-          setSession(null)
-          setStatus(
-            failure.code === 'active_invitation_required'
-              ? 'invitation-required'
-              : failure.code === 'invitation_expired'
-                ? 'invitation-expired'
-                : failure.status === 403
-                  ? 'forbidden'
-                  : 'invitation-required'
-          )
-          setSessionError(failure.message)
-          return
-        }
-      }
+      const nextSession = await fetchAdminSession()
       if (request !== sessionRequest.current) return
       setSession(nextSession)
       setStatus('authenticated')
@@ -99,7 +73,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       const failure = error as ErrorShape
       setSession(null)
       setStatus(statusForError(failure))
-      setSessionError(failure.message || 'Cloudflare Access session could not be verified.')
+      setSessionError(failure.status === 401 ? null : failure.message || '登录状态验证失败。')
     }
   }, [])
 
@@ -111,11 +85,34 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
   }, [refreshSession])
 
-  const logout = useCallback(() => {
+  const login = useCallback(async (email: string, password: string) => {
+    const request = ++sessionRequest.current
+    setStatus('loading')
+    setSessionError(null)
+    try {
+      const nextSession = await loginAdmin({ email, password })
+      if (request !== sessionRequest.current) return
+      setSession(nextSession)
+      setStatus('authenticated')
+    } catch (error) {
+      if (request !== sessionRequest.current) return
+      const failure = error as ErrorShape
+      setSession(null)
+      setStatus(statusForError(failure))
+      setSessionError(failure.message || '账号或密码错误。')
+      throw error
+    }
+  }, [])
+
+  const logout = useCallback(async () => {
     sessionRequest.current += 1
-    setSession(null)
-    setStatus('access-required')
-    window.location.assign('/cdn-cgi/access/logout')
+    try {
+      await logoutAdmin()
+    } finally {
+      setSession(null)
+      setStatus('login-required')
+      setSessionError(null)
+    }
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -129,6 +126,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       displayName: session?.displayName ?? '',
       isAuthenticated: status === 'authenticated',
       isLoading: status === 'loading',
+      login,
       logout,
       permissions: session?.permissions,
       principalKind: session?.principalKind,
@@ -138,7 +136,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       sessionError,
       status,
     }),
-    [logout, refreshSession, session, sessionError, status]
+    [login, logout, refreshSession, session, sessionError, status]
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

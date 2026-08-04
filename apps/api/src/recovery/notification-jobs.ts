@@ -68,11 +68,22 @@ export async function listNotificationJobs(
               n.replay_count, n.created_at, n.updated_at, o.public_reference,
               CASE WHEN n.kind = 'provider_recovery'
                    THEN 'Provider · ' || COALESCE(p.provider, 'unknown')
+                   WHEN n.type = 'admin_invitation'
+                   THEN COALESCE(invitation.normalized_email, '')
+                   WHEN n.type = 'admin_password_reset'
+                   THEN COALESCE(reset_identity.normalized_email, '')
                    ELSE COALESCE(o.email, c.email, '') END AS recipient
          FROM notification_jobs n
          LEFT JOIN orders o ON o.id = n.order_id
          LEFT JOIN checkout_attempts c ON c.id = n.checkout_attempt_id
          LEFT JOIN payment_events p ON p.id = n.provider_event_id
+         LEFT JOIN admin_invitations invitation
+           ON n.type = 'admin_invitation'
+          AND invitation.id = json_extract(n.payload_json, '$.invitationId')
+         LEFT JOIN admin_password_reset_tokens reset
+           ON n.type = 'admin_password_reset'
+          AND reset.id = json_extract(n.payload_json, '$.resetId')
+         LEFT JOIN admin_identities reset_identity ON reset_identity.id = reset.identity_id
          ${where}
         ORDER BY n.created_at DESC, n.id DESC
         LIMIT ? OFFSET ?`,

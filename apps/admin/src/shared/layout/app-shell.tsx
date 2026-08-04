@@ -1,6 +1,7 @@
 import {
   AlignLeftOutlined,
   CodeOutlined,
+  LockOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -29,6 +30,7 @@ import {
 } from './route-page-meta-context'
 import { useTheme, type FormContentAlign, type ThemeMode } from '../contexts/theme-context'
 import { getDisplayNameAvatarText, normalizeDisplayName } from '../utils/display-name'
+import { ChangePasswordModal } from '../../pages/auth/change-password-modal'
 
 const { Header, Content, Sider } = Layout
 void React
@@ -83,6 +85,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   const { token } = theme.useToken()
 
   const [collapsed, setCollapsed] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
 
   const menuRoutes = useMemo(() => {
     return routes.filter(
@@ -280,6 +283,12 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
             ),
           },
           { type: 'divider' as const },
+          {
+            key: 'change-password',
+            icon: <LockOutlined />,
+            label: '修改密码',
+          },
+          { type: 'divider' as const },
         ]
       : []),
     {
@@ -319,7 +328,12 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     }
 
     if (key === 'logout') {
-      handleLogout()
+      void handleLogout()
+      return
+    }
+
+    if (key === 'change-password') {
+      setPasswordModalOpen(true)
       return
     }
 
@@ -338,6 +352,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   }
 
   return (
+    <>
     <Layout className="h-screen overflow-hidden" style={appShellStyle}>
       <Header
         className="flex h-14 items-center justify-between gap-3 px-5 pl-4 shadow-none"
@@ -442,5 +457,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
         </Content>
       </Layout>
     </Layout>
+    <ChangePasswordModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
+    </>
   )
 }

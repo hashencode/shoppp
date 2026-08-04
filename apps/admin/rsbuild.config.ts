@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
-import { shouldForwardAccessAssertion } from './authenticated-dev-policy'
 import { normalizeAppBasePath } from './src/shared/utils/normalize-app-base-path'
 
 const readPublicEnvValue = (publicVars: Record<string, string>, name: string) => {
@@ -19,13 +18,12 @@ export default defineConfig(({ command, envMode }) => {
   const { publicVars } = loadEnv({ mode: envMode, prefixes: ['PUBLIC_'] })
   const appBasePath = normalizeAppBasePath(readPublicEnvValue(publicVars, 'PUBLIC_APP_BASE'))
   const apiProxyTarget = process.env.API_PROXY_TARGET?.trim()
-  const tunnelHostname = process.env.ADMIN_TUNNEL_HOSTNAME?.trim()
 
   if (command === 'dev' && envMode !== 'test') {
-    throw new Error('Admin development supports only --env-mode test through the authenticated preflight.')
+    throw new Error('Admin development supports only --env-mode test through the test-only preflight.')
   }
-  if (command === 'dev' && (!apiProxyTarget || !tunnelHostname)) {
-    throw new Error('Authenticated admin development requires API_PROXY_TARGET and ADMIN_TUNNEL_HOSTNAME.')
+  if (command === 'dev' && !apiProxyTarget) {
+    throw new Error('Admin development requires API_PROXY_TARGET.')
   }
   if (command === 'dev') {
     const target = new URL(apiProxyTarget!)
@@ -61,13 +59,6 @@ export default defineConfig(({ command, envMode }) => {
               changeOrigin: true,
               secure: true,
               pathRewrite: { '^/api': '' },
-              on: {
-                proxyReq: (proxyRequest, request) => {
-                  if (!shouldForwardAccessAssertion(request.headers.host, tunnelHostname!)) {
-                    proxyRequest.removeHeader('Cf-Access-Jwt-Assertion')
-                  }
-                },
-              },
             },
           },
         }

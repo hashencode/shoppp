@@ -15,6 +15,7 @@ export const authContextFixture = (
   displayName: 'Admin fixture',
   isAuthenticated: true,
   isLoading: false,
+  login: async () => undefined,
   logout: () => undefined,
   permissions: ADMIN_PERMISSION_KEYS,
   principalKind: 'human',

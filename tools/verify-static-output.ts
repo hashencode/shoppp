@@ -89,7 +89,19 @@ async function verifyTrackedSourceSafety(root: string): Promise<void> {
 
   for (const relativePath of paths) {
     if (!TEXT_EXTENSIONS.has(extname(relativePath))) continue;
-    const content = await readFile(resolve(root, relativePath), "utf8");
+    let content: string;
+    try {
+      content = await readFile(resolve(root, relativePath), "utf8");
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as NodeJS.ErrnoException).code === "ENOENT"
+      ) {
+        continue;
+      }
+      throw error;
+    }
     for (const { label, pattern } of SECRET_PATTERNS) {
       if (pattern.test(content)) throw new Error(`${relativePath} contains a ${label}.`);
     }

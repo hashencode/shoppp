@@ -80,10 +80,10 @@ describe("production promotion workflow", () => {
     expect(workflow).not.toContain("shoppp-development");
   });
 
-  test("requires independent human IdP and MFA evidence after machine proof", async () => {
+  test("requires independent human password-login evidence after machine proof", async () => {
     const workflow = await readFile(workflowPath, "utf8");
     const machineProof = workflow.indexOf("Prove service-principal admin access");
-    const humanApproval = workflow.indexOf("Record real-human IdP and MFA proof");
+    const humanApproval = workflow.indexOf("Record real-human password-login proof");
     const productionApproval = workflow.indexOf("Record explicit production approval");
 
     expect(machineProof).toBeGreaterThan(0);
@@ -114,17 +114,66 @@ describe("production promotion workflow", () => {
     expect(workflow).toContain(
       "any(.[]?.results[]?; ((.enabled_protected_admins // 0) | tonumber) > 1)",
     );
+    expect(workflow).toContain("JOIN admin_password_credentials credential");
+    expect(workflow).toContain(
+      "any(.[]?.results[]?; ((.credentialed_protected_admins // 0) | tonumber) > 0)",
+    );
+    expect(workflow).toContain(
+      "any(.[]?.results[]?; ((.credentialed_protected_admins // 0) | tonumber) > 1)",
+    );
   });
 
-  test("proves the pre-IAM API rollback can still read an authenticated session", async () => {
+  test("provisions a hashed test service credential before machine proof", async () => {
     const workflow = await readFile(workflowPath, "utf8");
-    const rollback = workflow.indexOf("Demonstrate last-known-good rollback");
-    const sessionProof = workflow.indexOf('"$ADMIN_E2E_BASE_URL/api/admin/session"', rollback);
-    const restore = workflow.indexOf("Restore the validated staging versions");
+    const provision = workflow.indexOf("Provision hashed staging service credential");
+    const prohibitedProvision = workflow.indexOf(
+      "Provision hashed staging prohibited service credential",
+    );
+    const machineProof = workflow.indexOf("Prove service-principal admin access");
+
+    expect(provision).toBeGreaterThan(0);
+    expect(prohibitedProvision).toBeGreaterThan(provision);
+    expect(machineProof).toBeGreaterThan(provision);
+    expect(machineProof).toBeGreaterThan(prohibitedProvision);
+    expect(workflow).toContain("bun run provision:admin-service --environment test");
+    expect(workflow).toContain("E2E_ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}");
+    expect(workflow).toContain(
+      "E2E_PROHIBITED_ADMIN_SERVICE_SUBJECT: ${{ vars.PROHIBITED_ADMIN_SERVICE_SUBJECT }}",
+    );
+    expect(workflow).toContain(
+      "ADMIN_SERVICE_TOKEN: ${{ secrets.PROHIBITED_ADMIN_SERVICE_TOKEN }}",
+    );
+    expect(workflow).not.toContain("CF_ACCESS_CLIENT_SECRET");
+  });
+
+  test("keeps rollback artifacts without activating authentication-incompatible workers", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const rollback = workflow.indexOf("Verify last-known-good rollback artifacts remain available");
+    const rollbackEnd = workflow.indexOf("Record proven catalog deployment", rollback);
+    const rollbackStep = workflow.slice(rollback, rollbackEnd);
 
     expect(rollback).toBeGreaterThan(0);
-    expect(sessionProof).toBeGreaterThan(rollback);
-    expect(restore).toBeGreaterThan(sessionProof);
+    expect(rollbackEnd).toBeGreaterThan(rollback);
+    expect(rollbackStep).toContain("for component in apps/api apps/admin apps/storefront; do");
+    expect(rollbackStep).toContain("bunx wrangler versions list --env staging --json");
+    expect(rollbackStep).toContain('--arg release "$E2E_LAST_KNOWN_GOOD_RELEASE_ID"');
+    expect(rollbackStep).toContain('.annotations["workers/message"] == $release');
+    expect(workflow).not.toContain("bunx wrangler rollback --env staging");
+  });
+
+  test("proves the deployed staging auth secret through the real password-reset route", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const authSecretProof = workflow.indexOf("Verify staging administrator auth secret");
+    const machineProof = workflow.indexOf("Prove service-principal admin access");
+    const authSecretStep = workflow.slice(authSecretProof, machineProof);
+
+    expect(authSecretProof).toBeGreaterThan(0);
+    expect(machineProof).toBeGreaterThan(authSecretProof);
+    expect(authSecretStep).toContain("curl --fail --silent --show-error");
+    expect(authSecretStep).toContain("--request POST");
+    expect(authSecretStep).toContain('"Origin: $ADMIN_E2E_BASE_URL"');
+    expect(authSecretStep).toContain('"Sec-Fetch-Site: same-origin"');
+    expect(authSecretStep).toContain('"$ADMIN_E2E_BASE_URL/api/admin/auth/password-reset/request"');
   });
 
   test("prepares isolated and auditable staging journey fixtures", async () => {

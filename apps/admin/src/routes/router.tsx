@@ -1,5 +1,8 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '../pages/auth/login-page'
+import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
+import { ResetPasswordPage } from '../pages/auth/reset-password-page'
+import { ActivateAccountPage } from '../pages/auth/activate-account-page'
 import { ForbiddenPage } from '../pages/forbidden-page'
 import { hasPermission } from '../infrastructure/auth/permissions'
 import { useAuth } from '../infrastructure/auth/use-auth'
@@ -86,6 +89,30 @@ const validRouter = createBrowserRouter([
     element: (
       <RedirectIfAuthenticated>
         <LoginPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <RedirectIfAuthenticated>
+        <ForgotPasswordPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <RedirectIfAuthenticated>
+        <ResetPasswordPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/activate',
+    element: (
+      <RedirectIfAuthenticated>
+        <ActivateAccountPage />
       </RedirectIfAuthenticated>
     ),
   },

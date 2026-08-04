@@ -136,6 +136,21 @@ describe('normalizeApiError', () => {
     expect(normalized.message).toBe('参数非法')
   })
 
+  it('preserves shared administrator authentication error codes', () => {
+    const normalized = normalizeApiError(
+      createAxiosError({
+        status: 403,
+        data: {
+          message: 'Protected administrator reset denied',
+          errorCode: 'protected_admin_password_reset_denied',
+        },
+      })
+    )
+
+    expect(normalized.code).toBe('protected_admin_password_reset_denied')
+    expect(normalized.status).toBe(403)
+  })
+
   it('falls back to UNKNOWN_ERROR for non-axios errors', () => {
     const normalized = normalizeApiError(new Error('unexpected'))
 

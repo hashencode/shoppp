@@ -15,13 +15,10 @@ function snapshots() {
         "https://shop.staging.example.com/checkout",
       ],
       apiVariables: {
-        ACCESS_AUDIENCE: "staging-access-audience",
-        ACCESS_APPLICATION_ID: "staging-access-application",
         ADMIN_ORIGIN: "https://admin.staging.example.com",
         CLOUDFLARE_ACCOUNT_ID: "shared-cloudflare-account",
         D1_DATABASE_ID: "staging-db-id",
         ENVIRONMENT: "staging",
-        IDP_ASSIGNMENT_ID: "staging-idp-assignment",
         RESOURCE_NAMESPACE: "shoppp-staging",
         SERVICE_CREDENTIAL_REF: "staging-service-credential",
         TURNSTILE_REQUIRED: "true",
@@ -48,13 +45,10 @@ function snapshots() {
         "https://shop.example.com/checkout",
       ],
       apiVariables: {
-        ACCESS_AUDIENCE: "production-access-audience",
-        ACCESS_APPLICATION_ID: "production-access-application",
         ADMIN_ORIGIN: "https://admin.example.com",
         CLOUDFLARE_ACCOUNT_ID: "shared-cloudflare-account",
         D1_DATABASE_ID: "production-db-id",
         ENVIRONMENT: "production",
-        IDP_ASSIGNMENT_ID: "production-idp-assignment",
         RESOURCE_NAMESPACE: "shoppp-production",
         SERVICE_CREDENTIAL_REF: "production-service-credential",
         TURNSTILE_REQUIRED: "true",
@@ -89,21 +83,16 @@ describe("environment isolation", () => {
     expect(() => verifySnapshots(fixture)).not.toThrow();
   });
 
-  test.each([
-    "D1_DATABASE_ID",
-    "RESOURCE_NAMESPACE",
-    "ACCESS_AUDIENCE",
-    "ACCESS_APPLICATION_ID",
-    "ADMIN_ORIGIN",
-    "IDP_ASSIGNMENT_ID",
-    "SERVICE_CREDENTIAL_REF",
-  ])("fails closed when %s crosses environments", (variable) => {
-    const fixture = snapshots();
-    fixture[1]!.apiVariables[variable] = fixture[0]!.apiVariables[variable]!;
-    expect(() => verifySnapshots(fixture)).toThrow(
-      /share deployment resources|ADMIN_HOSTNAME must match|D1_DATABASE_ID must match/,
-    );
-  });
+  test.each(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ADMIN_ORIGIN", "SERVICE_CREDENTIAL_REF"])(
+    "fails closed when %s crosses environments",
+    (variable) => {
+      const fixture = snapshots();
+      fixture[1]!.apiVariables[variable] = fixture[0]!.apiVariables[variable]!;
+      expect(() => verifySnapshots(fixture)).toThrow(
+        /share deployment resources|ADMIN_HOSTNAME must match|D1_DATABASE_ID must match/,
+      );
+    },
+  );
 
   test("fails closed when a third shared remote development database is configured", () => {
     const fixture = snapshots();
@@ -179,11 +168,8 @@ describe("environment isolation", () => {
   });
 
   test.each([
-    ["staging", "ACCESS_APPLICATION_ID", "test-admin-access-application"],
-    ["staging", "IDP_ASSIGNMENT_ID", "test-admin-idp-assignment"],
-    ["production", "ACCESS_AUDIENCE", "production-audience"],
-    ["production", "ACCESS_APPLICATION_ID", "production-admin-access-application"],
-    ["production", "IDP_ASSIGNMENT_ID", "production-admin-idp-assignment"],
+    ["staging", "SERVICE_CREDENTIAL_REF", "replace-with-staging-service-credential"],
+    ["production", "SERVICE_CREDENTIAL_REF", "replace-with-production-service-credential"],
   ] as const)(
     "strict %s mode rejects placeholder %s identity metadata",
     (environment, variable, placeholder) => {

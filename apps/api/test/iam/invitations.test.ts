@@ -28,6 +28,7 @@ function humanApp(subject: string, email: string) {
 }
 
 const adminApp = humanApp("inviting-admin", "inviting-admin@example.test");
+const AUTH_TOKEN_SECRET = "test-auth-token-secret-that-is-at-least-32-characters";
 
 async function invite(email = "Operator@Example.com", idempotencyKey = "invite-operator-0001") {
   return adminApp.fetch(
@@ -385,6 +386,7 @@ describe("admin invitation lifecycle", () => {
         new Date().toISOString(),
         "admin@example.test",
         "https://admin-test.example.test",
+        AUTH_TOKEN_SECRET,
       ),
     ).resolves.toEqual({ status: "sent" });
     expect(send).toHaveBeenCalledWith(
@@ -411,7 +413,18 @@ describe("admin invitation lifecycle", () => {
       },
     };
     expect(
-      (await deliverNotificationJob(env.DB, retrying, "https://shop.example.test", job!.id)).status,
+      (
+        await deliverNotificationJob(
+          env.DB,
+          retrying,
+          "https://shop.example.test",
+          job!.id,
+          new Date().toISOString(),
+          "admin@example.test",
+          "https://admin-test.example.test",
+          AUTH_TOKEN_SECRET,
+        )
+      ).status,
     ).toBe("retry");
     await env.DB.prepare(
       "UPDATE notification_jobs SET status = 'pending', next_attempt_at = NULL WHERE id = ?",
@@ -424,8 +437,18 @@ describe("admin invitation lifecycle", () => {
       },
     };
     expect(
-      (await deliverNotificationJob(env.DB, permanent, "https://shop.example.test", job!.id))
-        .status,
+      (
+        await deliverNotificationJob(
+          env.DB,
+          permanent,
+          "https://shop.example.test",
+          job!.id,
+          new Date().toISOString(),
+          "admin@example.test",
+          "https://admin-test.example.test",
+          AUTH_TOKEN_SECRET,
+        )
+      ).status,
     ).toBe("dead_letter");
     expect(
       await env.DB.prepare("SELECT status FROM admin_invitations WHERE id = ?")

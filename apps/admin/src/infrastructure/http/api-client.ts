@@ -1,23 +1,42 @@
 import axios, { AxiosError } from 'axios'
+import { adminAuthErrorCodeSchema, type AdminAuthErrorCode } from '@shoppp/contracts'
 
 const NO_REQUEST_TIMEOUT_MS = 0
 
 export const EXPORT_REQUEST_TIMEOUT_MS = NO_REQUEST_TIMEOUT_MS
 export const UPLOAD_REQUEST_TIMEOUT_MS = NO_REQUEST_TIMEOUT_MS
 
-export type ApiErrorCode =
-  | 'last_admin_change_denied'
-  | 'role_has_dependencies'
-  | 'self_role_edit_denied'
-  | 'stale_role_version'
-  | 'stale_user_version'
-  | 'system_role_archive_denied'
-  | 'QUERY_TIMEOUT'
-  | 'QUERY_SERVER_ERROR'
-  | 'RESOURCE_NOT_FOUND'
-  | 'ROUTE_PARAM_INVALID'
-  | 'ROUTE_PARAM_MISSING_ID'
-  | 'UNKNOWN_ERROR'
+const LOCAL_API_ERROR_CODES = [
+  'last_admin_change_denied',
+  'role_has_dependencies',
+  'self_role_edit_denied',
+  'stale_role_version',
+  'stale_user_version',
+  'system_role_archive_denied',
+  'QUERY_TIMEOUT',
+  'QUERY_SERVER_ERROR',
+  'RESOURCE_NOT_FOUND',
+  'ROUTE_PARAM_INVALID',
+  'ROUTE_PARAM_MISSING_ID',
+  'UNKNOWN_ERROR',
+] as const
+
+type LocalApiErrorCode = (typeof LOCAL_API_ERROR_CODES)[number]
+export type ApiErrorCode = AdminAuthErrorCode | LocalApiErrorCode
+
+function isLocalApiErrorCode(value: unknown): value is LocalApiErrorCode {
+  return (
+    typeof value === 'string' &&
+    LOCAL_API_ERROR_CODES.some((candidate) => candidate === value)
+  )
+}
+
+function parseApiErrorCode(value: unknown): ApiErrorCode | undefined {
+  const authCode = adminAuthErrorCodeSchema.safeParse(value)
+  if (authCode.success) return authCode.data
+  if (isLocalApiErrorCode(value)) return value
+  return undefined
+}
 
 export type ApiError = Error & {
   code: ApiErrorCode
@@ -64,12 +83,14 @@ export const normalizeApiError = (error: unknown): ApiError => {
       })
     }
 
-    const errorCode = axiosError.response?.data?.errorCode ?? axiosError.response?.data?.error?.code
+    const errorCode = parseApiErrorCode(
+      axiosError.response?.data?.errorCode ?? axiosError.response?.data?.error?.code
+    )
     const details = axiosError.response?.data?.error?.details
 
     if (errorCode) {
       return Object.assign(new Error(message), {
-        code: errorCode as ApiErrorCode,
+        code: errorCode,
         details,
         status,
       })
@@ -81,18 +102,22 @@ export const normalizeApiError = (error: unknown): ApiError => {
     })
   }
 
-  if (
-    error instanceof Error &&
-    'code' in error &&
-    typeof (error as { code?: unknown }).code === 'string'
-  ) {
-    if ((error as ApiError).code === 'QUERY_SERVER_ERROR') {
-      return Object.assign(new Error('请求失败，请稍后重试。'), {
-        code: 'QUERY_SERVER_ERROR' as const,
-        status: (error as ApiError).status,
+  if (error instanceof Error && 'code' in error) {
+    const candidate = error as Error & { code?: unknown; status?: number }
+    const errorCode = parseApiErrorCode(candidate.code)
+    if (!errorCode) {
+      return Object.assign(new Error(candidate.message), {
+        code: 'UNKNOWN_ERROR' as const,
+        status: candidate.status,
       })
     }
-    return error as ApiError
+    if (errorCode === 'QUERY_SERVER_ERROR') {
+      return Object.assign(new Error('请求失败，请稍后重试。'), {
+        code: 'QUERY_SERVER_ERROR' as const,
+        status: candidate.status,
+      })
+    }
+    return Object.assign(candidate, { code: errorCode })
   }
 
   return Object.assign(new Error('请求失败，请稍后重试。'), {

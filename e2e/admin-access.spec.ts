@@ -35,7 +35,7 @@ async function auditEvents(
   };
 }
 
-test("service principal is mapped, auditable, and cannot use human onboarding", async ({
+test("service principal is mapped, auditable, and cannot change a human password", async ({
   request,
 }) => {
   const headers = accessHeaders();
@@ -58,10 +58,16 @@ test("service principal is mapped, auditable, and cannot use human onboarding", 
   const users = (await usersResponse.json()) as { data: { items: Array<{ id: string }> } };
   expect(users.data.items.some(({ id }) => id === session.identityId)).toBe(false);
 
-  const onboardingResponse = await request.post(adminApiUrl("/admin/onboarding"), { headers });
-  expect(onboardingResponse.status()).toBe(403);
-  expect(await onboardingResponse.json()).toMatchObject({
-    error: { code: "human_invitation_required" },
+  const passwordResponse = await request.post(adminApiUrl("/admin/auth/password/change"), {
+    data: {
+      currentPassword: "not-a-human-password",
+      newPassword: "another-not-human-password",
+    },
+    headers,
+  });
+  expect(passwordResponse.status()).toBe(403);
+  expect(await passwordResponse.json()).toMatchObject({
+    error: { code: "human_password_required" },
   });
 
   const invitationsResponse = await request.get(

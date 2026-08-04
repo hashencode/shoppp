@@ -7,7 +7,7 @@ import storefrontWorker, {
 import { adminApiUrl } from "../e2e/support";
 
 describe("environment-neutral API gateways", () => {
-  test("staging admin proofs use the Access-protected same-origin API gateway", () => {
+  test("staging admin proofs use the same-origin API gateway", () => {
     const previous = process.env.ADMIN_E2E_BASE_URL;
     process.env.ADMIN_E2E_BASE_URL = "https://admin.staging.example.test/";
     try {
@@ -46,24 +46,16 @@ describe("environment-neutral API gateways", () => {
     },
   );
 
-  test("admin preserves an Access assertion only for the configured protected hostname", () => {
+  test("admin always strips obsolete Cloudflare Access assertions", () => {
     const protectedRequest = new Request("https://admin.staging.example.test/api/admin/session", {
       headers: { "Cf-Access-Jwt-Assertion": "access-assertion" },
     });
-    expect(
-      adminRequest(protectedRequest, "admin.staging.example.test").headers.get(
-        "Cf-Access-Jwt-Assertion",
-      ),
-    ).toBe("access-assertion");
+    expect(adminRequest(protectedRequest).headers.get("Cf-Access-Jwt-Assertion")).toBeNull();
 
     const bypassRequest = new Request("http://localhost:3000/api/admin/session", {
       headers: { "Cf-Access-Jwt-Assertion": "spoofed-assertion" },
     });
-    expect(
-      adminRequest(bypassRequest, "admin.staging.example.test").headers.get(
-        "Cf-Access-Jwt-Assertion",
-      ),
-    ).toBeNull();
+    expect(adminRequest(bypassRequest).headers.get("Cf-Access-Jwt-Assertion")).toBeNull();
   });
 
   test("storefront serves opaque order routes from the private order shell", () => {

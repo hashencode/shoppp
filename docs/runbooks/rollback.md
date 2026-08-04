@@ -3,7 +3,7 @@
 ## When to roll back
 
 Rollback immediately for purchase failure, inventory oversell, duplicate order/payment effects,
-invalid static HTML, broken Access protection, cross-environment traffic, sustained error-budget
+invalid static HTML, broken administrator authentication, cross-environment traffic, sustained error-budget
 breach, or a migration that makes the deployed application unsafe. Stop catalog publication while
 the incident is active.
 
@@ -35,6 +35,13 @@ An application rollback does not undo IAM data or migrations. After an admin/API
 one real-human session, one service session, the enabled protected-human count, effective role
 permissions, and recent IAM audit events. If the older code cannot safely interpret the current IAM
 schema, roll forward with a compatibility fix; do not reverse migration `0012_admin_iam.sql`.
+
+Do not activate a pre-password-auth API during a rehearsal after retiring Cloudflare Access unless
+the rollback package also retains an isolated Access credential and proves a protected session.
+Migration `0013_admin_password_auth.sql` is additive, but its password sessions and service
+credentials are not usable by the older Worker. Without a verified old authentication path, a
+code-only rollback can leave public health green while administrators are locked out. The staging
+gate therefore verifies saved rollback artifacts without activating that incomplete rollback path.
 
 Migration `0012_admin_iam.sql` retains trigger-maintained legacy `email` and `role` compatibility
 columns so the immediately preceding API version can still authenticate seeded roles during the

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   ADMIN_PERMISSION_CATALOG,
   ADMIN_PERMISSION_KEYS,
+  adminAuthErrorCodeSchema,
   adminInvitationStatusSchema,
   cancelOrderRequestSchema,
   fulfillmentTransitionRequestSchema,
@@ -268,6 +269,13 @@ describe("public contracts", () => {
 });
 
 describe("admin IAM contracts", () => {
+  test("shares administrator authentication error codes with clients", () => {
+    expect(adminAuthErrorCodeSchema.parse("protected_admin_password_reset_denied")).toBe(
+      "protected_admin_password_reset_denied",
+    );
+    expect(adminAuthErrorCodeSchema.safeParse("arbitrary_server_error").success).toBe(false);
+  });
+
   test("keeps the permission registry unique, categorized, and schema-backed", () => {
     expect(new Set(ADMIN_PERMISSION_KEYS).size).toBe(ADMIN_PERMISSION_KEYS.length);
     expect(ADMIN_PERMISSION_CATALOG.map(({ key }) => key)).toEqual([...ADMIN_PERMISSION_KEYS]);

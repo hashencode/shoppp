@@ -3,7 +3,7 @@ import { mockAdminSession } from '../support'
 
 test.describe('Xxx Flow E2E', () => {
   test('should complete the critical user journey', async ({ page }) => {
-    // Local UI E2E mocks the authoritative session endpoint, never an application credential form.
+    // Local UI E2E mocks the authoritative session endpoint after login has been proven separately.
     await mockAdminSession(page)
     await page.goto('/template/list/table')
 

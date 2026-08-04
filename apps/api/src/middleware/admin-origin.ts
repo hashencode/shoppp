@@ -8,12 +8,19 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export function isAllowedAdminBrowserOrigin(
   environment: Pick<ApiEnvironment["Bindings"], "ADMIN_ORIGIN" | "ENVIRONMENT"> &
-    Partial<Pick<ApiEnvironment["Bindings"], "ADMIN_TUNNEL_HOSTNAME">>,
+    Partial<Pick<ApiEnvironment["Bindings"], "ADMIN_DEVELOPMENT_ORIGIN" | "ADMIN_TUNNEL_HOSTNAME">>,
   origin: string | undefined,
   fetchSite: string | undefined,
 ): boolean {
   if (!origin || fetchSite !== "same-origin") return false;
   if (origin === environment.ADMIN_ORIGIN) return true;
+  if (
+    environment.ENVIRONMENT !== "production" &&
+    environment.ADMIN_DEVELOPMENT_ORIGIN &&
+    origin === environment.ADMIN_DEVELOPMENT_ORIGIN
+  ) {
+    return true;
+  }
   const tunnelHostname = environment.ADMIN_TUNNEL_HOSTNAME?.trim();
   return (
     environment.ENVIRONMENT !== "production" &&

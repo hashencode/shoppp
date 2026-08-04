@@ -118,6 +118,98 @@ export const adminInvitations = sqliteTable(
   ],
 );
 
+export const adminPasswordCredentials = sqliteTable("admin_password_credentials", {
+  identityId: text("identity_id")
+    .primaryKey()
+    .references(() => adminIdentities.id, { onDelete: "restrict" }),
+  passwordHash: text("password_hash").notNull(),
+  passwordSalt: text("password_salt").notNull(),
+  passwordIterations: integer("password_iterations").notNull(),
+  passwordVersion: integer("password_version").notNull().default(1),
+  mustChangePassword: integer("must_change_password", { mode: "boolean" }).notNull().default(false),
+  ...timestamps,
+});
+
+export const adminSessions = sqliteTable(
+  "admin_sessions",
+  {
+    id: text("id").primaryKey(),
+    identityId: text("identity_id")
+      .notNull()
+      .references(() => adminIdentities.id, { onDelete: "restrict" }),
+    tokenHash: text("token_hash").notNull(),
+    passwordVersion: integer("password_version").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    lastSeenAt: text("last_seen_at").notNull(),
+    revokedAt: text("revoked_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("admin_sessions_token_hash_unique").on(table.tokenHash),
+    index("admin_sessions_identity_active_idx").on(
+      table.identityId,
+      table.revokedAt,
+      table.expiresAt,
+    ),
+    index("admin_sessions_expiry_idx").on(table.expiresAt, table.revokedAt),
+  ],
+);
+
+export const adminPasswordResetTokens = sqliteTable(
+  "admin_password_reset_tokens",
+  {
+    id: text("id").primaryKey(),
+    identityId: text("identity_id")
+      .notNull()
+      .references(() => adminIdentities.id, { onDelete: "restrict" }),
+    tokenHash: text("token_hash").notNull(),
+    passwordVersion: integer("password_version").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    usedAt: text("used_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("admin_password_reset_token_hash_unique").on(table.tokenHash),
+    index("admin_password_reset_identity_idx").on(table.identityId, table.usedAt, table.expiresAt),
+  ],
+);
+
+export const adminLoginThrottles = sqliteTable(
+  "admin_login_throttles",
+  {
+    keyHash: text("key_hash").primaryKey(),
+    failureCount: integer("failure_count").notNull(),
+    windowStartedAt: text("window_started_at").notNull(),
+    blockedUntil: text("blocked_until"),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("admin_login_throttles_blocked_idx").on(table.blockedUntil, table.updatedAt)],
+);
+
+export const adminServiceCredentials = sqliteTable(
+  "admin_service_credentials",
+  {
+    id: text("id").primaryKey(),
+    identityId: text("identity_id")
+      .notNull()
+      .references(() => adminIdentities.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    expiresAt: text("expires_at"),
+    lastUsedAt: text("last_used_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("admin_service_credentials_token_hash_unique").on(table.tokenHash),
+    index("admin_service_credentials_identity_idx").on(
+      table.identityId,
+      table.enabled,
+      table.expiresAt,
+    ),
+  ],
+);
+
 export const products = sqliteTable(
   "products",
   {
@@ -655,6 +747,9 @@ export const notificationJobs = sqliteTable(
     index("notification_jobs_admin_invitation_delivery_idx")
       .on(table.type, table.payloadJson, table.createdAt, table.id)
       .where(sql`${table.type} = 'admin_invitation'`),
+    index("notification_jobs_admin_password_reset_delivery_idx")
+      .on(table.type, table.payloadJson, table.createdAt, table.id)
+      .where(sql`${table.type} = 'admin_password_reset'`),
   ],
 );
 

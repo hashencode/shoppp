@@ -35,12 +35,12 @@ export async function mockAdminSession(
   })
 }
 
-export async function mockAccessRequired(page: Page): Promise<void> {
+export async function mockLoginRequired(page: Page): Promise<void> {
   await page.route('**/api/admin/session', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       json: {
-        error: { code: 'access_required', message: 'Cloudflare Access authentication is required.' },
+        error: { code: 'admin_login_required', message: 'Administrator login is required.' },
       },
       status: 401,
     })
