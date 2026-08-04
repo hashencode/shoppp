@@ -57,8 +57,9 @@ The plan remains the read-only authority.
   `e81ce49a-24a8-4e55-a0c2-362618b95246` are restored at 100%.
   The administrator application now authenticates humans with email/password and an opaque
   `HttpOnly` session. Automation uses an independently provisioned Bearer credential whose SHA-256
-  hash is stored in D1; anonymous and non-allowlisted credentials are denied. A new staging proof is
-  pending after removal of the former external identity proxy.
+  hash is stored in D1; anonymous and non-allowlisted credentials are denied. Run `30917790730`
+  reproved the public human and authorized/prohibited service paths after the former external
+  identity proxy application was deleted.
 - Staging contains a deployable Atlas Carry-on commercial-journey fixture with USD/EUR prices,
   exactly one unit of inventory, US shipping, an R2-hosted media asset, launch configuration, and
   the deployed immutable catalog release `representative-release-2026-07-30`. The live product API,
