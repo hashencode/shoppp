@@ -7,16 +7,19 @@ type JsonRecord = Record<string, unknown>;
 type EnvironmentName = "staging" | "production";
 
 interface WranglerConfig extends JsonRecord {
+  d1_databases?: unknown;
   name?: string;
   env?: Partial<Record<EnvironmentName, JsonRecord>>;
 }
 
 interface EnvironmentSnapshot {
+  adminHostname: string;
   environment: EnvironmentName;
   applicationNames: string[];
   resourceIdentifiers: string[];
   endpointValues: string[];
   apiVariables: Record<string, string>;
+  remoteDatabaseIdentities: string[];
 }
 
 const ROOT = resolve(import.meta.dir, "..");
@@ -40,6 +43,8 @@ const RESOURCE_KEYS = new Set([
 ]);
 
 const ENDPOINT_VARIABLES = new Set([
+  "ADMIN_ORIGIN",
+  "ADMIN_TUNNEL_HOSTNAME",
   "PUBLIC_ORIGIN",
   "MEDIA_PUBLIC_ORIGIN",
   "STOREFRONT_ORIGIN",
@@ -50,7 +55,24 @@ const ENDPOINT_VARIABLES = new Set([
   "EMAIL_FROM",
 ]);
 
-const ID_VARIABLES = new Set(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ACCESS_AUDIENCE"]);
+const ID_VARIABLES = new Set([
+  "ACCESS_APPLICATION_ID",
+  "ACCESS_AUDIENCE",
+  "ADMIN_ORIGIN",
+  "D1_DATABASE_ID",
+  "IDP_ASSIGNMENT_ID",
+  "RESOURCE_NAMESPACE",
+  "SERVICE_CREDENTIAL_REF",
+]);
+
+const REQUIRED_IDENTITY_VARIABLES = [
+  "ACCESS_APPLICATION_ID",
+  "ACCESS_AUDIENCE",
+  "ADMIN_ORIGIN",
+  "D1_DATABASE_ID",
+  "IDP_ASSIGNMENT_ID",
+  "SERVICE_CREDENTIAL_REF",
+] as const;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -84,6 +106,16 @@ function stringVariables(value: unknown): Record<string, string> {
   );
 }
 
+function remoteDatabaseIdentities(value: unknown): string[] {
+  if (!isRecord(value) || !Array.isArray(value.d1_databases)) return [];
+  return value.d1_databases.flatMap((database) => {
+    if (!isRecord(database)) return [];
+    const id = database.database_id;
+    const name = database.database_name;
+    return typeof id === "string" && typeof name === "string" ? [`${id}::${name}`] : [];
+  });
+}
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
@@ -109,8 +141,10 @@ export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]>
 
   return (["staging", "production"] as const).map((environment) => {
     const applicationNames: string[] = [];
+    let adminHostname = "";
     let apiVariables: Record<string, string> = {};
     const resources: string[] = [];
+    const databases: string[] = [];
 
     for (const { relativePath, config } of configs) {
       const selected = config.env?.[environment];
@@ -124,6 +158,13 @@ export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]>
 
       if (relativePath === "apps/api/wrangler.jsonc") {
         apiVariables = stringVariables(selected.vars);
+        databases.push(...remoteDatabaseIdentities(selected));
+        if (environment === "staging") {
+          databases.push(...remoteDatabaseIdentities(config));
+        }
+      }
+      if (relativePath === "apps/admin/wrangler.jsonc") {
+        adminHostname = stringVariables(selected.vars).ADMIN_HOSTNAME ?? "";
       }
     }
 
@@ -131,11 +172,13 @@ export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]>
       .filter(([key]) => ENDPOINT_VARIABLES.has(key))
       .map(([, value]) => value);
     return {
+      adminHostname,
       environment,
       applicationNames: unique(applicationNames),
       resourceIdentifiers: unique(resources),
       endpointValues: unique(endpointValues),
       apiVariables,
+      remoteDatabaseIdentities: unique(databases),
     };
   });
 }
@@ -163,6 +206,13 @@ export function verifySnapshots(
       snapshot.applicationNames.length === 3,
       `${snapshot.environment} must name all three apps`,
     );
+    assert(Boolean(snapshot.adminHostname), `${snapshot.environment} must define ADMIN_HOSTNAME`);
+    const adminOrigin = snapshot.apiVariables.ADMIN_ORIGIN;
+    assert(adminOrigin, `${snapshot.environment} must define ADMIN_ORIGIN`);
+    assert(
+      new URL(adminOrigin).hostname === snapshot.adminHostname,
+      `${snapshot.environment} ADMIN_HOSTNAME must match the API ADMIN_ORIGIN`,
+    );
     assert(
       new Set(snapshot.applicationNames).size === snapshot.applicationNames.length,
       `${snapshot.environment} app names must be unique`,
@@ -175,6 +225,16 @@ export function verifySnapshots(
       snapshot.apiVariables.TURNSTILE_REQUIRED === "true",
       `${snapshot.environment} must fail closed with Turnstile enabled`,
     );
+    for (const variable of REQUIRED_IDENTITY_VARIABLES) {
+      assert(
+        Boolean(snapshot.apiVariables[variable]),
+        `${snapshot.environment} must define ${variable}`,
+      );
+    }
+    assert(
+      snapshot.remoteDatabaseIdentities.length === 1,
+      `${snapshot.environment} must define exactly one remote D1 database identity`,
+    );
     if (snapshot.environment === "production") {
       assert(
         snapshot.apiVariables.TURNSTILE_TEST_MODE !== "true",
@@ -183,7 +243,16 @@ export function verifySnapshots(
     }
   }
 
+  assert(
+    new Set([
+      ...staging.remoteDatabaseIdentities,
+      ...production.remoteDatabaseIdentities,
+    ]).size === 2,
+    "test and production must define exactly two shared remote D1 database identities",
+  );
+
   const stagingResources = new Set([
+    staging.adminHostname,
     ...staging.applicationNames,
     ...staging.resourceIdentifiers,
     ...staging.endpointValues,
@@ -192,6 +261,7 @@ export function verifySnapshots(
       .map(([, value]) => value),
   ]);
   const productionResources = new Set([
+    production.adminHostname,
     ...production.applicationNames,
     ...production.resourceIdentifiers,
     ...production.endpointValues,

@@ -13,25 +13,19 @@ A reusable admin template built with React, TypeScript, Ant Design v6, Tailwind 
 
 ## Scripts (Bun)
 
-- `bun run dev` - start development server
-- `bun run dev:development` - start development server with `.env.development`
-- `bun run dev:test` - start development server with `.env.test`
-- `bun run dev:production` - start development server with `.env.production`
+- `bun run dev` / `bun run dev:test` - load the repository `.env`, run the fail-closed preflight, local Rsbuild server, and named Cloudflare Tunnel against the test API and test D1 only
 - `bun run build` - typecheck and build production bundle
-- `bun run build:development` - build with `.env.development`
 - `bun run build:test` - build with `.env.test`
 - `bun run build:production` - build with `.env.production`
-- `bun run preview` - preview production build
-- `bun run preview:development` - preview with `.env.development`
-- `bun run preview:test` - preview with `.env.test`
-- `bun run preview:production` - preview with `.env.production`
 - `bun run test` - run unit tests
+- `bun run test:browser` - run real-browser component tests
+- `bun run test:e2e` - run Playwright end-to-end tests
 
 ## Structure
 
 - `src/routes` - route config, router builder, and provider
 - `src/routes/form-route-contract.ts` - form route mode contract utilities
-- `src/infrastructure/auth` - role and permission sandbox
+- `src/infrastructure/auth` - authoritative Access session and permission guards
 - `src/infrastructure/http` - shared HTTP client and error normalization
 - `src/infrastructure/msw` - dev-only MSW bootstrap and handlers (`/dev` routes only)
 - `src/pages/home/*` - public pages

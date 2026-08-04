@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "shoppp-admin",
+  "name": "shoppp-admin-staging",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-07-30",
   "assets": {
@@ -11,12 +11,18 @@
   "services": [
     {
       "binding": "API",
-      "service": "shoppp-api-development"
+      "service": "shoppp-api-staging"
     }
   ],
+  "vars": {
+    "ADMIN_HOSTNAME": "shoppp-admin-staging.hashencode.workers.dev"
+  },
   "env": {
     "staging": {
       "name": "shoppp-admin-staging",
+      "vars": {
+        "ADMIN_HOSTNAME": "shoppp-admin-staging.hashencode.workers.dev"
+      },
       "services": [
         {
           "binding": "API",
@@ -26,6 +32,9 @@
     },
     "production": {
       "name": "shoppp-admin-production",
+      "vars": {
+        "ADMIN_HOSTNAME": "shoppp-admin-production.hashencode.workers.dev"
+      },
       "services": [
         {
           "binding": "API",

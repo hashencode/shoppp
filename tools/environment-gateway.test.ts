@@ -46,6 +46,26 @@ describe("environment-neutral API gateways", () => {
     },
   );
 
+  test("admin preserves an Access assertion only for the configured protected hostname", () => {
+    const protectedRequest = new Request("https://admin.staging.example.test/api/admin/session", {
+      headers: { "Cf-Access-Jwt-Assertion": "access-assertion" },
+    });
+    expect(
+      adminRequest(protectedRequest, "admin.staging.example.test").headers.get(
+        "Cf-Access-Jwt-Assertion",
+      ),
+    ).toBe("access-assertion");
+
+    const bypassRequest = new Request("http://localhost:3000/api/admin/session", {
+      headers: { "Cf-Access-Jwt-Assertion": "spoofed-assertion" },
+    });
+    expect(
+      adminRequest(bypassRequest, "admin.staging.example.test").headers.get(
+        "Cf-Access-Jwt-Assertion",
+      ),
+    ).toBeNull();
+  });
+
   test("storefront serves opaque order routes from the private order shell", () => {
     const source = new Request(
       "https://shop.example.test/orders/order_access_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?source=checkout",

@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "shoppp-storefront",
+  "name": "shoppp-storefront-staging",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-07-29",
   "assets": {
@@ -11,7 +11,7 @@
   "services": [
     {
       "binding": "API",
-      "service": "shoppp-api-development",
+      "service": "shoppp-api-staging",
     },
   ],
   "env": {

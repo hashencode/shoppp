@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
+import { shouldForwardAccessAssertion } from './authenticated-dev-policy'
 import { normalizeAppBasePath } from './src/shared/utils/normalize-app-base-path'
 
 const readPublicEnvValue = (publicVars: Record<string, string>, name: string) => {
@@ -18,9 +19,19 @@ export default defineConfig(({ command, envMode }) => {
   const { publicVars } = loadEnv({ mode: envMode, prefixes: ['PUBLIC_'] })
   const appBasePath = normalizeAppBasePath(readPublicEnvValue(publicVars, 'PUBLIC_APP_BASE'))
   const apiProxyTarget = process.env.API_PROXY_TARGET?.trim()
+  const tunnelHostname = process.env.ADMIN_TUNNEL_HOSTNAME?.trim()
 
-  if (command === 'dev' && !apiProxyTarget) {
-    console.warn('[rsbuild] API_PROXY_TARGET is not set, skip /api proxy in dev server.')
+  if (command === 'dev' && envMode !== 'test') {
+    throw new Error('Admin development supports only --env-mode test through the authenticated preflight.')
+  }
+  if (command === 'dev' && (!apiProxyTarget || !tunnelHostname)) {
+    throw new Error('Authenticated admin development requires API_PROXY_TARGET and ADMIN_TUNNEL_HOSTNAME.')
+  }
+  if (command === 'dev') {
+    const target = new URL(apiProxyTarget!)
+    if (target.protocol !== 'https:' || /production/i.test(target.hostname)) {
+      throw new Error('Admin development can proxy only to the HTTPS staging/test API.')
+    }
   }
 
   return {
@@ -48,8 +59,15 @@ export default defineConfig(({ command, envMode }) => {
             '/api': {
               target: apiProxyTarget,
               changeOrigin: true,
-              secure: false,
+              secure: true,
               pathRewrite: { '^/api': '' },
+              on: {
+                proxyReq: (proxyRequest, request) => {
+                  if (!shouldForwardAccessAssertion(request.headers.host, tunnelHostname!)) {
+                    proxyRequest.removeHeader('Cf-Access-Jwt-Assertion')
+                  }
+                },
+              },
             },
           },
         }
