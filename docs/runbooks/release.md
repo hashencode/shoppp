@@ -31,10 +31,12 @@ An infrastructure owner must:
    development, remote-dependent tests, and the test deployment; `shoppp-production` only for
    production. Do not create or bind a shared remote development database.
 2. Configure the GitHub `staging`, `staging-human-access`, and `production` environments. Test and
-   production each receive their own Cloudflare API credential. `staging-human-access` must require
-   a named reviewer who is accountable for running the real-human password-login proof.
-   Production promotion remains off by default and additionally requires an exact confirmation
-   phrase and a recent approved backup ID.
+   production each receive their own Cloudflare API credential. When the repository plan supports
+   environment protection, `staging-human-access` should require a named reviewer who is
+   accountable for running the real-human password-login proof. On plans that do not support
+   required reviewers for private repositories, the workflow records the named workflow-dispatch
+   actor and external evidence ID instead. Production promotion remains off by default and
+   additionally requires an exact confirmation phrase and a recent approved backup ID.
 3. Add test URLs, representative product/order identifiers, authorized and prohibited application
    service credentials, a CI-only Stripe test card, and the staging API's `BUILD_MANIFEST_TOKEN` as
    environment-owned values. The same manifest token must be configured as a secret on the staging
@@ -98,9 +100,10 @@ the reviewer appends the results described in `admin-access.md`. The workflow:
    storefront, password-authenticated admin/API, Stripe test mode, queues, and representative catalog;
 5. reports the catalog release as `deployed` through the authenticated, idempotent build callback
    only after the staging journeys, latency gate, and saved rollback-artifact availability check;
-6. pauses at the reviewer-protected `staging-human-access` environment. A real named test account
-   must complete password login without exporting credentials, cookies, or browser storage. The job
-   records the reviewer and external evidence ID as a separate artifact;
+6. enters the `staging-human-access` environment. A real named test account must complete password
+   login without exporting credentials, cookies, or browser storage. The job records an environment
+   reviewer when GitHub supplies one; otherwise it records the named workflow-dispatch actor. The
+   evidence source and external evidence ID are preserved in a separate artifact;
 7. reports candidate validation, staging deployment, or staging proof failure as `failed`, which
    preserves the previous live storefront and raises the catalog health signal;
 8. ends after test proof by default; production cannot run unless a named human dispatches the

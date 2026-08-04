@@ -91,6 +91,10 @@ describe("production promotion workflow", () => {
     expect(productionApproval).toBeGreaterThan(humanApproval);
     expect(workflow).toContain("environment: staging-human-access");
     expect(workflow).toContain("human_access_evidence_id:");
+    expect(workflow).toContain('evidence_source="environment-review"');
+    expect(workflow).toContain('evidence_source="workflow-dispatch-actor"');
+    expect(workflow).toContain("WORKFLOW_ACTOR: ${{ github.actor }}");
+    expect(workflow).toContain("evidenceSource: $evidenceSource");
     expect(workflow).toContain(
       "RELEASE_HUMAN_ACCESS_EVIDENCE_ID: ${{ needs.approve-production.outputs.human_access_evidence_id }}",
     );

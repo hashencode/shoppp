@@ -91,6 +91,8 @@ The release owner must attach these records to the immutable workflow/release ID
 - production strict-isolation output, at least two named enabled protected administrators, recent
   ready backup ID, migration/integrity output, human approver, and exact immutable artifact digest.
 
-The GitHub `staging-human-access` environment approval is separate from the service-principal job.
-Production promotion requires both evidence paths plus `PROMOTE <release-id>` and the approved
-backup ID. No service-only result can satisfy the human gate.
+The GitHub `staging-human-access` evidence job is separate from the service-principal job. It
+records the environment reviewer where the repository plan supports required reviewers; otherwise
+it records the named workflow-dispatch actor and labels that fallback in the artifact. Production
+promotion requires both evidence paths plus `PROMOTE <release-id>` and the approved backup ID. No
+service-only result can satisfy the human gate.

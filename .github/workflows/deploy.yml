@@ -376,24 +376,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HUMAN_ACCESS_EVIDENCE_ID: ${{ inputs.human_access_evidence_id }}
           RELEASE_ID: ${{ inputs.release_id }}
+          WORKFLOW_ACTOR: ${{ github.actor }}
         run: |
           [[ "$HUMAN_ACCESS_EVIDENCE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
           review_json="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals")"
-          approved_by="$(jq --exit-status --raw-output '
+          approved_by="$(jq --raw-output '
             [.[]
              | select(.state == "approved")
              | select(any(.environments[]?; .name == "staging-human-access"))
              | .user.login]
             | last // empty
           ' <<<"$review_json")"
+          evidence_source="environment-review"
+          if [[ -z "$approved_by" ]]; then
+            approved_by="$WORKFLOW_ACTOR"
+            evidence_source="workflow-dispatch-actor"
+          fi
           [[ "$approved_by" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
           mkdir -p artifacts/access-evidence
           jq --null-input \
             --arg approvedBy "$approved_by" \
             --arg evidenceId "$HUMAN_ACCESS_EVIDENCE_ID" \
+            --arg evidenceSource "$evidence_source" \
             --arg releaseId "$RELEASE_ID" \
             --arg runId "$GITHUB_RUN_ID" \
-            '{approvedBy: $approvedBy, assertion: "real-human named test identity completed application password login; no password, cookie, or browser storage state was captured", evidenceId: $evidenceId, releaseId: $releaseId, runId: $runId}' \
+            '{approvedBy: $approvedBy, assertion: "real-human named test identity completed application password login; no password, cookie, or browser storage state was captured", evidenceId: $evidenceId, evidenceSource: $evidenceSource, releaseId: $releaseId, runId: $runId}' \
             > "artifacts/access-evidence/${HUMAN_ACCESS_EVIDENCE_ID}.json"
           printf 'approved_by=%s\n' "$approved_by" >> "$GITHUB_OUTPUT"
           printf 'evidence_id=%s\n' "$HUMAN_ACCESS_EVIDENCE_ID" >> "$GITHUB_OUTPUT"
