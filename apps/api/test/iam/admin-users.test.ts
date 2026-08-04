@@ -65,6 +65,11 @@ describe("admin user lifecycle", () => {
     expect(await listed.json()).toMatchObject({
       data: { items: [{ email: "operator@example.test", status: "active", version: 1 }], total: 1 },
     });
+    const inspected = await app.fetch(request("/admin/iam/users/operator-one"), env);
+    expect(inspected.status).toBe(200);
+    expect(await inspected.json()).toMatchObject({
+      data: { email: "operator@example.test", role: { id: ADMIN_ROLE_IDS.operations } },
+    });
 
     const changed = await app.fetch(
       request("/admin/iam/users/operator-one", {

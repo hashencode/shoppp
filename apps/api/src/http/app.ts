@@ -52,8 +52,8 @@ import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
 import { acceptAdminInvitation } from "../iam/bootstrap";
-import { createAdminRole, listAdminRoles, updateAdminRole } from "../iam/admin-roles";
-import { listAdminUsers, updateAdminUser } from "../iam/admin-users";
+import { createAdminRole, getAdminRole, listAdminRoles, updateAdminRole } from "../iam/admin-roles";
+import { getAdminUser, listAdminUsers, updateAdminUser } from "../iam/admin-users";
 import {
   createAdminInvitation,
   listAdminInvitations,
@@ -559,6 +559,16 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/iam/users/:id", async (context) => {
+    await requirePermission(context, "iam.users.read", {
+      id: context.req.param("id"),
+      type: "admin_identity",
+    });
+    return context.json({
+      data: await getAdminUser(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.get("/admin/iam/invitations", async (context) => {
     await requirePermission(context, "iam.users.read", { type: "admin_invitation" });
     const query = adminInvitationListQuerySchema.safeParse(context.req.query());
@@ -630,6 +640,16 @@ export function createApp(options: CreateAppOptions = {}) {
     const input = await parseJson(context, updateAdminRoleRequestSchema);
     return context.json({
       data: await updateAdminRole(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/roles/:id", async (context) => {
+    await requirePermission(context, "iam.roles.read", {
+      id: context.req.param("id"),
+      type: "admin_role",
+    });
+    return context.json({
+      data: await getAdminRole(context.env.DB, context.req.param("id")),
       meta: { requestId: context.get("requestId") },
     });
   });

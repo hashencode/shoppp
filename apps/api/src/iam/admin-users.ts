@@ -59,6 +59,12 @@ async function findUser(db: D1Database, id: string): Promise<UserRow | null> {
     .first<UserRow>();
 }
 
+export async function getAdminUser(db: D1Database, id: string): Promise<AdminUser> {
+  const user = await findUser(db, id);
+  if (!user) throw new ApiError(404, "admin_user_not_found", "The user was not found.");
+  return dto(user);
+}
+
 export async function listAdminUsers(
   db: D1Database,
   input: {

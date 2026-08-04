@@ -1,5 +1,8 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '../pages/auth/login-page'
+import { ForbiddenPage } from '../pages/forbidden-page'
+import { hasPermission } from '../infrastructure/auth/permissions'
+import { useAuth } from '../infrastructure/auth/use-auth'
 import { PermissionGuard } from '../shared/components/permission-guard'
 import { RouteErrorBoundary } from '../shared/components/route-error-boundary'
 import { AppShell } from '../shared/layout/app-shell'
@@ -55,6 +58,14 @@ const toRootChildPath = (path: string) => {
   return path.slice(1)
 }
 
+const AuthorizedHome = () => {
+  const { permissions, role } = useAuth()
+  const target = templateRoutes.find(
+    (route) => route.inMenu && hasPermission(role, route.permission, permissions)
+  )?.path
+  return target ? <Navigate to={target} replace /> : <ForbiddenPage />
+}
+
 const routeIssues = validateTemplateRoutes(templateRoutes)
 const routerOptions = APP_BASE_PATH ? { basename: APP_BASE_PATH } : undefined
 const invalidRouter = createBrowserRouter([
@@ -88,7 +99,7 @@ const validRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/catalog/products" replace />,
+        element: <AuthorizedHome />,
       },
       ...templateRoutes
         .filter(

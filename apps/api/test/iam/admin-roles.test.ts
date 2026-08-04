@@ -58,6 +58,11 @@ describe("admin role lifecycle", () => {
     expect(created.status).toBe(201);
     const createdBody = (await created.json()) as { data: { id: string } };
     const roleId = createdBody.data.id;
+    const inspected = await app.fetch(request(`/admin/iam/roles/${roleId}`), env);
+    expect(inspected.status).toBe(200);
+    expect(await inspected.json()).toMatchObject({
+      data: { id: roleId, permissions: ["orders.read", "orders.refund"] },
+    });
     const listed = await app.fetch(request("/admin/iam/roles?search=returns"), env);
     expect(await listed.json()).toMatchObject({
       data: {
@@ -149,7 +154,7 @@ describe("admin role lifecycle", () => {
     });
   });
 
-  test("rejects caller-role and seeded system-role edits", async () => {
+  test("rejects caller-role edits while allowing metadata changes to non-protected system roles", async () => {
     const own = await appFor("role-admin").fetch(
       request(`/admin/iam/roles/${ADMIN_ROLE_IDS.admin}`, "PATCH", {
         enabled: false,
@@ -167,8 +172,20 @@ describe("admin role lifecycle", () => {
       }),
       env,
     );
-    expect(system.status).toBe(409);
-    expect(await system.json()).toMatchObject({ error: { code: "system_role_edit_denied" } });
+    expect(system.status).toBe(200);
+    expect(await system.json()).toMatchObject({ data: { name: "Changed support", version: 2 } });
+
+    const archiveSystem = await appFor("role-admin").fetch(
+      request(`/admin/iam/roles/${ADMIN_ROLE_IDS.support}`, "PATCH", {
+        enabled: false,
+        expectedVersion: 2,
+      }),
+      env,
+    );
+    expect(archiveSystem.status).toBe(409);
+    expect(await archiveSystem.json()).toMatchObject({
+      error: { code: "system_role_archive_denied" },
+    });
 
     const now = "2026-08-04T00:00:00.000Z";
     await env.DB.batch([

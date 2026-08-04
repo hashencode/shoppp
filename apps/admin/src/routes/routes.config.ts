@@ -17,6 +17,8 @@ import {
   GlobalOutlined,
   SmileOutlined,
   TableOutlined,
+  TeamOutlined,
+  KeyOutlined,
 } from '@ant-design/icons'
 import { createElement, type ReactNode } from 'react'
 import { type PermissionKey } from '../infrastructure/auth/permissions'
@@ -241,6 +243,60 @@ const commerceRoutes: TemplateRoute[] = [
         import('../pages/privacy/privacy-page').then((m) => ({
           default: m.PrivacyPage,
         }))
+      ),
+  },
+  {
+    key: 'iam-users',
+    path: '/access/users',
+    title: 'Users & invitations',
+    icon: createElement(TeamOutlined),
+    permission: 'iam.users.read',
+    inMenu: true,
+    menuGroup: 'Access management',
+    breadcrumb: ['Access management', 'Users & invitations'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/users-page').then((m) => ({ default: m.UsersPage }))
+      ),
+  },
+  {
+    key: 'iam-user-detail',
+    path: '/access/users/:id',
+    title: 'User access',
+    icon: createElement(TeamOutlined),
+    permission: 'iam.users.read',
+    inMenu: false,
+    breadcrumb: ['Access management', 'Users & invitations', 'User access'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/user-detail-page').then((m) => ({ default: m.UserDetailPage }))
+      ),
+  },
+  {
+    key: 'iam-roles',
+    path: '/access/roles',
+    title: 'Roles',
+    icon: createElement(KeyOutlined),
+    permission: 'iam.roles.read',
+    inMenu: true,
+    menuGroup: 'Access management',
+    breadcrumb: ['Access management', 'Roles'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/roles-page').then((m) => ({ default: m.RolesPage }))
+      ),
+  },
+  {
+    key: 'iam-role-detail',
+    path: '/access/roles/:id',
+    title: 'Role',
+    icon: createElement(KeyOutlined),
+    permission: 'iam.roles.read',
+    inMenu: false,
+    breadcrumb: ['Access management', 'Roles', 'Role'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/role-detail-page').then((m) => ({ default: m.RoleDetailPage }))
       ),
   },
 ]

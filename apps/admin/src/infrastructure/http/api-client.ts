@@ -6,6 +6,12 @@ export const EXPORT_REQUEST_TIMEOUT_MS = NO_REQUEST_TIMEOUT_MS
 export const UPLOAD_REQUEST_TIMEOUT_MS = NO_REQUEST_TIMEOUT_MS
 
 export type ApiErrorCode =
+  | 'last_admin_change_denied'
+  | 'role_has_dependencies'
+  | 'self_role_edit_denied'
+  | 'stale_role_version'
+  | 'stale_user_version'
+  | 'system_role_archive_denied'
   | 'QUERY_TIMEOUT'
   | 'QUERY_SERVER_ERROR'
   | 'RESOURCE_NOT_FOUND'
@@ -15,6 +21,7 @@ export type ApiErrorCode =
 
 export type ApiError = Error & {
   code: ApiErrorCode
+  details?: unknown
   status?: number
 }
 
@@ -27,7 +34,7 @@ export const normalizeApiError = (error: unknown): ApiError => {
     const axiosError = error as AxiosError<{
       message?: string
       errorCode?: ApiErrorCode
-      error?: { code?: string; message?: string }
+      error?: { code?: string; details?: unknown; message?: string }
     }>
     const status = axiosError.response?.status
     const message =
@@ -58,10 +65,12 @@ export const normalizeApiError = (error: unknown): ApiError => {
     }
 
     const errorCode = axiosError.response?.data?.errorCode ?? axiosError.response?.data?.error?.code
+    const details = axiosError.response?.data?.error?.details
 
     if (errorCode) {
       return Object.assign(new Error(message), {
         code: errorCode as ApiErrorCode,
+        details,
         status,
       })
     }

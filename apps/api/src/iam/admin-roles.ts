@@ -63,6 +63,16 @@ async function findRole(db: D1Database, roleId: string): Promise<RoleRow | null>
     .first<RoleRow>();
 }
 
+export async function getAdminRole(db: D1Database, roleId: string): Promise<AdminRole> {
+  const role = await findRole(db, roleId);
+  if (!role) throw new ApiError(404, "role_not_found", "The role was not found.");
+  return {
+    ...roleSummary(role),
+    description: role.description,
+    permissions: await permissionsForRole(db, roleId),
+  };
+}
+
 export async function roleDependencyCounts(
   db: D1Database,
   roleId: string,
@@ -271,8 +281,11 @@ export async function updateAdminRole(
   if (principal.role.id === roleId) {
     return auditRoleDenial(context, roleId, "self_role_edit_denied");
   }
-  if (before.protected === 1 || before.system === 1) {
+  if (before.protected === 1) {
     return auditRoleDenial(context, roleId, "system_role_edit_denied");
+  }
+  if (before.system === 1 && input.enabled === false) {
+    return auditRoleDenial(context, roleId, "system_role_archive_denied");
   }
   const beforePermissions = await permissionsForRole(context.env.DB, roleId);
   const permissions = input.permissions ?? beforePermissions;

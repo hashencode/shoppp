@@ -40,6 +40,7 @@ if (!window.ResizeObserver) {
 const renderShell = (options?: {
   auth?: Partial<AuthContextValue>
   onLogout?: () => void
+  routes?: React.ComponentProps<typeof AppShell>['routes']
 }) => {
   const onLogout = options?.onLogout ?? (() => undefined)
 
@@ -55,7 +56,7 @@ const renderShell = (options?: {
       <ThemeProvider>
         <MemoryRouter initialEntries={['/']}>
           <Routes>
-            <Route path="/" element={<AppShell routes={[]} />}>
+            <Route path="/" element={<AppShell routes={options?.routes ?? []} />}>
               <Route index element={<div>首页内容</div>} />
             </Route>
             <Route path="/login" element={<div>登录页</div>} />
@@ -187,5 +188,51 @@ describe('AppShell', () => {
     expect(screen.getByTestId('route-meta-probe').textContent).toBe('Alpha 页面|一级导航>Alpha 页面')
     expect(screen.getAllByText('一级导航').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Alpha 页面').length).toBeGreaterThan(0)
+  })
+
+  it('shows the Access management group only when authoritative IAM permissions allow it', async () => {
+    const accessRoutes = [
+      {
+        key: 'iam-users',
+        path: '/access/users',
+        title: 'Users & invitations',
+        icon: null,
+        permission: 'iam.users.read' as const,
+        inMenu: true,
+        menuGroup: 'Access management',
+      },
+      {
+        key: 'iam-roles',
+        path: '/access/roles',
+        title: 'Roles',
+        icon: null,
+        permission: 'iam.roles.read' as const,
+        inMenu: true,
+        menuGroup: 'Access management',
+      },
+    ]
+    const { rerender } = renderShell({
+      auth: { permissions: ['iam.users.read'] },
+      routes: accessRoutes,
+    })
+
+    fireEvent.click(await screen.findByText('Access management'))
+    expect(await screen.findByText('Users & invitations')).toBeTruthy()
+    expect(screen.queryByText('Roles')).toBeNull()
+
+    rerender(
+      <AuthContext.Provider value={authContextFixture({ permissions: [] })}>
+        <ThemeProvider>
+          <MemoryRouter>
+            <Routes>
+              <Route path="/" element={<AppShell routes={accessRoutes} />}>
+                <Route index element={<div>Home</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthContext.Provider>
+    )
+    expect(screen.queryByText('Access management')).toBeNull()
   })
 })
