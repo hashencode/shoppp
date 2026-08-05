@@ -4,6 +4,7 @@ import type { MenuProps } from 'antd'
 import { FoldHorizontal, RefreshCcw } from 'lucide-react'
 import React, { useMemo } from 'react'
 import { useTheme } from '../contexts/theme-context'
+import { useI18n } from '../contexts/i18n-context'
 
 void React
 
@@ -36,6 +37,7 @@ const buildIndicatorLabel = (
 
 export const ListSearchSettingsDropdown = ({ compactLayout }: SearchSettingsDropdownProps) => {
   const { token } = theme.useToken()
+  const { t } = useI18n()
   const { listAutoRefreshEnabled, setListAutoRefreshEnabled } = useTheme()
 
   const menuItems = useMemo<MenuProps['items']>(() => {
@@ -46,7 +48,7 @@ export const ListSearchSettingsDropdown = ({ compactLayout }: SearchSettingsDrop
         key: 'search-compact-layout',
         icon: <FoldHorizontal size={16} />,
         label: buildIndicatorLabel(
-          '搜索紧凑布局',
+          t('Compact search layout'),
           compactLayout.enabled,
           token.colorPrimary,
           token.colorFillSecondary
@@ -58,7 +60,7 @@ export const ListSearchSettingsDropdown = ({ compactLayout }: SearchSettingsDrop
       key: 'list-auto-refresh',
       icon: <RefreshCcw size={16} />,
       label: buildIndicatorLabel(
-        '列表自动刷新',
+        t('Auto-refresh list'),
         listAutoRefreshEnabled,
         token.colorPrimary,
         token.colorFillSecondary
@@ -66,20 +68,24 @@ export const ListSearchSettingsDropdown = ({ compactLayout }: SearchSettingsDrop
     })
 
     return items
-  }, [compactLayout, listAutoRefreshEnabled, token.colorFillSecondary, token.colorPrimary])
+  }, [compactLayout, listAutoRefreshEnabled, t, token.colorFillSecondary, token.colorPrimary])
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'search-compact-layout' && compactLayout) {
       const nextValue = !compactLayout.enabled
       compactLayout.onChange(nextValue)
-      void message.success(nextValue ? '已开启搜索紧凑布局' : '已关闭搜索紧凑布局')
+      void message.success(
+        t(nextValue ? 'Compact search layout enabled.' : 'Compact search layout disabled.')
+      )
       return
     }
 
     if (key === 'list-auto-refresh') {
       const nextValue = !listAutoRefreshEnabled
       setListAutoRefreshEnabled(nextValue)
-      void message.success(nextValue ? '已开启列表自动刷新' : '已关闭列表自动刷新')
+      void message.success(
+        t(nextValue ? 'List auto-refresh enabled.' : 'List auto-refresh disabled.')
+      )
     }
   }
 
@@ -92,7 +98,7 @@ export const ListSearchSettingsDropdown = ({ compactLayout }: SearchSettingsDrop
       trigger={['click']}
       placement="bottomRight"
     >
-      <Button icon={<SettingOutlined />} aria-label="搜索设置" />
+      <Button icon={<SettingOutlined />} aria-label={t('Search settings')} />
     </Dropdown>
   )
 }

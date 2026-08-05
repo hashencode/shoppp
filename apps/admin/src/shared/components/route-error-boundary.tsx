@@ -1,5 +1,6 @@
 import { Button, Card, Result, Typography } from 'antd'
 import { useNavigate } from 'react-router-dom'
+import { useI18n } from '../contexts/i18n-context'
 
 type RouteErrorBoundaryProps = {
   errorCode: string
@@ -8,16 +9,17 @@ type RouteErrorBoundaryProps = {
 
 export const RouteErrorBoundary = ({ errorCode, detail }: RouteErrorBoundaryProps) => {
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   return (
     <Card>
       <Result
         status="error"
-        title="Template Route Contract Error"
-        subTitle={`Code: ${errorCode}`}
+        title={t('Template route contract error')}
+        subTitle={`${t('Code')}: ${errorCode}`}
         extra={
           <Button type="primary" onClick={() => navigate('/')}>
-            Back to home
+            {t('Back to home')}
           </Button>
         }
       />

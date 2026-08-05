@@ -28,6 +28,7 @@ import {
   type StorefrontExperienceDraft,
 } from '../../services/storefront/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -41,6 +42,7 @@ const themeKey = (theme: AdminStorefrontTheme) => `${theme.id}@${theme.themeVers
 
 export const ThemesPage = () => {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { permissions, role } = useAuth()
   const canWrite = hasPermission(role, 'themes.write', permissions)
   const [themes, setThemes] = useState<AdminStorefrontTheme[]>([])
@@ -89,15 +91,15 @@ export const ThemesPage = () => {
   }
 
   if (loading) {
-    return <QueryStateBlock state="loading" title="Loading storefront themes…" />
+    return <QueryStateBlock state="loading" title={t('Loading storefront themes…')} />
   }
   if (error) {
     return (
       <QueryStateBlock
         state="error"
-        title="Storefront themes could not be loaded"
+        title={t('Storefront themes could not be loaded')}
         description={error}
-        primaryActionLabel="Reload"
+        primaryActionLabel={t('Reload')}
         onPrimaryAction={() => void load()}
       />
     )
@@ -108,16 +110,15 @@ export const ThemesPage = () => {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Typography.Title level={2} className="!mb-1">
-            Storefront themes
+            {t('Storefront themes')}
           </Typography.Title>
           <Typography.Paragraph type="secondary" className="!mb-0">
-            Configure fixture-backed Fashion and Decor experiences. Production keeps its current
-            theme.
+            {t('Configure fixture-backed Fashion and Decor experiences. Production keeps its current theme.')}
           </Typography.Paragraph>
         </div>
         {canWrite && themes.length > 0 ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate()}>
-            New experience draft
+            {t('New experience draft')}
           </Button>
         ) : null}
       </header>
@@ -125,15 +126,15 @@ export const ThemesPage = () => {
       {themes.length === 0 ? (
         <QueryStateBlock
           state="empty"
-          title="No compatible approved theme packages"
-          description="A source-controlled package must pass compatibility and release validation before it appears here."
-          primaryActionLabel="Reload"
+          title={t('No compatible approved theme packages')}
+          description={t('A source-controlled package must pass compatibility and release validation before it appears here.')}
+          primaryActionLabel={t('Reload')}
           onPrimaryAction={() => void load()}
         />
       ) : (
         <section aria-labelledby="theme-packages-heading">
           <Typography.Title id="theme-packages-heading" level={4}>
-            Approved packages
+            {t('Approved packages')}
           </Typography.Title>
           <Row gutter={[16, 16]}>
             {themes.map((theme) => (
@@ -149,19 +150,19 @@ export const ThemesPage = () => {
                   extra={
                     canWrite ? (
                       <Button size="small" onClick={() => openCreate(theme)}>
-                        Use package
+                        {t('Use package')}
                       </Button>
                     ) : null
                   }
                 >
                   <Space orientation="vertical" size="small">
                     <span>
-                      Contract {theme.platformContractVersion} · schema{' '}
+                      {t('Contract')} {theme.platformContractVersion} · {t('schema')}{' '}
                       {theme.configurationSchemaVersion}
                     </span>
                     <span>{theme.supportedPageTemplates.join(', ')}</span>
                     <span>
-                      Presets: {theme.presetDefinitions.map(({ label }) => label).join(', ')}
+                      {t('Presets')}: {theme.presetDefinitions.map(({ label }) => label).join(', ')}
                     </span>
                   </Space>
                 </Card>
@@ -173,10 +174,10 @@ export const ThemesPage = () => {
 
       <section aria-labelledby="theme-drafts-heading">
         <Typography.Title id="theme-drafts-heading" level={4}>
-          Experience drafts
+          {t('Experience drafts')}
         </Typography.Title>
         {drafts.length === 0 ? (
-          <Empty description="No experience drafts yet." />
+          <Empty description={t('No experience drafts yet.')} />
         ) : (
           <ul className="divide-y rounded-lg border border-solid border-slate-200">
             {drafts.map((draft) => (
@@ -192,11 +193,11 @@ export const ThemesPage = () => {
                     </Tag>
                     <Tag>v{draft.version}</Tag>
                     <Tag color={draft.validation?.status === 'valid' ? 'success' : 'default'}>
-                      {draft.validation?.status ?? 'not validated'}
+                      {t(draft.validation?.status ?? 'not validated')}
                     </Tag>
                   </Space>
                   <div className="mt-1 text-sm text-slate-500">
-                    Preset {draft.presetId} · updated {draft.updatedAt}
+                    {t('Preset')} {draft.presetId} · {t('updated')} {draft.updatedAt}
                   </div>
                 </div>
                 <Button
@@ -204,7 +205,7 @@ export const ThemesPage = () => {
                   icon={<EditOutlined aria-hidden />}
                   onClick={() => navigate(`/storefront/themes/${draft.id}`)}
                 >
-                  {canWrite ? 'Edit' : 'View'}
+                  {t(canWrite ? 'Edit' : 'View')}
                 </Button>
               </li>
             ))}
@@ -216,15 +217,15 @@ export const ThemesPage = () => {
         <Alert
           type="info"
           showIcon
-          title="Read-only theme access"
-          description="Your role can inspect compatible packages and drafts but cannot change, preview, or approve them."
+          title={t('Read-only theme access')}
+          description={t('Your role can inspect compatible packages and drafts but cannot change, preview, or approve them.')}
         />
       ) : null}
 
       <Modal
-        title="Create experience draft"
+        title={t('Create experience draft')}
         open={createOpen}
-        okText="Create draft"
+        okText={t('Create draft')}
         confirmLoading={creating}
         onCancel={() => setCreateOpen(false)}
         onOk={() => form.submit()}
@@ -243,7 +244,7 @@ export const ThemesPage = () => {
                 values.presetId,
                 values.reason
               )
-              void message.success('Experience draft created.')
+              void message.success(t('Experience draft created.'))
               setCreateOpen(false)
               navigate(`/storefront/themes/${draft.id}`)
             } catch (cause) {
@@ -253,7 +254,7 @@ export const ThemesPage = () => {
             }
           }}
         >
-          <Form.Item name="themeKey" label="Theme package" rules={[{ required: true }]}>
+          <Form.Item name="themeKey" label={t('Theme package')} rules={[{ required: true }]}>
             <Select
               options={themes.map((theme) => ({
                 label: `${theme.id} ${theme.themeVersion}`,
@@ -265,7 +266,7 @@ export const ThemesPage = () => {
               }}
             />
           </Form.Item>
-          <Form.Item name="presetId" label="Preset" rules={[{ required: true }]}>
+          <Form.Item name="presetId" label={t('Preset')} rules={[{ required: true }]}>
             <Select
               options={(selectedTheme?.presetDefinitions ?? []).map((preset) => ({
                 label: preset.label,
@@ -275,7 +276,7 @@ export const ThemesPage = () => {
           </Form.Item>
           <Form.Item
             name="reason"
-            label="Creation reason"
+            label={t('Creation reason')}
             rules={[{ required: true, min: 3, max: 500 }]}
           >
             <Input.TextArea rows={3} maxLength={500} />

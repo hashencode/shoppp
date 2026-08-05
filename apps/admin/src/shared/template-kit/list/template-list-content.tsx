@@ -1,6 +1,7 @@
 import React from 'react'
 import type { ReactNode } from 'react'
 import { QueryStateBlock } from '../../components/query-state-block'
+import { useI18n } from '../../contexts/i18n-context'
 
 void React
 
@@ -42,17 +43,18 @@ export const TemplateListContent = ({
   tableNode,
   copy,
 }: TemplateListContentProps) => {
+  const { t } = useI18n()
   const mergedCopy = {
-    loadingTitle: '正在加载规则列表...',
-    errorTitle: '规则列表加载失败',
-    errorDescription: '请检查网络连接或稍后重试。',
-    errorActionLabel: '重试',
-    partialTitle: '当前仅返回部分数据',
-    partialDescription: '请检查网络后重试。',
-    partialActionLabel: '重新加载',
-    emptyTitle: '当前筛选条件下没有数据',
-    emptyDescription: '尝试重置筛选条件后重新查询。',
-    emptyActionLabel: '重置筛选',
+    loadingTitle: t('Loading rules…'),
+    errorTitle: t('Rules could not be loaded'),
+    errorDescription: t('Check your network connection or try again later.'),
+    errorActionLabel: t('Retry'),
+    partialTitle: t('Only partial data is available'),
+    partialDescription: t('Check your network connection and try again.'),
+    partialActionLabel: t('Reload'),
+    emptyTitle: t('No data matches the current filters'),
+    emptyDescription: t('Reset the filters and search again.'),
+    emptyActionLabel: t('Reset filters'),
     ...copy,
   }
 

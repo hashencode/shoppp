@@ -1,6 +1,7 @@
 import { Button, Empty, Select, Spin } from 'antd'
 import type { SelectProps } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../contexts/i18n-context'
 
 void React
 
@@ -85,6 +86,7 @@ export const RemoteSearchSelect = <
   showSearch,
   ...props
 }: RemoteSearchSelectProps<TRaw, TValue, TMode>) => {
+  const { t } = useI18n()
   const [options, setOptions] = useState<RemoteSearchSelectOption<TRaw, TValue>[]>(
     defaultOptions ?? []
   )
@@ -297,11 +299,11 @@ export const RemoteSearchSelect = <
   )
 
   const notFoundContent = loading ? (
-    <Spin size="small" aria-label="正在加载选项" />
+    <Spin size="small" aria-label={t('Loading options')} />
   ) : loadError ? (
-    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="加载失败，请重试">
+    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('Failed to load. Try again.')}>
       <Button size="small" onClick={handleRetry}>
-        重试加载
+        {t('Retry loading')}
       </Button>
     </Empty>
   ) : (

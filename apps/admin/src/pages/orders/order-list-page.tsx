@@ -3,16 +3,19 @@ import { Button, Input, Select, Space, Table, Tag, message } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import { fetchOrders } from '../../services/orders/api'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
-const money = (amount: number, currency: string) =>
-  new Intl.NumberFormat('en', { style: 'currency', currency }).format(amount / 100)
+const money = (amount: number, currency: string, locale: string) =>
+  new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount / 100)
 
 export const OrderListPage = () => {
   const navigate = useNavigate()
+  const { locale, t } = useI18n()
+  const localizeError = useLocalizedApiError()
   const [items, setItems] = useState<AdminOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -38,12 +41,12 @@ export const OrderListPage = () => {
         setPage(response.page)
         setTotal(response.total)
       } catch (error) {
-        void message.error(normalizeApiError(error).message)
+        void message.error(localizeError(error))
       } finally {
         setLoading(false)
       }
     },
-    [committedQuery, fulfillmentStatus, paymentStatus]
+    [committedQuery, fulfillmentStatus, localizeError, paymentStatus]
   )
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export const OrderListPage = () => {
     () => [
       {
         key: 'reference',
-        title: 'Order',
+        title: t('Order'),
         width: 180,
         render: (_: unknown, order: AdminOrder) => (
           <Button
@@ -67,81 +70,87 @@ export const OrderListPage = () => {
           </Button>
         ),
       },
-      { key: 'email', title: 'Customer', dataIndex: 'email', width: 230 },
+      { key: 'email', title: t('Customer'), dataIndex: 'email', width: 230 },
       {
         key: 'payment',
-        title: 'Payment',
+        title: t('Payment'),
         dataIndex: 'paymentStatus',
         width: 150,
-        render: (value: string) => <Tag color={value === 'paid' ? 'success' : 'blue'}>{value}</Tag>,
+        render: (value: string) => (
+          <Tag color={value === 'paid' ? 'success' : 'blue'}>{t(value)}</Tag>
+        ),
       },
       {
         key: 'orderStatus',
-        title: 'Order state',
+        title: t('Order state'),
         dataIndex: 'orderStatus',
         width: 150,
-        render: (value: string) => <Tag>{value}</Tag>,
+        render: (value: string) => <Tag>{t(value)}</Tag>,
       },
       {
         key: 'fulfillment',
-        title: 'Fulfillment',
+        title: t('Fulfillment'),
         dataIndex: 'fulfillmentStatus',
         width: 150,
-        render: (value: string) => <Tag color={value === 'shipped' ? 'cyan' : 'default'}>{value}</Tag>,
+        render: (value: string) => (
+          <Tag color={value === 'shipped' ? 'cyan' : 'default'}>{t(value)}</Tag>
+        ),
       },
       {
         key: 'total',
-        title: 'Total',
+        title: t('Total'),
         width: 130,
-        render: (_: unknown, order: AdminOrder) => money(order.grandTotal, order.currency),
+        render: (_: unknown, order: AdminOrder) => money(order.grandTotal, order.currency, locale),
       },
       {
         key: 'created',
-        title: 'Created',
+        title: t('Created'),
         dataIndex: 'createdAt',
         width: 170,
         render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
       },
     ],
-    [navigate]
+    [locale, navigate, t]
   )
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Orders</h1>
-        <p className="text-slate-500">Search immutable order facts and independent operational states.</p>
+        <h1 className="text-2xl font-semibold">{t('Orders')}</h1>
+        <p className="text-slate-500">
+          {t('Search immutable order facts and independent operational states.')}
+        </p>
       </div>
       <Space wrap>
         <Input.Search
-          aria-label="Search orders"
+          aria-label={t('Search orders')}
           allowClear
           value={query}
-          placeholder="Order reference or customer email"
+          placeholder={t('Order reference or customer email')}
           className="w-80"
           onChange={(event) => setQuery(event.target.value)}
           onSearch={(value) => setCommittedQuery(value.trim())}
         />
         <Select
-          aria-label="Filter payment status"
+          aria-label={t('Filter payment status')}
           allowClear
           value={paymentStatus}
-          placeholder="Payment status"
+          placeholder={t('Payment status')}
           className="w-44"
           options={['paid', 'partially_refunded', 'refunded', 'failed'].map((value) => ({
-            label: value,
+            label: t(value),
             value,
           }))}
           onChange={(value) => setPaymentStatus(value)}
         />
         <Select
-          aria-label="Filter fulfillment status"
+          aria-label={t('Filter fulfillment status')}
           allowClear
           value={fulfillmentStatus}
-          placeholder="Fulfillment status"
+          placeholder={t('Fulfillment status')}
           className="w-48"
           options={['unfulfilled', 'picking', 'packed', 'shipped', 'delivered', 'canceled'].map(
-            (value) => ({ label: value, value })
+            (value) => ({ label: t(value), value })
           )}
           onChange={(value) => setFulfillmentStatus(value)}
         />
@@ -151,7 +160,7 @@ export const OrderListPage = () => {
         columns={columns}
         dataSource={items}
         loading={loading}
-        locale={{ emptyText: 'No orders match these filters.' }}
+        locale={{ emptyText: t('No orders match these filters.') }}
         pagination={{
           current: page,
           pageSize,

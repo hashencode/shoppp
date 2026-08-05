@@ -7,21 +7,23 @@ import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import { fetchAdminRoles, fetchAdminUser, updateAdminUser } from '../../services/iam/api'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
 type UserValues = { displayName: string; roleId: string; status: 'active' | 'disabled' }
 
-const invariantMessage = (code: string, fallback: string) => {
-  if (code === 'last_admin_change_denied') return 'This is the last enabled protected administrator. Create or enable another administrator first.'
-  if (code === 'self_user_change_denied') return 'You cannot change your own role or status.'
-  if (code === 'protected_admin_change_denied') return 'Only a protected administrator can change this administrator.'
+const invariantMessage = (code: string, fallback: string, t: (message: string) => string) => {
+  if (code === 'last_admin_change_denied') return t('This is the last enabled protected administrator. Create or enable another administrator first.')
+  if (code === 'self_user_change_denied') return t('You cannot change your own role or status.')
+  if (code === 'protected_admin_change_denied') return t('Only a protected administrator can change this administrator.')
   return fallback
 }
 
 export const UserDetailPage = () => {
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.users.write', permissions)
   const canReadRoles = hasPermission(roleKey, 'iam.roles.read', permissions)
@@ -89,54 +91,54 @@ export const UserDetailPage = () => {
         roleId: updated.role.id,
         status: updated.status,
       })
-      void message.success('User access updated.')
+      void message.success(t('User access updated.'))
     } catch (cause) {
       const apiError = normalizeApiError(cause)
       if (apiError.code === 'stale_user_version') {
         await load()
-        setError('This user changed by another administrator. The latest state has been loaded; review it before retrying.')
+        setError(t('This user changed by another administrator. The latest state has been loaded; review it before retrying.'))
       } else {
-        setError(invariantMessage(apiError.code, apiError.message))
+        setError(invariantMessage(apiError.code, apiError.message, t))
       }
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading && !user) return <Spin description="Loading user" />
+  if (loading && !user) return <Spin description={t('Loading user')} />
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">{user?.displayName ?? 'User access'}</h1>
-          <p className="text-slate-500">Inspect and update the application role for this human identity.</p>
+          <h1 className="text-2xl font-semibold">{user?.displayName ?? t('User access')}</h1>
+          <p className="text-slate-500">{t('Inspect and update the application role for this human identity.')}</p>
         </div>
-        <Button onClick={() => navigate('/access/users')}>Back to users</Button>
+        <Button onClick={() => navigate('/access/users')}>{t('Back to users')}</Button>
       </div>
-      {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>Reload</Button>} /> : null}
-      {isSelf ? <Alert type="info" showIcon title="You cannot change your own role or status." /> : null}
+      {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>{t('Reload')}</Button>} /> : null}
+      {isSelf ? <Alert type="info" showIcon title={t('You cannot change your own role or status.')} /> : null}
       {canWrite && !canReadRoles ? (
         <Alert
           type="info"
           showIcon
-          title="Role visibility is not granted. You can update this user's display name or status, but not their role."
+          title={t("Role visibility is not granted. You can update this user's display name or status, but not their role.")}
         />
       ) : null}
       {user?.status === 'active' && user.role.protected && !isSelf ? (
         <Alert
           type="warning"
           showIcon
-          title="Disabling or demoting this protected administrator will be rejected if it would leave no enabled protected administrator."
+          title={t('Disabling or demoting this protected administrator will be rejected if it would leave no enabled protected administrator.')}
         />
       ) : null}
       {user ? (
         <Card>
           <Descriptions className="mb-6" column={{ xs: 1, sm: 2 }}>
-            <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
-            <Descriptions.Item label="State"><Tag color={user.status === 'active' ? 'success' : 'default'}>{user.status === 'active' ? 'Active' : 'Disabled'}</Tag></Descriptions.Item>
-            <Descriptions.Item label="Version">{user.version}</Descriptions.Item>
-            <Descriptions.Item label="Updated">{new Date(user.updatedAt).toLocaleString()}</Descriptions.Item>
+            <Descriptions.Item label={t('Email')}>{user.email}</Descriptions.Item>
+            <Descriptions.Item label={t('State')}><Tag color={user.status === 'active' ? 'success' : 'default'}>{t(user.status === 'active' ? 'Active' : 'Disabled')}</Tag></Descriptions.Item>
+            <Descriptions.Item label={t('Version')}>{user.version}</Descriptions.Item>
+            <Descriptions.Item label={t('Updated')}>{new Date(user.updatedAt).toLocaleString()}</Descriptions.Item>
           </Descriptions>
           <Form<UserValues>
             form={form}
@@ -149,18 +151,18 @@ export const UserDetailPage = () => {
                 return
               }
               Modal.confirm({
-                title: 'Confirm access change',
-                content: 'Role and status changes take effect on the user’s next API request.',
-                okText: 'Confirm change',
+                title: t('Confirm access change'),
+                content: t('Role and status changes take effect on the user’s next API request.'),
+                okText: t('Confirm change'),
                 okButtonProps: { danger: values.status === 'disabled' },
                 onOk: () => save(values),
               })
             }}
           >
-            <Form.Item name="displayName" label="Display name" rules={[{ required: true }]}>
+            <Form.Item name="displayName" label={t('Display name')} rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
+            <Form.Item name="roleId" label={t('Role')} rules={[{ required: true }]}>
               <Select
                 disabled={!canReadRoles}
                 options={(canReadRoles ? assignableRoles : [user.role]).map((role) => ({
@@ -169,13 +171,13 @@ export const UserDetailPage = () => {
                 }))}
               />
             </Form.Item>
-            <Form.Item name="status" label="Status" rules={[{ required: true }]}>
-              <Select options={[{ label: 'Active', value: 'active' }, { label: 'Disabled', value: 'disabled' }]} />
+            <Form.Item name="status" label={t('Status')} rules={[{ required: true }]}>
+              <Select options={[{ label: t('Active'), value: 'active' }, { label: t('Disabled'), value: 'disabled' }]} />
             </Form.Item>
             {canWrite ? (
               <Space>
-                <Button type="primary" htmlType="submit" loading={saving} disabled={isSelf}>Save changes</Button>
-                <Button onClick={() => form.resetFields()} disabled={isSelf}>Reset</Button>
+                <Button type="primary" htmlType="submit" loading={saving} disabled={isSelf}>{t('Save changes')}</Button>
+                <Button onClick={() => form.resetFields()} disabled={isSelf}>{t('Reset')}</Button>
               </Space>
             ) : null}
           </Form>

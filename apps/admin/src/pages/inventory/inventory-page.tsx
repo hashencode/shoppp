@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import {
   adjustInventory,
   fetchInventory,
@@ -11,6 +11,7 @@ import {
   type InventoryDetail,
   type InventoryListItem,
 } from '../../services/inventory/api'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -21,6 +22,9 @@ type AdjustmentValues = {
 
 export const InventoryPage = () => {
   const { role, permissions } = useAuth()
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const localizeError = useLocalizedApiError()
   const canAdjust = hasPermission(role, 'inventory.adjust', permissions)
   const [items, setItems] = useState<InventoryListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,11 +46,11 @@ export const InventoryPage = () => {
       })
       setItems(response.data)
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [localizeError])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(''), 0)
@@ -60,48 +64,50 @@ export const InventoryPage = () => {
     try {
       setDetail(await fetchInventoryDetail(item.variantId, item.warehouseId))
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     }
-  }, [])
+  }, [localizeError])
 
   const columns = useMemo(
     () => [
       {
         key: 'product',
-        title: 'Product / variant',
+        title: t('Product / variant'),
         width: 260,
         render: (_: unknown, item: InventoryListItem) => (
           <>
             <div>{item.productName}</div>
-            <span className="text-sm text-slate-500">{item.variantName} · {item.sku}</span>
+            <span className="text-sm text-slate-500">
+              {item.variantName} · {item.sku}
+            </span>
           </>
         ),
       },
-      { key: 'warehouse', title: 'Warehouse', dataIndex: 'warehouseName', width: 160 },
-      { key: 'onHand', title: 'On hand', dataIndex: 'onHand', width: 110 },
-      { key: 'reserved', title: 'Reserved', dataIndex: 'reserved', width: 110 },
+      { key: 'warehouse', title: t('Warehouse'), dataIndex: 'warehouseName', width: 160 },
+      { key: 'onHand', title: t('On hand'), dataIndex: 'onHand', width: 110 },
+      { key: 'reserved', title: t('Reserved'), dataIndex: 'reserved', width: 110 },
       {
         key: 'available',
-        title: 'Available',
+        title: t('Available'),
         dataIndex: 'available',
         width: 110,
         render: (value: number) => <Tag color={value > 0 ? 'success' : 'error'}>{value}</Tag>,
       },
       {
         key: 'adjusted',
-        title: 'Adjusted',
+        title: t('Adjusted'),
         dataIndex: 'adjusted',
         width: 110,
         render: (value: number) => (value > 0 ? `+${value}` : value),
       },
       {
         key: 'actions',
-        title: 'Actions',
+        title: t('Actions'),
         width: 180,
         render: (_: unknown, item: InventoryListItem) => (
           <Space>
             <Button type="link" className="!px-0" onClick={() => void openHistory(item)}>
-              History
+              {t('History')}
             </Button>
             {canAdjust ? (
               <Button
@@ -113,31 +119,33 @@ export const InventoryPage = () => {
                   setAdjustOpen(true)
                 }}
               >
-                Adjust
+                {t('Adjust')}
               </Button>
             ) : null}
           </Space>
         ),
       },
     ],
-    [canAdjust, form, openHistory]
+    [canAdjust, form, openHistory, t]
   )
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Inventory</h1>
-        <p className="text-slate-500">On-hand, reserved, available, and append-only adjustments.</p>
+        <h1 className="text-2xl font-semibold">{t('Inventory')}</h1>
+        <p className="text-slate-500">
+          {t('On-hand, reserved, available, and append-only adjustments.')}
+        </p>
       </div>
       <Space.Compact>
         <Input
-          aria-label="Search inventory"
+          aria-label={t('Search inventory')}
           value={query}
-          placeholder="Search product or SKU"
+          placeholder={t('Search product or SKU')}
           onChange={(event) => setQuery(event.target.value)}
           onPressEnter={() => void load(query)}
         />
-        <Button onClick={() => void load(query)}>Search</Button>
+        <Button onClick={() => void load(query)}>{t('Search')}</Button>
       </Space.Compact>
       <Table<InventoryListItem>
         rowKey={(item) => `${item.variantId}:${item.warehouseId}`}
@@ -149,7 +157,7 @@ export const InventoryPage = () => {
       />
 
       <Modal
-        title={selected ? `History · ${selected.sku}` : 'Inventory history'}
+        title={selected ? `${t('History')} · ${selected.sku}` : t('Inventory history')}
         open={historyOpen}
         footer={null}
         width={760}
@@ -161,26 +169,26 @@ export const InventoryPage = () => {
           dataSource={detail?.history ?? []}
           pagination={false}
           scroll={{ x: 660 }}
-          locale={{ emptyText: 'No manual adjustments yet.' }}
+          locale={{ emptyText: t('No manual adjustments yet.') }}
           columns={[
             {
               key: 'created',
-              title: 'Time',
+              title: t('Time'),
               dataIndex: 'created_at',
               width: 160,
               render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
             },
-            { key: 'delta', title: 'Delta', dataIndex: 'quantity_delta', width: 90 },
-            { key: 'reason', title: 'Reason', dataIndex: 'reason', width: 280 },
-            { key: 'actor', title: 'Actor', dataIndex: 'actor_name', width: 130 },
+            { key: 'delta', title: t('Delta'), dataIndex: 'quantity_delta', width: 90 },
+            { key: 'reason', title: t('Reason'), dataIndex: 'reason', width: 280 },
+            { key: 'actor', title: t('Actor'), dataIndex: 'actor_name', width: 130 },
           ]}
         />
       </Modal>
 
       <Modal
-        title={selected ? `Adjust · ${selected.sku}` : 'Adjust inventory'}
+        title={selected ? `${t('Adjust')} · ${selected.sku}` : t('Adjust inventory')}
         open={adjustOpen}
-        okText="Apply adjustment"
+        okText={t('Apply adjustment')}
         confirmLoading={submitting}
         onCancel={() => setAdjustOpen(false)}
         onOk={() => form.submit()}
@@ -193,11 +201,11 @@ export const InventoryPage = () => {
             setSubmitting(true)
             try {
               await adjustInventory(selected.variantId, selected.warehouseId, values)
-              void message.success('Inventory adjustment recorded.')
+              void message.success(translateNow('Inventory adjustment recorded.'))
               setAdjustOpen(false)
               await load(query)
             } catch (error) {
-              void message.error(normalizeApiError(error).message)
+              void message.error(localizeError(error))
             } finally {
               setSubmitting(false)
             }
@@ -205,27 +213,38 @@ export const InventoryPage = () => {
         >
           <Form.Item
             name="quantityDelta"
-            label="Quantity delta"
+            label={t('Quantity delta')}
             rules={[
-              { required: true, message: 'Enter a quantity delta.' },
+              { required: true, message: t('Enter a quantity delta.') },
               {
                 validator: (_, value) =>
-                  value === 0 ? Promise.reject(new Error('Quantity delta cannot be zero.')) : Promise.resolve(),
+                  value === 0
+                    ? Promise.reject(new Error(t('Quantity delta cannot be zero.')))
+                    : Promise.resolve(),
               },
             ]}
           >
-            <InputNumber precision={0} step={1} className="w-full" placeholder="Use a negative value to remove stock" />
+            <InputNumber
+              precision={0}
+              step={1}
+              className="w-full"
+              placeholder={t('Use a negative value to remove stock')}
+            />
           </Form.Item>
           <Form.Item
             name="reason"
-            label="Reason"
+            label={t('Reason')}
             rules={[
-              { required: true, whitespace: true, message: 'Enter an adjustment reason.' },
-              { min: 3, message: 'Use at least 3 characters.' },
-              { max: 500, message: 'Use at most 500 characters.' },
+              { required: true, whitespace: true, message: t('Enter an adjustment reason.') },
+              { min: 3, message: t('Use at least 3 characters.') },
+              { max: 500, message: t('Use at most 500 characters.') },
             ]}
           >
-            <Input.TextArea rows={3} maxLength={500} placeholder="Cycle count, damage, receipt…" />
+            <Input.TextArea
+              rows={3}
+              maxLength={500}
+              placeholder={t('Cycle count, damage, receipt…')}
+            />
           </Form.Item>
         </Form>
       </Modal>

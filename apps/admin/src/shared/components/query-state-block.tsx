@@ -7,9 +7,6 @@ void React
 
 export type QueryState = 'loading' | 'empty' | 'error' | 'partial'
 
-const DEFAULT_ERROR_ACTION_LABELS = new Set(['重试', '重新加载'])
-const DEFAULT_EMPTY_ACTION_LABELS = new Set(['重置筛选', '重新筛选'])
-
 type QueryStateBlockProps = {
   state: QueryState
   title: string
@@ -33,12 +30,7 @@ export const QueryStateBlock = ({
   onSecondaryAction,
   children,
 }: QueryStateBlockProps) => {
-  const shouldUseDefaultPrimaryAction =
-    primaryActionLabel !== undefined &&
-    ((state === 'error' && DEFAULT_ERROR_ACTION_LABELS.has(primaryActionLabel)) ||
-      (state === 'empty' && DEFAULT_EMPTY_ACTION_LABELS.has(primaryActionLabel)))
-  const resolvedPrimaryActionButtonType =
-    primaryActionButtonType ?? (shouldUseDefaultPrimaryAction ? 'default' : 'primary')
+  const resolvedPrimaryActionButtonType = primaryActionButtonType ?? 'primary'
 
   if (state === 'loading') {
     return (

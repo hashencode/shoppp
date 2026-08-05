@@ -1,7 +1,4 @@
-import type {
-  AdminOrderDetail,
-  FulfillmentTransitionRequest,
-} from '@shoppp/contracts'
+import type { AdminOrderDetail, FulfillmentTransitionRequest } from '@shoppp/contracts'
 import {
   Alert,
   Button,
@@ -22,13 +19,14 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import {
   cancelOrder,
   fetchOrderDetail,
   refundOrder,
   transitionFulfillment,
 } from '../../services/orders/api'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -44,19 +42,25 @@ type ActionValues = {
   trackingNumber?: string
 }
 
-const money = (amount: number, currency: string) =>
-  new Intl.NumberFormat('en', { style: 'currency', currency }).format(amount / 100)
+const money = (amount: number, currency: string, locale: string) =>
+  new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount / 100)
 
-const actionTitle = (action: Action | null) => {
-  if (!action) return 'Confirm operation'
-  if (action.type === 'cancel') return 'Cancel and refund order'
-  if (action.type === 'refund') return 'Issue refund'
-  return `Move fulfillment to ${action.toStatus}`
+const actionTitle = (
+  action: Action | null,
+  t: (message: string, values?: Record<string, string | number>) => string
+) => {
+  if (!action) return t('Confirm operation')
+  if (action.type === 'cancel') return t('Cancel and refund order')
+  if (action.type === 'refund') return t('Issue refund')
+  return t('Move fulfillment to {status}', { status: t(action.toStatus) })
 }
 
 export const OrderDetailPage = () => {
   const { reference = '' } = useParams()
   const { role, permissions } = useAuth()
+  const { locale, t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const localizeError = useLocalizedApiError()
   const [detail, setDetail] = useState<AdminOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -70,11 +74,11 @@ export const OrderDetailPage = () => {
     try {
       setDetail(await fetchOrderDetail(reference))
     } catch (error) {
-      setLoadError(normalizeApiError(error).message)
+      setLoadError(localizeError(error))
     } finally {
       setLoading(false)
     }
-  }, [reference])
+  }, [localizeError, reference])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
@@ -117,9 +121,9 @@ export const OrderDetailPage = () => {
       }
       setDetail(updated)
       setAction(null)
-      void message.success('Order operation recorded.')
+      void message.success(translateNow('Order operation recorded.'))
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     } finally {
       setSubmitting(false)
     }
@@ -130,9 +134,9 @@ export const OrderDetailPage = () => {
     return (
       <Result
         status="error"
-        title="Order could not be loaded"
-        subTitle={loadError ?? 'The order is unavailable.'}
-        extra={<Button onClick={() => void load()}>Retry</Button>}
+        title={t('Order could not be loaded')}
+        subTitle={loadError ?? t('The order is unavailable.')}
+        extra={<Button onClick={() => void load()}>{t('Retry')}</Button>}
       />
     )
   }
@@ -145,31 +149,33 @@ export const OrderDetailPage = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-500">Immutable order facts</p>
+          <p className="text-sm text-slate-500">{t('Immutable order facts')}</p>
           <h1 className="text-2xl font-semibold">{facts.publicReference}</h1>
           <p className="text-slate-500">{facts.email}</p>
         </div>
         <Space wrap>
           <Tag color={facts.paymentStatus === 'paid' ? 'success' : 'blue'}>
-            Payment · {facts.paymentStatus}
+            {t('Payment')} · {t(facts.paymentStatus)}
           </Tag>
-          <Tag>Order · {facts.orderStatus}</Tag>
+          <Tag>
+            {t('Order')} · {t(facts.orderStatus)}
+          </Tag>
           <Tag color={facts.fulfillmentStatus === 'shipped' ? 'cyan' : 'default'}>
-            Fulfillment · {facts.fulfillmentStatus}
+            {t('Fulfillment')} · {t(facts.fulfillmentStatus)}
           </Tag>
         </Space>
       </div>
 
-      <Card title="Order facts">
+      <Card title={t('Order facts')}>
         <Descriptions column={{ xs: 1, sm: 2, lg: 3 }} size="small">
-          <Descriptions.Item label="Created">
+          <Descriptions.Item label={t('Created')}>
             {dayjs(facts.createdAt).format('YYYY-MM-DD HH:mm')}
           </Descriptions.Item>
-          <Descriptions.Item label="Currency">{facts.currency}</Descriptions.Item>
-          <Descriptions.Item label="Total">
-            {money(facts.totals.grandTotal, facts.currency)}
+          <Descriptions.Item label={t('Currency')}>{facts.currency}</Descriptions.Item>
+          <Descriptions.Item label={t('Total')}>
+            {money(facts.totals.grandTotal, facts.currency, locale)}
           </Descriptions.Item>
-          <Descriptions.Item label="Ship to" span={3}>
+          <Descriptions.Item label={t('Ship to')} span={3}>
             {facts.shippingAddress.name}, {facts.shippingAddress.line1},{' '}
             {facts.shippingAddress.city} {facts.shippingAddress.region}{' '}
             {facts.shippingAddress.postalCode}, {facts.shippingAddress.countryCode}
@@ -182,75 +188,79 @@ export const OrderDetailPage = () => {
           dataSource={facts.lines}
           scroll={{ x: 760 }}
           columns={[
-            { key: 'product', title: 'Product', dataIndex: 'productName', width: 240 },
-            { key: 'variant', title: 'Variant', dataIndex: 'variantName', width: 160 },
+            { key: 'product', title: t('Product'), dataIndex: 'productName', width: 240 },
+            { key: 'variant', title: t('Variant'), dataIndex: 'variantName', width: 160 },
             { key: 'sku', title: 'SKU', dataIndex: 'sku', width: 150 },
-            { key: 'quantity', title: 'Quantity', dataIndex: 'quantity', width: 100 },
+            { key: 'quantity', title: t('Quantity'), dataIndex: 'quantity', width: 100 },
             {
               key: 'total',
-              title: 'Line total',
+              title: t('Line total'),
               width: 130,
-              render: (_, line) => money(line.lineTotalAmount, line.currency),
+              render: (_, line) => money(line.lineTotalAmount, line.currency, locale),
             },
           ]}
         />
       </Card>
 
-      <Card title="Allowed operations">
+      <Card title={t('Allowed operations')}>
         <Space wrap>
           {canFulfill
             ? detail.allowedActions.fulfill.map((toStatus) => (
-                <Button key={toStatus} type="primary" onClick={() => openAction({ type: 'fulfill', toStatus })}>
-                  {toStatus === 'shipped' ? 'Add shipment' : `Mark ${toStatus}`}
+                <Button
+                  key={toStatus}
+                  type="primary"
+                  onClick={() => openAction({ type: 'fulfill', toStatus })}
+                >
+                  {toStatus === 'shipped'
+                    ? t('Add shipment')
+                    : t('Mark {status}', { status: t(toStatus) })}
                 </Button>
               ))
             : null}
           {canRefund && detail.allowedActions.refundMaximum > 0 ? (
-            <Button onClick={() => openAction({ type: 'refund' })}>
-              Refund
-            </Button>
+            <Button onClick={() => openAction({ type: 'refund' })}>{t('Refund')}</Button>
           ) : null}
           {canCancel && detail.allowedActions.cancel ? (
             <Button danger onClick={() => openAction({ type: 'cancel' })}>
-              Cancel order
+              {t('Cancel order')}
             </Button>
           ) : null}
           {!detail.allowedActions.fulfill.length &&
           !detail.allowedActions.cancel &&
           detail.allowedActions.refundMaximum === 0 ? (
-            <span className="text-slate-500">No operation is currently available.</span>
+            <span className="text-slate-500">{t('No operation is currently available.')}</span>
           ) : null}
         </Space>
       </Card>
 
-      <Card title="Operational timeline">
+      <Card title={t('Operational timeline')}>
         <Table
           rowKey="id"
           pagination={false}
           dataSource={detail.timeline}
-          locale={{ emptyText: 'No operational events recorded.' }}
+          locale={{ emptyText: t('No operational events recorded.') }}
           scroll={{ x: 900 }}
           columns={[
             {
               key: 'created',
-              title: 'Time',
+              title: t('Time'),
               dataIndex: 'createdAt',
               width: 170,
               render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
             },
-            { key: 'kind', title: 'Dimension', dataIndex: 'kind', width: 130 },
-            { key: 'label', title: 'Event', dataIndex: 'label', width: 240 },
-            { key: 'status', title: 'Result / state', dataIndex: 'status', width: 150 },
-            { key: 'actor', title: 'Actor', dataIndex: 'actor', width: 150 },
-            { key: 'reason', title: 'Reason', dataIndex: 'reason', width: 260 },
+            { key: 'kind', title: t('Dimension'), dataIndex: 'kind', width: 130 },
+            { key: 'label', title: t('Event'), dataIndex: 'label', width: 240 },
+            { key: 'status', title: t('Result / state'), dataIndex: 'status', width: 150 },
+            { key: 'actor', title: t('Actor'), dataIndex: 'actor', width: 150 },
+            { key: 'reason', title: t('Reason'), dataIndex: 'reason', width: 260 },
           ]}
         />
       </Card>
 
       <Modal
-        title={actionTitle(action)}
+        title={actionTitle(action, t)}
         open={Boolean(action)}
-        okText="Confirm operation"
+        okText={t('Confirm operation')}
         okButtonProps={{ danger: action?.type === 'cancel' || action?.type === 'refund' }}
         confirmLoading={submitting}
         destroyOnHidden
@@ -261,20 +271,22 @@ export const OrderDetailPage = () => {
           className="mb-4"
           type="warning"
           showIcon
-          message="This action is audited and cannot be silently reversed."
+          message={t('This action is audited and cannot be silently reversed.')}
         />
         <Form<ActionValues> form={form} layout="vertical" onFinish={submitAction}>
           {action?.type === 'refund' ? (
             <Form.Item
               name="amount"
-              label={`Amount in minor units (maximum ${detail.allowedActions.refundMaximum})`}
+              label={t('Amount in minor units (maximum {maximum})', {
+                maximum: detail.allowedActions.refundMaximum,
+              })}
               rules={[
-                { required: true, message: 'Enter a refund amount.' },
+                { required: true, message: t('Enter a refund amount.') },
                 {
                   type: 'number',
                   min: 1,
                   max: detail.allowedActions.refundMaximum,
-                  message: 'Use the remaining refundable amount or less.',
+                  message: t('Use the remaining refundable amount or less.'),
                 },
               ]}
             >
@@ -285,15 +297,17 @@ export const OrderDetailPage = () => {
             <>
               <Form.Item
                 name="carrier"
-                label="Carrier"
-                rules={[{ required: true, whitespace: true, message: 'Enter the carrier.' }]}
+                label={t('Carrier')}
+                rules={[{ required: true, whitespace: true, message: t('Enter the carrier.') }]}
               >
                 <Input maxLength={120} />
               </Form.Item>
               <Form.Item
                 name="trackingNumber"
-                label="Tracking number"
-                rules={[{ required: true, whitespace: true, message: 'Enter the tracking number.' }]}
+                label={t('Tracking number')}
+                rules={[
+                  { required: true, whitespace: true, message: t('Enter the tracking number.') },
+                ]}
               >
                 <Input maxLength={160} />
               </Form.Item>
@@ -301,11 +315,11 @@ export const OrderDetailPage = () => {
           ) : null}
           <Form.Item
             name="reason"
-            label="Reason"
+            label={t('Reason')}
             rules={[
-              { required: true, whitespace: true, message: 'Enter a reason.' },
-              { min: 3, message: 'Use at least 3 characters.' },
-              { max: 500, message: 'Use at most 500 characters.' },
+              { required: true, whitespace: true, message: t('Enter a reason.') },
+              { min: 3, message: t('Use at least 3 characters.') },
+              { max: 500, message: t('Use at most 500 characters.') },
             ]}
           >
             <Input.TextArea rows={3} maxLength={500} />

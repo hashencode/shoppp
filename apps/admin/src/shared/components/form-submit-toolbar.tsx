@@ -3,6 +3,7 @@ import type { ButtonHTMLType } from 'antd/es/button'
 import React from 'react'
 import type { ReactNode } from 'react'
 import { FixedPageToolbar } from './fixed-page-toolbar'
+import { useI18n } from '../contexts/i18n-context'
 
 void React
 
@@ -30,33 +31,38 @@ const ActionDescription = ({ children }: { children?: string }) => {
 }
 
 export const FormSubmitActions = ({
-  submitLabel = '保存',
+  submitLabel,
   submitDescription,
   submitLoading = false,
   submitDisabled = false,
   submitHtmlType = 'button',
   onSubmit,
-  resetLabel = '重置',
+  resetLabel,
   resetDescription,
   resetDisabled = false,
-  resetConfirmTitle = '确认重置当前内容？',
+  resetConfirmTitle,
   onReset,
   leadingSlot,
 }: FormSubmitToolbarProps) => {
+  const { t } = useI18n()
+  const resolvedSubmitLabel = submitLabel ?? t('Save')
+  const resolvedResetLabel = resetLabel ?? t('Reset')
+  const resolvedResetConfirmTitle = resetConfirmTitle ?? t('Reset the current content?')
+
   return (
     <div className="flex flex-wrap items-start justify-center gap-2 sm:gap-3">
       {leadingSlot}
 
       <div className="flex flex-col items-center gap-1">
         <Popconfirm
-          title={resetConfirmTitle}
-          okText="确认"
-          cancelText="取消"
+          title={resolvedResetConfirmTitle}
+          okText={t('Confirm')}
+          cancelText={t('Cancel')}
           disabled={resetDisabled}
           onConfirm={onReset}
         >
           <Button htmlType="button" disabled={resetDisabled}>
-            {resetLabel}
+            {resolvedResetLabel}
           </Button>
         </Popconfirm>
         <ActionDescription>{resetDescription}</ActionDescription>
@@ -70,7 +76,7 @@ export const FormSubmitActions = ({
           disabled={submitDisabled}
           onClick={onSubmit}
         >
-          {submitLabel}
+          {resolvedSubmitLabel}
         </Button>
         <ActionDescription>{submitDescription}</ActionDescription>
       </div>

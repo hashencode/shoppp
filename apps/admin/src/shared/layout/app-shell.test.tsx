@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, beforeEach } from '@rstest/core'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthContext } from '../../infrastructure/auth/auth-context'
@@ -8,6 +8,8 @@ import { AppShell } from './app-shell'
 import { useRoutePageMeta } from './route-page-meta-context'
 import { authContextFixture } from '../../test/auth-context-fixture'
 import type { AuthContextValue } from '../../infrastructure/auth/auth-context'
+import { renderInLocale } from '../../test/render-in-locale'
+import { LANGUAGE_STORAGE_KEY, type AppLocale } from '../contexts/i18n-context'
 
 void React
 
@@ -39,12 +41,13 @@ if (!window.ResizeObserver) {
 
 const renderShell = (options?: {
   auth?: Partial<AuthContextValue>
+  locale?: AppLocale
   onLogout?: () => void
   routes?: React.ComponentProps<typeof AppShell>['routes']
 }) => {
   const onLogout = options?.onLogout ?? (() => undefined)
 
-  return render(
+  return renderInLocale(
     <AuthContext.Provider
       value={authContextFixture({
         accountName: 'alice.account',
@@ -63,7 +66,8 @@ const renderShell = (options?: {
           </Routes>
         </MemoryRouter>
       </ThemeProvider>
-    </AuthContext.Provider>
+    </AuthContext.Provider>,
+    options?.locale ?? 'zh-CN'
   )
 }
 
@@ -92,7 +96,7 @@ const RouteMetaProbe = () => {
 }
 
 const renderShellWithRouteMeta = () =>
-  render(
+  renderInLocale(
     <AuthContext.Provider
       value={authContextFixture({
         accountName: 'alice.account',
@@ -108,7 +112,8 @@ const renderShellWithRouteMeta = () =>
           </Routes>
         </MemoryRouter>
       </ThemeProvider>
-    </AuthContext.Provider>
+    </AuthContext.Provider>,
+    'zh-CN'
   )
 
 describe('AppShell', () => {
@@ -138,6 +143,7 @@ describe('AppShell', () => {
       expect(screen.getByText('点击复制账号')).toBeTruthy()
       expect(screen.getByText('色彩模式')).toBeTruthy()
       expect(screen.getByText('表单对齐')).toBeTruthy()
+      expect(screen.getByText('语言')).toBeTruthy()
       expect(screen.queryByText('搜索偏好')).toBeNull()
     })
 
@@ -145,6 +151,36 @@ describe('AppShell', () => {
 
     await waitFor(() => {
       expect(copiedTexts).toEqual(['alice.account'])
+    })
+  })
+
+  it('switches language from the account menu and persists the selection', async () => {
+    renderShell()
+
+    fireEvent.click(screen.getByText('alice.account'))
+    await waitFor(() => expect(screen.getByText('语言')).toBeTruthy())
+    fireEvent.mouseEnter(screen.getByText('语言'))
+    await waitFor(() => expect(screen.getByText('English')).toBeTruthy())
+    fireEvent.click(screen.getByText('English'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Welcome')).toBeTruthy()
+      expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('en-US')
+    })
+  })
+
+  it('switches back to Chinese and persists the selection', async () => {
+    renderShell({ locale: 'en-US' })
+
+    fireEvent.click(screen.getByText('alice.account'))
+    await waitFor(() => expect(screen.getByText('Language')).toBeTruthy())
+    fireEvent.mouseEnter(screen.getByText('Language'))
+    await waitFor(() => expect(screen.getByText('Simplified Chinese')).toBeTruthy())
+    fireEvent.click(screen.getByText('Simplified Chinese'))
+
+    await waitFor(() => {
+      expect(screen.getByText('欢迎')).toBeTruthy()
+      expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('zh-CN')
     })
   })
 
@@ -216,9 +252,9 @@ describe('AppShell', () => {
       routes: accessRoutes,
     })
 
-    fireEvent.click(await screen.findByText('Access management'))
-    expect(await screen.findByText('Users & invitations')).toBeTruthy()
-    expect(screen.queryByText('Roles')).toBeNull()
+    fireEvent.click(await screen.findByText('访问管理'))
+    expect(await screen.findByText('用户与邀请')).toBeTruthy()
+    expect(screen.queryByText('角色')).toBeNull()
 
     rerender(
       <AuthContext.Provider value={authContextFixture({ permissions: [] })}>
@@ -233,6 +269,6 @@ describe('AppShell', () => {
         </ThemeProvider>
       </AuthContext.Provider>
     )
-    expect(screen.queryByText('Access management')).toBeNull()
+    expect(screen.queryByText('访问管理')).toBeNull()
   })
 })

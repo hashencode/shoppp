@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import React, { useEffect, useMemo, useRef } from 'react'
 import { DefaultPreset, Events, SimplePlayer, type IPlayerOptions } from 'xgplayer'
+import { useI18n } from '../contexts/i18n-context'
 import './video-player.css'
 
 void React
@@ -22,6 +23,13 @@ type PlayerInstance = InstanceType<typeof SimplePlayer>
 type ActivePlayer = {
   errorHandler: () => void
   player: PlayerInstance
+  source: string
+}
+
+type PlaybackState = {
+  currentTime: number
+  shouldResume: boolean
+  source: string
 }
 
 class VideoPlayerPreset extends DefaultPreset {
@@ -79,12 +87,24 @@ export const VideoPlayer = ({
   height = 480,
   style,
 }: VideoPlayerProps) => {
+  const { locale, t } = useI18n()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const playerRef = useRef<ActivePlayer | null>(null)
+  const playbackStateRef = useRef<PlaybackState | null>(null)
   const normalizedSource = useMemo(() => source.trim(), [source])
 
   useEffect(() => {
     const clearCurrentPlayer = () => {
+      const activePlayer = playerRef.current
+      if (activePlayer) {
+        playbackStateRef.current = {
+          currentTime: Number.isFinite(activePlayer.player.currentTime)
+            ? activePlayer.player.currentTime
+            : 0,
+          shouldResume: activePlayer.player.paused === false,
+          source: activePlayer.source,
+        }
+      }
       destroyPlayer(playerRef.current)
       playerRef.current = null
     }
@@ -109,7 +129,7 @@ export const VideoPlayer = ({
           width: '100%',
           height,
           fitVideoSize: 'fixWidth',
-          lang: 'zh-cn',
+          lang: locale === 'zh-CN' ? 'zh-cn' : 'en',
           autoplay: false,
           videoInit: true,
           playsinline: true,
@@ -131,16 +151,27 @@ export const VideoPlayer = ({
         const player = new SimplePlayer(playerOptions)
         const errorHandler = () => {
           if (!disposed && playerRef.current?.player === player) {
-            onError('视频预览加载失败')
+            onError(t('Video preview failed'))
           }
         }
 
         player.on(Events.ERROR, errorHandler)
-        playerRef.current = { errorHandler, player }
+        playerRef.current = { errorHandler, player, source: normalizedSource }
+
+        const playbackState = playbackStateRef.current
+        if (playbackState?.source === normalizedSource) {
+          if (playbackState.currentTime > 0) {
+            player.currentTime = playbackState.currentTime
+          }
+          if (playbackState.shouldResume) {
+            void player.play()
+          }
+        }
+        playbackStateRef.current = null
       } catch {
         clearCurrentPlayer()
         if (!disposed) {
-          onError('视频预览加载失败')
+          onError(t('Video preview failed'))
         }
       }
     }
@@ -151,7 +182,7 @@ export const VideoPlayer = ({
       disposed = true
       clearCurrentPlayer()
     }
-  }, [height, normalizedSource, onError, primaryColor, sourceKind])
+  }, [height, locale, normalizedSource, onError, primaryColor, sourceKind, t])
 
   const resolvedClassName = className ? `video-player ${className}` : 'video-player'
 

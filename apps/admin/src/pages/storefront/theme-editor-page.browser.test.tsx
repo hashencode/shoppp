@@ -31,6 +31,7 @@ describe('ThemeEditorPage browser behavior', () => {
               index={index}
               instanceId={instanceId}
               onMove={(direction) => move(instanceId, direction)}
+              t={(message) => message}
             />
           ))}
         </div>

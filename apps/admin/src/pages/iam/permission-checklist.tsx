@@ -1,6 +1,7 @@
 import { ADMIN_PERMISSION_CATALOG, type AdminPermission } from '@shoppp/contracts'
 import { Checkbox } from 'antd'
 import React from 'react'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -17,6 +18,7 @@ export const PermissionChecklist = ({
   permitted,
   value = [],
 }: PermissionChecklistProps) => {
+  const { t } = useI18n()
   const groups = new Map<string, (typeof ADMIN_PERMISSION_CATALOG)[number][]>()
   for (const permission of ADMIN_PERMISSION_CATALOG) {
     if (!permitted.includes(permission.key)) continue
@@ -25,10 +27,10 @@ export const PermissionChecklist = ({
     groups.set(permission.category, entries)
   }
   return (
-    <div className="grid gap-4 md:grid-cols-2" aria-label="Role permissions">
+    <div className="grid gap-4 md:grid-cols-2" aria-label={t('Role permissions')}>
       {[...groups.entries()].map(([category, entries]) => (
         <fieldset key={category} className="rounded-lg border border-slate-200 p-3">
-          <legend className="px-1 text-sm font-semibold capitalize">{category}</legend>
+          <legend className="px-1 text-sm font-semibold capitalize">{t(category)}</legend>
           <div className="space-y-2">
             {entries.map((permission) => (
               <Checkbox
@@ -42,8 +44,8 @@ export const PermissionChecklist = ({
                   onChange?.(next)
                 }}
               >
-                <span className="font-medium">{permission.label}</span>
-                <span className="ml-2 text-xs text-slate-500">{permission.description}</span>
+                <span className="font-medium">{t(permission.label)}</span>
+                <span className="ml-2 text-xs text-slate-500">{t(permission.description)}</span>
               </Checkbox>
             ))}
           </div>

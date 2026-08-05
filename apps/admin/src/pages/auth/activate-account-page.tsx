@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Input } from 'antd'
 import { Link, useSearchParams } from 'react-router-dom'
 import { activateAdminAccount } from '../../services/auth/api'
 import { useAuth } from '../../infrastructure/auth/use-auth'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -13,6 +14,7 @@ interface ActivationFields {
 
 export const ActivateAccountPage = () => {
   const { refreshSession } = useAuth()
+  const { t } = useI18n()
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const [complete, setComplete] = useState(false)
@@ -27,7 +29,7 @@ export const ActivateAccountPage = () => {
       setComplete(true)
       await refreshSession()
     } catch (failure) {
-      setError((failure as Error).message || '激活链接无效或已过期。')
+      setError((failure as Error).message || t('The activation link is invalid or expired.'))
     } finally {
       setSubmitting(false)
     }
@@ -35,42 +37,42 @@ export const ActivateAccountPage = () => {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <Card className="w-full max-w-md" title="激活后台账号">
-        {!token ? <Alert type="error" showIcon message="激活链接无效。" /> : complete ? (
-          <Alert type="success" showIcon message="账号已激活，现在可以登录。" />
+      <Card className="w-full max-w-md" title={t('Activate admin account')}>
+        {!token ? <Alert type="error" showIcon message={t('The activation link is invalid.')} /> : complete ? (
+          <Alert type="success" showIcon message={t('Account activated. You can now sign in.')} />
         ) : (
           <>
             {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
             <Form<ActivationFields> layout="vertical" onFinish={(values) => void submit(values)}>
               <Form.Item
-                label="设置密码"
+                label={t('Set password')}
                 name="password"
-                rules={[{ required: true, min: 12, message: '密码至少需要 12 位' }]}
+                rules={[{ required: true, min: 12, message: t('Enter at least 12 characters.') }]}
               >
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
               <Form.Item
                 dependencies={['password']}
-                label="确认密码"
+                label={t('Confirm password')}
                 name="confirmPassword"
                 rules={[
-                  { required: true, message: '请再次输入密码' },
+                  { required: true, message: t('Enter the password again.') },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       return value === getFieldValue('password')
                         ? Promise.resolve()
-                        : Promise.reject(new Error('两次输入的密码不一致'))
+                        : Promise.reject(new Error(t('The passwords do not match.')))
                     },
                   }),
                 ]}
               >
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
-              <Button block htmlType="submit" loading={submitting} type="primary">激活账号</Button>
+              <Button block htmlType="submit" loading={submitting} type="primary">{t('Activate account')}</Button>
             </Form>
           </>
         )}
-        <div className="mt-4 text-center"><Link to="/login">返回登录</Link></div>
+        <div className="mt-4 text-center"><Link to="/login">{t('Back to sign in')}</Link></div>
       </Card>
     </main>
   )

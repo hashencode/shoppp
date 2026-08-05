@@ -1,11 +1,12 @@
 import React from 'react'
 import type { AdminPermission } from '@shoppp/contracts'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
+import { renderInLocale } from '../../test/render-in-locale'
 import { InventoryPage } from './inventory-page'
 
 void React
@@ -73,7 +74,7 @@ const server = setupServer(
 )
 
 const renderPage = (permissions: readonly AdminPermission[]) =>
-  render(
+  renderInLocale(
     <AuthTestProvider role="inventory_operator" permissions={permissions}>
       <ThemeProvider>
         <InventoryPage />

@@ -3,10 +3,12 @@ import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { Link } from 'react-router-dom'
 import { requestAdminPasswordReset } from '../../services/auth/api'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
 export const ForgotPasswordPage = () => {
+  const { t } = useI18n()
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -21,7 +23,7 @@ export const ForgotPasswordPage = () => {
       const candidate = normalizeApiError(failure)
       setError(
         candidate.code === 'protected_admin_password_reset_denied'
-          ? '受保护管理员不支持在线重置密码，请通过受控运维流程恢复。'
+          ? t('Protected administrators cannot reset passwords online. Use the controlled recovery process.')
           : candidate.message
       )
     } finally {
@@ -31,34 +33,34 @@ export const ForgotPasswordPage = () => {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <Card className="w-full max-w-md" title="重置密码">
+      <Card className="w-full max-w-md" title={t('Reset password')}>
         {sent ? (
           <Alert
             type="success"
             showIcon
-            message="如果该普通后台账号存在，重置邮件已经发送。"
+            message={t('If this standard admin account exists, a reset email has been sent.')}
           />
         ) : (
           <>
             <Typography.Paragraph type="secondary">
-              普通后台用户可以通过邮箱获取一次性重置链接。
+              {t('Standard admin users can request a one-time reset link by email.')}
             </Typography.Paragraph>
             {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
             <Form layout="vertical" onFinish={(values) => void submit(values as { email: string })}>
               <Form.Item
-                label="邮箱"
+                label={t('Email')}
                 name="email"
-                rules={[{ required: true, type: 'email', message: '请输入有效邮箱' }]}
+                rules={[{ required: true, type: 'email', message: t('Enter a valid email address.') }]}
               >
                 <Input autoComplete="username" />
               </Form.Item>
               <Button block htmlType="submit" loading={submitting} type="primary">
-                发送重置邮件
+                {t('Send reset email')}
               </Button>
             </Form>
           </>
         )}
-        <div className="mt-4 text-center"><Link to="/login">返回登录</Link></div>
+        <div className="mt-4 text-center"><Link to="/login">{t('Back to sign in')}</Link></div>
       </Card>
     </main>
   )

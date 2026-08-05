@@ -2,6 +2,7 @@ import { ExportOutlined, ImportOutlined, InboxOutlined } from '@ant-design/icons
 import { Button, Modal, Upload } from 'antd'
 import type { ButtonProps, ModalProps, UploadProps } from 'antd'
 import React, { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useI18n } from '../contexts/i18n-context'
 
 void React
 
@@ -82,6 +83,7 @@ export const ListExcelActions = ({
   importAction,
   templateAction,
 }: ListExcelActionsProps) => {
+  const { t } = useI18n()
   const [importOpen, setImportOpen] = useState(false)
   const [exportPending, setExportPending] = useState(false)
   const [templatePending, setTemplatePending] = useState(false)
@@ -128,7 +130,7 @@ export const ListExcelActions = ({
             onClick={() => setImportOpen(true)}
             {...importAction.buttonProps}
           >
-            {importAction.label ?? '数据导入'}
+            {importAction.label ?? t('Data import')}
           </Button>
           {templateAction ? (
             <Button
@@ -141,13 +143,13 @@ export const ListExcelActions = ({
               rel={templateAction.rel}
               onClick={() => runAction(templateAction.onClick, setTemplatePending, templatePendingRef)}
             >
-              {templateAction.label ?? '下载导入模板'}
+              {templateAction.label ?? t('Download import template')}
             </Button>
           ) : null}
           <Modal
             {...importAction.modalProps}
             open={importOpen}
-            title={importAction.modalTitle ?? importAction.label ?? '数据导入'}
+            title={importAction.modalTitle ?? importAction.label ?? t('Data import')}
             footer={null}
             destroyOnHidden={importAction.modalProps?.destroyOnHidden ?? true}
             onCancel={closeImportModal}
@@ -157,7 +159,9 @@ export const ListExcelActions = ({
                 <p className="ant-upload-drag-icon">
                   {importAction.uploadIcon ?? <InboxOutlined />}
                 </p>
-                <p className="ant-upload-text">{importAction.uploadText ?? '点击或拖拽文件至此区域'}</p>
+                <p className="ant-upload-text">
+                  {importAction.uploadText ?? t('Click or drag a file to this area')}
+                </p>
                 {importAction.uploadHint ? (
                   <p className="ant-upload-hint">{importAction.uploadHint}</p>
                 ) : null}

@@ -2,12 +2,18 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import { TemplateListContent } from './template-list-content'
+import { I18nProvider } from '../../contexts/i18n-context'
 
 void React
 
+const renderInChinese = (node: React.ReactNode) => {
+  window.localStorage.setItem('shoppp.admin.locale', 'zh-CN')
+  return render(<I18nProvider>{node}</I18nProvider>)
+}
+
 describe('TemplateListContent', () => {
   it('renders loading state', () => {
-    render(
+    renderInChinese(
       <TemplateListContent
         showInitialLoading={true}
         showError={false}
@@ -29,7 +35,7 @@ describe('TemplateListContent', () => {
       retryCallCount += 1
     }
 
-    render(
+    renderInChinese(
       <TemplateListContent
         showInitialLoading={false}
         showError={true}
@@ -55,7 +61,7 @@ describe('TemplateListContent', () => {
 
   it('renders partial state and triggers reload callback', () => {
     let reloadCount = 0
-    render(
+    renderInChinese(
       <TemplateListContent
         showInitialLoading={false}
         showError={false}
@@ -81,7 +87,7 @@ describe('TemplateListContent', () => {
 
   it('renders empty state and triggers reset callback', () => {
     let resetCount = 0
-    render(
+    renderInChinese(
       <TemplateListContent
         showInitialLoading={false}
         showError={false}
@@ -105,7 +111,7 @@ describe('TemplateListContent', () => {
   })
 
   it('renders normal table when no special state is active', () => {
-    render(
+    renderInChinese(
       <TemplateListContent
         showInitialLoading={false}
         showError={false}

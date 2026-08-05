@@ -11,6 +11,7 @@ import React, {
   type ReactNode,
 } from 'react'
 import { downloadBlob } from '../utils/download'
+import { useCurrentTranslate, useI18n } from '../contexts/i18n-context'
 import { FilePreviewPdfContent } from './file-preview-pdf-content'
 
 void React
@@ -194,10 +195,7 @@ const buildDownloadFileName = (
   fileName: string | undefined,
   type: FilePreviewType
 ) =>
-  withExpectedExtension(
-    fileName?.trim() || readFileNameFromSource(source) || '文件',
-    type
-  )
+  withExpectedExtension(fileName?.trim() || readFileNameFromSource(source) || 'File', type)
 
 const downloadPreviewFile = async ({
   source,
@@ -246,6 +244,7 @@ const FilePreviewVideoContent = ({
   primaryColor,
   onError,
 }: LazyVideoPlayerProps) => {
+  const { t } = useI18n()
   const [VideoPlayer, setVideoPlayer] = useState<ComponentType<LazyVideoPlayerProps> | null>(null)
 
   useEffect(() => {
@@ -259,19 +258,19 @@ const FilePreviewVideoContent = ({
       })
       .catch(() => {
         if (active) {
-          onError('视频预览加载失败')
+          onError(t('Video preview failed'))
         }
       })
 
     return () => {
       active = false
     }
-  }, [onError])
+  }, [onError, t])
 
   if (!VideoPlayer) {
     return (
       <div className="flex min-h-[360px] items-center justify-center" role="status">
-        <Spin description="正在加载视频预览" />
+        <Spin description={t('Loading video preview')} />
       </div>
     )
   }
@@ -297,6 +296,8 @@ export const FilePreview = ({
   modalStyles,
 }: FilePreviewProps) => {
   const { token } = theme.useToken()
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
   const [innerOpen, setInnerOpen] = useState(false)
   const [downloadLoadingKey, setDownloadLoadingKey] = useState('')
   const [rendererErrorState, setRendererErrorState] = useState<RendererErrorState | null>(null)
@@ -370,7 +371,7 @@ export const FilePreview = ({
         fallbackAllowed: normalizedSource.fallbackAllowed,
       })
     } catch {
-      void message.error('文件下载失败，请稍后重试。')
+      void message.error(translateNow('File download failed. Please try again later.'))
     } finally {
       setDownloadLoadingKey((current) => (current === activeDownloadKey ? '' : current))
     }
@@ -390,7 +391,7 @@ export const FilePreview = ({
               disabled={!sourceAllowed}
               className="!px-0 hover:!bg-transparent active:!bg-transparent"
             >
-              预览
+              {t('Preview')}
             </Button>
           )}
         </span>
@@ -399,7 +400,7 @@ export const FilePreview = ({
       {open && sourceAllowed && previewType === 'image' ? (
         <Image
           key={`${normalizedSource.source}:${previewSession}`}
-          alt={fileName || '文件预览图片'}
+          alt={fileName || t('File preview image')}
           styles={{ root: { display: 'none' } }}
           preview={{
             open: imageOpen,
@@ -417,8 +418,8 @@ export const FilePreview = ({
                   type="text"
                   icon={<DownloadOutlined />}
                   loading={downloadLoading}
-                  aria-label="下载文件"
-                  title="下载文件"
+                  aria-label={t('Download file')}
+                  title={t('Download file')}
                   onClick={() => {
                     void handleDownload()
                   }}
@@ -427,7 +428,7 @@ export const FilePreview = ({
             ),
           }}
           src={normalizedSource.source}
-          onError={() => handleRendererError('图片预览加载失败')}
+          onError={() => handleRendererError(t('Image preview failed'))}
         />
       ) : null}
 
@@ -449,17 +450,17 @@ export const FilePreview = ({
                 void handleDownload()
               }}
             >
-              下载文件
+              {t('Download file')}
             </Button>,
             <Button key="close" type="primary" onClick={() => setOpen(false)}>
-              关闭
+              {t('Close')}
             </Button>,
           ]}
         >
           {modalOpen && rendererError ? (
             <FilePreviewUnavailable
               title={rendererError}
-              description="文件服务暂不支持在线预览，请下载后查看。"
+              description={t('Online preview is unavailable. Download the file to view it.')}
             />
           ) : null}
           {modalOpen && !rendererError && previewType === 'pdf' ? (
@@ -480,8 +481,10 @@ export const FilePreview = ({
           ) : null}
           {modalOpen && !rendererError && previewType === 'unknown' ? (
             <FilePreviewUnavailable
-              title="暂不支持在线预览"
-              description="当前文件类型暂不支持在线预览，请下载后查看。"
+              title={t('Online preview is not supported')}
+              description={t(
+                'This file type cannot be previewed online. Download the file to view it.'
+              )}
             />
           ) : null}
         </Modal>

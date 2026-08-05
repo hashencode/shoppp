@@ -27,15 +27,17 @@ import {
   resendAdminInvitation,
   revokeAdminInvitation,
 } from '../../services/iam/api'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
 type InviteValues = { displayName?: string; email: string; roleId: string }
+type Translate = (message: string) => string
 
 const newIdempotencyKey = (prefix: string) =>
   `${prefix}-${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-request`}`
 
-const statusTag = (status: AdminUserStatus | AdminInvitationStatus) => {
+const statusTag = (status: AdminUserStatus | AdminInvitationStatus, t: Translate) => {
   const labels = {
     accepted: 'Accepted',
     active: 'Active',
@@ -52,11 +54,11 @@ const statusTag = (status: AdminUserStatus | AdminInvitationStatus) => {
     pending: 'processing',
     revoked: 'error',
   } as const
-  return <Tag color={colors[status]}>{labels[status]}</Tag>
+  return <Tag color={colors[status]}>{t(labels[status])}</Tag>
 }
 
-const deliveryTag = (invitation: AdminInvitation) => {
-  if (!invitation.delivery) return <Tag>Not queued</Tag>
+const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
+  if (!invitation.delivery) return <Tag>{t('Not queued')}</Tag>
   const labels = {
     dead_letter: 'Delivery failed',
     failed: 'Retry scheduled',
@@ -71,11 +73,12 @@ const deliveryTag = (invitation: AdminInvitation) => {
     processing: 'processing',
     sent: 'success',
   } as const
-  return <Tag color={colors[invitation.delivery.status]}>{labels[invitation.delivery.status]}</Tag>
+  return <Tag color={colors[invitation.delivery.status]}>{t(labels[invitation.delivery.status])}</Tag>
 }
 
 export const UsersPage = () => {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.users.write', permissions)
   const canReadRoles = hasPermission(roleKey, 'iam.roles.read', permissions)
@@ -139,7 +142,7 @@ export const UsersPage = () => {
   const userColumns = [
     {
       key: 'user',
-      title: 'User',
+      title: t('User'),
       render: (_: unknown, user: AdminUser) => (
         <div>
           <div className="font-medium">{user.displayName}</div>
@@ -147,15 +150,15 @@ export const UsersPage = () => {
         </div>
       ),
     },
-    { key: 'role', title: 'Role', render: (_: unknown, user: AdminUser) => user.role.name },
-    { key: 'status', title: 'Status', render: (_: unknown, user: AdminUser) => statusTag(user.status) },
+    { key: 'role', title: t('Role'), render: (_: unknown, user: AdminUser) => user.role.name },
+    { key: 'status', title: t('Status'), render: (_: unknown, user: AdminUser) => statusTag(user.status, t) },
     {
       key: 'actions',
-      title: 'Actions',
+      title: t('Actions'),
       width: 100,
       render: (_: unknown, user: AdminUser) => (
         <Button type="link" className="!px-0" onClick={() => navigate(`/access/users/${user.id}`)}>
-          Inspect
+          {t('Inspect')}
         </Button>
       ),
     },
@@ -164,33 +167,33 @@ export const UsersPage = () => {
   const invitationColumns = [
     {
       key: 'invitee',
-      title: 'Invitee',
+      title: t('Invitee'),
       render: (_: unknown, invitation: AdminInvitation) => (
         <div>
-          <div className="font-medium">{invitation.displayName ?? 'Pending user'}</div>
+          <div className="font-medium">{invitation.displayName ?? t('Pending user')}</div>
           <div className="text-sm text-slate-500">{invitation.email}</div>
         </div>
       ),
     },
-    { key: 'role', title: 'Role', render: (_: unknown, invitation: AdminInvitation) => invitation.role.name },
+    { key: 'role', title: t('Role'), render: (_: unknown, invitation: AdminInvitation) => invitation.role.name },
     {
       key: 'expires',
-      title: 'Expires',
+      title: t('Expires'),
       render: (_: unknown, invitation: AdminInvitation) => new Date(invitation.expiresAt).toLocaleDateString(),
     },
     {
       key: 'status',
-      title: 'Status',
-      render: (_: unknown, invitation: AdminInvitation) => statusTag(invitation.status),
+      title: t('Status'),
+      render: (_: unknown, invitation: AdminInvitation) => statusTag(invitation.status, t),
     },
     {
       key: 'delivery',
-      title: 'Email delivery',
-      render: (_: unknown, invitation: AdminInvitation) => deliveryTag(invitation),
+      title: t('Email delivery'),
+      render: (_: unknown, invitation: AdminInvitation) => deliveryTag(invitation, t),
     },
     {
       key: 'actions',
-      title: 'Actions',
+      title: t('Actions'),
       width: 190,
       render: (_: unknown, invitation: AdminInvitation) =>
         canWrite && invitation.status === 'pending' ? (
@@ -204,30 +207,30 @@ export const UsersPage = () => {
                     expectedVersion: invitation.version,
                     idempotencyKey: newIdempotencyKey(`admin-invite-resend-${invitation.id}`),
                   })
-                  void message.success('Invitation queued for resend.')
+                  void message.success(t('Invitation queued for resend.'))
                   await load()
                 } catch (error) {
                   void message.error(normalizeApiError(error).message)
                 }
               }}
             >
-              Resend
+              {t('Resend')}
             </Button>
             <Popconfirm
-              title="Revoke this invitation?"
-              description="The invitee will no longer be able to activate it."
-              okText="Confirm revoke"
+              title={t('Revoke this invitation?')}
+              description={t('The invitee will no longer be able to activate it.')}
+              okText={t('Confirm revoke')}
               onConfirm={async () => {
                 try {
                   await revokeAdminInvitation(invitation.id, { expectedVersion: invitation.version })
-                  void message.success('Invitation revoked.')
+                  void message.success(t('Invitation revoked.'))
                   await load()
                 } catch (error) {
                   void message.error(normalizeApiError(error).message)
                 }
               }}
             >
-              <Button danger type="link" className="!px-0">Revoke</Button>
+              <Button danger type="link" className="!px-0">{t('Revoke')}</Button>
             </Popconfirm>
           </Space>
         ) : null,
@@ -238,8 +241,8 @@ export const UsersPage = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Users and invitations</h1>
-          <p className="text-slate-500">Manage human accounts, activation, status, and role assignment.</p>
+          <h1 className="text-2xl font-semibold">{t('Users and invitations')}</h1>
+          <p className="text-slate-500">{t('Manage human accounts, activation, status, and role assignment.')}</p>
         </div>
         {canInvite ? (
           <Button
@@ -251,7 +254,7 @@ export const UsersPage = () => {
               setInviteOpen(true)
             }}
           >
-            Invite user
+            {t('Invite user')}
           </Button>
         ) : null}
       </div>
@@ -260,15 +263,15 @@ export const UsersPage = () => {
         <Alert
           type="info"
           showIcon
-          title="Invitation creation requires role visibility. You can still resend or revoke existing invitations."
+          title={t('Invitation creation requires role visibility. You can still resend or revoke existing invitations.')}
         />
       ) : null}
 
-      {loadError ? <Alert type="error" showIcon title={loadError} action={<Button onClick={() => void load()}>Retry</Button>} /> : null}
+      {loadError ? <Alert type="error" showIcon title={loadError} action={<Button onClick={() => void load()}>{t('Retry')}</Button>} /> : null}
       <Input.Search
         allowClear
-        aria-label="Search users and invitations"
-        placeholder="Search by name or email"
+        aria-label={t('Search users and invitations')}
+        placeholder={t('Search by name or email')}
         onSearch={(value) => {
           setSearch(value.trim())
           setUserPage(1)
@@ -279,15 +282,15 @@ export const UsersPage = () => {
         items={[
           {
             key: 'users',
-            label: 'Users',
+            label: t('Users'),
             children: (
               <Space orientation="vertical" className="w-full" size="middle">
                 <Select
                   allowClear
-                  aria-label="User status"
+                  aria-label={t('User status')}
                   className="min-w-40"
-                  placeholder="All user states"
-                  options={[{ label: 'Active', value: 'active' }, { label: 'Disabled', value: 'disabled' }]}
+                  placeholder={t('All user states')}
+                  options={[{ label: t('Active'), value: 'active' }, { label: t('Disabled'), value: 'disabled' }]}
                   onChange={(value) => { setUserStatus(value); setUserPage(1) }}
                 />
                 <Table<AdminUser>
@@ -295,7 +298,7 @@ export const UsersPage = () => {
                   columns={userColumns}
                   dataSource={users}
                   loading={loading}
-                  locale={{ emptyText: 'No users match these filters.' }}
+                  locale={{ emptyText: t('No users match these filters.') }}
                   pagination={{ current: userPage, pageSize: 25, total: userTotal, onChange: setUserPage }}
                   scroll={{ x: 720 }}
                 />
@@ -304,15 +307,15 @@ export const UsersPage = () => {
           },
           {
             key: 'invitations',
-            label: 'Invitations',
+            label: t('Invitations'),
             children: (
               <Space orientation="vertical" className="w-full" size="middle">
                 <Select
                   allowClear
-                  aria-label="Invitation status"
+                  aria-label={t('Invitation status')}
                   className="min-w-40"
-                  placeholder="All invitation states"
-                  options={['pending', 'accepted', 'revoked', 'expired'].map((value) => ({ label: value[0].toUpperCase() + value.slice(1), value }))}
+                  placeholder={t('All invitation states')}
+                  options={['pending', 'accepted', 'revoked', 'expired'].map((value) => ({ label: t(value[0].toUpperCase() + value.slice(1)), value }))}
                   onChange={(value) => { setInvitationStatus(value); setInvitationPage(1) }}
                 />
                 <Table<AdminInvitation>
@@ -320,7 +323,7 @@ export const UsersPage = () => {
                   columns={invitationColumns}
                   dataSource={invitations}
                   loading={loading}
-                  locale={{ emptyText: 'No invitations match these filters.' }}
+                  locale={{ emptyText: t('No invitations match these filters.') }}
                   pagination={{ current: invitationPage, pageSize: 25, total: invitationTotal, onChange: setInvitationPage }}
                   scroll={{ x: 860 }}
                 />
@@ -331,9 +334,9 @@ export const UsersPage = () => {
       />
 
       <Modal
-        title="Invite user"
+        title={t('Invite user')}
         open={canInvite && inviteOpen}
-        okText="Send invitation"
+        okText={t('Send invitation')}
         confirmLoading={saving}
         onCancel={() => setInviteOpen(false)}
         onOk={() => form.submit()}
@@ -354,7 +357,7 @@ export const UsersPage = () => {
                 email: values.email.trim(),
                 idempotencyKey: inviteKey.current,
               })
-              void message.success('Invitation created.')
+              void message.success(t('Invitation created.'))
               setInviteOpen(false)
               await load()
             } catch (error) {
@@ -364,16 +367,16 @@ export const UsersPage = () => {
             }
           }}
         >
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
+          <Form.Item name="email" label={t('Email')} rules={[{ required: true, type: 'email' }]}>
             <Input autoComplete="off" />
           </Form.Item>
-          <Form.Item name="displayName" label="Display name">
+          <Form.Item name="displayName" label={t('Display name')}>
             <Input autoComplete="off" />
           </Form.Item>
-          <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
+          <Form.Item name="roleId" label={t('Role')} rules={[{ required: true }]}>
             <Select
               options={assignableRoles.map((candidate) => ({ label: candidate.name, value: candidate.id }))}
-              placeholder={assignableRoles.length ? 'Select a role' : 'No assignable roles'}
+              placeholder={t(assignableRoles.length ? 'Select a role' : 'No assignable roles')}
             />
           </Form.Item>
         </Form>

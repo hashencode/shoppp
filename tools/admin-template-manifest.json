@@ -29,12 +29,7 @@
       "tsconfig.json",
       "tsconfig.node.json"
     ],
-    "prefixes": [
-      "docs/ai/",
-      "e2e/",
-      "public/",
-      "src/"
-    ]
+    "prefixes": ["docs/ai/", "e2e/", "public/", "src/"]
   },
   "exclusions": [
     ".agents/",
@@ -326,14 +321,6 @@
     {
       "path": "src/pages/templates/list/api.ts",
       "sha256": "5b03d4c942283d504d2a86963562af89a8551a7dd3514ed5de2722c0199c28d4"
-    },
-    {
-      "path": "src/pages/templates/list/list-prompt-generator-page.test.tsx",
-      "sha256": "adee267da3a93d70e27c4f08ea23f15e69750773da00e5a2902bb1d4cb461ef2"
-    },
-    {
-      "path": "src/pages/templates/list/list-prompt-generator-page.tsx",
-      "sha256": "a89beb8312ac48d08e7ce76d8a4a74add6c405adbb6d180d459a89628fdf1d35"
     },
     {
       "path": "src/pages/templates/list/table-query-page.test.tsx",

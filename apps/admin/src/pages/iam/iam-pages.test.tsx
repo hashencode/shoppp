@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -12,6 +12,7 @@ import { RolesPage } from './roles-page'
 import { UserDetailPage } from './user-detail-page'
 import { UsersPage } from './users-page'
 import { PermissionGuard } from '../../shared/components/permission-guard'
+import { renderInLocale } from '../../test/render-in-locale'
 
 void React
 
@@ -173,7 +174,7 @@ const renderPage = (
     'iam.roles.read',
     'iam.roles.write',
   ]
-  return render(
+  return renderInLocale(
     <AuthContext.Provider
       value={authContextFixture({
         permissions: permissions as never,

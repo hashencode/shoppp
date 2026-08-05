@@ -1,6 +1,7 @@
 import {
   AlignLeftOutlined,
   CodeOutlined,
+  GlobalOutlined,
   LockOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -29,6 +30,11 @@ import {
   type RouteBreadcrumbItem,
 } from './route-page-meta-context'
 import { useTheme, type FormContentAlign, type ThemeMode } from '../contexts/theme-context'
+import {
+  useCurrentTranslate,
+  useI18n,
+  type AppLocale,
+} from '../contexts/i18n-context'
 import { getDisplayNameAvatarText, normalizeDisplayName } from '../utils/display-name'
 import { ChangePasswordModal } from '../../pages/auth/change-password-modal'
 
@@ -38,14 +44,18 @@ void React
 const APP_SHELL_SIDER_WIDTH = 224
 const APP_SHELL_COLLAPSED_WIDTH = 80
 const THEME_MODE_LABEL: Record<ThemeMode, string> = {
-  light: '浅色模式',
-  dark: '深色模式',
-  system: '跟随系统',
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
 }
 const FORM_CONTENT_ALIGN_LABEL: Record<FormContentAlign, string> = {
-  left: '左对齐',
-  center: '居中对齐',
-  right: '右对齐',
+  left: 'Left aligned',
+  center: 'Centered',
+  right: 'Right aligned',
+}
+const LANGUAGE_LABEL: Record<AppLocale, string> = {
+  'zh-CN': 'Simplified Chinese',
+  'en-US': 'English',
 }
 
 type RouteContract = {
@@ -75,6 +85,8 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { role, permissions, displayName, accountName, logout, principalKind } = useAuth()
+  const { locale, setLocale, t } = useI18n()
+  const translateNow = useCurrentTranslate()
   const {
     formContentAlign,
     mode,
@@ -124,7 +136,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
         items.push({
           key: route.key,
           icon: route.icon,
-          label: route.title,
+          label: t(route.title),
           onClick: () => navigate(route.path),
         })
         continue
@@ -145,20 +157,20 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
         items.push({
           key: `group-${group}`,
           icon: current.icon,
-          label: group,
+          label: t(group),
           children: current.children,
         })
       }
 
       current.children.push({
         key: route.key,
-        label: route.title,
+        label: t(route.title),
         onClick: () => navigate(route.path),
       })
     }
 
     return items
-  }, [menuRoutes, navigate, showDevMenuGroup])
+  }, [menuRoutes, navigate, showDevMenuGroup, t])
 
   const selectedRoute = useMemo(() => {
     const exactMatch = menuRoutes.find((route) => route.path === location.pathname)
@@ -189,14 +201,19 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     : undefined
   const currentRouteTitle = useMemo(() => {
     if (location.pathname === '/') {
-      return '欢迎'
+      return t('Welcome')
     }
 
-    return routes.find((route) => route.path === location.pathname)?.title ?? selectedRoute?.title
-  }, [location.pathname, routes, selectedRoute?.title])
+    const title =
+      routes.find((route) => route.path === location.pathname)?.title ?? selectedRoute?.title
+    return title ? t(title) : undefined
+  }, [location.pathname, routes, selectedRoute?.title, t])
   const breadcrumbItems = useMemo(
-    () => routes.find((route) => route.path === location.pathname)?.breadcrumb ?? [],
-    [location.pathname, routes]
+    () =>
+      (routes.find((route) => route.path === location.pathname)?.breadcrumb ?? []).map((item) =>
+        t(item)
+      ),
+    [location.pathname, routes, t]
   )
   const shouldShowBreadcrumb = breadcrumbItems.length > 0
   const routeBreadcrumbItems = useMemo<RouteBreadcrumbItem[]>(
@@ -234,7 +251,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
 
     try {
       await navigator.clipboard.writeText(text)
-      void message.success('账号已复制')
+      void message.success(translateNow('Account copied'))
       return
     } catch {
       // Fallback for restricted clipboard environments.
@@ -250,9 +267,9 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
       textarea.select()
       document.execCommand('copy')
       document.body.removeChild(textarea)
-      void message.success('账号已复制')
+      void message.success(translateNow('Account copied'))
     } catch {
-      void message.error('复制失败，请手动复制')
+      void message.error(translateNow('Copy failed. Copy the account manually.'))
     }
   }
 
@@ -277,7 +294,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
                   {accountDisplayName}
                 </Typography.Text>
                 <Typography.Text type="secondary" className="text-xs">
-                  点击复制账号
+                  {t('Click to copy account')}
                 </Typography.Text>
               </div>
             ),
@@ -286,7 +303,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
           {
             key: 'change-password',
             icon: <LockOutlined />,
-            label: '修改密码',
+            label: t('Change password'),
           },
           { type: 'divider' as const },
         ]
@@ -294,22 +311,33 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     {
       key: 'theme-mode',
       icon: <SunOutlined />,
-      label: '色彩模式',
+      label: t('Appearance'),
       children: (Object.entries(THEME_MODE_LABEL) as Array<[ThemeMode, string]>).map(
         ([themeMode, label]) => ({
           key: `theme-${themeMode}`,
-          label: renderPreferenceItemLabel(label, mode === themeMode),
+          label: renderPreferenceItemLabel(t(label), mode === themeMode),
         })
       ),
     },
     {
       key: 'form-content-align',
       icon: <AlignLeftOutlined />,
-      label: '表单对齐',
+      label: t('Form alignment'),
       children: (Object.entries(FORM_CONTENT_ALIGN_LABEL) as Array<[FormContentAlign, string]>).map(
         ([align, label]) => ({
           key: `form-align-${align}`,
-          label: renderPreferenceItemLabel(label, formContentAlign === align),
+          label: renderPreferenceItemLabel(t(label), formContentAlign === align),
+        })
+      ),
+    },
+    {
+      key: 'language',
+      icon: <GlobalOutlined />,
+      label: t('Language'),
+      children: (Object.entries(LANGUAGE_LABEL) as Array<[AppLocale, string]>).map(
+        ([language, label]) => ({
+          key: `language-${language}`,
+          label: renderPreferenceItemLabel(t(label), locale === language),
         })
       ),
     },
@@ -317,7 +345,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: '退出登录',
+      label: t('Sign out'),
     },
   ]
 
@@ -340,20 +368,41 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     if (key === 'theme-light' || key === 'theme-dark' || key === 'theme-system') {
       const nextMode = key.replace('theme-', '') as ThemeMode
       setMode(nextMode)
-      void message.success(`已切换到${THEME_MODE_LABEL[nextMode]}`)
+      void message.success(t('Switched to {mode}.', { mode: t(THEME_MODE_LABEL[nextMode]) }))
       return
     }
 
     if (key === 'form-align-left' || key === 'form-align-center' || key === 'form-align-right') {
       const nextAlign = key.replace('form-align-', '') as FormContentAlign
       setFormContentAlign(nextAlign)
-      void message.success(`表单已切换为${FORM_CONTENT_ALIGN_LABEL[nextAlign]}`)
+      void message.success(
+        t('Form alignment changed to {alignment}.', {
+          alignment: t(FORM_CONTENT_ALIGN_LABEL[nextAlign]),
+        })
+      )
+      return
+    }
+
+    if (key === 'language-zh-CN' || key === 'language-en-US') {
+      const nextLocale = key.replace('language-', '') as AppLocale
+      const persisted = setLocale(nextLocale)
+      const language = LANGUAGE_LABEL[nextLocale]
+      void message.success(
+        persisted
+          ? translateNow('Language changed to {language}.', {
+              language: translateNow(language),
+            })
+          : translateNow(
+              'Language changed to {language} for this session, but the preference could not be saved.',
+              { language: translateNow(language) }
+            )
+      )
     }
   }
 
   return (
     <>
-    <Layout className="h-screen overflow-hidden" style={appShellStyle}>
+      <Layout className="h-screen overflow-hidden" style={appShellStyle}>
       <Header
         className="flex h-14 items-center justify-between gap-3 px-5 pl-4 shadow-none"
         style={{
@@ -417,7 +466,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
               {
                 key: 'home',
                 icon: <SmileOutlined />,
-                label: '欢迎',
+                label: t('Welcome'),
                 onClick: () => navigate('/'),
               },
               ...groupedMenuItems,
@@ -456,8 +505,8 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
           </div>
         </Content>
       </Layout>
-    </Layout>
-    <ChangePasswordModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
+      </Layout>
+      <ChangePasswordModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
     </>
   )
 }

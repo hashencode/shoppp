@@ -1,11 +1,12 @@
 import React from 'react'
 import type { RevenueReport } from '@shoppp/contracts'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { renderInLocale } from '../../test/render-in-locale'
 import { DashboardPage } from './dashboard-page'
 
 void React
@@ -80,7 +81,7 @@ afterAll(() => server.close())
 
 describe('DashboardPage', () => {
   it('labels currency, IANA time zone, current window, and comparison window', async () => {
-    render(
+    renderInLocale(
       <ThemeProvider>
         <MemoryRouter>
           <DashboardPage />

@@ -9,6 +9,7 @@ import { useTemplateListController } from '../list/use-template-list-controller'
 import { useTemplateListFilters } from '../list/use-template-list-filters'
 import type { StandardListPageSpec } from '../specs/standard-list-page-spec'
 import { useStandardPagination } from '../../hooks/use-standard-pagination'
+import { useI18n } from '../../contexts/i18n-context'
 
 void React
 
@@ -24,6 +25,7 @@ export const ModalListPageRecipe = <
   spec: StandardListPageSpec<TFilterValues, TRequestFilters, TResponse, TItem, TError>
 }) => {
   const [filterForm] = Form.useForm<TFilterValues>()
+  const { locale } = useI18n()
   const [total, setTotal] = useState(0)
   const paginationMode = spec.paginationMode ?? 'remote'
   const { current, pageSize, pagination, resetPage } = useStandardPagination({
@@ -140,7 +142,10 @@ export const ModalListPageRecipe = <
   }, [reload, spec])
 
   const searchColProps = useMemo(() => buildSearchGridProps(visibleFieldCount), [visibleFieldCount])
-  const modalListTableProps = useMemo(() => buildModalListTableProps(pagination), [pagination])
+  const modalListTableProps = useMemo(
+    () => buildModalListTableProps(pagination, locale),
+    [locale, pagination]
+  )
 
   const handleResetAll = () => {
     onResetFilters()

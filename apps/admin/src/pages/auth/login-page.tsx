@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -12,6 +13,7 @@ interface LoginFields {
 
 export const LoginPage = () => {
   const { isLoading, login, sessionError } = useAuth()
+  const { t } = useI18n()
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async (values: LoginFields) => {
@@ -27,37 +29,37 @@ export const LoginPage = () => {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <Card className="w-full max-w-md" title="登录 Shoppp 后台">
+      <Card className="w-full max-w-md" title={t('Sign in to Shoppp Admin')}>
         <Typography.Paragraph type="secondary">
-          使用你的后台账号和密码登录。
+          {t('Use your admin email and password to sign in.')}
         </Typography.Paragraph>
         {sessionError ? <Alert className="mb-4" type="error" showIcon message={sessionError} /> : null}
         <Form<LoginFields> layout="vertical" onFinish={(values) => void submit(values)}>
           <Form.Item
-            label="邮箱"
+            label={t('Email')}
             name="email"
-            rules={[{ required: true, type: 'email', message: '请输入有效邮箱' }]}
+            rules={[{ required: true, type: 'email', message: t('Enter a valid email address.') }]}
           >
             <Input autoComplete="username" placeholder="name@example.com" />
           </Form.Item>
           <Form.Item
-            label="密码"
+            label={t('Password')}
             name="password"
-            rules={[{ required: true, min: 12, message: '请输入至少 12 位密码' }]}
+            rules={[{ required: true, min: 12, message: t('Enter at least 12 characters.') }]}
           >
-            <Input.Password autoComplete="current-password" placeholder="请输入密码" />
+            <Input.Password autoComplete="current-password" placeholder={t('Enter password')} />
           </Form.Item>
           <div className="mb-4 text-right">
-            <Link to="/forgot-password">忘记密码？</Link>
+            <Link to="/forgot-password">{t('Forgot password?')}</Link>
           </div>
           <Button
-            aria-label="登录"
+            aria-label={t('Sign in')}
             block
             htmlType="submit"
             loading={submitting || isLoading}
             type="primary"
           >
-            登录
+            {t('Sign in')}
           </Button>
         </Form>
       </Card>

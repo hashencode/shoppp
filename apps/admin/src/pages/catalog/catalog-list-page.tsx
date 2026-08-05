@@ -14,6 +14,8 @@ import {
   type ProductStatus,
 } from '../../services/catalog/api'
 import { ListRowActions } from '../../shared/components/list-row-actions'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import {
   StandardListPageRecipe,
   type StandardListPageSpec,
@@ -39,18 +41,19 @@ const PublishAction = ({
   product: CatalogProductListItem
   onPublish: (reason: string) => Promise<void>
 }) => {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   return (
     <>
       <Button type="link" className="!px-0" onClick={() => setOpen(true)}>
-        Publish
+        {t('Publish')}
       </Button>
       <Modal
-        title={`Publish ${product.name}?`}
+        title={t('Publish {name}?', { name: product.name })}
         open={open}
-        okText="Publish"
+        okText={t('Publish')}
         okButtonProps={{ disabled: reason.trim().length < 3 }}
         confirmLoading={loading}
         onCancel={() => setOpen(false)}
@@ -65,12 +68,12 @@ const PublishAction = ({
           }
         }}
       >
-        <p>This creates an immutable release and starts one storefront build.</p>
+        <p>{t('This creates an immutable release and starts one storefront build.')}</p>
         <Input.TextArea
           value={reason}
           rows={3}
           maxLength={500}
-          placeholder="Publication reason"
+          placeholder={t('Publication reason')}
           onChange={(event) => setReason(event.target.value)}
         />
       </Modal>
@@ -90,6 +93,9 @@ const toFilters = (values: CatalogSearchValues): CatalogListFilters => ({
 
 export const CatalogListPage = () => {
   const { role, permissions } = useAuth()
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const localizeError = useLocalizedApiError()
   const canWrite = hasPermission(role, 'catalog.write', permissions)
   const canPublish = hasPermission(role, 'catalog.publish', permissions)
 
@@ -98,42 +104,51 @@ export const CatalogListPage = () => {
       {
         type: 'input',
         name: 'query',
-        label: 'Product',
-        inputProps: { placeholder: 'Search name or slug' },
+        label: t('Product'),
+        inputProps: { placeholder: t('Search name or slug') },
       },
       {
         type: 'select',
         name: 'status',
-        label: 'Status',
-        selectProps: { allowClear: true, placeholder: 'All statuses' },
+        label: t('Status'),
+        selectProps: { allowClear: true, placeholder: t('All statuses') },
         options: Object.entries(statusStyle).map(([value, item]) => ({
-          label: item.label,
+          label: t(item.label),
           value,
         })),
       },
     ],
-    []
+    [t]
   )
 
-  const handlePublish = useCallback(async (product: CatalogProductListItem, reason: string, reload: () => Promise<void>) => {
-    try {
-      const release = await publishCatalogProduct(product.id, reason)
-      void message.success(`Build started: ${release.buildCorrelationId}`)
-      await reload()
-    } catch (error) {
-      void message.error(normalizeApiError(error).message)
-    }
-  }, [])
+  const handlePublish = useCallback(
+    async (product: CatalogProductListItem, reason: string, reload: () => Promise<void>) => {
+      try {
+        const release = await publishCatalogProduct(product.id, reason)
+        void message.success(
+          translateNow('Build started: {id}', { id: release.buildCorrelationId })
+        )
+        await reload()
+      } catch (error) {
+        void message.error(localizeError(error))
+      }
+    },
+    [localizeError, translateNow]
+  )
 
   const handlePreview = useCallback(async (product: CatalogProductListItem) => {
     try {
       const preview = await previewCatalogProduct(product.id)
       const origin = import.meta.env.PUBLIC_STOREFRONT_ORIGIN?.replace(/\/$/, '') ?? ''
-      window.open(`${origin}/preview?token=${encodeURIComponent(preview.token)}`, '_blank', 'noopener')
+      window.open(
+        `${origin}/preview?token=${encodeURIComponent(preview.token)}`,
+        '_blank',
+        'noopener'
+      )
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     }
-  }, [])
+  }, [localizeError])
 
   const spec = useMemo<
     StandardListPageSpec<
@@ -145,8 +160,8 @@ export const CatalogListPage = () => {
     >
   >(
     () => ({
-      pageTitle: 'Catalog',
-      cardTitle: 'Products',
+      pageTitle: t('Catalog'),
+      cardTitle: t('Products'),
       tableId: 'catalog-products',
       formRoute: '/catalog/products/form',
       initialFilters: {},
@@ -163,35 +178,39 @@ export const CatalogListPage = () => {
       buildColumns: ({ openFormPage, reload }) => [
         {
           key: 'name',
-          title: 'Product',
+          title: t('Product'),
           dataIndex: 'name',
           width: 240,
           render: (value: string, record) => (
-            <Button type="link" className="!p-0" onClick={() => openFormPage('readonly', record.id)}>
+            <Button
+              type="link"
+              className="!p-0"
+              onClick={() => openFormPage('readonly', record.id)}
+            >
               {value}
             </Button>
           ),
         },
-        { key: 'slug', title: 'Slug', dataIndex: 'slug', width: 220 },
+        { key: 'slug', title: t('Slug'), dataIndex: 'slug', width: 220 },
         {
           key: 'status',
-          title: 'Status',
+          title: t('Status'),
           dataIndex: 'status',
           width: 120,
           render: (value: ProductStatus) => (
-            <Tag color={statusStyle[value].color}>{statusStyle[value].label}</Tag>
+            <Tag color={statusStyle[value].color}>{t(statusStyle[value].label)}</Tag>
           ),
         },
         {
           key: 'updatedAt',
-          title: 'Updated',
+          title: t('Updated'),
           dataIndex: 'updated_at',
           width: 180,
           render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
         },
         {
           key: 'buildStatus',
-          title: 'Build',
+          title: t('Build'),
           dataIndex: 'build_status',
           width: 150,
           render: (value: string | null, record) =>
@@ -203,30 +222,30 @@ export const CatalogListPage = () => {
         },
         {
           key: 'action',
-          title: 'Actions',
+          title: t('Actions'),
           width: ACTION_COLUMN_WIDTH,
           render: (_, record) => (
             <ListRowActions
               actions={[
                 {
                   key: 'view',
-                  label: 'View',
+                  label: t('View'),
                   onClick: () => openFormPage('readonly', record.id),
                 },
                 {
                   key: 'preview',
-                  label: 'Preview',
+                  label: t('Preview'),
                   onClick: () => handlePreview(record),
                 },
                 {
                   key: 'edit',
-                  label: 'Edit',
+                  label: t('Edit'),
                   visible: canWrite && record.status !== 'published',
                   onClick: () => openFormPage('modify', record.id),
                 },
                 {
                   key: 'publish',
-                  label: 'Publish',
+                  label: t('Publish'),
                   visible: canPublish && record.status !== 'published',
                   render: (
                     <PublishAction
@@ -262,16 +281,16 @@ export const CatalogListPage = () => {
         />
       ),
       createAction: {
-        label: 'New product',
+        label: t('New product'),
         permission: 'catalog.write',
       },
       stateCopy: {
-        errorTitle: 'Catalog could not be loaded',
-        emptyTitle: 'No products match these filters',
-        emptyDescription: 'Reset the filters or create the first product.',
+        errorTitle: t('Catalog could not be loaded'),
+        emptyTitle: t('No products match these filters'),
+        emptyDescription: t('Reset the filters or create the first product.'),
       },
     }),
-    [canPublish, canWrite, filters, handlePreview, handlePublish]
+    [canPublish, canWrite, filters, handlePreview, handlePublish, t]
   )
 
   return <StandardListPageRecipe spec={spec} />

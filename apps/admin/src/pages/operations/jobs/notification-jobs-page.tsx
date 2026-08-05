@@ -1,25 +1,15 @@
 import type { NotificationJob, NotificationJobStatus } from '@shoppp/contracts'
-import {
-  Alert,
-  Button,
-  Form,
-  Input,
-  Modal,
-  Select,
-  Space,
-  Table,
-  Tag,
-  message,
-} from 'antd'
+import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../../infrastructure/auth/permissions'
 import { useAuth } from '../../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../../infrastructure/http/api-client'
+import { useLocalizedApiError } from '../../../shared/i18n/api-error'
 import {
   fetchNotificationJobs,
   replayNotification,
 } from '../../../services/operations/notifications-api'
+import { useCurrentTranslate, useI18n } from '../../../shared/contexts/i18n-context'
 
 void React
 
@@ -33,6 +23,9 @@ const statusColors: Record<NotificationJobStatus, string> = {
 
 export const NotificationJobsPage = () => {
   const { role, permissions } = useAuth()
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const localizeError = useLocalizedApiError()
   const [items, setItems] = useState<NotificationJob[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -62,12 +55,12 @@ export const NotificationJobsPage = () => {
         setPage(response.page)
         setTotal(response.total)
       } catch (error) {
-        void message.error(normalizeApiError(error).message)
+        void message.error(localizeError(error))
       } finally {
         setLoading(false)
       }
     },
-    [committedQuery, status, type]
+    [committedQuery, localizeError, status, type]
   )
 
   useEffect(() => {
@@ -77,47 +70,53 @@ export const NotificationJobsPage = () => {
 
   const columns = useMemo(
     () => [
-      { key: 'id', title: 'Job ID', dataIndex: 'id', width: 230 },
-      { key: 'kind', title: 'Kind', dataIndex: 'kind', width: 160 },
-      { key: 'type', title: 'Job type', dataIndex: 'type', width: 190 },
+      { key: 'id', title: t('Job ID'), dataIndex: 'id', width: 230 },
+      { key: 'kind', title: t('Kind'), dataIndex: 'kind', width: 160 },
+      {
+        key: 'type',
+        title: t('Job type'),
+        dataIndex: 'type',
+        width: 190,
+        render: (value: string) => t(value),
+      },
       {
         key: 'status',
-        title: 'Status',
+        title: t('Status'),
         dataIndex: 'status',
         width: 130,
-        render: (value: NotificationJobStatus) => <Tag color={statusColors[value]}>{value}</Tag>,
+        render: (value: NotificationJobStatus) => <Tag color={statusColors[value]}>{t(value)}</Tag>,
       },
       {
         key: 'order',
-        title: 'Order',
+        title: t('Order'),
         dataIndex: 'orderReference',
         width: 180,
-        render: (value: string | null) => value ?? 'Checkout only',
+        render: (value: string | null) => value ?? t('Checkout only'),
       },
-      { key: 'recipient', title: 'Recipient', dataIndex: 'recipient', width: 220 },
+      { key: 'recipient', title: t('Recipient'), dataIndex: 'recipient', width: 220 },
       {
         key: 'attempts',
-        title: 'Attempts',
+        title: t('Attempts'),
         width: 120,
         render: (_: unknown, job: NotificationJob) => `${job.attemptCount} / ${job.maxAttempts}`,
       },
       {
         key: 'error',
-        title: 'Last error',
+        title: t('Last error'),
         dataIndex: 'lastErrorCode',
         width: 220,
         render: (value: string | null) => value ?? '—',
       },
       {
         key: 'updated',
-        title: 'Updated',
+        title: t('Updated'),
         dataIndex: 'updatedAt',
         width: 180,
         render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
       },
       {
         key: 'actions',
-        title: 'Actions',
+        title: t('Actions'),
         width: 120,
         fixed: 'right' as const,
         render: (_: unknown, job: NotificationJob) =>
@@ -129,12 +128,12 @@ export const NotificationJobsPage = () => {
                 setReplayJob(job)
               }}
             >
-              Replay
+              {t('Replay')}
             </Button>
           ) : null,
       },
     ],
-    [canReplay, form]
+    [canReplay, form, t]
   )
 
   const submitReplay = async ({ reason }: { reason: string }) => {
@@ -147,9 +146,9 @@ export const NotificationJobsPage = () => {
       })
       setItems((current) => current.map((job) => (job.id === updated.id ? updated : job)))
       setReplayJob(null)
-      void message.success('Notification queued for safe replay.')
+      void message.success(translateNow('Notification queued for safe replay.'))
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     } finally {
       setSubmitting(false)
     }
@@ -158,38 +157,40 @@ export const NotificationJobsPage = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Automation recovery</h1>
+        <h1 className="text-2xl font-semibold">{t('Automation recovery')}</h1>
         <p className="text-slate-500">
-          Inspect bounded notification and provider attempts, then safely replay exhausted work.
+          {t(
+            'Inspect bounded notification and provider attempts, then safely replay exhausted work.'
+          )}
         </p>
       </div>
       <Space wrap>
         <Input.Search
-          aria-label="Search notification jobs"
+          aria-label={t('Search notification jobs')}
           allowClear
           value={query}
-          placeholder="Order reference or job ID"
+          placeholder={t('Order reference or job ID')}
           className="w-80"
           onChange={(event) => setQuery(event.target.value)}
           onSearch={(value) => setCommittedQuery(value.trim())}
         />
         <Select
-          aria-label="Filter notification status"
+          aria-label={t('Filter notification status')}
           allowClear
           value={status}
           placeholder="Status"
           className="w-44"
           options={['pending', 'processing', 'sent', 'failed', 'dead_letter'].map((value) => ({
-            label: value,
+            label: t(value),
             value,
           }))}
           onChange={(value) => setStatus(value)}
         />
         <Select
-          aria-label="Filter notification type"
+          aria-label={t('Filter notification type')}
           allowClear
           value={type}
-          placeholder="Job type"
+          placeholder={t('Job type')}
           className="w-52"
           options={[
             'order_receipt',
@@ -200,7 +201,7 @@ export const NotificationJobsPage = () => {
             'payment_reconciliation',
             'admin_invitation',
             'admin_password_reset',
-          ].map((value) => ({ label: value, value }))}
+          ].map((value) => ({ label: t(value), value }))}
           onChange={(value) => setType(value)}
         />
       </Space>
@@ -209,7 +210,7 @@ export const NotificationJobsPage = () => {
         columns={columns}
         dataSource={items}
         loading={loading}
-        locale={{ emptyText: 'No notification jobs match these filters.' }}
+        locale={{ emptyText: t('No notification jobs match these filters.') }}
         pagination={{
           current: page,
           pageSize,
@@ -224,21 +225,21 @@ export const NotificationJobsPage = () => {
               rowKey="id"
               pagination={false}
               dataSource={job.attempts}
-              locale={{ emptyText: 'No delivery attempt has run yet.' }}
+              locale={{ emptyText: t('No delivery attempt has run yet.') }}
               scroll={{ x: 880 }}
               columns={[
-                { key: 'number', title: 'Attempt', dataIndex: 'attemptNumber', width: 100 },
-                { key: 'result', title: 'Result', dataIndex: 'result', width: 190 },
-                { key: 'error', title: 'Error code', dataIndex: 'errorCode', width: 220 },
+                { key: 'number', title: t('Attempt'), dataIndex: 'attemptNumber', width: 100 },
+                { key: 'result', title: t('Result'), dataIndex: 'result', width: 190 },
+                { key: 'error', title: t('Error code'), dataIndex: 'errorCode', width: 220 },
                 {
                   key: 'provider',
-                  title: 'Provider message',
+                  title: t('Provider message'),
                   dataIndex: 'providerMessageId',
                   width: 220,
                 },
                 {
                   key: 'completed',
-                  title: 'Completed',
+                  title: t('Completed'),
                   dataIndex: 'completedAt',
                   width: 180,
                   render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
@@ -249,9 +250,9 @@ export const NotificationJobsPage = () => {
         }}
       />
       <Modal
-        title="Replay notification"
+        title={t('Replay notification')}
         open={Boolean(replayJob)}
-        okText="Confirm replay"
+        okText={t('Confirm replay')}
         confirmLoading={submitting}
         destroyOnHidden
         onCancel={() => setReplayJob(null)}
@@ -261,16 +262,18 @@ export const NotificationJobsPage = () => {
           className="mb-4"
           type="warning"
           showIcon
-          message="Replay keeps the original provider idempotency identity and is fully audited."
+          message={t(
+            'Replay keeps the original provider idempotency identity and is fully audited.'
+          )}
         />
         <Form form={form} layout="vertical" onFinish={submitReplay}>
           <Form.Item
             name="reason"
-            label="Reason"
+            label={t('Reason')}
             rules={[
-              { required: true, whitespace: true, message: 'Enter a replay reason.' },
-              { min: 3, message: 'Use at least 3 characters.' },
-              { max: 500, message: 'Use at most 500 characters.' },
+              { required: true, whitespace: true, message: t('Enter a replay reason.') },
+              { min: 3, message: t('Use at least 3 characters.') },
+              { max: 500, message: t('Use at most 500 characters.') },
             ]}
           >
             <Input.TextArea rows={3} maxLength={500} />

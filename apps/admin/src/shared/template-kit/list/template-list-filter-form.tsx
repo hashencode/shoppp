@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, TreeSelect } from 'antd'
+import {
+  Button,
+  Col,
+  DatePicker,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Row,
+  Select,
+  TreeSelect,
+} from 'antd'
 import type {
   ColProps,
   DatePickerProps,
@@ -18,6 +29,7 @@ import {
   type RemoteSearchSelectProps,
   type RemoteSearchSelectValue,
 } from '../../components/remote-search-select'
+import { useI18n } from '../../contexts/i18n-context'
 
 type FilterFieldName<TValues> = Extract<keyof TValues, string>
 
@@ -300,12 +312,7 @@ const TemplateListFilterFieldNode = <TValues extends Record<string, unknown>>({
       ) : field.type === 'number' ? (
         <InputNumber className="!w-full" disabled={disabled} {...field.inputNumberProps} />
       ) : field.type === 'tree-select' ? (
-        <TreeSelect
-          allowClear
-          className="!w-full"
-          disabled={disabled}
-          {...field.treeSelectProps}
-        />
+        <TreeSelect allowClear className="!w-full" disabled={disabled} {...field.treeSelectProps} />
       ) : field.type === 'date-range' ? (
         <DatePicker.RangePicker
           allowClear
@@ -448,25 +455,27 @@ export const TemplateListFilterForm = <TValues extends Record<string, unknown>>(
   labelCol,
   wrapperCol,
   compactLayout = false,
-  submitText = '查询',
-  resetText = '重置',
+  submitText,
+  resetText,
   submitLoading = false,
   extraActions,
   extraActionsPlacement = 'after-primary-actions',
   extraActionsDivider = false,
 }: TemplateListFilterFormProps<TValues>) => {
+  const { t } = useI18n()
+  const resolvedSubmitText = submitText ?? t('Search')
+  const resolvedResetText = resetText ?? t('Reset')
   const values =
     (Form.useWatch((currentValues) => currentValues as Partial<TValues>, form) as
-      | Partial<TValues>
-      | undefined) ?? {}
+      Partial<TValues> | undefined) ?? {}
   const resolvedExtraActions = extraActions ? <div className="shrink-0">{extraActions}</div> : null
   const resolvedPrimaryActions = (
     <>
       <Button className="shrink-0" htmlType="button" onClick={onReset}>
-        {resetText}
+        {resolvedResetText}
       </Button>
       <Button className="shrink-0" type="primary" htmlType="submit" loading={submitLoading}>
-        {submitText}
+        {resolvedSubmitText}
       </Button>
     </>
   )

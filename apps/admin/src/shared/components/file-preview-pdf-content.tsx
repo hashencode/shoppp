@@ -2,6 +2,7 @@ import { Alert, Spin, theme } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
+import { useI18n } from '../contexts/i18n-context'
 
 void React
 
@@ -64,6 +65,7 @@ type FilePreviewPdfContentProps = {
 }
 
 export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentProps) => {
+  const { t } = useI18n()
   const [numPages, setNumPages] = useState<number>()
   const { token } = theme.useToken()
   const { pageWidth, previewContainerRef } = useResponsivePdfPageWidth(open)
@@ -82,7 +84,7 @@ export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentPro
           file={source}
           loading={
             <div className="flex h-full items-center justify-center" role="status">
-              <Spin description="正在加载 PDF 预览" />
+              <Spin description={t('Loading PDF preview')} />
             </div>
           }
           error={
@@ -90,8 +92,8 @@ export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentPro
               <Alert
                 showIcon
                 type="warning"
-                title="PDF 预览加载失败"
-                description="文件服务暂不支持在线预览，请下载后查看。"
+                title={t('PDF preview failed')}
+                description={t('Online preview is unavailable. Download the file to view it.')}
               />
             </div>
           }
@@ -102,7 +104,7 @@ export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentPro
               <Page
                 loading={
                   <div className="flex min-h-[240px] items-center justify-center" role="status">
-                    <Spin description="正在加载 PDF 预览" />
+                    <Spin description={t('Loading PDF preview')} />
                   </div>
                 }
                 pageNumber={index + 1}

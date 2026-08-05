@@ -12,6 +12,7 @@ describe('QueryStateBlock', () => {
         state="error"
         title="加载失败"
         primaryActionLabel="重试"
+        primaryActionButtonType="default"
         onPrimaryAction={() => undefined}
       />
     )
@@ -38,6 +39,7 @@ describe('QueryStateBlock', () => {
         state="empty"
         title="暂无数据"
         primaryActionLabel="重置筛选"
+        primaryActionButtonType="default"
         onPrimaryAction={() => undefined}
       />
     )

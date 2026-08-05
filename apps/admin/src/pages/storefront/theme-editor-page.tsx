@@ -55,6 +55,7 @@ import {
   type StorefrontPreviewBuild,
 } from '../../services/storefront/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -62,6 +63,7 @@ type ThemeEditorPageProps = {
   pollIntervalMs?: number
   previewOrigin?: string | null
 }
+type Translate = (message: string, values?: Record<string, number | string>) => string
 
 const cloneTemplates = (templates: readonly PageTemplate[]): PageTemplate[] =>
   structuredClone(templates) as PageTemplate[]
@@ -223,21 +225,23 @@ export const SectionMoveButtons = ({
   index,
   instanceId,
   onMove,
+  t,
 }: {
   count: number
   index: number
   instanceId: string
   onMove: (direction: -1 | 1) => void
+  t: Translate
 }) => (
   <Space.Compact>
     <Button
-      aria-label={`Move ${instanceId} before`}
+      aria-label={t('Move {id} before', { id: instanceId })}
       icon={<ArrowUpOutlined aria-hidden />}
       disabled={index === 0}
       onClick={() => onMove(-1)}
     />
     <Button
-      aria-label={`Move ${instanceId} after`}
+      aria-label={t('Move {id} after', { id: instanceId })}
       icon={<ArrowDownOutlined aria-hidden />}
       disabled={index === count - 1}
       onClick={() => onMove(1)}
@@ -251,6 +255,7 @@ export const ThemeEditorPage = ({
 }: ThemeEditorPageProps) => {
   const { draftId } = useParams()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { permissions, role } = useAuth()
   const canWrite = hasPermission(role, 'themes.write', permissions)
   const canPreview = hasPermission(role, 'themes.preview', permissions)
@@ -281,7 +286,7 @@ export const ThemeEditorPage = ({
   const load = useCallback(async () => {
     const request = ++loadRequest.current
     if (!draftId) {
-      setError('The experience draft ID is missing.')
+      setError(t('The experience draft ID is missing.'))
       setLoading(false)
       return
     }
@@ -296,7 +301,7 @@ export const ThemeEditorPage = ({
         ({ id, themeVersion }) =>
           id === nextDraft.themeId && themeVersion === nextDraft.themeVersion
       )
-      if (!nextTheme) throw new Error('The exact approved theme package is no longer available.')
+      if (!nextTheme) throw new Error(t('The exact approved theme package is no longer available.'))
       if (request !== loadRequest.current) return
       const nextTemplates = resolveDraftTemplates(nextTheme, nextDraft)
       setDraft(nextDraft)
@@ -320,7 +325,7 @@ export const ThemeEditorPage = ({
     } finally {
       if (request === loadRequest.current) setLoading(false)
     }
-  }, [draftId])
+  }, [draftId, t])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
@@ -396,7 +401,12 @@ export const ThemeEditorPage = ({
       const [section] = template.sections.splice(index, 1)
       template.sections.splice(target, 0, section)
       setAnnouncement(
-        `${section.id} moved to position ${target + 1} of ${template.sections.length} on ${template.pageType}.`
+        t('{id} moved to position {position} of {count} on {pageType}.', {
+          id: section.id,
+          position: target + 1,
+          count: template.sections.length,
+          pageType: template.pageType,
+        })
       )
       return next
     })
@@ -413,11 +423,11 @@ export const ThemeEditorPage = ({
       section.settings = structuredClone(original.settings)
       section.visible = original.visible
     })
-    setAnnouncement(`${sectionId} reset to the ${draft.presetId} preset.`)
+    setAnnouncement(t('{id} reset to the {preset} preset.', { id: sectionId, preset: draft.presetId }))
   }
 
   const save = async (reason: string): Promise<StorefrontExperienceDraft> => {
-    if (!draft || !theme) throw new Error('The exact draft package is not loaded.')
+    if (!draft || !theme) throw new Error(t('The exact draft package is not loaded.'))
     if (!dirty) return draft
     const updated = await updateStorefrontExperienceDraft(
       draft,
@@ -461,7 +471,7 @@ export const ThemeEditorPage = ({
   const reloadSavedDraft = () => {
     if (
       dirty &&
-      !window.confirm('Discard local theme edits and reload the last saved draft version?')
+      !window.confirm(t('Discard local theme edits and reload the last saved draft version?'))
     ) {
       return
     }
@@ -469,17 +479,17 @@ export const ThemeEditorPage = ({
   }
 
   if (loading) {
-    return <QueryStateBlock state="loading" title="Loading the exact experience draft…" />
+    return <QueryStateBlock state="loading" title={t('Loading the exact experience draft…')} />
   }
   if (error && (!draft || !theme)) {
     return (
       <QueryStateBlock
         state="error"
-        title="Experience editor could not be loaded"
+        title={t('Experience editor could not be loaded')}
         description={error}
-        primaryActionLabel="Reload"
+        primaryActionLabel={t('Reload')}
         onPrimaryAction={() => void load()}
-        secondaryActionLabel="Back to themes"
+        secondaryActionLabel={t('Back to themes')}
         onSecondaryAction={() => navigate('/storefront/themes')}
       />
     )
@@ -496,7 +506,7 @@ export const ThemeEditorPage = ({
             icon={<ArrowLeftOutlined aria-hidden />}
             onClick={() => navigate('/storefront/themes')}
           >
-            Storefront themes
+            {t('Storefront themes')}
           </Button>
           <Typography.Title level={2} className="!mb-1 !mt-0">
             {draft.experienceId}
@@ -505,11 +515,11 @@ export const ThemeEditorPage = ({
             <Tag color="blue">
               {draft.themeId} {draft.themeVersion}
             </Tag>
-            <Tag>Draft v{draft.version}</Tag>
+            <Tag>{t('Draft')} v{draft.version}</Tag>
             <Tag color={validationCurrent ? 'success' : 'default'}>
-              {validationCurrent ? `Validated v${draft.version}` : 'Validation required'}
+              {validationCurrent ? `${t('Validated')} v${draft.version}` : t('Validation required')}
             </Tag>
-            {dirty ? <Tag color="warning">Unsaved changes</Tag> : <Tag>Saved</Tag>}
+            {dirty ? <Tag color="warning">{t('Unsaved changes')}</Tag> : <Tag>{t('Saved')}</Tag>}
           </Space>
         </div>
         <Space wrap>
@@ -522,11 +532,11 @@ export const ThemeEditorPage = ({
                 onClick={() =>
                   void runAction(async () => {
                     await save(changeReason)
-                    void message.success('Draft saved with a new version.')
+                    void message.success(t('Draft saved with a new version.'))
                   })
                 }
               >
-                Save
+                {t('Save')}
               </Button>
               <Button
                 disabled={dirty || !reasonReady}
@@ -535,12 +545,12 @@ export const ThemeEditorPage = ({
                   void runAction(async () => {
                     const validated = await validate(draft, changeReason)
                     if (validated.validation?.status === 'valid') {
-                      void message.success(`Draft v${validated.version} is valid.`)
+                      void message.success(t('Draft v{version} is valid.', { version: validated.version }))
                     }
                   })
                 }
               >
-                Validate saved version
+                {t('Validate saved version')}
               </Button>
             </>
           ) : null}
@@ -557,12 +567,12 @@ export const ThemeEditorPage = ({
                   if (validated.validation?.status !== 'valid') return
                   await startPreview(validated, changeReason)
                   void message.success(
-                    `Preview requested for validated draft v${validated.version}.`
+                    t('Preview requested for validated draft v{version}.', { version: validated.version })
                   )
                 })
               }
             >
-              Save and preview
+              {t('Save and preview')}
             </Button>
           ) : null}
         </Space>
@@ -572,15 +582,15 @@ export const ThemeEditorPage = ({
         <Alert
           type="warning"
           showIcon
-          title="Discard unsaved theme edits?"
-          description="The destination will open only after you explicitly discard the local changes."
+          title={t('Discard unsaved theme edits?')}
+          description={t('The destination will open only after you explicitly discard the local changes.')}
           action={
             <Space>
               <Button size="small" onClick={() => blocker.reset()}>
-                Keep editing
+                {t('Keep editing')}
               </Button>
               <Button size="small" danger onClick={() => blocker.proceed()}>
-                Discard and leave
+                {t('Discard and leave')}
               </Button>
             </Space>
           }
@@ -590,11 +600,11 @@ export const ThemeEditorPage = ({
         <Alert
           type="error"
           showIcon
-          title="The last operation did not complete"
+          title={t('The last operation did not complete')}
           description={error}
           action={
             <Button size="small" icon={<ReloadOutlined aria-hidden />} onClick={reloadSavedDraft}>
-              Reload saved draft
+              {t('Reload saved draft')}
             </Button>
           }
         />
@@ -603,29 +613,29 @@ export const ThemeEditorPage = ({
         <Alert
           type="info"
           showIcon
-          title="Read-only experience"
-          description="Your role can inspect the package, capabilities, validation, and versions only."
+          title={t('Read-only experience')}
+          description={t('Your role can inspect the package, capabilities, validation, and versions only.')}
         />
       ) : null}
 
       <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>
-        <Descriptions.Item label="Draft identity">{draft.id}</Descriptions.Item>
-        <Descriptions.Item label="Preset">{draft.presetId}</Descriptions.Item>
-        <Descriptions.Item label="Schema">{draft.configurationSchemaVersion}</Descriptions.Item>
-        <Descriptions.Item label="Last saved">{draft.updatedAt}</Descriptions.Item>
-        <Descriptions.Item label="Fixture bindings">{draft.bindings.length}</Descriptions.Item>
-        <Descriptions.Item label="Production theme">Unchanged</Descriptions.Item>
+        <Descriptions.Item label={t('Draft identity')}>{draft.id}</Descriptions.Item>
+        <Descriptions.Item label={t('Preset')}>{draft.presetId}</Descriptions.Item>
+        <Descriptions.Item label={t('Schema')}>{draft.configurationSchemaVersion}</Descriptions.Item>
+        <Descriptions.Item label={t('Last saved')}>{draft.updatedAt}</Descriptions.Item>
+        <Descriptions.Item label={t('Fixture bindings')}>{draft.bindings.length}</Descriptions.Item>
+        <Descriptions.Item label={t('Production theme')}>{t('Unchanged')}</Descriptions.Item>
       </Descriptions>
 
       <Card
-        title="Change context"
+        title={t('Change context')}
         extra={
-          <Typography.Text type="secondary">Required for every audited action</Typography.Text>
+          <Typography.Text type="secondary">{t('Required for every audited action')}</Typography.Text>
         }
       >
         <Input.TextArea
-          aria-label="Change reason"
-          placeholder="Describe why this experience is changing"
+          aria-label={t('Change reason')}
+          placeholder={t('Describe why this experience is changing')}
           value={changeReason}
           maxLength={500}
           rows={2}
@@ -635,11 +645,10 @@ export const ThemeEditorPage = ({
 
       <section aria-labelledby="experience-structure-heading">
         <Typography.Title id="experience-structure-heading" level={4}>
-          Experience structure
+          {t('Experience structure')}
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          Sections keep stable IDs. Required capabilities cannot be hidden; ordering uses explicit
-          controls for keyboard, touch, and assistive technology.
+          {t('Sections keep stable IDs. Required capabilities cannot be hidden; ordering uses explicit controls for keyboard, touch, and assistive technology.')}
         </Typography.Paragraph>
         <div className="sr-only" aria-live="polite">
           {announcement}
@@ -655,7 +664,7 @@ export const ThemeEditorPage = ({
                 <Alert
                   type="info"
                   showIcon
-                  title="Required capabilities"
+                  title={t('Required capabilities')}
                   description={template.requiredCapabilities.join(', ')}
                 />
                 <ol className="space-y-3">
@@ -670,8 +679,8 @@ export const ThemeEditorPage = ({
                             <Space wrap>
                               <Typography.Text strong>{section.id}</Typography.Text>
                               <Tag>{section.type}</Tag>
-                              <Tag>Position {index + 1}</Tag>
-                              {isRequired ? <Tag color="gold">Required</Tag> : null}
+                              <Tag>{t('Position')} {index + 1}</Tag>
+                              {isRequired ? <Tag color="gold">{t('Required')}</Tag> : null}
                             </Space>
                           }
                           extra={
@@ -680,6 +689,7 @@ export const ThemeEditorPage = ({
                                 count={template.sections.length}
                                 index={index}
                                 instanceId={section.id}
+                                t={t}
                                 onMove={(direction) =>
                                   moveSection(template.id, section.id, direction)
                                 }
@@ -689,9 +699,9 @@ export const ThemeEditorPage = ({
                         >
                           <Space wrap>
                             <span>
-                              Visible{' '}
+                              {t('Visible')}{' '}
                               <Switch
-                                aria-label={`Show ${section.id}`}
+                                aria-label={t('Show {id}', { id: section.id })}
                                 checked={section.visible}
                                 disabled={!canWrite || isRequired}
                                 onChange={(visible) =>
@@ -706,11 +716,11 @@ export const ThemeEditorPage = ({
                             ))}
                             {canWrite ? (
                               <Button
-                                aria-label={`Reset ${section.id}`}
+                                aria-label={t('Reset {id}', { id: section.id })}
                                 size="small"
                                 onClick={() => resetSection(template.id, section.id)}
                               >
-                                Reset instance
+                                {t('Reset instance')}
                               </Button>
                             ) : null}
                           </Space>
@@ -812,7 +822,10 @@ export const ThemeEditorPage = ({
                                     <Alert
                                       key={definition.id}
                                       type="info"
-                                      title={`${definition.id} is managed as a validated ${definition.kind} reference.`}
+                                      title={t('{id} is managed as a validated {kind} reference.', {
+                                        id: definition.id,
+                                        kind: definition.kind,
+                                      })}
                                     />
                                   )
                                 })}
@@ -826,7 +839,7 @@ export const ThemeEditorPage = ({
                               items={[
                                 {
                                   key: 'blocks',
-                                  label: `${section.blocks.length} bounded blocks`,
+                                  label: t('{count} bounded blocks', { count: section.blocks.length }),
                                   children: section.blocks.map((block) => (
                                     <div key={block.id}>
                                       {block.id} · {block.type}
@@ -847,13 +860,13 @@ export const ThemeEditorPage = ({
         />
       </section>
 
-      <Card title="Validation">
+      <Card title={t('Validation')}>
         {draft.validation ? (
           <Space orientation="vertical" className="w-full">
             <Space>
               <Tag color={validationCurrent ? 'success' : 'warning'}>{draft.validation.status}</Tag>
               <span>
-                Validation {draft.validation.id} · draft v{draft.validation.draftVersion}
+                {t('Validation')} {draft.validation.id} · {t('draft')} v{draft.validation.draftVersion}
               </span>
             </Space>
             {draft.validation.issues.map((issue) => (
@@ -868,21 +881,21 @@ export const ThemeEditorPage = ({
           </Space>
         ) : (
           <Typography.Text type="secondary">
-            Save and validate the exact draft version before preview or approval.
+            {t('Save and validate the exact draft version before preview or approval.')}
           </Typography.Text>
         )}
       </Card>
 
-      <Card title="Package upgrade assessment">
+      <Card title={t('Package upgrade assessment')}>
         {upgradeCandidates.length === 0 ? (
           <Typography.Text type="secondary">
-            No alternative approved version of this theme package is currently compatible.
+            {t('No alternative approved version of this theme package is currently compatible.')}
           </Typography.Text>
         ) : (
           <Space orientation="vertical" className="w-full">
             <Space wrap>
               <Select
-                aria-label="Target theme version"
+                aria-label={t('Target theme version')}
                 className="min-w-64"
                 value={upgradeThemeKey}
                 options={upgradeCandidates.map((candidate) => ({
@@ -909,15 +922,15 @@ export const ThemeEditorPage = ({
                   })
                 }
               >
-                Assess upgrade conflicts
+                {t('Assess upgrade conflicts')}
               </Button>
             </Space>
             {migration ? (
               <>
                 <Tag color={migration.conflicts.length === 0 ? 'success' : 'warning'}>
                   {migration.conflicts.length === 0
-                    ? 'Migration-ready'
-                    : `${migration.conflicts.length} conflicts`}
+                    ? t('Migration-ready')
+                    : t('{count} conflicts', { count: migration.conflicts.length })}
                 </Tag>
                 <Typography.Text code>{migration.id}</Typography.Text>
                 {migration.conflicts.map((conflict) => (
@@ -935,23 +948,23 @@ export const ThemeEditorPage = ({
         )}
       </Card>
 
-      <Card title="Private preview artifact" extra={<Tag color={status.color}>{status.label}</Tag>}>
+      <Card title={t('Private preview artifact')} extra={<Tag color={status.color}>{t(status.label)}</Tag>}>
         <Space orientation="vertical" className="w-full">
           {build ? (
             <Descriptions size="small" column={{ xs: 1, md: 3 }}>
-              <Descriptions.Item label="Build">{build.id}</Descriptions.Item>
-              <Descriptions.Item label="Attempt">{build.attempt}</Descriptions.Item>
-              <Descriptions.Item label="Snapshot">{build.snapshotId}</Descriptions.Item>
+              <Descriptions.Item label={t('Build')}>{build.id}</Descriptions.Item>
+              <Descriptions.Item label={t('Attempt')}>{build.attempt}</Descriptions.Item>
+              <Descriptions.Item label={t('Snapshot')}>{build.snapshotId}</Descriptions.Item>
               {build.failureCode ? (
-                <Descriptions.Item label="Failure">{build.failureCode}</Descriptions.Item>
+                <Descriptions.Item label={t('Failure')}>{build.failureCode}</Descriptions.Item>
               ) : null}
               {build.expiresAt ? (
-                <Descriptions.Item label="Expires">{build.expiresAt}</Descriptions.Item>
+                <Descriptions.Item label={t('Expires')}>{build.expiresAt}</Descriptions.Item>
               ) : null}
             </Descriptions>
           ) : (
             <Typography.Text type="secondary">
-              No preview has been requested for this editor session.
+              {t('No preview has been requested for this editor session.')}
             </Typography.Text>
           )}
           {build?.status === 'deployed' && previewSnapshot?.id === build.snapshotId ? (
@@ -961,7 +974,7 @@ export const ThemeEditorPage = ({
               onClick={() =>
                 void runAction(async () => {
                   if (!previewOrigin)
-                    throw new Error('The private preview origin is not configured.')
+                    throw new Error(t('The private preview origin is not configured.'))
                   const grant = await createStorefrontPreviewGrant(
                     previewSnapshot.id,
                     previewOrigin,
@@ -971,15 +984,15 @@ export const ThemeEditorPage = ({
                 })
               }
             >
-              Open authenticated preview
+              {t('Open authenticated preview')}
             </Button>
           ) : null}
           {!previewOrigin ? (
             <Alert
               type="warning"
               showIcon
-              title="Private preview origin is not configured"
-              description="Provision PUBLIC_PREVIEW_ORIGIN for this admin environment before opening an artifact."
+              title={t('Private preview origin is not configured')}
+              description={t('Provision PUBLIC_PREVIEW_ORIGIN for this admin environment before opening an artifact.')}
             />
           ) : null}
           {build && ['failed', 'expired'].includes(build.status) ? (
@@ -992,30 +1005,30 @@ export const ThemeEditorPage = ({
                 })
               }
             >
-              Retry preview
+              {t('Retry preview')}
             </Button>
           ) : null}
           {['pending', 'building'].includes(build?.status ?? '') ? (
             <Space>
               <Spin size="small" />
-              <span>Polling the immutable artifact build without locking the draft editor.</span>
+              <span>{t('Polling the immutable artifact build without locking the draft editor.')}</span>
             </Space>
           ) : null}
         </Space>
       </Card>
 
       {canApprove ? (
-        <Card title="Approve immutable experience snapshot">
+        <Card title={t('Approve immutable experience snapshot')}>
           <Space orientation="vertical" className="w-full">
             <Alert
               type="warning"
               showIcon
-              title="Approval does not activate the production storefront theme"
-              description="It records an immutable, audited snapshot for this exact validated draft version."
+              title={t('Approval does not activate the production storefront theme')}
+              description={t('It records an immutable, audited snapshot for this exact validated draft version.')}
             />
             <Input.TextArea
-              aria-label="Approval reason"
-              placeholder="Why is this exact version approved?"
+              aria-label={t('Approval reason')}
+              placeholder={t('Why is this exact version approved?')}
               value={approvalReason}
               maxLength={500}
               rows={2}
@@ -1033,18 +1046,21 @@ export const ThemeEditorPage = ({
                     approvalReason
                   )
                   setApprovedSnapshot(snapshot)
-                  void message.success('Immutable experience snapshot approved and audited.')
+                  void message.success(t('Immutable experience snapshot approved and audited.'))
                 })
               }
             >
-              Approve exact draft v{draft.version}
+              {t('Approve exact draft v{version}', { version: draft.version })}
             </Button>
             {approvedSnapshot ? (
               <Alert
                 type="success"
                 showIcon
-                title="Immutable snapshot approved"
-                description={`${approvedSnapshot.id} · source draft v${approvedSnapshot.sourceDraftVersion} · audit succeeded`}
+                title={t('Immutable snapshot approved')}
+                description={t('{id} · source draft v{version} · audit succeeded', {
+                  id: approvedSnapshot.id,
+                  version: approvedSnapshot.sourceDraftVersion,
+                })}
               />
             ) : null}
           </Space>

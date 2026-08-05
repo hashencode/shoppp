@@ -1,10 +1,11 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, rstest } from '@rstest/core'
 import { MemoryRouter } from 'react-router-dom'
 import type { AdminSession } from '@shoppp/contracts'
 import { AuthProvider, useAuthState } from '../../infrastructure/auth/auth-context'
 import * as authApi from '../../services/auth/api'
+import { renderInLocale } from '../../test/render-in-locale'
 import { LoginPage } from './login-page'
 
 void React
@@ -33,13 +34,14 @@ const Probe = () => {
 }
 
 const renderPage = () =>
-  render(
+  renderInLocale(
     <AuthProvider>
       <MemoryRouter>
         <LoginPage />
         <Probe />
       </MemoryRouter>
-    </AuthProvider>
+    </AuthProvider>,
+    'zh-CN'
   )
 
 describe('administrator password login', () => {

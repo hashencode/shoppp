@@ -8,6 +8,7 @@ import type { UploadFile, UploadProps } from 'antd'
 import type { RcFile } from 'antd/es/upload'
 import Compressor from 'compressorjs'
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCurrentTranslate, useI18n } from '../contexts/i18n-context'
 
 void React
 
@@ -109,8 +110,8 @@ export const normalizeUploadUrl = (value: string) => {
   return trimmedValue
 }
 
-const readFileNameFromUrl = (url: string) => {
-  const rawName = url.split(/[?#]/)[0]?.split('/').pop() || '已上传文件'
+const readFileNameFromUrl = (url: string, fallbackName = 'Uploaded file') => {
+  const rawName = url.split(/[?#]/)[0]?.split('/').pop() || fallbackName
 
   try {
     return decodeURIComponent(rawName)
@@ -140,11 +141,14 @@ const isImageOnlyAccept = (accept: UploadProps['accept']) => {
     )
 }
 
-const toUploadFile = (url: string, hideImageName: boolean): UploadFile => {
+const toUploadFile = (url: string, hideImageName: boolean, fallbackName: string): UploadFile => {
   const normalizedUrl = normalizeUploadUrl(url)
   return {
     uid: normalizedUrl,
-    name: hideImageName && isImageAsset(normalizedUrl) ? '' : readFileNameFromUrl(normalizedUrl),
+    name:
+      hideImageName && isImageAsset(normalizedUrl)
+        ? ''
+        : readFileNameFromUrl(normalizedUrl, fallbackName),
     status: 'done',
     url: normalizedUrl,
   }
@@ -196,7 +200,7 @@ const isSameUploadValue = (
 }
 
 const normalizeUploadError = (error: unknown) => {
-  return error instanceof Error ? error : new Error('上传失败，请稍后重试。')
+  return error instanceof Error ? error : new Error('Upload failed. Please try again later.')
 }
 
 const areUploadFileListsEqual = (left: UploadFile[], right: UploadFile[]) =>
@@ -224,6 +228,8 @@ export const UploadFormItem = ({
   children,
   ...restProps
 }: UploadFormItemProps) => {
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
   const multipleMode = Boolean(restProps.multiple) || maxCount > 1
   const effectiveDisabled = readonly || disabled
   const resolvedDisplayMode: Exclude<UploadFormItemDisplayMode, 'auto'> =
@@ -240,7 +246,7 @@ export const UploadFormItem = ({
         : 'text'
   const [fileList, setFileList] = useState<UploadFile[]>(() =>
     normalizeValueToUrls(value, multipleMode).map((url) =>
-      toUploadFile(url, resolvedDisplayMode === 'card')
+      toUploadFile(url, resolvedDisplayMode === 'card', t('Uploaded file'))
     )
   )
   const fileListRef = useRef(fileList)
@@ -270,7 +276,7 @@ export const UploadFormItem = ({
 
   useEffect(() => {
     const valueFiles = normalizeValueToUrls(value, multipleMode).map((url) =>
-      toUploadFile(url, resolvedDisplayMode === 'card')
+      toUploadFile(url, resolvedDisplayMode === 'card', t('Uploaded file'))
     )
     const pendingFiles = isSameUploadValue(value, lastEmittedValueRef.current, multipleMode)
       ? fileListRef.current.filter((item) => item.status === 'uploading')
@@ -280,7 +286,7 @@ export const UploadFormItem = ({
       ...pendingFiles.filter((pendingFile) => !valueFiles.some((item) => item.uid === pendingFile.uid)),
     ].slice(0, maxCount)
     replaceFileList((current) => areUploadFileListsEqual(current, nextFileList) ? current : nextFileList)
-  }, [maxCount, multipleMode, replaceFileList, resolvedDisplayMode, value])
+  }, [maxCount, multipleMode, replaceFileList, resolvedDisplayMode, t, value])
 
   const emitChange = useCallback(
     (nextFileList: UploadFile[]) => {
@@ -342,7 +348,7 @@ export const UploadFormItem = ({
       const previousFileList = fileListRef.current
 
       if (rawFile.size > fileSizeLimitBytes) {
-        const error = new Error(`文件大小不能超过 ${fileSizeLimitMB}MB。`)
+        const error = new Error(t('File size cannot exceed {size} MB.', { size: fileSizeLimitMB }))
         void message.error(error.message)
         onError?.(error)
         return
@@ -364,7 +370,7 @@ export const UploadFormItem = ({
           return
         }
         if (!uploadedUrl) {
-          throw new Error('上传结果缺少文件地址。')
+          throw new Error('The upload response is missing a file URL.')
         }
 
         const doneFile: UploadFile = {
@@ -405,7 +411,7 @@ export const UploadFormItem = ({
           return multipleMode ? current.filter((item) => item.uid !== fileUid) : previousFileList
         })
         if (handled) {
-          void message.error(normalized.message)
+          void message.error(translateNow('Upload failed. Please try again later.'))
           onError?.(normalized)
         }
       }
@@ -417,6 +423,8 @@ export const UploadFormItem = ({
       multipleMode,
       replaceFileList,
       resolvedDisplayMode,
+      t,
+      translateNow,
       uploadFile,
     ]
   )
@@ -427,8 +435,11 @@ export const UploadFormItem = ({
     !uploadLimitReached || (resolvedDisplayMode === 'button' && usesDefaultTrigger)
   const acceptedTypeText = readAcceptTypes(accept).join('、')
   const defaultButtonTooltip = acceptedTypeText
-    ? `支持上传 ${acceptedTypeText} 格式，单个文件大小不超过 ${fileSizeLimitMB}MB`
-    : `单个文件大小不超过 ${fileSizeLimitMB}MB`
+    ? t('Supports {types} files, up to {size} MB each.', {
+        types: acceptedTypeText,
+        size: fileSizeLimitMB,
+      })
+    : t('Each file can be up to {size} MB.', { size: fileSizeLimitMB })
   const helperText =
     tooltip !== undefined
       ? tooltip
@@ -441,12 +452,14 @@ export const UploadFormItem = ({
         disabled={effectiveDisabled || uploadLimitReached}
         icon={<CloudUploadOutlined aria-hidden />}
       >
-        {uploadLimitReached ? `最多上传${maxCount}个文件` : (uploadText ?? '上传文件')}
+        {uploadLimitReached
+          ? t('Upload up to {count} files', { count: maxCount })
+          : (uploadText ?? t('Upload file'))}
       </Button>
     ) : (
       <>
         <FileUp
-          aria-label={typeof uploadText === 'string' ? uploadText : '上传'}
+          aria-label={typeof uploadText === 'string' ? uploadText : t('Upload')}
           color="currentColor"
           size={30}
           strokeWidth={1.5}
@@ -492,12 +505,14 @@ export const UploadFormItem = ({
           try {
             const nextFile = await compressImage(candidateFile)
             if (nextFile.size > fileSizeLimitMB * 1024 * 1024) {
-              void message.error(`文件大小不能超过 ${fileSizeLimitMB}MB。`)
+              void message.error(
+                t('File size cannot exceed {size} MB.', { size: fileSizeLimitMB })
+              )
               return false
             }
             return nextFile
           } catch {
-            void message.error('图片压缩失败，请重新选择文件。')
+            void message.error(translateNow('Image compression failed. Choose the file again.'))
             return false
           }
         }}
@@ -511,7 +526,7 @@ export const UploadFormItem = ({
       {previewFile?.url ? (
         <Suspense fallback={null}>
           <LazyFilePreview
-            title="文件预览"
+            title={t('File preview')}
             source={previewFile.url}
             fileName={previewFile.name}
             contentType={previewFile.type}

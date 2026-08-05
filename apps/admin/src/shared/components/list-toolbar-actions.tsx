@@ -13,14 +13,15 @@ import { Button, Checkbox, Divider, Dropdown, Tooltip, theme } from 'antd'
 import type { MenuProps } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Columns3Cog } from 'lucide-react'
-import React, { type ReactNode, useId } from 'react'
+import React, { type ReactNode, useId, useMemo } from 'react'
+import { useI18n } from '../contexts/i18n-context'
 
 void React
 
 export const DEFAULT_TABLE_DENSITY_ITEMS: MenuProps['items'] = [
-  { key: 'large', label: '宽松' },
-  { key: 'middle', label: '默认' },
-  { key: 'small', label: '紧凑' },
+  { key: 'large', label: 'Comfortable' },
+  { key: 'middle', label: 'Default' },
+  { key: 'small', label: 'Compact' },
 ]
 
 export type ListToolbarColumnSettingOption = {
@@ -108,7 +109,7 @@ const SortableColumnSettingRow = ({
 
 export const ListToolbarActions = ({
   tableSize,
-  densityItems = DEFAULT_TABLE_DENSITY_ITEMS,
+  densityItems,
   onTableSizeChange,
   onClearColumnSort,
   clearColumnSortDisabled = true,
@@ -122,6 +123,17 @@ export const ListToolbarActions = ({
   columnSettingMinWidth = 220,
 }: ListToolbarActionsProps) => {
   const { token } = theme.useToken()
+  const { t } = useI18n()
+  const resolvedDensityItems = useMemo(
+    () =>
+      densityItems ??
+      DEFAULT_TABLE_DENSITY_ITEMS?.map((item) =>
+        item && 'label' in item
+          ? { ...item, label: typeof item.label === 'string' ? t(item.label) : item.label }
+          : item
+      ),
+    [densityItems, t]
+  )
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -160,20 +172,25 @@ export const ListToolbarActions = ({
   return (
     <div className="inline-flex items-center gap-2">
       {showLeadingDivider ? <Divider orientation="vertical" className="!mx-0 !h-5" /> : null}
-      <Button icon={<ReloadOutlined />} aria-label="刷新" loading={reloadLoading} onClick={onReload}>
-        刷新
+      <Button
+        icon={<ReloadOutlined />}
+        aria-label={t('Refresh')}
+        loading={reloadLoading}
+        onClick={onReload}
+      >
+        {t('Refresh')}
       </Button>
       <Dropdown
         menu={{
           selectedKeys: [tableSize],
-          items: densityItems,
+          items: resolvedDensityItems,
           onClick: ({ key }) => onTableSizeChange(key as 'small' | 'middle' | 'large'),
         }}
         trigger={['click']}
         placement="bottomRight"
       >
-        <Tooltip title="密度">
-          <Button icon={<ColumnHeightOutlined />} aria-label="密度" />
+        <Tooltip title={t('Density')}>
+          <Button icon={<ColumnHeightOutlined />} aria-label={t('Density')} />
         </Tooltip>
       </Dropdown>
       <Dropdown
@@ -216,7 +233,7 @@ export const ListToolbarActions = ({
                     disabled={clearColumnSortDisabled}
                     onClick={onClearColumnSort}
                   >
-                    重置列排序
+                    {t('Reset column order')}
                   </Button>
                 ) : null}
               </div>
@@ -224,8 +241,11 @@ export const ListToolbarActions = ({
           </DndContext>
         )}
       >
-        <Tooltip title="列设置">
-          <Button icon={<Columns3Cog size={16} strokeWidth={1.8} />} aria-label="列设置" />
+        <Tooltip title={t('Column settings')}>
+          <Button
+            icon={<Columns3Cog size={16} strokeWidth={1.8} />}
+            aria-label={t('Column settings')}
+          />
         </Tooltip>
       </Dropdown>
     </div>

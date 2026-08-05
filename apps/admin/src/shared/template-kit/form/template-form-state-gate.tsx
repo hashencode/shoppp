@@ -4,6 +4,7 @@ import { ForbiddenPage } from '../../../pages/forbidden-page'
 import { QueryStateBlock } from '../../components/query-state-block'
 import type { ApiError } from '../../../infrastructure/http/api-client'
 import type { ParsedFormMode, FormModeViewModel } from '../../../routes/form-route-contract'
+import { useI18n } from '../../contexts/i18n-context'
 
 void React
 
@@ -28,13 +29,14 @@ export const TemplateFormStateGate = ({
   onRetryDetail,
   children,
 }: TemplateFormStateGateProps) => {
+  const { t } = useI18n()
   if (!parsedMode.ok) {
     return (
       <QueryStateBlock
         state="error"
-        title="路由参数错误"
-        description={parsedMode.message}
-        primaryActionLabel="返回列表"
+        title={t('Invalid route parameters')}
+        description={t(parsedMode.message)}
+        primaryActionLabel={t('Return to list')}
         onPrimaryAction={onBackToList}
       />
     )
@@ -45,7 +47,7 @@ export const TemplateFormStateGate = ({
   }
 
   if (modeView?.canFetch && detailLoading) {
-    return <QueryStateBlock state="loading" title="正在加载表单详情..." />
+    return <QueryStateBlock state="loading" title={t('Loading form details…')} />
   }
 
   if (modeView?.canFetch && detailError) {
@@ -54,13 +56,15 @@ export const TemplateFormStateGate = ({
     return (
       <QueryStateBlock
         state={notFound ? 'empty' : 'error'}
-        title={notFound ? '记录不存在或已删除' : '表单详情加载失败'}
+        title={t(notFound ? 'Record not found or deleted' : 'Form details could not be loaded')}
         description={
-          notFound ? '请返回列表重新选择记录。' : detailError.message || '请检查网络连接后重试。'
+          notFound
+            ? t('Return to the list and select another record.')
+            : t('Request failed. Please try again later.')
         }
-        primaryActionLabel="返回列表"
+        primaryActionLabel={t('Return to list')}
         onPrimaryAction={onBackToList}
-        secondaryActionLabel={notFound ? undefined : '重试'}
+        secondaryActionLabel={notFound ? undefined : t('Retry')}
         onSecondaryAction={notFound ? undefined : onRetryDetail}
       />
     )

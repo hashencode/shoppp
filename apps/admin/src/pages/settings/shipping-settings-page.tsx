@@ -1,22 +1,12 @@
 import type { ShippingMethodConfiguration, ShippingZoneConfiguration } from '@shoppp/contracts'
-import {
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Table,
-  Tag,
-  message,
-} from 'antd'
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import { fetchShippingZones, saveShippingZone } from '../../services/shipping/api'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -43,6 +33,9 @@ const emptyMethod = (): EditableMethod => ({
 
 export const ShippingSettingsPage = () => {
   const { role, permissions } = useAuth()
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const localizeError = useLocalizedApiError()
   const canWrite = hasPermission(role, 'settings.write', permissions)
   const [zones, setZones] = useState<ShippingZoneConfiguration[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,11 +48,11 @@ export const ShippingSettingsPage = () => {
     try {
       setZones(await fetchShippingZones())
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [localizeError])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
@@ -94,19 +87,19 @@ export const ShippingSettingsPage = () => {
 
   const columns = useMemo(
     () => [
-      { key: 'name', title: 'Zone', dataIndex: 'name', width: 180 },
+      { key: 'name', title: t('Zone'), dataIndex: 'name', width: 180 },
       {
         key: 'status',
-        title: 'Status',
+        title: t('Status'),
         dataIndex: 'status',
         width: 100,
         render: (status: ShippingZoneConfiguration['status']) => (
-          <Tag color={status === 'active' ? 'success' : 'default'}>{status}</Tag>
+          <Tag color={status === 'active' ? 'success' : 'default'}>{t(status)}</Tag>
         ),
       },
       {
         key: 'countries',
-        title: 'Countries',
+        title: t('Countries'),
         width: 220,
         render: (_: unknown, zone: ShippingZoneConfiguration) => (
           <Space size={[4, 4]} wrap>
@@ -118,14 +111,13 @@ export const ShippingSettingsPage = () => {
       },
       {
         key: 'methods',
-        title: 'Methods',
+        title: t('Methods'),
         render: (_: unknown, zone: ShippingZoneConfiguration) => (
           <Space orientation="vertical" size={2}>
             {zone.methods.map((method) => (
               <span key={method.id}>
-                {method.name} · {method.calculationType} · {method.priceAmount}{' '}
-                {method.currency}
-                {method.status === 'disabled' ? ' · disabled' : ''}
+                {method.name} · {method.calculationType} · {method.priceAmount} {method.currency}
+                {method.status === 'disabled' ? ` · ${t('disabled')}` : ''}
               </span>
             ))}
           </Space>
@@ -133,31 +125,31 @@ export const ShippingSettingsPage = () => {
       },
       {
         key: 'actions',
-        title: 'Actions',
+        title: t('Actions'),
         width: 100,
         render: (_: unknown, zone: ShippingZoneConfiguration) =>
           canWrite ? (
             <Button type="link" className="!px-0" onClick={() => openEditor(zone)}>
-              Edit
+              {t('Edit')}
             </Button>
           ) : null,
       },
     ],
-    [canWrite, openEditor]
+    [canWrite, openEditor, t]
   )
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Shipping settings</h1>
+          <h1 className="text-2xl font-semibold">{t('Shipping settings')}</h1>
           <p className="text-slate-500">
-            Country zones, flat or weight-based rates, thresholds, and eligibility.
+            {t('Country zones, flat or weight-based rates, thresholds, and eligibility.')}
           </p>
         </div>
         {canWrite ? (
           <Button type="primary" onClick={() => openEditor()}>
-            New zone
+            {t('New zone')}
           </Button>
         ) : null}
       </div>
@@ -168,14 +160,14 @@ export const ShippingSettingsPage = () => {
         loading={loading}
         pagination={false}
         scroll={{ x: 900 }}
-        locale={{ emptyText: 'No shipping zones configured.' }}
+        locale={{ emptyText: t('No shipping zones configured.') }}
       />
 
       <Modal
-        title={form.getFieldValue('id') ? 'Edit shipping zone' : 'New shipping zone'}
+        title={t(form.getFieldValue('id') ? 'Edit shipping zone' : 'New shipping zone')}
         open={open}
         width={900}
-        okText="Confirm and save"
+        okText={t('Confirm and save')}
         confirmLoading={saving}
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
@@ -203,11 +195,11 @@ export const ShippingSettingsPage = () => {
                   status: values.status,
                 },
               })
-              void message.success('Shipping zone saved and audited.')
+              void message.success(translateNow('Shipping zone saved and audited.'))
               setOpen(false)
               await load()
             } catch (error) {
-              void message.error(normalizeApiError(error).message)
+              void message.error(localizeError(error))
             } finally {
               setSaving(false)
             }
@@ -217,20 +209,20 @@ export const ShippingSettingsPage = () => {
             <Input />
           </Form.Item>
           <Space align="start" wrap>
-            <Form.Item name="name" label="Zone name" rules={[{ required: true }]}>
+            <Form.Item name="name" label={t('Zone name')} rules={[{ required: true }]}>
               <Input className="w-64" />
             </Form.Item>
-            <Form.Item name="status" label="Status" rules={[{ required: true }]}>
+            <Form.Item name="status" label={t('Status')} rules={[{ required: true }]}>
               <Select
                 className="w-40"
-                options={[{ value: 'active' }, { value: 'disabled' }]}
+                options={['active', 'disabled'].map((value) => ({ label: t(value), value }))}
               />
             </Form.Item>
           </Space>
           <Form.Item
             name="countries"
-            label="Country allowlist"
-            rules={[{ required: true, message: 'Add at least one two-letter country code.' }]}
+            label={t('Country allowlist')}
+            rules={[{ required: true, message: t('Add at least one two-letter country code.') }]}
           >
             <Select mode="tags" tokenSeparators={[',']} />
           </Form.Item>
@@ -247,71 +239,72 @@ export const ShippingSettingsPage = () => {
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'name']}
-                      label={`Method ${index + 1}`}
+                      label={t('Method {number}', { number: index + 1 })}
                       rules={[{ required: true }]}
                     >
                       <Input />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'calculationType']}
-                      label="Calculation"
+                      label={t('Calculation')}
                       rules={[{ required: true }]}
                     >
-                      <Select options={[{ value: 'flat' }, { value: 'weight' }]} />
+                      <Select
+                        options={['flat', 'weight'].map((value) => ({ label: t(value), value }))}
+                      />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'priceAmount']}
-                      label="Price (minor units)"
+                      label={t('Price (minor units)')}
                       rules={[{ required: true }]}
                     >
                       <InputNumber min={0} precision={0} className="w-full" />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'currency']}
-                      label="Currency"
+                      label={t('Currency')}
                       rules={[{ required: true, len: 3 }]}
                     >
                       <Input maxLength={3} />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'freeThresholdAmount']}
-                      label="Free threshold"
+                      label={t('Free threshold')}
                     >
                       <InputNumber min={0} precision={0} className="w-full" />
                     </Form.Item>
-                    <Form.Item
-                      name={[field.name, 'minWeightGrams']}
-                      label="Minimum grams"
-                    >
+                    <Form.Item name={[field.name, 'minWeightGrams']} label={t('Minimum grams')}>
                       <InputNumber min={0} precision={0} className="w-full" />
                     </Form.Item>
-                    <Form.Item
-                      name={[field.name, 'maxWeightGrams']}
-                      label="Maximum grams"
-                    >
+                    <Form.Item name={[field.name, 'maxWeightGrams']} label={t('Maximum grams')}>
                       <InputNumber min={0} precision={0} className="w-full" />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'status']}
-                      label="Status"
+                      label={t('Status')}
                       rules={[{ required: true }]}
                     >
-                      <Select options={[{ value: 'active' }, { value: 'disabled' }]} />
+                      <Select
+                        options={['active', 'disabled'].map((value) => ({
+                          label: t(value),
+                          value,
+                        }))}
+                      />
                     </Form.Item>
                     {fields.length > 1 ? (
                       <Button danger onClick={() => remove(field.name)}>
-                        Remove method
+                        {t('Remove method')}
                       </Button>
                     ) : null}
                   </div>
                 ))}
-                <Button onClick={() => add(emptyMethod())}>Add shipping method</Button>
+                <Button onClick={() => add(emptyMethod())}>{t('Add shipping method')}</Button>
               </Space>
             )}
           </Form.List>
           <Form.Item
             name="reason"
-            label="Change reason"
+            label={t('Change reason')}
             className="mt-4"
             rules={[{ required: true, min: 3, max: 500 }]}
           >

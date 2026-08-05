@@ -4,12 +4,14 @@ import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import {
   createReportExport,
   fetchReportOrders,
   reportExportDownloadUrl,
 } from '../../services/reporting/api'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import { formatMinorCurrency } from '../../shared/i18n/format-currency'
 
 void React
 
@@ -19,19 +21,15 @@ const paramsQuery = (): ReportingQuery => {
     currency: params.get('currency') ?? 'USD',
     endDate: params.get('endDate') ?? dayjs().format('YYYY-MM-DD'),
     startDate: params.get('startDate') ?? dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
-    timeZone:
-      params.get('timeZone') ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC',
+    timeZone: params.get('timeZone') ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC',
   }
-}
-
-const formatMinorUnits = (amount: number, currency: string) => {
-  const formatter = new Intl.NumberFormat(undefined, { currency, style: 'currency' })
-  const decimals = formatter.resolvedOptions().maximumFractionDigits ?? 2
-  return formatter.format(amount / 10 ** decimals)
 }
 
 export const OrderReportPage = () => {
   const { role, permissions } = useAuth()
+  const { locale, t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const localizeError = useLocalizedApiError()
   const [query, setQuery] = useState<ReportingQuery>(paramsQuery)
   const [search, setSearch] = useState('')
   const [committedSearch, setCommittedSearch] = useState('')
@@ -60,12 +58,12 @@ export const OrderReportPage = () => {
         setPage(response.page)
         setTotal(response.total)
       } catch (error) {
-        void message.error(normalizeApiError(error).message)
+        void message.error(localizeError(error))
       } finally {
         setLoading(false)
       }
     },
-    [committedSearch, query]
+    [committedSearch, localizeError, query]
   )
 
   useEffect(() => {
@@ -75,46 +73,52 @@ export const OrderReportPage = () => {
 
   const columns = useMemo(
     () => [
-      { dataIndex: 'publicReference', key: 'reference', title: 'Order', width: 170 },
+      { dataIndex: 'publicReference', key: 'reference', title: t('Order'), width: 170 },
       {
         dataIndex: 'createdAt',
         key: 'created',
-        title: 'Created (UTC)',
+        title: t('Created (UTC)'),
         width: 190,
         render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
       },
-      { dataIndex: 'email', key: 'email', title: 'Customer', width: 220 },
+      { dataIndex: 'email', key: 'email', title: t('Customer'), width: 220 },
       {
         dataIndex: 'paymentStatus',
         key: 'payment',
-        title: 'Payment',
+        title: t('Payment'),
         width: 150,
-        render: (value: string) => <Tag>{value}</Tag>,
+        render: (value: string) => <Tag>{t(value)}</Tag>,
       },
-      { dataIndex: 'orderStatus', key: 'orderStatus', title: 'Order status', width: 150 },
+      {
+        dataIndex: 'orderStatus',
+        key: 'orderStatus',
+        title: t('Order status'),
+        width: 150,
+        render: (value: string) => t(value),
+      },
       {
         dataIndex: 'grossContribution',
         key: 'gross',
-        title: `Gross (${query.currency})`,
+        title: t('Gross ({currency})', { currency: query.currency }),
         width: 150,
-        render: (value: number) => formatMinorUnits(value, query.currency),
+        render: (value: number) => formatMinorCurrency(value, query.currency, locale),
       },
       {
         dataIndex: 'refundContribution',
         key: 'refund',
-        title: `Refunds (${query.currency})`,
+        title: t('Refunds ({currency})', { currency: query.currency }),
         width: 150,
-        render: (value: number) => formatMinorUnits(value, query.currency),
+        render: (value: number) => formatMinorCurrency(value, query.currency, locale),
       },
       {
         dataIndex: 'netContribution',
         key: 'net',
-        title: `Net (${query.currency})`,
+        title: t('Net ({currency})', { currency: query.currency }),
         width: 150,
-        render: (value: number) => formatMinorUnits(value, query.currency),
+        render: (value: number) => formatMinorCurrency(value, query.currency, locale),
       },
     ],
-    [query.currency]
+    [locale, query.currency, t]
   )
 
   const submitExport = async ({ reason }: { reason: string }) => {
@@ -130,11 +134,11 @@ export const OrderReportPage = () => {
       setExportOpen(false)
       void message.success(
         created.status === 'ready'
-          ? 'Report export is ready.'
-          : 'Report export is being prepared in the background.'
+          ? translateNow('Report export is ready.')
+          : translateNow('Report export is being prepared in the background.')
       )
     } catch (error) {
-      void message.error(normalizeApiError(error).message)
+      void message.error(localizeError(error))
     } finally {
       setExporting(false)
     }
@@ -143,29 +147,30 @@ export const OrderReportPage = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Order revenue report</h1>
+        <h1 className="text-2xl font-semibold">{t('Order revenue report')}</h1>
         <p className="text-slate-500">
-          Drill down from gross and refund events without mixing currencies, environments, or test
-          checkouts.
+          {t(
+            'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
+          )}
         </p>
       </div>
       <Alert
         type="info"
         showIcon
-        message={`Reporting basis: ${query.currency} · ${query.timeZone} · ${query.startDate}–${query.endDate}`}
+        message={`${t('Reporting basis:')} ${query.currency} · ${query.timeZone} · ${query.startDate}–${query.endDate}`}
       />
       <Space wrap align="end">
         <Input.Search
-          aria-label="Search report orders"
+          aria-label={t('Search report orders')}
           allowClear
           className="w-80"
-          placeholder="Order reference or customer email"
+          placeholder={t('Order reference or customer email')}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           onSearch={(value) => setCommittedSearch(value.trim())}
         />
         <Select
-          aria-label="Report currency"
+          aria-label={t('Report currency')}
           className="w-28"
           value={query.currency}
           options={['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'].map((value) => ({
@@ -175,7 +180,7 @@ export const OrderReportPage = () => {
           onChange={(currency) => setQuery((current) => ({ ...current, currency }))}
         />
         <Select
-          aria-label="Report time zone"
+          aria-label={t('Report time zone')}
           className="w-52"
           showSearch
           value={query.timeZone}
@@ -191,9 +196,9 @@ export const OrderReportPage = () => {
           onChange={(timeZone) => setQuery((current) => ({ ...current, timeZone }))}
         />
         <label>
-          <span className="mb-1 block text-xs text-slate-500">Start date</span>
+          <span className="mb-1 block text-xs text-slate-500">{t('Start date')}</span>
           <input
-            aria-label="Report start date"
+            aria-label={t('Report start date')}
             className="h-8 rounded-md border border-slate-300 px-3"
             type="date"
             value={query.startDate}
@@ -203,9 +208,9 @@ export const OrderReportPage = () => {
           />
         </label>
         <label>
-          <span className="mb-1 block text-xs text-slate-500">End date</span>
+          <span className="mb-1 block text-xs text-slate-500">{t('End date')}</span>
           <input
-            aria-label="Report end date"
+            aria-label={t('Report end date')}
             className="h-8 rounded-md border border-slate-300 px-3"
             type="date"
             value={query.endDate}
@@ -221,21 +226,26 @@ export const OrderReportPage = () => {
               setExportOpen(true)
             }}
           >
-            Export CSV
+            {t('Export CSV')}
           </Button>
         ) : null}
       </Space>
       {reportExport ? (
         <Alert
           type={reportExport.status === 'ready' ? 'success' : 'info'}
-          message={`Export ${reportExport.id}: ${reportExport.status}`}
+          message={t('Export {id}: {status}', {
+            id: reportExport.id,
+            status: t(reportExport.status),
+          })}
           description={
             reportExport.status === 'ready' ? (
               <a href={reportExportDownloadUrl(reportExport.id)}>
-                Download export ({reportExport.rowCount ?? 0} rows)
+                {t('Download export ({count} rows)', { count: reportExport.rowCount ?? 0 })}
               </a>
             ) : (
-              `The export expires at ${dayjs(reportExport.expiresAt).format('YYYY-MM-DD HH:mm')}.`
+              t('The export expires at {time}.', {
+                time: dayjs(reportExport.expiresAt).format('YYYY-MM-DD HH:mm'),
+              })
             )
           }
         />
@@ -245,7 +255,7 @@ export const OrderReportPage = () => {
         columns={columns}
         dataSource={rows}
         loading={loading}
-        locale={{ emptyText: 'No order events match this reporting window.' }}
+        locale={{ emptyText: t('No order events match this reporting window.') }}
         pagination={{
           current: page,
           pageSize,
@@ -256,9 +266,9 @@ export const OrderReportPage = () => {
         scroll={{ x: 1330 }}
       />
       <Modal
-        title="Export scoped order report"
+        title={t('Export scoped order report')}
         open={exportOpen}
-        okText="Confirm export"
+        okText={t('Confirm export')}
         confirmLoading={exporting}
         destroyOnHidden
         onCancel={() => setExportOpen(false)}
@@ -267,15 +277,17 @@ export const OrderReportPage = () => {
         <Alert
           className="mb-4"
           type="warning"
-          message="The CSV contains customer email addresses. Access is audited and expires after 24 hours."
+          message={t(
+            'The CSV contains customer email addresses. Access is audited and expires after 24 hours.'
+          )}
         />
         <Form form={form} layout="vertical" onFinish={(values) => void submitExport(values)}>
           <Form.Item
             name="reason"
-            label="Reason"
-            rules={[{ min: 3, required: true, message: 'Enter an export reason.' }]}
+            label={t('Reason')}
+            rules={[{ min: 3, required: true, message: t('Enter an export reason.') }]}
           >
-            <Input.TextArea aria-label="Export reason" rows={3} />
+            <Input.TextArea aria-label={t('Export reason')} rows={3} />
           </Form.Item>
         </Form>
       </Modal>

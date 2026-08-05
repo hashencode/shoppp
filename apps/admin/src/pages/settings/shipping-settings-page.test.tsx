@@ -1,12 +1,13 @@
 import React from 'react'
 import type { UpsertShippingZoneRequest } from '@shoppp/contracts'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { renderInLocale } from '../../test/render-in-locale'
 import { ShippingSettingsPage } from './shipping-settings-page'
 
 void React
@@ -70,7 +71,7 @@ afterAll(() => server.close())
 
 describe('ShippingSettingsPage', () => {
   it('renders authoritative zones and opens a complete reasoned editor', async () => {
-    render(
+    renderInLocale(
       <AuthTestProvider permissions={['settings.read', 'settings.write']}>
         <ThemeProvider>
           <ShippingSettingsPage />
@@ -104,7 +105,7 @@ describe('ShippingSettingsPage', () => {
         return HttpResponse.json({ data: submitted.zone })
       })
     )
-    render(
+    renderInLocale(
       <AuthTestProvider permissions={['settings.read', 'settings.write']}>
         <ThemeProvider>
           <ShippingSettingsPage />

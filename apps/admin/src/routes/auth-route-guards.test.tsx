@@ -1,16 +1,17 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthContext, type AuthContextValue } from '../infrastructure/auth/auth-context'
 import { PermissionGuard } from '../shared/components/permission-guard'
 import { RedirectIfAuthenticated, RequireAuth } from './auth-route-guards'
 import { templateRoutes } from './routes.config'
+import { renderInLocale } from '../test/render-in-locale'
 
 void React
 
 const renderWithAuth = (status: AuthContextValue['status'], entry: string) =>
-  render(
+  renderInLocale(
     <AuthContext.Provider
       value={{
         accountName: '',
@@ -90,7 +91,7 @@ describe('auth-route-guards', () => {
 
   it('uses the API permission set as the authority for theme routes', () => {
     const renderPermission = (permissions: readonly 'themes.read'[]) =>
-      render(
+      renderInLocale(
         <AuthContext.Provider
           value={{
             accountName: 'operator@example.com',

@@ -1,12 +1,13 @@
 import type { AdminStorefrontTheme } from '@shoppp/contracts'
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { renderInLocale } from '../../test/render-in-locale'
 import type { Role } from '../../shared/types/roles'
 import type { StorefrontExperienceDraft } from '../../services/storefront/api'
 import {
@@ -370,7 +371,7 @@ const renderEditor = (role: Role = 'admin', pollIntervalMs = 60_000) => {
     ],
     { initialEntries: [`/storefront/themes/${baseDraft.id}`] }
   )
-  return { router, ...render(<RouterProvider router={router} />) }
+  return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
 }
 
 const renderThemes = (role: Role = 'admin') => {
@@ -390,7 +391,7 @@ const renderThemes = (role: Role = 'admin') => {
     ],
     { initialEntries: ['/storefront/themes'] }
   )
-  return { router, ...render(<RouterProvider router={router} />) }
+  return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))

@@ -4,12 +4,18 @@ import { describe, expect, it } from '@rstest/core'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { getFormModeViewModel } from '../../../routes/form-route-contract'
 import { TemplateFormStateGate } from './template-form-state-gate'
+import { I18nProvider } from '../../contexts/i18n-context'
 
 void React
 
+const renderInChinese = (node: React.ReactNode) => {
+  window.localStorage.setItem('shoppp.admin.locale', 'zh-CN')
+  return render(<I18nProvider>{node}</I18nProvider>)
+}
+
 describe('TemplateFormStateGate', () => {
   it('shows route param error state when parsedMode is invalid', () => {
-    render(
+    renderInChinese(
       <MemoryRouter>
         <TemplateFormStateGate
           parsedMode={{ ok: false, errorCode: 'ROUTE_PARAM_INVALID', message: 'bad mode' }}
@@ -30,7 +36,7 @@ describe('TemplateFormStateGate', () => {
   })
 
   it('renders loading state for fetchable mode', () => {
-    render(
+    renderInChinese(
       <MemoryRouter>
         <TemplateFormStateGate
           parsedMode={{ ok: true, mode: 'modify', resourceKey: '1' }}
@@ -50,7 +56,7 @@ describe('TemplateFormStateGate', () => {
   })
 
   it('shows empty state when detail returns not found', () => {
-    render(
+    renderInChinese(
       <MemoryRouter>
         <TemplateFormStateGate
           parsedMode={{ ok: true, mode: 'readonly', resourceKey: '1' }}
@@ -70,7 +76,7 @@ describe('TemplateFormStateGate', () => {
   })
 
   it('shows error state when detail loading fails with other error', () => {
-    render(
+    renderInChinese(
       <MemoryRouter>
         <TemplateFormStateGate
           parsedMode={{ ok: true, mode: 'modify', resourceKey: '1' }}
@@ -87,11 +93,11 @@ describe('TemplateFormStateGate', () => {
     )
 
     expect(screen.getByText('表单详情加载失败')).toBeTruthy()
-    expect(screen.getByText('server down')).toBeTruthy()
+    expect(screen.getByText('请求失败，请稍后重试。')).toBeTruthy()
   })
 
   it('renders children in normal state', () => {
-    render(
+    renderInChinese(
       <MemoryRouter>
         <TemplateFormStateGate
           parsedMode={{ ok: true, mode: 'add' }}
@@ -111,7 +117,7 @@ describe('TemplateFormStateGate', () => {
   })
 
   it('redirects to 403 when permission is denied', () => {
-    render(
+    renderInChinese(
       <MemoryRouter initialEntries={['/template/list/table/form?mode=add']}>
         <Routes>
           <Route
@@ -135,6 +141,6 @@ describe('TemplateFormStateGate', () => {
       </MemoryRouter>
     )
 
-      expect(screen.getByText('Access denied')).toBeTruthy()
+    expect(screen.getByText('无权访问')).toBeTruthy()
   })
 })

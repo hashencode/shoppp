@@ -8,6 +8,7 @@ import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import { fetchAdminRole, updateAdminRole } from '../../services/iam/api'
 import { PermissionChecklist } from './permission-checklist'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -17,6 +18,7 @@ type DependencyDetails = { identities?: number; pendingInvitations?: number }
 export const RoleDetailPage = () => {
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.roles.write', permissions)
   const [role, setRole] = useState<AdminRole | null>(null)
@@ -62,27 +64,30 @@ export const RoleDetailPage = () => {
       const apiError = normalizeApiError(cause)
       if (apiError.code === 'stale_role_version') {
         await load()
-        setError('This role changed by another administrator. The latest state has been loaded; review it before retrying.')
+        setError(t('This role changed by another administrator. The latest state has been loaded; review it before retrying.'))
         return
       }
       if (apiError.code === 'role_has_dependencies') {
         const details = (apiError.details ?? {}) as DependencyDetails
         setError(
-          `This role cannot be archived because it has ${details.identities ?? 0} assigned identities and ${details.pendingInvitations ?? 0} pending invitation${details.pendingInvitations === 1 ? '' : 's'}. Reassign or revoke them first.`
+          t('This role cannot be archived because it has {identities} assigned identities and {invitations} pending invitations. Reassign or revoke them first.', {
+            identities: details.identities ?? 0,
+            invitations: details.pendingInvitations ?? 0,
+          })
         )
         return
       }
       if (apiError.code === 'self_role_edit_denied') {
-        setError('You cannot edit the role that authorizes your current session.')
+        setError(t('You cannot edit the role that authorizes your current session.'))
         return
       }
       if (apiError.code === 'system_role_archive_denied') {
-        setError('System roles can be edited but cannot be archived.')
+        setError(t('System roles can be edited but cannot be archived.'))
         return
       }
       setError(apiError.message)
     },
-    [load]
+    [load, t]
   )
 
   const save = async (values: RoleValues) => {
@@ -102,7 +107,7 @@ export const RoleDetailPage = () => {
         name: updated.name,
         permissions: updated.permissions,
       })
-      void message.success('Role updated. New permissions apply on the next API request.')
+      void message.success(t('Role updated. New permissions apply on the next API request.'))
     } catch (cause) {
       await explainError(cause)
     } finally {
@@ -116,30 +121,30 @@ export const RoleDetailPage = () => {
       (permission) => !(selectedPermissions ?? []).includes(permission)
     ) ?? false
 
-  if (loading && !role) return <Spin description="Loading role" />
+  if (loading && !role) return <Spin description={t('Loading role')} />
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Space>
-            <h1 className="m-0 text-2xl font-semibold">{role?.name ?? 'Role'}</h1>
-            {role?.protected ? <Tag color="gold">Protected</Tag> : null}
-            {role?.system && !role.protected ? <Tag>System</Tag> : null}
-            {role && !role.enabled ? <Tag>Archived</Tag> : null}
+            <h1 className="m-0 text-2xl font-semibold">{role?.name ?? t('Role')}</h1>
+            {role?.protected ? <Tag color="gold">{t('Protected')}</Tag> : null}
+            {role?.system && !role.protected ? <Tag>{t('System role')}</Tag> : null}
+            {role && !role.enabled ? <Tag>{t('Archived')}</Tag> : null}
           </Space>
-          <p className="text-slate-500">Effective permissions are resolved from D1 for every request.</p>
+          <p className="text-slate-500">{t('Effective permissions are resolved from D1 for every request.')}</p>
         </div>
-        <Button onClick={() => navigate('/access/roles')}>Back to roles</Button>
+        <Button onClick={() => navigate('/access/roles')}>{t('Back to roles')}</Button>
       </div>
-      {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>Reload</Button>} /> : null}
-      {role?.protected ? <Alert type="info" showIcon title="The protected administrator role always contains the complete permission catalog and cannot be changed." /> : null}
-      {isOwnRole ? <Alert type="info" showIcon title="You cannot edit the role that authorizes your current session." /> : null}
+      {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>{t('Reload')}</Button>} /> : null}
+      {role?.protected ? <Alert type="info" showIcon title={t('The protected administrator role always contains the complete permission catalog and cannot be changed.')} /> : null}
+      {isOwnRole ? <Alert type="info" showIcon title={t('You cannot edit the role that authorizes your current session.')} /> : null}
       {role && !isWithinAuthority ? (
         <Alert
           type="warning"
           showIcon
-          title="This role contains permissions outside your current authority and cannot be edited by this session."
+          title={t('This role contains permissions outside your current authority and cannot be edited by this session.')}
         />
       ) : null}
       {role ? (
@@ -154,40 +159,40 @@ export const RoleDetailPage = () => {
                 return
               }
               Modal.confirm({
-                title: 'Confirm permission reduction',
-                content: 'Removed permissions take effect for assigned principals on their next API request.',
-                okText: 'Confirm reduction',
+                title: t('Confirm permission reduction'),
+                content: t('Removed permissions take effect for assigned principals on their next API request.'),
+                okText: t('Confirm reduction'),
                 okButtonProps: { danger: true },
                 onOk: () => save(values),
               })
             }}
           >
-            <Form.Item label="Role key">
+            <Form.Item label={t('Role key')}>
               <Input value={role.key} disabled />
             </Form.Item>
-            <Form.Item name="name" label="Role name" rules={[{ required: true }]}>
+            <Form.Item name="name" label={t('Role name')} rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="description" label="Description">
+            <Form.Item name="description" label={t('Description')}>
               <Input.TextArea rows={2} />
             </Form.Item>
-            <Form.Item name="permissions" label="Permissions">
+            <Form.Item name="permissions" label={t('Permissions')}>
               <PermissionChecklist permitted={permissions ?? []} disabled={!canEdit} />
             </Form.Item>
             {canWrite ? (
               <Space wrap>
-                <Button type="primary" htmlType="submit" loading={saving} disabled={!canEdit}>Save changes</Button>
+                <Button type="primary" htmlType="submit" loading={saving} disabled={!canEdit}>{t('Save changes')}</Button>
                 {canArchive ? (
                   <Popconfirm
-                    title="Archive this role?"
-                    description="It must have no assigned identities or active invitations."
-                    okText="Confirm archive"
+                    title={t('Archive this role?')}
+                    description={t('It must have no assigned identities or active invitations.')}
+                    okText={t('Confirm archive')}
                     onConfirm={async () => {
                       setSaving(true)
                       setError(null)
                       try {
                         await updateAdminRole(role.id, { enabled: false, expectedVersion: role.version })
-                        void message.success('Role archived.')
+                        void message.success(t('Role archived.'))
                         await load()
                       } catch (cause) {
                         await explainError(cause)
@@ -196,7 +201,7 @@ export const RoleDetailPage = () => {
                       }
                     }}
                   >
-                    <Button danger disabled={saving}>Archive role</Button>
+                    <Button danger disabled={saving}>{t('Archive role')}</Button>
                   </Popconfirm>
                 ) : null}
               </Space>

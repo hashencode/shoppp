@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { TablePaginationConfig } from 'antd'
+import { translateMessage, useI18n, type AppLocale } from '../contexts/i18n-context'
 
 export type StandardPaginationConfig = {
   defaultPageSize?: number
@@ -24,15 +25,20 @@ const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 export const ALL_DATA_PAGE_SIZE = 99999
 export const VIRTUAL_SCROLL_PAGE_SIZE_THRESHOLD = 100
 
-const buildPageSizeOptionLabel = (value: number) => {
-  return value === ALL_DATA_PAGE_SIZE ? '所有数据' : `${value} 条/页`
+const buildPageSizeOptionLabel = (value: number, locale: AppLocale) => {
+  return value === ALL_DATA_PAGE_SIZE
+    ? translateMessage(locale, 'All data')
+    : translateMessage(locale, '{count} per page', { count: value })
 }
 
-export const buildStandardPageSizeSelectProps = (pageSizeOptions: number[]) => ({
+export const buildStandardPageSizeSelectProps = (
+  pageSizeOptions: number[],
+  locale: AppLocale = 'zh-CN'
+) => ({
   showSearch: false,
   optionLabelProp: 'label',
   options: pageSizeOptions.map((value) => ({
-    label: buildPageSizeOptionLabel(value),
+    label: buildPageSizeOptionLabel(value, locale),
     value,
   })),
 })
@@ -60,6 +66,7 @@ export const useStandardPagination = ({
   maxPageSize = DEFAULT_MAX_PAGE_SIZE,
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 }: UseStandardPaginationOptions): StandardPaginationResult => {
+  const { locale } = useI18n()
   const safeDefaultPageSize = clampPageSize(defaultPageSize, maxPageSize, DEFAULT_PAGE_SIZE)
   const safePageSizeOptions = useMemo(() => {
     const merged = new Set(
@@ -73,8 +80,8 @@ export const useStandardPagination = ({
   }, [maxPageSize, pageSizeOptions, safeDefaultPageSize])
 
   const sizeChangerProps = useMemo(
-    () => buildStandardPageSizeSelectProps(safePageSizeOptions),
-    [safePageSizeOptions]
+    () => buildStandardPageSizeSelectProps(safePageSizeOptions, locale),
+    [locale, safePageSizeOptions]
   )
 
   const [requestedPage, setRequestedPage] = useState(1)

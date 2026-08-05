@@ -12,7 +12,11 @@ import {
   type ProductDetail,
   type ProductDraftPayload,
 } from '../../services/catalog/api'
-import { LIST_REFRESH_CHANNEL, LIST_REFRESH_EVENT } from '../../shared/constants/list-refresh-channel'
+import {
+  LIST_REFRESH_CHANNEL,
+  LIST_REFRESH_EVENT,
+} from '../../shared/constants/list-refresh-channel'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import {
   BasicCrudFormRecipe,
   useTemplateFormController,
@@ -69,7 +73,9 @@ const toValues = (detail: ProductDetail): CatalogFormValues => {
   const variant = detail.variants[0]
   const price = detail.prices[0]
   const media = detail.media[0]
-  const optionValues = variant ? JSON.parse(variant.option_values_json) as Record<string, string> : {}
+  const optionValues = variant
+    ? (JSON.parse(variant.option_values_json) as Record<string, string>)
+    : {}
   return {
     name: detail.product.name,
     slug: detail.product.slug,
@@ -160,6 +166,8 @@ const safeMediaKey = (file: File) => {
 
 export const CatalogFormPage = () => {
   const [form] = Form.useForm<CatalogFormValues>()
+  const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
   const [searchParams] = useSearchParams()
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const { role, permissions } = useAuth()
@@ -225,11 +233,11 @@ export const CatalogFormPage = () => {
       isReadonly,
       form,
       initialValues: defaults,
-      title: isAddMode ? 'New product' : 'Product details',
+      title: t(isAddMode ? 'New product' : 'Product details'),
       contentWidthPreset: 'wide',
       stateCopy: {
-        submitBlockedMessage: 'Readonly mode does not allow catalog changes.',
-        submitSuccessMessage: isAddMode ? 'Product created' : 'Product saved',
+        submitBlockedMessage: t('Readonly mode does not allow catalog changes.'),
+        submitSuccessMessage: t(isAddMode ? 'Product created' : 'Product saved'),
       },
       onBackToList: () => goBackOrCloseWindow('/catalog/products'),
       onRetryDetail: () => void loadDetail(),
@@ -241,7 +249,7 @@ export const CatalogFormPage = () => {
         if (isReadonly) return
         const result = await submitFormValues(values)
         if (result.success) {
-          void message.success(isAddMode ? 'Product created' : 'Product saved')
+          void message.success(translateNow(isAddMode ? 'Product created' : 'Product saved'))
           publishRefresh({ source: 'catalog-form' })
           return
         }
@@ -250,45 +258,52 @@ export const CatalogFormPage = () => {
       sections: [
         {
           key: 'product',
-          title: 'Product',
+          title: t('Product'),
           contentWidthPreset: 'wide',
           renderFields: () => (
             <>
-              <Form.Item label="Name" name="name" rules={[{ required: true }]}>
+              <Form.Item label={t('Name')} name="name" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
               <Form.Item
-                label="Slug"
+                label={t('Slug')}
                 name="slug"
                 rules={[
                   { required: true },
-                  { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Use lowercase URL-safe text.' },
+                  {
+                    pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                    message: t('Use lowercase URL-safe text.'),
+                  },
                 ]}
               >
                 <Input />
               </Form.Item>
-              <Form.Item label="Description" name="description" rules={[{ required: true }]}>
+              <Form.Item label={t('Description')} name="description" rules={[{ required: true }]}>
                 <Input.TextArea rows={5} />
               </Form.Item>
               <Form.Item
-                label="Category slugs"
+                label={t('Category slugs')}
                 name="categorySlugs"
-                extra="Comma-separated URL-safe slugs"
+                extra={t('Comma-separated URL-safe slugs')}
               >
                 <Input placeholder="travel, luggage" />
               </Form.Item>
               <Form.Item
-                label="Collection slugs"
+                label={t('Collection slugs')}
                 name="collectionSlugs"
-                extra="Comma-separated URL-safe slugs"
+                extra={t('Comma-separated URL-safe slugs')}
               >
                 <Input placeholder="new-arrivals, summer-2026" />
               </Form.Item>
-              <Form.Item label="Publication status" name="publicationStatus" rules={[{ required: true }]}>
+              <Form.Item
+                label={t('Publication status')}
+                name="publicationStatus"
+                rules={[{ required: true }]}
+              >
                 <Select
                   options={[
-                    { label: 'Draft', value: 'draft' },
-                    { label: 'Scheduled', value: 'scheduled' },
+                    { label: t('Draft'), value: 'draft' },
+                    { label: t('Scheduled'), value: 'scheduled' },
                   ]}
                 />
               </Form.Item>
@@ -301,9 +316,9 @@ export const CatalogFormPage = () => {
                 {({ getFieldValue }) =>
                   getFieldValue('publicationStatus') === 'scheduled' ? (
                     <Form.Item
-                      label="Publish at"
+                      label={t('Publish at')}
                       name="scheduledAt"
-                      rules={[{ required: true, message: 'Choose an ISO publication time.' }]}
+                      rules={[{ required: true, message: t('Choose an ISO publication time.') }]}
                     >
                       <Input type="datetime-local" />
                     </Form.Item>
@@ -315,42 +330,54 @@ export const CatalogFormPage = () => {
         },
         {
           key: 'variant',
-          title: 'Variant and price',
+          title: t('Variant and price'),
           contentWidthPreset: 'wide',
           renderFields: () => (
             <>
               <Form.Item label="SKU" name="sku" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="Variant title" name="variantTitle" rules={[{ required: true }]}>
+              <Form.Item
+                label={t('Variant title')}
+                name="variantTitle"
+                rules={[{ required: true }]}
+              >
                 <Input />
               </Form.Item>
-              <Form.Item label="Color option" name="optionColor">
+              <Form.Item label={t('Color option')} name="optionColor">
                 <Input />
               </Form.Item>
-              <Form.Item label="Weight (grams)" name="weightGrams" rules={[{ required: true }]}>
+              <Form.Item
+                label={t('Weight (grams)')}
+                name="weightGrams"
+                rules={[{ required: true }]}
+              >
                 <InputNumber min={0} precision={0} className="w-full" />
               </Form.Item>
-              <Form.Item label="Length (mm)" name="lengthMm" rules={[{ required: true }]}>
+              <Form.Item label={t('Length (mm)')} name="lengthMm" rules={[{ required: true }]}>
                 <InputNumber min={0} precision={0} className="w-full" />
               </Form.Item>
-              <Form.Item label="Width (mm)" name="widthMm" rules={[{ required: true }]}>
+              <Form.Item label={t('Width (mm)')} name="widthMm" rules={[{ required: true }]}>
                 <InputNumber min={0} precision={0} className="w-full" />
               </Form.Item>
-              <Form.Item label="Height (mm)" name="heightMm" rules={[{ required: true }]}>
+              <Form.Item label={t('Height (mm)')} name="heightMm" rules={[{ required: true }]}>
                 <InputNumber min={0} precision={0} className="w-full" />
               </Form.Item>
               <Form.Item
-                label="Price (minor currency units)"
+                label={t('Price (minor currency units)')}
                 name="amount"
                 rules={[{ required: true }]}
               >
                 <InputNumber min={0} precision={0} className="w-full" />
               </Form.Item>
-              <Form.Item label="Currency" name="currency" rules={[{ required: true, len: 3 }]}>
+              <Form.Item label={t('Currency')} name="currency" rules={[{ required: true, len: 3 }]}>
                 <Input maxLength={3} />
               </Form.Item>
-              <Form.Item label="Price list code" name="priceListCode" rules={[{ required: true }]}>
+              <Form.Item
+                label={t('Price list code')}
+                name="priceListCode"
+                rules={[{ required: true }]}
+              >
                 <Input />
               </Form.Item>
             </>
@@ -358,22 +385,24 @@ export const CatalogFormPage = () => {
         },
         {
           key: 'media-seo',
-          title: 'Media and SEO',
+          title: t('Media and SEO'),
           contentWidthPreset: 'wide',
           renderFields: () => (
             <>
               {!isReadonly ? (
-                <Form.Item label="Catalog image" required>
+                <Form.Item label={t('Catalog image')} required>
                   <Upload
                     accept="image/jpeg,image/png,image/webp,image/gif"
                     maxCount={1}
                     beforeUpload={(file) => {
-                      if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
-                        void message.error('Only JPEG, PNG, WebP, and GIF are allowed.')
+                      if (
+                        !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)
+                      ) {
+                        void message.error(t('Only JPEG, PNG, WebP, and GIF are allowed.'))
                         return Upload.LIST_IGNORE
                       }
                       if (file.size > 10 * 1024 * 1024) {
-                        void message.error('Catalog media must not exceed 10 MiB.')
+                        void message.error(t('Catalog media must not exceed 10 MiB.'))
                         return Upload.LIST_IGNORE
                       }
                       setPendingFile(file)
@@ -381,27 +410,31 @@ export const CatalogFormPage = () => {
                       return false
                     }}
                   >
-                    <Button icon={<UploadOutlined />}>Choose image</Button>
+                    <Button icon={<UploadOutlined />}>{t('Choose image')}</Button>
                   </Upload>
                 </Form.Item>
               ) : null}
-              <Form.Item label="Media key" name="mediaKey" rules={[{ required: true }]}>
+              <Form.Item label={t('Media key')} name="mediaKey" rules={[{ required: true }]}>
                 <Input readOnly />
               </Form.Item>
-              <Form.Item label="Alt text" name="altText" rules={[{ required: true }]}>
+              <Form.Item label={t('Alt text')} name="altText" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="Image width" name="mediaWidth" rules={[{ required: true }]}>
+              <Form.Item label={t('Image width')} name="mediaWidth" rules={[{ required: true }]}>
                 <InputNumber min={1} precision={0} className="w-full" />
               </Form.Item>
-              <Form.Item label="Image height" name="mediaHeight" rules={[{ required: true }]}>
+              <Form.Item label={t('Image height')} name="mediaHeight" rules={[{ required: true }]}>
                 <InputNumber min={1} precision={0} className="w-full" />
               </Form.Item>
-              <Form.Item label="SEO title" name="seoTitle" rules={[{ required: true, max: 70 }]}>
+              <Form.Item
+                label={t('SEO title')}
+                name="seoTitle"
+                rules={[{ required: true, max: 70 }]}
+              >
                 <Input />
               </Form.Item>
               <Form.Item
-                label="SEO description"
+                label={t('SEO description')}
                 name="seoDescription"
                 rules={[{ required: true, max: 320 }]}
               >
@@ -426,6 +459,8 @@ export const CatalogFormPage = () => {
       resetFormValues,
       saveLoading,
       submitFormValues,
+      t,
+      translateNow,
     ]
   )
 

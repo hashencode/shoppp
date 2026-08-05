@@ -9,6 +9,7 @@ import {
   ListToolbarActions,
 } from '../../components/list-toolbar-actions'
 import { useTheme } from '../../contexts/theme-context'
+import { useI18n } from '../../contexts/i18n-context'
 import { useListViewPreferences } from '../../hooks/use-list-view-preferences'
 import {
   VIRTUAL_SCROLL_PAGE_SIZE_THRESHOLD,
@@ -94,6 +95,7 @@ export const StandardListPageRecipe = <
 }) => {
   const [filterForm] = Form.useForm<TFilterValues>()
   const { role, permissions } = useAuth()
+  const { locale } = useI18n()
   const { searchCompactLayout, setSearchCompactLayout } = useTheme()
   const { openFormPage } = useCrudFormNavigation(spec.formRoute)
   const [total, setTotal] = useState(0)
@@ -275,7 +277,10 @@ export const StandardListPageRecipe = <
   )
 
   const searchColProps = useMemo(() => buildSearchGridProps(visibleFieldCount), [visibleFieldCount])
-  const tablePagination = useMemo(() => buildStandardListPagination(pagination), [pagination])
+  const tablePagination = useMemo(
+    () => buildStandardListPagination(pagination, locale),
+    [locale, pagination]
+  )
 
   const virtualScroll = useMemo(
     () => ({

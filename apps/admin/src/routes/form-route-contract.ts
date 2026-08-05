@@ -25,7 +25,7 @@ export const parseFormModeParams = (searchParams: URLSearchParams): ParsedFormMo
     return {
       ok: false,
       errorCode: 'ROUTE_PARAM_INVALID',
-      message: 'mode 参数非法，仅支持 add / modify / readonly。',
+      message: 'The mode parameter must be add, modify, or readonly.',
     }
   }
 
@@ -44,7 +44,7 @@ export const parseFormModeParams = (searchParams: URLSearchParams): ParsedFormMo
     return {
       ok: false,
       errorCode: 'ROUTE_PARAM_MISSING_ID',
-      message: 'modify / readonly 模式必须携带 id 或 resourceKey。',
+      message: 'Modify and readonly modes require an id or resourceKey.',
     }
   }
 

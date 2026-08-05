@@ -1,15 +1,17 @@
 import { ConfigProvider, theme } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
 import { RouterProvider } from 'react-router-dom'
+import { useI18n } from '../shared/contexts/i18n-context'
 import { useTheme } from '../shared/contexts/theme-context'
 import { router } from './router'
+import { getAntdLocale } from './antd-locale'
 
 export const AppRouter = () => {
+  const { locale } = useI18n()
   const { resolvedTheme } = useTheme()
 
   return (
     <ConfigProvider
-      locale={zhCN}
+      locale={getAntdLocale(locale)}
       theme={{
         algorithm: resolvedTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
