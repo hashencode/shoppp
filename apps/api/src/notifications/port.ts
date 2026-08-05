@@ -1,5 +1,11 @@
 export type NotificationType =
-  "order_receipt" | "payment_failed" | "cancellation" | "refund" | "shipment";
+  | "order_receipt"
+  | "payment_failed"
+  | "cancellation"
+  | "refund"
+  | "shipment"
+  | "admin_invitation"
+  | "admin_password_reset";
 
 export interface EmailMessage {
   readonly from: string;

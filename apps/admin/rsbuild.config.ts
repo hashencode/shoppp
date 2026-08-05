@@ -19,8 +19,17 @@ export default defineConfig(({ command, envMode }) => {
   const appBasePath = normalizeAppBasePath(readPublicEnvValue(publicVars, 'PUBLIC_APP_BASE'))
   const apiProxyTarget = process.env.API_PROXY_TARGET?.trim()
 
+  if (command === 'dev' && envMode !== 'test') {
+    throw new Error('Admin development supports only --env-mode test through the test-only preflight.')
+  }
   if (command === 'dev' && !apiProxyTarget) {
-    console.warn('[rsbuild] API_PROXY_TARGET is not set, skip /api proxy in dev server.')
+    throw new Error('Admin development requires API_PROXY_TARGET.')
+  }
+  if (command === 'dev') {
+    const target = new URL(apiProxyTarget!)
+    if (target.protocol !== 'https:' || /production/i.test(target.hostname)) {
+      throw new Error('Admin development can proxy only to the HTTPS staging/test API.')
+    }
   }
 
   return {
@@ -28,9 +37,6 @@ export default defineConfig(({ command, envMode }) => {
     source: {
       entry: {
         index: './src/main.tsx',
-      },
-      define: {
-        __ENABLE_TEMPLATE_ROUTES__: command === 'dev',
       },
     },
     html: {
@@ -51,7 +57,7 @@ export default defineConfig(({ command, envMode }) => {
             '/api': {
               target: apiProxyTarget,
               changeOrigin: true,
-              secure: false,
+              secure: true,
               pathRewrite: { '^/api': '' },
             },
           },

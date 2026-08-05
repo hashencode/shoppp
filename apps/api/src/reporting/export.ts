@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { actorTypeForPrincipal } from "../iam/permissions";
 import { addCalendarDays, resolveReportingWindow } from "./revenue-metrics";
 import { listReportOrders } from "./order-metrics";
 
@@ -242,7 +243,7 @@ export async function createReportExport(
   await recordAuditEvent(context.env.DB, {
     action: "report.export.create",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     metadata: {
       currency: input.currency,
@@ -279,7 +280,7 @@ export async function getReportExport(
   const row = await loadExport(context.env.DB, id);
   if (!row) throw new ApiError(404, "report_export_not_found", "The report export was not found.");
   const principal = context.get("principal");
-  if (row.requested_by !== principal.id && principal.role !== "admin") {
+  if (row.requested_by !== principal.id && principal.role.key !== "admin") {
     throw new ApiError(403, "report_export_forbidden", "This report belongs to another operator.");
   }
   if (row.environment !== context.env.ENVIRONMENT) {
@@ -315,7 +316,7 @@ export async function downloadReportExport(
   await recordAuditEvent(context.env.DB, {
     action: "report.export.download",
     actorId: principal.id,
-    actorType: "admin",
+    actorType: actorTypeForPrincipal(principal),
     id: crypto.randomUUID(),
     metadata: {
       currency: row.currency,

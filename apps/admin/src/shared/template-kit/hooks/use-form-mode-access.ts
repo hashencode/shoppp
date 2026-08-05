@@ -12,8 +12,8 @@ type UseFormModeAccessOptions = {
   searchParams: URLSearchParams
   role: Role
   permissions?: readonly PermissionKey[]
-  readPermission?: PermissionKey
-  writePermission?: PermissionKey
+  readPermission: PermissionKey
+  writePermission: PermissionKey
 }
 
 type FormModeAccessResult = {
@@ -27,8 +27,8 @@ export const useFormModeAccess = ({
   searchParams,
   role,
   permissions,
-  readPermission = 'form.read',
-  writePermission = 'form.write',
+  readPermission,
+  writePermission,
 }: UseFormModeAccessOptions): FormModeAccessResult => {
   const parsedMode = useMemo(() => parseFormModeParams(searchParams), [searchParams])
   const modeView = useMemo(

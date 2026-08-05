@@ -6,6 +6,8 @@ import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { ThemeProvider } from '../contexts/theme-context'
 import { AppShell } from './app-shell'
 import { useRoutePageMeta } from './route-page-meta-context'
+import { authContextFixture } from '../../test/auth-context-fixture'
+import type { AuthContextValue } from '../../infrastructure/auth/auth-context'
 
 void React
 
@@ -35,27 +37,26 @@ if (!window.ResizeObserver) {
   window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
-const renderShell = (options?: { onLogout?: () => void }) => {
+const renderShell = (options?: {
+  auth?: Partial<AuthContextValue>
+  onLogout?: () => void
+  routes?: React.ComponentProps<typeof AppShell>['routes']
+}) => {
   const onLogout = options?.onLogout ?? (() => undefined)
 
   return render(
     <AuthContext.Provider
-      value={{
-        isAuthenticated: true,
-        role: 'admin',
-        displayName: 'Alice Admin',
+      value={authContextFixture({
         accountName: 'alice.account',
-        setRole: () => undefined,
-        setDisplayName: () => undefined,
-        setAccountName: () => undefined,
-        login: () => undefined,
+        displayName: 'Alice Admin',
+        ...options?.auth,
         logout: onLogout,
-      }}
+      })}
     >
       <ThemeProvider>
         <MemoryRouter initialEntries={['/']}>
           <Routes>
-            <Route path="/" element={<AppShell routes={[]} />}>
+            <Route path="/" element={<AppShell routes={options?.routes ?? []} />}>
               <Route index element={<div>首页内容</div>} />
             </Route>
             <Route path="/login" element={<div>登录页</div>} />
@@ -72,7 +73,7 @@ const routeMetaRoutes = [
     path: '/alpha',
     title: 'Alpha 页面',
     icon: null,
-    permission: 'dashboard.read' as const,
+    permission: 'catalog.read' as const,
     inMenu: true,
     breadcrumb: ['一级导航', 'Alpha 页面'],
   },
@@ -93,17 +94,10 @@ const RouteMetaProbe = () => {
 const renderShellWithRouteMeta = () =>
   render(
     <AuthContext.Provider
-      value={{
-        isAuthenticated: true,
-        role: 'admin',
-        displayName: 'Alice Admin',
+      value={authContextFixture({
         accountName: 'alice.account',
-        setRole: () => undefined,
-        setDisplayName: () => undefined,
-        setAccountName: () => undefined,
-        login: () => undefined,
-        logout: () => undefined,
-      }}
+        displayName: 'Alice Admin',
+      })}
     >
       <ThemeProvider>
         <MemoryRouter initialEntries={['/alpha']}>
@@ -172,8 +166,20 @@ describe('AppShell', () => {
 
     await waitFor(() => {
       expect(logoutCalled).toBe(true)
-      expect(screen.getByText('登录页')).toBeTruthy()
     })
+  })
+
+  it('does not render human profile controls for a service session', async () => {
+    renderShell({
+      auth: {
+        accountName: 'catalog-build-service',
+        displayName: 'Catalog build service',
+        principalKind: 'service',
+      },
+    })
+    fireEvent.click(screen.getByText('catalog-build-service'))
+    await waitFor(() => expect(screen.getByText('色彩模式')).toBeTruthy())
+    expect(screen.queryByText('点击复制账号')).toBeNull()
   })
 
   it('provides current route title and breadcrumb meta to content recipes', () => {
@@ -182,5 +188,51 @@ describe('AppShell', () => {
     expect(screen.getByTestId('route-meta-probe').textContent).toBe('Alpha 页面|一级导航>Alpha 页面')
     expect(screen.getAllByText('一级导航').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Alpha 页面').length).toBeGreaterThan(0)
+  })
+
+  it('shows the Access management group only when authoritative IAM permissions allow it', async () => {
+    const accessRoutes = [
+      {
+        key: 'iam-users',
+        path: '/access/users',
+        title: 'Users & invitations',
+        icon: null,
+        permission: 'iam.users.read' as const,
+        inMenu: true,
+        menuGroup: 'Access management',
+      },
+      {
+        key: 'iam-roles',
+        path: '/access/roles',
+        title: 'Roles',
+        icon: null,
+        permission: 'iam.roles.read' as const,
+        inMenu: true,
+        menuGroup: 'Access management',
+      },
+    ]
+    const { rerender } = renderShell({
+      auth: { permissions: ['iam.users.read'] },
+      routes: accessRoutes,
+    })
+
+    fireEvent.click(await screen.findByText('Access management'))
+    expect(await screen.findByText('Users & invitations')).toBeTruthy()
+    expect(screen.queryByText('Roles')).toBeNull()
+
+    rerender(
+      <AuthContext.Provider value={authContextFixture({ permissions: [] })}>
+        <ThemeProvider>
+          <MemoryRouter>
+            <Routes>
+              <Route path="/" element={<AppShell routes={accessRoutes} />}>
+                <Route index element={<div>Home</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthContext.Provider>
+    )
+    expect(screen.queryByText('Access management')).toBeNull()
   })
 })

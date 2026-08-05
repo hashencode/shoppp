@@ -12,10 +12,13 @@ import {
   type NotificationType,
 } from "../notifications/port";
 import {
+  renderAdminPasswordResetTemplate,
+  renderInvitationNotificationTemplate,
   renderNotificationTemplate,
   type NotificationOrderSnapshot,
   type NotificationTemplateFacts,
 } from "../notifications/templates";
+import { createSignedInvitationToken, createSignedResetToken } from "../iam/passwords";
 import type { PaymentProvider } from "../payments/port";
 import { createStripePaymentProvider } from "../payments/stripe-adapter";
 import { writeCommerceEvent } from "../observability/logger";
@@ -39,8 +42,139 @@ interface OrderFactsRow {
   public_reference: string;
 }
 
-function isNotificationType(value: string): value is NotificationType {
+type CommerceNotificationType = Exclude<
+  NotificationType,
+  "admin_invitation" | "admin_password_reset"
+>;
+
+function isNotificationType(value: string): value is CommerceNotificationType {
   return ["order_receipt", "payment_failed", "cancellation", "refund", "shipment"].includes(value);
+}
+
+async function invitationMessage(
+  db: D1Database,
+  job: ClaimedNotificationJob,
+  adminOrigin: string,
+  from: string,
+  now: string,
+  authTokenSecret: string | undefined,
+): Promise<EmailMessage> {
+  if (!authTokenSecret || authTokenSecret.length < 32) {
+    throw new EmailProviderError(
+      "account_activation_secret_missing",
+      "Account activation delivery is not configured.",
+      false,
+    );
+  }
+  const payload = JSON.parse(job.payloadJson) as { invitationId?: unknown };
+  if (typeof payload.invitationId !== "string") {
+    throw new EmailProviderError(
+      "invitation_payload_invalid",
+      "Invitation payload invalid.",
+      false,
+    );
+  }
+  const invitation = await db
+    .prepare(
+      `SELECT id, normalized_email, display_name, version, expires_at FROM admin_invitations
+        WHERE id = ? AND status = 'pending' AND expires_at > ?`,
+    )
+    .bind(payload.invitationId, now)
+    .first<{
+      display_name: string | null;
+      expires_at: string;
+      id: string;
+      normalized_email: string;
+      version: number;
+    }>();
+  if (!invitation) {
+    throw new EmailProviderError("invitation_inactive", "Invitation is no longer active.", false);
+  }
+  const rendered = renderInvitationNotificationTemplate({
+    adminOrigin,
+    displayName: invitation.display_name,
+    token: await createSignedInvitationToken(authTokenSecret, {
+      expiresAt: invitation.expires_at,
+      invitationId: invitation.id,
+      version: invitation.version,
+    }),
+  });
+  return {
+    from,
+    html: rendered.html,
+    idempotencyKey: job.deduplicationKey,
+    subject: rendered.subject,
+    text: rendered.text,
+    to: invitation.normalized_email,
+  };
+}
+
+async function passwordResetMessage(
+  db: D1Database,
+  job: ClaimedNotificationJob,
+  adminOrigin: string,
+  from: string,
+  now: string,
+  authTokenSecret: string | undefined,
+): Promise<EmailMessage> {
+  if (!authTokenSecret || authTokenSecret.length < 32) {
+    throw new EmailProviderError(
+      "password_reset_secret_missing",
+      "Password reset delivery is not configured.",
+      false,
+    );
+  }
+  const payload = JSON.parse(job.payloadJson) as { resetId?: unknown };
+  if (typeof payload.resetId !== "string") {
+    throw new EmailProviderError("password_reset_payload_invalid", "Reset payload invalid.", false);
+  }
+  const reset = await db
+    .prepare(
+      `SELECT reset.id, reset.identity_id, reset.password_version, reset.expires_at,
+              identity.normalized_email, identity.display_name
+         FROM admin_password_reset_tokens reset
+         JOIN admin_identities identity ON identity.id = reset.identity_id
+         JOIN admin_password_credentials credential ON credential.identity_id = identity.id
+         JOIN admin_roles role ON role.id = identity.role_id
+        WHERE reset.id = ? AND reset.used_at IS NULL AND reset.expires_at > ?
+          AND reset.password_version = credential.password_version
+          AND identity.enabled = 1 AND role.enabled = 1 AND role.protected = 0`,
+    )
+    .bind(payload.resetId, now)
+    .first<{
+      display_name: string;
+      expires_at: string;
+      id: string;
+      identity_id: string;
+      normalized_email: string;
+      password_version: number;
+    }>();
+  if (!reset) {
+    throw new EmailProviderError(
+      "password_reset_inactive",
+      "Reset link is no longer active.",
+      false,
+    );
+  }
+  const token = await createSignedResetToken(authTokenSecret, {
+    expiresAt: reset.expires_at,
+    identityId: reset.identity_id,
+    passwordVersion: reset.password_version,
+    resetId: reset.id,
+  });
+  const rendered = renderAdminPasswordResetTemplate({
+    adminOrigin,
+    displayName: reset.display_name,
+    token,
+  });
+  return {
+    from,
+    html: rendered.html,
+    idempotencyKey: job.deduplicationKey,
+    subject: rendered.subject,
+    text: rendered.text,
+    to: reset.normalized_email,
+  };
 }
 
 function parsePayload(value: string): {
@@ -135,11 +269,29 @@ export async function deliverNotificationJob(
   jobId: string,
   now = new Date().toISOString(),
   from = "orders@shoppp.example",
+  adminOrigin = storefrontOrigin,
+  authTokenSecret?: string,
 ): Promise<NotificationDeliveryResult> {
   const job = await claimNotificationJob(db, jobId, now);
   if (!job) return { status: await currentStatus(db, jobId) };
   const startedAt = now;
   try {
+    if (job.type === "admin_invitation") {
+      const result = await provider.send(
+        await invitationMessage(db, job, adminOrigin, from, now, authTokenSecret),
+      );
+      const completedAt = completedAtAfter(startedAt);
+      await recordAutomationSuccess(db, job, result.id, startedAt, completedAt);
+      return { status: "sent" };
+    }
+    if (job.type === "admin_password_reset") {
+      const result = await provider.send(
+        await passwordResetMessage(db, job, adminOrigin, from, now, authTokenSecret),
+      );
+      const completedAt = completedAtAfter(startedAt);
+      await recordAutomationSuccess(db, job, result.id, startedAt, completedAt);
+      return { status: "sent" };
+    }
     if (!isNotificationType(job.type)) {
       throw new EmailProviderError(
         "notification_type_invalid",
@@ -188,6 +340,8 @@ export async function deliverAutomationJob(
   now = new Date().toISOString(),
   from = "orders@shoppp.example",
   onPurchaseConfirmed?: () => void,
+  adminOrigin = storefrontOrigin,
+  authTokenSecret?: string,
 ): Promise<NotificationDeliveryResult> {
   const job = await db
     .prepare("SELECT kind FROM notification_jobs WHERE id = ?")
@@ -196,7 +350,16 @@ export async function deliverAutomationJob(
   if (job?.kind === "provider_recovery") {
     return deliverProviderRecoveryJob(db, paymentProvider, jobId, now, onPurchaseConfirmed);
   }
-  return deliverNotificationJob(db, emailProvider, storefrontOrigin, jobId, now, from);
+  return deliverNotificationJob(
+    db,
+    emailProvider,
+    storefrontOrigin,
+    jobId,
+    now,
+    from,
+    adminOrigin,
+    authTokenSecret,
+  );
 }
 
 export class NotificationDeliveryWorkflow extends WorkflowEntrypoint<
@@ -231,6 +394,8 @@ export class NotificationDeliveryWorkflow extends WorkflowEntrypoint<
               writeCommerceEvent(this.env.OBSERVABILITY, this.env.ENVIRONMENT, {
                 event: "purchase_confirmed",
               }),
+            this.env.ADMIN_ORIGIN,
+            this.env.AUTH_TOKEN_SECRET,
           ),
       );
       if (result.status !== "retry") return result;

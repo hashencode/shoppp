@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react'
+import React from 'react'
+import type { AdminPermission } from '@shoppp/contracts'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
-import { AuthProvider } from '../../infrastructure/auth/auth-context'
-import { useAuth } from '../../infrastructure/auth/use-auth'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
-import type { Role } from '../../shared/types/roles'
+import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { InventoryPage } from './inventory-page'
 
 void React
@@ -73,20 +72,13 @@ const server = setupServer(
   })
 )
 
-const SetRole = ({ role }: { role: Role }) => {
-  const auth = useAuth()
-  useEffect(() => auth.setRole(role), [auth, role])
-  return null
-}
-
-const renderPage = (role: Role) =>
+const renderPage = (permissions: readonly AdminPermission[]) =>
   render(
-    <AuthProvider>
-      <SetRole role={role} />
+    <AuthTestProvider role="inventory_operator" permissions={permissions}>
       <ThemeProvider>
         <InventoryPage />
       </ThemeProvider>
-    </AuthProvider>
+    </AuthTestProvider>
   )
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
@@ -98,7 +90,7 @@ afterAll(() => server.close())
 
 describe('InventoryPage', () => {
   it('reconciles inventory totals and exposes append-only history', async () => {
-    renderPage('viewer')
+    renderPage(['inventory.read'])
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
     expect(screen.getByText('10')).toBeTruthy()
     expect(screen.getByText('3')).toBeTruthy()
@@ -111,7 +103,7 @@ describe('InventoryPage', () => {
   })
 
   it('requires a non-zero quantity and reason before submitting an authorized adjustment', async () => {
-    renderPage('editor')
+    renderPage(['inventory.read', 'inventory.adjust'])
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Adjust' }))
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Quantity delta' }), {

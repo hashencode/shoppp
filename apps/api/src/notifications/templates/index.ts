@@ -1,5 +1,10 @@
 import type { NotificationType } from "../port";
 
+type CommerceNotificationType = Exclude<
+  NotificationType,
+  "admin_invitation" | "admin_password_reset"
+>;
+
 export interface NotificationOrderSnapshot {
   readonly currency: string;
   readonly email: string;
@@ -34,7 +39,7 @@ function money(amount: number, currency: string): string {
   return new Intl.NumberFormat("en", { currency, style: "currency" }).format(amount / 100);
 }
 
-function titleFor(type: NotificationType): string {
+function titleFor(type: CommerceNotificationType): string {
   switch (type) {
     case "order_receipt":
       return "Order confirmed";
@@ -49,7 +54,7 @@ function titleFor(type: NotificationType): string {
   }
 }
 
-function detailFor(type: NotificationType, facts: NotificationTemplateFacts): string {
+function detailFor(type: CommerceNotificationType, facts: NotificationTemplateFacts): string {
   switch (type) {
     case "order_receipt":
       return `We received your order for ${money(facts.order.grandTotal, facts.order.currency)}.`;
@@ -67,7 +72,7 @@ function detailFor(type: NotificationType, facts: NotificationTemplateFacts): st
 }
 
 export function renderNotificationTemplate(
-  type: NotificationType,
+  type: CommerceNotificationType,
   facts: NotificationTemplateFacts,
   storefrontOrigin: string,
 ): RenderedNotification {
@@ -87,5 +92,39 @@ export function renderNotificationTemplate(
     )}</p><p><a href="${escapeHtml(accessUrl)}">View your order securely</a></p>`,
     subject: `${title} · ${reference}`,
     text,
+  };
+}
+
+export function renderInvitationNotificationTemplate(input: {
+  adminOrigin: string;
+  displayName: string | null;
+  token: string;
+}): RenderedNotification {
+  const activationUrl = `${input.adminOrigin.replace(/\/$/, "")}/activate?token=${encodeURIComponent(input.token)}`;
+  const greeting = input.displayName ? `Hello ${input.displayName},` : "Hello,";
+  const subject = "Your Shoppp admin invitation";
+  return {
+    html: `<h1>${escapeHtml(subject)}</h1><p>${escapeHtml(
+      greeting,
+    )}</p><p>You have been invited to Shoppp admin.</p><p><a href="${escapeHtml(
+      activationUrl,
+    )}">Create your password</a></p>`,
+    subject,
+    text: `${greeting}\n\nYou have been invited to Shoppp admin.\n\nCreate your password: ${activationUrl}`,
+  };
+}
+
+export function renderAdminPasswordResetTemplate(input: {
+  adminOrigin: string;
+  displayName: string;
+  token: string;
+}): RenderedNotification {
+  const resetUrl = `${input.adminOrigin.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(input.token)}`;
+  const subject = "Reset your Shoppp admin password";
+  const greeting = `Hello ${input.displayName},`;
+  return {
+    html: `<h1>${escapeHtml(subject)}</h1><p>${escapeHtml(greeting)}</p><p>This link expires in 30 minutes and can be used once.</p><p><a href="${escapeHtml(resetUrl)}">Reset password</a></p>`,
+    subject,
+    text: `${greeting}\n\nThis link expires in 30 minutes and can be used once.\n\nReset password: ${resetUrl}`,
   };
 }

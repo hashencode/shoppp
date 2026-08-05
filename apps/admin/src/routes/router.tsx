@@ -1,5 +1,11 @@
-import { Navigate, createBrowserRouter, useLocation } from 'react-router-dom'
+import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '../pages/auth/login-page'
+import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
+import { ResetPasswordPage } from '../pages/auth/reset-password-page'
+import { ActivateAccountPage } from '../pages/auth/activate-account-page'
+import { ForbiddenPage } from '../pages/forbidden-page'
+import { hasPermission } from '../infrastructure/auth/permissions'
+import { useAuth } from '../infrastructure/auth/use-auth'
 import { PermissionGuard } from '../shared/components/permission-guard'
 import { RouteErrorBoundary } from '../shared/components/route-error-boundary'
 import { AppShell } from '../shared/layout/app-shell'
@@ -47,15 +53,6 @@ const validateTemplateRoutes = (routes: TemplateRoute[]): RouteIssue[] => {
   return issues
 }
 
-const toChildPath = (path: string, prefix: '/dev/' | '/template/') => {
-  const parentPath = prefix === '/dev/' ? '/dev' : '/template'
-  if (path === parentPath) {
-    return undefined
-  }
-
-  return path.startsWith(prefix) ? path.slice(prefix.length) : path
-}
-
 const toRootChildPath = (path: string) => {
   if (!path.startsWith('/')) {
     return path
@@ -64,35 +61,16 @@ const toRootChildPath = (path: string) => {
   return path.slice(1)
 }
 
+const AuthorizedHome = () => {
+  const { permissions, role } = useAuth()
+  const target = templateRoutes.find(
+    (route) => route.inMenu && hasPermission(role, route.permission, permissions)
+  )?.path
+  return target ? <Navigate to={target} replace /> : <ForbiddenPage />
+}
+
 const routeIssues = validateTemplateRoutes(templateRoutes)
 const routerOptions = APP_BASE_PATH ? { basename: APP_BASE_PATH } : undefined
-const templateRoutesEnabled =
-  typeof __ENABLE_TEMPLATE_ROUTES__ === 'undefined' || __ENABLE_TEMPLATE_ROUTES__
-const legacyTemplateRouteMap: Record<string, string> = {
-  '/dev': '/template',
-  '/dev/dashboard/analysis': '/template/dashboard/analysis',
-  '/dev/list/table': '/template/list/table',
-  '/dev/form/basic-form': '/template/list/table/form',
-  '/dev/form/step-form': '/template/form/step-form',
-  '/dev/form/advanced-form': '/template/form/advanced-form',
-  '/dev/profile/basic': '/template/profile/basic',
-  '/dev/result/success': '/template/result/success',
-  '/dev/result/fail': '/template/result/fail',
-  '/dev/exception/403': '/template/exception/403',
-  '/dev/exception/500': '/template/exception/500',
-}
-
-const LegacyDevRouteRedirect = () => {
-  const location = useLocation()
-  const target = legacyTemplateRouteMap[location.pathname]
-
-  if (!target) {
-    return templateRoutes.find((route) => route.path === '*')?.component() ?? <Navigate to="/" replace />
-  }
-
-  return <Navigate to={`${target}${location.search}${location.hash}`} replace />
-}
-
 const invalidRouter = createBrowserRouter([
   {
     path: '*',
@@ -105,67 +83,36 @@ const invalidRouter = createBrowserRouter([
   },
 ], routerOptions)
 
-const developmentRouteBranches = templateRoutesEnabled
-  ? [
-      {
-        path: '/dev',
-        element: (
-          <RequireAuth>
-            <AppShell routes={templateRoutes} />
-          </RequireAuth>
-        ),
-        children: [
-          ...templateRoutes
-            .filter((route) => route.path !== '*' && route.path.startsWith('/dev'))
-            .map((route) => ({
-              path: toChildPath(route.path, '/dev/' as const),
-              index: route.path === '/dev',
-              element: (
-                <PermissionGuard permission={route.permission}>
-                  {route.component()}
-                </PermissionGuard>
-              ),
-            })),
-          {
-            path: '*',
-            element: <LegacyDevRouteRedirect />,
-          },
-        ],
-      },
-      {
-        path: '/template',
-        element: (
-          <RequireAuth>
-            <AppShell routes={templateRoutes} />
-          </RequireAuth>
-        ),
-        children: [
-          ...templateRoutes
-            .filter((route) => route.path !== '*' && route.path.startsWith('/template'))
-            .map((route) => ({
-              path: toChildPath(route.path, '/template/' as const),
-              index: route.path === '/template',
-              element: (
-                <PermissionGuard permission={route.permission}>
-                  {route.component()}
-                </PermissionGuard>
-              ),
-            })),
-          {
-            path: '*',
-            element: templateRoutes.find((route) => route.path === '*')?.component(),
-          },
-        ],
-      },
-    ]
-  : []
-
 const validRouter = createBrowserRouter([
   {
     path: '/login',
     element: (
       <RedirectIfAuthenticated>
         <LoginPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <RedirectIfAuthenticated>
+        <ForgotPasswordPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <RedirectIfAuthenticated>
+        <ResetPasswordPage />
+      </RedirectIfAuthenticated>
+    ),
+  },
+  {
+    path: '/activate',
+    element: (
+      <RedirectIfAuthenticated>
+        <ActivateAccountPage />
       </RedirectIfAuthenticated>
     ),
   },
@@ -179,7 +126,7 @@ const validRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/catalog/products" replace />,
+        element: <AuthorizedHome />,
       },
       ...templateRoutes
         .filter(
@@ -191,7 +138,6 @@ const validRouter = createBrowserRouter([
         })),
     ],
   },
-  ...developmentRouteBranches,
   {
     path: '*',
     element: <Navigate to="/" replace />,

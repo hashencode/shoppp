@@ -55,12 +55,11 @@ The plan remains the read-only authority.
   `80ad04a6-9442-4eaf-ab27-5d04d0efa7b6`, admin version
   `8251e793-b817-4663-b24b-8320bd60b9a3`, and storefront version
   `e81ce49a-24a8-4e55-a0c2-362618b95246` are restored at 100%.
-  Cloudflare Access protects the admin with a Service Auth policy: an allowlisted service token
-  reaches `/api/admin/session` as the seeded `admin` identity, while both anonymous traffic and a
-  second non-allowlisted service token receive 403. The API verifies the real service-token JWT
-  shape (`type=app`, stable `common_name`) against the configured Access issuer and audience using
-  the rotating remote JWKS endpoint; unknown signing key IDs trigger a refresh, and focused tests
-  cover malformed service identities and key rotation.
+  The administrator application now authenticates humans with email/password and an opaque
+  `HttpOnly` session. Automation uses an independently provisioned Bearer credential whose SHA-256
+  hash is stored in D1; anonymous and non-allowlisted credentials are denied. Run `30917790730`
+  reproved the public human and authorized/prohibited service paths after the former external
+  identity proxy application was deleted.
 - Staging contains a deployable Atlas Carry-on commercial-journey fixture with USD/EUR prices,
   exactly one unit of inventory, US shipping, an R2-hosted media asset, launch configuration, and
   the deployed immutable catalog release `representative-release-2026-07-30`. The live product API,
@@ -83,7 +82,7 @@ The plan remains the read-only authority.
   by Cloudflare Email Service for the verified launch destination with one successful attempt and
   no recorded error.
 - The GitHub `staging` environment contains the three application URLs, immutable release ID,
-  build-manifest token, Cloudflare account ID, authorized/prohibited Access credentials, and an
+  build-manifest token, Cloudflare account ID, authorized/prohibited application service credentials, and an
   active one-year account-owned Cloudflare API token with Workers, D1, R2, and Queue deployment
   permissions. Secrets were written directly to GitHub/Worker secret stores and are not committed.
 - Stripe test-mode secret and webhook signing credentials are stored only as Worker secrets. The
@@ -135,8 +134,8 @@ The plan remains the read-only authority.
   timeout, concurrent same-result convergence, an atomic machine audit, and CI failure/deployed
   reporting. Shipping settings have complete contract/API/admin coverage, atomic reason audit, and
   a fail-closed migration guarding insert, update, and zone-activation country conflicts.
-- Production admin authentication now ignores template credentials and derives the session from
-  Cloudflare Access. The API-provided permission set is authoritative in navigation, guards, forms,
+- Production-ready admin authentication ignores template credentials and derives the session from
+  application-owned password authentication. The API-provided permission set is authoritative in navigation, guards, forms,
   and actions; stale session requests cannot restore a logged-out session.
 - Privacy-safe funnel events record normalized page class, cart creation, checkout start, and
   provider-confirmed purchase without identifiers. Both webhook and queued provider-recovery paths

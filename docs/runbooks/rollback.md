@@ -3,7 +3,7 @@
 ## When to roll back
 
 Rollback immediately for purchase failure, inventory oversell, duplicate order/payment effects,
-invalid static HTML, broken Access protection, cross-environment traffic, sustained error-budget
+invalid static HTML, broken administrator authentication, cross-environment traffic, sustained error-budget
 breach, or a migration that makes the deployed application unsafe. Stop catalog publication while
 the incident is active.
 
@@ -31,6 +31,24 @@ clients, roll back API first to a backward-compatible version, then admin and st
 `/health`, one public product, a cart quote, the protected admin entry, security/cache headers, and
 the release identifier after every rollback.
 
+An application rollback does not undo IAM data or migrations. After an admin/API rollback, verify
+one real-human session, one service session, the enabled protected-human count, effective role
+permissions, and recent IAM audit events. If the older code cannot safely interpret the current IAM
+schema, roll forward with a compatibility fix; do not reverse migration `0012_admin_iam.sql`.
+
+Do not activate a pre-password-auth API during a rehearsal unless that rollback package can
+independently prove a protected administrator session. Migration `0013_admin_password_auth.sql` is
+additive, but its password sessions and service
+credentials are not usable by the older Worker. Without a verified old authentication path, a
+code-only rollback can leave public health green while administrators are locked out. The staging
+gate therefore verifies saved rollback artifacts without activating that incomplete rollback path.
+
+Migration `0012_admin_iam.sql` retains trigger-maintained legacy `email` and `role` compatibility
+columns so the immediately preceding API version can still authenticate seeded roles during the
+release rollback window. New code treats `principal_kind`, `normalized_email`, and `role_id` as
+authoritative. Remove the compatibility columns only in a later approved migration after no
+rollback target reads them and a subsequent release has rehearsed that boundary.
+
 ## Failed catalog publication
 
 A failed storefront build never deploys. Leave the last-known-good storefront version serving,
@@ -46,8 +64,11 @@ commerce facts. For a destructive or corrupting migration:
 1. disable writes and preserve the affected database;
 2. follow `d1-backup-restore.md` to restore the last verified export into a new isolated D1 database;
 3. reconcile order, payment, refund, inventory, audit, outbox, and idempotency totals;
-4. bind a non-production Worker to the restored database and run the verification contract;
-5. obtain incident commander and data owner approval before changing a production binding.
+4. additionally reconcile every admin identity by stable ID and role equivalence, all actor foreign
+   keys, invitation/audit history, at least one enabled protected human, `PRAGMA quick_check`, and
+   zero `PRAGMA foreign_key_check` rows;
+5. bind a non-production Worker to the restored database and run the verification contract;
+6. obtain incident commander and data owner approval before changing a production binding.
 
 Record start/end time, actor, reason, old and restored version IDs, backup ID, verification evidence,
 customer impact, and follow-up action. Confirm alerts fire during the rehearsal and resolve only

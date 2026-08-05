@@ -3,6 +3,7 @@ interface Fetcher {
 }
 
 interface Environment {
+  ADMIN_HOSTNAME: string;
   API: Fetcher;
   ASSETS: Fetcher;
 }

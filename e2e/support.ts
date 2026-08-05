@@ -9,8 +9,7 @@ export function requiredEnvironment(name: string): string {
 export function accessHeaders(kind: "authorized" | "prohibited" = "authorized") {
   const prefix = kind === "authorized" ? "" : "PROHIBITED_";
   return {
-    "CF-Access-Client-Id": requiredEnvironment(`E2E_${prefix}CF_ACCESS_CLIENT_ID`),
-    "CF-Access-Client-Secret": requiredEnvironment(`E2E_${prefix}CF_ACCESS_CLIENT_SECRET`),
+    Authorization: `Bearer ${requiredEnvironment(`E2E_${prefix}ADMIN_SERVICE_TOKEN`)}`,
   };
 }
 
@@ -23,12 +22,7 @@ export async function adminContext(
   browser: Browser,
   kind: "authorized" | "prohibited" = "authorized",
 ): Promise<BrowserContext> {
-  const context = await browser.newContext({ extraHTTPHeaders: accessHeaders(kind) });
-  await context.addInitScript((operator) => {
-    window.localStorage.setItem("codex-admin-auth", "1");
-    window.localStorage.setItem("codex-admin-account", operator);
-  }, process.env.E2E_OPERATOR_EMAIL ?? kind);
-  return context;
+  return browser.newContext({ extraHTTPHeaders: accessHeaders(kind) });
 }
 
 export async function fillShippingAddress(page: Page): Promise<void> {

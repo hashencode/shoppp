@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from '@rstest/core'
 
 const listPlaywrightTests = (env: NodeJS.ProcessEnv) =>
@@ -9,14 +10,15 @@ const listPlaywrightTests = (env: NodeJS.ProcessEnv) =>
   })
 
 describe('Playwright config', () => {
-  it('rejects invalid environment modes', () => {
-    const result = listPlaywrightTests({ ...process.env, E2E_ENV_MODE: 'invalid' })
-    expect(result.status).not.toBe(0)
-    expect(`${result.stdout}${result.stderr}`).toContain('E2E_ENV_MODE 仅支持')
+  it('previews the already-built candidate without invoking a development auth workflow', () => {
+    const source = readFileSync('playwright.config.ts', 'utf8')
+    expect(source).toContain('bunx rsbuild preview')
+    expect(source).not.toContain('E2E_ENV_MODE')
+    expect(source).not.toMatch(/dev:(?:test|development|production)/)
   })
 
   it('discovers the runnable smoke without executing templates', () => {
-    const result = listPlaywrightTests({ ...process.env, E2E_ENV_MODE: 'test' })
+    const result = listPlaywrightTests(process.env)
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('scaffold-smoke.spec.ts')
     expect(result.stdout).not.toContain('templates/new-flow')

@@ -1,12 +1,8 @@
 import {
-  BarChartOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   DatabaseOutlined,
   ExclamationCircleOutlined,
   FormOutlined,
   FileTextOutlined,
-  ProfileOutlined,
   ReloadOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
@@ -15,8 +11,8 @@ import {
   SafetyCertificateOutlined,
   SettingOutlined,
   GlobalOutlined,
-  SmileOutlined,
-  TableOutlined,
+  TeamOutlined,
+  KeyOutlined,
 } from '@ant-design/icons'
 import { createElement, type ReactNode } from 'react'
 import { type PermissionKey } from '../infrastructure/auth/permissions'
@@ -243,218 +239,70 @@ const commerceRoutes: TemplateRoute[] = [
         }))
       ),
   },
+  {
+    key: 'iam-users',
+    path: '/access/users',
+    title: 'Users & invitations',
+    icon: createElement(TeamOutlined),
+    permission: 'iam.users.read',
+    inMenu: true,
+    menuGroup: 'Access management',
+    breadcrumb: ['Access management', 'Users & invitations'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/users-page').then((m) => ({ default: m.UsersPage }))
+      ),
+  },
+  {
+    key: 'iam-user-detail',
+    path: '/access/users/:id',
+    title: 'User access',
+    icon: createElement(TeamOutlined),
+    permission: 'iam.users.read',
+    inMenu: false,
+    breadcrumb: ['Access management', 'Users & invitations', 'User access'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/user-detail-page').then((m) => ({ default: m.UserDetailPage }))
+      ),
+  },
+  {
+    key: 'iam-roles',
+    path: '/access/roles',
+    title: 'Roles',
+    icon: createElement(KeyOutlined),
+    permission: 'iam.roles.read',
+    inMenu: true,
+    menuGroup: 'Access management',
+    breadcrumb: ['Access management', 'Roles'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/roles-page').then((m) => ({ default: m.RolesPage }))
+      ),
+  },
+  {
+    key: 'iam-role-detail',
+    path: '/access/roles/:id',
+    title: 'Role',
+    icon: createElement(KeyOutlined),
+    permission: 'iam.roles.read',
+    inMenu: false,
+    breadcrumb: ['Access management', 'Roles', 'Role'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/iam/role-detail-page').then((m) => ({ default: m.RoleDetailPage }))
+      ),
+  },
 ]
-
-const templateRoutesEnabled =
-  typeof __ENABLE_TEMPLATE_ROUTES__ !== 'undefined' && __ENABLE_TEMPLATE_ROUTES__
-const developmentTemplateRoutes: TemplateRoute[] = templateRoutesEnabled
-  ? [
-  {
-    key: 'welcome',
-    path: '/template',
-    title: '欢迎',
-    icon: createElement(SmileOutlined),
-    permission: 'dashboard.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))
-      ),
-  },
-  {
-    key: 'analysis',
-    path: '/template/dashboard/analysis',
-    title: '仪表盘',
-    icon: createElement(BarChartOutlined),
-    permission: 'dashboard.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/dashboard/analysis-page').then((m) => ({
-          default: m.AnalysisPage,
-        }))
-      ),
-  },
-  {
-    key: 'table-query',
-    path: '/template/list/table',
-    title: '查询列表',
-    icon: createElement(TableOutlined),
-    permission: 'list.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/list/table-query-page').then((m) => ({
-          default: m.TableQueryPage,
-        }))
-      ),
-  },
-  {
-    key: 'list-prompt-generator',
-    path: '/dev/list/prompt-generator',
-    title: '列表提示词生成',
-    icon: createElement(TableOutlined),
-    permission: 'list.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/list/list-prompt-generator-page').then((m) => ({
-          default: m.ListPromptGeneratorPage,
-        }))
-      ),
-  },
-  {
-    key: 'basic-form',
-    path: '/template/list/table/form',
-    title: '基础表单',
-    icon: createElement(FormOutlined),
-    permission: 'form.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['表单页', '基础表单'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/form/basic-form-page').then((m) => ({
-          default: m.BasicFormPage,
-        }))
-      ),
-  },
-  {
-    key: 'step-form',
-    path: '/template/form/step-form',
-    title: '分步表单',
-    icon: createElement(FormOutlined),
-    permission: 'form.write',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['表单页', '分步表单'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/form/step-form-page').then((m) => ({ default: m.StepFormPage }))
-      ),
-  },
-  {
-    key: 'advanced-form',
-    path: '/template/form/advanced-form',
-    title: '高级表单',
-    icon: createElement(FormOutlined),
-    permission: 'form.write',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['表单页', '高级表单'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/form/advanced-form-page').then((m) => ({
-          default: m.AdvancedFormPage,
-        }))
-      ),
-  },
-  {
-    key: 'basic-profile',
-    path: '/template/profile/basic',
-    title: '详情页',
-    icon: createElement(ProfileOutlined),
-    permission: 'profile.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/profile/basic-profile-page').then((m) => ({
-          default: m.BasicProfilePage,
-        }))
-      ),
-  },
-  {
-    key: 'result-success',
-    path: '/template/result/success',
-    title: '成功页',
-    icon: createElement(CheckCircleOutlined),
-    permission: 'result.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['结果页', '成功页'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/dashboard/result-success-page').then((m) => ({
-          default: m.ResultSuccessPage,
-        }))
-      ),
-  },
-  {
-    key: 'result-fail',
-    path: '/template/result/fail',
-    title: '失败页',
-    icon: createElement(CloseCircleOutlined),
-    permission: 'result.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['结果页', '失败页'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/dashboard/result-fail-page').then((m) => ({
-          default: m.ResultFailPage,
-        }))
-      ),
-  },
-  {
-    key: 'exception-403',
-    path: '/template/exception/403',
-    title: '403',
-    icon: createElement(ExclamationCircleOutlined),
-    permission: 'exception.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['异常页', '403'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/exception/forbidden-page').then((m) => ({
-          default: m.ForbiddenPage,
-        }))
-      ),
-  },
-  {
-    key: 'exception-500',
-    path: '/template/exception/500',
-    title: '500',
-    icon: createElement(ExclamationCircleOutlined),
-    permission: 'exception.read',
-    inMenu: true,
-    menuVisibility: 'dev-only',
-    menuGroup: 'Template',
-    breadcrumb: ['异常页', '500'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/templates/exception/server-error-page').then((m) => ({
-          default: m.ServerErrorPage,
-        }))
-      ),
-  },
-    ]
-  : []
 
 export const templateRoutes: TemplateRoute[] = [
   ...commerceRoutes,
-  ...developmentTemplateRoutes,
   {
     key: 'exception-404',
     path: '*',
     title: '404',
     icon: createElement(ExclamationCircleOutlined),
-    permission: 'exception.read',
+    permission: 'catalog.read',
     inMenu: false,
     breadcrumb: ['异常页', '404'],
     component: () =>

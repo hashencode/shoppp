@@ -3,8 +3,9 @@ import type { NotificationWorkflowPayload } from "../automation/workflows";
 import type { Principal } from "../iam/permissions";
 
 export interface ApiBindings {
-  ACCESS_AUDIENCE: string;
-  ACCESS_ISSUER: string;
+  AUTH_TOKEN_SECRET?: string;
+  ADMIN_ORIGIN: string;
+  ADMIN_DEVELOPMENT_ORIGIN?: string;
   ANALYTICS_RATE_LIMITER?: RateLimit;
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW?: Workflow;

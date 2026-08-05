@@ -66,6 +66,33 @@ describe("release validation", () => {
         backupId: "backup\ninjected=true",
       }),
     ).rejects.toThrow(/unsafe characters/);
+    await expect(
+      assertProductionApproval({
+        target: "production",
+        commit: "abc",
+        approvedBy: "operator",
+        backupId: "backup-001",
+      }),
+    ).rejects.toThrow(/RELEASE_HUMAN_ACCESS_EVIDENCE_ID/);
+    await expect(
+      assertProductionApproval({
+        target: "production",
+        commit: "abc",
+        approvedBy: "operator",
+        backupId: "backup-001",
+        humanAccessEvidenceId: "proof-001",
+      }),
+    ).rejects.toThrow(/RELEASE_HUMAN_ACCESS_APPROVED_BY/);
+    await expect(
+      assertProductionApproval({
+        target: "production",
+        commit: "abc",
+        approvedBy: "operator",
+        backupId: "backup-001",
+        humanAccessApprovedBy: "reviewer",
+        humanAccessEvidenceId: "proof\ninjected=true",
+      }),
+    ).rejects.toThrow(/human access evidence ID contains unsafe characters/);
   });
 
   test("strict staging builds fetch the selected immutable catalog release", () => {

@@ -7,7 +7,7 @@ import storefrontWorker, {
 import { adminApiUrl } from "../e2e/support";
 
 describe("environment-neutral API gateways", () => {
-  test("staging admin proofs use the Access-protected same-origin API gateway", () => {
+  test("staging admin proofs use the same-origin API gateway", () => {
     const previous = process.env.ADMIN_E2E_BASE_URL;
     process.env.ADMIN_E2E_BASE_URL = "https://admin.staging.example.test/";
     try {

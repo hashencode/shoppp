@@ -2,24 +2,28 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { AuthContext } from '../infrastructure/auth/auth-context'
+import { AuthContext, type AuthContextValue } from '../infrastructure/auth/auth-context'
 import { RedirectIfAuthenticated, RequireAuth } from './auth-route-guards'
 
 void React
 
-const renderWithAuth = (isAuthenticated: boolean, entry: string) =>
+const renderWithAuth = (status: AuthContextValue['status'], entry: string) =>
   render(
     <AuthContext.Provider
       value={{
-        isAuthenticated,
-        role: 'admin',
-        displayName: '管理员',
-        accountName: 'admin',
-        setRole: () => undefined,
-        setDisplayName: () => undefined,
-        setAccountName: () => undefined,
-        login: () => undefined,
+        accountName: '',
+        displayName: '',
+        isAuthenticated: status === 'authenticated',
+        isLoading: status === 'loading',
+        login: async () => undefined,
         logout: () => undefined,
+        permissions: undefined,
+        principalKind: undefined,
+        refreshSession: async () => undefined,
+        role: 'unauthenticated',
+        session: null,
+        sessionError: null,
+        status,
       }}
     >
       <MemoryRouter initialEntries={[entry]}>
@@ -36,7 +40,7 @@ const renderWithAuth = (isAuthenticated: boolean, entry: string) =>
             path="/login"
             element={
               <RedirectIfAuthenticated>
-                <div>LOGIN_PAGE</div>
+                <div>ACCESS_STATE_PAGE</div>
               </RedirectIfAuthenticated>
             }
           />
@@ -47,15 +51,21 @@ const renderWithAuth = (isAuthenticated: boolean, entry: string) =>
   )
 
 describe('auth-route-guards', () => {
-  it('redirects anonymous users to login when visiting protected route', () => {
-    renderWithAuth(false, '/protected')
-
-    expect(screen.getByText('LOGIN_PAGE')).toBeTruthy()
+  it('renders a loading state while verifying the session', () => {
+    renderWithAuth('loading', '/protected')
+    expect(screen.getByRole('status')).toBeTruthy()
   })
 
-  it('redirects authenticated users away from login', () => {
-    renderWithAuth(true, '/login')
+  it.each(['login-required', 'disabled', 'forbidden'] as const)(
+    'redirects %s sessions to the login page',
+    (status) => {
+      renderWithAuth(status, '/protected')
+      expect(screen.getByText('ACCESS_STATE_PAGE')).toBeTruthy()
+    }
+  )
 
+  it('redirects authenticated users away from the login page', () => {
+    renderWithAuth('authenticated', '/login')
     expect(screen.getByText('HOME_PAGE')).toBeTruthy()
   })
 })

@@ -2,23 +2,13 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { createApp } from "../../src/http/app";
-
-const NOW = "2026-07-30T00:00:00.000Z";
-
-async function seedOperator(role: string, subject: string): Promise<void> {
-  await env.DB.prepare(
-    `INSERT INTO admin_identities
-      (id, access_subject, email, display_name, role, enabled, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-  )
-    .bind(`admin-${subject}`, subject, `${subject}@example.test`, subject, role, NOW, NOW)
-    .run();
-}
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 function appFor(subject: string) {
   return createApp({
-    accessVerifier: async () => ({
+    testIdentityVerifier: async () => ({
       email: `${subject}@example.test`,
+      principalKind: "human",
       subject,
     }),
   });
@@ -28,8 +18,10 @@ function request(path: string, body?: unknown, idempotencyKey?: string): Request
   return new Request(`https://api.example.test${path}`, {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     method: body === undefined ? "GET" : path.endsWith("/zones") ? "POST" : "PUT",
@@ -78,7 +70,12 @@ describe("shipping settings", () => {
       env.DB.prepare("DELETE FROM shipping_zones"),
       env.DB.prepare("DELETE FROM admin_identities"),
     ]);
-    await seedOperator("admin", "shipping-admin");
+    await seedHumanAdmin(env.DB, {
+      email: "shipping-admin@example.test",
+      id: "admin-shipping-admin",
+      roleId: ADMIN_ROLE_IDS.admin,
+      subject: "shipping-admin",
+    });
   });
 
   test("creates, lists, and atomically updates a reasoned shipping zone", async () => {
@@ -188,7 +185,12 @@ describe("shipping settings", () => {
       ).status,
     ).toBe(409);
 
-    await seedOperator("support", "shipping-support");
+    await seedHumanAdmin(env.DB, {
+      email: "shipping-support@example.test",
+      id: "admin-shipping-support",
+      roleId: ADMIN_ROLE_IDS.support,
+      subject: "shipping-support",
+    });
     expect(
       (await appFor("shipping-support").fetch(request("/admin/settings/shipping"), env)).status,
     ).toBe(403);

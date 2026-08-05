@@ -1,0 +1,47 @@
+import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { resolveAdminDevelopmentConfig, verifyAdminDevelopmentContract } from "./dev-admin";
+
+const environment = () => ({
+  PRODUCTION_D1_DATABASE_ID: "production-database-id",
+  TEST_API_ORIGIN: "https://shoppp-api-staging.example.com",
+  TEST_D1_DATABASE_ID: "test-database-id",
+});
+
+describe("password-authenticated admin development preflight", () => {
+  test.each(["PRODUCTION_D1_DATABASE_ID", "TEST_API_ORIGIN", "TEST_D1_DATABASE_ID"])(
+    "fails closed when %s is missing",
+    (name) => {
+      const fixture = environment();
+      delete fixture[name as keyof typeof fixture];
+      expect(() => resolveAdminDevelopmentConfig(fixture)).toThrow(name);
+    },
+  );
+
+  test("rejects production targets and shared databases", () => {
+    const production = environment();
+    production.TEST_API_ORIGIN = "https://shoppp-api-production.example.com";
+    expect(() => resolveAdminDevelopmentConfig(production)).toThrow(/production/i);
+    const shared = environment();
+    shared.TEST_D1_DATABASE_ID = shared.PRODUCTION_D1_DATABASE_ID;
+    expect(() => resolveAdminDevelopmentConfig(shared)).toThrow(/database/i);
+  });
+
+  test("binds local development only to the repository test API and D1", async () => {
+    const canonical = environment();
+    canonical.TEST_API_ORIGIN = "https://shoppp-api-staging.hashencode.workers.dev";
+    canonical.TEST_D1_DATABASE_ID = "0c84c9e0-5ef1-4897-815e-5ec7efb7582e";
+    await expect(
+      verifyAdminDevelopmentContract(resolveAdminDevelopmentConfig(canonical)),
+    ).resolves.toBeUndefined();
+  });
+
+  test("exposes one normal test-only development script with no external tunnel", async () => {
+    const packageJson = JSON.parse(
+      await readFile(resolve(import.meta.dir, "../apps/admin/package.json"), "utf8"),
+    ) as { scripts: Record<string, string> };
+    expect(packageJson.scripts.dev).toBe("bun --env-file=../../.env ../../tools/dev-admin.ts");
+    expect(JSON.stringify(packageJson.scripts)).not.toMatch(/cloudflared|tunnel/i);
+  });
+});

@@ -4,20 +4,11 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
 import { createApp } from "../../src/http/app";
+import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 const NOW = "2026-07-30T00:00:00.000Z";
 const WINDOW_QUERY =
   "currency=USD&startDate=2026-07-29&endDate=2026-07-29&timeZone=America%2FNew_York";
-
-async function seedOperator(role: string, subject: string): Promise<void> {
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO admin_identities
-       (id, access_subject, email, display_name, role, enabled, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-  )
-    .bind(`admin-${subject}`, subject, `${subject}@example.test`, subject, role, NOW, NOW)
-    .run();
-}
 
 async function seedReportingOrder(input: {
   amount: number;
@@ -88,8 +79,9 @@ async function seedReportingOrder(input: {
 
 function appFor(subject: string) {
   return createApp({
-    accessVerifier: async () => ({
+    testIdentityVerifier: async () => ({
       email: `${subject}@example.test`,
+      principalKind: "human",
       subject,
     }),
   });
@@ -99,8 +91,10 @@ function request(path: string, init: RequestInit = {}) {
   return new Request(`https://api.example.test${path}`, {
     ...init,
     headers: {
-      "Cf-Access-Jwt-Assertion": "test-token",
+      "X-Test-Admin-Identity": "test-token",
       "Content-Type": "application/json",
+      Origin: "https://admin.example.test",
+      "Sec-Fetch-Site": "same-origin",
       ...init.headers,
     },
   });
@@ -110,9 +104,24 @@ let exportId = "";
 
 beforeAll(async () => {
   await seedLaunchFixture(env.DB);
-  await seedOperator("analyst", "report-analyst");
-  await seedOperator("analyst", "other-analyst");
-  await seedOperator("support", "report-support");
+  await seedHumanAdmin(env.DB, {
+    email: "report-analyst@example.test",
+    id: "admin-report-analyst",
+    roleId: ADMIN_ROLE_IDS.analyst,
+    subject: "report-analyst",
+  });
+  await seedHumanAdmin(env.DB, {
+    email: "other-analyst@example.test",
+    id: "admin-other-analyst",
+    roleId: ADMIN_ROLE_IDS.analyst,
+    subject: "other-analyst",
+  });
+  await seedHumanAdmin(env.DB, {
+    email: "report-support@example.test",
+    id: "admin-report-support",
+    roleId: ADMIN_ROLE_IDS.support,
+    subject: "report-support",
+  });
   const partialOrderId = await seedReportingOrder({
     amount: 2_500,
     paymentStatus: "partially_refunded",

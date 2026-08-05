@@ -6,6 +6,7 @@ import { setupServer } from 'msw/node'
 import { MemoryRouter, Routes } from 'react-router-dom'
 import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { AuthProvider } from '../../infrastructure/auth/auth-context'
+import { authContextFixture } from '../auth-context-fixture'
 import { templateHandlers } from '../../infrastructure/msw/handlers/template-handlers'
 // import { XxxManagementPage } from '../../pages/<domain>/<page>/xxx-management-page'
 // import { XxxFormPage } from '../../pages/<domain>/<page>/xxx-form-page'
@@ -44,21 +45,16 @@ const renderFormPage = (entry: string) =>
     </MemoryRouter>
   )
 
-const renderListPageWithViewerRole = () =>
+const renderListPageWithReadOnlyPermissions = () =>
   render(
     <MemoryRouter>
       <AuthContext.Provider
-        value={{
-          isAuthenticated: true,
-          role: 'viewer',
-          displayName: '访客',
+        value={authContextFixture({
           accountName: 'guest',
-          setRole: () => undefined,
-          setDisplayName: () => undefined,
-          setAccountName: () => undefined,
-          login: () => undefined,
-          logout: () => undefined,
-        }}
+          displayName: '访客',
+          permissions: ['catalog.read'],
+          role: 'read_only_operator',
+        })}
       >
         {/* <XxxManagementPage /> */}
       </AuthContext.Provider>
@@ -136,8 +132,8 @@ describe('XxxManagementPage', () => {
     })
   })
 
-  it('should hide write actions when role is viewer', async () => {
-    renderListPageWithViewerRole()
+  it('should hide write actions when authoritative write permission is absent', async () => {
+    renderListPageWithReadOnlyPermissions()
 
     await waitFor(() => {
       // expect(screen.getByText('示例记录')).toBeTruthy()

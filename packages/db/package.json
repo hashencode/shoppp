@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@shoppp/contracts": "workspace:*",
     "@shoppp/domain": "workspace:*",
     "drizzle-orm": "0.45.2"
   },

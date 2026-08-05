@@ -130,6 +130,7 @@
       "name": "@shoppp/db",
       "version": "0.0.0",
       "dependencies": {
+        "@shoppp/contracts": "workspace:*",
         "@shoppp/domain": "workspace:*",
         "drizzle-orm": "0.45.2",
       },

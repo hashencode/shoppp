@@ -6,6 +6,7 @@ import {
   dispatchPendingNotifications,
 } from "./automation/queue-consumer";
 import { startScheduledD1Backup } from "./operations/d1-backup";
+import { cleanupExpiredAdminAuthState } from "./iam/password-auth";
 
 export { NotificationDeliveryWorkflow } from "./automation/workflows";
 export { D1BackupWorkflow } from "./operations/d1-backup";
@@ -24,6 +25,7 @@ export default {
       return;
     }
     await expireDueReservations(env.DB);
+    await cleanupExpiredAdminAuthState(env.DB, new Date(controller.scheduledTime));
     if (env.NOTIFICATION_QUEUE) {
       await dispatchPendingNotifications(env.DB, env.NOTIFICATION_QUEUE);
     }

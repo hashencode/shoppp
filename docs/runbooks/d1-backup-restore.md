@@ -48,6 +48,11 @@ Never restore over staging or production. Create a disposable D1 database whose 
 `staging-restore`, download a selected staging SQL object from R2 through an approved operator
 session, and import it:
 
+This is a time-bounded recovery target, not a third shared environment. It must never be referenced
+by Wrangler environment configuration, local development, CI, or a standing Worker binding.
+Record its owner and deletion deadline before creation; delete it after the reviewed drill. The only
+shared remote databases remain the test `shoppp-staging` D1 and production `shoppp-production` D1.
+
 ```sh
 cd apps/api
 bunx wrangler d1 create shoppp-staging-restore-YYYYMMDD

@@ -1,23 +1,26 @@
 import { describe, expect, test } from "bun:test";
-import { verifySnapshots } from "./verify-environment-isolation";
+import { loadSnapshots, verifySnapshots } from "./verify-environment-isolation";
 
 function snapshots() {
   return [
     {
+      adminHostname: "admin.staging.example.com",
       environment: "staging" as const,
       applicationNames: ["shoppp-api-staging", "shoppp-admin-staging", "shoppp-storefront-staging"],
       resourceIdentifiers: ["shoppp-staging", "staging-db-id", "staging-bucket"],
+      remoteDatabaseIdentities: ["staging-db-id::shoppp-staging"],
       endpointValues: [
         "https://api.staging.example.com",
         "https://shop.staging.example.com",
         "https://shop.staging.example.com/checkout",
       ],
       apiVariables: {
-        ACCESS_AUDIENCE: "staging-access-audience",
+        ADMIN_ORIGIN: "https://admin.staging.example.com",
         CLOUDFLARE_ACCOUNT_ID: "shared-cloudflare-account",
         D1_DATABASE_ID: "staging-db-id",
         ENVIRONMENT: "staging",
         RESOURCE_NAMESPACE: "shoppp-staging",
+        SERVICE_CREDENTIAL_REF: "staging-service-credential",
         TURNSTILE_REQUIRED: "true",
         TURNSTILE_SITE_KEY: "staging-site-key",
         TURNSTILE_TEST_MODE: "false",
@@ -27,6 +30,7 @@ function snapshots() {
       },
     },
     {
+      adminHostname: "admin.example.com",
       environment: "production" as const,
       applicationNames: [
         "shoppp-api-production",
@@ -34,17 +38,19 @@ function snapshots() {
         "shoppp-storefront-production",
       ],
       resourceIdentifiers: ["shoppp-production", "production-db-id", "production-bucket"],
+      remoteDatabaseIdentities: ["production-db-id::shoppp-production"],
       endpointValues: [
         "https://api.example.com",
         "https://shop.example.com",
         "https://shop.example.com/checkout",
       ],
       apiVariables: {
-        ACCESS_AUDIENCE: "production-access-audience",
+        ADMIN_ORIGIN: "https://admin.example.com",
         CLOUDFLARE_ACCOUNT_ID: "shared-cloudflare-account",
         D1_DATABASE_ID: "production-db-id",
         ENVIRONMENT: "production",
         RESOURCE_NAMESPACE: "shoppp-production",
+        SERVICE_CREDENTIAL_REF: "production-service-credential",
         TURNSTILE_REQUIRED: "true",
         TURNSTILE_SITE_KEY: "production-site-key",
         TURNSTILE_TEST_MODE: "false",
@@ -57,6 +63,14 @@ function snapshots() {
 }
 
 describe("environment isolation", () => {
+  test("repository config resolves to exactly the test and production remote D1 identities", async () => {
+    const actual = await loadSnapshots();
+    expect(actual.map(({ remoteDatabaseIdentities }) => remoteDatabaseIdentities)).toEqual([
+      ["0c84c9e0-5ef1-4897-815e-5ec7efb7582e::shoppp-staging"],
+      ["e17ef1dc-d87c-40c7-b218-e4827d815168::shoppp-production"],
+    ]);
+  });
+
   test("accepts distinct staging and production resources", () => {
     expect(() => verifySnapshots(snapshots())).not.toThrow();
   });
@@ -69,19 +83,59 @@ describe("environment isolation", () => {
     expect(() => verifySnapshots(fixture)).not.toThrow();
   });
 
-  test.each(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ACCESS_AUDIENCE"])(
+  test.each(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ADMIN_ORIGIN", "SERVICE_CREDENTIAL_REF"])(
     "fails closed when %s crosses environments",
     (variable) => {
       const fixture = snapshots();
       fixture[1]!.apiVariables[variable] = fixture[0]!.apiVariables[variable]!;
-      expect(() => verifySnapshots(fixture)).toThrow(/share deployment resources/);
+      expect(() => verifySnapshots(fixture)).toThrow(
+        /share deployment resources|ADMIN_HOSTNAME must match|D1_DATABASE_ID must match/,
+      );
     },
   );
+
+  test("fails closed when a third shared remote development database is configured", () => {
+    const fixture = snapshots();
+    fixture[0]!.remoteDatabaseIdentities.push("development-db-id::shoppp-development");
+    expect(() => verifySnapshots(fixture)).toThrow(
+      /exactly one remote D1|exactly two shared remote D1/i,
+    );
+  });
+
+  test("fails closed when either environment renames or misidentifies its canonical D1", () => {
+    const renamed = snapshots();
+    renamed[0]!.remoteDatabaseIdentities = ["staging-db-id::shoppp-test"];
+    expect(() => verifySnapshots(renamed)).toThrow(/shoppp-staging/);
+
+    const mismatched = snapshots();
+    mismatched[1]!.apiVariables.D1_DATABASE_ID = "other-production-db-id";
+    expect(() => verifySnapshots(mismatched)).toThrow(/must match its bound remote D1/);
+  });
+
+  test("does not count disposable local migration databases as shared remote D1", () => {
+    const fixture = snapshots().map((snapshot) => ({
+      ...snapshot,
+      localDatabaseIdentities: ["miniflare-only::disposable-local"],
+    }));
+    expect(() => verifySnapshots(fixture)).not.toThrow();
+  });
 
   test("fails closed when a binding crosses environments", () => {
     const fixture = snapshots();
     fixture[1]!.resourceIdentifiers.push("staging-db-id");
     expect(() => verifySnapshots(fixture)).toThrow(/share deployment resources|staging resource/);
+  });
+
+  test("fails closed when test and production reuse a Worker identity", () => {
+    const fixture = snapshots();
+    fixture[1]!.applicationNames[0] = fixture[0]!.applicationNames[0]!;
+    expect(() => verifySnapshots(fixture)).toThrow(/share deployment resources/);
+  });
+
+  test("fails closed when an admin Worker hostname disagrees with the API origin policy", () => {
+    const fixture = snapshots();
+    fixture[0]!.adminHostname = "other-admin.staging.example.com";
+    expect(() => verifySnapshots(fixture)).toThrow(/ADMIN_HOSTNAME must match/);
   });
 
   test("fails closed when a payment target crosses environments", () => {
@@ -112,6 +166,21 @@ describe("environment isolation", () => {
       /placeholder resources/,
     );
   });
+
+  test.each([
+    ["staging", "SERVICE_CREDENTIAL_REF", "replace-with-staging-service-credential"],
+    ["production", "SERVICE_CREDENTIAL_REF", "replace-with-production-service-credential"],
+  ] as const)(
+    "strict %s mode rejects placeholder %s identity metadata",
+    (environment, variable, placeholder) => {
+      const fixture = snapshots();
+      const snapshot = fixture.find((entry) => entry.environment === environment)!;
+      snapshot.apiVariables[variable] = placeholder;
+      expect(() => verifySnapshots(fixture, { strictEnvironment: environment })).toThrow(
+        /placeholder resources/,
+      );
+    },
+  );
 
   test("fails closed when Turnstile environments share a site key", () => {
     const fixture = snapshots();

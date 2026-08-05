@@ -16,12 +16,22 @@ export interface AuditEventInput {
   readonly targetType: string;
 }
 
-export function prepareAuditEvent(db: D1Database, input: AuditEventInput): D1PreparedStatement {
+interface WriteCondition {
+  readonly bindings: readonly unknown[];
+  readonly sql: string;
+}
+
+export function prepareConditionalAuditEvent(
+  db: D1Database,
+  input: AuditEventInput,
+  condition?: WriteCondition,
+): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO audit_events
          (id, actor_type, actor_id, action, target_type, target_id, result, reason, request_id, metadata_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+       ${condition ? `WHERE EXISTS (${condition.sql})` : ""}`,
     )
     .bind(
       input.id,
@@ -35,7 +45,12 @@ export function prepareAuditEvent(db: D1Database, input: AuditEventInput): D1Pre
       input.requestId ?? null,
       JSON.stringify(redactForLog(input.metadata ?? {})),
       new Date().toISOString(),
+      ...(condition?.bindings ?? []),
     );
+}
+
+export function prepareAuditEvent(db: D1Database, input: AuditEventInput): D1PreparedStatement {
+  return prepareConditionalAuditEvent(db, input);
 }
 
 export async function recordAuditEvent(db: D1Database, input: AuditEventInput): Promise<void> {

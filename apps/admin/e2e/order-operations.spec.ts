@@ -1,5 +1,6 @@
 import type { AdminOrderDetail } from '@shoppp/contracts'
 import { expect, test, type Page } from '@playwright/test'
+import { mockAdminSession } from './support'
 
 const baseDetail = (reference: string): AdminOrderDetail => ({
   allowedActions: {
@@ -55,13 +56,6 @@ const baseDetail = (reference: string): AdminOrderDetail => ({
   ],
 })
 
-const authenticate = async (page: Page) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('codex-admin-auth', '1')
-    window.localStorage.setItem('codex-admin-account', 'operations-e2e')
-  })
-}
-
 const confirmReason = async (page: Page, reason: string) => {
   await page.getByRole('textbox', { name: 'Reason' }).fill(reason)
   await page.getByRole('button', { name: 'Confirm operation' }).click()
@@ -69,7 +63,7 @@ const confirmReason = async (page: Page, reason: string) => {
 }
 
 test('operator completes picking, packing, and one tracked shipment', async ({ page }) => {
-  await authenticate(page)
+  await mockAdminSession(page)
   let detail = baseDetail('ORD-FULFILL-E2E')
   const bodies: unknown[] = []
   const idempotencyKeys: string[] = []
@@ -143,7 +137,7 @@ test('operator completes picking, packing, and one tracked shipment', async ({ p
 })
 
 test('operator issues a confirmed partial refund without changing fulfillment', async ({ page }) => {
-  await authenticate(page)
+  await mockAdminSession(page)
   let detail = baseDetail('ORD-REFUND-E2E')
   let refundBody: unknown
   let idempotencyKey = ''
@@ -193,7 +187,7 @@ test('operator issues a confirmed partial refund without changing fulfillment', 
 })
 
 test('operator confirms cancellation and sees independent terminal states', async ({ page }) => {
-  await authenticate(page)
+  await mockAdminSession(page)
   let detail = baseDetail('ORD-CANCEL-E2E')
   let cancelBody: unknown
 

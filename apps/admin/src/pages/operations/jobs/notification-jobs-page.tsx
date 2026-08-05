@@ -198,6 +198,8 @@ export const NotificationJobsPage = () => {
             'refund',
             'shipment',
             'payment_reconciliation',
+            'admin_invitation',
+            'admin_password_reset',
           ].map((value) => ({ label: value, value }))}
           onChange={(value) => setType(value)}
         />

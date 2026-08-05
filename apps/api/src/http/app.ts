@@ -5,6 +5,14 @@ import * as z from "zod";
 import {
   acknowledgeCartAdjustmentsSchema,
   addCartLineRequestSchema,
+  adminAccountActivationRequestSchema,
+  adminInvitationListQuerySchema,
+  adminListQuerySchema,
+  adminPasswordChangeRequestSchema,
+  adminPasswordLoginRequestSchema,
+  adminPasswordResetConfirmRequestSchema,
+  adminPasswordResetRequestSchema,
+  adminUserListQuerySchema,
   auditQuerySchema,
   cancelOrderRequestSchema,
   catalogBuildResultSchema,
@@ -13,16 +21,22 @@ import {
   createPrivacyRequestSchema,
   checkoutRequestSchema,
   commerceFunnelEventSchema,
+  createAdminInvitationRequestSchema,
+  createAdminRoleRequestSchema,
   fulfillmentTransitionRequestSchema,
   inventoryAdjustmentRequestSchema,
   reportExportRequestSchema,
   reportingQuerySchema,
   replayNotificationJobRequestSchema,
+  resendAdminInvitationRequestSchema,
+  revokeAdminInvitationRequestSchema,
   refundRequestSchema,
   shippingQuoteRequestSchema,
   publicRuntimeConfigurationSchema,
   publicIdSchema,
   updateCartLineRequestSchema,
+  updateAdminRoleRequestSchema,
+  updateAdminUserRequestSchema,
   updateLaunchConfigurationRequestSchema,
   upsertShippingZoneRequestSchema,
 } from "@shoppp/contracts";
@@ -42,15 +56,28 @@ import { getLiveProduct } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
-import { permissionsForRole, requirePermission } from "../iam/permissions";
+import { createAdminRole, getAdminRole, listAdminRoles, updateAdminRole } from "../iam/admin-roles";
+import { getAdminUser, listAdminUsers, updateAdminUser } from "../iam/admin-users";
+import {
+  createAdminInvitation,
+  listAdminInvitations,
+  resendAdminInvitation,
+  revokeAdminInvitation,
+} from "../iam/invitations";
+import { requirePermission } from "../iam/permissions";
+import {
+  activateAdminAccount,
+  changePassword,
+  confirmPasswordReset,
+  loginWithPassword,
+  logoutPasswordSession,
+  requestPasswordReset,
+} from "../iam/password-auth";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
-import {
-  adminAuthentication,
-  defaultAccessVerifier,
-  type AccessVerifier,
-} from "../middleware/auth";
+import { adminAuthentication, type TestIdentityVerifier } from "../middleware/auth";
+import { adminOriginProtection, isAllowedAdminBrowserOrigin } from "../middleware/admin-origin";
 import { idempotency } from "../middleware/idempotency";
 import { parseJson } from "../middleware/validation";
 import { getGuestOrderAccess } from "../orders/guest-access";
@@ -97,15 +124,57 @@ import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
 
 export interface CreateAppOptions {
-  readonly accessVerifier?: AccessVerifier;
+  readonly testIdentityVerifier?: TestIdentityVerifier;
   readonly analyticsRateLimiter?: RateLimiter;
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
   readonly checkoutRateLimiter?: RateLimiter;
+  readonly exposePasswordResetToken?: boolean;
+  readonly passwordResetSecret?: string;
   readonly turnstileRequired?: boolean;
   readonly turnstileVerifier?: TurnstileVerifier;
+}
+
+function requireAdminBrowserOrigin(context: Context<ApiEnvironment>): void {
+  if (
+    !isAllowedAdminBrowserOrigin(
+      context.env,
+      context.req.header("Origin"),
+      context.req.header("Sec-Fetch-Site"),
+    )
+  ) {
+    throw new ApiError(403, "admin_origin_denied", "The admin request origin is not allowed.");
+  }
+}
+
+function passwordResetSecret(context: Context<ApiEnvironment>, options: CreateAppOptions): string {
+  const secret = options.passwordResetSecret ?? context.env.AUTH_TOKEN_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new ApiError(
+      500,
+      "admin_auth_not_configured",
+      "Administrator authentication is not configured.",
+    );
+  }
+  return secret;
+}
+
+function adminSessionData(context: Context<ApiEnvironment>) {
+  const principal = context.get("principal");
+  return {
+    displayName: principal.displayName,
+    environment:
+      context.env.ENVIRONMENT === "production" ? ("production" as const) : ("test" as const),
+    identityId: principal.id,
+    permissions: principal.permissions,
+    principalKind: principal.principalKind,
+    role: principal.role,
+    ...(principal.principalKind === "human"
+      ? { email: principal.email }
+      : { serviceName: principal.serviceName }),
+  };
 }
 
 const notificationJobQuerySchema = z
@@ -122,6 +191,8 @@ const notificationJobQuerySchema = z
         "refund",
         "shipment",
         "payment_reconciliation",
+        "admin_invitation",
+        "admin_password_reset",
       ])
       .optional(),
   })
@@ -452,16 +523,177 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Cache-Control", "private, no-store");
     await next();
   });
-  app.use("/admin/*", adminAuthentication(options.accessVerifier ?? defaultAccessVerifier));
-  app.get("/admin/session", (context) => {
-    const principal = context.get("principal");
+  app.post("/admin/auth/login", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminPasswordLoginRequestSchema);
+    context.set("principal", await loginWithPassword(context, input));
     return context.json({
-      data: {
-        displayName: principal.displayName,
-        email: principal.email,
-        permissions: permissionsForRole(principal.role),
-        role: principal.role,
+      data: adminSessionData(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/auth/activate", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminAccountActivationRequestSchema);
+    context.set(
+      "principal",
+      await activateAdminAccount(context, input, passwordResetSecret(context, options)),
+    );
+    return context.json({
+      data: adminSessionData(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/auth/logout", async (context) => {
+    requireAdminBrowserOrigin(context);
+    await logoutPasswordSession(context);
+    return context.body(null, 204);
+  });
+  app.post("/admin/auth/password-reset/request", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminPasswordResetRequestSchema);
+    const result = await requestPasswordReset(context, input, {
+      exposeToken: options.exposePasswordResetToken === true,
+      secret: passwordResetSecret(context, options),
+    });
+    return context.json(
+      {
+        data: options.exposePasswordResetToken === true ? result : {},
+        meta: { requestId: context.get("requestId") },
       },
+      202,
+    );
+  });
+  app.post("/admin/auth/password-reset/confirm", async (context) => {
+    requireAdminBrowserOrigin(context);
+    const input = await parseJson(context, adminPasswordResetConfirmRequestSchema);
+    await confirmPasswordReset(context, input);
+    return context.body(null, 204);
+  });
+  app.use("/admin/*", adminAuthentication(options.testIdentityVerifier));
+  app.use("/admin/*", adminOriginProtection());
+  app.get("/admin/session", (context) => {
+    return context.json({
+      data: adminSessionData(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/auth/password/change", async (context) => {
+    const input = await parseJson(context, adminPasswordChangeRequestSchema);
+    await changePassword(context, input);
+    return context.body(null, 204);
+  });
+  app.get("/admin/iam/users", async (context) => {
+    await requirePermission(context, "iam.users.read", { type: "admin_identity" });
+    const query = adminUserListQuerySchema.safeParse(context.req.query());
+    if (!query.success) throw new ApiError(422, "validation_failed", "Invalid user query.");
+    return context.json({
+      data: await listAdminUsers(context.env.DB, query.data),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.patch("/admin/iam/users/:id", async (context) => {
+    await requirePermission(context, "iam.users.write", {
+      id: context.req.param("id"),
+      type: "admin_identity",
+    });
+    const input = await parseJson(context, updateAdminUserRequestSchema);
+    return context.json({
+      data: await updateAdminUser(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/users/:id", async (context) => {
+    await requirePermission(context, "iam.users.read", {
+      id: context.req.param("id"),
+      type: "admin_identity",
+    });
+    return context.json({
+      data: await getAdminUser(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/invitations", async (context) => {
+    await requirePermission(context, "iam.users.read", { type: "admin_invitation" });
+    const query = adminInvitationListQuerySchema.safeParse(context.req.query());
+    if (!query.success) throw new ApiError(422, "validation_failed", "Invalid invitation query.");
+    return context.json({
+      data: await listAdminInvitations(context.env.DB, query.data),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/iam/invitations", async (context) => {
+    await requirePermission(context, "iam.users.write", { type: "admin_invitation" });
+    const input = await parseJson(context, createAdminInvitationRequestSchema);
+    const result = await createAdminInvitation(context, input);
+    return context.json(
+      {
+        data: result.invitation,
+        meta: { requestId: context.get("requestId"), reused: result.reused },
+      },
+      result.reused ? 200 : 201,
+    );
+  });
+  app.post("/admin/iam/invitations/:id/resend", async (context) => {
+    await requirePermission(context, "iam.users.write", {
+      id: context.req.param("id"),
+      type: "admin_invitation",
+    });
+    const input = await parseJson(context, resendAdminInvitationRequestSchema);
+    return context.json({
+      data: await resendAdminInvitation(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/iam/invitations/:id/revoke", async (context) => {
+    await requirePermission(context, "iam.users.write", {
+      id: context.req.param("id"),
+      type: "admin_invitation",
+    });
+    const input = await parseJson(context, revokeAdminInvitationRequestSchema);
+    return context.json({
+      data: await revokeAdminInvitation(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/roles", async (context) => {
+    await requirePermission(context, "iam.roles.read", { type: "admin_role" });
+    const query = adminListQuerySchema.safeParse(context.req.query());
+    if (!query.success) throw new ApiError(422, "validation_failed", "Invalid role query.");
+    return context.json({
+      data: await listAdminRoles(context.env.DB, query.data),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/iam/roles", async (context) => {
+    await requirePermission(context, "iam.roles.write", { type: "admin_role" });
+    const input = await parseJson(context, createAdminRoleRequestSchema);
+    return context.json(
+      {
+        data: await createAdminRole(context, input),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    );
+  });
+  app.patch("/admin/iam/roles/:id", async (context) => {
+    await requirePermission(context, "iam.roles.write", {
+      id: context.req.param("id"),
+      type: "admin_role",
+    });
+    const input = await parseJson(context, updateAdminRoleRequestSchema);
+    return context.json({
+      data: await updateAdminRole(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/iam/roles/:id", async (context) => {
+    await requirePermission(context, "iam.roles.read", {
+      id: context.req.param("id"),
+      type: "admin_role",
+    });
+    return context.json({
+      data: await getAdminRole(context.env.DB, context.req.param("id")),
       meta: { requestId: context.get("requestId") },
     });
   });

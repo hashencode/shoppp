@@ -22,7 +22,7 @@ export default defineConfig({
     {
       name: "release-operations",
       dependencies: ["provider-purchase"],
-      testIgnore: "storefront-purchase.spec.ts",
+      testIgnore: ["storefront-purchase.spec.ts", "admin-access.spec.ts"],
     },
   ],
   use: {

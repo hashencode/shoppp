@@ -37,13 +37,13 @@ test("failed publication keeps the recorded last-known-good storefront live and 
   expect(payload.data.failures.catalogBuilds).toBeGreaterThan(0);
 });
 
-test("public, protected, webhook, and cache boundaries are deployed", async ({ page, request }) => {
+test("public, login, webhook, and cache boundaries are deployed", async ({ page, request }) => {
   const storefront = await page.goto("/");
   expect(storefront?.headers()["x-content-type-options"]).toBe("nosniff");
   expect(storefront?.headers()["x-frame-options"]).toBe("DENY");
 
-  const adminWithoutAccess = await request.get(requiredEnvironment("ADMIN_E2E_BASE_URL"));
-  expect(adminWithoutAccess.status()).not.toBe(200);
+  const adminLoginShell = await request.get(requiredEnvironment("ADMIN_E2E_BASE_URL"));
+  expect(adminLoginShell.ok()).toBeTruthy();
 
   const health = await request.get(`${requiredEnvironment("API_E2E_BASE_URL")}/health`);
   expect(health.ok()).toBeTruthy();

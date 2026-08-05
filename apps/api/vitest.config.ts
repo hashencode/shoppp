@@ -13,8 +13,8 @@ export default defineConfig(async () => {
           d1Databases: ["RESTORE_DB"],
           r2Buckets: ["BACKUP_BUCKET", "MEDIA", "PRIVACY_EXPORTS", "REPORT_EXPORTS"],
           bindings: {
-            ACCESS_AUDIENCE: "test-audience",
-            ACCESS_ISSUER: "https://shoppp.cloudflareaccess.com",
+            AUTH_TOKEN_SECRET: "test-auth-token-secret-that-is-at-least-32-characters",
+            ADMIN_ORIGIN: "https://admin.example.test",
             ENVIRONMENT: "staging",
             EMAIL_FROM: "orders@staging.example.test",
             PUBLIC_ORIGIN: "https://staging.example.invalid",

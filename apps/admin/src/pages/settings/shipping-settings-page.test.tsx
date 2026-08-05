@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/co
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 
-import { AuthProvider } from '../../infrastructure/auth/auth-context'
+import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { ShippingSettingsPage } from './shipping-settings-page'
 
@@ -71,11 +71,11 @@ afterAll(() => server.close())
 describe('ShippingSettingsPage', () => {
   it('renders authoritative zones and opens a complete reasoned editor', async () => {
     render(
-      <AuthProvider>
+      <AuthTestProvider permissions={['settings.read', 'settings.write']}>
         <ThemeProvider>
           <ShippingSettingsPage />
         </ThemeProvider>
-      </AuthProvider>
+      </AuthTestProvider>
     )
 
     await waitFor(() => expect(screen.getByText('North America')).toBeTruthy())
@@ -105,11 +105,11 @@ describe('ShippingSettingsPage', () => {
       })
     )
     render(
-      <AuthProvider>
+      <AuthTestProvider permissions={['settings.read', 'settings.write']}>
         <ThemeProvider>
           <ShippingSettingsPage />
         </ThemeProvider>
-      </AuthProvider>
+      </AuthTestProvider>
     )
 
     await waitFor(() => expect(screen.getByText('North America')).toBeTruthy())

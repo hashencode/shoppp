@@ -3,8 +3,8 @@ import type { D1Migration } from "cloudflare:test";
 declare global {
   namespace Cloudflare {
     interface Env {
-      ACCESS_AUDIENCE: string;
-      ACCESS_ISSUER: string;
+      AUTH_TOKEN_SECRET: string;
+      ADMIN_ORIGIN: string;
       BACKUP_BUCKET: R2Bucket;
       DB: D1Database;
       ENVIRONMENT: "development" | "staging" | "production";

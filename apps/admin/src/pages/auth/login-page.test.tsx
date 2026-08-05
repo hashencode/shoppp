@@ -1,104 +1,112 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, beforeEach } from '@rstest/core'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from '../../infrastructure/auth/auth-context'
-import { useAuth } from '../../infrastructure/auth/use-auth'
+import { beforeEach, describe, expect, it, rstest } from '@rstest/core'
+import { MemoryRouter } from 'react-router-dom'
+import type { AdminSession } from '@shoppp/contracts'
+import { AuthProvider, useAuthState } from '../../infrastructure/auth/auth-context'
+import * as authApi from '../../services/auth/api'
 import { LoginPage } from './login-page'
 
 void React
 
-if (!window.matchMedia) {
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: (query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => undefined,
-      removeListener: () => undefined,
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-      dispatchEvent: () => false,
-    }),
-  })
+const session: AdminSession = {
+  displayName: 'Alice Admin',
+  email: 'alice@example.test',
+  environment: 'test',
+  identityId: 'identity-alice',
+  permissions: ['catalog.read'],
+  principalKind: 'human',
+  role: {
+    enabled: true,
+    id: 'role_operator',
+    key: 'operator',
+    name: 'Operator',
+    protected: false,
+    system: false,
+    version: 3,
+  },
 }
 
-if (!window.ResizeObserver) {
-  class ResizeObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
-}
-
-const HomeProbe = () => {
-  const { isAuthenticated, displayName, accountName } = useAuth()
-  return (
-    <div>
-      <span>{isAuthenticated ? 'AUTHED' : 'ANON'}</span>
-      <span>{displayName}</span>
-      <span>{accountName}</span>
-    </div>
-  )
+const Probe = () => {
+  const auth = useAuthState()
+  return <span data-testid="auth-probe">{auth.status}:{auth.session?.identityId ?? 'none'}</span>
 }
 
 const renderPage = () =>
   render(
     <AuthProvider>
-      <MemoryRouter initialEntries={['/login']}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<HomeProbe />} />
-        </Routes>
+      <MemoryRouter>
+        <LoginPage />
+        <Probe />
       </MemoryRouter>
     </AuthProvider>
   )
 
-describe('LoginPage', () => {
+describe('administrator password login', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    rstest.restoreAllMocks()
   })
 
-  it('logs in and redirects to home after valid account submit', async () => {
+  it('hydrates an existing authoritative cookie session', async () => {
+    rstest.spyOn(authApi, 'fetchAdminSession').mockResolvedValue(session)
     renderPage()
 
-    fireEvent.click(screen.getByRole('tab', { name: '账号密码登录' }))
-    fireEvent.change(screen.getByPlaceholderText('用户名'), { target: { value: 'alice' } })
-    fireEvent.change(screen.getByPlaceholderText('密码'), { target: { value: '12345678' } })
-    fireEvent.click(screen.getByRole('button', { name: '登 录' }))
-
     await waitFor(() => {
-      expect(screen.getByText('AUTHED')).toBeTruthy()
-      expect(screen.getByText('Access operator')).toBeTruthy()
-      expect(screen.getByText('alice')).toBeTruthy()
+      expect(screen.getByTestId('auth-probe').textContent).toBe('authenticated:identity-alice')
     })
   })
 
-  it('shows required validation errors in phone mode when form is empty', async () => {
+  it('offers email and password login when no session exists', async () => {
+    rstest.spyOn(authApi, 'fetchAdminSession').mockRejectedValue(
+      Object.assign(new Error('Session required'), { code: 'admin_session_invalid', status: 401 })
+    )
+    rstest.spyOn(authApi, 'loginAdmin').mockResolvedValue(session)
     renderPage()
 
-    fireEvent.click(screen.getByRole('tab', { name: '手机号登录' }))
-    fireEvent.click(screen.getByRole('button', { name: '登 录' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-probe').textContent).toBe('login-required:none')
+    })
+
+    fireEvent.change(screen.getByLabelText('邮箱'), {
+      target: { value: 'alice@example.test' },
+    })
+    fireEvent.change(screen.getByLabelText('密码'), {
+      target: { value: 'correct horse battery staple' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
 
     await waitFor(() => {
-      expect(screen.getByText('请输入手机号！')).toBeTruthy()
-      expect(screen.getByText('请输入验证码！')).toBeTruthy()
+      expect(authApi.loginAdmin).toHaveBeenCalledWith({
+        email: 'alice@example.test',
+        password: 'correct horse battery staple',
+      })
+      expect(screen.getByTestId('auth-probe').textContent).toBe('authenticated:identity-alice')
     })
+    expect(screen.getByRole('link', { name: '忘记密码？' })).toBeTruthy()
   })
 
-  it('updates captcha button text after requesting code with valid phone', async () => {
+  it('renders the API error after invalid credentials', async () => {
+    rstest.spyOn(authApi, 'fetchAdminSession').mockRejectedValue(
+      Object.assign(new Error('Session required'), { code: 'admin_session_invalid', status: 401 })
+    )
+    rstest.spyOn(authApi, 'loginAdmin').mockRejectedValue(
+      Object.assign(new Error('账号或密码错误'), { code: 'invalid_admin_credentials', status: 401 })
+    )
     renderPage()
 
-    fireEvent.click(screen.getByRole('tab', { name: '手机号登录' }))
-    fireEvent.change(screen.getByPlaceholderText('手机号'), { target: { value: '13800138000' } })
-    fireEvent.click(screen.getByRole('button', { name: '获取验证码' }))
-
     await waitFor(() => {
-      const captchaButton = screen.getByRole('button', { name: /获取验证码/ })
-      expect(captchaButton.textContent).toContain('获取验证码')
-      expect((captchaButton as HTMLButtonElement).disabled).toBe(true)
+      expect(screen.getByTestId('auth-probe').textContent).toBe('login-required:none')
     })
+
+    fireEvent.change(screen.getByLabelText('邮箱'), {
+      target: { value: 'alice@example.test' },
+    })
+    fireEvent.change(screen.getByLabelText('密码'), {
+      target: { value: 'wrong password value' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /登\s*录/ }))
+
+    expect(await screen.findByText('账号或密码错误')).toBeTruthy()
+    expect(screen.getByTestId('auth-probe').textContent).toBe('login-required:none')
   })
 })
