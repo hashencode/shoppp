@@ -32,8 +32,11 @@ async function staticResponse(
   request: Request,
   status = 200,
 ): Promise<Response> {
+  const pathname = new URL(request.url).pathname;
   const headers = new Headers({
-    "Cache-Control": "no-store",
+    "Cache-Control": pathname.startsWith("/_nuxt/")
+      ? "public, max-age=31536000, immutable"
+      : "no-cache",
     "Content-Type": file.type,
     Vary: "Accept-Encoding",
   });

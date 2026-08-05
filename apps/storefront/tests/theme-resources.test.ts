@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   createThemeAssetResolver,
   mergeExperienceFixtureRegistries,
+  paymentAssetName,
   validateThemeAssets,
 } from "../app/theme-engine/assets";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
@@ -21,6 +22,11 @@ const fixture = {
 } as const;
 
 describe("selected theme resources", () => {
+  test("derives accessible payment names from namespaced asset IDs", () => {
+    expect(paymentAssetName("fashion.payment-american-express")).toBe("American Express");
+    expect(paymentAssetName("decor.payment-union-pay")).toBe("Union Pay");
+  });
+
   test("validates namespaced assets and rejects missing or cross-theme IDs", () => {
     const assets = validateThemeAssets("fashion", {
       "fashion.hero-01": "/assets/hero-01.abc.jpg",

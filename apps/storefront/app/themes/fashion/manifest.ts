@@ -15,6 +15,8 @@ const visualTypes = [
   "fashion.brand-strip",
   "fashion.promise-strip",
   "fashion.magazine",
+  "fashion.shop",
+  "fashion.content-page",
 ] as const;
 
 const fashionSectionDefinitions = [
@@ -35,6 +37,18 @@ const fashionSectionDefinitions = [
     capabilities: ["product.details", "product.action"],
     settings: [],
     type: "fashion.product-details",
+  },
+  {
+    allowedBlockTypes: [],
+    capabilities: ["cart.summary", "cart.error"],
+    settings: [],
+    type: "fashion.cart",
+  },
+  {
+    allowedBlockTypes: [],
+    capabilities: ["checkout.summary", "checkout.error"],
+    settings: [],
+    type: "fashion.checkout",
   },
   {
     allowedBlockTypes: ["core.link"],
@@ -70,7 +84,16 @@ export const fashionManifest = {
     license: "Repository implementation with user-authorized reference assets",
     source: "local://user-supplied/demo-fashion-store.html",
   },
-  supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "order", "policy"],
+  supportedPageTemplates: [
+    "home",
+    "collection",
+    "product",
+    "cart",
+    "checkout",
+    "order",
+    "policy",
+    "content",
+  ],
   themeVersion: "1.0.0",
 } as const satisfies ThemeManifest;
 

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import sharp from "../apps/storefront/node_modules/sharp";
 import { generateThemeFidelityReport } from "./theme-fidelity-report";
 
 const roots: string[] = [];
@@ -9,13 +10,10 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true }))),
 );
 
-function png(width: number, height: number): Uint8Array {
-  const bytes = new Uint8Array(24);
-  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  const view = new DataView(bytes.buffer);
-  view.setUint32(16, width);
-  view.setUint32(20, height);
-  return bytes;
+async function png(path: string, width: number, height: number, background = "#ffffff") {
+  await sharp({ create: { background, channels: 4, height, width } })
+    .png()
+    .toFile(path);
 }
 
 async function captureRoot(
@@ -26,10 +24,12 @@ async function captureRoot(
   const root = await mkdtemp(join(tmpdir(), "shoppp-fidelity-"));
   roots.push(root);
   await mkdir(join(root, themeId), { recursive: true });
-  await writeFile(join(root, themeId, "desktop.png"), png(width, 1000));
-  await writeFile(join(root, themeId, "laptop.png"), png(1024, 900));
-  await writeFile(join(root, themeId, "tablet.png"), png(768, 1024));
-  await writeFile(join(root, themeId, "mobile.png"), png(390, 844));
+  await Promise.all([
+    png(join(root, themeId, "desktop.png"), width, 1000),
+    png(join(root, themeId, "laptop.png"), 1024, 900),
+    png(join(root, themeId, "tablet.png"), 768, 1024),
+    png(join(root, themeId, "mobile.png"), 390, 844),
+  ]);
   await writeFile(
     join(root, themeId, "metadata.json"),
     JSON.stringify({
@@ -67,6 +67,10 @@ describe("theme fidelity report", () => {
     expect(contents.match(/<section>/g)).toHaveLength(4);
     expect(contents).toContain("fashion · laptop");
     expect(contents).toContain("fashion · tablet");
+    expect(contents).toContain("changed pixels <strong>0.000%</strong>");
+    expect(await readFile(join(outputRoot, "fashion-desktop-diff.json"), "utf8")).toContain(
+      '"changedPixelRatio": 0',
+    );
     await generateThemeFidelityReport({
       commit: "abcdef1234567",
       implementationRoot,
@@ -75,6 +79,31 @@ describe("theme fidelity report", () => {
       themes: ["fashion"],
     });
     await expect(readFile(join(outputRoot, "approval.json"))).rejects.toThrow();
+  });
+
+  test("fails above the full-page threshold and retains actionable diff artifacts", async () => {
+    const referenceRoot = await captureRoot("fashion");
+    const implementationRoot = await captureRoot("fashion");
+    const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
+    roots.push(outputRoot);
+    await png(join(implementationRoot, "fashion", "desktop.png"), 1440, 1000, "#000000");
+
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        implementationRoot,
+        outputRoot,
+        referenceRoot,
+        themes: ["fashion"],
+      }),
+    ).rejects.toThrow("fashion desktop");
+    expect(await readFile(join(outputRoot, "index.html"), "utf8")).toContain("100.000%");
+    expect(await readFile(join(outputRoot, "fashion-desktop-diff.json"), "utf8")).toContain(
+      '"changedPixelRatio": 1',
+    );
+    expect(
+      (await readFile(join(outputRoot, "fashion-desktop-diff.png"))).byteLength,
+    ).toBeGreaterThan(0);
   });
 
   test("refuses missing, wrong-theme, or dimension-mismatched evidence", async () => {

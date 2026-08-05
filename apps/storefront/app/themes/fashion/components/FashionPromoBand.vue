@@ -13,6 +13,8 @@ const data = computed(() =>
 </script>
 <template>
   <aside v-if="data" class="fashion-promo-band">
-    {{ data.message }} <strong>{{ data.code }}</strong>
+    <span
+      >{{ data.message }}<span class="fashion-promo-code">{{ data.code }}</span></span
+    >
   </aside>
 </template>

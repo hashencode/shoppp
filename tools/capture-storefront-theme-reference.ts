@@ -1,6 +1,8 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { extname, join, normalize, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+import { deterministicCaptureCss } from "../apps/storefront/e2e/support/theme-capture-contract";
+import { acquireCaptureLease } from "./theme-capture-resource-guard";
 
 export type ReferenceThemeId = "decor" | "fashion";
 
@@ -95,24 +97,7 @@ async function stabilizeReferencePage(page: CapturePage): Promise<ReferencePageD
     .click({ timeout: 1_000 })
     .catch(() => {});
   await page.addStyleTag({
-    content: `
-      *, *::before, *::after {
-        animation-delay: 0s !important;
-        animation-duration: 0s !important;
-        caret-color: transparent !important;
-        scroll-behavior: auto !important;
-        transition: none !important;
-      }
-      [data-anime], .appear, .anime-complete {
-        opacity: 1 !important;
-        transform: none !important;
-        visibility: visible !important;
-      }
-      #cookies-model, .cookie-message, .scroll-progress,
-      .theme-demos, .all-demo, .buy-theme, .mfp-wrap, .mfp-bg {
-        display: none !important;
-      }
-    `,
+    content: deterministicCaptureCss,
   });
   const diagnostics = await page.evaluate(async () => {
     const delay = (milliseconds: number) =>
@@ -204,35 +189,38 @@ export async function captureReference(options: {
   const config = referenceCaptureConfigs[options.themeId];
   await validateReferenceSource(options.sourceRoot, config);
   const root = resolve(options.sourceRoot);
-  const server = Bun.serve({
-    hostname: "127.0.0.1",
-    port: 0,
-    async fetch(request) {
-      const requestUrl = new URL(request.url);
-      const requestPath =
-        decodeURIComponent(requestUrl.pathname.replace(/^\/+/, "")) || config.entry;
-      const normalized = normalize(requestPath);
-      const filePath = resolve(root, normalized);
-      const relativePath = relative(root, filePath);
-      if (
-        normalized.startsWith("..") ||
-        relativePath === ".." ||
-        relativePath.startsWith(`..${sep}`)
-      ) {
-        return new Response("Not found", { status: 404 });
-      }
-      const contents = await Bun.file(filePath)
-        .arrayBuffer()
-        .catch(() => null);
-      if (!contents) return new Response("Not found", { status: 404 });
-      return new Response(contents, { headers: { "content-type": contentType(filePath) } });
-    },
-  });
-  const browser = await chromium.launch();
   const outputRoot = resolve(options.outputRoot, options.themeId);
   await mkdir(outputRoot, { recursive: true });
+  const lease = await acquireCaptureLease({ origins: [], outputRoot, requestedWorkers: 1 });
+  let server: ReturnType<typeof Bun.serve> | undefined;
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
   const captures: Array<(typeof referenceCaptureViewports)[number] & ReferencePageDiagnostics> = [];
   try {
+    server = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      async fetch(request) {
+        const requestUrl = new URL(request.url);
+        const requestPath =
+          decodeURIComponent(requestUrl.pathname.replace(/^\/+/, "")) || config.entry;
+        const normalized = normalize(requestPath);
+        const filePath = resolve(root, normalized);
+        const relativePath = relative(root, filePath);
+        if (
+          normalized.startsWith("..") ||
+          relativePath === ".." ||
+          relativePath.startsWith(`..${sep}`)
+        ) {
+          return new Response("Not found", { status: 404 });
+        }
+        const contents = await Bun.file(filePath)
+          .arrayBuffer()
+          .catch(() => null);
+        if (!contents) return new Response("Not found", { status: 404 });
+        return new Response(contents, { headers: { "content-type": contentType(filePath) } });
+      },
+    });
+    browser = await chromium.launch();
     for (const viewport of referenceCaptureViewports) {
       const page = await browser.newPage({
         reducedMotion: "reduce",
@@ -259,6 +247,7 @@ export async function captureReference(options: {
           entry: config.entry,
           firstHero: config.firstHero,
           sourceRoot: root,
+          state: "initial-home",
           themeId: config.themeId,
           viewports: captures,
         },
@@ -267,8 +256,9 @@ export async function captureReference(options: {
       )}\n`,
     );
   } finally {
-    await browser.close();
-    server.stop(true);
+    await browser?.close();
+    server?.stop(true);
+    await lease.release();
   }
 }
 

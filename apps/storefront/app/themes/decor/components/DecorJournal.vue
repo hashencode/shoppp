@@ -2,8 +2,9 @@
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
+  eyebrow: string;
   heading: string;
-  items: { assetId: string; title: string }[];
+  items: { assetId: string; category: string; date: string; title: string }[];
 }
 const p = defineProps<{ resolveAsset: ThemeAssetResolver; viewModel: PresentationViewModel }>();
 const data = computed(() =>
@@ -11,9 +12,9 @@ const data = computed(() =>
 );
 </script>
 <template>
-  <section v-if="data" class="decor-journal">
+  <section v-if="data" id="decor-journal" class="decor-journal">
     <header>
-      <small>From the journal</small>
+      <small>{{ data.eyebrow }}</small>
       <h2>{{ data.heading }}</h2>
     </header>
     <div>
@@ -24,7 +25,10 @@ const data = computed(() =>
           width="720"
           height="520"
           loading="lazy"
-        /><small>Decor · 08 August</small>
+        /><small
+          ><strong>{{ item.category }}</strong
+          ><span>{{ item.date }}</span></small
+        >
         <h3>{{ item.title }}</h3>
       </article>
     </div>

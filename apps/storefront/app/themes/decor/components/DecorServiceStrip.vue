@@ -15,7 +15,7 @@ const data = computed(() =>
       <img :src="p.resolveAsset(item.assetId)" alt="" width="60" height="50" loading="lazy" />
       <div>
         <h2>{{ item.label }}</h2>
-        <p>{{ item.detail }}</p>
+        <span class="decor-service-detail">{{ item.detail }}</span>
       </div>
     </article>
   </section>

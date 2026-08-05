@@ -49,7 +49,7 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
 ];
 
 export async function verifyThemeAssetSources(themeIds: readonly string[]): Promise<void> {
-  const allowedImageExtensions = new Set([".avif", ".jpg", ".jpeg", ".png", ".webp"]);
+  const allowedImageExtensions = new Set([".avif", ".jpg", ".jpeg", ".png", ".svg", ".webp"]);
   for (const themeId of themeIds) {
     const themeRoot = resolve(import.meta.dir, `../app/themes/${themeId}`);
     const [fonts, images, provenance] = await Promise.all([
@@ -67,10 +67,20 @@ export async function verifyThemeAssetSources(themeIds: readonly string[]): Prom
       );
     }
     for (const image of images) {
+      const extension = extname(image).toLowerCase();
       assert(
-        allowedImageExtensions.has(extname(image).toLowerCase()),
+        allowedImageExtensions.has(extension),
         `${themeId} contains an unsupported image asset: ${image}.`,
       );
+      if (extension === ".svg") {
+        const source = await readFile(resolve(themeRoot, "assets/images", image), "utf8");
+        assert(
+          !/<(?:script|foreignObject)\b|(?:href|src)\s*=\s*["'](?:https?:|data:)|\son[a-z]+\s*=/iu.test(
+            source,
+          ),
+          `${themeId} contains an unsafe SVG image asset: ${image}.`,
+        );
+      }
       assert(
         provenance.includes(`assets/images/${image}`),
         `${themeId} image provenance is missing for ${image}.`,

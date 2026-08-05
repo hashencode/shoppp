@@ -99,27 +99,11 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-trust-binding",
-      "instanceId": "trust-strip",
+      "fixtureId": "fashion-home",
+      "id": "fashion-shop-binding",
+      "instanceId": "fashion-shop",
       "kind": "fixture",
-      "resource": "trust",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "fashion-collection-grid-binding",
-      "instanceId": "collection-grid",
-      "kind": "fixture",
-      "resource": "collections",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "fashion-collection-products-binding",
-      "instanceId": "collection-products",
-      "kind": "fixture",
-      "resource": "products",
+      "resource": "shop",
       "state": "populated"
     },
     {
@@ -131,7 +115,15 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
+      "id": "fashion-content-binding",
+      "instanceId": "content-main",
+      "kind": "fixture",
+      "resource": "content",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
       "id": "fashion-cart-binding",
       "instanceId": "cart-main",
       "kind": "fixture",
@@ -139,7 +131,7 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
       "id": "fashion-checkout-binding",
       "instanceId": "checkout-main",
       "kind": "fixture",

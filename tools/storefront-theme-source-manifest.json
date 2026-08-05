@@ -414,8 +414,32 @@
         {
           "destinationPath": "assets/fonts/plus-jakarta-sans-latin.woff2",
           "kind": "font",
-          "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
+          "license": "SIL Open Font License 1.1; exact self-hosted Google Fonts binary loaded by the source demo.",
           "sourcePath": "fonts/plus-jakarta-sans-latin.woff2"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-usa.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/usa.png"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-france.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/france.png"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-russian.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/russian.png"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-spain.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/spain.png"
         }
       ],
       "importedAt": "2026-07-30",
@@ -423,10 +447,42 @@
         {
           "destinationPath": "assets/fonts/plus-jakarta-sans-latin.woff2",
           "kind": "font",
-          "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
+          "license": "SIL Open Font License 1.1; exact self-hosted Google Fonts binary loaded by the source demo.",
           "sourcePath": "fonts/plus-jakarta-sans-latin.woff2",
-          "bytes": 27348,
-          "sha256": "153fc85b70298beeb1d61a5f723331649e7f23bb77302a66e61cb3e2fbdb5e79"
+          "bytes": 27272,
+          "sha256": "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-usa.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/usa.png",
+          "bytes": 488,
+          "sha256": "4ac836d19ba59b13f74176339bbb73a752844e528a338bd9340c945d2f2895c5"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-france.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/france.png",
+          "bytes": 446,
+          "sha256": "2629de759dd340f44743175bb4510aa6d438a37e3d94e079d2aa4e6032f71de9"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-russian.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/russian.png",
+          "bytes": 350,
+          "sha256": "bc6c51350976a6cbe7cc8d0d08bd8b4c264070dad00cb61c0d28355ca28fae9b"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-spain.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/spain.png",
+          "bytes": 493,
+          "sha256": "efbf0cf75d4b00bd5a0891a4de84ee10bd4dc6bdc7e2d33841d37fdf51263f8c"
         },
         {
           "destinationPath": "assets/images/demo-decor-store-banner-04.jpg",
@@ -971,6 +1027,46 @@
           "sourcePath": "images/demo-decor-store-slider-03-thumb.jpg",
           "bytes": 7351,
           "sha256": "2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-title-bg.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-title-bg.jpg",
+          "bytes": 84069,
+          "sha256": "34bfe700f23c86a605bbf17bf2e06b3aa8cd00e06757ae6c4141be46425d55f2"
+        },
+        {
+          "destinationPath": "assets/images/shop-four-column.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-four-column.svg",
+          "bytes": 830,
+          "sha256": "ab3dd89dd679009d821c07a7d98a6151f0b42eaf60a9e89378d591c50ad63f99"
+        },
+        {
+          "destinationPath": "assets/images/shop-list.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-list.svg",
+          "bytes": 670,
+          "sha256": "38dac91b45c186ffa710931e1a818bf3ff2f3ddc760f966940c5589d7898da8b"
+        },
+        {
+          "destinationPath": "assets/images/shop-three-column.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-three-column.svg",
+          "bytes": 710,
+          "sha256": "2438dc7639153b24ab0e76da06bfa70b29c7c690cb8b34eabff6079a50a0ccc6"
+        },
+        {
+          "destinationPath": "assets/images/shop-two-column.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-two-column.svg",
+          "bytes": 583,
+          "sha256": "121a98ada05ab44102997067135bb123b93cd44ecf0172fbaaf1be4bc190f062"
         }
       ],
       "ownershipApproval": "User supplied the Crafto source package and explicitly requested faithful local reconstruction using its assets.",
@@ -980,6 +1076,84 @@
     },
     {
       "allowlist": [
+        {
+          "destinationPath": "assets/icons/service-box.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E6E5.",
+          "sourcePath": "derived/service-box.svg"
+        },
+        {
+          "destinationPath": "assets/icons/service-payment.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E7C3.",
+          "sourcePath": "derived/service-payment.svg"
+        },
+        {
+          "destinationPath": "assets/icons/service-return.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EBD7.",
+          "sourcePath": "derived/service-return.svg"
+        },
+        {
+          "destinationPath": "assets/icons/service-support.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EB58.",
+          "sourcePath": "derived/service-support.svg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png"
+        },
+        {
+          "destinationPath": "assets/images/logo-adidas.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-adidas.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-asos.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-asos.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-celine.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-celine.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-chanel.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-chanel.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-gucci.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-gucci.svg"
+        },
         {
           "destinationPath": "assets/images/demo-fashion-store-banner-01.jpg",
           "kind": "image",
@@ -1227,23 +1401,55 @@
           "sourcePath": "fonts/outfit-latin.woff2"
         }
       ],
-      "importedAt": "2026-07-30",
+      "importedAt": "2026-07-31",
       "importedFiles": [
         {
           "destinationPath": "assets/fonts/figtree-latin.woff2",
           "kind": "font",
           "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
           "sourcePath": "fonts/figtree-latin.woff2",
-          "bytes": 20156,
-          "sha256": "4ba7d3d096695818fe0686be4f1e82c6b05134e18a22260336130335027462dd"
+          "bytes": 20184,
+          "sha256": "8330490a01c60c196eae00b823de8102275aaa5862e7b76a7af21b8745338928"
         },
         {
           "destinationPath": "assets/fonts/outfit-latin.woff2",
           "kind": "font",
           "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
           "sourcePath": "fonts/outfit-latin.woff2",
-          "bytes": 32292,
-          "sha256": "6c18d579fd87c3776be068b762cbc83fde3acb543d49eabd3ade842eb987e887"
+          "bytes": 32228,
+          "sha256": "92684e4acde79ef07758cd09380b7e01e9824d8b061eddeda046f78c166d7b12"
+        },
+        {
+          "destinationPath": "assets/icons/service-box.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E6E5.",
+          "sourcePath": "derived/service-box.svg",
+          "bytes": 1409,
+          "sha256": "01492165aa15e1c0da1f4fc6d017d58f8bdcc14de56b14afcff29676a804c433"
+        },
+        {
+          "destinationPath": "assets/icons/service-payment.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E7C3.",
+          "sourcePath": "derived/service-payment.svg",
+          "bytes": 659,
+          "sha256": "b388c9b604d44cdfcbcfb993a5312e91b18c88f0ba8216832d4a7ac2c06b82a4"
+        },
+        {
+          "destinationPath": "assets/icons/service-return.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EBD7.",
+          "sourcePath": "derived/service-return.svg",
+          "bytes": 1076,
+          "sha256": "e4ecb461a4740e302bfdfb18b8f6102a54606dcf2613ada79b9a274b6ae5a8f6"
+        },
+        {
+          "destinationPath": "assets/icons/service-support.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EB58.",
+          "sourcePath": "derived/service-support.svg",
+          "bytes": 1923,
+          "sha256": "4f0650323672a3bf927f58fb09c5e538e1f524fa6402aface8765acdb21fe988"
         },
         {
           "destinationPath": "assets/images/demo-fashion-store-banner-01.jpg",
@@ -1438,6 +1644,38 @@
           "sha256": "738404e198ecddc3bad6c448ea25eae1871f8d56e2a23cf4c4162dd04fd46537"
         },
         {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png",
+          "bytes": 469,
+          "sha256": "12c7960a716d81a9d5003e7d473ced3f8ea30f7c0e583b71b8c3e73849d19b90"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png",
+          "bytes": 531,
+          "sha256": "cce62a78cf97cc728a08f13c25f2b80377d48c1d2af0f98c058db05568a0d321"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png",
+          "bytes": 439,
+          "sha256": "7479722e0b7901e9c5c0a806531a1ee7aad4ec2e09bb1c213f78836bac95c9e2"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png",
+          "bytes": 581,
+          "sha256": "00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7"
+        },
+        {
           "destinationPath": "assets/images/demo-fashion-store-product-01.jpg",
           "kind": "image",
           "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
@@ -1556,6 +1794,46 @@
           "sourcePath": "images/demo-fashion-store-slider-03.jpg",
           "bytes": 149239,
           "sha256": "a6ff2034fbb8e546908c7b2535507d5bf152debbccb5cc000f234f0b13ef1525"
+        },
+        {
+          "destinationPath": "assets/images/logo-adidas.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-adidas.svg",
+          "bytes": 2812,
+          "sha256": "5e7c5c29e9a8437ebef8cf80c0cb288f312865f21f2150936b029fcc2bf1b175"
+        },
+        {
+          "destinationPath": "assets/images/logo-asos.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-asos.svg",
+          "bytes": 3126,
+          "sha256": "33d69106f8bbf7d7cc850eef61e8e139878bf640d86dc208380b82a3c5e66028"
+        },
+        {
+          "destinationPath": "assets/images/logo-celine.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-celine.svg",
+          "bytes": 938,
+          "sha256": "bcacffe9f08135f8536033a1c27e7ea08d516565fe090ff331f73f8504b92cd5"
+        },
+        {
+          "destinationPath": "assets/images/logo-chanel.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-chanel.svg",
+          "bytes": 999,
+          "sha256": "fc10ab965c8fc13379c127db559eb598d294309ce49743a175353e3caae55ba6"
+        },
+        {
+          "destinationPath": "assets/images/logo-gucci.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-gucci.svg",
+          "bytes": 5307,
+          "sha256": "10deec52a9e126ab346bec61e35528777c322004a33178732c57a4de07925480"
         }
       ],
       "ownershipApproval": "User supplied the Crafto source package and explicitly requested faithful local reconstruction using its assets.",

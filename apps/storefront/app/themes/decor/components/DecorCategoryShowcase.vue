@@ -16,13 +16,17 @@ const data = computed(() =>
     ? (properties.viewModel.data as unknown as Data)
     : null,
 );
+function bannerParts(name: string): { lead: string; strong: string } {
+  const [lead = "", ...strong] = name.split(" ");
+  return { lead, strong: strong.join(" ") };
+}
 </script>
 
 <template>
   <section v-if="data" id="decor-categories" class="decor-categories">
     <div class="decor-category-icons">
       <header>
-        <small>♥ On demand</small>
+        <small><b aria-hidden="true">♥</b><span>On demand</span></small>
         <h2>Featured categories</h2>
       </header>
       <div class="decor-category-icon-list">
@@ -55,10 +59,13 @@ const data = computed(() =>
           :height="item.size === 'large' ? 540 : 260"
           loading="lazy"
         />
-        <span>
-          {{ item.name }}
+        <div class="decor-category-banner-copy">
+          <h3>
+            {{ bannerParts(item.name).lead }}
+            <strong>{{ bannerParts(item.name).strong }}</strong>
+          </h3>
           <small>Explore category</small>
-        </span>
+        </div>
       </a>
     </div>
   </section>

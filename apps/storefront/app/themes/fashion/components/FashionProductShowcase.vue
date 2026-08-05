@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { Eye, Heart, ShoppingBag } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import { recordPreviewIntent } from "../../../theme-engine/actions";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
+import { useFashionSourceReveal } from "../composables/useFashionSourceReveal";
 interface ProductData {
   heading: string;
   products: {
     assetId: string;
+    badge?: string;
     comparePrice?: string;
     name: string;
     price: string;
@@ -27,6 +28,14 @@ const sectionId = computed(() =>
 );
 const savedProducts = ref(new Set<string>());
 const message = ref("");
+const productGrid = useTemplateRef<HTMLElement>("productGrid");
+useFashionSourceReveal(productGrid, {
+  delayMs: 0,
+  durationMs: 300,
+  initialTransform: "translate3d(0, -15px, 0)",
+  itemSelector: ":scope > article",
+  staggerMs: 100,
+});
 
 function toggleSaved(product: ProductData["products"][number]): void {
   const next = new Set(savedProducts.value);
@@ -49,11 +58,22 @@ function addToPreviewBag(product: ProductData["products"][number]): void {
   );
   message.value = `${product.name} added to the preview bag.`;
 }
+
+function headingLead(heading: string): string {
+  return heading.split(" ").slice(0, -1).join(" ");
+}
+
+function headingHighlight(heading: string): string {
+  return heading.split(" ").at(-1) ?? heading;
+}
 </script>
 <template>
   <section v-if="data" :id="sectionId" class="fashion-products">
-    <h2>{{ data.heading }}</h2>
-    <div class="fashion-product-grid">
+    <h2>
+      {{ headingLead(data.heading) }}
+      <strong>{{ headingHighlight(data.heading) }}</strong>
+    </h2>
+    <div ref="productGrid" class="fashion-product-grid">
       <article v-for="product in data.products" :key="product.assetId" class="fashion-product-card">
         <div class="fashion-product-media">
           <NuxtLink
@@ -65,11 +85,18 @@ function addToPreviewBag(product: ProductData["products"][number]): void {
               :src="properties.resolveAsset(product.assetId)"
               :alt="product.name"
               width="600"
-              height="760"
+              height="765"
               loading="lazy"
             />
             <span class="fashion-product-overlay" aria-hidden="true"></span>
           </NuxtLink>
+          <span
+            v-if="product.badge"
+            class="fashion-product-badge"
+            :data-kind="product.badge.toLowerCase()"
+            aria-hidden="true"
+            >{{ product.badge }}</span
+          >
           <div class="fashion-product-hover">
             <button
               type="button"
@@ -77,14 +104,14 @@ function addToPreviewBag(product: ProductData["products"][number]): void {
               :aria-pressed="savedProducts.has(product.slug)"
               @click="toggleSaved(product)"
             >
-              <Heart
+              <span
+                class="fashion-feather-icon fashion-feather-heart"
+                :data-filled="savedProducts.has(product.slug)"
                 aria-hidden="true"
-                :size="16"
-                :fill="savedProducts.has(product.slug) ? 'currentColor' : 'none'"
               />
             </button>
             <NuxtLink :to="`/products/${product.slug}`" :aria-label="`Quick shop ${product.name}`">
-              <Eye aria-hidden="true" :size="16" />
+              <span class="fashion-feather-icon fashion-feather-eye" aria-hidden="true" />
             </NuxtLink>
           </div>
           <button
@@ -93,10 +120,11 @@ function addToPreviewBag(product: ProductData["products"][number]): void {
             :aria-label="`Add ${product.name} to preview bag`"
             @click="addToPreviewBag(product)"
           >
-            <ShoppingBag aria-hidden="true" :size="17" />
+            <span class="fashion-feather-icon fashion-feather-shopping-bag" aria-hidden="true" />
             <span>Add to cart</span>
           </button>
         </div>
+        <span v-if="product.badge" class="sr-only">Product status: {{ product.badge }}</span>
         <h3>
           <NuxtLink :to="`/products/${product.slug}`">{{ product.name }}</NuxtLink>
         </h3>

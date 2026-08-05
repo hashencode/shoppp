@@ -7,6 +7,7 @@ import { decorHomeFixtures } from "../app/themes/decor/fixtures/home";
 import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
 import { decorPreset } from "../app/themes/decor/presets/layered";
 import { themeAssets } from "../app/themes/decor/resources";
+import { decorSourceContract } from "../app/themes/decor/source-contract";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import { decorPreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 
@@ -69,6 +70,84 @@ describe("Decor theme package", () => {
     expect(Object.keys(themeAssets).every((id) => id.startsWith("decor."))).toBe(true);
   });
 
+  test("keeps exact source content, slide timing, and interactive inventory", () => {
+    expect(decorSourceContract.font).toEqual({
+      family: "Plus Jakarta Sans",
+      hash: "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215",
+      source: "Crafto Google Fonts Plus Jakarta Sans v12 Latin variable binary",
+      weightAxis: { maximum: 800, minimum: 200 },
+    });
+    expect(decorSourceContract.hero.slides.map(({ heading, price }) => [heading, price])).toEqual([
+      ["Corby sofas", "$199.00"],
+      ["Verona sofas", "$259.00"],
+      ["Lewis sofas", "$259.00"],
+    ]);
+    expect(decorSourceContract.hero.autoplayMs).toBe(9_000);
+    expect(decorSourceContract.hero.transition).toEqual({
+      direction: "horizontal",
+      durationMs: 300,
+      easing: "ease-in-out",
+      effect: "fade",
+    });
+    expect(decorSourceContract.hero.layerTimeline).toEqual({
+      accent: { delayMs: 500, durationMs: 300 },
+      product: { delayMs: 1_000, durationMs: 800 },
+      heading: { delayMs: 1_200, durationMs: 1_000 },
+      price: { delayMs: 1_500, durationMs: 1_000 },
+      action: { delayMs: 1_700, durationMs: 1_000 },
+    });
+    expect(decorSourceContract.collection.interaction).toMatchObject({
+      allowTouchMove: true,
+      autoplayDelayMs: 3_000,
+      effect: "fade",
+    });
+    expect(decorSourceContract.marqueeMotion).toMatchObject({
+      allowTouchMove: false,
+      autoplayDelayMs: 1,
+      durationMs: 8_000,
+    });
+    expect(decorSourceContract.clientMotion).toMatchObject({
+      allowTouchMove: false,
+      pauseOnMouseEnter: false,
+      slideDurationMs: 3_000,
+    });
+    expect(decorSourceContract.bestSellers).toHaveLength(8);
+    expect(decorSourceContract.newArrivals).toHaveLength(8);
+    expect(decorSourceContract.journal.items).toHaveLength(4);
+    expect(decorSourceContract.header.cart).toMatchObject({
+      count: 2,
+      subtotal: "$199.99",
+    });
+    expect(decorSourceContract.header.language).toEqual({
+      initial: "English",
+      options: [
+        ["English", "decor.flag-usa"],
+        ["France", "decor.flag-france"],
+        ["Russian", "decor.flag-russian"],
+        ["Spain", "decor.flag-spain"],
+      ],
+      persistence: "session-only",
+    });
+    expect(
+      decorSourceContract.header.language.options.every(([, assetId]) => assetId in themeAssets),
+    ).toBe(true);
+    expect(decorSourceContract.regions).toEqual([
+      "header",
+      "hero",
+      "categories",
+      "product-tabs",
+      "marquee",
+      "collection",
+      "clients",
+      "journal",
+      "services",
+      "footer",
+      "cookie-message",
+      "sticky-elements",
+      "scroll-progress",
+    ]);
+  });
+
   test("binds unique Decor products to the dedicated namespaced product template", () => {
     const productTemplate = decorPreset.templates.find(({ pageType }) => pageType === "product")!;
     expect(productTemplate.sections.find(({ id }) => id === "decor-product")).toMatchObject({
@@ -81,6 +160,30 @@ describe("Decor theme package", () => {
     expect(
       decorManifest.componentRegistry.sections.some(({ type }) => type === "decor.product-details"),
     ).toBe(true);
+    expect(decorSourceContract.productDetail).toEqual({
+      actions: ["Compare", "Ask a question", "Share"],
+      gallery: { autoplayMs: 0, count: 7, direction: "horizontal", lightbox: true, loop: false },
+      reviewCount: 165,
+      paymentAssets: [
+        "decor.payment-visa",
+        "decor.payment-mastercard",
+        "decor.payment-american-express",
+        "decor.payment-discover",
+        "decor.payment-diners-club",
+        "decor.payment-union-pay",
+      ],
+      product: {
+        comparePrice: "$85.00",
+        description:
+          "Lorem ipsum is simply dummy text of the printing and typesetting industry lorem ipsum standard.",
+        name: "Minimalist wooden chair",
+        price: "$65.00",
+        sku: "M492300",
+        vendor: "Interio",
+      },
+      tabs: ["Description", "Additional information", "Shipping and return", "Reviews (3)"],
+      tags: ["Chair", "Modern", "Wooden"],
+    });
   });
 
   test("maps original Crafto category and service artwork to namespaced assets", async () => {

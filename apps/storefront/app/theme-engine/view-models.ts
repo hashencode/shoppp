@@ -236,7 +236,7 @@ export const experienceFixtureSchema = z
   .object({
     id: storefrontIdentifierSchema,
     label: z.string().trim().min(1).max(160),
-    pageTypes: z.array(pageTypeSchema).min(1).max(7),
+    pageTypes: z.array(pageTypeSchema).min(1).max(10),
     viewModels: z.record(storefrontIdentifierSchema, presentationViewModelSchema),
   })
   .strict();

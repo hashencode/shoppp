@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 import { themeViewports } from "./e2e/support/theme-viewports";
 
 const port = Number(process.env.STOREFRONT_DECOR_PORT || 3425);
-const baseURL = `http://127.0.0.1:${port}`;
+const externalBaseURL = process.env.STOREFRONT_DECOR_BASE_URL;
+const baseURL = externalBaseURL || `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -10,6 +11,7 @@ export default defineConfig({
   outputDir: "test-results/decor",
   fullyParallel: true,
   reporter: "list",
+  workers: 1,
   use: {
     baseURL,
     screenshot: "only-on-failure",
@@ -54,10 +56,12 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: `bun run build:preview:decor && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
-    url: baseURL,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: externalBaseURL
+    ? undefined
+    : {
+        command: `bun run build:preview:decor && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
+        url: baseURL,
+        reuseExistingServer: false,
+        timeout: 120_000,
+      },
 });

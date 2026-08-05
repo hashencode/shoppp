@@ -10,6 +10,11 @@ forms, unrelated pages, or an entire upstream tree.
 
 ## Package a theme
 
+For a port from an existing HTML template, first follow the
+[source-equivalent porting workflow](./source-equivalent-html-template-port.md). Create an
+intake-only package with `bun run scaffold:source-equivalent-theme -- ...`; do not register it until
+its source contract, assets, responsive/interaction matrices, tests, and policy entry are complete.
+
 1. Add `apps/storefront/app/themes/<theme-id>/manifest.ts`, one or more presets, namespaced
    components, a registry, tokens, and `UPSTREAM.md`.
 2. Use a stable lowercase theme ID and semantic `themeVersion`. Declare the platform compatibility
@@ -31,13 +36,16 @@ forms, unrelated pages, or an entire upstream tree.
 Run:
 
 ```sh
+bun run verify:source-equivalence
 bun run verify:themes
 bun run --cwd apps/storefront test
 bun run --cwd apps/storefront test:<theme-id>
 STOREFRONT_THEME=<theme-id> bun run --cwd apps/storefront test:perf
 ```
 
-The first command detects catalog drift, duplicate IDs, bad versions or provenance, unsupported
+The source-equivalence command validates canonical thresholds, resource limits, source-contract
+facets, explicit waivers, and visual-harness self-tests. Theme verification then detects catalog
+drift, duplicate IDs, bad versions or provenance, unsupported
 platform ranges, invalid schemas and capabilities, missing routes, and migration gaps. The theme
 and performance suites prove static content, responsive layouts, no-JavaScript behavior,
 accessibility, selected-theme bundle isolation, and mobile Lighthouse budgets.

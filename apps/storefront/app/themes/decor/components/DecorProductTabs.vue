@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { Eye, Heart, ShoppingBag } from "@lucide/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import { recordPreviewIntent } from "../../../theme-engine/actions";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 interface Data {
   categories: string[];
-  products: {
+  productGroups: {
     assetId: string;
+    badge?: string;
     comparePrice?: string;
     name: string;
     price: string;
     slug: string;
-  }[];
+  }[][];
 }
 const p = defineProps<{ resolveAsset: ThemeAssetResolver; viewModel: PresentationViewModel }>();
 const data = computed(() =>
@@ -21,10 +21,7 @@ const active = ref(0);
 const tabButtons = ref<HTMLButtonElement[]>([]);
 const savedProducts = ref(new Set<string>());
 const message = ref("");
-const shown = computed(() => {
-  const products = data.value?.products ?? [];
-  return [...products.slice(active.value * 2), ...products.slice(0, active.value * 2)].slice(0, 8);
-});
+const shown = computed(() => data.value?.productGroups[active.value] ?? []);
 async function selectAndFocus(index: number): Promise<void> {
   const count = data.value?.categories.length ?? 1;
   active.value = (index + count) % count;
@@ -53,7 +50,7 @@ function onTabKeydown(event: KeyboardEvent, index: number): void {
   event.preventDefault();
   void selectAndFocus(target);
 }
-function toggleSaved(product: Data["products"][number]): void {
+function toggleSaved(product: Data["productGroups"][number][number]): void {
   const next = new Set(savedProducts.value);
   if (next.has(product.slug)) next.delete(product.slug);
   else next.add(product.slug);
@@ -62,7 +59,7 @@ function toggleSaved(product: Data["products"][number]): void {
     ? `${product.name} saved in this preview.`
     : `${product.name} removed from saved items.`;
 }
-function addToPreviewBag(product: Data["products"][number]): void {
+function addToPreviewBag(product: Data["productGroups"][number][number]): void {
   recordPreviewIntent(
     {
       id: `add-${product.slug}`,
@@ -92,6 +89,7 @@ function addToPreviewBag(product: Data["products"][number]): void {
           @keydown="onTabKeydown($event, index)"
         >
           {{ category }}
+          <span class="decor-tab-border" aria-hidden="true"></span>
         </button>
       </div>
     </header>
@@ -103,53 +101,60 @@ function addToPreviewBag(product: Data["products"][number]): void {
       tabindex="0"
     >
       <article v-for="product in shown" :key="product.assetId" class="decor-product-card">
-        <div class="decor-product-media">
-          <NuxtLink
-            class="decor-product-link"
-            :to="`/products/${product.slug}`"
-            :aria-label="`View ${product.name}`"
-          >
-            <img
-              :src="p.resolveAsset(product.assetId)"
-              :alt="product.name"
-              width="620"
-              height="720"
-              loading="lazy"
-            />
-            <span class="decor-product-overlay" aria-hidden="true"></span>
-          </NuxtLink>
-          <div class="decor-product-hover">
-            <button
-              type="button"
-              :aria-label="`Save ${product.name}`"
-              :aria-pressed="savedProducts.has(product.slug)"
-              @click="toggleSaved(product)"
+        <div class="decor-product-box">
+          <div class="decor-product-media">
+            <NuxtLink
+              class="decor-product-link"
+              :to="`/products/${product.slug}`"
+              :aria-label="`View ${product.name}`"
             >
-              <Heart
-                aria-hidden="true"
-                :size="15"
-                :fill="savedProducts.has(product.slug) ? 'currentColor' : 'none'"
+              <img
+                :src="p.resolveAsset(product.assetId)"
+                :alt="product.name"
+                width="620"
+                height="720"
+                loading="lazy"
               />
-            </button>
-            <button
-              type="button"
-              :aria-label="`Add ${product.name} to preview bag`"
-              @click="addToPreviewBag(product)"
-            >
-              <ShoppingBag aria-hidden="true" :size="15" />
-            </button>
-            <NuxtLink :to="`/products/${product.slug}`" :aria-label="`Quick shop ${product.name}`">
-              <Eye aria-hidden="true" :size="15" />
+              <span class="decor-product-overlay" aria-hidden="true"></span>
             </NuxtLink>
+            <div class="decor-product-hover">
+              <button
+                type="button"
+                :aria-label="`Save ${product.name}`"
+                :aria-pressed="savedProducts.has(product.slug)"
+                @click="toggleSaved(product)"
+              >
+                <i class="decor-feather decor-feather-heart" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                :aria-label="`Add ${product.name} to preview bag`"
+                @click="addToPreviewBag(product)"
+              >
+                <i class="decor-feather decor-feather-shopping-bag" aria-hidden="true"></i>
+              </button>
+              <NuxtLink
+                :to="`/products/${product.slug}`"
+                :aria-label="`Quick shop ${product.name}`"
+              >
+                <i class="decor-feather decor-feather-eye" aria-hidden="true"></i>
+              </NuxtLink>
+            </div>
+            <span
+              v-if="product.badge"
+              class="decor-product-badge"
+              :class="{ 'decor-product-badge-hot': product.badge.toLowerCase() === 'hot' }"
+              >{{ product.badge }}</span
+            >
           </div>
+          <h3>
+            <NuxtLink :to="`/products/${product.slug}`">{{ product.name }}</NuxtLink>
+          </h3>
+          <p>
+            <del v-if="product.comparePrice">{{ product.comparePrice }}</del
+            >{{ product.price }}
+          </p>
         </div>
-        <h3>
-          <NuxtLink :to="`/products/${product.slug}`">{{ product.name }}</NuxtLink>
-        </h3>
-        <p>
-          <del v-if="product.comparePrice">{{ product.comparePrice }}</del
-          >{{ product.price }}
-        </p>
       </article>
     </div>
     <p class="decor-preview-message" aria-live="polite">{{ message }}</p>

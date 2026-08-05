@@ -45,7 +45,8 @@ for (const route of representativeRoutes) {
 }
 
 const files = await outputFiles(output);
-const prohibitedRuntime = /(?:jquery|revolution(?:\.min)?\.js|revslider|contact\.php|crafto)/i;
+const prohibitedRuntime =
+  /(?:jquery|revolution(?:\.min)?\.js|revslider|contact\.php|(?:^|[/_-])crafto(?:\.min)?\.(?:css|js)|[/_-]crafto[/_-])/i;
 const inactiveThemes =
   activeThemeId === "fashion"
     ? ["decor"]

@@ -4,6 +4,13 @@ import { experienceFixtureSchema } from "./view-models";
 export type ThemeAssetMap = Readonly<Record<string, string>>;
 export type ThemeAssetResolver = (assetId: string) => string;
 
+export function paymentAssetName(assetId: string): string {
+  return (assetId.split(".payment-").at(-1) ?? assetId)
+    .split("-")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function assetIdPattern(themeId: string): RegExp {
   return new RegExp(`^${themeId}\\.[a-z0-9]+(?:-[a-z0-9]+)*$`);
 }

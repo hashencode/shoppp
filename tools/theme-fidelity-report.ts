@@ -1,6 +1,10 @@
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import {
+  assertThemeScreenshotDifference,
+  compareThemeScreenshots,
+} from "../apps/storefront/scripts/compare-theme-screenshots";
 
 export type FidelityThemeId = "decor" | "fashion";
 export type FidelityViewportId = "desktop" | "laptop" | "tablet" | "mobile";
@@ -51,6 +55,7 @@ export async function generateThemeFidelityReport(options: {
   const outputRoot = resolve(options.outputRoot);
   await mkdir(outputRoot, { recursive: true });
   const cards: string[] = [];
+  const failures: string[] = [];
   for (const themeId of themes) {
     const referenceMetadata = await metadata(resolve(options.referenceRoot), themeId);
     const implementationMetadata = await metadata(resolve(options.implementationRoot), themeId);
@@ -61,6 +66,9 @@ export async function generateThemeFidelityReport(options: {
       throw new Error(
         `${themeId} implementation capture does not represent the initial home state.`,
       );
+    }
+    if (referenceMetadata.state !== "initial-home") {
+      throw new Error(`${themeId} reference capture does not represent the initial home state.`);
     }
     for (const viewport of fidelityViewportIds) {
       const expected = referenceMetadata.viewports.find(({ id }) => id === viewport);
@@ -95,16 +103,30 @@ export async function generateThemeFidelityReport(options: {
       }
       const referenceName = `${themeId}-${viewport}-reference.png`;
       const implementationName = `${themeId}-${viewport}-implementation.png`;
+      const differenceName = `${themeId}-${viewport}-diff.png`;
+      const resultName = `${themeId}-${viewport}-diff.json`;
       await Promise.all([
         copyFile(referencePath, join(outputRoot, referenceName)),
         copyFile(implementationPath, join(outputRoot, implementationName)),
       ]);
+      const difference = await compareThemeScreenshots(
+        referencePath,
+        implementationPath,
+        join(outputRoot, differenceName),
+      );
+      await writeFile(join(outputRoot, resultName), `${JSON.stringify(difference, null, 2)}\n`);
+      try {
+        assertThemeScreenshotDifference(difference, 0.01);
+      } catch (error) {
+        failures.push(`${themeId} ${viewport}: ${(error as Error).message}`);
+      }
       cards.push(`<section>
   <h2>${themeId} · ${viewport}</h2>
-  <p>${expected.width}px viewport · commit <code>${options.commit}</code></p>
+  <p>${expected.width}px viewport · commit <code>${options.commit}</code> · changed pixels <strong>${(difference.changedPixelRatio * 100).toFixed(3)}%</strong> (limit 1.000%)</p>
   <div class="comparison">
     <figure><figcaption>Reference</figcaption><img src="${referenceName}" alt="${themeId} ${viewport} reference"></figure>
     <figure><figcaption>Implementation</figcaption><img src="${implementationName}" alt="${themeId} ${viewport} implementation"></figure>
+    <figure><figcaption>Difference</figcaption><img src="${differenceName}" alt="${themeId} ${viewport} difference"></figure>
   </div>
 </section>`);
     }
@@ -131,6 +153,9 @@ export async function generateThemeFidelityReport(options: {
     );
   } else {
     await rm(join(outputRoot, "approval.json"), { force: true });
+  }
+  if (failures.length > 0) {
+    throw new Error(`Fidelity report failed:\n${failures.join("\n")}`);
   }
   return reportPath;
 }

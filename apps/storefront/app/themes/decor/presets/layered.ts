@@ -64,12 +64,7 @@ export const decorPreset = {
       requiredCapabilities: ["navigation.primary", "focus.skip-link", "legal.links"],
       sections: [
         navigation(),
-        section({ capabilities: [], id: "decor-collections", type: "core.collection-grid" }),
-        section({
-          capabilities: [],
-          id: "decor-collection-products",
-          type: "core.product-grid",
-        }),
+        section({ capabilities: [], id: "decor-shop", type: "decor.shop" }),
         footer(),
       ],
     },
@@ -91,7 +86,6 @@ export const decorPreset = {
           required: true,
           type: "decor.product-details",
         }),
-        section({ capabilities: [], id: "decor-trust", type: "core.trust-strip" }),
         footer(),
       ],
     },

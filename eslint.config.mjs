@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/.output/**",
       "**/.wrangler/**",
       "apps/admin/**",
+      "**/artifacts/**",
       "**/coverage/**",
       "**/dist/**",
       "**/node_modules/**",

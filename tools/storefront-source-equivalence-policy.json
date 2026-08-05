@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "canonicalViewports": [
+    { "id": "desktop", "width": 1440, "height": 1000 },
+    { "id": "laptop", "width": 1024, "height": 900 },
+    { "id": "tablet", "width": 768, "height": 1024 },
+    { "id": "mobile", "width": 390, "height": 844 }
+  ],
+  "thresholds": {
+    "channelTolerance": 16,
+    "computedStyleNumericPx": 0.5,
+    "fullPageChangedPixelRatio": 0.01,
+    "fullPageHeightRatio": 0.005,
+    "geometryEdgePx": 2,
+    "namedStateChangedPixelRatio": 0.005
+  },
+  "resources": {
+    "heavyBatchDefaultWorkers": 1,
+    "maxConcurrentBrowserWorkers": 2,
+    "modelInspection": "ranked-ambiguous-crops-only",
+    "scriptFirst": true
+  },
+  "requiredEvidence": [
+    "assets",
+    "computedStyles",
+    "domInventory",
+    "fonts",
+    "geometry",
+    "interactionStates",
+    "links",
+    "motionStates",
+    "responsiveStates",
+    "runtimeDiagnostics",
+    "visibleCopy"
+  ],
+  "themes": [
+    {
+      "id": "decor",
+      "equivalenceScope": ["home", "collection", "product"],
+      "sourceContractPath": "apps/storefront/app/themes/decor/source-contract.ts",
+      "upstreamPath": "apps/storefront/app/themes/decor/UPSTREAM.md",
+      "requiredContractFacets": ["sources", "regions", "font", "interactions"]
+    },
+    {
+      "id": "fashion",
+      "equivalenceScope": [
+        "home",
+        "about",
+        "account",
+        "article",
+        "cart",
+        "checkout",
+        "collection",
+        "collection-showcase",
+        "contact",
+        "faq",
+        "magazine-page",
+        "no-sidebar",
+        "product",
+        "right-sidebar",
+        "wishlist"
+      ],
+      "sourceContractPath": "apps/storefront/app/themes/fashion/source-contract.ts",
+      "upstreamPath": "apps/storefront/app/themes/fashion/UPSTREAM.md",
+      "requiredContractFacets": ["sources", "regions", "fonts", "interactions"]
+    }
+  ],
+  "waivers": [
+    {
+      "id": "decor-home-journal-accessible-contrast",
+      "approvedBy": "shoppp-theme-team",
+      "expiresAt": "2027-08-05T00:00:00.000Z",
+      "owner": "shoppp-theme-team",
+      "rationale": "The source gray fails the repository accessibility contrast requirement; geometry, typography, and all other properties remain source-equivalent.",
+      "regionId": "journal",
+      "routeId": "decor-home",
+      "themeId": "decor"
+    },
+    {
+      "id": "decor-home-services-accessible-contrast",
+      "approvedBy": "shoppp-theme-team",
+      "expiresAt": "2027-08-05T00:00:00.000Z",
+      "owner": "shoppp-theme-team",
+      "rationale": "The source gray fails the repository accessibility contrast requirement; geometry, typography, and all other properties remain source-equivalent.",
+      "regionId": "services",
+      "routeId": "decor-home",
+      "themeId": "decor"
+    }
+  ]
+}

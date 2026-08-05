@@ -25,15 +25,36 @@ function minimalThirdTheme(): ThemeMatrixEntry {
     entry.package.manifest.componentRegistry.sections.filter(({ type }) =>
       type.startsWith("core."),
     );
+  entry.package.manifest.supportedPageTemplates = [...REQUIRED_STOREFRONT_PAGE_TYPES];
   for (const preset of entry.package.presets) {
+    preset.templates = preset.templates.filter(({ pageType }) =>
+      REQUIRED_STOREFRONT_PAGE_TYPES.some((candidate) => candidate === pageType),
+    );
     for (const template of preset.templates) {
       for (const section of template.sections) {
         if (section.type.startsWith("core.")) continue;
-        section.type = section.capabilities.includes("navigation.primary")
-          ? "core.navigation"
-          : section.capabilities.includes("legal.links")
-            ? "core.footer"
-            : "core.editorial";
+        if (section.capabilities.includes("navigation.primary")) {
+          section.type = "core.navigation";
+          section.capabilities = ["navigation.primary", "focus.skip-link"];
+        } else if (section.capabilities.includes("legal.links")) {
+          section.type = "core.footer";
+          section.capabilities = ["legal.links"];
+        } else if (
+          section.capabilities.includes("product.details") ||
+          section.capabilities.includes("product.action")
+        ) {
+          section.type = "core.product";
+          section.capabilities = ["product.details", "product.action"];
+        } else if (section.capabilities.includes("cart.summary")) {
+          section.type = "core.cart";
+          section.capabilities = ["cart.summary", "cart.error"];
+        } else if (section.capabilities.includes("checkout.summary")) {
+          section.type = "core.checkout";
+          section.capabilities = ["checkout.summary", "checkout.error"];
+        } else {
+          section.type = "core.editorial";
+          section.capabilities = [];
+        }
         section.settings = {};
       }
     }
@@ -41,6 +62,7 @@ function minimalThirdTheme(): ThemeMatrixEntry {
   entry.descriptor = {
     ...entry.descriptor,
     id: "minimal",
+    supportedPageTemplates: [...REQUIRED_STOREFRONT_PAGE_TYPES],
   };
   return entry;
 }

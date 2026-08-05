@@ -14,6 +14,7 @@ const visualTypes = [
   "decor.client-strip",
   "decor.journal",
   "decor.service-strip",
+  "decor.shop",
 ] as const;
 
 const decorSectionDefinitions = [

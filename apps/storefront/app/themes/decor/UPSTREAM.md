@@ -9,7 +9,11 @@
 
 ## Imported assets
 
-- `assets/fonts/plus-jakarta-sans-latin.woff2` from `fonts/plus-jakarta-sans-latin.woff2` — SIL Open Font License 1.1; self-hosted Google Fonts binary.; SHA-256 `153fc85b70298beeb1d61a5f723331649e7f23bb77302a66e61cb3e2fbdb5e79`
+- `assets/fonts/plus-jakarta-sans-latin.woff2` from `fonts/plus-jakarta-sans-latin.woff2` — SIL Open Font License 1.1; exact self-hosted Google Fonts binary loaded by the source demo.; SHA-256 `cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215`
+- `assets/images/country-flag-usa.png` from `images/country-flag-16X16/usa.png` — User-supplied Crafto package; authorized for this local template reconstruction.; 16 × 16; SHA-256 `4ac836d19ba59b13f74176339bbb73a752844e528a338bd9340c945d2f2895c5`
+- `assets/images/country-flag-france.png` from `images/country-flag-16X16/france.png` — User-supplied Crafto package; authorized for this local template reconstruction.; 16 × 16; SHA-256 `2629de759dd340f44743175bb4510aa6d438a37e3d94e079d2aa4e6032f71de9`
+- `assets/images/country-flag-russian.png` from `images/country-flag-16X16/russian.png` — User-supplied Crafto package; authorized for this local template reconstruction.; 16 × 16; SHA-256 `bc6c51350976a6cbe7cc8d0d08bd8b4c264070dad00cb61c0d28355ca28fae9b`
+- `assets/images/country-flag-spain.png` from `images/country-flag-16X16/spain.png` — User-supplied Crafto package; authorized for this local template reconstruction.; 16 × 16; SHA-256 `efbf0cf75d4b00bd5a0891a4de84ee10bd4dc6bdc7e2d33841d37fdf51263f8c`
 - `assets/images/demo-decor-store-banner-04.jpg` from `images/demo-decor-store-banner-04.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f`
 - `assets/images/demo-decor-store-blog-03.jpg` from `images/demo-decor-store-blog-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743`
 - `assets/images/demo-decor-store-blog-04.jpg` from `images/demo-decor-store-blog-04.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76`
@@ -52,6 +56,12 @@
 - `assets/images/demo-decor-store-payment-icon-02.png` from `images/demo-decor-store-payment-icon-02.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `cce62a78cf97cc728a08f13c25f2b80377d48c1d2af0f98c058db05568a0d321`
 - `assets/images/demo-decor-store-payment-icon-03.png` from `images/demo-decor-store-payment-icon-03.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `7479722e0b7901e9c5c0a806531a1ee7aad4ec2e09bb1c213f78836bac95c9e2`
 - `assets/images/demo-decor-store-payment-icon-04.png` from `images/demo-decor-store-payment-icon-04.png` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7`
+- `assets/images/payment-american-express.svg` from `images/american-express.svg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `f384a8d6e867fd76c8e7188a45d2cf899dcb6a580fa5f2d1121c2b93f5cd36f8`
+- `assets/images/payment-diners-club.svg` from `images/diners-club.svg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `eb820013fe9e3a335eb57e9bf8369175bba67dd855db75fd86a2b595e08cae73`
+- `assets/images/payment-discover.svg` from `images/discover.svg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `b99de0a1e55d1da58da7224165946235bbbd94e788c35df76031a61fd6ca1563`
+- `assets/images/payment-mastercard.svg` from `images/mastercard.svg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `4ed69adc12ce9ff166d51b2c504f93e559babe53c60afd82662169f5df818b81`
+- `assets/images/payment-union-pay.svg` from `images/union-pay.svg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2eb9bb77171a279ec6f1376660d94ac07965052d22e12f7ce666197b7c4ae08d`
+- `assets/images/payment-visa.svg` from `images/visa.svg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `f01aef156fd9e7f369bd408971fd06c0de6301cebf871c255032346fa0c704d6`
 - `assets/images/demo-decor-store-product-01.jpg` from `images/demo-decor-store-product-01.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `c47c9b9d227ee6f5b08a38b5f80012b93cc1cc5bc5c70bb5cf083d357d85be0a`
 - `assets/images/demo-decor-store-product-03.jpg` from `images/demo-decor-store-product-03.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `7fd8289da9b8816fbae6273ae4f98a8d7fb9ea4d14ad768b4d11b0a7d6dcbc1e`
 - `assets/images/demo-decor-store-product-05.jpg` from `images/demo-decor-store-product-05.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `5d51f4516c085789e00ef2d773fdfe2704c5036f7b637f36adeff2336b76a065`
@@ -78,7 +88,16 @@
 - `assets/images/demo-decor-store-slider-03-img-08.jpg` from `images/demo-decor-store-slider-03-img-08.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034`
 - `assets/images/demo-decor-store-slider-03-img-09.jpg` from `images/demo-decor-store-slider-03-img-09.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011`
 - `assets/images/demo-decor-store-slider-03-thumb.jpg` from `images/demo-decor-store-slider-03-thumb.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96`
+- `assets/images/demo-decor-store-title-bg.jpg` from `images/demo-decor-store-title-bg.jpg` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `34bfe700f23c86a605bbf17bf2e06b3aa8cd00e06757ae6c4141be46425d55f2`
+- `assets/images/shop-four-column.svg` from `images/shop-four-column.svg` — Minified without changing the source geometry; user-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `ab3dd89dd679009d821c07a7d98a6151f0b42eaf60a9e89378d591c50ad63f99`
+- `assets/images/shop-list.svg` from `images/shop-list.svg` — Minified without changing the source geometry; user-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `38dac91b45c186ffa710931e1a818bf3ff2f3ddc760f966940c5589d7898da8b`
+- `assets/images/shop-three-column.svg` from `images/shop-three-column.svg` — Minified without changing the source geometry; user-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `2438dc7639153b24ab0e76da06bfa70b29c7c690cb8b34eabff6079a50a0ccc6`
+- `assets/images/shop-two-column.svg` from `images/shop-two-column.svg` — Minified without changing the source geometry; user-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `121a98ada05ab44102997067135bb123b93cd44ecf0172fbaaf1be4bc190f062`
 
 ## Local implementation
+
+- `assets/fonts/feather.woff2` from `fonts/feather.woff` — The user-supplied Crafto Feather font was glyph-compatibly converted to WOFF2 for the repository font-asset contract; source SHA-256 `ef3c47cb702e040372a3a4bce66d5e0ecc46c56325ec40f8c00b91da0d1d3f46`; packaged SHA-256 `7034461ae75dbbe55e34e777cd7752155f714e8f456427e57001b8376db60c40`
+- `assets/fonts/bootstrap-icons.woff2` from `fonts/bootstrap-icons.woff2` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `476adf42b40325098fcfa8b36ab3e769186bb4f6ce6a249753e2e1a9c22bf99e`
+- `assets/fonts/fa-brands-400.woff2` from `fonts/fa-brands-400.woff2` — User-supplied Crafto package; authorized for this local template reconstruction.; SHA-256 `3a8924cd5203a28628716aedb5cef0943da4c3b44e3ffcee90ab06387b41c490`
 
 Theme templates, Vue components, CSS, and internal icon components are original reviewed repository code. No Crafto JavaScript, jQuery, Revolution Slider, PHP handler, or global vendor stylesheet is imported.

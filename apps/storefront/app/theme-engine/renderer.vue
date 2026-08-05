@@ -40,7 +40,7 @@ const plan = computed(() =>
 </script>
 
 <template>
-  <main id="preview-content" class="site-shell" tabindex="-1">
+  <div id="preview-content" class="site-shell" tabindex="-1">
     <template v-for="section in plan" :key="section.instance.id">
       <component
         :is="section.component"
@@ -58,5 +58,5 @@ const plan = computed(() =>
         />
       </component>
     </template>
-  </main>
+  </div>
 </template>

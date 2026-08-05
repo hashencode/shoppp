@@ -10,15 +10,31 @@ const data = computed(() =>
 );
 </script>
 <template>
-  <section v-if="data" class="decor-clients" aria-label="Selected partners">
-    <img
-      v-for="item in data.items"
-      :key="item"
-      :src="p.resolveAsset(item)"
-      alt="Partner mark"
-      width="220"
-      height="90"
-      loading="lazy"
-    />
+  <section
+    v-if="data"
+    class="decor-clients"
+    aria-label="Selected partners"
+    data-motion-autoplay-ms="0"
+    data-motion-duration-ms="3000"
+    data-motion-direction="horizontal"
+    data-motion-interaction="continuous,no-touch,no-hover-pause"
+    data-motion-ready="true"
+  >
+    <div class="decor-clients-window">
+      <div class="decor-clients-track">
+        <template v-for="loop in 2" :key="loop">
+          <span v-for="item in data.items" :key="`${loop}-${item}`">
+            <img
+              :src="p.resolveAsset(item)"
+              :alt="loop === 1 ? 'Partner mark' : ''"
+              :aria-hidden="loop === 2 ? 'true' : undefined"
+              width="195"
+              height="50"
+              loading="lazy"
+            />
+          </span>
+        </template>
+      </div>
+    </div>
   </section>
 </template>

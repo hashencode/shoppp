@@ -9,6 +9,10 @@ import asset7 from "./assets/images/demo-decor-store-client-02.png";
 import asset8 from "./assets/images/demo-decor-store-client-03.png";
 import asset9 from "./assets/images/demo-decor-store-client-04.png";
 import asset10 from "./assets/images/demo-decor-store-client-05.png";
+import flagFrance from "./assets/images/country-flag-france.png?no-inline";
+import flagRussian from "./assets/images/country-flag-russian.png?no-inline";
+import flagSpain from "./assets/images/country-flag-spain.png?no-inline";
+import flagUsa from "./assets/images/country-flag-usa.png?no-inline";
 import categoryLamp from "./assets/images/demo-decor-store-icon-01.png?no-inline";
 import categoryChair from "./assets/images/demo-decor-store-icon-02.png?no-inline";
 import categoryStool from "./assets/images/demo-decor-store-icon-03.png?no-inline";
@@ -21,6 +25,7 @@ import asset20 from "./assets/images/demo-decor-store-icon-09.png?no-inline";
 import categoryCabinet from "./assets/images/demo-decor-store-icon-10.png?no-inline";
 import logoBlack from "./assets/images/demo-decor-store-logo-black.png?no-inline";
 import logoWhite from "./assets/images/demo-decor-store-logo-white.png?no-inline";
+import logoWhite2x from "./assets/images/demo-decor-store-logo-white@2x.png?no-inline";
 import mainBanner1 from "./assets/images/demo-decor-store-main-banner-01.jpg";
 import mainBanner2 from "./assets/images/demo-decor-store-main-banner-02.jpg";
 import mainBanner3 from "./assets/images/demo-decor-store-main-banner-03.jpg";
@@ -53,6 +58,29 @@ import asset61 from "./assets/images/demo-decor-store-slider-02-img-04.png";
 import asset62 from "./assets/images/demo-decor-store-slider-02-img-05.jpg";
 import asset65 from "./assets/images/demo-decor-store-slider-03-img-07.png";
 import asset66 from "./assets/images/demo-decor-store-slider-03-img-08.jpg";
+import footerBackground from "./assets/images/demo-decor-store-footer-bg.jpg";
+import menuBanner1 from "./assets/images/demo-decor-store-menu-banner-01.jpg";
+import menuBanner2 from "./assets/images/demo-decor-store-menu-banner-02.jpg";
+import menuBanner3 from "./assets/images/demo-decor-store-menu-banner-03.jpg";
+import menuBanner4 from "./assets/images/demo-decor-store-menu-banner-04.jpg";
+import productSliderBackground from "./assets/images/demo-decor-store-product-slider-bg-img.jpg";
+import paymentAmericanExpress from "./assets/images/payment-american-express.svg?no-inline";
+import paymentDinersClub from "./assets/images/payment-diners-club.svg?no-inline";
+import paymentDiscover from "./assets/images/payment-discover.svg?no-inline";
+import paymentMastercard from "./assets/images/payment-mastercard.svg?no-inline";
+import paymentUnionPay from "./assets/images/payment-union-pay.svg?no-inline";
+import paymentVisa from "./assets/images/payment-visa.svg?no-inline";
+import sliderBackground1 from "./assets/images/demo-decor-store-slider-01-img-03.jpg";
+import sliderThumb1 from "./assets/images/demo-decor-store-slider-01-thumb.jpg";
+import sliderBackground2 from "./assets/images/demo-decor-store-slider-02-img-06.jpg";
+import sliderThumb2 from "./assets/images/demo-decor-store-slider-02-thumb.jpg";
+import sliderBackground3 from "./assets/images/demo-decor-store-slider-03-img-09.jpg";
+import sliderThumb3 from "./assets/images/demo-decor-store-slider-03-thumb.jpg";
+import shopFourColumn from "./assets/images/shop-four-column.svg?no-inline";
+import shopList from "./assets/images/shop-list.svg?no-inline";
+import shopThreeColumn from "./assets/images/shop-three-column.svg?no-inline";
+import shopTwoColumn from "./assets/images/shop-two-column.svg?no-inline";
+import titleBackground from "./assets/images/demo-decor-store-title-bg.jpg";
 
 export const themeAssets = validateThemeAssets("decor", {
   "decor.banner-04": asset1,
@@ -65,6 +93,10 @@ export const themeAssets = validateThemeAssets("decor", {
   "decor.client-03": asset8,
   "decor.client-04": asset9,
   "decor.client-05": asset10,
+  "decor.flag-france": flagFrance,
+  "decor.flag-russian": flagRussian,
+  "decor.flag-spain": flagSpain,
+  "decor.flag-usa": flagUsa,
   "decor.icon-01": categoryLamp,
   "decor.icon-02": categoryChair,
   "decor.icon-03": categoryStool,
@@ -77,6 +109,7 @@ export const themeAssets = validateThemeAssets("decor", {
   "decor.icon-10": categoryCabinet,
   "decor.logo-black": logoBlack,
   "decor.logo-white": logoWhite,
+  "decor.logo-white-2x": logoWhite2x,
   "decor.main-banner-01": mainBanner1,
   "decor.main-banner-02": mainBanner2,
   "decor.main-banner-03": mainBanner3,
@@ -90,6 +123,12 @@ export const themeAssets = validateThemeAssets("decor", {
   "decor.payment-icon-02": asset40,
   "decor.payment-icon-03": asset41,
   "decor.payment-icon-04": asset42,
+  "decor.payment-american-express": paymentAmericanExpress,
+  "decor.payment-diners-club": paymentDinersClub,
+  "decor.payment-discover": paymentDiscover,
+  "decor.payment-mastercard": paymentMastercard,
+  "decor.payment-union-pay": paymentUnionPay,
+  "decor.payment-visa": paymentVisa,
   "decor.product-01": asset43,
   "decor.product-03": asset44,
   "decor.product-05": asset45,
@@ -105,11 +144,25 @@ export const themeAssets = validateThemeAssets("decor", {
   "decor.product-slider-03": asset55,
   "decor.slider-01-img-01": asset57,
   "decor.slider-01-img-02": asset58,
-  "decor.slider-01-accent-mobile":
-    "/theme-preview-generated/demo-decor-store-slider-01-accent-mobile.webp",
-  "decor.slider-01-mobile": "/theme-preview-generated/demo-decor-store-slider-01-mobile.webp",
   "decor.slider-02-img-04": asset61,
   "decor.slider-02-img-05": asset62,
   "decor.slider-03-img-07": asset65,
   "decor.slider-03-img-08": asset66,
+  "decor.footer-bg": footerBackground,
+  "decor.menu-banner-01": menuBanner1,
+  "decor.menu-banner-02": menuBanner2,
+  "decor.menu-banner-03": menuBanner3,
+  "decor.menu-banner-04": menuBanner4,
+  "decor.product-slider-bg": productSliderBackground,
+  "decor.slider-01-img-03": sliderBackground1,
+  "decor.slider-01-thumb": sliderThumb1,
+  "decor.slider-02-img-06": sliderBackground2,
+  "decor.slider-02-thumb": sliderThumb2,
+  "decor.slider-03-img-09": sliderBackground3,
+  "decor.slider-03-thumb": sliderThumb3,
+  "decor.shop-four-column": shopFourColumn,
+  "decor.shop-list": shopList,
+  "decor.shop-three-column": shopThreeColumn,
+  "decor.shop-two-column": shopTwoColumn,
+  "decor.title-bg": titleBackground,
 });

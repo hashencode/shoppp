@@ -9,6 +9,8 @@
     "build:preview:fashion": "bun scripts/prepare-theme-preview-fixture.ts fashion && STOREFRONT_BUILD_MODE=preview STOREFRONT_EXPERIENCE_FILE=fixtures/experience/.generated/fashion-preview-input.json bun run build",
     "build:preview-worker": "wrangler deploy --dry-run --config wrangler.preview.jsonc --outdir preview-worker-dist",
     "dev": "bun run prepare:release && bun run prepare:experience && nuxt dev",
+    "dev:decor": "bun scripts/prepare-theme-preview-fixture.ts decor && STOREFRONT_BUILD_MODE=preview STOREFRONT_EXPERIENCE_FILE=fixtures/experience/.generated/decor-preview-input.json bun run dev -- --host 127.0.0.1 --port 3434",
+    "dev:fashion": "bun scripts/prepare-theme-preview-fixture.ts fashion && STOREFRONT_BUILD_MODE=preview STOREFRONT_EXPERIENCE_FILE=fixtures/experience/.generated/fashion-preview-input.json bun run dev -- --host 127.0.0.1 --port 3433",
     "prepare:experience": "bun scripts/prepare-experience.ts",
     "prepare:release": "bun scripts/prepare-release.ts",
     "test": "bun test tests",
@@ -21,7 +23,7 @@
     "test:perf:decor": "STOREFRONT_THEME=decor playwright test --config playwright.performance.config.ts",
     "test:perf:fashion": "STOREFRONT_THEME=fashion playwright test --config playwright.performance.config.ts",
     "test:preview": "playwright test e2e/theme-preview.spec.ts",
-    "test:themes": "bun run test:fashion && bun run test:perf:fashion && bun run test:decor && bun run test:perf:decor",
+    "test:themes": "bun run test:fashion -- --workers=1 && bun run test:perf:fashion -- --workers=1 && bun run test:decor -- --workers=1 && bun run test:perf:decor -- --workers=1",
     "typecheck": "nuxt typecheck",
     "verify:static": "bun scripts/verify-static.ts",
     "verify:themes": "bun scripts/verify-themes.ts"

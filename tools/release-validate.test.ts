@@ -25,6 +25,7 @@ describe("release validation", () => {
       "format",
       "lint",
       "types",
+      "source-equivalence",
       "theme-contracts",
       "fidelity-contract",
       "unit-contract",

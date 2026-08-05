@@ -21,8 +21,9 @@ const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAss
 
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
-const pageType = computed<PageTemplate["pageType"]>(() => {
-  const path = currentRoute.value.path;
+const contentRoutes = new Set(["/about", "/account", "/contact", "/faq", "/magazine", "/wishlist"]);
+const pageType = computed<PageTemplate["pageType"] | null>(() => {
+  const path = currentRoute.value.path.replace(/\/+$/, "") || "/";
   if (path === "/") return "home";
   if (path === "/cart") return "cart";
   if (path.startsWith("/checkout")) return "checkout";
@@ -30,24 +31,29 @@ const pageType = computed<PageTemplate["pageType"]>(() => {
   if (path.startsWith("/orders/")) return "order";
   if (path.startsWith("/policies/")) return "policy";
   if (path.startsWith("/products/")) return "product";
-  return "home";
+  if (contentRoutes.has(path) || path.startsWith("/magazine/")) return "content";
+  return null;
 });
 const previewTemplate = computed(() =>
-  activeExperienceSnapshot?.resolvedTemplates.find(
-    (template) => template.pageType === pageType.value,
-  ),
+  pageType.value
+    ? activeExperienceSnapshot?.resolvedTemplates.find(
+        (template) => template.pageType === pageType.value,
+      )
+    : undefined,
 );
-const previewTitle = computed(
-  () =>
-    ({
-      cart: "Preview bag",
-      checkout: "Checkout presentation",
-      collection: "Fixture collection",
-      home: `${activeThemeId[0]?.toUpperCase()}${activeThemeId.slice(1)} storefront`,
-      order: "Order status presentation",
-      policy: "Fixture policy",
-      product: "Fixture product",
-    })[pageType.value],
+const previewTitle = computed(() =>
+  pageType.value
+    ? {
+        cart: "Preview bag",
+        checkout: "Checkout presentation",
+        collection: "Fixture collection",
+        content: "Fashion page",
+        home: `${activeThemeId[0]?.toUpperCase()}${activeThemeId.slice(1)} storefront`,
+        order: "Order status presentation",
+        policy: "Fixture policy",
+        product: "Fixture product",
+      }[pageType.value]
+    : "Page unavailable",
 );
 
 const previewOrigin = activePreviewOrigin;

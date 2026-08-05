@@ -83,27 +83,11 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "decor-trust-binding",
-      "instanceId": "decor-trust",
+      "fixtureId": "decor-home",
+      "id": "decor-shop-binding",
+      "instanceId": "decor-shop",
       "kind": "fixture",
-      "resource": "trust",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "decor-collections-binding",
-      "instanceId": "decor-collections",
-      "kind": "fixture",
-      "resource": "collections",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "decor-collection-products-binding",
-      "instanceId": "decor-collection-products",
-      "kind": "fixture",
-      "resource": "products",
+      "resource": "shop",
       "state": "populated"
     },
     {

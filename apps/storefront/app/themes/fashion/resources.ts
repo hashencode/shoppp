@@ -40,6 +40,21 @@ import asset37 from "./assets/images/demo-fashion-store-product-12.jpg";
 import asset38 from "./assets/images/demo-fashion-store-slider-01.jpg";
 import asset39 from "./assets/images/demo-fashion-store-slider-02.jpg";
 import asset40 from "./assets/images/demo-fashion-store-slider-03.jpg";
+import brandAdidas from "./assets/images/logo-adidas.svg?no-inline";
+import brandAsos from "./assets/images/logo-asos.svg?no-inline";
+import brandCeline from "./assets/images/logo-celine.svg?no-inline";
+import brandChanel from "./assets/images/logo-chanel.svg?no-inline";
+import brandGucci from "./assets/images/logo-gucci.svg?no-inline";
+import payment1 from "./assets/images/demo-fashion-store-payment-icon-01.png";
+import payment2 from "./assets/images/demo-fashion-store-payment-icon-02.png";
+import payment3 from "./assets/images/demo-fashion-store-payment-icon-03.png";
+import payment4 from "./assets/images/demo-fashion-store-payment-icon-04.png";
+import paymentAmericanExpress from "./assets/images/payment-american-express.svg?no-inline";
+import paymentDinersClub from "./assets/images/payment-diners-club.svg?no-inline";
+import paymentDiscover from "./assets/images/payment-discover.svg?no-inline";
+import paymentMastercard from "./assets/images/payment-mastercard.svg?no-inline";
+import paymentUnionPay from "./assets/images/payment-union-pay.svg?no-inline";
+import paymentVisa from "./assets/images/payment-visa.svg?no-inline";
 import serviceBox from "./assets/icons/service-box.svg?no-inline";
 import servicePayment from "./assets/icons/service-payment.svg?no-inline";
 import serviceReturn from "./assets/icons/service-return.svg?no-inline";
@@ -87,6 +102,21 @@ export const themeAssets = validateThemeAssets("fashion", {
   "fashion.slider-01": asset38,
   "fashion.slider-02": asset39,
   "fashion.slider-03": asset40,
+  "fashion.brand-adidas": brandAdidas,
+  "fashion.brand-asos": brandAsos,
+  "fashion.brand-celine": brandCeline,
+  "fashion.brand-chanel": brandChanel,
+  "fashion.brand-gucci": brandGucci,
+  "fashion.payment-01": payment1,
+  "fashion.payment-02": payment2,
+  "fashion.payment-03": payment3,
+  "fashion.payment-04": payment4,
+  "fashion.payment-american-express": paymentAmericanExpress,
+  "fashion.payment-diners-club": paymentDinersClub,
+  "fashion.payment-discover": paymentDiscover,
+  "fashion.payment-mastercard": paymentMastercard,
+  "fashion.payment-union-pay": paymentUnionPay,
+  "fashion.payment-visa": paymentVisa,
   "fashion.service-box": serviceBox,
   "fashion.service-payment": servicePayment,
   "fashion.service-return": serviceReturn,

@@ -20,5 +20,6 @@ playwright-report/
 test-results/
 artifacts/releases/
 artifacts/theme-fidelity/
+artifacts/live/
 *.local
 *.log
