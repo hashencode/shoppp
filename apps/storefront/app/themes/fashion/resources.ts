@@ -13,10 +13,10 @@ import asset10 from "./assets/images/demo-fashion-store-collection-slider-01.jpg
 import asset11 from "./assets/images/demo-fashion-store-collection-slider-02.jpg";
 import asset12 from "./assets/images/demo-fashion-store-collection-slider-03.jpg";
 import asset13 from "./assets/images/demo-fashion-store-collection-slider-04.jpg";
-import asset14 from "./assets/images/demo-fashion-store-logo-black.png";
-import asset15 from "./assets/images/demo-fashion-store-logo-black@2x.png";
-import asset16 from "./assets/images/demo-fashion-store-logo-white.png";
-import asset17 from "./assets/images/demo-fashion-store-logo-white@2x.png";
+import asset14 from "./assets/images/demo-fashion-store-logo-black.png?no-inline";
+import asset15 from "./assets/images/demo-fashion-store-logo-black@2x.png?no-inline";
+import asset16 from "./assets/images/demo-fashion-store-logo-white.png?no-inline";
+import asset17 from "./assets/images/demo-fashion-store-logo-white@2x.png?no-inline";
 import asset18 from "./assets/images/demo-fashion-store-menu-banner-01.jpg";
 import asset19 from "./assets/images/demo-fashion-store-menu-banner-02.jpg";
 import asset20 from "./assets/images/demo-fashion-store-menu-category-01.jpg";

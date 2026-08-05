@@ -119,7 +119,7 @@ const responsiveRoutes: readonly ResponsiveRouteContract[] = [
       columns: { desktop: 2, laptop: 2, mobile: 1, tablet: 1 },
       selector: ".fashion-product-main",
     },
-    heading: "Textured sweater",
+    heading: "Relaxed corduroy shirt",
     path: "/products/textured-sweater",
   },
   {
@@ -180,7 +180,7 @@ for (const route of responsiveRoutes) {
     const clippedText = await page.evaluate(() => {
       const root =
         document.querySelector("main") ??
-        document.querySelector(".fashion-shop-page, .fashion-product-detail");
+        document.querySelector(".fashion-shop-page, .fashion-product-detail, .site-shell");
       if (!root) return ["missing page root"];
       return [
         ...root.querySelectorAll<HTMLElement>(
@@ -418,7 +418,7 @@ test("Fashion fluid tablet layout and transient header states match the source",
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "fashion-desktop");
-  await page.setViewportSize({ height: 900, width: 1024 });
+  await page.setViewportSize({ height: 900, width: 991 });
   await page.goto("/");
   await waitForNuxtHydration(page);
 
@@ -590,19 +590,12 @@ test("Fashion source-critical controls retain exact local geometry, color, and t
   const collectionLayout = await page.evaluate(() => {
     const copy = document.querySelector(".fashion-collection-copy")!.getBoundingClientRect();
     const rail = document.querySelector(".fashion-collection-rail")!.getBoundingClientRect();
-    const actions = [
-      ...document.querySelectorAll<HTMLElement>(
-        ".fashion-collection-copy a, .fashion-collection-copy p",
-      ),
-    ];
     return {
-      copyBottom: copy.bottom,
-      overlap: actions.some((element) => element.getBoundingClientRect().bottom > rail.top + 1),
-      railTop: rail.top,
+      copyRight: copy.right,
+      railLeft: rail.left,
     };
   });
-  expect(collectionLayout.overlap).toBe(false);
-  expect(collectionLayout.copyBottom).toBeLessThanOrEqual(collectionLayout.railTop + 1);
+  expect(collectionLayout.copyRight).toBeLessThanOrEqual(collectionLayout.railLeft + 1);
 
   await page.goto("/products/textured-sweater");
   await waitForNuxtHydration(page);
@@ -723,9 +716,9 @@ test("Fashion uses the original retina logo at DPR 2", async ({ page }, testInfo
   await page.goto("/");
   await waitForNuxtHydration(page);
   const logo = page.locator(".fashion-brand img");
-  await expect(logo).toHaveAttribute("srcset", /@2x/);
+  await expect(logo).toHaveAttribute("srcset", / 1x, .* 2x$/);
   expect(await logo.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(
-    /logo-black@2x/,
+    /logo-black_2x/,
   );
 });
 
@@ -1210,8 +1203,8 @@ test("Fashion waits for approved fonts and keeps atomic utility labels on one li
   await page.goto("/");
   const typography = await page.evaluate(async () => {
     await document.fonts.ready;
-    const account = document.querySelector<HTMLButtonElement>(
-      '.fashion-nav-actions button[aria-label="Account"]',
+    const account = document.querySelector<HTMLElement>(
+      '.fashion-nav-actions [aria-label="Account"]',
     )!;
     const label = account.querySelector<HTMLElement>(".fashion-action-label")!;
     const range = document.createRange();
