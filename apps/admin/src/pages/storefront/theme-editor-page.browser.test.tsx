@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { expect, describe, it } from '@rstest/core'
 import { page } from '@rstest/browser'
-import { render } from '@testing-library/react'
+import { translateMessage } from '../../shared/contexts/i18n-context'
+import { renderInLocale } from '../../test/render-in-locale'
 import { SectionMoveButtons, submitPreviewGrant } from './theme-editor-page'
 
 void React
@@ -31,14 +32,14 @@ describe('ThemeEditorPage browser behavior', () => {
               index={index}
               instanceId={instanceId}
               onMove={(direction) => move(instanceId, direction)}
-              t={(message) => message}
+              t={(message, values) => translateMessage('en-US', message, values)}
             />
           ))}
         </div>
       )
     }
 
-    render(<OrderHarness />)
+    renderInLocale(<OrderHarness />, 'en-US')
     await page.getByRole('button', { name: 'Move story before' }).click()
     await expect.element(page.getByText('story,hero')).toBeVisible()
     await expect.element(page.getByRole('button', { name: 'Move story before' })).toBeDisabled()
@@ -58,7 +59,7 @@ describe('ThemeEditorPage browser behavior', () => {
         target: this.target,
       }
     }
-    render(
+    renderInLocale(
       <button
         type="button"
         onClick={() =>
@@ -69,7 +70,8 @@ describe('ThemeEditorPage browser behavior', () => {
         }
       >
         Open authenticated preview
-      </button>
+      </button>,
+      'en-US'
     )
 
     await page.getByRole('button', { name: 'Open authenticated preview' }).click()

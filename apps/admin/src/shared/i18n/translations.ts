@@ -788,9 +788,9 @@ export const zhCNMessages: Record<string, string> = {
   'Template route contract error': '模板路由契约错误',
   Code: '代码',
   'Back to home': '返回首页',
-  'Welcome to Admin Quick Start': '欢迎使用 Admin Quick Start',
-  'An Ant Design Pro-aligned information architecture and layout without a ProComponents dependency, for quickly building consistent admin pages, permission-aware layouts, and business templates.':
-    '对齐 Ant Design Pro 的信息架构与布局体验，但不依赖 ProComponents。用于快速创建统一的后台页面结构、权限布局与业务模板。',
+  'Welcome to Shoppp Admin': '欢迎使用 Shoppp 管理后台',
+  'Manage commerce operations, storefront experiences, and administrator access from one permission-aware workspace.':
+    '在统一的权限工作区中管理电商运营、店面体验和管理员权限。',
   Development: '开发环境',
   Staging: '预发布环境',
   Production: '生产环境',

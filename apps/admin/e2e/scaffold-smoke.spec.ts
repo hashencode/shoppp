@@ -3,6 +3,9 @@ import { normalizeAppBasePath } from '../src/shared/utils/normalize-app-base-pat
 import { mockLoginRequired } from './support'
 
 test('loads the administrator email and password login', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('shoppp.admin.locale', 'zh-CN')
+  })
   await mockLoginRequired(page)
   const appBase = normalizeAppBasePath(process.env.PUBLIC_APP_BASE)
   await page.goto(`${appBase}/login`)
@@ -10,5 +13,5 @@ test('loads the administrator email and password login', async ({ page }) => {
   await expect(page.getByText('登录 Shoppp 后台')).toBeVisible()
   await expect(page.getByLabel('邮箱')).toBeVisible()
   await expect(page.getByLabel('密码')).toBeVisible()
-  await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '登 录' })).toBeVisible()
 })

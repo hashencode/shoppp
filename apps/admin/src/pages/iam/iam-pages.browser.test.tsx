@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { page } from '@rstest/browser'
 import { afterEach, describe, expect, it } from '@rstest/core'
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { cleanup, waitFor } from '@testing-library/react'
 import type { AdminPermission } from '@shoppp/contracts'
 
+import { renderInLocale } from '../../test/render-in-locale'
 import { PermissionChecklist } from './permission-checklist'
 
 void React
@@ -25,7 +26,7 @@ describe('IAM controls in a real browser', () => {
         </div>
       )
     }
-    render(<Probe />)
+    renderInLocale(<Probe />, 'en-US')
 
     const checkbox = page.getByRole('checkbox', { name: /View users/i })
     await expect.element(checkbox).toBeVisible()

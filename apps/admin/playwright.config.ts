@@ -31,7 +31,7 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-        command: `bunx rsbuild preview --host 127.0.0.1 --port ${port}`,
+        command: `bun run build:test && bunx rsbuild preview --host 127.0.0.1 --port ${port}`,
         env: {
           ...process.env,
           PUBLIC_PREVIEW_ORIGIN:

@@ -143,6 +143,8 @@ import {
 } from "${modulePath}";
 
 export const activeThemeId = ${JSON.stringify(input.themeId)};
+// Preserve deterministic JSON serialization for the signed snapshot payload.
+// prettier-ignore
 export const activeExperienceSnapshot = ${JSON.stringify(
     input.snapshot,
     null,

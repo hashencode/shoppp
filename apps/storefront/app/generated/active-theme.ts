@@ -9,6 +9,8 @@ import {
 } from "../themes/fashion/registry";
 
 export const activeThemeId = "fashion";
+// Preserve deterministic JSON serialization for the signed snapshot payload.
+// prettier-ignore
 export const activeExperienceSnapshot = {
   "bindings": [
     {

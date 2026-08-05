@@ -7,12 +7,12 @@ export const WelcomePage = () => {
     <Card>
       <div className="mb-3 flex items-start justify-between gap-3">
         <Typography.Title className="mb-0 !text-2xl">
-          {t('Welcome to Admin Quick Start')}
+          {t('Welcome to Shoppp Admin')}
         </Typography.Title>
       </div>
       <Typography.Paragraph>
         {t(
-          'An Ant Design Pro-aligned information architecture and layout without a ProComponents dependency, for quickly building consistent admin pages, permission-aware layouts, and business templates.'
+          'Manage commerce operations, storefront experiences, and administrator access from one permission-aware workspace.'
         )}
       </Typography.Paragraph>
     </Card>

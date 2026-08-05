@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { mockAdminSession } from './support'
 
 const theme = {
   componentRegistry: {
@@ -78,6 +79,11 @@ test('operator saves, validates, previews, and approves one exact theme version'
   let currentDraft = structuredClone(draft)
   let previewPost: { body: string | null; url: string } | null = null
   let productionActivationCalls = 0
+
+  await page.addInitScript(() => {
+    window.localStorage.setItem('shoppp.admin.locale', 'en-US')
+  })
+  await mockAdminSession(page)
 
   await page.route('**/admin/storefront-experiences/**', async (route) => {
     const request = route.request()
@@ -214,10 +220,6 @@ test('operator saves, validates, previews, and approves one exact theme version'
     })
   })
 
-  await page.goto('/login')
-  await page.getByPlaceholder('用户名').fill('theme-admin')
-  await page.getByPlaceholder('密码').fill('correct-horse-battery-staple')
-  await page.getByRole('button', { name: '登 录' }).click()
   await page.goto(`/storefront/themes/${draft.id}`)
 
   await page.getByRole('textbox', { name: 'home-hero heading' }).fill('E2E headline')
