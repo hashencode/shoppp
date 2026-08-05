@@ -344,11 +344,10 @@ export function createApp(options: CreateAppOptions = {}) {
     },
   );
   app.put("/cart/shipping", idempotency("cart.shipping.quote"), async (context) => {
-    const cart = await requireCart(context);
     const input = await parseJson(context, shippingQuoteRequestSchema);
     context.header("Cache-Control", "private, no-store");
     return context.json({
-      data: await setCartShipping(context, cart, input),
+      data: await setCartShipping(context, input),
       meta: { requestId: context.get("requestId") },
     });
   });

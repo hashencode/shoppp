@@ -32,6 +32,7 @@ interface ReleaseReport {
   };
   approval?: {
     approvedBy: string;
+    backupId: string;
     stagingReport: string;
   };
 }
@@ -132,12 +133,19 @@ export async function assertProductionApproval(options: {
   target: ReleaseTarget;
   commit: string;
   approvedBy?: string;
+  backupId?: string;
   stagingReport?: string;
 }): Promise<ReleaseReport | undefined> {
   if (options.target !== "production") return undefined;
   const approvedBy = options.approvedBy?.trim();
+  const backupId = options.backupId?.trim();
   const stagingReport = options.stagingReport?.trim();
   assert(approvedBy, "production promotion requires RELEASE_APPROVED_BY");
+  assert(backupId, "production promotion requires RELEASE_BACKUP_ID");
+  assert(
+    /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(backupId),
+    "production backup ID contains unsafe characters",
+  );
   assert(stagingReport, "production promotion requires STAGING_RELEASE_REPORT");
   const reportPath = resolve(ROOT, stagingReport);
   const report = JSON.parse(await readFile(reportPath, "utf8")) as ReleaseReport;
@@ -218,13 +226,14 @@ export async function validateRelease(options: {
     target: options.target,
     commit,
     ...(process.env.RELEASE_APPROVED_BY ? { approvedBy: process.env.RELEASE_APPROVED_BY } : {}),
+    ...(process.env.RELEASE_BACKUP_ID ? { backupId: process.env.RELEASE_BACKUP_ID } : {}),
     ...(process.env.STAGING_RELEASE_REPORT
       ? { stagingReport: process.env.STAGING_RELEASE_REPORT }
       : {}),
   });
 
   const snapshots = await verifyEnvironmentIsolation({
-    strictProduction: strictEnvironment,
+    ...(strictEnvironment ? { strictEnvironment: options.target } : {}),
   });
   if (strictEnvironment && !options.promotion) {
     const staging = snapshots.find((snapshot) => snapshot.environment === "staging");
@@ -280,6 +289,7 @@ export async function validateRelease(options: {
       ? {
           approval: {
             approvedBy: process.env.RELEASE_APPROVED_BY!,
+            backupId: process.env.RELEASE_BACKUP_ID!,
             stagingReport: basename(process.env.STAGING_RELEASE_REPORT!),
           },
         }

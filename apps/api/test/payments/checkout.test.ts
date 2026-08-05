@@ -499,13 +499,16 @@ describe("hosted checkout and payment convergence", () => {
     const event = eventFor(session, `evt_async_recovery_${sequence}`);
     expect((await app.fetch(webhookRequest(event), env)).status).toBe(503);
     const recovery = await env.DB.prepare(
-      `SELECT id FROM notification_jobs
+      `SELECT id, next_attempt_at AS nextAttemptAt FROM notification_jobs
         WHERE kind = 'provider_recovery' AND provider_event_id = (
           SELECT id FROM payment_events WHERE provider_event_id = ?
         )`,
     )
       .bind(event.id)
-      .first<{ id: string }>();
+      .first<{ id: string; nextAttemptAt: string }>();
+    const retryAttemptAt = new Date(
+      Date.parse(recovery!.nextAttemptAt) + 10 * 60_000,
+    ).toISOString();
 
     const unusedEmailProvider: EmailProvider = {
       async send() {
@@ -519,7 +522,7 @@ describe("hosted checkout and payment convergence", () => {
         provider,
         "https://shop.example.test",
         recovery!.id,
-        "2026-07-30T04:00:00.000Z",
+        recovery!.nextAttemptAt,
       ),
     ).resolves.toMatchObject({ status: "retry" });
     provider.retrieveError = null;
@@ -532,7 +535,7 @@ describe("hosted checkout and payment convergence", () => {
         provider,
         "https://shop.example.test",
         recovery!.id,
-        "2026-07-30T04:10:00.000Z",
+        retryAttemptAt,
         undefined,
         purchaseConfirmed,
       ),

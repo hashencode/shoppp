@@ -54,7 +54,12 @@ function stripeRefund() {
 
 describe("Stripe hosted Checkout adapter", () => {
   test("creates a card-only hosted session with exact totals, expiry, and idempotency", async () => {
-    const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const fetcher = vi.fn(async function (
+      this: unknown,
+      _input: RequestInfo | URL,
+      init?: RequestInit,
+    ) {
+      expect(this).toBeUndefined();
       const body = init?.body as URLSearchParams;
       expect(body.get("mode")).toBe("payment");
       expect(body.get("payment_method_types[0]")).toBe("card");

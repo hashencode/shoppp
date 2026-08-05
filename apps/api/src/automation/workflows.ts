@@ -1,7 +1,10 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 
 import type { ApiBindings } from "../http/context";
-import { createHttpEmailProvider } from "../notifications/email-adapter";
+import {
+  createCloudflareEmailProvider,
+  createHttpEmailProvider,
+} from "../notifications/email-adapter";
 import {
   EmailProviderError,
   type EmailMessage,
@@ -204,10 +207,12 @@ export class NotificationDeliveryWorkflow extends WorkflowEntrypoint<
     event: Readonly<WorkflowEvent<NotificationWorkflowPayload>>,
     step: WorkflowStep,
   ): Promise<NotificationDeliveryResult> {
-    const provider = createHttpEmailProvider({
-      ...(this.env.EMAIL_PROVIDER_API_KEY ? { apiKey: this.env.EMAIL_PROVIDER_API_KEY } : {}),
-      ...(this.env.EMAIL_PROVIDER_URL ? { endpoint: this.env.EMAIL_PROVIDER_URL } : {}),
-    });
+    const provider = this.env.EMAIL
+      ? createCloudflareEmailProvider(this.env.EMAIL)
+      : createHttpEmailProvider({
+          ...(this.env.EMAIL_PROVIDER_API_KEY ? { apiKey: this.env.EMAIL_PROVIDER_API_KEY } : {}),
+          ...(this.env.EMAIL_PROVIDER_URL ? { endpoint: this.env.EMAIL_PROVIDER_URL } : {}),
+        });
     const paymentProvider = createStripePaymentProvider(this.env);
     for (let attempt = 1; attempt <= 10; attempt += 1) {
       const result = await step.do(

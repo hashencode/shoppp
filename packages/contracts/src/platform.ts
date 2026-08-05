@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { countryCodeSchema, currencyCodeSchema, isoDateTimeSchema } from "./common";
+import { countryCodeSchema, currencyCodeSchema, isoDateTimeSchema, publicIdSchema } from "./common";
 
 const policyLinksSchema = z
   .object({
@@ -30,7 +30,7 @@ export const launchConfigurationSchema = z
     reservationTtlMinutes: z.int().min(5).max(120),
     sellableCurrencies: z.array(currencyCodeSchema).min(1),
     shippingCountries: z.array(countryCodeSchema).min(1),
-    shippingMethodIds: z.array(z.string().trim().min(1).max(80)).min(1),
+    shippingMethodIds: z.array(publicIdSchema).min(1),
     supportEmail: z.email(),
     taxMode: z.literal("zero"),
     webhookConfigured: z.boolean(),

@@ -132,11 +132,13 @@ describe("API shell", () => {
   });
 
   test("replays a completed idempotent mutation and rejects key reuse with another body", async () => {
+    await seedOperator("operations", "access-user-002");
     const app = createApp({
-      accessVerifier: async () => ({
-        email: "access-user-001@example.test",
-        subject: "access-user-001",
-      }),
+      accessVerifier: async (token) => {
+        const subject =
+          token === "different-principal-token" ? "access-user-002" : "access-user-001";
+        return { email: `${subject}@example.test`, subject };
+      },
     });
     app.post("/admin/test/idempotent", idempotency("test.idempotent"), async (context) => {
       await requirePermission(context, "operations.replay", { type: "test" });
@@ -172,7 +174,8 @@ describe("API shell", () => {
     );
 
     expect(second.status).toBe(first.status);
-    expect(await second.text()).toBe(await first.text());
+    const firstBody = await first.text();
+    expect(await second.text()).toBe(firstBody);
     expect(
       (
         await env.DB.prepare(
@@ -181,18 +184,32 @@ describe("API shell", () => {
       )?.count,
     ).toBe(1);
 
-    const differentCredential = await app.fetch(
+    const rotatedCredential = await app.fetch(
       adminRequest("/admin/test/idempotent", {
         body: JSON.stringify({ value: "first" }),
         headers: {
-          "Cf-Access-Jwt-Assertion": "another-principal-token",
+          "Cf-Access-Jwt-Assertion": "rotated-token",
           "Idempotency-Key": "idempotency-key-0001",
         },
         method: "POST",
       }),
       env,
     );
-    expect(differentCredential.status).toBe(409);
+    expect(rotatedCredential.status).toBe(first.status);
+    expect(await rotatedCredential.text()).toBe(firstBody);
+
+    const differentPrincipal = await app.fetch(
+      adminRequest("/admin/test/idempotent", {
+        body: JSON.stringify({ value: "first" }),
+        headers: {
+          "Cf-Access-Jwt-Assertion": "different-principal-token",
+          "Idempotency-Key": "idempotency-key-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(differentPrincipal.status).toBe(409);
 
     const conflict = await app.fetch(
       adminRequest("/admin/test/idempotent", {

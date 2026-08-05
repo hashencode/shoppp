@@ -29,8 +29,10 @@ An infrastructure owner must:
 1. Replace the staging and production placeholder domains and Cloudflare resource IDs in the three
    Wrangler configurations with isolated resources.
 2. Configure each GitHub `staging` and `production` environment with its own Cloudflare API
-   credential. Configure `production` with required reviewers and prevent administrators from
-   bypassing protection.
+   credential. Required reviewers are not enabled for the current private-repository phase; the
+   workflow therefore defaults to staging-only and requires a second explicit production dispatch,
+   an exact confirmation phrase, and a recent approved backup ID. Required reviewers may be added
+   later as defense in depth.
 3. Add staging URLs, representative product/order identifiers, authorized and prohibited Access
    service identities, a CI-only Stripe test card, and the staging API's `BUILD_MANIFEST_TOKEN` as
    environment-owned values. The same manifest token must be configured as a secret on the staging
@@ -38,7 +40,9 @@ An infrastructure owner must:
 4. Put Worker secrets in Cloudflare with `wrangler secret put --env <environment>`. Confirm the
    Stripe webhook points to that environment's `/webhooks/stripe` endpoint. Replace each API
    environment's `TURNSTILE_SITE_KEY` placeholder with the public key paired to that environment's
-   secret; staging and production keys must be distinct.
+   secret; staging and production keys must be distinct. Automated staging journeys may use
+   Cloudflare's official testing pair with `TURNSTILE_TEST_MODE=true`; the isolation verifier
+   rejects that mode in production.
 5. Seed the representative catalog (at least 1,000 products and 5,000 variants), one last-unit
    purchase fixture, roles, launch settings, shipping zones, and policy text.
 6. Before the first storefront release only, apply staging migrations and bootstrap the staging API
@@ -82,9 +86,13 @@ cross-origin source, or a short/missing token stops the release before any uploa
    only after the staging journeys, latency gate, rollback, and validated-version restore pass;
 5. reports candidate validation, staging deployment, or staging proof failure as `failed`, which
    preserves the previous live storefront and raises the catalog health signal;
-6. pauses at the protected `production` environment;
-7. after a named human approval and a confirmed recent production backup, uploads production-bound
-   versions from the same commit and deploys the same release tag. The production job runs
+6. ends after staging proof by default; production cannot run unless a named human dispatches the
+   workflow with `promote_production=true`, types `PROMOTE <release-id>`, and supplies a recent
+   approved production backup ID;
+7. after those approval inputs pass, queries production D1 and requires the named backup to be
+   `ready`, production-owned, and completed within the prior 24 hours before applying migrations;
+8. uploads production-bound versions from the same commit and deploys the same release tag. The
+   production job runs
    `release:validate -- --promotion`; this hashes the downloaded outputs and requires an exact match
    with staging evidence. It does not rebuild environment-sensitive or nondeterministic output.
 

@@ -5,6 +5,7 @@ import {
   consumeNotificationQueue,
   dispatchPendingNotifications,
 } from "./automation/queue-consumer";
+import { startScheduledD1Backup } from "./operations/d1-backup";
 
 export { NotificationDeliveryWorkflow } from "./automation/workflows";
 export { D1BackupWorkflow } from "./operations/d1-backup";
@@ -14,10 +15,14 @@ const app = createApp();
 export default {
   fetch: app.fetch,
   async scheduled(
-    _controller: ScheduledController,
+    controller: ScheduledController,
     env: ApiBindings,
     _context: ExecutionContext,
   ): Promise<void> {
+    if (controller.cron === "0 0 * * *") {
+      await startScheduledD1Backup(env.BACKUP_WORKFLOW, controller.scheduledTime);
+      return;
+    }
     await expireDueReservations(env.DB);
     if (env.NOTIFICATION_QUEUE) {
       await dispatchPendingNotifications(env.DB, env.NOTIFICATION_QUEUE);

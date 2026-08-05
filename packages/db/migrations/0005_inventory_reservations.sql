@@ -44,9 +44,8 @@ BEGIN
    WHERE variant_id = NEW.variant_id
      AND warehouse_id = NEW.warehouse_id
      AND on_hand_quantity + oversell_limit - reserved_quantity >= NEW.quantity;
-  SELECT CASE
-    WHEN changes() != 1 THEN RAISE(ABORT, 'inventory_unavailable')
-  END;
+  SELECT RAISE(ABORT, 'inventory_unavailable')
+   WHERE changes() != 1;
   INSERT INTO inventory_reservation_events
     (id, group_id, reservation_id, event_type, created_at)
   VALUES
@@ -64,9 +63,8 @@ BEGIN
    WHERE variant_id = OLD.variant_id
      AND warehouse_id = OLD.warehouse_id
      AND reserved_quantity >= OLD.quantity;
-  SELECT CASE
-    WHEN changes() != 1 THEN RAISE(ABORT, 'inventory_conservation_violation')
-  END;
+  SELECT RAISE(ABORT, 'inventory_conservation_violation')
+   WHERE changes() != 1;
   INSERT INTO inventory_reservation_events
     (id, group_id, reservation_id, event_type, created_at)
   VALUES
@@ -153,9 +151,8 @@ BEGIN
      AND warehouse_id = NEW.warehouse_id
      AND on_hand_quantity + NEW.quantity_delta >= 0
      AND reserved_quantity <= on_hand_quantity + NEW.quantity_delta + oversell_limit;
-  SELECT CASE
-    WHEN changes() != 1 THEN RAISE(ABORT, 'inventory_adjustment_invalid')
-  END;
+  SELECT RAISE(ABORT, 'inventory_adjustment_invalid')
+   WHERE changes() != 1;
 END;
 --> statement-breakpoint
 CREATE TRIGGER stock_ledger_entries_no_update

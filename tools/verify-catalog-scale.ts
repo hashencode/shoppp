@@ -65,6 +65,14 @@ interface RunOptions {
   quiet?: boolean;
 }
 
+export function catalogFixtureEnvironment(fixturePath: string): Record<string, string> {
+  return {
+    NUXT_CATALOG_RELEASE_FILE: fixturePath,
+    NUXT_CATALOG_RELEASE_TOKEN: "",
+    NUXT_CATALOG_RELEASE_URL: "",
+  };
+}
+
 async function run(command: string[], options: RunOptions = {}): Promise<void> {
   const child = Bun.spawn(command, {
     cwd: ROOT,
@@ -113,7 +121,7 @@ if (import.meta.main) {
   const startedAt = performance.now();
   try {
     await run(["bun", "run", "--cwd", "apps/storefront", "build"], {
-      environment: { NUXT_CATALOG_RELEASE_FILE: fixturePath },
+      environment: catalogFixtureEnvironment(fixturePath),
       quiet: true,
     });
     const durationMs = Math.round(performance.now() - startedAt);
@@ -127,10 +135,10 @@ if (import.meta.main) {
     }
     await verifyOutput();
     await run(["bun", "run", "--cwd", "apps/storefront", "verify:static"], {
-      environment: { NUXT_CATALOG_RELEASE_FILE: fixturePath },
+      environment: catalogFixtureEnvironment(fixturePath),
     });
     await run(["bun", "run", "--cwd", "apps/storefront", "test:perf"], {
-      environment: { NUXT_CATALOG_RELEASE_FILE: fixturePath },
+      environment: catalogFixtureEnvironment(fixturePath),
     });
     console.log(
       `Representative catalog passed: ${PRODUCT_COUNT} products, ${VARIANT_COUNT} variants, ${durationMs}ms.`,

@@ -11,6 +11,25 @@ interface HttpEmailProviderOptions {
   readonly fetcher?: typeof fetch;
 }
 
+const permanentCloudflareErrors = new Set([
+  "E_CONTENT_TOO_LARGE",
+  "E_FIELD_MISSING",
+  "E_HEADER_NAME_INVALID",
+  "E_HEADER_NOT_ALLOWED",
+  "E_HEADER_USE_API_FIELD",
+  "E_HEADER_VALUE_INVALID",
+  "E_HEADER_VALUE_TOO_LONG",
+  "E_HEADERS_TOO_LARGE",
+  "E_HEADERS_TOO_MANY",
+  "E_RECIPIENT_NOT_ALLOWED",
+  "E_RECIPIENT_SUPPRESSED",
+  "E_SENDER_DOMAIN_NOT_AVAILABLE",
+  "E_SENDER_NOT_VERIFIED",
+  "E_TOO_MANY_ATTACHMENTS",
+  "E_TOO_MANY_RECIPIENTS",
+  "E_VALIDATION_ERROR",
+]);
+
 function failureForStatus(status: number): EmailProviderError {
   if (status === 400 || status === 404 || status === 422) {
     return new EmailProviderError(
@@ -31,6 +50,55 @@ function failureForStatus(status: number): EmailProviderError {
     "The email provider is temporarily unavailable.",
     true,
   );
+}
+
+function cloudflareFailure(error: unknown): EmailProviderError {
+  const code =
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+      ? error.code
+      : "EMAIL_PROVIDER_UNAVAILABLE";
+  return new EmailProviderError(
+    code.toLowerCase(),
+    "Cloudflare Email Service rejected the message.",
+    !permanentCloudflareErrors.has(code),
+  );
+}
+
+export function createCloudflareEmailProvider(binding?: SendEmail): EmailProvider {
+  return {
+    async send(message: EmailMessage): Promise<EmailSendResult> {
+      if (!binding) {
+        throw new EmailProviderError(
+          "email_provider_not_configured",
+          "The email provider is not configured.",
+          false,
+        );
+      }
+      let result: { messageId: string };
+      try {
+        result = await binding.send({
+          from: message.from,
+          headers: {
+            "X-Shoppp-Deduplication-Key": message.idempotencyKey,
+          },
+          html: message.html,
+          subject: message.subject,
+          text: message.text,
+          to: message.to,
+        });
+      } catch (error) {
+        throw cloudflareFailure(error);
+      }
+      if (!result.messageId) {
+        throw new EmailProviderError(
+          "email_provider_response_invalid",
+          "Cloudflare Email Service returned an invalid response.",
+          true,
+        );
+      }
+      return { id: result.messageId };
+    },
+  };
 }
 
 export function createHttpEmailProvider(options: HttpEmailProviderOptions): EmailProvider {

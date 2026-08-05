@@ -42,6 +42,13 @@ for (const file of ["404.html", "robots.txt", "sitemap.xml", "_redirects"]) {
   await stat(resolve(output, file));
 }
 
+const redirects = await readFile(resolve(output, "_redirects"), "utf8");
+if (redirects.includes("/orders/*")) {
+  throw new Error(
+    "Opaque order routes must use the Worker asset fallback, not a wildcard redirect.",
+  );
+}
+
 const fallback = await readFile(resolve(output, "404.html"), "utf8");
 if (!fallback.includes("Page not found")) throw new Error("404 output is not human readable.");
 try {

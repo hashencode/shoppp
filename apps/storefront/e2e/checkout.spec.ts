@@ -56,6 +56,54 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test("waits for the runtime configuration before rendering Turnstile", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "no-js-desktop");
+  const siteKey = "0x4AAAAAA-runtime-site-key";
+  await page.addInitScript(() => {
+    const renderedSiteKeys: string[] = [];
+    Object.assign(window, {
+      __renderedTurnstileSiteKeys: renderedSiteKeys,
+      turnstile: {
+        remove: () => undefined,
+        render: (_container: HTMLElement, options: { sitekey: string }) => {
+          renderedSiteKeys.push(options.sitekey);
+          return "checkout-widget";
+        },
+      },
+    });
+  });
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname.replace(/^\/api/, "");
+    if (path === "/platform/config") {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await route.fulfill({
+        contentType: "application/json",
+        json: { data: { turnstile: { required: true, siteKey } } },
+      });
+      return;
+    }
+    if (path === "/cart") {
+      await route.fulfill({ contentType: "application/json", json: { data: cart } });
+      return;
+    }
+    await route.abort();
+  });
+
+  await page.goto("/checkout");
+
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { __renderedTurnstileSiteKeys?: string[] })
+            .__renderedTurnstileSiteKeys,
+      ),
+    )
+    .toEqual([siteKey]);
+});
+
 test("checkout persists the opaque access token and displays only provider-verified payment", async ({
   page,
 }, testInfo) => {

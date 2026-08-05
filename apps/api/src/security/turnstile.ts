@@ -14,6 +14,7 @@ export interface TurnstileVerificationInput {
   readonly idempotencyKey: string;
   readonly remoteIp?: string;
   readonly secret: string;
+  readonly testing: boolean;
   readonly token: string;
 }
 
@@ -25,6 +26,9 @@ interface SiteverifyResponse {
   action?: string;
   "error-codes"?: string[];
   hostname?: string;
+  metadata?: {
+    result_with_testing_key?: boolean;
+  };
   success?: boolean;
 }
 
@@ -53,9 +57,11 @@ export const verifyTurnstile: TurnstileVerifier = async (input) => {
   const result = (await response.json()) as SiteverifyResponse;
   const valid =
     result.success === true &&
-    result.action === input.action &&
-    typeof result.hostname === "string" &&
-    input.expectedHostnames.includes(result.hostname);
+    (input.testing
+      ? result.metadata?.result_with_testing_key === true
+      : result.action === input.action &&
+        typeof result.hostname === "string" &&
+        input.expectedHostnames.includes(result.hostname));
   return {
     ...(result["error-codes"] ? { errorCodes: result["error-codes"] } : {}),
     success: valid,
@@ -97,6 +103,7 @@ export async function enforceTurnstile(
     idempotencyKey: crypto.randomUUID(),
     ...(remoteIp ? { remoteIp } : {}),
     secret: secret || "test-verifier-secret",
+    testing: context.env.ENVIRONMENT === "staging" && context.env.TURNSTILE_TEST_MODE === "true",
     token,
   });
   if (!result.success) {

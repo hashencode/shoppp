@@ -5,7 +5,6 @@ import type { Principal } from "../iam/permissions";
 export interface ApiBindings {
   ACCESS_AUDIENCE: string;
   ACCESS_ISSUER: string;
-  ACCESS_JWKS: string;
   ANALYTICS_RATE_LIMITER?: RateLimit;
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW?: Workflow;
@@ -33,10 +32,12 @@ export interface ApiBindings {
   PAYMENT_SUCCESS_URL?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  EMAIL?: SendEmail;
   TURNSTILE_HOSTNAMES?: string;
   TURNSTILE_REQUIRED?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET?: string;
+  TURNSTILE_TEST_MODE?: string;
   EMAIL_FROM: string;
   EMAIL_PROVIDER_API_KEY?: string;
   EMAIL_PROVIDER_URL?: string;

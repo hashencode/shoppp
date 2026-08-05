@@ -5,7 +5,6 @@ declare global {
     interface Env {
       ACCESS_AUDIENCE: string;
       ACCESS_ISSUER: string;
-      ACCESS_JWKS: string;
       BACKUP_BUCKET: R2Bucket;
       DB: D1Database;
       ENVIRONMENT: "development" | "staging" | "production";
@@ -25,6 +24,7 @@ declare global {
       STOREFRONT_ORIGIN: string;
       TEST_MIGRATIONS: D1Migration[];
       TURNSTILE_SITE_KEY?: string;
+      TURNSTILE_TEST_MODE?: string;
     }
   }
 }

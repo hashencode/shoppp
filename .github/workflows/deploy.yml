@@ -7,6 +7,19 @@ on:
         description: Approved immutable catalog release ID
         required: true
         type: string
+      promote_production:
+        description: Promote the proven candidate to production
+        required: true
+        default: false
+        type: boolean
+      production_confirmation:
+        description: Type PROMOTE <release-id> when production promotion is intended
+        required: false
+        type: string
+      production_backup_id:
+        description: Recent approved production backup ID
+        required: false
+        type: string
 
 concurrency:
   group: commerce-production
@@ -127,7 +140,9 @@ jobs:
       E2E_PROHIBITED_CF_ACCESS_CLIENT_SECRET: ${{ secrets.PROHIBITED_CF_ACCESS_CLIENT_SECRET }}
       E2E_ORDER_REFERENCE: ${{ vars.ORDER_REFERENCE }}
       E2E_PRODUCT_SLUG: ${{ vars.PRODUCT_SLUG }}
-      E2E_EXHAUSTED_NOTIFICATION_ID: ${{ vars.EXHAUSTED_NOTIFICATION_ID }}
+      STAGING_CHECKOUT_CONCURRENCY: "4"
+      E2E_EXHAUSTED_NOTIFICATION_ID: proof-notification-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_FAILED_CATALOG_RELEASE_ID: proof-catalog-failure-${{ github.run_id }}-${{ github.run_attempt }}
       E2E_LAST_KNOWN_GOOD_RELEASE_ID: ${{ vars.LAST_KNOWN_GOOD_RELEASE_ID }}
     steps:
       - uses: actions/checkout@v4
@@ -136,8 +151,69 @@ jobs:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
+      - name: Prepare representative last-unit inventory
+        run: |
+          PROOF_INVENTORY_JSON="$(curl --fail --silent --show-error \
+            --header "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+            "$ADMIN_E2E_BASE_URL/api/admin/inventory?query=ATLAS-BLK&pageSize=1")"
+          PROOF_INVENTORY_AVAILABLE="$(jq -er '.data[0].available' <<<"$PROOF_INVENTORY_JSON")"
+          PROOF_INVENTORY_VARIANT="$(jq -er '.data[0].variantId' <<<"$PROOF_INVENTORY_JSON")"
+          PROOF_INVENTORY_WAREHOUSE="$(jq -er '.data[0].warehouseId' <<<"$PROOF_INVENTORY_JSON")"
+          PROOF_INVENTORY_DELTA="$((1 - PROOF_INVENTORY_AVAILABLE))"
+          if [ "$PROOF_INVENTORY_DELTA" -ne 0 ]; then
+            curl --fail --silent --show-error \
+              --request POST \
+              --header "CF-Access-Client-Id: $E2E_CF_ACCESS_CLIENT_ID" \
+              --header "CF-Access-Client-Secret: $E2E_CF_ACCESS_CLIENT_SECRET" \
+              --header "Content-Type: application/json" \
+              --header "Idempotency-Key: staging-last-unit-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+              --data "{\"quantityDelta\":$PROOF_INVENTORY_DELTA,\"reason\":\"Staging release last-unit fixture\"}" \
+              "$ADMIN_E2E_BASE_URL/api/admin/inventory/$PROOF_INVENTORY_VARIANT/$PROOF_INVENTORY_WAREHOUSE/adjustments"
+          fi
+      - name: Seed isolated staging journey fixtures
+        working-directory: apps/api
+        run: |
+          bunx wrangler d1 execute DB --env staging --remote --command "
+            INSERT INTO catalog_releases
+              (id, status, manifest_json, approved_at, failure_code, build_correlation_id,
+               product_id, created_at, updated_at)
+            SELECT '$E2E_FAILED_CATALOG_RELEASE_ID', 'failed', '{}',
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   'release_proof_synthetic', '$E2E_FAILED_CATALOG_RELEASE_ID',
+                   id, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+              FROM products
+             WHERE slug = '$E2E_PRODUCT_SLUG';
+            INSERT INTO notification_jobs
+              (id, order_id, type, deduplication_key, payload_json, status, attempt_count,
+               last_error_code, created_at, updated_at, max_attempts, attempt_cycle_count,
+               dead_lettered_at)
+            SELECT '$E2E_EXHAUSTED_NOTIFICATION_ID', id, 'order_receipt',
+                   '$E2E_EXHAUSTED_NOTIFICATION_ID', json_object('orderId', id),
+                   'dead_letter', 3, 'release_proof_synthetic',
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 3, 3,
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+              FROM orders
+             WHERE public_reference = '$E2E_ORDER_REFERENCE';
+          "
       - name: Verify public and protected deployment boundaries
         run: bunx playwright test --config e2e/playwright.config.ts
+      - name: Remove transient staging proof fixtures
+        if: always()
+        working-directory: apps/api
+        run: |
+          bunx wrangler d1 execute DB --env staging --remote \
+            --command "
+              DELETE FROM catalog_releases
+               WHERE id = '$E2E_FAILED_CATALOG_RELEASE_ID'
+                 AND failure_code = 'release_proof_synthetic';
+              DELETE FROM notification_jobs
+               WHERE id = '$E2E_EXHAUSTED_NOTIFICATION_ID'
+                 AND status = 'dead_letter'
+                 AND last_error_code = 'release_proof_synthetic';
+            "
       - name: Enforce staging API p95 targets
         run: bun run test:staging-latency
       - name: Demonstrate last-known-good rollback
@@ -174,19 +250,31 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: warn
-      - name: Record failed staging proof
-        if: failure()
+  approve-production:
+    needs: [validate, prove-staging]
+    if: ${{ inputs.promote_production }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      approved_by: ${{ steps.approval.outputs.approved_by }}
+      backup_id: ${{ steps.approval.outputs.backup_id }}
+    steps:
+      - id: approval
+        name: Record explicit production approval
+        env:
+          APPROVED_BY: ${{ github.actor }}
+          PRODUCTION_BACKUP_ID: ${{ inputs.production_backup_id }}
+          PRODUCTION_CONFIRMATION: ${{ inputs.production_confirmation }}
+          RELEASE_ID: ${{ inputs.release_id }}
         run: |
-          curl --fail --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
-            --header "Content-Type: application/json" \
-            --header "Idempotency-Key: catalog-build-$RELEASE_ID-staging-proof-failed" \
-            --data '{"status":"failed","failureCode":"staging_proof_failed"}' \
-            "$API_E2E_BASE_URL/build/catalog/releases/$RELEASE_ID/status"
+          test "$PRODUCTION_CONFIRMATION" = "PROMOTE $RELEASE_ID"
+          [[ "$PRODUCTION_BACKUP_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
+          printf 'approved_by=%s\n' "$APPROVED_BY" >> "$GITHUB_OUTPUT"
+          printf 'backup_id=%s\n' "$PRODUCTION_BACKUP_ID" >> "$GITHUB_OUTPUT"
 
   promote-production:
-    needs: [validate, prove-staging]
+    needs: [validate, prove-staging, approve-production]
+    if: ${{ inputs.promote_production }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: production
@@ -203,9 +291,26 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: validated-${{ inputs.release_id }}
+      - name: Verify recent production backup before migration
+        env:
+          PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
+        run: |
+          backup_json="$(
+            cd apps/api
+            bunx wrangler d1 execute DB \
+              --env production \
+              --remote \
+              --json \
+              --command "SELECT id FROM d1_backup_runs WHERE id = '$PRODUCTION_BACKUP_ID' AND environment = 'production' AND status = 'ready' AND datetime(completed_at) >= datetime('now', '-24 hours') LIMIT 1"
+          )"
+          jq --exit-status \
+            --arg id "$PRODUCTION_BACKUP_ID" \
+            'any(.[]?.results[]?; .id == $id)' \
+            <<< "$backup_json" >/dev/null
       - name: Revalidate approved promotion against staging evidence
         env:
-          RELEASE_APPROVED_BY: ${{ github.actor }}
+          RELEASE_APPROVED_BY: ${{ needs.approve-production.outputs.approved_by }}
+          RELEASE_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
           RELEASE_STRICT_ENVIRONMENT: "true"
           RELEASE_TARGET: production
           STAGING_RELEASE_REPORT: artifacts/releases/${{ inputs.release_id }}.json
@@ -219,7 +324,10 @@ jobs:
           (cd apps/admin && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets dist --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
           (cd apps/storefront && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets .output/public --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
       - name: Deploy production versions after environment approval
+        env:
+          APPROVED_BY: ${{ needs.approve-production.outputs.approved_by }}
+          PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
         run: |
-          (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
-          (cd apps/admin && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
-          (cd apps/storefront && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $GITHUB_ACTOR" --yes)
+          (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
+          (cd apps/admin && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
+          (cd apps/storefront && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)

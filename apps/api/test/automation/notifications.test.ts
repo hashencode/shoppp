@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
 import {
@@ -67,7 +67,13 @@ async function receiptJob() {
 }
 
 beforeEach(async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime("2026-07-30T00:00:00.000Z");
   await seedLaunchFixture(env.DB);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("notification automation", () => {

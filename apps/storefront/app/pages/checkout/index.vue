@@ -120,7 +120,7 @@ const continueToPayment = async () => {
         </span>
       </label>
       <TurnstileChallenge
-        v-if="turnstileRequired"
+        v-if="!securityConfigurationLoading && turnstileRequired && turnstileSiteKey"
         :key="turnstileRenderKey"
         v-model="turnstileToken"
         :sitekey="turnstileSiteKey"

@@ -51,6 +51,21 @@ describe("release validation", () => {
     await expect(assertProductionApproval({ target: "production", commit: "abc" })).rejects.toThrow(
       /RELEASE_APPROVED_BY/,
     );
+    await expect(
+      assertProductionApproval({
+        target: "production",
+        commit: "abc",
+        approvedBy: "operator",
+      }),
+    ).rejects.toThrow(/RELEASE_BACKUP_ID/);
+    await expect(
+      assertProductionApproval({
+        target: "production",
+        commit: "abc",
+        approvedBy: "operator",
+        backupId: "backup\ninjected=true",
+      }),
+    ).rejects.toThrow(/unsafe characters/);
   });
 
   test("strict staging builds fetch the selected immutable catalog release", () => {

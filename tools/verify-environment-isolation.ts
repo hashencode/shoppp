@@ -50,12 +50,7 @@ const ENDPOINT_VARIABLES = new Set([
   "EMAIL_FROM",
 ]);
 
-const ID_VARIABLES = new Set([
-  "CLOUDFLARE_ACCOUNT_ID",
-  "D1_DATABASE_ID",
-  "RESOURCE_NAMESPACE",
-  "ACCESS_AUDIENCE",
-]);
+const ID_VARIABLES = new Set(["D1_DATABASE_ID", "RESOURCE_NAMESPACE", "ACCESS_AUDIENCE"]);
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -71,9 +66,7 @@ function collectResources(value: unknown, parentKey = ""): string[] {
   for (const [key, entry] of Object.entries(value)) {
     if (
       typeof entry === "string" &&
-      (RESOURCE_KEYS.has(key) ||
-        (key === "name" && parentKey === "workflows") ||
-        (parentKey === "vars" && ID_VARIABLES.has(key)))
+      (RESOURCE_KEYS.has(key) || (key === "name" && parentKey === "workflows"))
     ) {
       result.push(entry);
     }
@@ -137,7 +130,6 @@ export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]>
     const endpointValues = Object.entries(apiVariables)
       .filter(([key]) => ENDPOINT_VARIABLES.has(key))
       .map(([, value]) => value);
-
     return {
       environment,
       applicationNames: unique(applicationNames),
@@ -159,7 +151,7 @@ function looksPlaceholder(value: string): boolean {
 
 export function verifySnapshots(
   snapshots: EnvironmentSnapshot[],
-  options: { strictProduction?: boolean } = {},
+  options: { strictEnvironment?: EnvironmentName | "all" } = {},
 ): void {
   const staging = snapshots.find((snapshot) => snapshot.environment === "staging");
   const production = snapshots.find((snapshot) => snapshot.environment === "production");
@@ -183,17 +175,29 @@ export function verifySnapshots(
       snapshot.apiVariables.TURNSTILE_REQUIRED === "true",
       `${snapshot.environment} must fail closed with Turnstile enabled`,
     );
+    if (snapshot.environment === "production") {
+      assert(
+        snapshot.apiVariables.TURNSTILE_TEST_MODE !== "true",
+        "production cannot enable Turnstile test mode",
+      );
+    }
   }
 
   const stagingResources = new Set([
     ...staging.applicationNames,
     ...staging.resourceIdentifiers,
     ...staging.endpointValues,
+    ...Object.entries(staging.apiVariables)
+      .filter(([key]) => ID_VARIABLES.has(key))
+      .map(([, value]) => value),
   ]);
   const productionResources = new Set([
     ...production.applicationNames,
     ...production.resourceIdentifiers,
     ...production.endpointValues,
+    ...Object.entries(production.apiVariables)
+      .filter(([key]) => ID_VARIABLES.has(key))
+      .map(([, value]) => value),
   ]);
   const crossover = [...stagingResources].filter((value) => productionResources.has(value));
   assert(
@@ -231,15 +235,16 @@ export function verifySnapshots(
     "production payment cancel target crosses storefront origin",
   );
 
-  if (options.strictProduction) {
-    const strictValues = [
-      ...staging.applicationNames,
-      ...staging.resourceIdentifiers,
-      ...staging.endpointValues,
-      ...production.applicationNames,
-      ...production.resourceIdentifiers,
-      ...production.endpointValues,
-    ];
+  if (options.strictEnvironment) {
+    const strictSnapshots =
+      options.strictEnvironment === "all"
+        ? snapshots
+        : snapshots.filter((snapshot) => snapshot.environment === options.strictEnvironment);
+    const strictValues = strictSnapshots.flatMap((snapshot) => [
+      ...snapshot.applicationNames,
+      ...snapshot.resourceIdentifiers,
+      ...snapshot.endpointValues,
+    ]);
     const placeholders = strictValues.filter(looksPlaceholder);
     assert(
       placeholders.length === 0,
@@ -251,7 +256,7 @@ export function verifySnapshots(
 export async function verifyEnvironmentIsolation(
   options: {
     root?: string;
-    strictProduction?: boolean;
+    strictEnvironment?: EnvironmentName | "all";
   } = {},
 ): Promise<EnvironmentSnapshot[]> {
   const snapshots = await loadSnapshots(options.root);
@@ -266,7 +271,9 @@ if (import.meta.main) {
       strict: { type: "boolean", default: false },
     },
   });
-  const snapshots = await verifyEnvironmentIsolation({ strictProduction: values.strict });
+  const snapshots = await verifyEnvironmentIsolation({
+    ...(values.strict ? { strictEnvironment: "all" as const } : {}),
+  });
   console.log(
     `Environment isolation verified for ${snapshots.map((entry) => entry.environment).join(" and ")}${values.strict ? " (strict)" : ""}.`,
   );
