@@ -14,6 +14,7 @@ export default defineConfig({
   outputDir: "test-results",
   fullyParallel: true,
   reporter: "list",
+  workers: 1,
   use: {
     baseURL,
     trace: "retain-on-failure",

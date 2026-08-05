@@ -43,6 +43,7 @@ export const pageTypeSchema = z.enum([
   "checkout",
   "order",
   "policy",
+  "content",
 ]);
 export const fixtureStateSchema = z.enum([
   "populated",

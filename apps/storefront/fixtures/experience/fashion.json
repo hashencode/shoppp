@@ -3,55 +3,95 @@
   "approvedBy": "fixture-operator",
   "bindings": [
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-navigation-binding",
+      "fixtureId": "fashion-home",
+      "id": "fashion-header-binding",
       "instanceId": "site-navigation",
       "kind": "fixture",
-      "resource": "site-navigation",
+      "resource": "header",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-announcement-binding",
-      "instanceId": "announcement",
-      "kind": "fixture",
-      "resource": "announcement",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
       "id": "fashion-hero-binding",
-      "instanceId": "home-hero",
+      "instanceId": "fashion-hero",
       "kind": "fixture",
-      "resource": "home-hero",
+      "resource": "hero",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-home-products-binding",
-      "instanceId": "home-products",
+      "fixtureId": "fashion-home",
+      "id": "fashion-services-binding",
+      "instanceId": "fashion-services",
       "kind": "fixture",
-      "resource": "products",
+      "resource": "services",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-story-binding",
-      "instanceId": "home-story",
+      "fixtureId": "fashion-home",
+      "id": "fashion-categories-binding",
+      "instanceId": "fashion-categories",
       "kind": "fixture",
-      "resource": "editorial",
+      "resource": "categories",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-trust-binding",
-      "instanceId": "trust-strip",
+      "fixtureId": "fashion-home",
+      "id": "fashion-bestsellers-binding",
+      "instanceId": "fashion-bestsellers",
       "kind": "fixture",
-      "resource": "trust",
+      "resource": "bestsellers",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
+      "id": "fashion-promotion-binding",
+      "instanceId": "fashion-promotion",
+      "kind": "fixture",
+      "resource": "promotion",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
+      "id": "fashion-collection-binding",
+      "instanceId": "fashion-collection",
+      "kind": "fixture",
+      "resource": "collection",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
+      "id": "fashion-brands-binding",
+      "instanceId": "fashion-brands",
+      "kind": "fixture",
+      "resource": "brands",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
+      "id": "fashion-featured-binding",
+      "instanceId": "fashion-featured",
+      "kind": "fixture",
+      "resource": "featured",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
+      "id": "fashion-promises-binding",
+      "instanceId": "fashion-promises",
+      "kind": "fixture",
+      "resource": "promises",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
+      "id": "fashion-magazine-binding",
+      "instanceId": "fashion-magazine",
+      "kind": "fixture",
+      "resource": "magazine",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
       "id": "fashion-footer-binding",
       "instanceId": "site-footer",
       "kind": "fixture",
@@ -59,23 +99,15 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-collection-grid-binding",
-      "instanceId": "collection-grid",
+      "fixtureId": "fashion-home",
+      "id": "fashion-shop-binding",
+      "instanceId": "fashion-shop",
       "kind": "fixture",
-      "resource": "collections",
+      "resource": "shop",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-collection-products-binding",
-      "instanceId": "collection-products",
-      "kind": "fixture",
-      "resource": "products",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
       "id": "fashion-product-binding",
       "instanceId": "product-main",
       "kind": "fixture",
@@ -83,7 +115,15 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
+      "id": "fashion-content-binding",
+      "instanceId": "content-main",
+      "kind": "fixture",
+      "resource": "content",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-home",
       "id": "fashion-cart-binding",
       "instanceId": "cart-main",
       "kind": "fixture",
@@ -91,7 +131,7 @@
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
+      "fixtureId": "fashion-home",
       "id": "fashion-checkout-binding",
       "instanceId": "checkout-main",
       "kind": "fixture",

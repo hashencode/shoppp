@@ -1,5 +1,11 @@
 # Storefront Theme Visual Acceptance
 
+For a source-equivalent HTML-template port, this document is subordinate to the
+[source-equivalent porting workflow](../runbooks/source-equivalent-html-template-port.md) and the
+machine-readable policy in `tools/storefront-source-equivalence-policy.json`. Source HTML,
+contributing CSS, runtime initialization, and original assets define the expected result;
+screenshots do not define the implementation.
+
 ## Required evidence
 
 Review Fashion and Decor independently at desktop, current mobile Chrome dimensions, no JavaScript,
@@ -20,6 +26,14 @@ Automated evidence must include:
 
 Record screenshots only from the immutable fixture build being reviewed. Record the commit, theme
 and schema versions, preset, viewport, route, fixture state, browser, and any accepted exception.
+An intentional difference requires a current policy waiver with a stable route/region target,
+owner, approver, rationale, and expiration. Aggregate full-page similarity cannot waive a failed
+named state, wrong destination, missing content, or inert control.
+
+Bulk comparison is script-first. Retain changed-pixel ratios, tolerance, diff bounds, computed
+style and geometry deltas, ranked regions, heatmaps, and a small number of high-signal crops. Limit
+browser/capture concurrency to two and run heavy full-page or named-state batches with one worker by
+default.
 
 ## Fashion acceptance
 

@@ -3,80 +3,57 @@ import type {
   StorefrontThemeDescriptor,
   ThemeManifest,
 } from "@shoppp/contracts";
-
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
+
+const visualTypes = [
+  "fashion.hero-carousel",
+  "fashion.service-strip",
+  "fashion.category-tiles",
+  "fashion.product-showcase",
+  "fashion.promo-band",
+  "fashion.collection-carousel",
+  "fashion.brand-strip",
+  "fashion.promise-strip",
+  "fashion.magazine",
+  "fashion.shop",
+  "fashion.content-page",
+] as const;
 
 const fashionSectionDefinitions = [
   {
     allowedBlockTypes: ["core.link"],
     capabilities: ["navigation.primary", "focus.skip-link"],
     settings: [],
-    type: "fashion.masthead",
+    type: "fashion.header",
+  },
+  ...visualTypes.map((type) => ({
+    allowedBlockTypes: [],
+    capabilities: [],
+    settings: [],
+    type,
+  })),
+  {
+    allowedBlockTypes: [],
+    capabilities: ["product.details", "product.action"],
+    settings: [],
+    type: "fashion.product-details",
   },
   {
-    allowedBlockTypes: ["core.action", "core.text"],
-    capabilities: [],
-    settings: [
-      {
-        default: "Objects with a point of view.",
-        id: "heading",
-        kind: "text",
-        maxLength: 160,
-        required: true,
-      },
-      {
-        default: "A fixture-backed editorial storefront presentation.",
-        id: "body",
-        kind: "text",
-        maxLength: 500,
-        required: true,
-      },
-      {
-        default: "left",
-        id: "alignment",
-        kind: "select",
-        options: [
-          { label: "Left", value: "left" },
-          { label: "Center", value: "center" },
-        ],
-        required: true,
-      },
-    ],
-    type: "fashion.editorial-hero",
+    allowedBlockTypes: [],
+    capabilities: ["cart.summary", "cart.error"],
+    settings: [],
+    type: "fashion.cart",
   },
   {
-    allowedBlockTypes: ["core.text"],
-    capabilities: [],
-    settings: [
-      {
-        default: "Material, form, and restraint.",
-        id: "heading",
-        kind: "text",
-        maxLength: 160,
-        required: true,
-      },
-      {
-        default: "An optional editorial chapter controlled by a stable instance ID.",
-        id: "body",
-        kind: "text",
-        maxLength: 500,
-        required: true,
-      },
-    ],
-    type: "fashion.story",
+    allowedBlockTypes: [],
+    capabilities: ["checkout.summary", "checkout.error"],
+    settings: [],
+    type: "fashion.checkout",
   },
   {
     allowedBlockTypes: ["core.link"],
     capabilities: ["legal.links"],
-    settings: [
-      {
-        default: "Private fixture preview · no live commerce activity",
-        id: "note",
-        kind: "text",
-        maxLength: 200,
-        required: true,
-      },
-    ],
+    settings: [],
     type: "fashion.footer",
   },
 ] satisfies SectionDefinition[];
@@ -89,28 +66,34 @@ export const fashionManifest = {
   },
   configurationSchemaVersion: 1,
   designTokens: {
-    "color-accent": "#d8ff3e",
-    "color-ink": "#171713",
-    "color-paper": "#f2eee6",
-    "color-surface": "#fffdf7",
-    "font-display": "Georgia, Times New Roman, serif",
-    "font-ui": "Inter, ui-sans-serif, system-ui, sans-serif",
-    "radius-card": "1.5rem",
-    "space-section": "clamp(4rem, 9vw, 9rem)",
+    "color-accent": "#ffdf00",
+    "color-ink": "#1c1c1c",
+    "color-paper": "#f4f4f2",
+    "color-surface": "#ffffff",
+    "font-display": "Outfit, sans-serif",
+    "font-ui": "Figtree, sans-serif",
+    "radius-card": "0",
+    "space-section": "clamp(4rem, 8vw, 8rem)",
   },
   id: "fashion",
-  platformCompatibility: {
-    maxExclusive: "2.0.0",
-    min: "1.0.0",
-  },
+  platformCompatibility: { maxExclusive: "2.0.0", min: "1.0.0" },
   platformContractVersion: "1.0.0",
   provenance: {
     approvedAt: "2026-07-30T00:00:00.000Z",
     approvedBy: "shoppp-theme-team",
-    license: "Repository-owned original implementation",
-    source: "internal://shoppp/themes/fashion",
+    license: "Repository implementation with user-authorized reference assets",
+    source: "local://user-supplied/demo-fashion-store.html",
   },
-  supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "order", "policy"],
+  supportedPageTemplates: [
+    "home",
+    "collection",
+    "product",
+    "cart",
+    "checkout",
+    "order",
+    "policy",
+    "content",
+  ],
   themeVersion: "1.0.0",
 } as const satisfies ThemeManifest;
 

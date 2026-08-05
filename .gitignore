@@ -14,9 +14,12 @@ apps/storefront/dist
 apps/storefront/app/generated/collections/
 apps/storefront/app/generated/products/
 apps/storefront/fixtures/experience/.generated/
+apps/storefront/public/theme-preview-generated/
 node_modules/
 playwright-report/
 test-results/
 artifacts/releases/
+artifacts/theme-fidelity/
+artifacts/live/
 *.local
 *.log

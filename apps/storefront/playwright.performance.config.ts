@@ -17,6 +17,7 @@ export default defineConfig({
   outputDir: "test-results/performance",
   reporter: "list",
   timeout: 180_000,
+  workers: 1,
   use: { baseURL },
   webServer: process.env.STOREFRONT_PERF_BASE_URL
     ? undefined

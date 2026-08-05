@@ -4,6 +4,8 @@ import {
   type StorefrontThemeDescriptor,
   type ThemePackage,
 } from "@shoppp/contracts";
+import { readdir, readFile } from "node:fs/promises";
+import { extname, resolve } from "node:path";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
 import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
@@ -45,6 +47,51 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
     package: { manifest: fashionManifest, presets: [fashionPreset] },
   },
 ];
+
+export async function verifyThemeAssetSources(themeIds: readonly string[]): Promise<void> {
+  const allowedImageExtensions = new Set([".avif", ".jpg", ".jpeg", ".png", ".svg", ".webp"]);
+  for (const themeId of themeIds) {
+    const themeRoot = resolve(import.meta.dir, `../app/themes/${themeId}`);
+    const [fonts, images, provenance] = await Promise.all([
+      readdir(resolve(themeRoot, "assets/fonts")),
+      readdir(resolve(themeRoot, "assets/images")),
+      readFile(resolve(themeRoot, "UPSTREAM.md"), "utf8"),
+    ]);
+    assert(fonts.length > 0, `${themeId} does not contain a self-hosted font.`);
+    assert(images.length > 0, `${themeId} does not contain reference images.`);
+    for (const font of fonts) {
+      assert(extname(font) === ".woff2", `${themeId} contains a non-WOFF2 font asset: ${font}.`);
+      assert(
+        provenance.includes(`assets/fonts/${font}`),
+        `${themeId} font provenance is missing for ${font}.`,
+      );
+    }
+    for (const image of images) {
+      const extension = extname(image).toLowerCase();
+      assert(
+        allowedImageExtensions.has(extension),
+        `${themeId} contains an unsupported image asset: ${image}.`,
+      );
+      if (extension === ".svg") {
+        const source = await readFile(resolve(themeRoot, "assets/images", image), "utf8");
+        assert(
+          !/<(?:script|foreignObject)\b|(?:href|src)\s*=\s*["'](?:https?:|data:)|\son[a-z]+\s*=/iu.test(
+            source,
+          ),
+          `${themeId} contains an unsafe SVG image asset: ${image}.`,
+        );
+      }
+      assert(
+        provenance.includes(`assets/images/${image}`),
+        `${themeId} image provenance is missing for ${image}.`,
+      );
+    }
+    assert(
+      ![...fonts, ...images].some((file) => /\.(?:css|html?|js|mjs|php)$/i.test(file)),
+      `${themeId} assets contain an executable upstream runtime.`,
+    );
+  }
+}
 
 function compareVersions(left: string, right: string): number {
   const leftParts = left.split(".").map(Number);
@@ -171,6 +218,7 @@ export function verifyThemeMatrix(
 
 if (import.meta.main) {
   verifyThemeMatrix(storefrontThemeMatrix, storefrontThemeCatalog);
+  await verifyThemeAssetSources(storefrontThemeMatrix.map(({ descriptor }) => descriptor.id));
   console.log(
     `Verified ${storefrontThemeMatrix.length} storefront themes against platform ${STOREFRONT_PLATFORM_CONTRACT_VERSION}.`,
   );

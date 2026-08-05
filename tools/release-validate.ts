@@ -47,7 +47,12 @@ export const RELEASE_GATES: GateDefinition[] = [
   { name: "format", command: ["bun", "run", "format:check"] },
   { name: "lint", command: ["bun", "run", "lint"] },
   { name: "types", command: ["bun", "run", "typecheck"] },
+  { name: "source-equivalence", command: ["bun", "run", "verify:source-equivalence"] },
   { name: "theme-contracts", command: ["bun", "run", "verify:themes"] },
+  {
+    name: "fidelity-contract",
+    command: ["bun", "run", "--cwd", "apps/storefront", "test:fidelity"],
+  },
   { name: "unit-contract", command: ["bun", "run", "test"] },
   { name: "worker-integration", command: ["bun", "run", "test:workers"] },
   { name: "admin-browser", command: ["bun", "run", "test:admin-browser"] },

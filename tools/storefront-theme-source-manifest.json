@@ -2,21 +2,1843 @@
   "schemaVersion": 1,
   "themes": [
     {
-      "allowlist": [],
-      "importedAt": null,
-      "importedFiles": [],
-      "ownershipApproval": null,
-      "sourceIdentity": null,
-      "sourceRevision": null,
+      "allowlist": [
+        {
+          "destinationPath": "assets/images/demo-decor-store-banner-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-banner-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-07.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-07.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-08.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-08.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-02.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-03.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-04.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-05.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-05.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-footer-bg.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-footer-bg.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-02.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-03.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-04.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-05.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-05.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-06.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-06.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-07.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-07.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-08.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-08.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-09.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-09.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-10.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-10.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-black.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-black.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-black@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-black@2x.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-white.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-white.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-white@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-white@2x.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-main-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-main-banner-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-main-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-main-banner-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-main-banner-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-main-banner-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-05.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-06.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-05.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-06.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-09.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-09.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-10.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-10.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-12.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-12.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-13.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-13.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-14.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-14.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-15.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-15.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-02.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-03.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-bg-img.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-bg-img.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-img-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-img-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-img-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-img-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-img-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-img-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-thumb.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-thumb.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-img-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-img-04.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-img-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-img-05.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-img-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-img-06.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-thumb.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-thumb.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-img-07.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-img-07.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-img-08.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-img-08.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-img-09.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-img-09.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-thumb.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-thumb.jpg"
+        },
+        {
+          "destinationPath": "assets/fonts/plus-jakarta-sans-latin.woff2",
+          "kind": "font",
+          "license": "SIL Open Font License 1.1; exact self-hosted Google Fonts binary loaded by the source demo.",
+          "sourcePath": "fonts/plus-jakarta-sans-latin.woff2"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-usa.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/usa.png"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-france.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/france.png"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-russian.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/russian.png"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-spain.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/spain.png"
+        }
+      ],
+      "importedAt": "2026-07-30",
+      "importedFiles": [
+        {
+          "destinationPath": "assets/fonts/plus-jakarta-sans-latin.woff2",
+          "kind": "font",
+          "license": "SIL Open Font License 1.1; exact self-hosted Google Fonts binary loaded by the source demo.",
+          "sourcePath": "fonts/plus-jakarta-sans-latin.woff2",
+          "bytes": 27272,
+          "sha256": "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-usa.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/usa.png",
+          "bytes": 488,
+          "sha256": "4ac836d19ba59b13f74176339bbb73a752844e528a338bd9340c945d2f2895c5"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-france.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/france.png",
+          "bytes": 446,
+          "sha256": "2629de759dd340f44743175bb4510aa6d438a37e3d94e079d2aa4e6032f71de9"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-russian.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/russian.png",
+          "bytes": 350,
+          "sha256": "bc6c51350976a6cbe7cc8d0d08bd8b4c264070dad00cb61c0d28355ca28fae9b"
+        },
+        {
+          "destinationPath": "assets/images/country-flag-spain.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/country-flag-16X16/spain.png",
+          "bytes": 493,
+          "sha256": "efbf0cf75d4b00bd5a0891a4de84ee10bd4dc6bdc7e2d33841d37fdf51263f8c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-banner-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-banner-04.jpg",
+          "bytes": 38958,
+          "sha256": "66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-03.jpg",
+          "bytes": 81136,
+          "sha256": "2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-04.jpg",
+          "bytes": 60952,
+          "sha256": "3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-07.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-07.jpg",
+          "bytes": 74307,
+          "sha256": "d8b50dc900e773d22ceec74b7e22d135c5977c5be7336126592d9870fb159201"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-blog-08.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-blog-08.jpg",
+          "bytes": 92588,
+          "sha256": "72d5fb42009c6b87366ce970d3d1b94d63628ed5af418de888076baabb000b3c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-01.png",
+          "bytes": 1184,
+          "sha256": "8afe51f61a3ac538a02100806701fa42b6859cea86aade4f8ab2b291823438c2"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-02.png",
+          "bytes": 1362,
+          "sha256": "72acf1c388d1bf3bbf6cb7625d74c77a520557656299385d1b7d1c7ed33c1605"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-03.png",
+          "bytes": 1530,
+          "sha256": "9b7162520bfc801de37b564544881f8fa3660eab5b23ade402447ade0e9d9dd3"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-04.png",
+          "bytes": 1165,
+          "sha256": "f89ec329ce508494d030288064e3c66d558ae3915683027903b5ac7b4c8d78ee"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-client-05.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-client-05.png",
+          "bytes": 1777,
+          "sha256": "549242dd7871041c7dd21b784d2a8996c4600697b78cc75cd6cc7061e46bfa49"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-footer-bg.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-footer-bg.jpg",
+          "bytes": 103345,
+          "sha256": "fbda9ff90ad63374565c5e9d7f043131ebc753d4468449100f4c762fc54421ac"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-01.png",
+          "bytes": 771,
+          "sha256": "1e88b606ad380b33347b426e4b2c18d15ba2ff16ebb8bfc6fd79e6abf7ac1e88"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-02.png",
+          "bytes": 1004,
+          "sha256": "f0b3f3f195abf4df9e90c55fa0fac98b1c61f48088a17f68534d888d83406a21"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-03.png",
+          "bytes": 587,
+          "sha256": "36690cf010c6186567803fbd679a1a1c2da1807368a7b82caa74d9bb80a8cdb4"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-04.png",
+          "bytes": 1045,
+          "sha256": "4e69b6fd34a250206cc79fb81fbe6de12f415b0c348d53408cf7be6b2ed228b2"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-05.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-05.png",
+          "bytes": 1025,
+          "sha256": "976204602bbffccce8fa6e627052143a14c39561b858943d8a26bb857e3b16d0"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-06.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-06.png",
+          "bytes": 840,
+          "sha256": "2388c1af1eb90062847124bbdb9f6add7b766bda4914385263efa1408e4a86fb"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-07.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-07.png",
+          "bytes": 951,
+          "sha256": "91c6b093e916549dfa92cb2c3d31369a20179da4c5cab06d57c70c057322e24e"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-08.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-08.png",
+          "bytes": 686,
+          "sha256": "a4607c544042891bd0f79a281f0378f9c360bf0e37177bb4b2d9435485f10018"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-09.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-09.png",
+          "bytes": 805,
+          "sha256": "276855245df061ac56175dcde73c07b19cfa729459b8f6e2d9f05ec5a9790533"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-icon-10.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-icon-10.png",
+          "bytes": 1005,
+          "sha256": "5c8f8e6aee635452d9763a525dac168faa994355e56a75bd7b81052ab606e21b"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-black.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-black.png",
+          "bytes": 858,
+          "sha256": "667d763440051f4275c39499fa3ab0f6dd2ee3c267f4537993c63ade5c04211c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-black@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-black@2x.png",
+          "bytes": 1669,
+          "sha256": "4043b614c16e96f3615b81bb1639cd1dfe0aabb8f9222b4ee53efbab61ff7018"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-white.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-white.png",
+          "bytes": 858,
+          "sha256": "f17ea7965ba4fd09c7887fd4c019aa0443c638f36d0289f6705344b8e83b1bda"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-logo-white@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-logo-white@2x.png",
+          "bytes": 1669,
+          "sha256": "b8681eb4fa0df2958b249147731db0f62edeec7930d10f04829c8a4460a4bfe8"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-main-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-main-banner-01.jpg",
+          "bytes": 26031,
+          "sha256": "0369707b74459e63e93524405f1b1b2f0a2fbf96f81549f2f61d16640b450425"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-main-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-main-banner-02.jpg",
+          "bytes": 22572,
+          "sha256": "1edf394126b5134f74c9a84a669e9eeef7f6fe8102a1a9651a6f4b81bdcb27d6"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-main-banner-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-main-banner-03.jpg",
+          "bytes": 33600,
+          "sha256": "56fe556e846fdf9c53eb64c6f7eca496310d96d0a7470dbe822fd106e006e81a"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-01.jpg",
+          "bytes": 28848,
+          "sha256": "88ff698a65da24b32a8978d926c2d8d5ae275bd48b4d4eff9a605784c4c83f5d"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-02.jpg",
+          "bytes": 35719,
+          "sha256": "00a3d46a750f6fda5744849f1d14932103466fd8e0127588ac706656467fa713"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-03.jpg",
+          "bytes": 28060,
+          "sha256": "27c47c12dbbc9563bcef4d761fe5526800d119c192f78a8f2db95ea3b2cbb1ef"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-banner-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-banner-04.jpg",
+          "bytes": 26553,
+          "sha256": "433b9b853ae2b1998d2a365453550f3129cecde5faa56f7890c778920b094af0"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-01.jpg",
+          "bytes": 4160,
+          "sha256": "bf6ada8dc0a74ba11eac00b4ebf707f170542df6a43779dc1bc3f54836a8243e"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-02.jpg",
+          "bytes": 6038,
+          "sha256": "c3c1f8119511677a77cabe6e4baf28da7f278969b45008391e1962610f40ba4c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-03.jpg",
+          "bytes": 3633,
+          "sha256": "d42cfcf11584f03213e53951e57d83f1155e27a8beec691c58b7995f8c8ae24c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-04.jpg",
+          "bytes": 4996,
+          "sha256": "f9aaa59c6c33cd1f619a53eaf83a4414fd29934d07d29bb1a38efad7d375696e"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-05.jpg",
+          "bytes": 3814,
+          "sha256": "0d325fbb63d41b2f62660826cc82cd3ab8387ba945d7a03195871cdb0f5296e3"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-menu-category-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-menu-category-06.jpg",
+          "bytes": 5300,
+          "sha256": "a23509844e0645a91ca8da161d0cb264bd5f8b0b545af710c7a1cf89b1075412"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png",
+          "bytes": 469,
+          "sha256": "12c7960a716d81a9d5003e7d473ced3f8ea30f7c0e583b71b8c3e73849d19b90"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png",
+          "bytes": 531,
+          "sha256": "cce62a78cf97cc728a08f13c25f2b80377d48c1d2af0f98c058db05568a0d321"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png",
+          "bytes": 439,
+          "sha256": "7479722e0b7901e9c5c0a806531a1ee7aad4ec2e09bb1c213f78836bac95c9e2"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-payment-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png",
+          "bytes": 581,
+          "sha256": "00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-01.jpg",
+          "bytes": 17906,
+          "sha256": "c47c9b9d227ee6f5b08a38b5f80012b93cc1cc5bc5c70bb5cf083d357d85be0a"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-03.jpg",
+          "bytes": 37354,
+          "sha256": "7fd8289da9b8816fbae6273ae4f98a8d7fb9ea4d14ad768b4d11b0a7d6dcbc1e"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-05.jpg",
+          "bytes": 39121,
+          "sha256": "5d51f4516c085789e00ef2d773fdfe2704c5036f7b637f36adeff2336b76a065"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-06.jpg",
+          "bytes": 14796,
+          "sha256": "5847aad8d80250743b613aec41bc4eb46fcea33671a4c3d4289446019797d236"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-09.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-09.jpg",
+          "bytes": 22342,
+          "sha256": "57513bb832d4442bd9a698703cf3792eb3f85ae0aa0efd5a56973c1f15d42ca1"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-10.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-10.jpg",
+          "bytes": 28157,
+          "sha256": "d488fa7c791e9ef202cfbc42a6a0d279a23eb045c6fc05a64537e8c60687c1bc"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-12.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-12.jpg",
+          "bytes": 33938,
+          "sha256": "bfb9aab685cf17a58605d6e9b8a1437311c8e41ee69a57cdf13270b0b247f1cf"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-13.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-13.jpg",
+          "bytes": 32687,
+          "sha256": "1fbfbdf8a8c670e9f45873137fcd190befd444b941f1385470fc1b9c08a71ffd"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-14.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-14.jpg",
+          "bytes": 19685,
+          "sha256": "e17d64346f789f5d2a57686f7ce83a2e2c2f114ebc0c13ad371dd4b51314d2db"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-15.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-15.jpg",
+          "bytes": 31942,
+          "sha256": "e0a66c152c0c0dcedfb222bcd5f7421c883236f57f1df2e07905d687bfa37088"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-01.png",
+          "bytes": 33686,
+          "sha256": "481d69751c4bde76fa9c821c255a2b6482aed365fe887ee17c87a1485174ef44"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-02.png",
+          "bytes": 25210,
+          "sha256": "858a87aebdfcd33ccddbe4863bf01ee7323884e2ad13fc9f885b77787c2b83d0"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-03.png",
+          "bytes": 29039,
+          "sha256": "866393557185cc79d11e6ecf38a8a5f55fa20500ea2078f40ee1b60e321b5e0c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-product-slider-bg-img.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-product-slider-bg-img.jpg",
+          "bytes": 22042,
+          "sha256": "c8eaee3addc081649d4bf7209dcbfd89c152d020266056cfbf6beee8e6ceeb61"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-img-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-img-01.png",
+          "bytes": 377355,
+          "sha256": "54594788dc41dc6506827c9545797222c230a27bdf4632f7abe5f1a9056ac0b4"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-img-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-img-02.jpg",
+          "bytes": 41934,
+          "sha256": "cf827b426ba54048799b35929bfc51ac92f07fb857392593964f26e4d9b1be72"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-img-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-img-03.jpg",
+          "bytes": 41962,
+          "sha256": "74addabd7ebed5e18d4f14655adc468053d42ea2ed1392cecc618778ba1211fc"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-01-thumb.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-01-thumb.jpg",
+          "bytes": 7861,
+          "sha256": "fda36e97ee8eec86980ad1097bdd79370a8ad89c8a79fcb41fb60dddf6b8df73"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-img-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-img-04.png",
+          "bytes": 189626,
+          "sha256": "611ac9ed11e9a2e6bacfd283107b48bdd4c686436aebd1f18f2752cfca9d1c5c"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-img-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-img-05.jpg",
+          "bytes": 28081,
+          "sha256": "599c5088c5d92f04f218d3916cc7cb3b5633ba7dfefe791b1ed833e09d319612"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-img-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-img-06.jpg",
+          "bytes": 27627,
+          "sha256": "e59189a7f35b592efe9f1f4cc5dff16a767d168e50de577314e2dd8e0644b60b"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-02-thumb.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-02-thumb.jpg",
+          "bytes": 7683,
+          "sha256": "9bb15c7bd916e01f69ce7c5d7cc1b57737c4032e4d4f61877f163deb24001678"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-img-07.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-img-07.png",
+          "bytes": 199147,
+          "sha256": "e10535e74004c9108d9baeedac01bf84e9bf559203c4bcc4ad16b23a18bf916f"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-img-08.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-img-08.jpg",
+          "bytes": 94049,
+          "sha256": "6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-img-09.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-img-09.jpg",
+          "bytes": 67987,
+          "sha256": "7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-slider-03-thumb.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-slider-03-thumb.jpg",
+          "bytes": 7351,
+          "sha256": "2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96"
+        },
+        {
+          "destinationPath": "assets/images/demo-decor-store-title-bg.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-title-bg.jpg",
+          "bytes": 84069,
+          "sha256": "34bfe700f23c86a605bbf17bf2e06b3aa8cd00e06757ae6c4141be46425d55f2"
+        },
+        {
+          "destinationPath": "assets/images/shop-four-column.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-four-column.svg",
+          "bytes": 830,
+          "sha256": "ab3dd89dd679009d821c07a7d98a6151f0b42eaf60a9e89378d591c50ad63f99"
+        },
+        {
+          "destinationPath": "assets/images/shop-list.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-list.svg",
+          "bytes": 670,
+          "sha256": "38dac91b45c186ffa710931e1a818bf3ff2f3ddc760f966940c5589d7898da8b"
+        },
+        {
+          "destinationPath": "assets/images/shop-three-column.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-three-column.svg",
+          "bytes": 710,
+          "sha256": "2438dc7639153b24ab0e76da06bfa70b29c7c690cb8b34eabff6079a50a0ccc6"
+        },
+        {
+          "destinationPath": "assets/images/shop-two-column.svg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/shop-two-column.svg",
+          "bytes": 583,
+          "sha256": "121a98ada05ab44102997067135bb123b93cd44ecf0172fbaaf1be4bc190f062"
+        }
+      ],
+      "ownershipApproval": "User supplied the Crafto source package and explicitly requested faithful local reconstruction using its assets.",
+      "sourceIdentity": "local://craftohtml-10/html/demo-decor-store.html",
+      "sourceRevision": "craftohtml-10-user-supplied-2026-07-30",
       "themeId": "decor"
     },
     {
-      "allowlist": [],
-      "importedAt": null,
-      "importedFiles": [],
-      "ownershipApproval": null,
-      "sourceIdentity": null,
-      "sourceRevision": null,
+      "allowlist": [
+        {
+          "destinationPath": "assets/icons/service-box.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E6E5.",
+          "sourcePath": "derived/service-box.svg"
+        },
+        {
+          "destinationPath": "assets/icons/service-payment.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E7C3.",
+          "sourcePath": "derived/service-payment.svg"
+        },
+        {
+          "destinationPath": "assets/icons/service-return.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EBD7.",
+          "sourcePath": "derived/service-return.svg"
+        },
+        {
+          "destinationPath": "assets/icons/service-support.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EB58.",
+          "sourcePath": "derived/service-support.svg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png"
+        },
+        {
+          "destinationPath": "assets/images/logo-adidas.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-adidas.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-asos.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-asos.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-celine.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-celine.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-chanel.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-chanel.svg"
+        },
+        {
+          "destinationPath": "assets/images/logo-gucci.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-gucci.svg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-06.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-07.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-07.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-black.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-black.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-black@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-black@2x.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-white.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-white.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-white@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-white@2x.png"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-banner-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-banner-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-05.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-06.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-03.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-04.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-05.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-06.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-07.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-07.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-08.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-08.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-09.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-09.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-10.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-10.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-11.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-11.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-12.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-12.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-slider-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-slider-01.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-slider-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-slider-02.jpg"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-slider-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-slider-03.jpg"
+        },
+        {
+          "destinationPath": "assets/fonts/figtree-latin.woff2",
+          "kind": "font",
+          "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
+          "sourcePath": "fonts/figtree-latin.woff2"
+        },
+        {
+          "destinationPath": "assets/fonts/outfit-latin.woff2",
+          "kind": "font",
+          "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
+          "sourcePath": "fonts/outfit-latin.woff2"
+        }
+      ],
+      "importedAt": "2026-07-31",
+      "importedFiles": [
+        {
+          "destinationPath": "assets/fonts/figtree-latin.woff2",
+          "kind": "font",
+          "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
+          "sourcePath": "fonts/figtree-latin.woff2",
+          "bytes": 20184,
+          "sha256": "8330490a01c60c196eae00b823de8102275aaa5862e7b76a7af21b8745338928"
+        },
+        {
+          "destinationPath": "assets/fonts/outfit-latin.woff2",
+          "kind": "font",
+          "license": "SIL Open Font License 1.1; self-hosted Google Fonts binary.",
+          "sourcePath": "fonts/outfit-latin.woff2",
+          "bytes": 32228,
+          "sha256": "92684e4acde79ef07758cd09380b7e01e9824d8b061eddeda046f78c166d7b12"
+        },
+        {
+          "destinationPath": "assets/icons/service-box.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E6E5.",
+          "sourcePath": "derived/service-box.svg",
+          "bytes": 1409,
+          "sha256": "01492165aa15e1c0da1f4fc6d017d58f8bdcc14de56b14afcff29676a804c433"
+        },
+        {
+          "destinationPath": "assets/icons/service-payment.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+E7C3.",
+          "sourcePath": "derived/service-payment.svg",
+          "bytes": 659,
+          "sha256": "b388c9b604d44cdfcbcfb993a5312e91b18c88f0ba8216832d4a7ac2c06b82a4"
+        },
+        {
+          "destinationPath": "assets/icons/service-return.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EBD7.",
+          "sourcePath": "derived/service-return.svg",
+          "bytes": 1076,
+          "sha256": "e4ecb461a4740e302bfdfb18b8f6102a54606dcf2613ada79b9a274b6ae5a8f6"
+        },
+        {
+          "destinationPath": "assets/icons/service-support.svg",
+          "kind": "icon",
+          "license": "Derived from the user-supplied Crafto icon font glyph U+EB58.",
+          "sourcePath": "derived/service-support.svg",
+          "bytes": 1923,
+          "sha256": "4f0650323672a3bf927f58fb09c5e538e1f524fa6402aface8765acdb21fe988"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-01.jpg",
+          "bytes": 35079,
+          "sha256": "1708a6311f634aec006daa0ea2dfea8a6e8f19eb121a16a8b5231fcc6d268cf0"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-02.jpg",
+          "bytes": 54862,
+          "sha256": "4f8245aecd192df6b4b1ead77fe5aaa211b23eb9b01c03cf98ec3d442025ce53"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-03.jpg",
+          "bytes": 43980,
+          "sha256": "8deea3d0b3392f9d2c4872bded5e6e7a79f1846a42fb022cdae78448154cd387"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-banner-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-banner-04.jpg",
+          "bytes": 40974,
+          "sha256": "883fc43d0433068bd38118e35abdd70952b8ac1e923f1b7e2198185c1264ae90"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-01.jpg",
+          "bytes": 33097,
+          "sha256": "1514609f28c77275a7b30b97505876743bae54c0dd102ba83ec4ee898dbe6e01"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-02.jpg",
+          "bytes": 49695,
+          "sha256": "b248fd9851f936bff6885d43b5ded907a16350074507afe7fa4c86828532d500"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-06.jpg",
+          "bytes": 79360,
+          "sha256": "ac48f5694af7fb3d99209971edc3473e312886c0fa0c9b071053e69686419e65"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-blog-07.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-blog-07.jpg",
+          "bytes": 114325,
+          "sha256": "511aaefd2059dc26bc351e42b8103be3728dc71805837149e16ef0d9e5441351"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-01.jpg",
+          "bytes": 96100,
+          "sha256": "67db2784659d660311b38419e26126f6a912ee76bb811d7f09dc3b4aa9fb980a"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-02.jpg",
+          "bytes": 96427,
+          "sha256": "2e892b21c9e3a995c47f7c2095c5bc08a5edbbe4dcf3bb266b87bf8297c38e6b"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-03.jpg",
+          "bytes": 92708,
+          "sha256": "622e9a9115c2681ab779a15597292d92427020d68be01c3766487d333e7140a9"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-collection-slider-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-collection-slider-04.jpg",
+          "bytes": 88063,
+          "sha256": "b517b160c105d1c8815432a805ddc44b97dd2a943532da7ff996ca8eff8c9023"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-black.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-black.png",
+          "bytes": 1821,
+          "sha256": "3e8fd148512a72a149feba53f86d40f66b8ad6e67438e8b7faa346ba7bfc904f"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-black@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-black@2x.png",
+          "bytes": 3531,
+          "sha256": "5c780bc0498b82afa22a6321c4019cd7220bb5d18eb53ee7961c105c57181df4"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-white.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-white.png",
+          "bytes": 1314,
+          "sha256": "a9ea5365b6e446ddd799ebad684419dcef8b0d7330a0498ba89da6b46277014d"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-logo-white@2x.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-logo-white@2x.png",
+          "bytes": 2418,
+          "sha256": "ad976be2c59e44c355bb955c428415a786f5d6bf95da98fff0a677845fd0aa67"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-banner-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-banner-01.jpg",
+          "bytes": 38426,
+          "sha256": "2be049c11d646b53984d241e0bc5b3586c569cff55f78f0ad04e3c57bc85ee2d"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-banner-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-banner-02.jpg",
+          "bytes": 32550,
+          "sha256": "8c555e9d9a945f828d609613c717fd55b4d518fef36946ff5998035f9cc2abe1"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-01.jpg",
+          "bytes": 9617,
+          "sha256": "e59bfb144bd48706538fbd1c6d301c964f816abdac7c3146cd7c429b8df9739b"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-02.jpg",
+          "bytes": 8617,
+          "sha256": "2d3dd50d40a63091ce4ddf9963ca608d446475f3279d77e71bf0b7122118ea38"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-03.jpg",
+          "bytes": 9609,
+          "sha256": "12b32909fd742b105fa4c1fb39e20bea5d1a387a39cf3776bd7bb28e875fe994"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-04.jpg",
+          "bytes": 8553,
+          "sha256": "bbaaffdda0e060f18ea096bd2ec018e11ddd2936615e6d5aa90fd8a102ec5e74"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-05.jpg",
+          "bytes": 9465,
+          "sha256": "b2ab38ca9a7114a5398e1469887eaa205abde378bfefaae56938cfa9728c0515"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-menu-category-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-menu-category-06.jpg",
+          "bytes": 9628,
+          "sha256": "738404e198ecddc3bad6c448ea25eae1871f8d56e2a23cf4c4162dd04fd46537"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-01.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png",
+          "bytes": 469,
+          "sha256": "12c7960a716d81a9d5003e7d473ced3f8ea30f7c0e583b71b8c3e73849d19b90"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-02.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png",
+          "bytes": 531,
+          "sha256": "cce62a78cf97cc728a08f13c25f2b80377d48c1d2af0f98c058db05568a0d321"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-03.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png",
+          "bytes": 439,
+          "sha256": "7479722e0b7901e9c5c0a806531a1ee7aad4ec2e09bb1c213f78836bac95c9e2"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-payment-icon-04.png",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png",
+          "bytes": 581,
+          "sha256": "00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-01.jpg",
+          "bytes": 32067,
+          "sha256": "122cd167d1607ee04b72f59bf0d395a70949b26904bfec53a2b4be552f007acd"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-02.jpg",
+          "bytes": 72492,
+          "sha256": "655216f6aded4aa1a4c0b5712743980914b8ef5bd9ef76d23b3ead7c30fef336"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-03.jpg",
+          "bytes": 82986,
+          "sha256": "5138c57ca1eb4ca54c6d0f6cef7c6c7ac5de9cca5fdfb98f987a66101ca5d37c"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-04.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-04.jpg",
+          "bytes": 63284,
+          "sha256": "5848f4f20df14f31952d04303d98e7373c2a6cc0d2d6f2cdd7aef7eeeb7d6144"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-05.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-05.jpg",
+          "bytes": 74319,
+          "sha256": "cd175015ebc05ee31c91f7c31cd42ab245203a715b360f0896064c4f1e8c1925"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-06.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-06.jpg",
+          "bytes": 54268,
+          "sha256": "f780317b132509f768771bdab49fb766a3b0f04cf6d064454d69847124d893b1"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-07.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-07.jpg",
+          "bytes": 100637,
+          "sha256": "b9518521d9e818bfc83126352eb19ccc47ebf5fac15fb10d84c6efc515c3d067"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-08.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-08.jpg",
+          "bytes": 64189,
+          "sha256": "e8304ce3d80b692f2c3b0588d5b165d65fb93692a3496a8c0a5cca5176d80ca6"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-09.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-09.jpg",
+          "bytes": 75759,
+          "sha256": "426c2fdcc90c2953baedcc6c6ac5ae1b07be6f32bf92766771b63d3296c774b2"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-10.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-10.jpg",
+          "bytes": 94340,
+          "sha256": "432c2e84cf46f3746f48c4af7c8dd458a77060d61ad52b537a6ab08b3661c2da"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-11.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-11.jpg",
+          "bytes": 70942,
+          "sha256": "8557694146e693f81b6f8b7372bfaec3f00d27b0eaa06a3ec6b6d35ba84f928e"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-product-12.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-product-12.jpg",
+          "bytes": 101319,
+          "sha256": "99ed051d2d7e1679ffd4cce3cdf515e189338aeb75cb3f248dd2bb9c84efed62"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-slider-01.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-slider-01.jpg",
+          "bytes": 120006,
+          "sha256": "b4814ac964c8eacc074e2041cf015441c3757215082a2e8915ea5d4f746a794a"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-slider-02.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-slider-02.jpg",
+          "bytes": 119710,
+          "sha256": "60947e2b88610e3e181e4e3b51d8a5536ced6c5f879fbc408fadbd93e6df7e1b"
+        },
+        {
+          "destinationPath": "assets/images/demo-fashion-store-slider-03.jpg",
+          "kind": "image",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/demo-fashion-store-slider-03.jpg",
+          "bytes": 149239,
+          "sha256": "a6ff2034fbb8e546908c7b2535507d5bf152debbccb5cc000f234f0b13ef1525"
+        },
+        {
+          "destinationPath": "assets/images/logo-adidas.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-adidas.svg",
+          "bytes": 2812,
+          "sha256": "5e7c5c29e9a8437ebef8cf80c0cb288f312865f21f2150936b029fcc2bf1b175"
+        },
+        {
+          "destinationPath": "assets/images/logo-asos.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-asos.svg",
+          "bytes": 3126,
+          "sha256": "33d69106f8bbf7d7cc850eef61e8e139878bf640d86dc208380b82a3c5e66028"
+        },
+        {
+          "destinationPath": "assets/images/logo-celine.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-celine.svg",
+          "bytes": 938,
+          "sha256": "bcacffe9f08135f8536033a1c27e7ea08d516565fe090ff331f73f8504b92cd5"
+        },
+        {
+          "destinationPath": "assets/images/logo-chanel.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-chanel.svg",
+          "bytes": 999,
+          "sha256": "fc10ab965c8fc13379c127db559eb598d294309ce49743a175353e3caae55ba6"
+        },
+        {
+          "destinationPath": "assets/images/logo-gucci.svg",
+          "kind": "icon",
+          "license": "User-supplied Crafto package; authorized for this local template reconstruction.",
+          "sourcePath": "images/logo-gucci.svg",
+          "bytes": 5307,
+          "sha256": "10deec52a9e126ab346bec61e35528777c322004a33178732c57a4de07925480"
+        }
+      ],
+      "ownershipApproval": "User supplied the Crafto source package and explicitly requested faithful local reconstruction using its assets.",
+      "sourceIdentity": "local://craftohtml-10/html/demo-fashion-store.html",
+      "sourceRevision": "craftohtml-10-user-supplied-2026-07-30",
       "themeId": "fashion"
     }
   ]

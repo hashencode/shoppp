@@ -8,6 +8,7 @@ export default defineConfig({
   testMatch: "a11y.spec.ts",
   outputDir: "test-results/a11y",
   reporter: "list",
+  workers: 1,
   use: {
     ...devices["Desktop Chrome"],
     baseURL,

@@ -44,7 +44,8 @@ export const storefrontThemeCatalog = [
       "cart",
       "checkout",
       "order",
-      "policy"
+      "policy",
+      "content"
     ],
     "themeVersion": "1.0.0"
   }

@@ -13,7 +13,10 @@ export default defineNuxtConfig({
   compatibilityDate: "2026-07-30",
   css: ["~/assets/css/main.css"],
   devtools: { enabled: false },
-  modules: ["@nuxt/ui", "@nuxt/image", "@pinia/nuxt"],
+  features: {
+    inlineStyles: previewBuild ? true : (id) => Boolean(id?.includes(".vue")),
+  },
+  modules: ["@nuxt/image", "@pinia/nuxt"],
   app: {
     head: {
       htmlAttrs: { lang: "en" },
@@ -30,6 +33,19 @@ export default defineNuxtConfig({
       baseURL: process.env.NUXT_IMAGE_ORIGIN || catalogRelease.site.origin,
     },
     screens: { xs: 390, sm: 640, md: 768, lg: 1024, xl: 1280 },
+  },
+  hooks: {
+    "build:manifest": (clientManifest) => {
+      for (const entry of Object.values(clientManifest)) {
+        entry.assets = entry.assets?.filter(
+          (asset) => !/\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(asset),
+        );
+        if (previewBuild) {
+          entry.css = [];
+          entry.imports = [];
+        }
+      }
+    },
   },
   nitro: {
     devProxy: process.env.API_PROXY_TARGET

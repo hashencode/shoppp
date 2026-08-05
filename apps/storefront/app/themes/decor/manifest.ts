@@ -3,8 +3,19 @@ import type {
   StorefrontThemeDescriptor,
   ThemeManifest,
 } from "@shoppp/contracts";
-
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
+
+const visualTypes = [
+  "decor.hero-carousel",
+  "decor.category-showcase",
+  "decor.product-tabs",
+  "decor.marquee",
+  "decor.collection-feature",
+  "decor.client-strip",
+  "decor.journal",
+  "decor.service-strip",
+  "decor.shop",
+] as const;
 
 const decorSectionDefinitions = [
   {
@@ -13,70 +24,17 @@ const decorSectionDefinitions = [
     settings: [],
     type: "decor.header",
   },
+  ...visualTypes.map((type) => ({ allowedBlockTypes: [], capabilities: [], settings: [], type })),
   {
-    allowedBlockTypes: ["core.action", "core.text"],
-    capabilities: [],
-    settings: [
-      {
-        default: "Rooms made for real life.",
-        id: "heading",
-        kind: "text",
-        maxLength: 160,
-        required: true,
-      },
-      {
-        default: "A layered fixture presentation shaped with native CSS.",
-        id: "body",
-        kind: "text",
-        maxLength: 500,
-        required: true,
-      },
-      {
-        default: "clay",
-        id: "palette",
-        kind: "select",
-        options: [
-          { label: "Clay", value: "clay" },
-          { label: "Sage", value: "sage" },
-        ],
-        required: true,
-      },
-    ],
-    type: "decor.layered-hero",
-  },
-  {
-    allowedBlockTypes: ["core.text"],
-    capabilities: [],
-    settings: [
-      {
-        default: "Form follows feeling.",
-        id: "heading",
-        kind: "text",
-        maxLength: 160,
-        required: true,
-      },
-      {
-        default: "A quiet composition for fixture-backed editorial content.",
-        id: "body",
-        kind: "text",
-        maxLength: 500,
-        required: true,
-      },
-    ],
-    type: "decor.feature",
+    allowedBlockTypes: [],
+    capabilities: ["product.details", "product.action"],
+    settings: [],
+    type: "decor.product-details",
   },
   {
     allowedBlockTypes: ["core.link"],
     capabilities: ["legal.links"],
-    settings: [
-      {
-        default: "Private fixture preview · presentation only",
-        id: "note",
-        kind: "text",
-        maxLength: 200,
-        required: true,
-      },
-    ],
+    settings: [],
     type: "decor.footer",
   },
 ] satisfies SectionDefinition[];
@@ -89,26 +47,23 @@ export const decorManifest = {
   },
   configurationSchemaVersion: 1,
   designTokens: {
-    "color-accent": "#d56f4b",
-    "color-ink": "#18352f",
-    "color-paper": "#f1e5d3",
-    "color-surface": "#fbf5ea",
-    "font-display": "Georgia, Times New Roman, serif",
-    "font-ui": "Inter, ui-sans-serif, system-ui, sans-serif",
-    "radius-card": "0.25rem",
+    "color-accent": "#1b63a9",
+    "color-ink": "#102238",
+    "color-paper": "#eaf3f7",
+    "color-surface": "#ffffff",
+    "font-display": "Plus Jakarta Sans, sans-serif",
+    "font-ui": "Plus Jakarta Sans, sans-serif",
+    "radius-card": "0",
     "space-section": "clamp(4rem, 8vw, 8rem)",
   },
   id: "decor",
-  platformCompatibility: {
-    maxExclusive: "2.0.0",
-    min: "1.0.0",
-  },
+  platformCompatibility: { maxExclusive: "2.0.0", min: "1.0.0" },
   platformContractVersion: "1.0.0",
   provenance: {
     approvedAt: "2026-07-30T00:00:00.000Z",
     approvedBy: "shoppp-theme-team",
-    license: "Repository-owned original implementation",
-    source: "internal://shoppp/themes/decor",
+    license: "Repository implementation with user-authorized reference assets",
+    source: "local://user-supplied/demo-decor-store.html",
   },
   supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "order", "policy"],
   themeVersion: "1.0.0",

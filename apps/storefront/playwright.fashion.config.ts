@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { themeViewports } from "./e2e/support/theme-viewports";
 
 const port = Number(process.env.STOREFRONT_FASHION_PORT || 3424);
-const baseURL = `http://127.0.0.1:${port}`;
+const externalBaseURL = process.env.STOREFRONT_FASHION_BASE_URL;
+const baseURL = externalBaseURL || `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -9,6 +11,7 @@ export default defineConfig({
   outputDir: "test-results/fashion",
   fullyParallel: true,
   reporter: "list",
+  workers: 1,
   use: {
     baseURL,
     screenshot: "only-on-failure",
@@ -17,25 +20,56 @@ export default defineConfig({
   projects: [
     {
       name: "fashion-desktop",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.desktop },
     },
     {
       name: "fashion-mobile",
-      use: { ...devices["Pixel 7"] },
+      use: {
+        ...devices["Pixel 7"],
+        deviceScaleFactor: 1,
+        viewport: themeViewports.mobile,
+      },
+    },
+    {
+      name: "fashion-laptop",
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.laptop },
+    },
+    {
+      name: "fashion-desktop-2x",
+      use: {
+        ...devices["Desktop Chrome"],
+        deviceScaleFactor: 2,
+        viewport: themeViewports.desktop,
+      },
+    },
+    {
+      name: "fashion-tablet",
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.tablet },
     },
     {
       name: "fashion-no-js",
-      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
+      use: {
+        ...devices["Desktop Chrome"],
+        javaScriptEnabled: false,
+        viewport: themeViewports.desktop,
+      },
     },
     {
       name: "fashion-reduced-motion",
-      use: { ...devices["Pixel 7"], reducedMotion: "reduce" },
+      use: {
+        ...devices["Pixel 7"],
+        deviceScaleFactor: 1,
+        reducedMotion: "reduce",
+        viewport: themeViewports.mobile,
+      },
     },
   ],
-  webServer: {
-    command: `bun run build:preview:fashion && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
-    url: baseURL,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: externalBaseURL
+    ? undefined
+    : {
+        command: `bun run build:preview:fashion && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
+        url: baseURL,
+        reuseExistingServer: false,
+        timeout: 120_000,
+      },
 });
