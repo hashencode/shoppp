@@ -13,6 +13,7 @@ export interface ApiBindings {
   DB: D1Database;
   MEDIA: R2Bucket;
   PRIVACY_EXPORTS: R2Bucket;
+  PREVIEW_ARTIFACTS: R2Bucket;
   REPORT_EXPORTS: R2Bucket;
   ENVIRONMENT: "development" | "staging" | "production";
   PUBLIC_ORIGIN: string;
@@ -21,6 +22,11 @@ export interface ApiBindings {
   STOREFRONT_BUILD_HOOK?: string;
   BUILD_HOOK_TOKEN?: string;
   BUILD_MANIFEST_TOKEN?: string;
+  PREVIEW_BUILD_CALLBACK_TOKEN?: string;
+  PREVIEW_BUILD_HOOK?: string;
+  PREVIEW_BUILD_HOOK_TOKEN?: string;
+  PREVIEW_ORIGIN: string;
+  PREVIEW_SERVICE_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   D1_DATABASE_ID?: string;
   D1_REST_API_TOKEN?: string;

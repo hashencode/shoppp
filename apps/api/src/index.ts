@@ -7,6 +7,7 @@ import {
 } from "./automation/queue-consumer";
 import { startScheduledD1Backup } from "./operations/d1-backup";
 import { cleanupExpiredAdminAuthState } from "./iam/password-auth";
+import { cleanupExpiredStorefrontPreviews } from "./storefront-experience/cleanup";
 
 export { NotificationDeliveryWorkflow } from "./automation/workflows";
 export { D1BackupWorkflow } from "./operations/d1-backup";
@@ -24,6 +25,7 @@ export default {
       await startScheduledD1Backup(env.BACKUP_WORKFLOW, controller.scheduledTime);
       return;
     }
+    await cleanupExpiredStorefrontPreviews(env, new Date(controller.scheduledTime));
     await expireDueReservations(env.DB);
     await cleanupExpiredAdminAuthState(env.DB, new Date(controller.scheduledTime));
     if (env.NOTIFICATION_QUEUE) {

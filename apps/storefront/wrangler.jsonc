@@ -1,5 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
+  // Production and staging intentionally bind neither preview artifacts nor the preview entrypoint.
   "name": "shoppp-storefront-staging",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-07-29",

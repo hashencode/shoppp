@@ -24,11 +24,13 @@
     "test:catalog-scale": "bun tools/verify-catalog-scale.ts",
     "test:e2e": "bun tools/run-workspace-script.ts test:e2e --if-present",
     "test:perf": "bun tools/run-workspace-script.ts test:perf --if-present",
+    "test:theme-matrix": "bun run --cwd apps/storefront test:themes",
     "test:staging-latency": "bun tools/verify-staging-latency.ts",
     "test:workers": "bun tools/run-workspace-script.ts test:workers --if-present",
     "typecheck": "tsc --noEmit -p tsconfig.tools.json && tsc --noEmit -p e2e/tsconfig.json && bun tools/run-workspace-script.ts typecheck --if-present",
     "verify:environment": "bun tools/verify-environment-isolation.ts",
-    "verify:static": "bun tools/run-workspace-script.ts verify:static --if-present && bun tools/verify-static-output.ts"
+    "verify:static": "bun tools/run-workspace-script.ts verify:static --if-present && bun tools/verify-static-output.ts",
+    "verify:themes": "bun tools/generate-storefront-theme-catalog.ts --check && bun run --cwd apps/storefront verify:themes"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

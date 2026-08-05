@@ -104,6 +104,7 @@
         "tailwindcss": "4.3.3",
         "vue": "3.5.40",
         "vue-router": "5.2.0",
+        "zod": "4.4.3",
       },
       "devDependencies": {
         "@axe-core/playwright": "4.12.1",
@@ -148,6 +149,9 @@
     "packages/domain": {
       "name": "@shoppp/domain",
       "version": "0.0.0",
+      "dependencies": {
+        "@shoppp/contracts": "workspace:*",
+      },
     },
   },
   "packages": {

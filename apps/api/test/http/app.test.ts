@@ -120,6 +120,71 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     path: "/admin/operations/jobs/:id/replay",
     permission: "operations.replay",
   },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/themes",
+    permission: "themes.read",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts",
+    permission: "themes.write",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/drafts",
+    permission: "themes.read",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/drafts/:id",
+    permission: "themes.read",
+  },
+  {
+    method: "PUT",
+    path: "/admin/storefront-experiences/drafts/:id",
+    permission: "themes.write",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/validate",
+    permission: "themes.write",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/preview",
+    permission: "themes.preview",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/approve",
+    permission: "themes.approve",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/migrations/dry-run",
+    permission: "themes.write",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/migrations/approve",
+    permission: "themes.approve",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/snapshots/:id",
+    permission: "themes.read",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/builds/:id",
+    permission: "themes.preview",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/snapshots/:id/grants",
+    permission: "themes.preview",
+  },
 ] as const;
 
 function concreteAdminPath(path: string): string {

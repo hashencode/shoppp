@@ -6,6 +6,7 @@ import {
   RELEASE_GATES,
   assertCatalogReleaseSource,
   assertProductionApproval,
+  assertReleaseReportContainsNoPreviewSecrets,
   digestArtifact,
 } from "./release-validate";
 
@@ -24,10 +25,12 @@ describe("release validation", () => {
       "format",
       "lint",
       "types",
+      "theme-contracts",
       "unit-contract",
       "worker-integration",
       "admin-browser",
       "representative-catalog",
+      "theme-matrix",
       "production-builds",
       "static-output",
       "browser-journeys",
@@ -113,5 +116,25 @@ describe("release validation", () => {
         stagingApiOrigin: "https://api.staging.example.com",
       }),
     ).toThrow(/crosses the staging API origin/);
+  });
+
+  test("release reports reject preview artifacts and credential material", () => {
+    expect(() =>
+      assertReleaseReportContainsNoPreviewSecrets({
+        artifactDigests: { "apps/storefront/.output/public": "sha256:fixture" },
+        gates: [{ command: ["bun", "run", "verify:themes"] }],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertReleaseReportContainsNoPreviewSecrets({
+        artifactDigests: { "apps/storefront/preview-worker-dist": "sha256:fixture" },
+      }),
+    ).toThrow("preview artifacts");
+    expect(() =>
+      assertReleaseReportContainsNoPreviewSecrets({
+        artifactDigests: {},
+        grant: "grant_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+      }),
+    ).toThrow("preview credentials");
   });
 });

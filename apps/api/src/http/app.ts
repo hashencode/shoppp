@@ -13,12 +13,16 @@ import {
   adminPasswordResetConfirmRequestSchema,
   adminPasswordResetRequestSchema,
   adminUserListQuerySchema,
+  approveStorefrontExperienceDraftRequestSchema,
+  approveStorefrontExperienceMigrationRequestSchema,
   auditQuerySchema,
   cancelOrderRequestSchema,
   catalogBuildResultSchema,
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
   createPrivacyRequestSchema,
+  createStorefrontExperienceDraftRequestSchema,
+  createStorefrontPreviewGrantRequestSchema,
   checkoutRequestSchema,
   commerceFunnelEventSchema,
   createAdminInvitationRequestSchema,
@@ -33,12 +37,18 @@ import {
   refundRequestSchema,
   shippingQuoteRequestSchema,
   publicRuntimeConfigurationSchema,
+  redeemStorefrontPreviewGrantRequestSchema,
+  resolveStorefrontExperienceDraftRequestSchema,
   publicIdSchema,
   updateCartLineRequestSchema,
   updateAdminRoleRequestSchema,
   updateAdminUserRequestSchema,
+  updateStorefrontExperienceDraftRequestSchema,
   updateLaunchConfigurationRequestSchema,
   upsertShippingZoneRequestSchema,
+  validateStorefrontExperienceDraftRequestSchema,
+  storefrontExperienceBuildResultSchema,
+  storefrontExperienceMigrationDryRunRequestSchema,
 } from "@shoppp/contracts";
 
 import {
@@ -119,6 +129,34 @@ import {
   recordCatalogBuildResult,
   type BuildTrigger,
 } from "../publishing/releases";
+import {
+  defaultExperienceBuildTrigger,
+  getStorefrontExperienceBuild,
+  getStorefrontExperienceBuildManifest,
+  recordStorefrontExperienceBuildResult,
+  triggerStorefrontExperienceBuild,
+  type ExperienceBuildTrigger,
+} from "../storefront-experience/build";
+import {
+  authorizeStorefrontPreviewSession,
+  createStorefrontPreviewGrant,
+  redeemStorefrontPreviewGrant,
+  requirePreviewServiceCredential,
+} from "../storefront-experience/preview";
+import {
+  approveStorefrontExperienceDraft,
+  approveStorefrontExperienceMigration,
+  createStorefrontExperienceDraft,
+  createStorefrontExperiencePreviewSnapshot,
+  dryRunStorefrontExperienceMigration,
+  getStorefrontExperienceDraft,
+  getStorefrontExperienceSnapshot,
+  listStorefrontExperienceDrafts,
+  listStorefrontThemes,
+  updateStorefrontExperienceDraft,
+  validateStorefrontExperienceDraft,
+  type StorefrontExperienceServiceOptions,
+} from "../storefront-experience/service";
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
@@ -128,6 +166,8 @@ export interface CreateAppOptions {
   readonly analyticsRateLimiter?: RateLimiter;
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
+  readonly experienceBuildTrigger?: ExperienceBuildTrigger;
+  readonly storefrontExperienceServiceOptions?: StorefrontExperienceServiceOptions;
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
   readonly checkoutRateLimiter?: RateLimiter;
@@ -238,6 +278,23 @@ function requireBuildCredential(
   if (context.req.header("authorization") !== `Bearer ${configuredToken}`) {
     throw new ApiError(401, "build_manifest_unauthorized", "Build credential required.");
   }
+}
+
+function previewSessionCredential(context: Context<ApiEnvironment>): string {
+  const cookie = context.req.header("cookie") ?? "";
+  const session = cookie
+    .split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith("__Host-shoppp-preview="))
+    ?.slice("__Host-shoppp-preview=".length);
+  if (!session || !/^[A-Za-z0-9_-]{32,256}$/.test(session)) {
+    throw new ApiError(
+      401,
+      "storefront_preview_session_required",
+      "A private preview session is required.",
+    );
+  }
+  return session;
 }
 
 export function createApp(options: CreateAppOptions = {}) {
@@ -518,6 +575,72 @@ export function createApp(options: CreateAppOptions = {}) {
       });
     },
   );
+  app.use("/build/storefront-experiences/*", async (context, next) => {
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    await next();
+  });
+  app.use("/internal/preview/*", async (context, next) => {
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    await next();
+  });
+  app.get("/build/storefront-experiences/snapshots/:id", async (context) => {
+    requireBuildCredential(
+      context,
+      options.buildManifestToken ?? context.env.PREVIEW_BUILD_CALLBACK_TOKEN,
+    );
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    return context.json(
+      await getStorefrontExperienceBuildManifest(context, context.req.param("id")),
+    );
+  });
+  app.post(
+    "/build/storefront-experiences/builds/:id/status",
+    async (context, next) => {
+      requireBuildCredential(
+        context,
+        options.buildManifestToken ?? context.env.PREVIEW_BUILD_CALLBACK_TOKEN,
+      );
+      await next();
+    },
+    idempotency("storefront.preview.build.result"),
+    async (context) => {
+      const result = await parseJson(context, storefrontExperienceBuildResultSchema);
+      context.header("Cache-Control", "private, no-store");
+      context.header("Referrer-Policy", "no-referrer");
+      return context.json({
+        data: await recordStorefrontExperienceBuildResult(context, context.req.param("id"), result),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post("/internal/preview/redeem", async (context) => {
+    requirePreviewServiceCredential(context, context.env.PREVIEW_SERVICE_TOKEN);
+    const input = await parseJson(context, redeemStorefrontPreviewGrantRequestSchema);
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    return context.json({
+      data: await redeemStorefrontPreviewGrant(context, input.grant, input.origin),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/internal/preview/authorize", async (context) => {
+    requirePreviewServiceCredential(context, context.env.PREVIEW_SERVICE_TOKEN);
+    const origin = context.req.header("x-preview-origin");
+    if (!origin) {
+      throw new ApiError(
+        422,
+        "storefront_preview_origin_required",
+        "The private preview origin is required.",
+      );
+    }
+    const session = previewSessionCredential(context);
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    return context.json(await authorizeStorefrontPreviewSession(context, session, origin));
+  });
 
   app.use("/admin/*", async (context, next) => {
     context.header("Cache-Control", "private, no-store");
@@ -696,6 +819,242 @@ export function createApp(options: CreateAppOptions = {}) {
       data: await getAdminRole(context.env.DB, context.req.param("id")),
       meta: { requestId: context.get("requestId") },
     });
+  });
+  app.get("/admin/storefront-experiences/themes", async (context) => {
+    await requirePermission(context, "themes.read", { type: "storefront_theme" });
+    return context.json({
+      data: listStorefrontThemes(),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/admin/storefront-experiences/drafts",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", {
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.draft.create"),
+    async (context) => {
+      const input = await parseJson(context, createStorefrontExperienceDraftRequestSchema);
+      return context.json(
+        {
+          data: await createStorefrontExperienceDraft(
+            context,
+            input,
+            options.storefrontExperienceServiceOptions,
+          ),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
+    },
+  );
+  app.get("/admin/storefront-experiences/drafts", async (context) => {
+    await requirePermission(context, "themes.read", {
+      type: "storefront_experience_draft",
+    });
+    return context.json({
+      data: await listStorefrontExperienceDrafts(context.env.DB),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/drafts/:id", async (context) => {
+    await requirePermission(context, "themes.read", {
+      id: context.req.param("id"),
+      type: "storefront_experience_draft",
+    });
+    return context.json({
+      data: await getStorefrontExperienceDraft(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.put(
+    "/admin/storefront-experiences/drafts/:id",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.draft.update"),
+    async (context) => {
+      const input = await parseJson(context, updateStorefrontExperienceDraftRequestSchema);
+      return context.json({
+        data: await updateStorefrontExperienceDraft(context, context.req.param("id"), input),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/drafts/:id/validate",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.draft.validate"),
+    async (context) => {
+      const input = await parseJson(context, validateStorefrontExperienceDraftRequestSchema);
+      return context.json({
+        data: await validateStorefrontExperienceDraft(
+          context,
+          context.req.param("id"),
+          input.expectedVersion,
+          input.reason,
+          options.storefrontExperienceServiceOptions,
+        ),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/drafts/:id/preview",
+    async (context, next) => {
+      await requirePermission(context, "themes.preview", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.preview.create"),
+    async (context) => {
+      const input = await parseJson(context, resolveStorefrontExperienceDraftRequestSchema);
+      const snapshot = await createStorefrontExperiencePreviewSnapshot(
+        context,
+        context.req.param("id"),
+        input.expectedVersion,
+        input.reason,
+        options.storefrontExperienceServiceOptions,
+      );
+      const build = await triggerStorefrontExperienceBuild(
+        context,
+        snapshot.id,
+        options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env),
+      );
+      return context.json(
+        {
+          data: { build, snapshot },
+          meta: { requestId: context.get("requestId") },
+        },
+        202,
+      );
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/drafts/:id/approve",
+    async (context, next) => {
+      await requirePermission(context, "themes.approve", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.approve"),
+    async (context) => {
+      const input = await parseJson(context, approveStorefrontExperienceDraftRequestSchema);
+      return context.json({
+        data: await approveStorefrontExperienceDraft(
+          context,
+          context.req.param("id"),
+          input.expectedVersion,
+          input.reason,
+          options.storefrontExperienceServiceOptions,
+        ),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/drafts/:id/migrations/dry-run",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.migration.dry-run"),
+    async (context) => {
+      const input = await parseJson(context, storefrontExperienceMigrationDryRunRequestSchema);
+      return context.json({
+        data: await dryRunStorefrontExperienceMigration(
+          context,
+          context.req.param("id"),
+          input,
+          options.storefrontExperienceServiceOptions,
+        ),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/drafts/:id/migrations/approve",
+    async (context, next) => {
+      await requirePermission(context, "themes.approve", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.migration.approve"),
+    async (context) => {
+      const input = await parseJson(context, approveStorefrontExperienceMigrationRequestSchema);
+      return context.json({
+        data: await approveStorefrontExperienceMigration(
+          context,
+          context.req.param("id"),
+          input.migrationId,
+          input.expectedVersion,
+          input.reason,
+          options.storefrontExperienceServiceOptions,
+        ),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.get("/admin/storefront-experiences/snapshots/:id", async (context) => {
+    await requirePermission(context, "themes.read", {
+      id: context.req.param("id"),
+      type: "storefront_experience_snapshot",
+    });
+    return context.json({
+      data: await getStorefrontExperienceSnapshot(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/builds/:id", async (context) => {
+    await requirePermission(context, "themes.preview", {
+      id: context.req.param("id"),
+      type: "storefront_preview_build",
+    });
+    return context.json({
+      data: await getStorefrontExperienceBuild(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/storefront-experiences/snapshots/:id/grants", async (context) => {
+    await requirePermission(context, "themes.preview", {
+      id: context.req.param("id"),
+      type: "storefront_experience_snapshot",
+    });
+    const input = await parseJson(context, createStorefrontPreviewGrantRequestSchema);
+    return context.json(
+      {
+        data: await createStorefrontPreviewGrant(
+          context,
+          context.req.param("id"),
+          input.origin,
+          input.reason,
+        ),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    );
   });
   app.get("/admin/settings/launch", async (context) => {
     await requirePermission(context, "settings.read", { type: "setting" });

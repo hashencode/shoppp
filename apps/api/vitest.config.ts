@@ -11,13 +11,22 @@ export default defineConfig(async () => {
       cloudflareTest({
         miniflare: {
           d1Databases: ["RESTORE_DB"],
-          r2Buckets: ["BACKUP_BUCKET", "MEDIA", "PRIVACY_EXPORTS", "REPORT_EXPORTS"],
+          r2Buckets: [
+            "BACKUP_BUCKET",
+            "MEDIA",
+            "PREVIEW_ARTIFACTS",
+            "PRIVACY_EXPORTS",
+            "REPORT_EXPORTS",
+          ],
           bindings: {
             AUTH_TOKEN_SECRET: "test-auth-token-secret-that-is-at-least-32-characters",
             ADMIN_ORIGIN: "https://admin.example.test",
             ENVIRONMENT: "staging",
             EMAIL_FROM: "orders@staging.example.test",
             PUBLIC_ORIGIN: "https://staging.example.invalid",
+            PREVIEW_BUILD_CALLBACK_TOKEN: "preview-build-callback-token-000000000001",
+            PREVIEW_ORIGIN: "https://preview.example.test",
+            PREVIEW_SERVICE_TOKEN: "preview-service-token-00000000000000001",
             RESOURCE_NAMESPACE: "shoppp-staging",
             RESERVATION_TTL_MINUTES: "30",
             STOREFRONT_ORIGIN: "https://storefront-staging.example.invalid",

@@ -1,5 +1,4 @@
-import type { PropsWithChildren } from 'react'
-import React from 'react'
+import React, { type PropsWithChildren } from 'react'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission, type PermissionKey } from '../../infrastructure/auth/permissions'
 import { ForbiddenPage } from '../../pages/forbidden-page'

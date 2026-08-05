@@ -26,4 +26,18 @@ describe('permission policy', () => {
     expect(hasPermission('catalog_operator', 'catalog.write')).toBe(false)
     expect(hasPermission('support_operator', 'orders.read')).toBe(false)
   })
+
+  it('uses the authoritative API set for the storefront theme lifecycle', () => {
+    const themePermissions = [
+      'themes.read',
+      'themes.write',
+      'themes.preview',
+      'themes.approve',
+    ] as const
+
+    for (const permission of themePermissions) {
+      expect(hasPermission('catalog_manager', permission, themePermissions)).toBe(true)
+      expect(hasPermission('admin', permission)).toBe(false)
+    }
+  })
 })

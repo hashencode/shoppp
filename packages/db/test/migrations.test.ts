@@ -61,6 +61,13 @@ describe("D1 migrations", () => {
         "products",
         "report_exports",
         "stock_ledger_entries",
+        "storefront_experience_drafts",
+        "storefront_experience_migrations",
+        "storefront_experience_snapshots",
+        "storefront_experience_validations",
+        "storefront_preview_builds",
+        "storefront_preview_grants",
+        "storefront_preview_sessions",
       ]),
     );
 
@@ -171,6 +178,49 @@ describe("D1 migrations", () => {
         "UPDATE notification_attempts SET result = 'exhausted' WHERE id = 'attempt_immutable'",
       ).run(),
     ).rejects.toThrow("immutable_notification_attempt");
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO admin_identities
+           (id, principal_kind, access_subject, normalized_email, display_name, role_id,
+            enabled, version, created_at, updated_at)
+         VALUES ('admin_theme_test', 'human', 'theme-test', 'theme@example.test', 'Theme Test',
+                 'role_admin', 1, 1, ?, ?)`,
+      ).bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z"),
+      env.DB.prepare(
+        `INSERT INTO storefront_experience_drafts
+           (id, experience_id, theme_id, theme_version, configuration_schema_version,
+            preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+            created_at, updated_at)
+         VALUES ('draft-theme-test', 'experience-theme-test', 'fashion', '1.0.0', 1,
+                 'editorial', '[]', '[]', 1, 'admin_theme_test', 'admin_theme_test', ?, ?)`,
+      ).bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z"),
+      env.DB.prepare(
+        `INSERT INTO storefront_experience_validations
+           (id, draft_id, draft_version, status, issues_json, resolved_templates_json,
+            validated_by, created_at)
+         VALUES ('validation-theme-test', 'draft-theme-test', 1, 'valid', '[]', '[]',
+                 'admin_theme_test', ?)`,
+      ).bind("2026-07-30T00:00:00.000Z"),
+      env.DB.prepare(
+        `INSERT INTO storefront_experience_snapshots
+           (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
+            source_validation_id, kind, theme_id, theme_version,
+            configuration_schema_version, snapshot_json, created_by, created_at)
+         VALUES ('snapshot-theme-test', 'draft-theme-test:1:preview', 'experience-theme-test',
+                 'draft-theme-test', 1, 'validation-theme-test', 'preview', 'fashion',
+                 '1.0.0', 1, '{}', 'admin_theme_test', ?)`,
+      ).bind("2026-07-30T00:00:00.000Z"),
+    ]);
+    await expect(
+      env.DB.prepare(
+        "UPDATE storefront_experience_snapshots SET snapshot_json = '{\"changed\":true}' WHERE id = 'snapshot-theme-test'",
+      ).run(),
+    ).rejects.toThrow("immutable_storefront_experience_snapshot");
+    await expect(
+      env.DB.prepare(
+        "DELETE FROM storefront_experience_snapshots WHERE id = 'snapshot-theme-test'",
+      ).run(),
+    ).rejects.toThrow("append_only_storefront_experience_snapshot");
     const foreignKeyViolations = await env.DB.prepare("PRAGMA foreign_key_check").all();
     expect(foreignKeyViolations.results).toEqual([]);
     expect(

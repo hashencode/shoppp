@@ -8,3 +8,4 @@ export * from "./platform";
 export * from "./privacy";
 export * from "./reporting";
 export * from "./shipping";
+export * from "./storefront-experience";

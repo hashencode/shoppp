@@ -10,6 +10,7 @@ import {
   AuditOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  SkinOutlined,
   GlobalOutlined,
   TeamOutlined,
   KeyOutlined,
@@ -93,6 +94,37 @@ const commerceRoutes: TemplateRoute[] = [
       lazyPage(() =>
         import('../pages/catalog/catalog-form-page').then((m) => ({
           default: m.CatalogFormPage,
+        }))
+      ),
+  },
+  {
+    key: 'storefront-themes',
+    path: '/storefront/themes',
+    title: 'Storefront themes',
+    icon: createElement(SkinOutlined),
+    permission: 'themes.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Storefront', 'Themes'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/storefront/themes-page').then((m) => ({
+          default: m.ThemesPage,
+        }))
+      ),
+  },
+  {
+    key: 'storefront-theme-editor',
+    path: '/storefront/themes/:draftId',
+    title: 'Theme editor',
+    icon: createElement(SkinOutlined),
+    permission: 'themes.read',
+    inMenu: false,
+    breadcrumb: ['Storefront', 'Themes', 'Editor'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/storefront/theme-editor-page').then((m) => ({
+          default: m.ThemeEditorPage,
         }))
       ),
   },

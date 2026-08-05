@@ -1,7 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const criticalRoutes = ["/", "/collections/travel-essentials", "/products/atlas-carry-on"];
+const criticalRoutes = [
+  "/",
+  "/collections/travel-essentials",
+  "/products/atlas-carry-on",
+  "/cart",
+  "/checkout",
+  "/orders/fixture-order",
+  "/policies/shipping",
+];
 
 for (const route of criticalRoutes) {
   test(`${route} has no critical or serious WCAG 2.2 A/AA violation`, async ({ page }) => {
