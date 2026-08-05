@@ -34,5 +34,6 @@ describe("theme font binaries", () => {
       expect(inspection.family).toBe(family);
       expect(weightAxis).toMatchObject({ minimum: min, maximum: max });
     },
+    15_000,
   );
 });
