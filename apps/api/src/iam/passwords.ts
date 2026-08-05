@@ -1,5 +1,16 @@
-const DEFAULT_PASSWORD_ITERATIONS = 210_000;
+const DEFAULT_PASSWORD_ITERATIONS = 100_000;
+const MIN_PASSWORD_ITERATIONS = 100_000;
+const MAX_PASSWORD_ITERATIONS = 100_000;
 const PASSWORD_KEY_BYTES = 32;
+
+function assertPasswordIterations(iterations: number): void {
+  if (iterations < MIN_PASSWORD_ITERATIONS) {
+    throw new Error("Password hashing iterations are too low.");
+  }
+  if (iterations > MAX_PASSWORD_ITERATIONS) {
+    throw new Error("Password hashing iterations exceed the runtime limit.");
+  }
+}
 
 function encodeBase64Url(bytes: Uint8Array): string {
   let binary = "";
@@ -21,6 +32,7 @@ async function derivePassword(
   salt: Uint8Array,
   iterations: number,
 ): Promise<Uint8Array> {
+  assertPasswordIterations(iterations);
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -56,7 +68,7 @@ export async function hashPassword(
   options: { iterations?: number; salt?: string } = {},
 ): Promise<PasswordHash> {
   const iterations = options.iterations ?? DEFAULT_PASSWORD_ITERATIONS;
-  if (iterations < 100_000) throw new Error("Password hashing iterations are too low.");
+  assertPasswordIterations(iterations);
   const salt = options.salt
     ? decodeBase64Url(options.salt)
     : crypto.getRandomValues(new Uint8Array(16));

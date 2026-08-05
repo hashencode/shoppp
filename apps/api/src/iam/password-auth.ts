@@ -275,7 +275,6 @@ export async function loginWithPassword(
       })
     : Boolean(
         await hashPassword(input.password, {
-          iterations: 210_000,
           salt: "AAAAAAAAAAAAAAAAAAAAAA",
         }),
       ) && false;

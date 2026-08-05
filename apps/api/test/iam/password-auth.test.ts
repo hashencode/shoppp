@@ -72,6 +72,28 @@ beforeEach(async () => {
 });
 
 describe("administrator password authentication", () => {
+  test("keeps PBKDF2 iterations within the Cloudflare Workers runtime limit", async () => {
+    const password = await hashPassword(PASSWORD);
+
+    expect(password.iterations).toBe(100_000);
+    await expect(hashPassword(PASSWORD, { iterations: 100_001 })).rejects.toThrow(
+      "Password hashing iterations exceed the runtime limit.",
+    );
+  });
+
+  test("rejects an unknown email without exceeding the PBKDF2 runtime limit", async () => {
+    const response = await createApp().fetch(
+      request("/admin/auth/login", {
+        email: "unknown@example.test",
+        password: "incorrect password value",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({ error: { code: "invalid_admin_credentials" } });
+  });
+
   test("authenticates a machine with an independent bearer credential", async () => {
     await seedServiceAdmin(env.DB, {
       id: "identity-password-service",
