@@ -53,6 +53,21 @@ describe("Fashion 2 runtime lifecycle", () => {
     expect(lifecycle.destroyed).toBe(true);
   });
 
+  test("runs every cleanup even when one cleanup throws", () => {
+    const lifecycle = createFashion2Lifecycle();
+    const completed: string[] = [];
+    const failure = new Error("vendor cleanup failed");
+    lifecycle.addCleanup(() => completed.push("last"));
+    lifecycle.addCleanup(() => {
+      throw failure;
+    });
+    lifecycle.addCleanup(() => completed.push("first"));
+
+    expect(() => lifecycle.destroy()).toThrow(failure);
+    expect(completed).toEqual(["first", "last"]);
+    expect(lifecycle.destroyed).toBe(true);
+  });
+
   test("hydrates before visual state changes and removes every lifecycle listener", async () => {
     let mounted: LifecycleCallback = () => undefined;
     let beforeUnmount: LifecycleCallback = () => undefined;

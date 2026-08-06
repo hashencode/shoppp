@@ -23,7 +23,15 @@ export function createFashion2Lifecycle(): Fashion2Lifecycle {
     destroy() {
       if (destroyed) return;
       destroyed = true;
-      for (const cleanup of cleanups.splice(0).reverse()) cleanup();
+      let firstError: unknown;
+      for (const cleanup of cleanups.splice(0).reverse()) {
+        try {
+          cleanup();
+        } catch (error) {
+          firstError ??= error;
+        }
+      }
+      if (firstError) throw firstError;
     },
     get destroyed() {
       return destroyed;

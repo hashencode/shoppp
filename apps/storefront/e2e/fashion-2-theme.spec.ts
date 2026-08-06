@@ -324,7 +324,28 @@ test("runtime load failure exposes stable static content", async ({ page }, test
     "fallback",
   );
   await expect(page.getByRole("alert")).toContainText("Visual enhancements are unavailable");
+  await expect(page.locator("[data-fashion2-runtime-script]")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
+  ).toEqual({ jquery: false, swiper: false });
   await expect(page.locator(".grid-loading")).toHaveCount(0);
+  await expect(page.locator("section:nth-of-type(10)")).toBeVisible();
+});
+
+test("partial runtime load failure removes earlier scripts and globals", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-2-desktop");
+  await page.route(/vendors\.min\.js(?:\?.*)?$/, (route) => route.abort());
+  await ready(page, "/", false);
+  await expect(page.locator("[data-fashion-2-source-parity]")).toHaveAttribute(
+    "data-runtime-status",
+    "fallback",
+  );
+  await expect(page.locator("[data-fashion2-runtime-script]")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
+  ).toEqual({ jquery: false, swiper: false });
   await expect(page.locator("section:nth-of-type(10)")).toBeVisible();
 });
 

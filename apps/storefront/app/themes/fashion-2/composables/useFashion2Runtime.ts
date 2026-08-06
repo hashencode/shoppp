@@ -85,8 +85,11 @@ export function useFashion2Runtime(options: Fashion2RuntimeOptions) {
   onBeforeUnmount(() => {
     unsubscribe();
     controller.dispose();
-    lifecycle.destroy();
-    liveInstances.value -= 1;
+    try {
+      lifecycle.destroy();
+    } finally {
+      liveInstances.value -= 1;
+    }
   });
 
   return {
