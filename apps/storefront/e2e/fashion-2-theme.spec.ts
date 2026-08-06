@@ -123,7 +123,7 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     "data-runtime-instance-count",
     "1",
   );
-  await expect(page.locator(".swiper")).toHaveAttribute("data-motion-ready", "true");
+  await expect(page.locator(".swiper.full-screen")).toHaveAttribute("data-motion-ready", "true");
 
   const mobile = page.viewportSize()!.width === 390;
   const sourceProbes = [
@@ -158,7 +158,10 @@ test("source header, hero, and first product card pass the two-viewport slice", 
       selector: mobile ? ".navbar-brand .mobile-logo" : ".navbar-brand .default-logo",
     },
     { ...sourceProbes[2], selector: ".swiper.full-screen" },
-    { ...sourceProbes[3], selector: ".shop-modern .grid-item .shop-image" },
+    {
+      ...sourceProbes[3],
+      selector: "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
+    },
   ] as const;
   const [reference, implementation] = await Promise.all([
     captureSourceContract(source, sourceProbes),
@@ -174,7 +177,9 @@ test("source header, hero, and first product card pass the two-viewport slice", 
   expect(await page.locator(".fashion-2-hero-slide[data-active=true]").innerText()).toContain(
     "Women's\ncollection",
   );
-  expect(await page.locator(".shop-footer").innerText()).toContain("Textured sweater");
+  expect(await page.locator("section:nth-of-type(4) .shop-footer").first().innerText()).toContain(
+    "Textured sweater",
+  );
   await page.locator('[data-fashion-2-slide="0"]').dispatchEvent("click");
   await regionalPixelGate(
     source,
@@ -190,11 +195,55 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     source,
     page,
     "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
-    ".shop-modern .grid-item .shop-image",
+    "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
     `${testInfo.project.name}-product`,
     testInfo,
   );
   await source.close();
+});
+
+test("complete source home renders every static region and local image", async ({ page }) => {
+  await ready(page, "/");
+
+  await expect(page.locator("html")).toHaveAttribute("class", "js");
+  await expect(page.locator("body")).toHaveAttribute("data-mobile-nav-style", "classic");
+  await expect(page.locator("body > div#__nuxt section")).toHaveCount(10);
+  await expect(page.locator("section:nth-of-type(2) .feature-box")).toHaveCount(4);
+  await expect(page.locator("section:nth-of-type(3) .categories-style-02")).toHaveCount(4);
+  await expect(page.locator("section:nth-of-type(4) .grid-item")).toHaveCount(10);
+  await expect(page.locator("section:nth-of-type(6) .swiper-slide")).toHaveCount(8);
+  await expect(page.locator("section:nth-of-type(7) img")).toHaveCount(5);
+  await expect(page.locator("section:nth-of-type(8) .grid-item")).toHaveCount(5);
+  await expect(page.locator("section:nth-of-type(9) .swiper-slide")).toHaveCount(8);
+  await expect(page.locator("section:nth-of-type(10) .grid-item")).toHaveCount(4);
+  await expect(page.locator("footer.footer-dark")).toHaveCount(1);
+  await expect(page.locator(".sticky-wrap")).toHaveCount(1);
+  await expect(page.locator(".scroll-progress")).toHaveCount(1);
+
+  const unloadedImages = await page
+    .locator("img")
+    .evaluateAll((images) =>
+      images
+        .filter(
+          (image) =>
+            !(image as HTMLImageElement).complete || !(image as HTMLImageElement).naturalWidth,
+        )
+        .map((image) => (image as HTMLImageElement).currentSrc),
+    );
+  expect(unloadedImages).toEqual([]);
+  const externalResources = await page.evaluate(() =>
+    performance
+      .getEntriesByType("resource")
+      .map(({ name }) => name)
+      .filter((name) => !name.startsWith("data:") && new URL(name).origin !== location.origin),
+  );
+  expect(externalResources).toEqual([]);
+
+  const expectedColumns = page.viewportSize()!.width === 390 ? 1 : 5;
+  const firstRowTops = await page
+    .locator("section:nth-of-type(4) .grid-item")
+    .evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
+  expect(firstRowTops.filter((top) => top === firstRowTops[0])).toHaveLength(expectedColumns);
 });
 
 test("runtime and typed preview action remain clean and Nuxt-owned", async ({ page }) => {
@@ -208,9 +257,10 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   await ready(page, "/");
   const cookiesBefore = await page.context().cookies();
   const originalURL = page.url();
-  const action = page.getByRole("button", { name: "Add to cart" });
-  await page.locator(".shop-image").hover();
-  await action.click();
+  const action = page.locator("button.add-to-cart").first();
+  await page.locator("section:nth-of-type(4) .shop-image").first().hover({ force: true });
+  await expect(action).toHaveAttribute("aria-label", "Add to cart");
+  await action.dispatchEvent("click");
   await expect(page.getByRole("status")).toHaveText("Textured sweater added to preview cart.");
   await expect(page.locator("[data-fashion-2-source-parity]")).toHaveAttribute(
     "data-preview-intent-count",
@@ -222,7 +272,7 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   expect(requests.filter(({ url }) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
   expect(requests.filter(({ url }) => /\.php|instagram.*ajax/i.test(url))).toEqual([]);
 
-  const initialMotion = await captureMotionContract(page, ".swiper", "initial");
+  const initialMotion = await captureMotionContract(page, ".swiper.full-screen", "initial");
   expect(initialMotion).toMatchObject({
     activeIndex: 0,
     checkpoint: "initial",
@@ -232,12 +282,13 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   expect(initialMotion.layers).toHaveLength(3);
   await page.goto("/cart");
   await expect(page.locator("[data-fashion-2-source-parity]")).toHaveCount(0);
+  expect(await page.locator("body").getAttribute("class")).toBeNull();
   await page.goBack({ waitUntil: "networkidle" });
   await expect(page.locator("[data-fashion-2-source-parity]")).toHaveCount(1);
-  await expect(page.locator(".swiper")).toHaveAttribute("data-motion-ready", "true");
+  await expect(page.locator(".swiper.full-screen")).toHaveAttribute("data-motion-ready", "true");
   expect(await page.locator(".fashion-2-hero-slide").count()).toBe(3);
   expect(await page.locator("[data-motion-layer]").count()).toBe(3);
-  expect(await page.locator("body").getAttribute("class")).toBeNull();
+  expect(await page.locator("body").getAttribute("class")).toBe("fashion-2-home");
   expect(errors).toEqual([]);
 });
 
@@ -250,7 +301,7 @@ test("approved local fonts and glyph family are active", async ({ browser, page 
   ] as const;
   const implementationProbes = [
     { ...probes[0], selector: ".fashion-2-hero-slide[data-active=true] .fs-120" },
-    { ...probes[1], selector: ".shop-footer .fs-19" },
+    { ...probes[1], selector: "section:nth-of-type(4) .shop-footer .fs-19" },
   ] as const;
   const [reference, implementation] = await Promise.all([
     captureFontContract(source, probes),
@@ -259,11 +310,14 @@ test("approved local fonts and glyph family are active", async ({ browser, page 
   expect(compareFontContractSnapshots(reference, implementation)).toEqual([]);
   expect(await page.evaluate(() => document.fonts.check("600 120px Outfit", "Women's"))).toBe(true);
   expect(
-    await page.locator(".add-to-cart .feather").evaluate((element) => {
-      const style = getComputedStyle(element, "::before");
-      const glyph = style.content.replaceAll('"', "");
-      return { codePoint: glyph.codePointAt(0), family: style.fontFamily };
-    }),
+    await page
+      .locator(".add-to-cart .feather")
+      .first()
+      .evaluate((element) => {
+        const style = getComputedStyle(element, "::before");
+        const glyph = style.content.replaceAll('"', "");
+        return { codePoint: glyph.codePointAt(0), family: style.fontFamily };
+      }),
   ).toEqual({ codePoint: 0xe926, family: "feather" });
   await source.close();
 });
