@@ -119,28 +119,58 @@
 
 /* Isotope uses these same column widths after hydration; CSS owns the usable no-JS baseline. */
 .fashion-2-home section:nth-of-type(4) .shop-wrapper,
-.fashion-2-home section:nth-of-type(8) .shop-wrapper {
+.fashion-2-home section:nth-of-type(8) .shop-wrapper,
+.fashion-2-home section:nth-of-type(10) .blog-wrapper {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .fashion-2-home section:nth-of-type(4) .grid-sizer,
-.fashion-2-home section:nth-of-type(8) .grid-sizer {
+.fashion-2-home section:nth-of-type(8) .grid-sizer,
+.fashion-2-home section:nth-of-type(10) .grid-sizer {
   display: none;
 }
 
 .fashion-2-home section:nth-of-type(4) .grid-item,
-.fashion-2-home section:nth-of-type(8) .grid-item {
+.fashion-2-home section:nth-of-type(8) .grid-item,
+.fashion-2-home section:nth-of-type(10) .grid-item {
   position: relative !important;
   top: auto !important;
   left: auto !important;
   width: 100% !important;
 }
 
+.fashion-2-home section:nth-of-type(10) .blog-wrapper {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body.fashion-2-home:not([data-fashion2-visual-runtime="ready"])
+  .slider-three-slide
+  .swiper-wrapper {
+  display: flex;
+  gap: 30px;
+}
+
+body.fashion-2-home:not([data-fashion2-visual-runtime="ready"]) .slider-three-slide .swiper-slide {
+  flex: 0 0 calc((100% - 90px) / 4);
+  width: calc((100% - 90px) / 4) !important;
+}
+
 @media (max-width: 1199px) {
   .fashion-2-home section:nth-of-type(4) .shop-wrapper,
   .fashion-2-home section:nth-of-type(8) .shop-wrapper {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .fashion-2-home section:nth-of-type(10) .blog-wrapper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.fashion-2-home:not([data-fashion2-visual-runtime="ready"])
+    .slider-three-slide
+    .swiper-slide {
+    flex-basis: calc((100% - 60px) / 3);
+    width: calc((100% - 60px) / 3) !important;
   }
 }
 
@@ -149,6 +179,10 @@
   .fashion-2-home section:nth-of-type(8) .shop-wrapper {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .fashion-2-home section:nth-of-type(10) .blog-wrapper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 767px) {
@@ -156,12 +190,30 @@
   .fashion-2-home section:nth-of-type(8) .shop-wrapper {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  body.fashion-2-home:not([data-fashion2-visual-runtime="ready"])
+    .slider-three-slide
+    .swiper-slide {
+    flex-basis: calc((100% - 30px) / 2);
+    width: calc((100% - 30px) / 2) !important;
+  }
 }
 
 @media (max-width: 575px) {
   .fashion-2-home section:nth-of-type(4) .shop-wrapper,
   .fashion-2-home section:nth-of-type(8) .shop-wrapper {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fashion-2-home section:nth-of-type(10) .blog-wrapper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.fashion-2-home:not([data-fashion2-visual-runtime="ready"])
+    .slider-three-slide
+    .swiper-slide {
+    flex-basis: 100%;
+    width: 100% !important;
   }
 }
 
