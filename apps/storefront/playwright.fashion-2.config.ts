@@ -26,6 +26,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: themeViewports.desktop },
     },
     {
+      name: "fashion-2-laptop",
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.laptop },
+    },
+    {
+      name: "fashion-2-tablet",
+      use: { ...devices["Desktop Chrome"], viewport: themeViewports.tablet },
+    },
+    {
       name: "fashion-2-mobile",
       use: {
         ...devices["Pixel 7"],

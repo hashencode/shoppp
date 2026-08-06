@@ -25,6 +25,18 @@ export const referenceCaptureConfigs = {
   },
 } as const satisfies Record<ReferenceThemeId, ReferenceCaptureConfig>;
 
+export function resolveReferenceCaptureConfig(themeId: string): ReferenceCaptureConfig {
+  if (themeId === "fashion-2") {
+    throw new Error(
+      "fashion-2 is an implementation identity; use the fashion source entry demo-fashion-store.html.",
+    );
+  }
+  if (themeId !== "fashion" && themeId !== "decor") {
+    throw new Error(`Unsupported reference theme: ${themeId}.`);
+  }
+  return referenceCaptureConfigs[themeId];
+}
+
 export const referenceCaptureViewports = [
   { height: 1_000, id: "desktop", width: 1_440 },
   { height: 900, id: "laptop", width: 1_024 },
@@ -186,7 +198,7 @@ export async function captureReference(options: {
   themeId: ReferenceThemeId;
 }): Promise<void> {
   const { chromium } = await import("@playwright/test");
-  const config = referenceCaptureConfigs[options.themeId];
+  const config = resolveReferenceCaptureConfig(options.themeId);
   await validateReferenceSource(options.sourceRoot, config);
   const root = resolve(options.sourceRoot);
   const outputRoot = resolve(options.outputRoot, options.themeId);
@@ -223,6 +235,7 @@ export async function captureReference(options: {
     browser = await chromium.launch();
     for (const viewport of referenceCaptureViewports) {
       const page = await browser.newPage({
+        deviceScaleFactor: 1,
         reducedMotion: "reduce",
         viewport: { height: viewport.height, width: viewport.width },
       });
@@ -249,7 +262,7 @@ export async function captureReference(options: {
           sourceRoot: root,
           state: "initial-home",
           themeId: config.themeId,
-          viewports: captures,
+          viewports: captures.map((capture) => ({ ...capture, dpr: 1 })),
         },
         null,
         2,
@@ -272,12 +285,13 @@ async function main(): Promise<void> {
   const sourceRoot = argumentValue(arguments_, "--source");
   const outputRoot = argumentValue(arguments_, "--output");
   const themeId = argumentValue(arguments_, "--theme");
-  if (!sourceRoot || !outputRoot || (themeId !== "fashion" && themeId !== "decor")) {
+  if (!sourceRoot || !outputRoot || !themeId) {
     throw new Error(
       "Usage: bun tools/capture-storefront-theme-reference.ts --source=<html-root> --output=<artifact-root> --theme=<fashion|decor>",
     );
   }
-  await captureReference({ outputRoot, sourceRoot, themeId });
+  const config = resolveReferenceCaptureConfig(themeId);
+  await captureReference({ outputRoot, sourceRoot, themeId: config.themeId });
   console.log(`Captured deterministic ${themeId} references at 1440, 1024, 768, and 390px.`);
 }
 

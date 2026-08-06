@@ -3,7 +3,9 @@ import { describe, expect, test } from "bun:test";
 import {
   captureGeometryIssues,
   deterministicCaptureCss,
+  fashion2ComparisonDescriptor,
   initialCarouselSelectors,
+  resolveThemeComparison,
 } from "../e2e/support/theme-capture-contract";
 
 describe("theme capture contract", () => {
@@ -19,7 +21,23 @@ describe("theme capture contract", () => {
     expect(initialCarouselSelectors).toEqual({
       decor: [".decor-hero", ".decor-collection"],
       fashion: [".fashion-hero", ".fashion-collection-rail"],
+      "fashion-2": [".swiper.full-screen"],
     });
+  });
+
+  test("describes Fashion source and Fashion 2 implementation as distinct evidence roots", () => {
+    expect(resolveThemeComparison("fashion", "fashion-2")).toBe(fashion2ComparisonDescriptor);
+    expect(fashion2ComparisonDescriptor).toMatchObject({
+      artifactRoots: {
+        implementation: "implementation/fashion-2",
+        reference: "reference/fashion",
+      },
+      densities: [1, 2],
+      implementationThemeId: "fashion-2",
+      referenceEntry: "demo-fashion-store.html",
+      referenceThemeId: "fashion",
+    });
+    expect(() => resolveThemeComparison("fashion-2", "fashion-2")).toThrow("implementation-only");
   });
 
   test("checks every bounding-box edge in the correct coordinate space", () => {

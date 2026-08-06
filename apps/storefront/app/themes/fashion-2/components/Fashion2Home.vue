@@ -628,6 +628,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
       v-bind:data-motion-active-index="activeIndex"
       v-bind:data-motion-autoplay-ms="data.slider.options.autoplayMs"
       v-bind:data-motion-direction="runtime.direction.value"
+      v-bind:data-motion-phase="runtime.motion.value.phase"
       data-motion-easing="ease"
       v-bind:data-motion-duration-ms="data.slider.options.speedMs"
       v-bind:data-motion-paused="runtime.motion.value.pausedReasons.join(',')"

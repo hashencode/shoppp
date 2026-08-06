@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import {
   referenceCaptureConfigs,
   referenceCaptureViewports,
+  resolveReferenceCaptureConfig,
   validateReferenceSource,
 } from "./capture-storefront-theme-reference";
 
@@ -26,6 +27,13 @@ async function fixture(themeId: "decor" | "fashion"): Promise<string> {
 }
 
 describe("reference source validation", () => {
+  test("keeps the Fashion source identity distinct from Fashion 2", () => {
+    expect(resolveReferenceCaptureConfig("fashion")).toMatchObject({
+      entry: "demo-fashion-store.html",
+      themeId: "fashion",
+    });
+    expect(() => resolveReferenceCaptureConfig("fashion-2")).toThrow("implementation identity");
+  });
   test("captures every approved fidelity width with stable viewport identities", () => {
     expect(referenceCaptureViewports).toEqual([
       { height: 1000, id: "desktop", width: 1440 },

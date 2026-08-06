@@ -4,6 +4,7 @@ import { chromium, type Browser, type Page } from "@playwright/test";
 import sharp from "../apps/storefront/node_modules/sharp";
 import {
   decorNamedStates,
+  fashion2NamedStates,
   fashionNamedStates,
   namedStatePixelThreshold,
   type NamedStateAction,
@@ -310,6 +311,65 @@ async function applyFashionAction(
         ).swiper?.autoplay?.stop();
       });
     }
+  }
+  await page.waitForTimeout(100);
+}
+
+async function applyFashion2Action(
+  page: Page,
+  side: "implementation" | "source",
+  action: NamedStateAction,
+  viewportWidth: number,
+): Promise<void> {
+  if (side === "source") return applyFashionAction(page, side, action, viewportWidth);
+  await page.mouse.move(0, 0);
+  const toggle = page.locator(".navbar-toggler");
+  if ((await toggle.getAttribute("aria-expanded")) === "true") await toggle.click();
+  const firstSlide = page.getByRole("button", { name: "Show slide 1" });
+  if (await firstSlide.count()) {
+    await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
+  }
+  if (action.kind === "initial") return;
+  if (action.kind === "hero") {
+    await page
+      .getByRole("button", { name: `Show slide ${action.index + 1}` })
+      .evaluate((button) => (button as HTMLButtonElement).click());
+  } else if (action.kind === "collection") {
+    await page.locator(".swiper.slider-three-slide").evaluate((element, index) => {
+      (
+        element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
+      ).swiper?.slideToLoop?.(index, 0);
+    }, action.index);
+  } else if (action.kind === "navigation") {
+    const menu = action.menu ?? "Shop";
+    if (viewportWidth >= 992) {
+      const dropdown =
+        menu === "Pages"
+          ? page.locator(".navbar-right .nav-item.dropdown").first()
+          : page.locator(".navbar-left .nav-item.dropdown").nth(menu === "Collection" ? 1 : 0);
+      await dropdown.hover();
+    } else {
+      await toggle.click();
+      await page.evaluate((menuLabel) => {
+        const dropdowns = [...document.querySelectorAll<HTMLElement>(".navbar .nav-item.dropdown")];
+        const index = menuLabel === "Shop" ? 0 : menuLabel === "Collection" ? 1 : 2;
+        dropdowns[index]?.classList.add("show");
+        dropdowns[index]?.querySelector<HTMLElement>(".dropdown-menu")?.classList.add("show");
+      }, menu);
+    }
+  } else if (action.kind === "product-hover") {
+    await page.locator(".shop-modern .grid-item .shop-image").first().hover();
+  } else if (action.kind === "product-focus") {
+    const product = page.locator(".shop-modern .grid-item .shop-image").first();
+    await product.hover();
+    await product.getByRole("button", { name: "Add to wishlist" }).focus();
+  } else if (action.kind === "pause") {
+    await page.locator("section:nth-of-type(9)").hover();
+    await page.locator(".swiper-width-auto").evaluate((element) => {
+      (
+        element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }
+      ).swiper?.autoplay?.stop();
+    });
   }
   await page.waitForTimeout(100);
 }
@@ -737,6 +797,7 @@ async function elementDiagnostics(page: Page, selector: string) {
 
 export async function captureFashionNamedStates(options: {
   commit: string;
+  comparisonMode?: "fashion-2";
   implementationUrl: string;
   outputRoot: string;
   sourceUrl: string;
@@ -744,7 +805,9 @@ export async function captureFashionNamedStates(options: {
   viewportFilter?: string;
 }): Promise<void> {
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
-  const outputRoot = resolve(options.outputRoot, "fashion", "named");
+  const implementationThemeId = options.comparisonMode ?? "fashion";
+  const contracts = options.comparisonMode ? fashion2NamedStates : fashionNamedStates;
+  const outputRoot = resolve(options.outputRoot, implementationThemeId, "named");
   await mkdir(outputRoot, { recursive: true });
   const lease = await acquireCaptureLease({
     origins: [options.sourceUrl, options.implementationUrl],
@@ -762,7 +825,10 @@ export async function captureFashionNamedStates(options: {
     );
     for (const [viewportId, viewport] of Object.entries(themeViewports)) {
       if (options.viewportFilter && viewportId !== options.viewportFilter) continue;
-      const context = await browser.newContext({ reducedMotion: "reduce", viewport });
+      const context = await browser.newContext({
+        reducedMotion: options.comparisonMode ? "no-preference" : "reduce",
+        viewport,
+      });
       const source = await context.newPage();
       const implementation = await context.newPage();
       try {
@@ -777,6 +843,27 @@ export async function captureFashionNamedStates(options: {
           }),
         ]);
         await prepareFashionPages(source, implementation);
+        if (options.comparisonMode) {
+          await implementation
+            .locator("[data-fashion-2-source-parity]")
+            .waitFor({ state: "attached" });
+          await implementation.waitForFunction(
+            () =>
+              document
+                .querySelector("[data-fashion-2-source-parity]")
+                ?.getAttribute("data-runtime-status") === "ready",
+          );
+          await Promise.all([
+            source
+              .locator("[data-accept-btn]")
+              .click()
+              .catch(() => undefined),
+            implementation
+              .getByRole("button", { name: "Allow cookies" })
+              .click()
+              .catch(() => undefined),
+          ]);
+        }
         if (options.stateFilter && options.stateFilter !== "cookie-overlay") {
           await Promise.all([
             source
@@ -789,7 +876,7 @@ export async function captureFashionNamedStates(options: {
               .catch(() => undefined),
           ]);
         }
-        for (const state of fashionNamedStates) {
+        for (const state of contracts) {
           if (options.stateFilter && state.id !== options.stateFilter) continue;
           if (
             !options.stateFilter &&
@@ -812,8 +899,12 @@ export async function captureFashionNamedStates(options: {
             ]);
           }
           await Promise.all([
-            applyFashionAction(source, "source", state.action, viewport.width),
-            applyFashionAction(implementation, "implementation", state.action, viewport.width),
+            options.comparisonMode
+              ? applyFashion2Action(source, "source", state.action, viewport.width)
+              : applyFashionAction(source, "source", state.action, viewport.width),
+            options.comparisonMode
+              ? applyFashion2Action(implementation, "implementation", state.action, viewport.width)
+              : applyFashionAction(implementation, "implementation", state.action, viewport.width),
           ]);
           const [referenceBox, implementationBox] = await Promise.all([
             box(source, state.sourceSelector),
@@ -957,8 +1048,10 @@ export async function captureFashionNamedStates(options: {
         implementationUrl: options.implementationUrl,
         results,
         sourceUrl: options.sourceUrl,
-        state: "fashion-named-states",
-        themeId: "fashion",
+        implementationThemeId,
+        referenceThemeId: "fashion",
+        state: `${implementationThemeId}-named-states`,
+        themeId: implementationThemeId,
         viewports: themeViewports,
       },
       null,
@@ -966,7 +1059,13 @@ export async function captureFashionNamedStates(options: {
     )}\n`,
   );
   if (failures.length > 0)
-    throw new Error(`Fashion named-state capture failed:\n${failures.join("\n")}`);
+    throw new Error(`${implementationThemeId} named-state capture failed:\n${failures.join("\n")}`);
+}
+
+export async function captureFashion2NamedStates(
+  options: Omit<Parameters<typeof captureFashionNamedStates>[0], "comparisonMode">,
+): Promise<void> {
+  await captureFashionNamedStates({ ...options, comparisonMode: "fashion-2" });
 }
 
 export async function captureDecorNamedStates(options: {
@@ -1210,7 +1309,7 @@ if (import.meta.main) {
   const viewportFilter = value(arguments_, "--viewport");
   if (!sourceUrl || !implementationUrl || !outputRoot || !commit)
     throw new Error(
-      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=<fashion|decor>] [--state=<id>] [--viewport=<id>]",
+      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=<fashion|fashion-2|decor>] [--state=<id>] [--viewport=<id>]",
     );
   if (theme === "decor")
     await captureDecorNamedStates({
@@ -1223,6 +1322,15 @@ if (import.meta.main) {
     });
   else if (theme === "fashion")
     await captureFashionNamedStates({
+      commit,
+      implementationUrl,
+      outputRoot,
+      sourceUrl,
+      ...(stateFilter ? { stateFilter } : {}),
+      ...(viewportFilter ? { viewportFilter } : {}),
+    });
+  else if (theme === "fashion-2")
+    await captureFashion2NamedStates({
       commit,
       implementationUrl,
       outputRoot,

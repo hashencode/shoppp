@@ -16,15 +16,37 @@ describe("theme fidelity matrix", () => {
       .map(([sourcePath]) => `/${sourcePath}`)
       .sort();
     const actualSourcePaths = themeFidelityMatrix
-      .filter(({ id }) => id.startsWith("fashion-"))
+      .filter(({ id }) => id.startsWith("fashion-") && id !== "fashion-2-home")
       .map(({ sourcePath }) => sourcePath)
       .sort();
 
     expect(actualSourcePaths).toEqual(expectedSourcePaths);
-    for (const route of themeFidelityMatrix.filter(({ id }) => id.startsWith("fashion-"))) {
+    for (const route of themeFidelityMatrix.filter(
+      ({ id }) => id.startsWith("fashion-") && id !== "fashion-2-home",
+    )) {
       expect(route.viewports).toEqual(["desktop", "laptop", "tablet", "mobile"]);
       expect(route.viewports).not.toContain("laptop-922");
     }
+  });
+
+  test("maps the Fashion source home to the isolated Fashion 2 implementation", () => {
+    const route = themeFidelityMatrix.find(({ id }) => id === "fashion-2-home")!;
+    expect(route).toMatchObject({
+      densities: [1, 2],
+      implementationPath: "/",
+      sourcePath: "/demo-fashion-store.html",
+      viewports: ["desktop", "laptop", "tablet", "mobile"],
+    });
+    expect(route.regions.map(({ id }) => id)).toEqual([
+      "header",
+      "hero",
+      "categories",
+      "best-sellers",
+      "collection",
+      "marquee",
+      "footer",
+      "full-page",
+    ]);
   });
 
   test("includes the Fashion controls that aggregate full-page diffs previously missed", () => {

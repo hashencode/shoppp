@@ -21,7 +21,8 @@ export type FidelityRouteId =
   | "fashion-no-sidebar"
   | "fashion-product"
   | "fashion-right-sidebar"
-  | "fashion-wishlist";
+  | "fashion-wishlist"
+  | "fashion-2-home";
 
 export interface FidelityRegionContract {
   allowExpectedTopOcclusion?: boolean;
@@ -305,6 +306,46 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
         sourceProbeSelector: "section:nth-of-type(10) .card-title",
       }),
       fashionFooterRegion(),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store.html",
+    viewports: homeViewports,
+  },
+  {
+    densities: [1, 2],
+    id: "fashion-2-home",
+    implementationPath: "/",
+    regions: [
+      region("header", "section", "header", "header", ["initial", "navigation-open"]),
+      region(
+        "hero",
+        "component",
+        ".swiper.full-screen",
+        ".swiper.full-screen",
+        ["initial", "slide-1", "slide-2", "slide-3", "reduced-motion"],
+        {
+          implementationProbeSelector: ".fashion-2-hero-slide[data-active=true] .fs-120",
+          sourceProbeSelector: ".swiper.full-screen .swiper-slide-active .fs-120",
+        },
+      ),
+      region("categories", "component", "section:nth-of-type(3)", "section:nth-of-type(3)"),
+      region("best-sellers", "section", "section:nth-of-type(4)", "section:nth-of-type(4)", [
+        "initial",
+        "product-hover",
+        "product-focus",
+      ]),
+      region("collection", "section", "section:nth-of-type(6)", "section:nth-of-type(6)", [
+        "initial",
+        "slide-1",
+        "slide-2",
+        "slide-3",
+        "slide-4",
+      ]),
+      region("marquee", "component", "section:nth-of-type(9)", "section:nth-of-type(9)", [
+        "initial",
+        "paused",
+      ]),
+      region("footer", "component", "footer", "footer", ["initial", "sticky-visible"]),
       region("full-page", "full-page-smoke", "body", "body"),
     ],
     sourcePath: "/demo-fashion-store.html",
@@ -939,6 +980,7 @@ export function assertFidelityMatrixComplete(matrix = themeFidelityMatrix): void
   }
   for (const id of [
     "fashion-home",
+    "fashion-2-home",
     "fashion-collection",
     "fashion-product",
     "decor-home",

@@ -1,4 +1,76 @@
+import { themeViewports } from "./theme-viewports";
+
 export type CaptureThemeId = "decor" | "fashion";
+export type ImplementationCaptureThemeId = CaptureThemeId | "fashion-2";
+
+export interface ThemeComparisonDescriptor {
+  artifactRoots: {
+    implementation: string;
+    reference: string;
+  };
+  densities: readonly [1, 2];
+  id: string;
+  implementationPath: string;
+  implementationThemeId: ImplementationCaptureThemeId;
+  namedStates: readonly string[];
+  referenceEntry: string;
+  referenceThemeId: CaptureThemeId;
+  selectors: Readonly<Record<string, { implementation: string; reference: string }>>;
+  viewports: typeof themeViewports;
+}
+
+export const fashion2ComparisonDescriptor = {
+  artifactRoots: {
+    implementation: "implementation/fashion-2",
+    reference: "reference/fashion",
+  },
+  densities: [1, 2],
+  id: "fashion-to-fashion-2",
+  implementationPath: "/",
+  implementationThemeId: "fashion-2",
+  namedStates: [
+    "initial-home",
+    "navigation-open",
+    "hero-slide-1",
+    "hero-slide-2",
+    "hero-slide-3",
+    "product-hover",
+    "product-focus",
+    "collection-slide-1",
+    "marquee-paused",
+    "footer-sticky",
+  ],
+  referenceEntry: "demo-fashion-store.html",
+  referenceThemeId: "fashion",
+  selectors: {
+    collection: {
+      implementation: ".swiper.slider-three-slide",
+      reference: ".swiper.slider-three-slide",
+    },
+    footer: { implementation: "footer", reference: "footer" },
+    header: { implementation: "header", reference: "header" },
+    hero: { implementation: ".swiper.full-screen", reference: ".swiper.full-screen" },
+    marquee: { implementation: ".swiper-width-auto", reference: ".swiper-width-auto" },
+    product: {
+      implementation: ".shop-modern .grid-item .shop-image",
+      reference: ".shop-modern .grid-item .shop-image",
+    },
+  },
+  viewports: themeViewports,
+} as const satisfies ThemeComparisonDescriptor;
+
+export function resolveThemeComparison(
+  referenceThemeId: string,
+  implementationThemeId: string,
+): ThemeComparisonDescriptor {
+  if (referenceThemeId === "fashion-2") {
+    throw new Error("fashion-2 is implementation-only and has no source entry filename.");
+  }
+  if (referenceThemeId === "fashion" && implementationThemeId === "fashion-2") {
+    return fashion2ComparisonDescriptor;
+  }
+  throw new Error(`Unsupported theme comparison: ${referenceThemeId} -> ${implementationThemeId}.`);
+}
 
 export interface CaptureGeometryBox {
   height: number;
@@ -61,4 +133,5 @@ export const deterministicCaptureCss = `
 export const initialCarouselSelectors = {
   decor: [".decor-hero", ".decor-collection"],
   fashion: [".fashion-hero", ".fashion-collection-rail"],
-} as const satisfies Record<CaptureThemeId, readonly string[]>;
+  "fashion-2": [".swiper.full-screen"],
+} as const satisfies Record<ImplementationCaptureThemeId, readonly string[]>;

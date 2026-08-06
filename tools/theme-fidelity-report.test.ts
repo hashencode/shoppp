@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "../apps/storefront/node_modules/sharp";
+import { fashion2ComparisonDescriptor } from "../apps/storefront/e2e/support/theme-capture-contract";
 import { generateThemeFidelityReport } from "./theme-fidelity-report";
 
 const roots: string[] = [];
@@ -20,6 +21,8 @@ async function captureRoot(
   themeId: "fashion" | "decor" | "fashion-2",
   width = 1440,
   desktopViewportHeight = 1000,
+  dpr = 1,
+  capturedAt = "2026-07-30T00:00:00.000Z",
 ): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "shoppp-fidelity-"));
   roots.push(root);
@@ -33,15 +36,15 @@ async function captureRoot(
   await writeFile(
     join(root, themeId, "metadata.json"),
     JSON.stringify({
-      capturedAt: "2026-07-30T00:00:00.000Z",
+      capturedAt,
       commit: "abcdef1234567",
       state: "initial-home",
       themeId,
       viewports: [
-        { height: desktopViewportHeight, id: "desktop", width: 1440 },
-        { height: 900, id: "laptop", width: 1024 },
-        { height: 1024, id: "tablet", width: 768 },
-        { height: 844, id: "mobile", width: 390 },
+        { dpr, height: desktopViewportHeight, id: "desktop", width: 1440 },
+        { dpr, height: 900, id: "laptop", width: 1024 },
+        { dpr, height: 1024, id: "tablet", width: 768 },
+        { dpr, height: 844, id: "mobile", width: 390 },
       ],
     }),
   );
@@ -50,7 +53,7 @@ async function captureRoot(
 
 describe("theme fidelity report", () => {
   test("retains over-threshold Fashion 2 pixel evidence and rejects stale identity", async () => {
-    const referenceRoot = await captureRoot("fashion-2");
+    const referenceRoot = await captureRoot("fashion");
     const implementationRoot = await captureRoot("fashion-2");
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
@@ -59,15 +62,15 @@ describe("theme fidelity report", () => {
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
+        comparison: fashion2ComparisonDescriptor,
         implementationRoot,
         outputRoot,
         referenceRoot,
-        themes: ["fashion-2"],
       }),
-    ).rejects.toThrow("fashion-2 mobile");
-    expect(await readFile(join(outputRoot, "fashion-2-mobile-diff.json"), "utf8")).toContain(
-      '"changedPixelRatio": 1',
-    );
+    ).rejects.toThrow("fashion-to-fashion-2 mobile");
+    expect(
+      await readFile(join(outputRoot, "fashion-to-fashion-2-mobile-diff.json"), "utf8"),
+    ).toContain('"changedPixelRatio": 1');
 
     const staleMetadata = JSON.parse(
       await readFile(join(implementationRoot, "fashion-2", "metadata.json"), "utf8"),
@@ -80,12 +83,47 @@ describe("theme fidelity report", () => {
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
+        comparison: fashion2ComparisonDescriptor,
         implementationRoot,
         outputRoot,
         referenceRoot,
-        themes: ["fashion-2"],
       }),
     ).rejects.toThrow("does not match commit");
+  });
+
+  test("rejects mismatched DPR and stale Fashion-to-Fashion-2 captures", async () => {
+    const referenceRoot = await captureRoot("fashion");
+    const implementationRoot = await captureRoot("fashion-2", 1440, 1000, 2);
+    const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
+    roots.push(outputRoot);
+
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        comparison: fashion2ComparisonDescriptor,
+        implementationRoot,
+        outputRoot,
+        referenceRoot,
+      }),
+    ).rejects.toThrow("viewport or DPR");
+
+    const staleReferenceRoot = await captureRoot(
+      "fashion",
+      1440,
+      1000,
+      1,
+      "2020-01-01T00:00:00.000Z",
+    );
+    const matchingImplementationRoot = await captureRoot("fashion-2");
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        comparison: fashion2ComparisonDescriptor,
+        implementationRoot: matchingImplementationRoot,
+        outputRoot,
+        referenceRoot: staleReferenceRoot,
+      }),
+    ).rejects.toThrow("reference capture is stale");
   });
 
   test("creates review evidence without blessing an unapproved implementation", async () => {

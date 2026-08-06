@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   decorNamedStates,
+  fashion2NamedStates,
   fashionNamedStates,
   namedStatePixelThreshold,
   namedStateViewportIds,
@@ -39,6 +40,24 @@ describe("theme named-state contract", () => {
     expect(namedStatePixelThreshold(state("collection-menu-open"))).toBe(0.005);
     expect(namedStatePixelThreshold(state("hero-slide-1"))).toBe(0.005);
     expect(state("marquee-paused").action).toEqual({ kind: "pause" });
+  });
+
+  test("covers Fashion 2 source-equivalent temporal states without changing source identity", () => {
+    expect(fashion2NamedStates.map(({ id }) => id)).toEqual([
+      "navigation-open",
+      "hero-slide-1",
+      "hero-slide-2",
+      "hero-slide-3",
+      "product-default",
+      "product-hover",
+      "product-focus",
+      "collection-slide-1",
+      "collection-slide-2",
+      "collection-slide-3",
+      "collection-slide-4",
+      "marquee-paused",
+      "footer-sticky",
+    ]);
   });
 
   test("covers the source-visible Decor interaction surface", () => {

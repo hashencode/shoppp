@@ -25,10 +25,16 @@ const sourceOrigin = argumentValue(arguments_, "--source-origin");
 const implementationOrigin = argumentValue(arguments_, "--implementation-origin");
 const outputRoot = argumentValue(arguments_, "--output");
 const commit = argumentValue(arguments_, "--commit");
+const matchesTheme = (routeId: string): boolean =>
+  theme === "fashion-2"
+    ? routeId.startsWith("fashion-2-")
+    : theme === "fashion"
+      ? routeId.startsWith("fashion-") && !routeId.startsWith("fashion-2-")
+      : routeId.startsWith("decor-");
 
 if (
   !theme ||
-  !["fashion", "decor"].includes(theme) ||
+  !["fashion", "fashion-2", "decor"].includes(theme) ||
   !["regional", "full-page"].includes(phase) ||
   !sourceOrigin ||
   !implementationOrigin ||
@@ -37,12 +43,12 @@ if (
   densities.some((density) => density !== 1 && density !== 2)
 ) {
   throw new Error(
-    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
+    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion|fashion-2|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
   );
 }
 
 const tasks = themeFidelityMatrix
-  .filter((route) => route.id.startsWith(`${theme}-`) && (!routeFilter || route.id === routeFilter))
+  .filter((route) => matchesTheme(route.id) && (!routeFilter || route.id === routeFilter))
   .flatMap((route) =>
     route.viewports
       .filter((viewport) => !viewportFilter || viewport === viewportFilter)
@@ -133,6 +139,9 @@ const summary = {
   results,
   startedAt,
   theme,
+  ...(theme === "fashion-2"
+    ? { implementationThemeId: "fashion-2", referenceThemeId: "fashion" }
+    : {}),
   total: results.length,
 };
 await mkdir(resolve(outputRoot), { recursive: true });

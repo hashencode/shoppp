@@ -132,6 +132,65 @@ export const fashionNamedStates: readonly NamedStateContract[] = [
   },
 ] as const;
 
+export const fashion2NamedStates: readonly NamedStateContract[] = [
+  {
+    action: { kind: "navigation", menu: "Shop" },
+    capture: "viewport-top",
+    id: "navigation-open",
+    implementationSelector: "header .navbar",
+    sourceSelector: "header .navbar",
+  },
+  ...[0, 1, 2].map((index): NamedStateContract => ({
+    action: { index, kind: "hero" },
+    capture: "element",
+    id: `hero-slide-${index + 1}`,
+    implementationSelector: ".swiper.full-screen",
+    sourceSelector: ".swiper.full-screen",
+  })),
+  {
+    action: { kind: "initial" },
+    capture: "element",
+    id: "product-default",
+    implementationSelector: ".shop-modern .grid-item .shop-image",
+    sourceSelector: ".shop-modern .grid-item .shop-image",
+  },
+  {
+    action: { kind: "product-hover" },
+    capture: "element",
+    id: "product-hover",
+    implementationSelector: ".shop-modern .grid-item .shop-image",
+    sourceSelector: ".shop-modern .grid-item .shop-image",
+  },
+  {
+    action: { kind: "product-focus" },
+    capture: "element",
+    id: "product-focus",
+    implementationSelector: ".shop-modern .grid-item .shop-image",
+    sourceSelector: ".shop-modern .grid-item .shop-image",
+  },
+  ...[0, 1, 2, 3].map((index): NamedStateContract => ({
+    action: { index, kind: "collection" },
+    capture: "element",
+    id: `collection-slide-${index + 1}`,
+    implementationSelector: ".swiper.slider-three-slide",
+    sourceSelector: ".swiper.slider-three-slide",
+  })),
+  {
+    action: { kind: "pause" },
+    capture: "element",
+    id: "marquee-paused",
+    implementationSelector: "section:nth-of-type(9)",
+    sourceSelector: "section:nth-of-type(9)",
+  },
+  {
+    action: { kind: "initial" },
+    capture: "element",
+    id: "footer-sticky",
+    implementationSelector: "footer",
+    sourceSelector: "footer",
+  },
+] as const;
+
 export const decorNamedStates: readonly NamedStateContract[] = [
   {
     action: { kind: "overlay" },

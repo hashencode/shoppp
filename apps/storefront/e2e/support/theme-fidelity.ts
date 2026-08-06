@@ -3,7 +3,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import {
   deterministicCaptureCss,
   initialCarouselSelectors,
-  type CaptureThemeId,
+  type ImplementationCaptureThemeId,
 } from "./theme-capture-contract";
 import { themeViewports } from "./theme-viewports";
 
@@ -57,7 +57,7 @@ export async function assertThemeLayout(page: Page): Promise<void> {
 export async function captureThemeEvidence(
   page: Page,
   testInfo: TestInfo,
-  themeId: CaptureThemeId,
+  themeId: ImplementationCaptureThemeId,
 ): Promise<void> {
   const root = process.env.THEME_FIDELITY_CAPTURE_ROOT;
   const viewport = (Object.keys(themeViewports) as Array<keyof typeof themeViewports>).find((id) =>
@@ -96,6 +96,7 @@ export async function captureThemeEvidence(
     /[^a-z0-9-]/gi,
     "-",
   )}.tmp`;
+  const deviceScaleFactor = await page.evaluate(() => devicePixelRatio);
   await writeFile(
     temporaryMetadataPath,
     `${JSON.stringify(
@@ -106,6 +107,7 @@ export async function captureThemeEvidence(
         themeId,
         viewports: Object.entries(themeViewports).map(([id, dimensions]) => ({
           ...dimensions,
+          dpr: deviceScaleFactor,
           id,
         })),
       },
@@ -121,8 +123,11 @@ export async function captureThemeEvidence(
   });
 }
 
-async function resetInitialCarousels(page: Page, themeId: CaptureThemeId): Promise<void> {
-  if (themeId === "fashion") {
+async function resetInitialCarousels(
+  page: Page,
+  themeId: ImplementationCaptureThemeId,
+): Promise<void> {
+  if (themeId === "fashion" || themeId === "fashion-2") {
     const firstSlide = page.getByRole("button", { name: "Show slide 1" });
     await firstSlide.click();
     await expect(page.locator(initialCarouselSelectors.fashion[0])).toHaveAttribute(

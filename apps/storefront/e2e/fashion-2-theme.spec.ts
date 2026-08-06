@@ -5,6 +5,7 @@ import {
   compareThemeScreenshots,
 } from "../scripts/compare-theme-screenshots";
 import { captureFontContract, compareFontContractSnapshots } from "./support/theme-font-contract";
+import { captureThemeEvidence } from "./support/theme-fidelity";
 import { captureMotionContract } from "./support/theme-motion-contract";
 import {
   captureSourceContract,
@@ -239,7 +240,9 @@ test("complete source home renders every static region and local image", async (
   );
   expect(externalResources).toEqual([]);
 
-  const expectedColumns = page.viewportSize()!.width === 390 ? 1 : 5;
+  const viewportWidth = page.viewportSize()!.width;
+  const expectedColumns =
+    viewportWidth >= 1200 ? 5 : viewportWidth >= 992 ? 4 : viewportWidth >= 768 ? 3 : 1;
   const firstRowTops = await page
     .locator("section:nth-of-type(4) .grid-item")
     .evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
@@ -414,4 +417,10 @@ test("approved local fonts and glyph family are active", async ({ browser, page 
       }),
   ).toEqual({ codePoint: 0xe926, family: "feather" });
   await source.close();
+});
+
+test("captures the four-viewport Fashion 2 initial-home evidence", async ({ page }, testInfo) => {
+  test.skip(!process.env.THEME_FIDELITY_CAPTURE_ROOT);
+  await ready(page, "/");
+  await captureThemeEvidence(page, testInfo, "fashion-2");
 });
