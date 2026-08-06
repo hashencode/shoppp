@@ -25,8 +25,9 @@
     "test:perf": "playwright test --config playwright.performance.config.ts",
     "test:perf:decor": "STOREFRONT_THEME=decor playwright test --config playwright.performance.config.ts",
     "test:perf:fashion": "STOREFRONT_THEME=fashion playwright test --config playwright.performance.config.ts",
+    "test:perf:fashion-2": "STOREFRONT_THEME=fashion-2 playwright test --config playwright.performance.config.ts",
     "test:preview": "playwright test e2e/theme-preview.spec.ts",
-    "test:themes": "bun run test:fashion -- --workers=1 && bun run test:perf:fashion -- --workers=1 && bun run test:decor -- --workers=1 && bun run test:perf:decor -- --workers=1",
+    "test:themes": "bun run test:fashion -- --workers=1 && bun run test:perf:fashion -- --workers=1 && bun run test:decor -- --workers=1 && bun run test:perf:decor -- --workers=1 && bun run test:fashion-2 -- --workers=1 && bun run test:perf:fashion-2 -- --workers=1",
     "typecheck": "nuxt typecheck",
     "verify:static": "bun scripts/verify-static.ts",
     "verify:themes": "bun scripts/verify-themes.ts"

@@ -8,6 +8,7 @@ export default defineConfig({
   testIgnore: [
     "a11y.spec.ts",
     "decor-theme.spec.ts",
+    "fashion-2-theme.spec.ts",
     "fashion-theme.spec.ts",
     "performance.spec.ts",
   ],

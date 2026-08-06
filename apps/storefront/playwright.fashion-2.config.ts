@@ -46,7 +46,7 @@ export default defineConfig({
     ? undefined
     : [
         {
-          command: `bun run build:preview:fashion-2 && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/serve-static.ts ${port}`,
+          command: `bun run build:preview:fashion-2 && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
           url: baseURL,
           reuseExistingServer: false,
           timeout: 180_000,

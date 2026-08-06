@@ -167,7 +167,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               >
             </div>
           </div>
-          <a class="navbar-brand" href="/" data-fashion-2-route>
+          <a class="navbar-brand" href="/" data-fashion-2-route aria-label="Lifestyle home">
             <img
               alt=""
               class="default-logo"
@@ -501,7 +501,11 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
         <div class="col-auto col-xxl-3 col-lg-2 text-end">
           <div class="header-icon">
             <div class="header-search-icon icon alt-font">
-              <a href="/" data-fashion-2-route class="search-form-icon header-search-form"
+              <a
+                href="/"
+                data-fashion-2-route
+                class="search-form-icon header-search-form"
+                aria-label="Search"
                 ><i class="feather icon-feather-search me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Search</span></a
               >
@@ -536,7 +540,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               </div>
             </div>
             <div class="widget-text icon alt-font">
-              <a href="/" data-fashion-2-route
+              <a href="/" data-fashion-2-route aria-label="Account"
                 ><i class="feather icon-feather-user d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Account</span></a
               >
@@ -620,7 +624,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
       </div>
     </nav>
   </header>
-  <section class="p-0" id="fashion-2-main">
+  <section class="p-0" id="fashion-2-main" role="main">
     <div
       class="swiper full-screen top-space-margin md-h-600px sm-h-500px magic-cursor magic-cursor-vertical swiper-number-pagination-progress swiper-number-pagination-progress-vertical"
       data-slider-options='{ "slidesPerView": 1, "direction": "horizontal", "loop": true, "parallax": true, "speed": 1000, "pagination": { "el": ".swiper-number", "clickable": true }, "autoplay": { "delay": 4000, "disableOnInteraction": false },  "keyboard": { "enabled": true, "onlyInViewport": true }, "breakpoints": { "1199": { "direction": "vertical" }}, "effect": "slide" }'
@@ -871,7 +875,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
       >
         <div class="col categories-style-02 lg-mb-30px">
           <div class="categories-box">
-            <a href="/" data-fashion-2-route>
+            <a href="/" data-fashion-2-route v-bind:aria-label="'View ' + data.categories[0].name">
               <img
                 class="sm-w-100"
                 alt=""
@@ -901,7 +905,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
 
         <div class="col categories-style-02 lg-mb-30px">
           <div class="categories-box">
-            <a href="/" data-fashion-2-route>
+            <a href="/" data-fashion-2-route v-bind:aria-label="'View ' + data.categories[1].name">
               <img
                 class="sm-w-100"
                 alt=""
@@ -931,7 +935,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
 
         <div class="col categories-style-02 sm-mb-30px">
           <div class="categories-box">
-            <a href="/" data-fashion-2-route>
+            <a href="/" data-fashion-2-route v-bind:aria-label="'View ' + data.categories[2].name">
               <img
                 class="sm-w-100"
                 alt=""
@@ -961,7 +965,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
 
         <div class="col categories-style-02">
           <div class="categories-box">
-            <a href="/" data-fashion-2-route>
+            <a href="/" data-fashion-2-route v-bind:aria-label="'View ' + data.categories[3].name">
               <img
                 class="sm-w-100"
                 alt=""
@@ -1017,7 +1021,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[0].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[0].name"
+                      v-bind:src="sourceAsset(data.bestSellers[0].sourceImage)"
+                    />
                     <span class="lable new">New</span>
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1082,7 +1089,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[1].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[1].name"
+                      v-bind:src="sourceAsset(data.bestSellers[1].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1143,7 +1153,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[2].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[2].name"
+                      v-bind:src="sourceAsset(data.bestSellers[2].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1204,7 +1217,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[3].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[3].name"
+                      v-bind:src="sourceAsset(data.bestSellers[3].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1265,7 +1281,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[4].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[4].name"
+                      v-bind:src="sourceAsset(data.bestSellers[4].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1326,7 +1345,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[5].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[5].name"
+                      v-bind:src="sourceAsset(data.bestSellers[5].sourceImage)"
+                    />
                     <span class="lable hot">Hot</span>
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1388,7 +1410,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[6].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[6].name"
+                      v-bind:src="sourceAsset(data.bestSellers[6].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1449,7 +1474,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[7].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[7].name"
+                      v-bind:src="sourceAsset(data.bestSellers[7].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1510,7 +1538,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[8].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[8].name"
+                      v-bind:src="sourceAsset(data.bestSellers[8].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1571,7 +1602,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.bestSellers[9].sourceImage)" />
+                    <img
+                      v-bind:alt="data.bestSellers[9].name"
+                      v-bind:src="sourceAsset(data.bestSellers[9].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -1709,6 +1743,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[0].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1750,6 +1785,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[1].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1791,6 +1827,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[2].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1832,6 +1869,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[3].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1873,6 +1911,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[0].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1914,6 +1953,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[1].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1955,6 +1995,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[2].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1996,6 +2037,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                       <a
                         href="/"
                         data-fashion-2-route
+                        v-bind:aria-label="'Explore ' + data.collection[3].name"
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -2094,7 +2136,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.featuredProducts[0].sourceImage)" />
+                    <img
+                      v-bind:alt="data.featuredProducts[0].name"
+                      v-bind:src="sourceAsset(data.featuredProducts[0].sourceImage)"
+                    />
                     <span class="lable new">New</span>
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -2156,7 +2201,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.featuredProducts[1].sourceImage)" />
+                    <img
+                      v-bind:alt="data.featuredProducts[1].name"
+                      v-bind:src="sourceAsset(data.featuredProducts[1].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -2217,7 +2265,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.featuredProducts[2].sourceImage)" />
+                    <img
+                      v-bind:alt="data.featuredProducts[2].name"
+                      v-bind:src="sourceAsset(data.featuredProducts[2].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -2278,7 +2329,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.featuredProducts[3].sourceImage)" />
+                    <img
+                      v-bind:alt="data.featuredProducts[3].name"
+                      v-bind:src="sourceAsset(data.featuredProducts[3].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -2339,7 +2393,10 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
                   <a href="/" data-fashion-2-route>
-                    <img alt="" v-bind:src="sourceAsset(data.featuredProducts[4].sourceImage)" />
+                    <img
+                      v-bind:alt="data.featuredProducts[4].name"
+                      v-bind:src="sourceAsset(data.featuredProducts[4].sourceImage)"
+                    />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
                   <div class="shop-buttons-wrap">
@@ -2502,7 +2559,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
                   <a href="/" data-fashion-2-route
-                    ><img alt="" v-bind:src="sourceAsset(data.magazine[0].sourceImage)"
+                    ><img
+                      v-bind:alt="data.magazine[0].name"
+                      v-bind:src="sourceAsset(data.magazine[0].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
@@ -2531,7 +2590,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
                   <a href="/" data-fashion-2-route
-                    ><img alt="" v-bind:src="sourceAsset(data.magazine[1].sourceImage)"
+                    ><img
+                      v-bind:alt="data.magazine[1].name"
+                      v-bind:src="sourceAsset(data.magazine[1].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
@@ -2560,7 +2621,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
                   <a href="/" data-fashion-2-route
-                    ><img alt="" v-bind:src="sourceAsset(data.magazine[2].sourceImage)"
+                    ><img
+                      v-bind:alt="data.magazine[2].name"
+                      v-bind:src="sourceAsset(data.magazine[2].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
@@ -2589,7 +2652,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
                   <a href="/" data-fashion-2-route
-                    ><img alt="" v-bind:src="sourceAsset(data.magazine[3].sourceImage)"
+                    ><img
+                      v-bind:alt="data.magazine[3].name"
+                      v-bind:src="sourceAsset(data.magazine[3].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
@@ -2622,7 +2687,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
     <div class="container">
       <div class="row align-items-center pt-35px pb-35px">
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">
-          <a href="/" data-fashion-2-route class="footer-logo"
+          <a href="/" data-fashion-2-route class="footer-logo" aria-label="Lifestyle home"
             ><img
               alt=""
               class="default-logo"
@@ -2702,22 +2767,38 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
           <div class="elements-social social-icon-style-02">
             <ul class="light">
               <li>
-                <a class="facebook" href="https://www.facebook.com/" target="_blank"
+                <a
+                  class="facebook"
+                  href="https://www.facebook.com/"
+                  target="_blank"
+                  aria-label="Facebook"
                   ><i class="fa-brands fa-facebook-f"></i
                 ></a>
               </li>
               <li>
-                <a class="dribbble" href="http://www.dribbble.com" target="_blank"
+                <a
+                  class="dribbble"
+                  href="http://www.dribbble.com"
+                  target="_blank"
+                  aria-label="Dribbble"
                   ><i class="fa-brands fa-dribbble"></i
                 ></a>
               </li>
               <li>
-                <a class="twitter" href="http://www.twitter.com" target="_blank"
+                <a
+                  class="twitter"
+                  href="http://www.twitter.com"
+                  target="_blank"
+                  aria-label="Twitter"
                   ><i class="fa-brands fa-twitter"></i
                 ></a>
               </li>
               <li>
-                <a class="instagram" href="http://www.instagram.com" target="_blank"
+                <a
+                  class="instagram"
+                  href="http://www.instagram.com"
+                  target="_blank"
+                  aria-label="Instagram"
                   ><i class="fa-brands fa-instagram"></i
                 ></a>
               </li>
@@ -2748,16 +2829,32 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
             </form>
           </div>
           <div class="footer-card">
-            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
+            <a
+              href="/"
+              data-fashion-2-route
+              class="d-inline-block me-5px align-middle"
+              aria-label="Visa payment information"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-01.png')"
             /></a>
-            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
+            <a
+              href="/"
+              data-fashion-2-route
+              class="d-inline-block me-5px align-middle"
+              aria-label="PayPal payment information"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-02.png')"
             /></a>
-            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
+            <a
+              href="/"
+              data-fashion-2-route
+              class="d-inline-block me-5px align-middle"
+              aria-label="Mastercard payment information"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-03.png')"
             /></a>
-            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
+            <a
+              href="/"
+              data-fashion-2-route
+              class="d-inline-block me-5px align-middle"
+              aria-label="American Express payment information"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-04.png')"
             /></a>
           </div>

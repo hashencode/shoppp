@@ -12,6 +12,10 @@ const fashionPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.fashion.config.ts",
 );
+const fashion2PlaywrightPath = resolve(
+  import.meta.dir,
+  "../apps/storefront/playwright.fashion-2.config.ts",
+);
 const decorPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.decor.config.ts",
@@ -21,6 +25,10 @@ const architecturePath = resolve(
   "../docs/architecture/storefront-theme-platform.md",
 );
 const fidelityRunbookPath = resolve(import.meta.dir, "../docs/runbooks/storefront-preview.md");
+const promotionRunbookPath = resolve(
+  import.meta.dir,
+  "../docs/runbooks/storefront-theme-promotion.md",
+);
 
 describe("production promotion workflow", () => {
   test("defaults to staging-only and requires explicit release confirmation", async () => {
@@ -259,16 +267,20 @@ describe("private storefront preview workflow", () => {
 
 describe("storefront theme browser matrix", () => {
   test("keeps theme-only assertions out of the production fallback suite", async () => {
-    const [production, fashion, decor] = await Promise.all([
+    const [production, fashion, fashion2, decor] = await Promise.all([
       readFile(storefrontPlaywrightPath, "utf8"),
       readFile(fashionPlaywrightPath, "utf8"),
+      readFile(fashion2PlaywrightPath, "utf8"),
       readFile(decorPlaywrightPath, "utf8"),
     ]);
     const productionIgnore = production.match(/testIgnore:\s*\[([\s\S]*?)\],/)?.[1];
 
     expect(productionIgnore).toContain('"decor-theme.spec.ts"');
+    expect(productionIgnore).toContain('"fashion-2-theme.spec.ts"');
     expect(productionIgnore).toContain('"fashion-theme.spec.ts"');
     expect(fashion).toContain('testMatch: "fashion-theme.spec.ts"');
+    expect(fashion2).toContain('testMatch: "fashion-2-theme.spec.ts"');
+    expect(fashion2).toContain("check-bundle-budget.ts");
     expect(decor).toContain('testMatch: "decor-theme.spec.ts"');
   });
 
@@ -285,5 +297,19 @@ describe("storefront theme browser matrix", () => {
     expect(architecture).toContain("reference-fidelity scope is the home template only");
     expect(runbook).toMatch(/does not activate a\s+production theme/);
     expect(runbook).toContain("Do not create `approval.json`");
+  });
+
+  test("keeps Fashion 2 promotion separate from parity evidence", async () => {
+    const [architecture, runbook] = await Promise.all([
+      readFile(architecturePath, "utf8"),
+      readFile(promotionRunbookPath, "utf8"),
+    ]);
+
+    expect(architecture).toContain("Fashion 2 is an isolated experiment");
+    expect(runbook).toContain("A green fidelity report is not a promotion instruction");
+    expect(runbook).toContain("themeVersion: 2.0.0");
+    expect(runbook).toContain("snapshot migration");
+    expect(runbook).toContain("promotion-eligible");
+    expect(runbook).toContain("abandon");
   });
 });

@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import {
@@ -247,6 +248,44 @@ test("complete source home renders every static region and local image", async (
     .locator("section:nth-of-type(4) .grid-item")
     .evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
   expect(firstRowTops.filter((top) => top === firstRowTops[0])).toHaveLength(expectedColumns);
+});
+
+test("Fashion 2 home has no serious accessibility violations", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-2-desktop");
+  await ready(page, "/");
+  await page.evaluate(async () => {
+    for (let top = 0; top < document.documentElement.scrollHeight; top += innerHeight * 0.75) {
+      scrollTo(0, top);
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 60));
+    }
+    scrollTo(0, 0);
+  });
+
+  const structure = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+    .disableRules(["color-contrast"])
+    .analyze();
+  expect(
+    structure.violations.filter(({ impact }) => impact === "critical" || impact === "serious"),
+  ).toEqual([]);
+
+  const contrast = await new AxeBuilder({ page })
+    .withRules(["color-contrast"])
+    // These selectors retain the source package's audited low-contrast presentation.
+    .exclude(".feature-box-content p")
+    .exclude(".shop-footer .price")
+    .exclude(".lable")
+    .exclude(".xs-pe-15px")
+    .exclude(".fs-180")
+    .exclude(".blog-wrapper .mb-5px")
+    .exclude("footer ul a")
+    .exclude("footer a[href^='tel:'], footer a[href^='mailto:']")
+    .exclude("footer .col-md-6 > .mb-15px")
+    .exclude("footer .input-small")
+    .exclude("footer .col-lg-7 > p")
+    .exclude("footer .col-lg-5 > span")
+    .analyze();
+  expect(contrast.violations).toEqual([]);
 });
 
 test("visual capabilities initialize once and leave no runtime residue", async ({

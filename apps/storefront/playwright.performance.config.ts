@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 const port = Number(process.env.STOREFRONT_PERF_PORT || 3421);
 const baseURL = process.env.STOREFRONT_PERF_BASE_URL || `http://127.0.0.1:${port}`;
 const theme = process.env.STOREFRONT_THEME;
-if (theme && theme !== "fashion" && theme !== "decor") {
+if (theme && theme !== "fashion" && theme !== "fashion-2" && theme !== "decor") {
   throw new Error(`Unsupported STOREFRONT_THEME: ${theme}`);
 }
 const buildCommand = theme ? `bun run build:preview:${theme}` : "bun run build";
