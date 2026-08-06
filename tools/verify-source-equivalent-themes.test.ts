@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { decorNamedStates } from "../apps/storefront/e2e/support/theme-named-state-contract";
 import {
   loadSourceEquivalencePolicy,
+  validateImportedSourceTree,
   validateFidelityEvidenceRecords,
   validateSourceEquivalencePolicy,
   type SourceEquivalencePolicy,
@@ -81,6 +82,77 @@ describe("source-equivalent theme policy", () => {
     expect(() => validateSourceEquivalencePolicy(policy, root)).toThrow(
       /required evidence dimensions/,
     );
+  });
+});
+
+describe("Fashion 2 imported source tree", () => {
+  test("accepts exact manifest-bound files and rejects later drift", async () => {
+    const temporaryRoot = await mkdtemp(resolve(tmpdir(), "shoppp-fashion-2-source-"));
+    const contents = ".fashion{}\n";
+    const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
+    const sourcePath = resolve(
+      temporaryRoot,
+      "apps/storefront/app/themes/fashion-2/upstream/demos/fashion-store/fashion-store.css",
+    );
+    const provenancePath = resolve(
+      temporaryRoot,
+      "apps/storefront/app/themes/fashion-2/UPSTREAM.md",
+    );
+    const manifestPath = resolve(temporaryRoot, "tools/storefront-theme-source-manifest.json");
+    await mkdir(resolve(sourcePath, ".."), { recursive: true });
+    await mkdir(resolve(manifestPath, ".."), { recursive: true });
+    await writeFile(sourcePath, contents);
+    await writeFile(
+      provenancePath,
+      `# Fashion 2\n\nlocal://fixture/demo-fashion-store.html\n${digest}\njs/main.js is a behavioral reference.\n`,
+    );
+    await writeFile(
+      manifestPath,
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          themes: [
+            {
+              allowlist: [
+                {
+                  destinationPath: "upstream/demos/fashion-store/fashion-store.css",
+                  expectedSha256: digest,
+                  kind: "stylesheet",
+                  license: "Authorized fixture",
+                  sourcePath: "demos/fashion-store/fashion-store.css",
+                },
+              ],
+              importedAt: "2026-08-06",
+              importedFiles: [
+                {
+                  bytes: Buffer.byteLength(contents),
+                  destinationPath: "upstream/demos/fashion-store/fashion-store.css",
+                  expectedSha256: digest,
+                  kind: "stylesheet",
+                  license: "Authorized fixture",
+                  sha256: digest,
+                  sourcePath: "demos/fashion-store/fashion-store.css",
+                },
+              ],
+              ownershipApproval: "Fixture owner approved source reuse.",
+              sourceIdentity: "local://fixture/demo-fashion-store.html",
+              sourceRevision: "fixture-1",
+              themeId: "fashion-2",
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    try {
+      await expect(validateImportedSourceTree(temporaryRoot)).resolves.toBeUndefined();
+      await writeFile(sourcePath, ".drift{}\n");
+      await expect(validateImportedSourceTree(temporaryRoot)).rejects.toThrow(/hash|bytes/i);
+    } finally {
+      await rm(temporaryRoot, { force: true, recursive: true });
+    }
   });
 });
 

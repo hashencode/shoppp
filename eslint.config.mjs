@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/.output/**",
       "**/.wrangler/**",
       "apps/admin/**",
+      "apps/storefront/app/themes/fashion-2/upstream/**",
       "**/artifacts/**",
       "**/coverage/**",
       "**/dist/**",
