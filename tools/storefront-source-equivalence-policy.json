@@ -63,6 +63,13 @@
       "sourceContractPath": "apps/storefront/app/themes/fashion/source-contract.ts",
       "upstreamPath": "apps/storefront/app/themes/fashion/UPSTREAM.md",
       "requiredContractFacets": ["sources", "regions", "fonts", "interactions"]
+    },
+    {
+      "id": "fashion-2",
+      "equivalenceScope": ["home"],
+      "sourceContractPath": "apps/storefront/app/themes/fashion-2/source-contract.ts",
+      "upstreamPath": "apps/storefront/app/themes/fashion-2/UPSTREAM.md",
+      "requiredContractFacets": ["homeSectionCount", "regionOrder", "stylesheetOrder"]
     }
   ],
   "waivers": [

@@ -368,6 +368,8 @@ function upstreamMarkdown(source: StorefrontThemeSource): string {
 
 The pinned vendor files provide reviewed visual runtime capabilities. \`js/main.js\` is retained as a line-addressable behavioral reference and is not executed as the application entry point. Nuxt owns rendering, routing, fixture data, and commerce actions; the Fashion 2 adapter may initialize only reviewed visual behavior and must dispose it on unmount.
 
+The preview build removes only the four exact Google Fonts \`@import\` statements from the compiled \`style.css\` and \`fashion-store.css\` modules. Fashion overrides the base families, so the unused Plus Jakarta Sans and Inter requests are omitted; Outfit and Figtree are supplied from the hash-pinned local WOFF2 files. The imported upstream stylesheets remain byte-identical and retain their original positions in the five-file cascade; \`integration.css\` contains this documented hosting adaptation and accessibility-only rules.
+
 ${(source.behaviorReferences ?? [])
   .map(
     ({ execution, lineEnd, lineStart, path, purpose }) =>

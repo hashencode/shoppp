@@ -17,6 +17,7 @@ import {
 } from "../apps/storefront/e2e/support/theme-capture-contract";
 import {
   decorNamedStates,
+  fashion2NamedStates,
   fashionNamedStates,
   namedStatePixelThreshold,
 } from "../apps/storefront/e2e/support/theme-named-state-contract";
@@ -120,6 +121,7 @@ const REQUIRED_EVIDENCE = [
 const NAMED_STATES_BY_THEME = {
   decor: decorNamedStates,
   fashion: fashionNamedStates,
+  "fashion-2": fashion2NamedStates,
 } as const;
 
 function assertNoErrors(errors: string[], label: string): void {
@@ -409,8 +411,10 @@ export function validateSourceEquivalencePolicy(
   }
   const usedWaivers = new Set<string>();
   for (const route of themeFidelityMatrix) {
-    const themeId = route.id.split("-")[0]!;
-    const policyTheme = policy.themes.find(({ id }) => id === themeId);
+    const policyTheme = [...policy.themes]
+      .sort((left, right) => right.id.length - left.id.length)
+      .find(({ id }) => route.id.startsWith(`${id}-`));
+    const themeId = policyTheme?.id ?? route.id.split("-")[0]!;
     const pageType = route.id.slice(themeId.length + 1);
     if (!policyTheme?.equivalenceScope.includes(pageType))
       errors.push(`${route.id}: route is absent from the declared equivalence scope`);
@@ -475,7 +479,7 @@ export function validateFidelityEvidenceRecords(
       errors.push(`${label}: source and implementation must use distinct origins`);
     if (results) {
       const namedStateContracts =
-        record.themeId === "decor" || record.themeId === "fashion"
+        record.themeId === "decor" || record.themeId === "fashion" || record.themeId === "fashion-2"
           ? NAMED_STATES_BY_THEME[record.themeId]
           : null;
       if (!namedStateContracts) errors.push(`${label}: invalid named-state theme identity`);
@@ -484,7 +488,7 @@ export function validateFidelityEvidenceRecords(
       const expectedSourcePath =
         record.themeId === "decor"
           ? "/demo-decor-store.html"
-          : record.themeId === "fashion"
+          : record.themeId === "fashion" || record.themeId === "fashion-2"
             ? "/demo-fashion-store.html"
             : null;
       if (source && source.pathname !== expectedSourcePath)

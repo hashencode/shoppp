@@ -3,7 +3,10 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { decorNamedStates } from "../apps/storefront/e2e/support/theme-named-state-contract";
+import {
+  decorNamedStates,
+  fashion2NamedStates,
+} from "../apps/storefront/e2e/support/theme-named-state-contract";
 import {
   loadSourceEquivalencePolicy,
   validateImportedSourceTree,
@@ -18,7 +21,7 @@ describe("source-equivalent theme policy", () => {
   test("accepts the repository policy and its explicit intentional-difference waivers", async () => {
     const policy = await loadSourceEquivalencePolicy(root);
     expect(() => validateSourceEquivalencePolicy(policy, root)).not.toThrow();
-    expect(policy.themes.map(({ id }) => id)).toEqual(["decor", "fashion"]);
+    expect(policy.themes.map(({ id }) => id)).toEqual(["decor", "fashion", "fashion-2"]);
     expect(policy.waivers.map(({ id }) => id)).toEqual([
       "decor-home-journal-accessible-contrast",
       "decor-home-services-accessible-contrast",
@@ -264,6 +267,31 @@ describe("fidelity evidence freshness", () => {
   test("accepts a commit-bound named-state aggregate report", () => {
     expect(() =>
       validateFidelityEvidenceRecords([validNamedStateRecord], {
+        commit: "abcdef1",
+        now: new Date("2026-08-05T12:00:00.000Z"),
+      }),
+    ).not.toThrow();
+  });
+
+  test("accepts Fashion 2 named-state evidence against the Fashion source identity", () => {
+    const record = {
+      ...validNamedStateRecord,
+      implementationUrl: "http://127.0.0.1:3435/",
+      results: fashion2NamedStates.flatMap(({ id: state }) =>
+        namedStateViewports.map((viewport) => ({
+          difference: { changedPixelRatio: 0, dimensionsMatch: true },
+          geometry: namedStateGeometry,
+          state,
+          viewport,
+        })),
+      ),
+      sourceUrl: "http://127.0.0.1:4321/demo-fashion-store.html",
+      state: "fashion-2-named-states",
+      themeId: "fashion-2",
+    };
+
+    expect(() =>
+      validateFidelityEvidenceRecords([record], {
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
