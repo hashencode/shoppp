@@ -699,13 +699,13 @@ test("Fashion category routes render their requested source-equivalent shop cont
   await page.goto("/collections/women");
   await waitForNuxtHydration(page);
   await expect(page.locator(".fashion-shop-page")).toBeVisible();
-  await expect(page.locator(".fashion-shop-breadcrumb h1")).toHaveText("Shop");
+  await expect(page.locator(".fashion-shop-breadcrumb h1")).toHaveText("Women collection");
   await expect(page.locator(".fashion-shop-page")).toHaveAttribute("data-collection", "women");
   await expect(page.locator(".fashion-shop-grid article")).toHaveCount(12);
   await expect(page.locator('.fashion-shop-grid a[href^="/products/"]').first()).toBeVisible();
 
   await page.goto("/collections/kids");
-  await expect(page.locator(".fashion-shop-breadcrumb h1")).toHaveText("Shop");
+  await expect(page.locator(".fashion-shop-breadcrumb h1")).toHaveText("Kids collection");
   await expect(page.locator(".fashion-shop-page")).toHaveAttribute("data-collection", "kids");
 });
 
@@ -864,7 +864,7 @@ test("Fashion search, cart, and membership affordances have complete source inte
   );
 
   await page.getByRole("button", { name: "Search" }).click();
-  await expect(page.getByRole("searchbox")).toBeFocused();
+  await expect(page.getByRole("textbox", { name: "Search" })).toBeFocused();
   await page.getByRole("button", { name: "Close search" }).click();
   await expect(page.getByRole("search")).toHaveCount(0);
 
@@ -911,7 +911,7 @@ test("Fashion products keep distinct destinations, reference typography, and hov
   await expect(page.locator(".fashion-nav-link").first()).toHaveCSS("font-size", "19px");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByRole("search")).toBeVisible();
-  await expect(page.getByRole("searchbox")).toBeFocused();
+  await expect(page.getByRole("textbox", { name: "Search" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("search")).toHaveCount(0);
 

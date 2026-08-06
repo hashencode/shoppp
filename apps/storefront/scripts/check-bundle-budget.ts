@@ -55,8 +55,8 @@ const files = await outputFiles(output);
 const prohibitedRuntime =
   /(?:revolution(?:\.min)?\.js|revslider|contact\.php|(?:^|[/_-])crafto(?:\.min)?\.(?:css|js)|[/_-]crafto[/_-])/i;
 const sourceRuntime = /(?:jquery|vendors(?:\.min)?\.js)/i;
-const forbiddenSourceEntrypoint =
-  /(?:theme-demos-main|instagram-feed|(?:^|[/_-])main(?:\.[A-Za-z0-9_-]+)?\.js)/i;
+const forbiddenSourceEntrypointFile = /(?:^|[/_-])main(?:\.[A-Za-z0-9_-]+)?\.js/i;
+const forbiddenSourceEntrypointCode = /(?:theme-demos-main|instagram-feed)/i;
 const inactiveThemes =
   activeThemeId === "fashion"
     ? ["decor", "fashion-2"]
@@ -108,7 +108,10 @@ for (const file of files) {
   if (prohibitedRuntime.test(runtimeSurface)) {
     throw new Error(`Storefront output contains a prohibited upstream runtime in ${file}.`);
   }
-  if (forbiddenSourceEntrypoint.test(file) || forbiddenSourceEntrypoint.test(runtimeSurface)) {
+  if (
+    forbiddenSourceEntrypointFile.test(file) ||
+    forbiddenSourceEntrypointCode.test(runtimeSurface)
+  ) {
     throw new Error(`Storefront output contains the excluded upstream main entrypoint in ${file}.`);
   }
   if (activeThemeId !== "fashion-2" && sourceRuntime.test(file)) {
