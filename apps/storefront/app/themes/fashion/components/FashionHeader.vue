@@ -158,6 +158,10 @@ async function showUtility(label: "bag" | "search"): Promise<void> {
   searchInput.value?.focus();
 }
 
+function closeSearch(): void {
+  utilityMessage.value = "";
+}
+
 function openCart(): void {
   clearTimeout(cartCloseTimer);
   openMenu.value = null;
@@ -218,7 +222,7 @@ onBeforeUnmount(() => {
             @mouseenter="link.menu && openDesktopMenu(link.label)"
             @mouseleave="link.menu && closeDesktopMenu(link.label)"
           >
-            <a class="fashion-nav-link" :href="link.href">{{ link.label }}</a>
+            <NuxtLink class="fashion-nav-link" :to="link.href">{{ link.label }}</NuxtLink>
             <button
               v-if="link.menu"
               type="button"
@@ -313,7 +317,7 @@ onBeforeUnmount(() => {
             @mouseenter="link.menu && openDesktopMenu(link.label)"
             @mouseleave="link.menu && closeDesktopMenu(link.label)"
           >
-            <a class="fashion-nav-link" :href="link.href">{{ link.label }}</a>
+            <NuxtLink class="fashion-nav-link" :to="link.href">{{ link.label }}</NuxtLink>
             <button
               v-if="link.menu"
               type="button"
@@ -423,6 +427,7 @@ onBeforeUnmount(() => {
           v-if="utilityMessage === 'search'"
           class="fashion-search-panel"
           role="search"
+          @pointerdown.self="closeSearch"
           @submit.prevent
         >
           <div class="fashion-search-surface">
@@ -432,7 +437,8 @@ onBeforeUnmount(() => {
                 <span class="sr-only">Search</span>
                 <input
                   ref="searchInput"
-                  type="search"
+                  type="text"
+                  autocomplete="off"
                   placeholder="Enter your keywords..."
                   autofocus
                 />
@@ -446,7 +452,7 @@ onBeforeUnmount(() => {
             class="fashion-search-close"
             type="button"
             aria-label="Close search"
-            @click="utilityMessage = ''"
+            @click="closeSearch"
           >
             <span aria-hidden="true">×</span>
           </button>
@@ -459,7 +465,7 @@ onBeforeUnmount(() => {
         </summary>
         <nav aria-label="Mobile navigation">
           <div v-for="link in links" :key="link.label">
-            <a :href="link.href">{{ link.label }}</a>
+            <NuxtLink :to="link.href">{{ link.label }}</NuxtLink>
             <button
               v-if="link.menu"
               class="fashion-mobile-submenu-toggle"

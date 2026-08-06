@@ -29,7 +29,7 @@ useFashionSourceReveal(section, {
 <template>
   <section v-if="data" ref="section" class="fashion-brands" aria-label="Featured fashion labels">
     <div class="fashion-brands-inner">
-      <a v-for="item in data.items" :key="item.assetId" href="/#fashion-featured">
+      <NuxtLink v-for="item in data.items" :key="item.assetId" to="/#fashion-featured">
         <img
           :src="properties.resolveAsset(item.assetId)"
           :alt="item.label"
@@ -37,7 +37,7 @@ useFashionSourceReveal(section, {
           height="30"
           loading="lazy"
         />
-      </a>
+      </NuxtLink>
     </div>
   </section>
 </template>

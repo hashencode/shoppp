@@ -10,7 +10,7 @@ import FashionMagazinePage from "./FashionMagazinePage.vue";
 import FashionWishlistPage from "./FashionWishlistPage.vue";
 
 interface FashionContentData {
-  products: { assetId: string; name: string; price: string; slug: string }[];
+  products: { assetId: string; comparePrice: string; name: string; price: string; slug: string }[];
 }
 
 const properties = defineProps<{

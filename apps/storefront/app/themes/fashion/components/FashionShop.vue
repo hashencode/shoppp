@@ -50,7 +50,17 @@ const layoutMode = computed(() => {
     : "left-sidebar";
 });
 const isCollectionShowcase = computed(() => collectionSlug.value === "new-arrivals");
-const pageHeading = computed(() => (isCollectionShowcase.value ? "Collection" : "Shop"));
+const collectionHeadings: Readonly<Record<string, string>> = {
+  accessories: "Accessories collection",
+  divided: "Divided collection",
+  kids: "Kids collection",
+  men: "Men collection",
+  women: "Women collection",
+};
+const pageHeading = computed(() => {
+  if (isCollectionShowcase.value) return "Collection";
+  return collectionHeadings[collectionSlug.value] ?? "Shop";
+});
 const selectedCategories = ref(new Set<string>());
 const selectedColors = ref(new Set<string>());
 const selectedSizes = ref(new Set<string>());

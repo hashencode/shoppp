@@ -38,7 +38,9 @@ useFashionSourceReveal(section, {
       <small>{{ item.count }}</small>
       <div class="fashion-category-control-position">
         <NuxtLink class="fashion-category-control" :to="item.href">
-          <span :data-text="item.name">{{ item.name }}</span>
+          <span class="fashion-category-label">
+            <span class="fashion-category-text" :data-text="item.name">{{ item.name }}</span>
+          </span>
         </NuxtLink>
       </div>
     </article>

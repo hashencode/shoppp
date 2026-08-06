@@ -141,15 +141,16 @@ onBeforeUnmount(() => {
         <template v-else><span>ML</span>{{ data.brand }}</template>
       </strong>
       <nav aria-label="Footer">
-        <a href="/">Home</a><a href="/collections/all">Shop</a
-        ><a href="/collections/new-arrivals">Collection</a><a href="/magazine">Magazine</a
-        ><a href="/about">About</a><a href="/contact">Contact</a>
+        <NuxtLink to="/">Home</NuxtLink><NuxtLink to="/collections/all">Shop</NuxtLink
+        ><NuxtLink to="/collections/new-arrivals">Collection</NuxtLink
+        ><NuxtLink to="/magazine">Magazine</NuxtLink><NuxtLink to="/about">About</NuxtLink
+        ><NuxtLink to="/contact">Contact</NuxtLink>
       </nav>
     </div>
     <div class="fashion-footer-grid">
       <section v-for="(links, heading) in data.columns" :key="heading">
         <h2>{{ heading }}</h2>
-        <a v-for="link in links" :key="link" :href="destination(link)">{{ link }}</a>
+        <NuxtLink v-for="link in links" :key="link" :to="destination(link)">{{ link }}</NuxtLink>
       </section>
       <section v-if="data.contact" id="fashion-contact" class="fashion-footer-contact">
         <h2>Quick contact</h2>
@@ -216,8 +217,8 @@ onBeforeUnmount(() => {
     <nav class="fashion-legal" aria-label="Legal">
       <p>
         This site is protected by reCAPTCHA and the Google
-        <a href="/policies/privacy">privacy policy</a> and
-        <a href="/policies/terms">terms of service.</a>
+        <NuxtLink to="/policies/privacy">privacy policy</NuxtLink> and
+        <NuxtLink to="/policies/terms">terms of service.</NuxtLink>
       </p>
       <span
         >© 2024 Crafto is Proudly Powered by
@@ -230,7 +231,7 @@ onBeforeUnmount(() => {
       We use cookies to enhance your browsing experience, serve personalized ads or content, and
       analyze our traffic. By clicking "Allow cookies" you consent to our use of cookies.
     </p>
-    <a href="/policies/privacy">Cookie policy</a>
+    <NuxtLink to="/policies/privacy">Cookie policy</NuxtLink>
     <button type="button" @click="acceptCookies">Allow cookies</button>
   </aside>
   <aside

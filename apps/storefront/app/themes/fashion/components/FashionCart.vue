@@ -12,13 +12,19 @@ const cart = computed(() => (properties.viewModel.kind === "cart" ? properties.v
 const coupon = ref("");
 const couponMessage = ref("");
 const shippingMethod = ref(fashionSourceContract.cartPage.shipping[0]);
+const shippingOpen = ref(false);
 
 const displayLines = computed(() =>
-  (cart.value?.lines ?? []).map((line, index) => ({
-    ...line,
-    color: fashionSourceContract.cartPage.items[index]?.color ?? "Natural",
-    total: fashionSourceContract.cartPage.items[index]?.total ?? line.priceLabel,
-  })),
+  (cart.value?.lines ?? []).map((line, index) => {
+    const sourceItem = fashionSourceContract.cartPage.items[index];
+    return {
+      ...line,
+      assetId: sourceItem?.assetId ?? "fashion.product-01",
+      color: sourceItem?.color ?? "Natural",
+      slug: sourceItem?.slug ?? "textured-sweater",
+      total: sourceItem?.total ?? line.priceLabel,
+    };
+  }),
 );
 
 function applyCoupon(): void {
@@ -38,14 +44,23 @@ function applyCoupon(): void {
     <div class="fashion-cart-layout">
       <section class="fashion-cart-products" aria-label="Cart products">
         <div class="fashion-cart-heading" aria-hidden="true">
-          <span>Product</span><span>Price</span><span>Quantity</span><span>Total</span>
+          <span></span><span>Product</span><span></span><span>Price</span><span>Quantity</span
+          ><span>Total</span>
         </div>
         <article v-for="line in displayLines" :key="line.id">
           <button class="fashion-cart-delete" type="button" :aria-label="`Remove ${line.name}`">
             ×
           </button>
+          <NuxtLink class="fashion-cart-thumbnail" :to="`/products/${line.slug}`">
+            <img
+              :src="properties.resolveAsset(line.assetId)"
+              :alt="line.name"
+              width="600"
+              height="765"
+            />
+          </NuxtLink>
           <div class="fashion-cart-product">
-            <NuxtLink to="/products/textured-sweater">{{ line.name }}</NuxtLink>
+            <NuxtLink :to="`/products/${line.slug}`">{{ line.name }}</NuxtLink>
             <small>Color: {{ line.color }}</small>
           </div>
           <span class="fashion-cart-price" data-title="Price">{{ line.priceLabel }}</span>
@@ -110,24 +125,38 @@ function applyCoupon(): void {
           </div>
           <div class="fashion-cart-calculate-row">
             <dt>
-              <details>
-                <summary>Calculate shipping</summary>
-                <div class="fashion-cart-address">
-                  <select aria-label="Country">
-                    <option>Select a country</option>
-                    <option>China</option>
-                    <option>United Kingdom</option>
-                    <option>United States</option>
-                  </select>
-                  <select aria-label="State">
-                    <option>Select a state</option>
-                    <option>State / province</option>
-                  </select>
-                  <input aria-label="Town or city" placeholder="Town/City" />
-                  <input aria-label="ZIP" placeholder="ZIP" />
-                  <button type="button">Update</button>
-                </div>
-              </details>
+              <button
+                class="fashion-cart-shipping-toggle"
+                type="button"
+                :aria-expanded="shippingOpen"
+                aria-controls="fashion-cart-shipping-address"
+                @click="shippingOpen = !shippingOpen"
+              >
+                <span>Calculate shipping</span>
+                <span
+                  class="fashion-feather-icon fashion-feather-chevron-down"
+                  aria-hidden="true"
+                />
+              </button>
+              <div
+                v-show="shippingOpen"
+                id="fashion-cart-shipping-address"
+                class="fashion-cart-address"
+              >
+                <select aria-label="Country">
+                  <option>Select a country</option>
+                  <option>China</option>
+                  <option>United Kingdom</option>
+                  <option>United States</option>
+                </select>
+                <select aria-label="State">
+                  <option>Select a state</option>
+                  <option>State / province</option>
+                </select>
+                <input aria-label="Town or city" placeholder="Town/City" />
+                <input aria-label="ZIP" placeholder="ZIP" />
+                <button type="button">Update</button>
+              </div>
             </dt>
           </div>
           <div class="fashion-cart-grand-total">
@@ -135,9 +164,9 @@ function applyCoupon(): void {
             <dd>{{ fashionSourceContract.cartPage.total }}</dd>
           </div>
         </dl>
-        <button type="button" @click="recordPreviewIntent(cart.checkoutAction, 'fashion.cart')">
+        <NuxtLink class="fashion-cart-checkout" to="/checkout">
           {{ cart.checkoutAction.label }}
-        </button>
+        </NuxtLink>
       </aside>
     </div>
   </main>

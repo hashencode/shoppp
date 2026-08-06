@@ -16,7 +16,7 @@ const emit = defineEmits<{ submit: [label: string] }>();
       /></label>
       <div class="fashion-account-options">
         <label><input type="checkbox" />Remember me</label>
-        <a href="/account">Forget your password?</a>
+        <NuxtLink to="/account">Forget your password?</NuxtLink>
       </div>
       <button type="submit">Login</button>
     </form>

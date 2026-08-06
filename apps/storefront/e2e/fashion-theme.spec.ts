@@ -124,7 +124,7 @@ const responsiveRoutes: readonly ResponsiveRouteContract[] = [
   },
   {
     grid: {
-      columns: { desktop: 4, laptop: 4, mobile: 1, tablet: 2 },
+      columns: { desktop: 4, laptop: 3, mobile: 1, tablet: 2 },
       selector: ".fashion-wishlist-page",
     },
     heading: "Wishlist",
@@ -151,6 +151,11 @@ for (const route of responsiveRoutes) {
       await expect(page.locator('.fashion-cart-totals input[type="radio"]')).toHaveCount(3);
       await expect(page.getByRole("button", { name: "Empty cart" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Update cart" })).toBeVisible();
+      await expect(page.locator(".fashion-cart-thumbnail img")).toHaveCount(3);
+      await expect(page.locator(".fashion-cart-shipping-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
     }
     if (route.path === "/account")
       await expect(page.getByRole("heading", { level: 2, name: "Member login" })).toBeVisible();
@@ -164,8 +169,13 @@ for (const route of responsiveRoutes) {
     }
     if (route.path === "/faq")
       await expect(page.locator(".fashion-faq-page details")).toHaveCount(8);
-    if (route.path === "/wishlist")
+    if (route.path === "/wishlist") {
       await expect(page.locator(".fashion-wishlist-page > article")).toHaveCount(8);
+      await expect(page.locator(".fashion-wishlist-actions")).toHaveCount(8);
+      await expect(
+        page.locator('.fashion-wishlist-media > button[aria-label^="Remove"]'),
+      ).toHaveCount(0);
+    }
     if (route.path === "/contact")
       await expect(page.locator(".fashion-contact-page > section")).toHaveCount(3);
     if (route.grid) {
@@ -450,7 +460,11 @@ test("Fashion fluid tablet layout and transient header states match the source",
   expect(searchGeometry).toEqual({ height: 1000, left: 0, top: 0, width: 1440 });
   await page.getByRole("button", { name: "Close search" }).click();
   await expect(page.locator(".fashion-search-panel")).toHaveCount(1);
-  await expect(page.locator(".fashion-search-panel")).toHaveCSS("transition-duration", "0.2s");
+  await expect(page.locator(".fashion-search-panel")).toHaveCSS("transition-duration", "0.6s");
+  await expect(page.locator(".fashion-search-panel")).toHaveCount(0, { timeout: 1_000 });
+
+  await page.getByRole("button", { name: "Search" }).click();
+  await page.mouse.click(720, 750);
   await expect(page.locator(".fashion-search-panel")).toHaveCount(0, { timeout: 1_000 });
 
   await page.getByRole("button", { name: "Preview bag", exact: true }).hover();
@@ -556,9 +570,11 @@ test("Fashion utility and editorial links navigate to dedicated pages", async ({
   await page.goto("/");
   await waitForNuxtHydration(page);
 
+  await page.evaluate(() => Reflect.set(window, "__fashionSpaSentinel", "preserved"));
   await page.getByRole("link", { name: "Account", exact: true }).click();
   await expect(page).toHaveURL(/\/account\/?$/);
   await expect(page.getByRole("heading", { level: 2, name: "Member login" })).toBeVisible();
+  expect(await page.evaluate(() => Reflect.get(window, "__fashionSpaSentinel"))).toBe("preserved");
 
   await page.getByRole("link", { name: "Magazine", exact: true }).first().click();
   await expect(page).toHaveURL(/\/magazine\/?$/);
@@ -663,6 +679,17 @@ test("Fashion source-critical controls retain exact local geometry, color, and t
   });
   expect(controls.tabs.allSingleLine).toBe(true);
   expect(controls.tabs.scrollWidth).toBeLessThanOrEqual(controls.tabs.clientWidth);
+
+  await page.goto("/wishlist");
+  await waitForNuxtHydration(page);
+  const wishlistMedia = page.locator(".fashion-wishlist-media").first();
+  const wishlistActions = wishlistMedia.locator(".fashion-wishlist-actions");
+  const wishlistAdd = wishlistMedia.locator(".fashion-wishlist-add");
+  await expect(wishlistActions).toHaveCSS("pointer-events", "none");
+  await expect(wishlistAdd).toHaveCSS("pointer-events", "none");
+  await wishlistMedia.hover();
+  await expect(wishlistActions).toHaveCSS("pointer-events", "auto");
+  await expect(wishlistAdd).toHaveCSS("pointer-events", "auto");
 });
 
 test("Fashion category routes render their requested source-equivalent shop context", async ({

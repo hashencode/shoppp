@@ -164,8 +164,9 @@ export const fashionHomeFixtures = {
             date,
             title,
           })),
-          products: shopProducts.map(({ assetId, name, price, slug }) => ({
+          products: shopProducts.map(({ assetId, comparePrice, name, price, slug }) => ({
             assetId,
+            comparePrice,
             name,
             price,
             slug,

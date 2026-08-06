@@ -281,6 +281,40 @@ describe("Fashion theme package", () => {
     );
   });
 
+  test("preserves source interaction structure for navigation, search, categories, and commerce pages", async () => {
+    const [header, categories, wishlist, cart, checkout, footer, styles] = await Promise.all(
+      [
+        "FashionHeader.vue",
+        "FashionCategoryTiles.vue",
+        "FashionWishlistPage.vue",
+        "FashionCart.vue",
+        "FashionCheckout.vue",
+        "FashionFooter.vue",
+      ]
+        .map((name) =>
+          readFile(resolve(import.meta.dir, `../app/themes/fashion/components/${name}`), "utf8"),
+        )
+        .concat([readFile(resolve(import.meta.dir, "../app/themes/fashion/tokens.css"), "utf8")]),
+    );
+
+    expect(header).toContain('type="text"');
+    expect(header).not.toContain('type="search"');
+    expect(header).toContain('@pointerdown.self="closeSearch"');
+    expect(header).toContain('<NuxtLink class="fashion-nav-link"');
+    expect(footer).toContain('<NuxtLink to="/">Home</NuxtLink>');
+    expect(categories).toContain('class="fashion-category-label"');
+    expect(categories).toContain('class="fashion-category-text"');
+    expect(wishlist).toContain('class="fashion-wishlist-actions"');
+    expect(wishlist).not.toContain('from wishlist`">×');
+    expect(cart).toContain('class="fashion-cart-shipping-toggle"');
+    expect(cart).not.toContain("<details>");
+    expect(cart).toContain('class="fashion-cart-checkout" to="/checkout"');
+    expect(checkout).toContain('class="fashion-checkout-payment-logos"');
+    expect(checkout).toContain("resolveAsset(assetId)");
+    expect(styles).not.toContain("transition: opacity 200ms ease 400ms");
+    expect(styles).toContain(".fashion-search-leave-active {\n  transition: opacity 600ms ease;");
+  });
+
   test("maps the four large Fashion services to original Crafto glyph assets", async () => {
     const services = fashionHomeFixtures["fashion-home"].viewModels.services.data.items;
     expect(services.map(({ assetId }) => assetId)).toEqual([

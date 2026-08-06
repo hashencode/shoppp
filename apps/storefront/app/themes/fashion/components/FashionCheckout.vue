@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { recordPreviewIntent } from "../../../theme-engine/actions";
+import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import { fashionSourceContract } from "../source-contract";
 
-const properties = defineProps<{ viewModel: PresentationViewModel }>();
+const properties = defineProps<{
+  resolveAsset: ThemeAssetResolver;
+  viewModel: PresentationViewModel;
+}>();
 const checkout = computed(() =>
   properties.viewModel.kind === "checkout" ? properties.viewModel : null,
 );
 const accepted = ref(false);
 const shippingMethod = ref(fashionSourceContract.checkoutPage.shippingMethods[0]);
 const paymentMethod = ref(fashionSourceContract.checkoutPage.paymentMethods[0]);
+const paypalAssets = fashionSourceContract.productDetail.paymentAssets.slice(0, 4);
 </script>
 
 <template>
@@ -19,8 +24,14 @@ const paymentMethod = ref(fashionSourceContract.checkoutPage.paymentMethods[0]);
       <nav aria-label="Breadcrumb"><NuxtLink to="/">Home</NuxtLink><span>Checkout</span></nav>
     </header>
     <div class="fashion-checkout-prompts">
-      <p>Returning customer? <NuxtLink to="/account">Click here to login</NuxtLink></p>
-      <p>Have a coupon? <NuxtLink to="/cart">Click here to enter your code</NuxtLink></p>
+      <p>
+        <span class="fashion-feather-icon fashion-feather-user" aria-hidden="true" />
+        <span>Returning customer? <NuxtLink to="/account">Click here to login</NuxtLink></span>
+      </p>
+      <p>
+        <span class="fashion-feather-icon fashion-feather-scissors" aria-hidden="true" />
+        <span>Have a coupon? <NuxtLink to="/cart">Click here to enter your code</NuxtLink></span>
+      </p>
     </div>
     <form
       class="fashion-checkout-layout"
@@ -171,9 +182,17 @@ const paymentMethod = ref(fashionSourceContract.checkoutPage.paymentMethods[0]);
                 v-model="paymentMethod"
                 type="radio"
                 name="payment-option"
-                :value="method"
-              />{{ method }}</span
-            >
+                :value="method" />{{ method }}
+              <span v-if="method === 'PayPal'" class="fashion-checkout-payment-logos">
+                <img
+                  v-for="assetId in paypalAssets"
+                  :key="assetId"
+                  :src="properties.resolveAsset(assetId)"
+                  alt=""
+                  width="38"
+                  height="24"
+                /> </span
+            ></span>
             <small v-if="method === paymentMethod">
               Make your payment directly into our bank account. Please use your Order ID as the
               payment reference. Your order will not be shipped until the funds have cleared in our

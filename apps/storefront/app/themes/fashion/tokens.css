@@ -549,10 +549,10 @@ a {
   color: #000;
 }
 .fashion-search-enter-active {
-  transition: opacity 200ms ease;
+  transition: opacity 600ms ease;
 }
 .fashion-search-leave-active {
-  transition: opacity 200ms ease 400ms;
+  transition: opacity 600ms ease;
 }
 .fashion-search-enter-from,
 .fashion-search-leave-to {
@@ -1004,16 +1004,19 @@ a {
   text-align: center;
   box-shadow: 0 5px 20px rgb(0 0 0 / 10%);
 }
-.fashion-category-control > span {
-  position: relative;
+.fashion-category-label {
   display: inline-flex;
   overflow: hidden;
+}
+.fashion-category-text {
+  position: relative;
+  display: inline-flex;
   transition:
     opacity 0.65s,
     transform 0.85s;
   transition-timing-function: cubic-bezier(0.15, 0.85, 0.31, 1);
 }
-.fashion-category-control > span::before {
+.fashion-category-text::before {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1025,12 +1028,12 @@ a {
     transform 0.8s;
   transition-timing-function: cubic-bezier(0.15, 0.85, 0.31, 1);
 }
-.fashion-categories > article:hover .fashion-category-control > span,
-.fashion-categories > article:focus-within .fashion-category-control > span {
+.fashion-categories > article:hover .fashion-category-text,
+.fashion-categories > article:focus-within .fashion-category-text {
   transform: translateY(-200%);
 }
-.fashion-categories > article:hover .fashion-category-control > span::before,
-.fashion-categories > article:focus-within .fashion-category-control > span::before {
+.fashion-categories > article:hover .fashion-category-text::before,
+.fashion-categories > article:focus-within .fashion-category-text::before {
   opacity: 1;
   transform: translate(-50%, 150%);
 }
@@ -1215,6 +1218,12 @@ a {
 .fashion-feather-shopping-bag::before {
   content: "\e926";
 }
+.fashion-feather-chevron-down::before {
+  content: "\e842";
+}
+.fashion-feather-scissors::before {
+  content: "\e8bf";
+}
 .fashion-feather-phone-call::before {
   content: "\e8a5";
 }
@@ -1330,7 +1339,7 @@ a {
   display: block;
   box-sizing: border-box;
   min-height: 63px;
-  padding: 16px 15px 14px;
+  padding: 15px;
   background: #232323;
   color: #fff;
   text-align: center;
@@ -1340,8 +1349,6 @@ a {
     sans-serif;
 }
 .fashion-promo-code {
-  position: relative;
-  top: 2px;
   display: inline-block;
   margin-left: 5px;
   padding: 0 15px;
@@ -3487,20 +3494,6 @@ a {
   .fashion-nav-item > button svg {
     opacity: 0;
   }
-  .fashion-nav-shell .fashion-nav-actions button {
-    width: 31px;
-    min-width: 31px;
-    padding-left: 10px;
-  }
-  .fashion-nav-shell .fashion-nav-actions button:first-child {
-    width: 21px;
-    min-width: 21px;
-    padding-left: 0;
-  }
-  .fashion-nav-shell .fashion-nav-actions button:last-child {
-    width: 26px;
-    min-width: 26px;
-  }
   .fashion-service-strip {
     padding-inline: max(0px, calc((100% - 960px) / 2));
   }
@@ -3590,11 +3583,6 @@ a {
   }
   .fashion-action-label {
     display: none;
-  }
-  .fashion-nav-shell .fashion-nav-actions button {
-    width: 34px;
-    min-width: 34px;
-    padding-left: 10px;
   }
   .fashion-desktop-nav {
     font-size: 17px;
@@ -3705,20 +3693,6 @@ a {
   }
   .fashion-cart-panel {
     right: 50px;
-  }
-  .fashion-nav-shell .fashion-nav-actions button {
-    width: 31px;
-    min-width: 31px;
-    padding-left: 10px;
-  }
-  .fashion-nav-shell .fashion-nav-actions button:first-child {
-    width: 21px;
-    min-width: 21px;
-    padding-left: 0;
-  }
-  .fashion-nav-shell .fashion-nav-actions button:last-child {
-    width: 26px;
-    min-width: 26px;
   }
   .fashion-products h2,
   .fashion-magazine > h2 {
@@ -3869,21 +3843,6 @@ a {
   .fashion-nav-actions {
     grid-column: 3;
     margin-right: 25px;
-  }
-  .fashion-nav-shell .fashion-nav-actions button {
-    width: 34px;
-    min-width: 34px;
-    padding-left: 12px;
-  }
-  .fashion-nav-shell .fashion-nav-actions button:first-child {
-    /* Preserve the compact source icon while meeting Lighthouse's 24px touch-target floor. */
-    width: 24px;
-    min-width: 24px;
-    padding-left: 0;
-  }
-  .fashion-nav-shell .fashion-nav-actions button:last-child {
-    width: 34px;
-    min-width: 34px;
   }
   .fashion-nav-actions .fashion-feather-icon {
     font-size: 17px;
@@ -5031,12 +4990,12 @@ a {
 
 /* Source-backed inner pages */
 .fashion-page-breadcrumb {
-  padding: clamp(3rem, 6vw, 5rem) 1rem;
-  background: linear-gradient(135deg, #f7f7f7 0%, #fff 100%);
+  padding: 70px 1rem;
+  background: linear-gradient(to bottom, #f7f7f7 0%, #fff 100%);
   text-align: center;
 }
 .fashion-page-breadcrumb h1 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 10px;
   color: #232323;
   font:
     600 clamp(2.75rem, 5vw, 4.5rem)/1 "Outfit",
@@ -5065,42 +5024,53 @@ a {
 .fashion-magazine-page,
 .fashion-wishlist-page {
   box-sizing: border-box;
-  width: min(calc(100% - 30px), 1170px);
+  width: min(calc(100% - 30px), 1220px);
   margin-inline: auto;
 }
 .fashion-cart-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr);
-  gap: clamp(2rem, 5vw, 5rem);
-  padding-block: clamp(3.5rem, 7vw, 7rem);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 0;
+  padding: 0 0 130px;
+}
+.fashion-cart-products {
+  min-width: 0;
+  padding: 0 50px 0 15px;
 }
 .fashion-cart-heading {
   display: grid;
-  grid-template-columns: minmax(12rem, 2fr) minmax(4rem, 0.7fr) minmax(7rem, 0.8fr) minmax(
-      4rem,
-      0.7fr
-    );
+  grid-template-columns: 25px 100px minmax(160px, 1fr) 105px 130px 90px;
   align-items: center;
-  gap: clamp(0.75rem, 1.5vw, 1.5rem);
-}
-.fashion-cart-heading {
-  padding: 0 0 1rem 3.5rem;
+  gap: 0;
+  padding: 15px 0;
   border-bottom: 1px solid #e7e7e7;
   color: #232323;
   font:
     600 0.95rem/1.4 "Outfit",
     sans-serif;
 }
+.fashion-cart-heading > span {
+  padding-inline: 10px;
+}
 .fashion-cart-products > article {
   display: grid;
-  grid-template-columns: 2rem minmax(12rem, 2fr) minmax(4rem, 0.7fr) minmax(7rem, 0.8fr) minmax(
-      4rem,
-      0.7fr
-    );
+  grid-template-columns: 25px 100px minmax(160px, 1fr) 105px 130px 90px;
   align-items: center;
-  gap: clamp(0.75rem, 1.5vw, 1.5rem);
-  padding: 1.6rem 0;
+  gap: 0;
+  padding: 25px 0;
   border-bottom: 1px solid #e7e7e7;
+}
+.fashion-cart-products > article > * {
+  box-sizing: border-box;
+  padding-inline: 10px;
+}
+.fashion-cart-thumbnail {
+  display: block;
+}
+.fashion-cart-thumbnail img {
+  display: block;
+  width: 80px;
+  height: auto;
 }
 .fashion-cart-product {
   display: grid;
@@ -5127,8 +5097,9 @@ a {
 .fashion-cart-quantity output {
   display: grid;
   place-items: center;
-  min-width: 2rem;
-  padding: 0.45rem;
+  min-width: 32px;
+  height: 42px;
+  padding: 0;
   border: 0;
   background: transparent;
 }
@@ -5144,8 +5115,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 30px;
+  margin-top: 20px;
 }
 .fashion-cart-actions > div {
   display: flex;
@@ -5153,33 +5124,38 @@ a {
 }
 .fashion-cart-coupon {
   display: flex;
-  flex: 1 1 25rem;
-  max-width: 28rem;
+  flex: 1 1 55%;
+  max-width: none;
+  position: relative;
+}
+.fashion-cart-coupon::before {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 20px;
+  content: "\e8bf";
+  font-family: "fashion-feather";
+  line-height: 50px;
 }
 .fashion-cart-coupon label {
   flex: 1;
 }
-.fashion-cart-coupon input,
-.fashion-content-page input,
-.fashion-content-page textarea,
-.fashion-checkout-page input,
-.fashion-checkout-page select {
+.fashion-cart-coupon input {
   box-sizing: border-box;
   width: 100%;
-  padding: 0.9rem 1rem;
-  border: 1px solid transparent;
+  padding: 8px 70px 9px 45px;
+  border: 1px dashed #dfdfdf;
   border-radius: 4px;
-  background: #f5f5f3;
+  background: #fff;
   color: #232323;
   font:
-    400 1rem/1.5 "Figtree",
+    400 14px/32px "Figtree",
     sans-serif;
 }
 .fashion-cart-coupon button,
 .fashion-cart-actions > div button,
-.fashion-cart-totals > button,
+.fashion-cart-checkout,
 .fashion-content-page form > button,
-.fashion-wishlist-page button,
 .fashion-checkout-summary button {
   padding: 0.9rem 1.5rem;
   border: 1px solid #232323;
@@ -5190,6 +5166,14 @@ a {
     sans-serif;
   cursor: pointer;
 }
+.fashion-cart-checkout {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 1.5rem;
+  text-align: center;
+  text-decoration: none;
+}
 .fashion-cart-actions > div button {
   border-color: #dfdfdf;
   background: #fff;
@@ -5197,16 +5181,17 @@ a {
 }
 .fashion-cart-totals {
   align-self: start;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  margin-inline: 15px;
+  padding: 50px;
+  border-radius: 6px;
   background: #f7f7f7;
 }
 .fashion-cart-totals h2,
-.fashion-checkout-page h2,
-.fashion-content-page h2 {
-  margin: 0 0 1.5rem;
+.fashion-checkout-page h2 {
+  margin: 0 0 5px;
   color: #232323;
   font:
-    600 clamp(1.5rem, 3vw, 2rem)/1.2 "Outfit",
+    600 26px/38px "Outfit",
     sans-serif;
 }
 .fashion-cart-totals dl,
@@ -5217,7 +5202,7 @@ a {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding-block: 1rem;
+  padding-block: 20px;
   border-bottom: 1px solid #dfdfdf;
 }
 .fashion-cart-totals dt {
@@ -5238,13 +5223,29 @@ a {
 .fashion-cart-shipping-row input {
   margin: 0;
 }
-.fashion-cart-calculate-row dt,
-.fashion-cart-calculate-row details {
+.fashion-cart-calculate-row dt {
   width: 100%;
 }
-.fashion-cart-calculate-row summary {
+.fashion-cart-shipping-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #232323;
   cursor: pointer;
-  list-style-position: outside;
+  font:
+    600 17px/32px "Outfit",
+    sans-serif;
+  text-align: left;
+}
+.fashion-cart-shipping-toggle .fashion-feather-icon {
+  transition: transform 200ms ease;
+}
+.fashion-cart-shipping-toggle[aria-expanded="true"] .fashion-feather-icon {
+  transform: rotate(180deg);
 }
 .fashion-cart-address {
   display: grid;
@@ -5272,10 +5273,6 @@ a {
     600 1.1rem/1.5 "Outfit",
     sans-serif;
 }
-.fashion-cart-totals > button {
-  width: 100%;
-  margin-top: 1.5rem;
-}
 .fashion-form-message {
   margin: 1rem auto;
   color: #4d6b48;
@@ -5283,22 +5280,25 @@ a {
 }
 .fashion-checkout-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(22rem, 1fr);
-  gap: clamp(2rem, 4vw, 4rem);
-  padding-block: clamp(3.5rem, 7vw, 7rem);
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 0;
+  padding: 0 0 130px;
 }
 .fashion-checkout-prompts {
   display: flex;
   justify-content: center;
-  width: min(calc(100% - 30px), 1170px);
-  margin: 3rem auto -2rem;
+  width: min(calc(100% - 30px), 1220px);
+  margin: 0 auto 95px;
   color: #232323;
   font-family: "Outfit", sans-serif;
   font-weight: 500;
 }
 .fashion-checkout-prompts p {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0;
-  padding-inline: 2rem;
+  padding-inline: 35px;
 }
 .fashion-checkout-prompts p + p {
   border-left: 1px solid #dfdfdf;
@@ -5311,24 +5311,33 @@ a {
 .fashion-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 20px 30px;
 }
 .fashion-form-grid label,
 .fashion-contact-page label {
   display: grid;
-  gap: 0.4rem;
+  gap: 10px;
 }
 .fashion-form-wide {
   grid-column: 1 / -1;
 }
 .fashion-checkout-summary {
   align-self: start;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  margin-inline: 15px;
+  padding: 50px;
+  border-radius: 6px;
   background: #f7f7f7;
+}
+.fashion-checkout-fields {
+  min-width: 0;
+  padding: 0 50px 0 15px;
 }
 .fashion-checkout-fields > section,
 .fashion-checkout-shipping-address {
-  margin-bottom: clamp(2.5rem, 5vw, 4.5rem);
+  margin-bottom: 50px;
+}
+.fashion-checkout-fields > section:first-child > h2 {
+  margin-bottom: 20px;
 }
 .fashion-checkout-fields b,
 .fashion-account-page b {
@@ -5373,16 +5382,36 @@ a {
 }
 .fashion-checkout-notes label {
   display: grid;
-  gap: 0.5rem;
+  gap: 10px;
 }
-.fashion-checkout-page textarea {
+.fashion-content-page input,
+.fashion-content-page textarea {
   box-sizing: border-box;
   width: 100%;
   padding: 0.9rem 1rem;
   border: 1px solid transparent;
   border-radius: 4px;
   background: #f5f5f3;
+  color: #232323;
   font: inherit;
+}
+.fashion-checkout-page input:not([type="radio"]):not([type="checkbox"]),
+.fashion-checkout-page select,
+.fashion-checkout-page textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 9px 15px;
+  border: 1px solid #dfdfdf;
+  border-radius: 0;
+  background: #fff;
+  color: #232323;
+  font:
+    400 14px/32px "Figtree",
+    sans-serif;
+}
+.fashion-checkout-page textarea {
+  min-height: 130px;
   resize: vertical;
 }
 .fashion-checkout-order-lines {
@@ -5437,8 +5466,8 @@ a {
   padding: 0;
 }
 .fashion-checkout-payment-methods {
-  margin: 1.5rem 0 0;
-  padding: 2rem;
+  margin: 25px 0 0;
+  padding: 25px;
   border: 0;
   border-radius: 4px;
   background: #fff;
@@ -5452,6 +5481,18 @@ a {
   color: #232323;
   font-family: "Outfit", sans-serif;
   font-weight: 500;
+}
+.fashion-checkout-payment-logos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px !important;
+  margin-left: auto;
+}
+.fashion-checkout-payment-logos img {
+  display: block;
+  width: 38px;
+  height: 24px;
+  object-fit: contain;
 }
 .fashion-checkout-payment-methods small,
 .fashion-checkout-privacy {
@@ -5529,12 +5570,22 @@ a {
 .fashion-account-options input {
   width: auto;
 }
-.fashion-magazine-page,
-.fashion-wishlist-page {
+.fashion-magazine-page {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(1.5rem, 3vw, 2.5rem);
   padding-block: clamp(3.5rem, 7vw, 7rem);
+}
+.fashion-wishlist-page {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 0 0 130px;
+}
+.fashion-wishlist-page > article {
+  min-width: 0;
+  padding-inline: 15px;
+  text-align: center;
 }
 .fashion-magazine-page {
   width: min(calc(100% - 8vw), 1600px);
@@ -5569,9 +5620,10 @@ a {
 }
 .fashion-magazine-page h2,
 .fashion-wishlist-page h2 {
-  margin: 0.3rem 0 0;
-  font-size: 1.2rem;
-  line-height: 1.45;
+  margin: 0;
+  font:
+    500 19px/27px "Outfit",
+    sans-serif;
 }
 .fashion-magazine-page a,
 .fashion-wishlist-page a {
@@ -5600,23 +5652,71 @@ a {
 .fashion-wishlist-media {
   position: relative;
   overflow: hidden;
+  margin-bottom: 20px;
 }
-.fashion-wishlist-media > button[aria-label^="Remove"] {
+.fashion-wishlist-media::after {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 2;
-  width: 2rem;
-  aspect-ratio: 1;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 55%, rgb(0 0 0 / 36%));
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.fashion-wishlist-media img {
+  transition: transform 500ms ease;
+}
+.fashion-wishlist-media:hover::after,
+.fashion-wishlist-media:focus-within::after {
+  opacity: 1;
+}
+.fashion-wishlist-media:hover img,
+.fashion-wishlist-media:focus-within img {
+  transform: scale(1.05);
+}
+.fashion-wishlist-actions {
+  position: absolute;
+  z-index: 3;
+  top: 20px;
+  right: 12px;
+  display: grid;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20px);
+  transition:
+    opacity 250ms ease,
+    transform 250ms ease;
+}
+.fashion-wishlist-actions button,
+.fashion-wishlist-actions a {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: #fff;
   color: #232323;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+}
+.fashion-wishlist-actions button:hover,
+.fashion-wishlist-actions a:hover {
+  background: #232323;
+  color: #fff;
+}
+.fashion-wishlist-media:hover .fashion-wishlist-actions,
+.fashion-wishlist-media:focus-within .fashion-wishlist-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 .fashion-wishlist-badge {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
+  z-index: 3;
+  top: 10px;
+  left: 10px;
   padding: 0.25rem 0.55rem;
   background: #16a05d;
   color: #fff;
@@ -5628,15 +5728,46 @@ a {
 }
 .fashion-wishlist-add {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  transform: translateY(100%);
-  transition: transform 250ms ease;
+  z-index: 3;
+  right: 20px;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  background: #fff;
+  color: #232323;
+  cursor: pointer;
+  font:
+    500 14px/22px "Outfit",
+    sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 250ms ease,
+    transform 250ms ease;
 }
 .fashion-wishlist-media:hover .fashion-wishlist-add,
+.fashion-wishlist-media:focus-within .fashion-wishlist-add,
 .fashion-wishlist-add:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
   transform: translateY(0);
+}
+.fashion-wishlist-page > article > p {
+  margin: 3px 0 0;
+  color: #232323;
+  font-size: 16px;
+  line-height: 22px;
+}
+.fashion-wishlist-page > article > p del {
+  margin-right: 8px;
+  color: #828282;
 }
 .fashion-faq-page {
   display: grid;
@@ -6089,6 +6220,16 @@ a {
     sans-serif;
 }
 
+@media (max-width: 1199px) {
+  .fashion-cart-totals,
+  .fashion-checkout-summary {
+    padding: 30px;
+  }
+  .fashion-wishlist-page {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 991px) {
   .fashion-cart-layout,
   .fashion-checkout-layout,
@@ -6098,6 +6239,21 @@ a {
   .fashion-magazine-page,
   .fashion-wishlist-page {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fashion-cart-layout,
+  .fashion-checkout-layout {
+    padding-bottom: 80px;
+  }
+  .fashion-cart-products,
+  .fashion-checkout-fields {
+    padding-inline: 15px;
+  }
+  .fashion-cart-totals,
+  .fashion-checkout-summary {
+    margin-top: 50px;
+  }
+  .fashion-checkout-prompts {
+    margin-bottom: 65px;
   }
   .fashion-cart-actions {
     align-items: stretch;
@@ -6135,18 +6291,18 @@ a {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .fashion-checkout-prompts {
     align-items: stretch;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 15px;
   }
   .fashion-checkout-prompts p {
-    padding-inline: 0;
-    text-align: center;
+    justify-content: center;
+    padding-inline: 15px;
   }
   .fashion-checkout-prompts p + p {
-    padding-top: 0.75rem;
+    padding-top: 15px;
     border-top: 1px solid #dfdfdf;
     border-left: 0;
   }
@@ -6154,16 +6310,36 @@ a {
     display: none;
   }
   .fashion-cart-products > article {
-    grid-template-columns: 2rem minmax(0, 1fr);
+    position: relative;
+    display: grid;
+    min-height: 130px;
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
+    padding: 25px 35px 25px 100px;
+  }
+  .fashion-cart-products > article > * {
+    padding-inline: 10px;
+  }
+  .fashion-cart-delete {
+    position: absolute;
+    top: 25px;
+    right: 0;
+    padding: 0;
+  }
+  .fashion-cart-thumbnail {
+    position: absolute;
+    top: 25px;
+    left: 0;
+    padding: 0;
   }
   .fashion-cart-product {
-    grid-column: 2;
+    grid-column: 1;
+    padding-bottom: 8px;
   }
   .fashion-cart-price,
   .fashion-cart-quantity,
   .fashion-cart-line-total {
-    grid-column: 2;
+    grid-column: 1;
   }
   .fashion-cart-price::before,
   .fashion-cart-line-total::before {
@@ -6176,18 +6352,13 @@ a {
   .fashion-cart-actions > div {
     flex-wrap: wrap;
   }
-  .fashion-cart-coupon,
   .fashion-form-grid {
     grid-template-columns: 1fr;
-  }
-  .fashion-cart-coupon {
-    display: grid;
   }
   .fashion-form-wide {
     grid-column: auto;
   }
-  .fashion-magazine-page,
-  .fashion-wishlist-page {
+  .fashion-magazine-page {
     grid-template-columns: 1fr;
   }
   .fashion-about-journey > div:last-child,
@@ -6222,6 +6393,22 @@ a {
   }
 }
 
+@media (max-width: 575px) {
+  .fashion-wishlist-page {
+    grid-template-columns: 1fr;
+  }
+  .fashion-cart-totals,
+  .fashion-checkout-summary {
+    padding: 25px;
+  }
+  .fashion-cart-actions > div > button {
+    flex: 1 1 auto;
+  }
+  .fashion-cart-coupon button {
+    padding-inline: 16px;
+  }
+}
+
 /* Header controls share one intrinsic sizing contract across buttons and links. */
 @media (max-width: 1399px) {
   .fashion-nav-actions > button,
@@ -6253,17 +6440,28 @@ a {
 }
 
 @media (max-width: 991px) {
-  .fashion-nav-actions > button,
-  .fashion-account-link,
-  .fashion-cart-control > button {
-    width: 34px;
-    min-width: 34px;
-    padding-left: 12px;
+  .fashion-nav-actions {
+    margin-right: 30px;
   }
-  .fashion-nav-actions > button:first-child {
+  .fashion-nav-shell .fashion-nav-actions > button:first-child {
     width: 24px;
     min-width: 24px;
     padding-left: 0;
+  }
+  .fashion-nav-shell .fashion-account-link {
+    width: 34px;
+    min-width: 34px;
+    padding-left: 12px;
+    justify-content: flex-start;
+  }
+  .fashion-nav-shell .fashion-cart-control,
+  .fashion-nav-shell .fashion-cart-control > button {
+    width: 29px;
+    min-width: 29px;
+  }
+  .fashion-nav-shell .fashion-cart-control > button {
+    justify-content: flex-start;
+    padding-left: 12px;
   }
 }
 
