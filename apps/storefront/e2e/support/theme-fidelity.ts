@@ -129,8 +129,8 @@ async function resetInitialCarousels(
 ): Promise<void> {
   if (themeId === "fashion" || themeId === "fashion-2") {
     const firstSlide = page.getByRole("button", { name: "Show slide 1" });
-    await firstSlide.click();
-    await expect(page.locator(initialCarouselSelectors.fashion[0])).toHaveAttribute(
+    await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
+    await expect(page.locator(initialCarouselSelectors[themeId][0])).toHaveAttribute(
       "data-motion-active-index",
       "0",
     );
