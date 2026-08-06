@@ -20,7 +20,7 @@
     "test:e2e": "playwright test",
     "test:decor": "playwright test --config playwright.decor.config.ts",
     "test:fashion": "playwright test --config playwright.fashion.config.ts",
-    "test:fashion-2": "bun test tests/fashion-2-theme.test.ts tests/fashion-2-runtime.test.ts && playwright test --config playwright.fashion-2.config.ts",
+    "test:fashion-2": "bun test tests/fashion-2-theme.test.ts tests/fashion-2-runtime.test.ts && NODE_OPTIONS=--no-experimental-strip-types node node_modules/@playwright/test/cli.js test --config playwright.fashion-2.config.ts",
     "test:fidelity": "bun test ../../tools/theme-fidelity-report.test.ts",
     "test:perf": "playwright test --config playwright.performance.config.ts",
     "test:perf:decor": "STOREFRONT_THEME=decor playwright test --config playwright.performance.config.ts",

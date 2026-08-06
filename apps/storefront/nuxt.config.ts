@@ -35,7 +35,7 @@ export default defineNuxtConfig({
             (css, remoteImport) => css.replace(remoteImport, ""),
             source,
           );
-          return adapted === source ? undefined : adapted;
+          return adapted === source ? undefined : { code: adapted, map: null };
         },
       },
     ],
