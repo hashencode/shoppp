@@ -130,6 +130,12 @@ describe("storefront experience API", () => {
           presetDefinitions: expect.any(Array),
           themeVersion: "1.0.0",
         },
+        {
+          fixtureBindings: expect.any(Array),
+          id: "fashion-2",
+          presetDefinitions: expect.any(Array),
+          themeVersion: "1.0.0",
+        },
       ],
     });
   });

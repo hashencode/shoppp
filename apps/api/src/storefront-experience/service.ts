@@ -21,9 +21,12 @@ import type { Context } from "hono";
 
 import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
 import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
+import { fashion2Manifest } from "../../../storefront/app/themes/fashion-2/manifest";
+import { fashion2Preset } from "../../../storefront/app/themes/fashion-2/presets/source-parity";
 import { fashionManifest } from "../../../storefront/app/themes/fashion/manifest";
 import { fashionPreset } from "../../../storefront/app/themes/fashion/presets/editorial";
 import decorFixture from "../../../storefront/fixtures/experience/decor.json";
+import fashion2Fixture from "../../../storefront/fixtures/experience/fashion-2.json";
 import fashionFixture from "../../../storefront/fixtures/experience/fashion.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
@@ -116,7 +119,13 @@ const PLATFORM_CONTRACT_VERSION = "1.0.0";
 const defaultPackages = [
   themePackageSchema.parse({ manifest: decorManifest, presets: [decorPreset] }),
   themePackageSchema.parse({ manifest: fashionManifest, presets: [fashionPreset] }),
+  themePackageSchema.parse({ manifest: fashion2Manifest, presets: [fashion2Preset] }),
 ] as const;
+const fixtureBindingsByThemeId = {
+  decor: decorFixture.bindings,
+  fashion: fashionFixture.bindings,
+  "fashion-2": fashion2Fixture.bindings,
+} as const;
 
 function packages(options?: StorefrontExperienceServiceOptions): readonly ThemePackage[] {
   return options?.packages ?? defaultPackages;
@@ -491,11 +500,10 @@ export function listStorefrontThemes() {
         "The generated storefront theme catalog does not match the package registry.",
       );
     }
-    const fixture = descriptor.id === "fashion" ? fashionFixture.bindings : decorFixture.bindings;
     return adminStorefrontThemeSchema.parse({
       ...descriptor,
       componentRegistry: themePackage.manifest.componentRegistry,
-      fixtureBindings: fixtureBindingSchema.array().parse(fixture),
+      fixtureBindings: fixtureBindingSchema.array().parse(fixtureBindingsByThemeId[descriptor.id]),
       presetDefinitions: themePackage.presets,
     });
   });
