@@ -22,6 +22,27 @@
   line-height: 32px;
 }
 
+.fashion-2-home .fashion-2-source-action {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+.fashion-2-home .shop-hover button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+}
+
+.fashion-2-home button:focus-visible,
+.fashion-2-home a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .fashion-2-home .navbar {
   line-height: 32px;
   padding: 0;

@@ -301,7 +301,7 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   await page.locator("section:nth-of-type(4) .shop-image").first().hover({ force: true });
   await expect(action).toHaveAttribute("aria-label", "Add to cart");
   await action.dispatchEvent("click");
-  await expect(page.getByRole("status")).toHaveText("Textured sweater added to preview cart.");
+  await expect(page.getByRole("status")).toHaveText("Product added to the preview cart.");
   await expect(page.locator("[data-fashion-2-source-parity]")).toHaveAttribute(
     "data-preview-intent-count",
     "1",
@@ -330,6 +330,60 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   expect(await page.locator("[data-motion-layer]").count()).toBe(3);
   expect(await page.locator("body").getAttribute("class")).toBe("fashion-2-home");
   expect(errors).toEqual([]);
+});
+
+test("internal navigation and product actions stay Nuxt-owned", async ({ page }) => {
+  await ready(page, "/");
+  const marker = page.locator("[data-fashion-2-source-parity]");
+  const card = page.locator("section:nth-of-type(4) .shop-image").first();
+  await card.hover({ force: true });
+
+  const wishlist = card.getByRole("button", { name: "Add to wishlist" });
+  await wishlist.focus();
+  expect(await wishlist.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe(
+    "none",
+  );
+  await page.keyboard.press("Enter");
+  await expect(marker).toHaveAttribute("data-preview-intent-count", "1");
+  await expect(page.getByRole("status")).toHaveText("Product wishlist preview updated.");
+
+  const quickView = card.getByRole("button", { name: "Quick shop" });
+  await quickView.focus();
+  await page.keyboard.press("Space");
+  await expect(marker).toHaveAttribute("data-preview-intent-count", "2");
+  await expect(page.getByRole("status")).toHaveText("Product quick view preview requested.");
+
+  const navigationEntries = await page.evaluate(
+    () => performance.getEntriesByType("navigation").length,
+  );
+  await page.locator('a[href="/cart"][data-fashion-2-route]').dispatchEvent("click");
+  await expect(page).toHaveURL(/\/cart$/);
+  expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(
+    navigationEntries,
+  );
+});
+
+test("mobile menu closes through Nuxt handling and restores toggle focus", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-2-mobile");
+  await ready(page, "/");
+  const toggle = page.getByRole("button", { name: "Toggle navigation" });
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#navbarNav")).toHaveClass(/show/);
+  expect(
+    await page.locator("body").evaluate((element) => getComputedStyle(element).overflowY),
+  ).not.toBe("hidden");
+
+  const home = page.locator("#navbarNav .nav-link", { hasText: "Home" });
+  await home.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#navbarNav")).not.toHaveClass(/show/);
+  await expect(toggle).toBeFocused();
+  await expect(page.locator(".modal-backdrop, .offcanvas-backdrop")).toHaveCount(0);
 });
 
 test("approved local fonts and glyph family are active", async ({ browser, page }) => {

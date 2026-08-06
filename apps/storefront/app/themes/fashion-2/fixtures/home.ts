@@ -25,6 +25,8 @@ export interface Fashion2HomeData {
   announcement: string;
   announcementAction: string;
   cartAction: PreviewAction;
+  quickViewAction: PreviewAction;
+  wishlistAction: PreviewAction;
   navigation: Six<string>;
   bestSellers: Ten<SourceProduct>;
   brands: Five<{ name: string; sourceImage: string }>;
@@ -69,6 +71,11 @@ export const fashion2HomeData = {
     id: "add-textured-sweater",
     intent: "cart.add-preview",
     label: "Add Textured sweater to cart",
+  },
+  quickViewAction: {
+    id: "quick-view-product",
+    intent: "product.quick-view-preview",
+    label: "Open product quick view",
   },
   bestSellers: [
     {
@@ -261,6 +268,11 @@ export const fashion2HomeData = {
     name: "Textured sweater",
     originalPrice: "$200.00",
     price: "$189.00",
+  },
+  wishlistAction: {
+    id: "toggle-product-wishlist",
+    intent: "wishlist.toggle-preview",
+    label: "Toggle product wishlist",
   },
   services: [
     {

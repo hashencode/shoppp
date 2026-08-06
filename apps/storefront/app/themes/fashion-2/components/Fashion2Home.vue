@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { recordPreviewIntent } from "../../../theme-engine/actions";
+import { recordPreviewIntent, type PreviewAction } from "../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import type { Fashion2HomeData } from "../fixtures/home";
@@ -18,6 +18,7 @@ const data = computed<Fashion2HomeData>(() => {
 });
 
 const menuOpen = ref(false);
+const menuToggle = ref<HTMLButtonElement>();
 const cookieVisible = ref(true);
 const documentReadyClass = ref<"js" | "no-js">("no-js");
 const actionFeedback = ref("");
@@ -38,10 +39,42 @@ const heroNext = computed(() =>
   String(((activeIndex.value + 1) % data.value.slider.slides.length) + 1).padStart(2, "0"),
 );
 
-function addToCart(): void {
-  recordPreviewIntent(data.value!.cartAction, "fashion-2.home.product");
+const router = useRouter();
+
+function recordProductAction(action: PreviewAction, feedback: string): void {
+  recordPreviewIntent(action, "fashion-2.home.product");
   actionIntentCount.value += 1;
-  actionFeedback.value = "Textured sweater added to preview cart.";
+  actionFeedback.value = feedback;
+}
+
+function addToCart(): void {
+  recordProductAction(data.value.cartAction, "Product added to the preview cart.");
+}
+
+function addToWishlist(): void {
+  recordProductAction(data.value.wishlistAction, "Product wishlist preview updated.");
+}
+
+function openQuickView(): void {
+  recordProductAction(data.value.quickViewAction, "Product quick view preview requested.");
+}
+
+async function handleInternalNavigation(event: MouseEvent): Promise<void> {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+    return;
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const anchor = target.closest<HTMLAnchorElement>("a[data-fashion-2-route]");
+  if (!anchor || !document.body.classList.contains("fashion-2-home")) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const destination = anchor.getAttribute("href") ?? "/";
+  if (menuOpen.value) {
+    menuOpen.value = false;
+    await nextTick();
+    menuToggle.value?.focus();
+  }
+  if (router.currentRoute.value.fullPath !== destination) await router.push(destination);
 }
 
 function sourceAsset(sourcePath: string): string {
@@ -70,7 +103,10 @@ useHead(() => ({
 
 onMounted(() => {
   documentReadyClass.value = "js";
+  document.addEventListener("click", handleInternalNavigation, true);
 });
+
+onBeforeUnmount(() => document.removeEventListener("click", handleInternalNavigation, true));
 </script>
 
 <template>
@@ -103,7 +139,10 @@ onMounted(() => {
         <div class="row h-40px align-items-center m-0">
           <div class="col-12 justify-content-center alt-font fs-13 fw-500 text-uppercase">
             <div class="text-dark-gray">{{ data.announcement }}</div>
-            <a href="#" class="text-dark-gray fw-600 ms-5px text-dark-gray-hover"
+            <a
+              href="/"
+              data-fashion-2-route
+              class="text-dark-gray fw-600 ms-5px text-dark-gray-hover"
               ><span class="text-decoration-line-bottom">Shop now</span></a
             >
           </div>
@@ -116,7 +155,7 @@ onMounted(() => {
         <div class="col-auto col-xxl-3 col-lg-2 menu-logo">
           <div class="header-icon d-none d-lg-flex">
             <div class="widget-text icon alt-font">
-              <a href="#fashion-2-main"
+              <a href="/" data-fashion-2-route
                 ><i class="feather icon-feather-map-pin d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Find stores</span></a
               >
@@ -128,7 +167,7 @@ onMounted(() => {
               >
             </div>
           </div>
-          <a class="navbar-brand" href="#fashion-2-main">
+          <a class="navbar-brand" href="/" data-fashion-2-route>
             <img
               alt=""
               class="default-logo"
@@ -151,6 +190,7 @@ onMounted(() => {
         </div>
         <div class="col-auto col-xxl-6 col-lg-8 menu-order">
           <button
+            ref="menuToggle"
             class="navbar-toggler float-end"
             type="button"
             data-bs-toggle="collapse"
@@ -172,10 +212,10 @@ onMounted(() => {
           >
             <ul class="navbar-nav alt-font navbar-left justify-content-end">
               <li class="nav-item">
-                <a href="#fashion-2-main" class="nav-link">Home</a>
+                <a href="/" data-fashion-2-route class="nav-link">Home</a>
               </li>
               <li class="nav-item dropdown submenu">
-                <a href="#fashion-2-main" class="nav-link">Shop</a>
+                <a href="/" data-fashion-2-route class="nav-link">Shop</a>
                 <i
                   class="fa-solid fa-angle-down dropdown-toggle"
                   id="navbarDropdownMenuLink1"
@@ -194,62 +234,62 @@ onMounted(() => {
                       <div class="col">
                         <ul>
                           <li class="sub-title">Men</li>
-                          <li><a href="#">Jeans</a></li>
-                          <li><a href="#">Trousers</a></li>
-                          <li><a href="#">Swimwear</a></li>
-                          <li><a href="#">Casual shirts</a></li>
-                          <li><a href="#">Rain jackets</a></li>
-                          <li><a href="#">Loungewear</a></li>
+                          <li><a href="/" data-fashion-2-route>Jeans</a></li>
+                          <li><a href="/" data-fashion-2-route>Trousers</a></li>
+                          <li><a href="/" data-fashion-2-route>Swimwear</a></li>
+                          <li><a href="/" data-fashion-2-route>Casual shirts</a></li>
+                          <li><a href="/" data-fashion-2-route>Rain jackets</a></li>
+                          <li><a href="/" data-fashion-2-route>Loungewear</a></li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Women</li>
-                          <li><a href="#">Dupattas</a></li>
-                          <li><a href="#">Leggings</a></li>
-                          <li><a href="#">Ethnic wear</a></li>
-                          <li><a href="#">Kurtas &amp; suits</a></li>
-                          <li><a href="#">Western wear</a></li>
-                          <li><a href="#">Dress materials</a></li>
+                          <li><a href="/" data-fashion-2-route>Dupattas</a></li>
+                          <li><a href="/" data-fashion-2-route>Leggings</a></li>
+                          <li><a href="/" data-fashion-2-route>Ethnic wear</a></li>
+                          <li><a href="/" data-fashion-2-route>Kurtas &amp; suits</a></li>
+                          <li><a href="/" data-fashion-2-route>Western wear</a></li>
+                          <li><a href="/" data-fashion-2-route>Dress materials</a></li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Kids</li>
-                          <li><a href="#">Dresses</a></li>
-                          <li><a href="#">Jumpsuits</a></li>
-                          <li><a href="#">Track pants</a></li>
-                          <li><a href="#">Ethnic wear</a></li>
-                          <li><a href="#">Value packs</a></li>
-                          <li><a href="#">Loungewear</a></li>
+                          <li><a href="/" data-fashion-2-route>Dresses</a></li>
+                          <li><a href="/" data-fashion-2-route>Jumpsuits</a></li>
+                          <li><a href="/" data-fashion-2-route>Track pants</a></li>
+                          <li><a href="/" data-fashion-2-route>Ethnic wear</a></li>
+                          <li><a href="/" data-fashion-2-route>Value packs</a></li>
+                          <li><a href="/" data-fashion-2-route>Loungewear</a></li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Divided</li>
-                          <li><a href="#">Tops</a></li>
-                          <li><a href="#">Dresses</a></li>
-                          <li><a href="#">Shorts</a></li>
-                          <li><a href="#">Swimwear</a></li>
-                          <li><a href="#">Jeans</a></li>
-                          <li><a href="#">Jackets</a></li>
+                          <li><a href="/" data-fashion-2-route>Tops</a></li>
+                          <li><a href="/" data-fashion-2-route>Dresses</a></li>
+                          <li><a href="/" data-fashion-2-route>Shorts</a></li>
+                          <li><a href="/" data-fashion-2-route>Swimwear</a></li>
+                          <li><a href="/" data-fashion-2-route>Jeans</a></li>
+                          <li><a href="/" data-fashion-2-route>Jackets</a></li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Accessories</li>
-                          <li><a href="#">Shoes</a></li>
-                          <li><a href="#">Scarves</a></li>
-                          <li><a href="#">Watches</a></li>
-                          <li><a href="#">Wristwear</a></li>
-                          <li><a href="#">Backpacks</a></li>
-                          <li><a href="#">Sunglasses</a></li>
+                          <li><a href="/" data-fashion-2-route>Shoes</a></li>
+                          <li><a href="/" data-fashion-2-route>Scarves</a></li>
+                          <li><a href="/" data-fashion-2-route>Watches</a></li>
+                          <li><a href="/" data-fashion-2-route>Wristwear</a></li>
+                          <li><a href="/" data-fashion-2-route>Backpacks</a></li>
+                          <li><a href="/" data-fashion-2-route>Sunglasses</a></li>
                         </ul>
                       </div>
                     </div>
                     <div class="row row-cols-1 row-cols-sm-2">
                       <div class="col">
-                        <a href="#fashion-2-main"
+                        <a href="/" data-fashion-2-route
                           ><img
                             alt=""
                             v-bind:src="
@@ -258,7 +298,7 @@ onMounted(() => {
                         /></a>
                       </div>
                       <div class="col">
-                        <a href="#fashion-2-main"
+                        <a href="/" data-fashion-2-route
                           ><img
                             alt=""
                             v-bind:src="
@@ -271,7 +311,7 @@ onMounted(() => {
                 </div>
               </li>
               <li class="nav-item dropdown submenu">
-                <a href="#fashion-2-main" class="nav-link">Collection</a>
+                <a href="/" data-fashion-2-route class="nav-link">Collection</a>
                 <i
                   class="fa-solid fa-angle-down dropdown-toggle"
                   id="navbarDropdownMenuLink2"
@@ -288,7 +328,7 @@ onMounted(() => {
                       class="row row-cols-2 row-cols-lg-6 row-cols-md-3 row-cols-sm-2 md-mx-0 align-items-center justify-content-center"
                     >
                       <div class="col md-mb-25px">
-                        <a href="#fashion-2-main" class="justify-content-center mb-10px">
+                        <a href="/" data-fashion-2-route class="justify-content-center mb-10px">
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -298,7 +338,8 @@ onMounted(() => {
                           />
                         </a>
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -310,7 +351,7 @@ onMounted(() => {
                         </a>
                       </div>
                       <div class="col md-mb-25px">
-                        <a href="#fashion-2-main" class="justify-content-center mb-10px">
+                        <a href="/" data-fashion-2-route class="justify-content-center mb-10px">
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -320,7 +361,8 @@ onMounted(() => {
                           />
                         </a>
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -332,7 +374,7 @@ onMounted(() => {
                         </a>
                       </div>
                       <div class="col md-mb-25px">
-                        <a href="#fashion-2-main" class="justify-content-center mb-10px">
+                        <a href="/" data-fashion-2-route class="justify-content-center mb-10px">
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -342,7 +384,8 @@ onMounted(() => {
                           />
                         </a>
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -354,7 +397,7 @@ onMounted(() => {
                         </a>
                       </div>
                       <div class="col sm-mb-25px">
-                        <a href="#fashion-2-main" class="justify-content-center mb-10px">
+                        <a href="/" data-fashion-2-route class="justify-content-center mb-10px">
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -364,7 +407,8 @@ onMounted(() => {
                           />
                         </a>
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -376,7 +420,7 @@ onMounted(() => {
                         </a>
                       </div>
                       <div class="col">
-                        <a href="#fashion-2-main" class="justify-content-center mb-10px">
+                        <a href="/" data-fashion-2-route class="justify-content-center mb-10px">
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -386,7 +430,8 @@ onMounted(() => {
                           />
                         </a>
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -398,7 +443,7 @@ onMounted(() => {
                         </a>
                       </div>
                       <div class="col">
-                        <a href="#fashion-2-main" class="justify-content-center mb-10px">
+                        <a href="/" data-fashion-2-route class="justify-content-center mb-10px">
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -408,7 +453,8 @@ onMounted(() => {
                           />
                         </a>
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -426,10 +472,10 @@ onMounted(() => {
             </ul>
             <ul class="navbar-nav alt-font navbar-right justify-content-start">
               <li class="nav-item">
-                <a href="#fashion-2-main" class="nav-link">Magazine</a>
+                <a href="/" data-fashion-2-route class="nav-link">Magazine</a>
               </li>
               <li class="nav-item dropdown simple-dropdown">
-                <a href="javascript:void(0);" class="nav-link">Pages</a>
+                <button type="button" class="nav-link fashion-2-source-action">Pages</button>
                 <i
                   class="fa-solid fa-angle-down dropdown-toggle"
                   id="navbarDropdownMenuLink3"
@@ -438,16 +484,16 @@ onMounted(() => {
                   aria-expanded="false"
                 ></i>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink3">
-                  <li><a href="#fashion-2-main">About</a></li>
-                  <li><a href="#fashion-2-main">Faq</a></li>
-                  <li><a href="#fashion-2-main">Wishlist</a></li>
-                  <li><a href="#fashion-2-main">Account</a></li>
-                  <li><a href="#fashion-2-main">Cart</a></li>
-                  <li><a href="#fashion-2-main">Checkout</a></li>
+                  <li><a href="/" data-fashion-2-route>About</a></li>
+                  <li><a href="/" data-fashion-2-route>Faq</a></li>
+                  <li><a href="/" data-fashion-2-route>Wishlist</a></li>
+                  <li><a href="/" data-fashion-2-route>Account</a></li>
+                  <li><a href="/" data-fashion-2-route>Cart</a></li>
+                  <li><a href="/" data-fashion-2-route>Checkout</a></li>
                 </ul>
               </li>
               <li class="nav-item">
-                <a href="#fashion-2-main" class="nav-link">Contact</a>
+                <a href="/" data-fashion-2-route class="nav-link">Contact</a>
               </li>
             </ul>
           </div>
@@ -455,7 +501,7 @@ onMounted(() => {
         <div class="col-auto col-xxl-3 col-lg-2 text-end">
           <div class="header-icon">
             <div class="header-search-icon icon alt-font">
-              <a href="#fashion-2-main" class="search-form-icon header-search-form"
+              <a href="/" data-fashion-2-route class="search-form-icon header-search-form"
                 ><i class="feather icon-feather-search me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Search</span></a
               >
@@ -490,22 +536,32 @@ onMounted(() => {
               </div>
             </div>
             <div class="widget-text icon alt-font">
-              <a href="#fashion-2-main"
+              <a href="/" data-fashion-2-route
                 ><i class="feather icon-feather-user d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Account</span></a
               >
             </div>
             <div class="header-cart-icon icon">
               <div class="header-cart dropdown">
-                <a href="javascript:void(0);"
-                  ><i class="feather icon-feather-shopping-bag"></i
-                  ><span class="cart-count alt-font text-white bg-dark-gray">2</span></a
+                <button
+                  type="button"
+                  class="fashion-2-source-action"
+                  aria-label="Open preview cart"
                 >
+                  <i class="feather icon-feather-shopping-bag"></i
+                  ><span class="cart-count alt-font text-white bg-dark-gray">2</span>
+                </button>
                 <ul class="cart-item-list">
                   <li class="cart-item align-items-center">
-                    <a href="javascript:void(0);" class="alt-font close">×</a>
+                    <button
+                      type="button"
+                      class="alt-font close fashion-2-source-action"
+                      aria-label="Remove Ribbed tank from preview cart"
+                    >
+                      ×
+                    </button>
                     <div class="product-image">
-                      <a href="#fashion-2-main"
+                      <a href="/" data-fashion-2-route
                         ><img
                           class="cart-thumb"
                           alt=""
@@ -513,14 +569,20 @@ onMounted(() => {
                       /></a>
                     </div>
                     <div class="product-detail fw-600">
-                      <a href="#fashion-2-main">Ribbed tank</a>
+                      <a href="/" data-fashion-2-route>Ribbed tank</a>
                       <span class="item-ammount fw-400">1 x $23.00</span>
                     </div>
                   </li>
                   <li class="cart-item align-items-center">
-                    <a href="javascript:void(0);" class="alt-font close">×</a>
+                    <button
+                      type="button"
+                      class="alt-font close fashion-2-source-action"
+                      aria-label="Remove Pleated dress from preview cart"
+                    >
+                      ×
+                    </button>
                     <div class="product-image">
-                      <a href="#fashion-2-main"
+                      <a href="/" data-fashion-2-route
                         ><img
                           class="cart-thumb"
                           alt=""
@@ -528,7 +590,7 @@ onMounted(() => {
                       /></a>
                     </div>
                     <div class="product-detail fw-600">
-                      <a href="#fashion-2-main">Pleated dress</a>
+                      <a href="/" data-fashion-2-route>Pleated dress</a>
                       <span class="item-ammount fw-400">2 x $15.00</span>
                     </div>
                   </li>
@@ -538,11 +600,15 @@ onMounted(() => {
                       ><span class="w-50 text-end fw-700">$199.99</span>
                     </div>
                     <a
-                      href="#fashion-2-main"
+                      href="/cart"
+                      data-fashion-2-route
                       class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
                       >View cart</a
                     >
-                    <a href="#fashion-2-main" class="btn btn-large btn-dark-gray btn-box-shadow"
+                    <a
+                      href="/checkout"
+                      data-fashion-2-route
+                      class="btn btn-large btn-dark-gray btn-box-shadow"
                       >Checkout</a
                     >
                   </li>
@@ -607,7 +673,10 @@ onMounted(() => {
                   <div
                     data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
                   >
-                    <a href="#fashion-2-main" class="btn btn-dark-gray btn-box-shadow btn-large"
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="btn btn-dark-gray btn-box-shadow btn-large"
                       >View collection</a
                     >
                   </div>
@@ -654,7 +723,10 @@ onMounted(() => {
                   <div
                     data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
                   >
-                    <a href="#fashion-2-main" class="btn btn-dark-gray btn-box-shadow btn-large"
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="btn btn-dark-gray btn-box-shadow btn-large"
                       >View collection</a
                     >
                   </div>
@@ -701,7 +773,10 @@ onMounted(() => {
                   <div
                     data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
                   >
-                    <a href="#fashion-2-main" class="btn btn-dark-gray btn-box-shadow btn-large"
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="btn btn-dark-gray btn-box-shadow btn-large"
                       >View collection</a
                     >
                   </div>
@@ -795,7 +870,7 @@ onMounted(() => {
       >
         <div class="col categories-style-02 lg-mb-30px">
           <div class="categories-box">
-            <a href="#fashion-2-main">
+            <a href="/" data-fashion-2-route>
               <img
                 class="sm-w-100"
                 alt=""
@@ -809,7 +884,8 @@ onMounted(() => {
             </div>
             <div class="absolute-bottom-center bottom-40px md-bottom-25px">
               <a
-                href="#fashion-2-main"
+                href="/"
+                data-fashion-2-route
                 class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
               >
                 <span>
@@ -824,7 +900,7 @@ onMounted(() => {
 
         <div class="col categories-style-02 lg-mb-30px">
           <div class="categories-box">
-            <a href="#fashion-2-main">
+            <a href="/" data-fashion-2-route>
               <img
                 class="sm-w-100"
                 alt=""
@@ -838,7 +914,8 @@ onMounted(() => {
             </div>
             <div class="absolute-bottom-center bottom-40px md-bottom-25px">
               <a
-                href="#fashion-2-main"
+                href="/"
+                data-fashion-2-route
                 class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
               >
                 <span>
@@ -853,7 +930,7 @@ onMounted(() => {
 
         <div class="col categories-style-02 sm-mb-30px">
           <div class="categories-box">
-            <a href="#fashion-2-main">
+            <a href="/" data-fashion-2-route>
               <img
                 class="sm-w-100"
                 alt=""
@@ -867,7 +944,8 @@ onMounted(() => {
             </div>
             <div class="absolute-bottom-center bottom-40px md-bottom-25px">
               <a
-                href="#fashion-2-main"
+                href="/"
+                data-fashion-2-route
                 class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
               >
                 <span>
@@ -882,7 +960,7 @@ onMounted(() => {
 
         <div class="col categories-style-02">
           <div class="categories-box">
-            <a href="#fashion-2-main">
+            <a href="/" data-fashion-2-route>
               <img
                 class="sm-w-100"
                 alt=""
@@ -896,7 +974,8 @@ onMounted(() => {
             </div>
             <div class="absolute-bottom-center bottom-40px md-bottom-25px">
               <a
-                href="#fashion-2-main"
+                href="/"
+                data-fashion-2-route
                 class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
               >
                 <span>
@@ -936,7 +1015,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[0].sourceImage)" />
                     <span class="lable new">New</span>
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
@@ -955,30 +1034,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[0].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -995,7 +1080,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[1].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1013,30 +1098,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[1].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1050,7 +1141,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[2].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1068,30 +1159,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[2].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1105,7 +1202,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[3].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1123,30 +1220,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[3].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1160,7 +1263,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[4].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1178,30 +1281,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[4].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1215,7 +1324,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[5].sourceImage)" />
                     <span class="lable hot">Hot</span>
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
@@ -1234,30 +1343,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[5].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1271,7 +1386,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[6].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1289,30 +1404,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[6].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1326,7 +1447,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[7].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1344,30 +1465,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[7].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1381,7 +1508,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[8].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1399,30 +1526,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[8].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1436,7 +1569,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.bestSellers[9].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -1454,30 +1587,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.bestSellers[9].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1521,7 +1660,7 @@ onMounted(() => {
           <p class="xs-pe-15px xs-ps-15px">
             Flash summer sale 70% off on selected collection for him.
           </p>
-          <a href="#fashion-2-main" class="btn btn-dark-gray btn-box-shadow btn-medium"
+          <a href="/" data-fashion-2-route class="btn btn-dark-gray btn-box-shadow btn-medium"
             >View collection</a
           >
         </div>
@@ -1552,7 +1691,8 @@ onMounted(() => {
                           >{{ data.collection[0].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1566,7 +1706,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1591,7 +1732,8 @@ onMounted(() => {
                           >{{ data.collection[1].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1605,7 +1747,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1630,7 +1773,8 @@ onMounted(() => {
                           >{{ data.collection[2].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1644,7 +1788,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1669,7 +1814,8 @@ onMounted(() => {
                           >{{ data.collection[3].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1683,7 +1829,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1708,7 +1855,8 @@ onMounted(() => {
                           >{{ data.collection[0].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1722,7 +1870,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1747,7 +1896,8 @@ onMounted(() => {
                           >{{ data.collection[1].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1761,7 +1911,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1786,7 +1937,8 @@ onMounted(() => {
                           >{{ data.collection[2].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1800,7 +1952,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1825,7 +1978,8 @@ onMounted(() => {
                           >{{ data.collection[3].subtitle }}</span
                         >
                         <a
-                          href="#fashion-2-main"
+                          href="/"
+                          data-fashion-2-route
                           class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                           >Explore collection</a
                         >
@@ -1839,7 +1993,8 @@ onMounted(() => {
                       ></div>
                       <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                       <a
-                        href="#fashion-2-main"
+                        href="/"
+                        data-fashion-2-route
                         class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
                       ></a>
                     </div>
@@ -1866,7 +2021,7 @@ onMounted(() => {
         data-anime='{ "el": "childs", "translateY": [-15, 0], "scale": [0.8, 1], "opacity": [0,1], "duration": 300, "delay": 0, "staggervalue": 100, "easing": "easeOutQuad" }'
       >
         <div class="col text-center sm-mb-30px">
-          <a href="#"
+          <a href="/" data-fashion-2-route
             ><img
               class="h-30px"
               v-bind:alt="data.brands[0].name"
@@ -1875,7 +2030,7 @@ onMounted(() => {
         </div>
 
         <div class="col text-center sm-mb-30px">
-          <a href="#"
+          <a href="/" data-fashion-2-route
             ><img
               class="h-30px"
               v-bind:alt="data.brands[1].name"
@@ -1884,7 +2039,7 @@ onMounted(() => {
         </div>
 
         <div class="col text-center sm-mb-30px">
-          <a href="#"
+          <a href="/" data-fashion-2-route
             ><img
               class="h-30px"
               v-bind:alt="data.brands[2].name"
@@ -1893,7 +2048,7 @@ onMounted(() => {
         </div>
 
         <div class="col text-center xs-mb-30px">
-          <a href="#"
+          <a href="/" data-fashion-2-route
             ><img
               class="h-30px"
               v-bind:alt="data.brands[3].name"
@@ -1902,7 +2057,7 @@ onMounted(() => {
         </div>
 
         <div class="col text-center">
-          <a href="#"
+          <a href="/" data-fashion-2-route
             ><img
               class="h-30px"
               v-bind:alt="data.brands[4].name"
@@ -1937,7 +2092,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.featuredProducts[0].sourceImage)" />
                     <span class="lable new">New</span>
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
@@ -1956,30 +2111,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.featuredProducts[0].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -1993,7 +2154,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.featuredProducts[1].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -2011,30 +2172,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.featuredProducts[1].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -2048,7 +2215,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.featuredProducts[2].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -2066,30 +2233,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.featuredProducts[2].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -2103,7 +2276,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.featuredProducts[3].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -2121,30 +2294,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.featuredProducts[3].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -2158,7 +2337,7 @@ onMounted(() => {
             <li class="grid-item">
               <div class="shop-box mb-10px">
                 <div class="shop-image mb-20px">
-                  <a href="#fashion-2-main">
+                  <a href="/" data-fashion-2-route>
                     <img alt="" v-bind:src="sourceAsset(data.featuredProducts[4].sourceImage)" />
                     <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
                   </a>
@@ -2176,30 +2355,36 @@ onMounted(() => {
                   <div class="shop-hover d-flex justify-content-center">
                     <ul>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Add to wishlist"
-                          ><i class="feather icon-feather-heart fs-16"></i
-                        ></a>
+                          aria-label="Add to wishlist"
+                          @click="addToWishlist"
+                        >
+                          <i class="feather icon-feather-heart fs-16"></i>
+                        </button>
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                           data-bs-toggle="tooltip"
                           data-bs-placement="left"
                           title="Quick shop"
-                          ><i class="feather icon-feather-eye fs-16"></i
-                        ></a>
+                          aria-label="Quick shop"
+                          @click="openQuickView"
+                        >
+                          <i class="feather icon-feather-eye fs-16"></i>
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </div>
                 <div class="shop-footer text-center">
-                  <a href="#fashion-2-main" class="alt-font text-dark-gray fs-19 fw-500">{{
+                  <a href="/" data-fashion-2-route class="alt-font text-dark-gray fs-19 fw-500">{{
                     data.featuredProducts[4].name
                   }}</a>
                   <div class="price lh-22 fs-16">
@@ -2315,20 +2500,25 @@ onMounted(() => {
             <li class="grid-item">
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
-                  <a href="#fashion-2-main"
+                  <a href="/" data-fashion-2-route
                     ><img alt="" v-bind:src="sourceAsset(data.magazine[0].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
                   <span class="mb-5px d-block"
                     >By
-                    <a href="#" class="text-dark-gray fw-500 categories-text">{{
-                      data.magazine[0].author
-                    }}</a
-                    ><a href="#" class="blog-date">{{ data.magazine[0].date }}</a></span
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="text-dark-gray fw-500 categories-text"
+                      >{{ data.magazine[0].author }}</a
+                    ><a href="/" data-fashion-2-route class="blog-date">{{
+                      data.magazine[0].date
+                    }}</a></span
                   >
                   <a
-                    href="#fashion-2-main"
+                    href="/"
+                    data-fashion-2-route
                     class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                     >{{ data.magazine[0].name }}</a
                   >
@@ -2339,20 +2529,25 @@ onMounted(() => {
             <li class="grid-item">
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
-                  <a href="#fashion-2-main"
+                  <a href="/" data-fashion-2-route
                     ><img alt="" v-bind:src="sourceAsset(data.magazine[1].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
                   <span class="mb-5px d-block"
                     >By
-                    <a href="#" class="text-dark-gray fw-500 categories-text">{{
-                      data.magazine[1].author
-                    }}</a
-                    ><a href="#" class="blog-date">{{ data.magazine[1].date }}</a></span
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="text-dark-gray fw-500 categories-text"
+                      >{{ data.magazine[1].author }}</a
+                    ><a href="/" data-fashion-2-route class="blog-date">{{
+                      data.magazine[1].date
+                    }}</a></span
                   >
                   <a
-                    href="#fashion-2-main"
+                    href="/"
+                    data-fashion-2-route
                     class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                     >{{ data.magazine[1].name }}</a
                   >
@@ -2363,20 +2558,25 @@ onMounted(() => {
             <li class="grid-item">
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
-                  <a href="#fashion-2-main"
+                  <a href="/" data-fashion-2-route
                     ><img alt="" v-bind:src="sourceAsset(data.magazine[2].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
                   <span class="mb-5px d-block"
                     >By
-                    <a href="#" class="text-dark-gray fw-500 categories-text">{{
-                      data.magazine[2].author
-                    }}</a
-                    ><a href="#" class="blog-date">{{ data.magazine[2].date }}</a></span
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="text-dark-gray fw-500 categories-text"
+                      >{{ data.magazine[2].author }}</a
+                    ><a href="/" data-fashion-2-route class="blog-date">{{
+                      data.magazine[2].date
+                    }}</a></span
                   >
                   <a
-                    href="#fashion-2-main"
+                    href="/"
+                    data-fashion-2-route
                     class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                     >{{ data.magazine[2].name }}</a
                   >
@@ -2387,20 +2587,25 @@ onMounted(() => {
             <li class="grid-item">
               <div class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
-                  <a href="#fashion-2-main"
+                  <a href="/" data-fashion-2-route
                     ><img alt="" v-bind:src="sourceAsset(data.magazine[3].sourceImage)"
                   /></a>
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
                   <span class="mb-5px d-block"
                     >By
-                    <a href="#" class="text-dark-gray fw-500 categories-text">{{
-                      data.magazine[3].author
-                    }}</a
-                    ><a href="#" class="blog-date">{{ data.magazine[3].date }}</a></span
+                    <a
+                      href="/"
+                      data-fashion-2-route
+                      class="text-dark-gray fw-500 categories-text"
+                      >{{ data.magazine[3].author }}</a
+                    ><a href="/" data-fashion-2-route class="blog-date">{{
+                      data.magazine[3].date
+                    }}</a></span
                   >
                   <a
-                    href="#fashion-2-main"
+                    href="/"
+                    data-fashion-2-route
                     class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                     >{{ data.magazine[3].name }}</a
                   >
@@ -2416,7 +2621,7 @@ onMounted(() => {
     <div class="container">
       <div class="row align-items-center pt-35px pb-35px">
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">
-          <a href="#fashion-2-main" class="footer-logo"
+          <a href="/" data-fashion-2-route class="footer-logo"
             ><img
               alt=""
               class="default-logo"
@@ -2427,12 +2632,14 @@ onMounted(() => {
 
         <div class="col">
           <ul class="footer-navbar text-center text-md-end">
-            <li class="nav-item"><a href="#fashion-2-main" class="nav-link">Home</a></li>
-            <li class="nav-item"><a href="#fashion-2-main" class="nav-link">Shop</a></li>
-            <li class="nav-item"><a href="#fashion-2-main" class="nav-link">Collection</a></li>
-            <li class="nav-item"><a href="#fashion-2-main" class="nav-link">Magazine</a></li>
-            <li class="nav-item"><a href="#fashion-2-main" class="nav-link">About</a></li>
-            <li class="nav-item"><a href="#fashion-2-main" class="nav-link">Contact</a></li>
+            <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Home</a></li>
+            <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Shop</a></li>
+            <li class="nav-item">
+              <a href="/" data-fashion-2-route class="nav-link">Collection</a>
+            </li>
+            <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Magazine</a></li>
+            <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">About</a></li>
+            <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Contact</a></li>
           </ul>
         </div>
       </div>
@@ -2446,33 +2653,33 @@ onMounted(() => {
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Categories</span>
           <ul>
-            <li><a href="#fashion-2-main">Men</a></li>
-            <li><a href="#fashion-2-main">Women</a></li>
-            <li><a href="#fashion-2-main">Accessories</a></li>
-            <li><a href="#fashion-2-main">Shoes</a></li>
-            <li><a href="#fashion-2-main">Dresses</a></li>
+            <li><a href="/" data-fashion-2-route>Men</a></li>
+            <li><a href="/" data-fashion-2-route>Women</a></li>
+            <li><a href="/" data-fashion-2-route>Accessories</a></li>
+            <li><a href="/" data-fashion-2-route>Shoes</a></li>
+            <li><a href="/" data-fashion-2-route>Dresses</a></li>
           </ul>
         </div>
 
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Information</span>
           <ul>
-            <li><a href="#fashion-2-main">About us</a></li>
-            <li><a href="#fashion-2-main">Contact us</a></li>
-            <li><a href="#">Terms &amp; conditions</a></li>
-            <li><a href="#">Shipping &amp; delivery</a></li>
-            <li><a href="#">Privacy policy</a></li>
+            <li><a href="/" data-fashion-2-route>About us</a></li>
+            <li><a href="/" data-fashion-2-route>Contact us</a></li>
+            <li><a href="/" data-fashion-2-route>Terms &amp; conditions</a></li>
+            <li><a href="/" data-fashion-2-route>Shipping &amp; delivery</a></li>
+            <li><a href="/" data-fashion-2-route>Privacy policy</a></li>
           </ul>
         </div>
 
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Quick links</span>
           <ul>
-            <li><a href="#fashion-2-main">My account</a></li>
-            <li><a href="#">Orders tracking</a></li>
-            <li><a href="#">Our store</a></li>
-            <li><a href="#">Size guide</a></li>
-            <li><a href="#fashion-2-main">FAQs</a></li>
+            <li><a href="/" data-fashion-2-route>My account</a></li>
+            <li><a href="/" data-fashion-2-route>Orders tracking</a></li>
+            <li><a href="/" data-fashion-2-route>Our store</a></li>
+            <li><a href="/" data-fashion-2-route>Size guide</a></li>
+            <li><a href="/" data-fashion-2-route>FAQs</a></li>
           </ul>
         </div>
 
@@ -2540,16 +2747,16 @@ onMounted(() => {
             </form>
           </div>
           <div class="footer-card">
-            <a href="#" class="d-inline-block me-5px align-middle"
+            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-01.png')"
             /></a>
-            <a href="#" class="d-inline-block me-5px align-middle"
+            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-02.png')"
             /></a>
-            <a href="#" class="d-inline-block me-5px align-middle"
+            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-03.png')"
             /></a>
-            <a href="#" class="d-inline-block me-5px align-middle"
+            <a href="/" data-fashion-2-route class="d-inline-block me-5px align-middle"
               ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-04.png')"
             /></a>
           </div>
@@ -2564,8 +2771,13 @@ onMounted(() => {
           >
             <p>
               This site is protected by reCAPTCHA and the Google
-              <a href="#" class="text-white text-decoration-line-bottom">privacy policy</a> and
-              <a href="#" class="text-white text-decoration-line-bottom">terms of service.</a>
+              <a href="/" data-fashion-2-route class="text-white text-decoration-line-bottom"
+                >privacy policy</a
+              >
+              and
+              <a href="/" data-fashion-2-route class="text-white text-decoration-line-bottom"
+                >terms of service.</a
+              >
             </p>
           </div>
           <div class="col-12 col-lg-5 text-center text-lg-end lh-22">
@@ -2594,24 +2806,26 @@ onMounted(() => {
     </div>
     <div class="cookie-btn">
       <a
-        href="#"
+        href="/policies/cookies"
+        data-fashion-2-route
         class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px"
-        aria-label="btn"
+        aria-label="Cookie policy"
       >
         <span>
           <span class="btn-double-text" data-text="Cookie policy">Cookie policy</span>
         </span>
       </a>
-      <a
-        href="#"
+      <button
+        type="button"
         class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100"
         data-accept-btn=""
-        aria-label="text"
+        aria-label="Allow cookies"
+        @click="cookieVisible = false"
       >
         <span>
           <span class="btn-double-text" data-text="Allow cookies">Allow cookies</span>
         </span>
-      </a>
+      </button>
     </div>
   </div>
   <div
@@ -2649,7 +2863,7 @@ onMounted(() => {
     </div>
   </div>
   <div class="scroll-progress d-none d-xxl-block">
-    <a href="#" class="scroll-top" aria-label="scroll">
+    <a href="/" data-fashion-2-route class="scroll-top" aria-label="scroll">
       <span class="scroll-text">Scroll</span
       ><span class="scroll-line"><span class="scroll-point"></span></span>
     </a>

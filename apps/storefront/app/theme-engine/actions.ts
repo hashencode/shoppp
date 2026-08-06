@@ -6,6 +6,8 @@ export const previewActionIntentSchema = z.enum([
   "cart.add-preview",
   "cart.quantity-preview",
   "checkout.start-preview",
+  "wishlist.toggle-preview",
+  "product.quick-view-preview",
 ]);
 
 export const previewActionSchema = z
