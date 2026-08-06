@@ -336,7 +336,7 @@ test("partial runtime load failure removes earlier scripts and globals", async (
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "fashion-2-desktop");
-  await page.route(/vendors\.min\.js(?:\?.*)?$/, (route) => route.abort());
+  await page.route(/vendors\.min(?:\.[^/]+)?\.js(?:\?.*)?$/, (route) => route.abort());
   await ready(page, "/", false);
   await expect(page.locator("[data-fashion-2-source-parity]")).toHaveAttribute(
     "data-runtime-status",
