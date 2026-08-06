@@ -43,5 +43,16 @@ describe("theme capture contract", () => {
         "document",
       ),
     ).toEqual([]);
+    expect(
+      captureGeometryIssues(
+        "over-threshold",
+        reference,
+        { ...reference, width: 202.01 },
+        "document",
+      ),
+    ).toEqual([
+      "over-threshold right: expected 240px, received 242.01px",
+      "over-threshold width: expected 200px, received 202.01px",
+    ]);
   });
 });

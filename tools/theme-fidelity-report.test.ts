@@ -17,7 +17,7 @@ async function png(path: string, width: number, height: number, background = "#f
 }
 
 async function captureRoot(
-  themeId: "fashion" | "decor",
+  themeId: "fashion" | "decor" | "fashion-2",
   width = 1440,
   desktopViewportHeight = 1000,
 ): Promise<string> {
@@ -49,6 +49,45 @@ async function captureRoot(
 }
 
 describe("theme fidelity report", () => {
+  test("retains over-threshold Fashion 2 pixel evidence and rejects stale identity", async () => {
+    const referenceRoot = await captureRoot("fashion-2");
+    const implementationRoot = await captureRoot("fashion-2");
+    const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
+    roots.push(outputRoot);
+    await png(join(implementationRoot, "fashion-2", "mobile.png"), 390, 844, "#000000");
+
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        implementationRoot,
+        outputRoot,
+        referenceRoot,
+        themes: ["fashion-2"],
+      }),
+    ).rejects.toThrow("fashion-2 mobile");
+    expect(await readFile(join(outputRoot, "fashion-2-mobile-diff.json"), "utf8")).toContain(
+      '"changedPixelRatio": 1',
+    );
+
+    const staleMetadata = JSON.parse(
+      await readFile(join(implementationRoot, "fashion-2", "metadata.json"), "utf8"),
+    ) as Record<string, unknown>;
+    staleMetadata.commit = "deadbee";
+    await writeFile(
+      join(implementationRoot, "fashion-2", "metadata.json"),
+      JSON.stringify(staleMetadata),
+    );
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        implementationRoot,
+        outputRoot,
+        referenceRoot,
+        themes: ["fashion-2"],
+      }),
+    ).rejects.toThrow("does not match commit");
+  });
+
   test("creates review evidence without blessing an unapproved implementation", async () => {
     const referenceRoot = await captureRoot("fashion");
     const implementationRoot = await captureRoot("fashion");

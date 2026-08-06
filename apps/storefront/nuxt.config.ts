@@ -2,6 +2,12 @@ import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
+const fashion2FontImports = [
+  "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');",
+  "@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap');",
+  '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");',
+  '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap");',
+] as const;
 const redirectRules = Object.fromEntries(
   manifest.redirects.map((redirect) => [
     redirect.from,
@@ -17,6 +23,23 @@ export default defineNuxtConfig({
     inlineStyles: previewBuild ? true : (id) => Boolean(id?.includes(".vue")),
   },
   modules: ["@nuxt/image", "@pinia/nuxt"],
+  vite: {
+    plugins: [
+      {
+        name: "fashion-2-local-font-adaptation",
+        enforce: "pre",
+        transform(source, id) {
+          const cleanId = id.split("?", 1)[0]!;
+          if (!cleanId.includes("/themes/fashion-2/upstream/") || !cleanId.endsWith(".css")) return;
+          const adapted = fashion2FontImports.reduce(
+            (css, remoteImport) => css.replace(remoteImport, ""),
+            source,
+          );
+          return adapted === source ? undefined : adapted;
+        },
+      },
+    ],
+  },
   app: {
     head: {
       htmlAttrs: { lang: "en" },

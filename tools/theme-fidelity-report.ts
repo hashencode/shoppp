@@ -6,7 +6,7 @@ import {
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
 
-export type FidelityThemeId = "decor" | "fashion";
+export type FidelityThemeId = "decor" | "fashion" | "fashion-2";
 export type FidelityViewportId = "desktop" | "laptop" | "tablet" | "mobile";
 
 export const fidelityViewportIds: FidelityViewportId[] = ["desktop", "laptop", "tablet", "mobile"];

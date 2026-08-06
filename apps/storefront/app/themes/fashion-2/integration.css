@@ -1,0 +1,140 @@
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("./upstream/fonts/figtree-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./upstream/fonts/outfit-latin.woff2") format("woff2");
+}
+
+/* Nuxt owns navigation and preview actions while preserving Crafto's visible controls. */
+.fashion-2-home {
+  color: var(--medium-gray);
+  font-family: var(--primary-font);
+  font-size: 17px;
+  line-height: 32px;
+}
+
+.fashion-2-home .navbar {
+  line-height: 32px;
+  padding: 0;
+}
+
+.fashion-2-home .container,
+.fashion-2-home .container-fluid,
+.fashion-2-home .container-lg,
+.fashion-2-home .container-md,
+.fashion-2-home .container-sm,
+.fashion-2-home .container-xl,
+.fashion-2-home .container-xxl {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+.fashion-2-home .row {
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+.fashion-2-home .row > * {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+@media (min-width: 992px) {
+  .fashion-2-home .header-with-topbar .navbar {
+    top: 40px !important;
+  }
+
+  .fashion-2-home .swiper.top-space-margin {
+    height: calc(100vh - 118px) !important;
+    margin-top: 118px;
+  }
+}
+
+.fashion-2-home a,
+.fashion-2-home button {
+  cursor: pointer;
+}
+
+.fashion-2-home .fashion-2-action-feedback {
+  margin: 12px 0 0;
+  color: var(--dark-gray);
+  font: 500 16px/22px var(--alt-font);
+}
+
+.fashion-2-home .fashion-2-hero-slide:not([data-active="true"]) {
+  display: none;
+}
+
+.fashion-2-home .fashion-2-product-slice {
+  padding-top: 90px;
+  padding-bottom: 90px;
+}
+
+.fashion-2-home .fashion-2-product-slice .shop-wrapper {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 217.672px;
+  margin: 0 auto;
+  position: relative;
+  top: -0.3125px;
+  left: 0.640625px;
+}
+
+.fashion-2-home .fashion-2-product-slice .shop-wrapper .grid-item {
+  width: 100% !important;
+}
+
+.fashion-2-home .fashion-2-product-slice .shop-image img {
+  width: 100%;
+}
+
+.fashion-2-home .btn.btn-large {
+  padding: 15px 30px;
+  font-family: var(--alt-font);
+  font-size: 18px;
+}
+
+@media (max-width: 767px) {
+  .fashion-2-home .fashion-2-product-slice {
+    padding-top: 55px;
+    padding-bottom: 55px;
+  }
+
+  .fashion-2-home .fashion-2-product-slice .shop-wrapper {
+    width: 100%;
+    max-width: 360px;
+    top: 0;
+    left: 0;
+  }
+
+  .fashion-2-home .header-with-topbar .navbar {
+    top: 0 !important;
+  }
+
+  .fashion-2-home .swiper.top-space-margin {
+    margin-top: 79px;
+  }
+
+  .fashion-2-home .btn.btn-large {
+    padding: 13px 25px;
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fashion-2-home *,
+  .fashion-2-home *::before,
+  .fashion-2-home *::after {
+    animation-duration: 0s !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+  }
+}

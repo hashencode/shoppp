@@ -1,35 +1,20 @@
-import { defineComponent, h } from "vue";
-
+import "./upstream/css/vendors.min.css";
+import "./upstream/css/icon.min.css";
+import "./upstream/css/style.css";
+import "./upstream/css/responsive.css";
+import "./upstream/demos/fashion-store/fashion-store.css";
+import "./integration.css";
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import type { ExperienceFixtureRegistry } from "../../theme-engine/view-models";
-
-const Fashion2HomePlaceholder = defineComponent({
-  name: "Fashion2HomePlaceholder",
-  setup: () => () =>
-    h("main", { class: "fashion-2-home", "data-fashion-2-placeholder": "true" }, [
-      h("h1", "Fashion 2 source parity preview"),
-    ]),
-});
+import Fashion2Home from "./components/Fashion2Home.vue";
+import { fashion2HomeFixtures } from "./fixtures/home";
+import { themeAssets } from "./resources";
 
 export const themeRegistry = {
   blocks: {},
   sections: {
-    "fashion-2.home": Fashion2HomePlaceholder,
+    "fashion-2.home": Fashion2Home,
   },
 } as const satisfies ThemeRegistry;
 
-export const themeAssets = {} as const;
-export const themeFixtures = {
-  "fashion-2-home": {
-    id: "fashion-2-home",
-    label: "Fashion 2 source-parity home placeholder",
-    pageTypes: ["home"],
-    viewModels: {
-      home: {
-        data: {},
-        kind: "theme-section",
-        state: "populated",
-      },
-    },
-  },
-} as const satisfies ExperienceFixtureRegistry;
+export { themeAssets };
+export const themeFixtures = fashion2HomeFixtures;
