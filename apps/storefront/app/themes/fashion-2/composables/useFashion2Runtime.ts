@@ -2,6 +2,9 @@ import {
   createInteractionController,
   type InteractionSnapshot,
 } from "../../../theme-engine/interaction-controller";
+import { initializeFashion2Capabilities } from "../runtime/capabilities";
+import { createFashion2Lifecycle } from "../runtime/lifecycle";
+import { loadFashion2VendorRuntime } from "../runtime/loader.client";
 
 interface Fashion2RuntimeOptions {
   autoplayMs: number;
@@ -21,6 +24,9 @@ export function useFashion2Runtime(options: Fashion2RuntimeOptions) {
   const motion = shallowRef<InteractionSnapshot>(controller.snapshot());
   const direction = ref<"horizontal" | "vertical">("horizontal");
   const hydrated = ref(false);
+  const status = ref<"fallback" | "loading" | "ready" | "static">("loading");
+  const failure = ref("");
+  const lifecycle = createFashion2Lifecycle();
   let directionQuery: MediaQueryList | undefined;
   let reducedMotionQuery: MediaQueryList | undefined;
   let unsubscribe: () => void = () => undefined;
@@ -43,7 +49,7 @@ export function useFashion2Runtime(options: Fashion2RuntimeOptions) {
     if (controller.handleKey(event.key)) event.preventDefault();
   }
 
-  onMounted(() => {
+  onMounted(async () => {
     liveInstances.value += 1;
     unsubscribe = controller.subscribe((snapshot) => {
       motion.value = snapshot;
@@ -53,28 +59,44 @@ export function useFashion2Runtime(options: Fashion2RuntimeOptions) {
     updateDirection();
     updateReducedMotion();
     updateVisibility();
-    directionQuery.addEventListener("change", updateDirection);
-    reducedMotionQuery.addEventListener("change", updateReducedMotion);
-    document.addEventListener("visibilitychange", updateVisibility);
+    lifecycle.listen(directionQuery, "change", updateDirection);
+    lifecycle.listen(reducedMotionQuery, "change", updateReducedMotion);
+    lifecycle.listen(document, "visibilitychange", updateVisibility);
     hydrated.value = true;
     controller.start();
+    await nextTick();
+    await document.fonts.ready;
+    if (lifecycle.destroyed) return;
+    try {
+      const reducedMotion = reducedMotionQuery.matches;
+      const vendorRuntime = reducedMotion ? {} : await loadFashion2VendorRuntime(lifecycle);
+      if (lifecycle.destroyed) return;
+      initializeFashion2Capabilities(document, vendorRuntime, lifecycle, reducedMotion);
+      status.value = reducedMotion ? "static" : "ready";
+    } catch (error) {
+      if (lifecycle.destroyed) return;
+      initializeFashion2Capabilities(document, {}, lifecycle, true);
+      document.body.dataset.fashion2VisualRuntime = "fallback";
+      failure.value = error instanceof Error ? error.message : String(error);
+      status.value = "fallback";
+    }
   });
 
   onBeforeUnmount(() => {
     unsubscribe();
     controller.dispose();
-    directionQuery?.removeEventListener("change", updateDirection);
-    reducedMotionQuery?.removeEventListener("change", updateReducedMotion);
-    document.removeEventListener("visibilitychange", updateVisibility);
+    lifecycle.destroy();
     liveInstances.value -= 1;
   });
 
   return {
     direction,
+    failure,
     hydrated,
     liveInstances: readonly(liveInstances),
     keydown,
     motion,
+    status,
     select: (index: number) => controller.select(index),
   };
 }

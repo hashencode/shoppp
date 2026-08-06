@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-type LifecycleCallback = () => void;
+import { createFashion2Lifecycle } from "../app/themes/fashion-2/runtime/lifecycle";
+
+type LifecycleCallback = () => void | Promise<void>;
 type Listener = () => void;
 
 class MediaQueryFixture {
@@ -27,6 +29,30 @@ class MediaQueryFixture {
 }
 
 describe("Fashion 2 runtime lifecycle", () => {
+  test("destroys owned resources exactly once", () => {
+    const lifecycle = createFashion2Lifecycle();
+    const target = new EventTarget();
+    let events = 0;
+    let cleanups = 0;
+    const listener = () => {
+      events += 1;
+    };
+
+    lifecycle.listen(target, "fashion-2-test", listener);
+    lifecycle.addCleanup(() => {
+      cleanups += 1;
+    });
+    target.dispatchEvent(new Event("fashion-2-test"));
+
+    lifecycle.destroy();
+    lifecycle.destroy();
+    target.dispatchEvent(new Event("fashion-2-test"));
+
+    expect(events).toBe(1);
+    expect(cleanups).toBe(1);
+    expect(lifecycle.destroyed).toBe(true);
+  });
+
   test("hydrates before visual state changes and removes every lifecycle listener", async () => {
     let mounted: LifecycleCallback = () => undefined;
     let beforeUnmount: LifecycleCallback = () => undefined;
@@ -36,11 +62,17 @@ describe("Fashion 2 runtime lifecycle", () => {
 
     Object.assign(globalThis, {
       document: {
+        body: { dataset: {} },
+        documentElement: {
+          style: { removeProperty: () => undefined, setProperty: () => undefined },
+        },
+        fonts: { ready: Promise.resolve() },
         hidden: false,
         addEventListener: (_type: "visibilitychange", listener: Listener) =>
           visibilityListeners.add(listener),
         removeEventListener: (_type: "visibilitychange", listener: Listener) =>
           visibilityListeners.delete(listener),
+        querySelectorAll: () => [],
       },
       matchMedia: (query: string) =>
         query === "(prefers-reduced-motion: reduce)" ? reducedMotionQuery : directionQuery,
@@ -50,6 +82,7 @@ describe("Fashion 2 runtime lifecycle", () => {
       onMounted: (callback: LifecycleCallback) => {
         mounted = callback;
       },
+      nextTick: () => Promise.resolve(),
       readonly: <T>(value: T) => value,
       ref: <T>(value: T) => ({ value }),
       shallowRef: <T>(value: T) => ({ value }),
@@ -66,10 +99,11 @@ describe("Fashion 2 runtime lifecycle", () => {
 
     expect(runtime.hydrated.value).toBe(false);
     expect(runtime.liveInstances.value).toBe(0);
-    mounted();
+    await mounted();
     expect(runtime.hydrated.value).toBe(true);
     expect(runtime.liveInstances.value).toBe(1);
     expect(runtime.motion.value.pausedReasons).toEqual(["reduced-motion"]);
+    expect(runtime.status.value).toBe("static");
     expect(runtime.direction.value).toBe("horizontal");
 
     directionQuery.emit(true);

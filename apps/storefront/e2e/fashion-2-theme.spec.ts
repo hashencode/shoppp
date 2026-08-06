@@ -31,8 +31,8 @@ const deterministicCss = `
   #cookies-model, .sticky-wrap, .scroll-progress, .theme-demos { display: none !important; }
 `;
 
-async function ready(page: Page, url: string): Promise<void> {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+async function ready(page: Page, url: string, reducedMotion = true): Promise<void> {
+  await page.emulateMedia({ reducedMotion: reducedMotion ? "reduce" : "no-preference" });
   await page.goto(url, { waitUntil: "networkidle" });
   await page.addStyleTag({ content: deterministicCss });
   if (url === "/") {
@@ -244,6 +244,46 @@ test("complete source home renders every static region and local image", async (
     .locator("section:nth-of-type(4) .grid-item")
     .evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
   expect(firstRowTops.filter((top) => top === firstRowTops[0])).toHaveLength(expectedColumns);
+});
+
+test("visual capabilities initialize once and leave no runtime residue", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-2-desktop");
+  await ready(page, "/", false);
+  const marker = page.locator("[data-fashion-2-source-parity]");
+  await expect(marker).toHaveAttribute("data-runtime-status", "ready");
+  await expect(page.locator("[data-fashion2-runtime-script]")).toHaveCount(2);
+  await expect(page.locator(".grid-loading")).toHaveCount(0);
+  await expect(page.locator(".swiper.slider-three-slide")).toHaveClass(/swiper-initialized/);
+  expect(
+    await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
+  ).toEqual({ jquery: true, swiper: true });
+
+  await page.goto("/cart");
+  await expect(page.locator("[data-fashion2-runtime-script]")).toHaveCount(0);
+  expect(await page.locator("body").getAttribute("data-fashion2-visual-runtime")).toBeNull();
+  expect(
+    await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
+  ).toEqual({ jquery: false, swiper: false });
+
+  await page.goBack({ waitUntil: "networkidle" });
+  await expect(marker).toHaveAttribute("data-runtime-status", "ready");
+  await expect(page.locator("[data-fashion2-runtime-script]")).toHaveCount(2);
+  await expect(marker).toHaveAttribute("data-runtime-instance-count", "1");
+});
+
+test("runtime load failure exposes stable static content", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-2-desktop");
+  await page.route(/jquery(?:\.[^/]+)?\.js(?:\?.*)?$/, (route) => route.abort());
+  await ready(page, "/", false);
+  await expect(page.locator("[data-fashion-2-source-parity]")).toHaveAttribute(
+    "data-runtime-status",
+    "fallback",
+  );
+  await expect(page.getByRole("alert")).toContainText("Visual enhancements are unavailable");
+  await expect(page.locator(".grid-loading")).toHaveCount(0);
+  await expect(page.locator("section:nth-of-type(10)")).toBeVisible();
 });
 
 test("runtime and typed preview action remain clean and Nuxt-owned", async ({ page }) => {

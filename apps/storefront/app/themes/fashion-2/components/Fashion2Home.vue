@@ -33,6 +33,10 @@ const activeIndex = computed(() =>
     ? runtime.motion.value.targetIndex
     : runtime.motion.value.currentIndex,
 );
+const heroCurrent = computed(() => String(activeIndex.value + 1).padStart(2, "0"));
+const heroNext = computed(() =>
+  String(((activeIndex.value + 1) % data.value.slider.slides.length) + 1).padStart(2, "0"),
+);
 
 function addToCart(): void {
   recordPreviewIntent(data.value!.cartAction, "fashion-2.home.product");
@@ -77,7 +81,11 @@ onMounted(() => {
     data-fashion-2-source-parity="true"
     :data-preview-intent-count="actionIntentCount"
     :data-runtime-instance-count="runtime.liveInstances.value"
+    :data-runtime-status="runtime.status.value"
   />
+  <p v-if="runtime.failure.value" class="sr-only" role="alert">
+    Visual enhancements are unavailable: {{ runtime.failure.value }}
+  </p>
   <button
     v-for="(_, index) in data.slider.slides"
     :key="'slide-control-' + index"
@@ -706,11 +714,11 @@ onMounted(() => {
 
       <div class="swiper-pagination-wrapper">
         <div class="pagination-progress-vertical d-flex align-items-center justify-content-center">
-          <div class="number-prev text-dark-gray fs-16 fw-500"></div>
+          <div class="number-prev text-dark-gray fs-16 fw-500">{{ heroCurrent }}</div>
           <div class="swiper-pagination-progress">
             <span class="swiper-progress"></span>
           </div>
-          <div class="number-next text-dark-gray fs-16 fw-500"></div>
+          <div class="number-next text-dark-gray fs-16 fw-500">{{ heroNext }}</div>
         </div>
       </div>
     </div>
