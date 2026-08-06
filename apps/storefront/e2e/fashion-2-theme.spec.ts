@@ -375,6 +375,14 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   expect(requests.filter(({ url }) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
   expect(requests.filter(({ url }) => /\.php|instagram.*ajax/i.test(url))).toEqual([]);
 
+  if (page.viewportSize()!.width >= 992) {
+    const shopMenu = page.locator(".navbar-left .nav-item.dropdown").first();
+    await shopMenu.hover();
+    await expect(shopMenu).toHaveClass(/\bopen\b/);
+    await page.mouse.move(0, page.viewportSize()!.height - 1);
+    await expect(shopMenu).not.toHaveClass(/\bopen\b/);
+  }
+
   const initialMotion = await captureMotionContract(page, ".swiper.full-screen", "initial");
   expect(initialMotion).toMatchObject({
     activeIndex: 0,

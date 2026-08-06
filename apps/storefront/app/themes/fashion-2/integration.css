@@ -69,6 +69,20 @@
   padding-left: 15px;
 }
 
+/* Preserve Crafto's breakpoint-specific navigation gutters after the scoped
+   Bootstrap gutter normalization above. */
+.fashion-2-home .header-with-topbar .navbar > .container-fluid {
+  padding-right: 45px;
+  padding-left: 45px;
+}
+
+.fashion-2-home .header-cart > .fashion-2-source-action {
+  position: relative;
+  padding-left: 14px;
+  color: var(--dark-gray);
+  font-size: 17px;
+}
+
 @media (min-width: 992px) {
   .fashion-2-home .header-with-topbar .navbar {
     top: 40px !important;
@@ -157,6 +171,11 @@ body.fashion-2-home:not([data-fashion2-visual-runtime="ready"]) .slider-three-sl
 }
 
 @media (max-width: 1199px) {
+  .fashion-2-home .header-with-topbar .navbar > .container-fluid {
+    padding-right: 35px;
+    padding-left: 35px;
+  }
+
   .fashion-2-home section:nth-of-type(4) .shop-wrapper {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -177,8 +196,16 @@ body.fashion-2-home:not([data-fashion2-visual-runtime="ready"]) .slider-three-sl
   }
 }
 
+@media (min-width: 992px) and (max-width: 1199px) {
+  .fashion-2-home footer {
+    margin-top: -0.203125px;
+  }
+}
+
 @media (min-width: 768px) and (max-width: 991px) {
   .fashion-2-home .header-with-topbar .navbar {
+    padding-right: 15px;
+    padding-left: 15px;
     top: 41px !important;
   }
 
@@ -199,11 +226,16 @@ body.fashion-2-home:not([data-fashion2-visual-runtime="ready"]) .slider-three-sl
   }
 
   .fashion-2-home footer {
-    margin-top: -0.734375px;
+    margin-top: 0.015625px;
   }
 }
 
 @media (max-width: 991px) {
+  .fashion-2-home .header-with-topbar .navbar > .container-fluid {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
   .fashion-2-home section:nth-of-type(4) .shop-wrapper,
   .fashion-2-home section:nth-of-type(8) .shop-wrapper {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -211,6 +243,16 @@ body.fashion-2-home:not([data-fashion2-visual-runtime="ready"]) .slider-three-sl
 
   .fashion-2-home section:nth-of-type(10) .blog-wrapper {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .fashion-2-home .slider-three-slide {
+    top: -0.046875px;
+  }
+
+  .fashion-2-home footer {
+    margin-top: -0.109375px;
   }
 }
 

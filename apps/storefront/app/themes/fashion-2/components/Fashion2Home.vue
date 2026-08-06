@@ -38,6 +38,8 @@ const heroCurrent = computed(() => String(activeIndex.value + 1).padStart(2, "0"
 const heroNext = computed(() =>
   String(((activeIndex.value + 1) % data.value.slider.slides.length) + 1).padStart(2, "0"),
 );
+// Vue removes source inter-tag whitespace, so keep Crafto's inline-item gap explicit.
+const sourceInlineGap = " ";
 
 const router = useRouter();
 
@@ -2699,12 +2701,27 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
         <div class="col">
           <ul class="footer-navbar text-center text-md-end">
             <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Home</a></li>
+            {{
+              sourceInlineGap
+            }}
             <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Shop</a></li>
+            {{
+              sourceInlineGap
+            }}
             <li class="nav-item">
               <a href="/" data-fashion-2-route class="nav-link">Collection</a>
             </li>
+            {{
+              sourceInlineGap
+            }}
             <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Magazine</a></li>
+            {{
+              sourceInlineGap
+            }}
             <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">About</a></li>
+            {{
+              sourceInlineGap
+            }}
             <li class="nav-item"><a href="/" data-fashion-2-route class="nav-link">Contact</a></li>
           </ul>
         </div>
@@ -2775,6 +2792,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                   ><i class="fa-brands fa-facebook-f"></i
                 ></a>
               </li>
+              {{
+                sourceInlineGap
+              }}
               <li>
                 <a
                   class="dribbble"
@@ -2784,6 +2804,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                   ><i class="fa-brands fa-dribbble"></i
                 ></a>
               </li>
+              {{
+                sourceInlineGap
+              }}
               <li>
                 <a
                   class="twitter"
@@ -2793,6 +2816,9 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
                   ><i class="fa-brands fa-twitter"></i
                 ></a>
               </li>
+              {{
+                sourceInlineGap
+              }}
               <li>
                 <a
                   class="instagram"
@@ -2834,22 +2860,28 @@ onBeforeUnmount(() => document.removeEventListener("click", handleInternalNaviga
               data-fashion-2-route
               class="d-inline-block me-5px align-middle"
               aria-label="Visa payment information"
-              ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-01.png')"
-            /></a>
+              ><img
+                alt=""
+                v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-01.png')" /></a
+            >{{ sourceInlineGap }}
             <a
               href="/"
               data-fashion-2-route
               class="d-inline-block me-5px align-middle"
               aria-label="PayPal payment information"
-              ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-02.png')"
-            /></a>
+              ><img
+                alt=""
+                v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-02.png')" /></a
+            >{{ sourceInlineGap }}
             <a
               href="/"
               data-fashion-2-route
               class="d-inline-block me-5px align-middle"
               aria-label="Mastercard payment information"
-              ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-03.png')"
-            /></a>
+              ><img
+                alt=""
+                v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-03.png')" /></a
+            >{{ sourceInlineGap }}
             <a
               href="/"
               data-fashion-2-route

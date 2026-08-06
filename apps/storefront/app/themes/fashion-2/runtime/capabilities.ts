@@ -20,6 +20,20 @@ function exposeStaticContent(root: ParentNode): void {
   }
 }
 
+function initializeDesktopDropdowns(root: ParentNode, lifecycle: Fashion2Lifecycle): void {
+  const dropdowns = [...root.querySelectorAll<HTMLElement>(".navbar .nav-item.dropdown")];
+  const close = (dropdown: HTMLElement): void => dropdown.classList.remove("open", "menu-left");
+  for (const dropdown of dropdowns) {
+    lifecycle.listen(dropdown, "mouseenter", () => {
+      if (innerWidth < 992) return;
+      for (const sibling of dropdowns) if (sibling !== dropdown) close(sibling);
+      dropdown.classList.add("open");
+    });
+    lifecycle.listen(dropdown, "mouseleave", () => close(dropdown));
+  }
+  lifecycle.addCleanup(() => dropdowns.forEach(close));
+}
+
 export function initializeFashion2Capabilities(
   root: ParentNode,
   runtime: Fashion2VendorRuntime,
@@ -27,6 +41,7 @@ export function initializeFashion2Capabilities(
   reducedMotion: boolean,
 ): void {
   exposeStaticContent(root);
+  initializeDesktopDropdowns(root, lifecycle);
   document.body.dataset.fashion2VisualRuntime = reducedMotion ? "static" : "ready";
   lifecycle.addCleanup(() => delete document.body.dataset.fashion2VisualRuntime);
   if (reducedMotion) return;

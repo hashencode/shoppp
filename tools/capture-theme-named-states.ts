@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import sharp from "../apps/storefront/node_modules/sharp";
@@ -43,7 +43,8 @@ const namedStateCss =
     transform: none !important;
   }
   .sticky-wrap { display: none !important; }
-  #cookies-model, .fashion-cookie-message {
+  .capture-cookie-overlay #cookies-model,
+  .capture-cookie-overlay .fashion-cookie-message {
     display: block !important;
     opacity: 1 !important;
     transform: none !important;
@@ -66,13 +67,41 @@ const namedStateCss =
     animation: none !important;
   }
   *:focus { outline: none !important; }
-  #cookies-model, .decor-cookie-message {
+  .capture-cookie-overlay #cookies-model,
+  .capture-cookie-overlay .decor-cookie-message {
     display: block !important;
     opacity: 1 !important;
     transform: none !important;
     visibility: visible !important;
   }
 `;
+
+async function fashion2SourceFontCss(): Promise<string> {
+  const fontsRoot = resolve(
+    import.meta.dir,
+    "../apps/storefront/app/themes/fashion-2/upstream/fonts",
+  );
+  const [figtree, outfit] = await Promise.all([
+    readFile(join(fontsRoot, "figtree-latin.woff2")),
+    readFile(join(fontsRoot, "outfit-latin.woff2")),
+  ]);
+  return `
+    @font-face {
+      font-family: "Figtree";
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: block;
+      src: url("data:font/woff2;base64,${figtree.toString("base64")}") format("woff2");
+    }
+    @font-face {
+      font-family: "Outfit";
+      font-style: normal;
+      font-weight: 300 900;
+      font-display: block;
+      src: url("data:font/woff2;base64,${outfit.toString("base64")}") format("woff2");
+    }
+  `;
+}
 
 async function stabilize(page: Page): Promise<void> {
   await page.addStyleTag({ content: namedStateCss });
@@ -321,19 +350,48 @@ async function applyFashion2Action(
   action: NamedStateAction,
   viewportWidth: number,
 ): Promise<void> {
-  if (side === "source") return applyFashionAction(page, side, action, viewportWidth);
+  if (side === "source") {
+    if (action.kind !== "product-focus")
+      return applyFashionAction(page, side, action, viewportWidth);
+    await resetFashion(page, side);
+    const product = page.locator(".shop-modern .grid-item .shop-image").first();
+    await product.hover();
+    await product.locator('[aria-label="Add to wishlist"]').focus();
+    await page.waitForTimeout(100);
+    return;
+  }
   await page.mouse.move(0, 0);
   const toggle = page.locator(".navbar-toggler");
   if ((await toggle.getAttribute("aria-expanded")) === "true") await toggle.click();
+  const waitForHeroIdle = () =>
+    page.waitForFunction(
+      () =>
+        document.querySelector(".swiper.full-screen")?.getAttribute("data-motion-phase") === "idle",
+    );
+  await waitForHeroIdle();
   const firstSlide = page.getByRole("button", { name: "Show slide 1" });
   if (await firstSlide.count()) {
     await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
+    await waitForHeroIdle();
   }
+  await page.locator(".swiper.slider-three-slide").evaluate((element) => {
+    const swiper = (
+      element as HTMLElement & {
+        swiper?: {
+          autoplay?: { stop(): void };
+          slideToLoop?(index: number, speed: number): void;
+        };
+      }
+    ).swiper;
+    swiper?.autoplay?.stop();
+    swiper?.slideToLoop?.(0, 0);
+  });
   if (action.kind === "initial") return;
   if (action.kind === "hero") {
     await page
       .getByRole("button", { name: `Show slide ${action.index + 1}` })
       .evaluate((button) => (button as HTMLButtonElement).click());
+    await waitForHeroIdle();
   } else if (action.kind === "collection") {
     await page.locator(".swiper.slider-three-slide").evaluate((element, index) => {
       (
@@ -348,12 +406,17 @@ async function applyFashion2Action(
           ? page.locator(".navbar-right .nav-item.dropdown").first()
           : page.locator(".navbar-left .nav-item.dropdown").nth(menu === "Collection" ? 1 : 0);
       await dropdown.hover();
+      await page.waitForFunction(
+        (element) => element.classList.contains("open"),
+        await dropdown.elementHandle(),
+      );
     } else {
       await toggle.click();
       await page.evaluate((menuLabel) => {
+        document.querySelector("#navbarNav")?.classList.add("show");
         const dropdowns = [...document.querySelectorAll<HTMLElement>(".navbar .nav-item.dropdown")];
         const index = menuLabel === "Shop" ? 0 : menuLabel === "Collection" ? 1 : 2;
-        dropdowns[index]?.classList.add("show");
+        dropdowns[index]?.classList.add("open", "show");
         dropdowns[index]?.querySelector<HTMLElement>(".dropdown-menu")?.classList.add("show");
       }, menu);
     }
@@ -817,6 +880,7 @@ export async function captureFashionNamedStates(options: {
   let browser: Browser | undefined;
   const failures: string[] = [];
   const results: unknown[] = [];
+  const sourceFontCss = options.comparisonMode ? await fashion2SourceFontCss() : undefined;
   try {
     browser = await chromium.launch(
       process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
@@ -832,6 +896,12 @@ export async function captureFashionNamedStates(options: {
       const source = await context.newPage();
       const implementation = await context.newPage();
       try {
+        if (sourceFontCss) {
+          await source.route("https://fonts.googleapis.com/**", (route) =>
+            route.fulfill({ body: sourceFontCss, contentType: "text/css" }),
+          );
+          await source.route("https://fonts.gstatic.com/**", (route) => route.abort());
+        }
         await source.route("https://via.placeholder.com/**", (route) =>
           route.fulfill({ body: "", contentType: "image/png", status: 204 }),
         );
@@ -878,6 +948,18 @@ export async function captureFashionNamedStates(options: {
         }
         for (const state of contracts) {
           if (options.stateFilter && state.id !== options.stateFilter) continue;
+          await Promise.all([
+            source.evaluate(
+              (visible) =>
+                document.documentElement.classList.toggle("capture-cookie-overlay", visible),
+              state.id === "cookie-overlay",
+            ),
+            implementation.evaluate(
+              (visible) =>
+                document.documentElement.classList.toggle("capture-cookie-overlay", visible),
+              state.id === "cookie-overlay",
+            ),
+          ]);
           if (
             !options.stateFilter &&
             ["product-default", "product-hover", "product-focus"].includes(state.id)
