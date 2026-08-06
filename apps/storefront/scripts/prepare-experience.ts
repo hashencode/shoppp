@@ -54,6 +54,7 @@ export interface PrepareExperienceOptions extends RenderActiveThemeOptions {
 const defaultModuleAllowlist = {
   decor: "../themes/decor/registry",
   fashion: "../themes/fashion/registry",
+  "fashion-2": "../themes/fashion-2/registry",
 } as const;
 
 function compareVersions(left: string, right: string): number {
@@ -92,6 +93,14 @@ function validatedDescriptor(
     ) >= 0
   ) {
     throw new Error("Selected theme is not compatible with the snapshot platform version.");
+  }
+  const unsupportedTemplate = input.snapshot.resolvedTemplates.find(
+    ({ pageType }) => !descriptor.supportedPageTemplates.includes(pageType),
+  );
+  if (unsupportedTemplate) {
+    throw new Error(
+      `Selected theme ${descriptor.id} does not support ${unsupportedTemplate.pageType} templates.`,
+    );
   }
   return descriptor;
 }

@@ -72,6 +72,11 @@ describe("storefront theme catalog generation", () => {
   });
 
   test("keeps both checked-in catalog modules current", async () => {
+    expect(storefrontThemeDescriptors.map(({ id }) => id)).toEqual([
+      "decor",
+      "fashion",
+      "fashion-2",
+    ]);
     await expect(
       verifyStorefrontThemeCatalog({
         descriptors: storefrontThemeDescriptors,

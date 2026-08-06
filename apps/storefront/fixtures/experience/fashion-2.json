@@ -1,0 +1,17 @@
+{
+  "approvedAt": "2026-08-06T00:00:00.000Z",
+  "approvedBy": "fixture-operator",
+  "bindings": [
+    {
+      "fixtureId": "fashion-2-home",
+      "id": "fashion-2-home-binding",
+      "instanceId": "fashion-2-home",
+      "kind": "fixture",
+      "resource": "home",
+      "state": "populated"
+    }
+  ],
+  "experienceId": "experience-fashion-2-fixture",
+  "snapshotId": "snapshot-fashion-2-fixture-1",
+  "version": 1
+}

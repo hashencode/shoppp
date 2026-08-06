@@ -48,5 +48,21 @@ export const storefrontThemeCatalog = [
       "content"
     ],
     "themeVersion": "1.0.0"
+  },
+  {
+    "configurationSchemaVersion": 1,
+    "id": "fashion-2",
+    "platformCompatibility": {
+      "maxExclusive": "2.0.0",
+      "min": "1.0.0"
+    },
+    "platformContractVersion": "1.0.0",
+    "presets": [
+      "source-parity"
+    ],
+    "supportedPageTemplates": [
+      "home"
+    ],
+    "themeVersion": "1.0.0"
   }
 ] as const satisfies readonly StorefrontThemeDescriptor[];
