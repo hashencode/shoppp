@@ -12,6 +12,8 @@ import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifes
 import { decorPreset } from "../app/themes/decor/presets/layered";
 import { fashionManifest, fashionThemeDescriptor } from "../app/themes/fashion/manifest";
 import { fashionPreset } from "../app/themes/fashion/presets/editorial";
+import { fashion2Manifest, fashion2ThemeDescriptor } from "../app/themes/fashion-2/manifest";
+import { fashion2Preset } from "../app/themes/fashion-2/presets/source-parity";
 
 export const STOREFRONT_PLATFORM_CONTRACT_VERSION = "1.0.0";
 export const REQUIRED_STOREFRONT_PAGE_TYPES = [
@@ -30,21 +32,34 @@ export type ThemeConfigurationMigration = {
 };
 
 export type ThemeMatrixEntry = {
+  assetPolicy: "binary-only" | "source-equivalent";
   descriptor: StorefrontThemeDescriptor;
   migrations: readonly ThemeConfigurationMigration[];
   package: ThemePackage;
+  requiredPageTypes: ThemeManifest["supportedPageTemplates"];
 };
 
 export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
   {
+    assetPolicy: "binary-only",
     descriptor: decorThemeDescriptor,
     migrations: [],
     package: { manifest: decorManifest, presets: [decorPreset] },
+    requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
   },
   {
+    assetPolicy: "binary-only",
     descriptor: fashionThemeDescriptor,
     migrations: [],
     package: { manifest: fashionManifest, presets: [fashionPreset] },
+    requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
+  },
+  {
+    assetPolicy: "source-equivalent",
+    descriptor: fashion2ThemeDescriptor,
+    migrations: [],
+    package: { manifest: fashion2Manifest, presets: [fashion2Preset] },
+    requiredPageTypes: ["home"],
   },
 ];
 
@@ -177,12 +192,12 @@ export function verifyThemeMatrix(
     );
 
     const supported = new Set(manifest.supportedPageTemplates);
-    for (const pageType of REQUIRED_STOREFRONT_PAGE_TYPES) {
+    for (const pageType of entry.requiredPageTypes) {
       assert(supported.has(pageType), `${identity} is missing required ${pageType} support.`);
     }
     for (const preset of presets) {
       const pageTypes = preset.templates.map(({ pageType }) => pageType);
-      for (const pageType of REQUIRED_STOREFRONT_PAGE_TYPES) {
+      for (const pageType of entry.requiredPageTypes) {
         assert(
           pageTypes.filter((candidate) => candidate === pageType).length === 1,
           `${identity} preset ${preset.id} must provide exactly one ${pageType} template.`,
@@ -218,7 +233,11 @@ export function verifyThemeMatrix(
 
 if (import.meta.main) {
   verifyThemeMatrix(storefrontThemeMatrix, storefrontThemeCatalog);
-  await verifyThemeAssetSources(storefrontThemeMatrix.map(({ descriptor }) => descriptor.id));
+  await verifyThemeAssetSources(
+    storefrontThemeMatrix
+      .filter(({ assetPolicy }) => assetPolicy === "binary-only")
+      .map(({ descriptor }) => descriptor.id),
+  );
   console.log(
     `Verified ${storefrontThemeMatrix.length} storefront themes against platform ${STOREFRONT_PLATFORM_CONTRACT_VERSION}.`,
   );

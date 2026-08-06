@@ -77,6 +77,13 @@ describe("storefront theme matrix", () => {
     ).not.toThrow();
   });
 
+  test("registers Fashion 2 as a source-equivalent, home-only preview", () => {
+    const fashion2 = storefrontThemeMatrix.find(({ descriptor }) => descriptor.id === "fashion-2");
+    expect(fashion2?.assetPolicy).toBe("source-equivalent");
+    expect(fashion2?.requiredPageTypes).toEqual(["home"]);
+    expect(fashion2?.package.manifest.supportedPageTemplates).toEqual(["home"]);
+  });
+
   test("rejects duplicate IDs, incomplete provenance, incompatibility, schema drift, and page gaps", () => {
     const duplicate = copyEntry(storefrontThemeMatrix[0]!);
     expect(() =>
