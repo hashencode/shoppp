@@ -7,6 +7,15 @@ const properties = defineProps<{
 
 const sourceInlineGap = " ";
 const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
+const highDensity = ref(false);
+
+onMounted(() => {
+  highDensity.value = window.devicePixelRatio > 1;
+});
+
+function densityAsset(standardPath: string, highDensityPath: string): string {
+  return sourceAsset(highDensity.value ? highDensityPath : standardPath);
+}
 </script>
 
 <template>
@@ -18,7 +27,12 @@ const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
             ><img
               alt=""
               class="default-logo"
-              v-bind:src="sourceAsset('images/demo-fashion-store-logo-white.png')"
+              v-bind:src="
+                densityAsset(
+                  'images/demo-fashion-store-logo-white.png',
+                  'images/demo-fashion-store-logo-white@2x.png',
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-white@2x.png')"
           /></a>
         </div>

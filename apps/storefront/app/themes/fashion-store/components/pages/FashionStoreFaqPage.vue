@@ -51,7 +51,7 @@ function moveCategory(event: KeyboardEvent, step: number): void {
       :data-active-category="activeCategory"
       :data-active-question="activeQuestion ?? 'closed'"
     >
-      <FashionStorePageTitle title="FAQs" />
+      <FashionStorePageTitle breadcrumb-label="Faqs" title="FAQs" />
       <section class="pt-0 fashion-faq-content">
         <div class="container">
           <div class="row">

@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import type { Cart } from "@shoppp/contracts";
 
-import {
-  previewActionAdapterKey,
-  recordPreviewIntent,
-} from "../../../../theme-engine/actions";
+import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreCartData, FashionStoreCartLine } from "../../fixtures/pages/cart";
@@ -192,12 +189,20 @@ async function updateShipping(): Promise<void> {
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
-            <div class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large">
+            <div
+              class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large"
+            >
               <h1 class="alt-font fw-600 text-dark-gray mb-10px">Shopping cart</h1>
             </div>
-            <nav class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center" aria-label="Breadcrumb">
+            <nav
+              class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center"
+              aria-label="Breadcrumb"
+            >
               <ul>
                 <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                {{
+                  " "
+                }}
                 <li>Shopping cart</li>
               </ul>
             </nav>
@@ -223,25 +228,76 @@ async function updateShipping(): Promise<void> {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="line in lines" :key="line.variantId" :data-variant-id="line.variantId">
+                      <tr
+                        v-for="line in lines"
+                        :key="line.variantId"
+                        :data-variant-id="line.variantId"
+                      >
                         <td class="product-remove">
-                          <button type="button" class="fs-20 fw-500" :aria-label="`Remove ${line.name}`" :disabled="busy" @click="removeLine(line)">×</button>
+                          <button
+                            type="button"
+                            class="fs-20 fw-500"
+                            :aria-label="`Remove ${line.name}`"
+                            :disabled="busy"
+                            @click="removeLine(line)"
+                          >
+                            ×
+                          </button>
                         </td>
                         <td class="product-thumbnail">
                           <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
-                            <img class="cart-product-image" :src="sourceAsset(line.sourceImage)" alt="" />
+                            <img
+                              class="cart-product-image"
+                              :src="sourceAsset(line.sourceImage)"
+                              alt=""
+                            />
                           </a>
                         </td>
                         <td class="product-name">
-                          <a :href="fashionStoreRoutePaths.product" data-fashion-store-route class="text-dark-gray fw-500 d-block lh-initial">{{ line.name }}</a>
+                          <a
+                            :href="fashionStoreRoutePaths.product"
+                            data-fashion-store-route
+                            class="text-dark-gray fw-500 d-block lh-initial"
+                            >{{ line.name }}</a
+                          >
                           <span class="fs-14">Color: {{ line.color }}</span>
                         </td>
                         <td class="product-price" data-title="Price">{{ line.price }}</td>
                         <td class="product-quantity" data-title="Quantity">
                           <div class="quantity">
-                            <button type="button" class="qty-minus" :aria-label="`Decrease ${line.name} quantity`" :disabled="busy || line.quantity <= 1" @click="updateQuantity(line, line.quantity - 1)">-</button>
-                            <input class="qty-text" type="number" min="1" max="20" :value="line.quantity" :aria-label="`${line.name} quantity`" :disabled="busy" @change="updateQuantity(line, Number(($event.target as HTMLInputElement).value))" />
-                            <button type="button" class="qty-plus" :aria-label="`Increase ${line.name} quantity`" :disabled="busy" @click="updateQuantity(line, line.quantity + 1)">+</button>
+                            <button
+                              type="button"
+                              class="qty-minus"
+                              :aria-label="`Decrease ${line.name} quantity`"
+                              :disabled="busy || line.quantity <= 1"
+                              @click="updateQuantity(line, line.quantity - 1)"
+                            >
+                              -
+                            </button>
+                            <input
+                              class="qty-text"
+                              type="number"
+                              min="1"
+                              max="20"
+                              :value="line.quantity"
+                              :aria-label="`${line.name} quantity`"
+                              :disabled="busy"
+                              @change="
+                                updateQuantity(
+                                  line,
+                                  Number(($event.target as HTMLInputElement).value),
+                                )
+                              "
+                            />
+                            <button
+                              type="button"
+                              class="qty-plus"
+                              :aria-label="`Increase ${line.name} quantity`"
+                              :disabled="busy"
+                              @click="updateQuantity(line, line.quantity + 1)"
+                            >
+                              +
+                            </button>
                           </div>
                         </td>
                         <td class="product-subtotal" data-title="Total">{{ line.total }}</td>
@@ -253,13 +309,41 @@ async function updateShipping(): Promise<void> {
               <div class="row mt-20px">
                 <div class="col-xl-6 col-xxl-7 col-md-6">
                   <div class="coupon-code-panel">
-                    <input id="fashion-cart-coupon" v-model="coupon" type="text" class="bg-white border-radius-4px" placeholder="Coupon code" :aria-invalid="couponInvalid" @input="couponInvalid = false" />
-                    <button type="button" class="btn apply-coupon-btn fs-13 fw-600 text-uppercase" @click="validateCoupon">Apply</button>
+                    <input
+                      id="fashion-cart-coupon"
+                      v-model="coupon"
+                      type="text"
+                      class="bg-white border-radius-4px"
+                      placeholder="Coupon code"
+                      :aria-invalid="couponInvalid"
+                      @input="couponInvalid = false"
+                    />
+                    <button
+                      type="button"
+                      class="btn apply-coupon-btn fs-13 fw-600 text-uppercase"
+                      @click="validateCoupon"
+                    >
+                      Apply
+                    </button>
                   </div>
                 </div>
                 <div class="col-xl-6 col-xxl-5 col-md-6 text-center text-md-end sm-mt-15px">
-                  <button type="button" data-empty-cart class="btn btn-small border-1 btn-round-edge btn-transparent-light-gray text-transform-none me-15px lg-me-5px" :disabled="busy" @click="emptyCart">Empty cart</button>
-                  <button type="button" class="btn btn-small border-1 btn-round-edge btn-transparent-light-gray text-transform-none" @click="updateCartPresentation">Update cart</button>
+                  <button
+                    type="button"
+                    data-empty-cart
+                    class="btn btn-small border-1 btn-round-edge btn-transparent-light-gray text-transform-none me-15px lg-me-5px"
+                    :disabled="busy"
+                    @click="emptyCart"
+                  >
+                    Empty cart
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-small border-1 btn-round-edge btn-transparent-light-gray text-transform-none"
+                    @click="updateCartPresentation"
+                  >
+                    Update cart
+                  </button>
                 </div>
               </div>
             </div>
@@ -277,31 +361,87 @@ async function updateShipping(): Promise<void> {
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
                         <ul class="p-0 m-0">
-                          <li v-for="option in data.shipping" :key="option.id" class="d-flex align-items-center">
-                            <input :id="option.id" v-model="selectedShipping" type="radio" name="shipping-option" class="d-block w-auto mb-0 me-10px p-0" :value="option.id" />
-                            <label class="md-line-height-18px" :for="option.id">{{ option.label }}</label>
+                          <li
+                            v-for="option in data.shipping"
+                            :key="option.id"
+                            class="d-flex align-items-center"
+                          >
+                            <input
+                              :id="option.id"
+                              v-model="selectedShipping"
+                              type="radio"
+                              name="shipping-option"
+                              class="d-block w-auto mb-0 me-10px p-0"
+                              :value="option.id"
+                            />
+                            <label class="md-line-height-18px" :for="option.id">{{
+                              option.label
+                            }}</label>
                           </li>
                         </ul>
                       </td>
                     </tr>
                     <tr class="calculate-shipping">
                       <th colspan="2" class="fw-500">
-                        <button type="button" class="d-flex align-items-center calculate-shipping-title accordion-toggle" :aria-expanded="shippingOpen" aria-controls="shipping-accordion" @click="shippingOpen = !shippingOpen">
+                        <button
+                          type="button"
+                          class="d-flex align-items-center calculate-shipping-title accordion-toggle"
+                          :aria-expanded="shippingOpen"
+                          aria-controls="shipping-accordion"
+                          @click="shippingOpen = !shippingOpen"
+                        >
                           <span class="fw-600 w-100 mb-0 text-dark-gray">Calculate shipping</span>
-                          <i class="feather icon-feather-chevron-down text-dark-gray icon-small align-middle"></i>
+                          <i
+                            class="feather icon-feather-chevron-down text-dark-gray icon-small align-middle"
+                          ></i>
                         </button>
-                        <div id="shipping-accordion" class="address-block collapse" :class="{ show: shippingOpen }">
+                        <div
+                          id="shipping-accordion"
+                          class="address-block collapse"
+                          :class="{ show: shippingOpen }"
+                        >
                           <div class="mt-15px">
-                            <select v-model="countryCode" class="form-select select-small mb-15px" :aria-invalid="shippingInvalid && !countryCode">
+                            <select
+                              v-model="countryCode"
+                              class="form-select select-small mb-15px"
+                              :aria-invalid="shippingInvalid && !countryCode"
+                            >
                               <option value="">Select a country</option>
-                              <option v-for="country in data.countries" :key="country.code" :value="country.code">{{ country.label }}</option>
+                              <option
+                                v-for="country in data.countries"
+                                :key="country.code"
+                                :value="country.code"
+                              >
+                                {{ country.label }}
+                              </option>
                             </select>
                             <select v-model="region" class="form-select select-small mb-15px">
                               <option value="">Select state</option>
                             </select>
-                            <input v-model="city" type="text" name="city" class="input-small border-radius-4px mb-15px" placeholder="Town/City" :aria-invalid="shippingInvalid && !city.trim()" />
-                            <input v-model="postalCode" type="text" name="zip" class="input-small border-radius-4px mb-15px" placeholder="ZIP" :aria-invalid="shippingInvalid && !postalCode.trim()" />
-                            <button type="button" class="btn btn-small btn-box-shadow btn-round-edge btn-dark-gray w-100" :disabled="busy" @click="updateShipping">Update</button>
+                            <input
+                              v-model="city"
+                              type="text"
+                              name="city"
+                              class="input-small border-radius-4px mb-15px"
+                              placeholder="Town/City"
+                              :aria-invalid="shippingInvalid && !city.trim()"
+                            />
+                            <input
+                              v-model="postalCode"
+                              type="text"
+                              name="zip"
+                              class="input-small border-radius-4px mb-15px"
+                              placeholder="ZIP"
+                              :aria-invalid="shippingInvalid && !postalCode.trim()"
+                            />
+                            <button
+                              type="button"
+                              class="btn btn-small btn-box-shadow btn-round-edge btn-dark-gray w-100"
+                              :disabled="busy"
+                              @click="updateShipping"
+                            >
+                              Update
+                            </button>
                           </div>
                         </div>
                       </th>
@@ -309,14 +449,24 @@ async function updateShipping(): Promise<void> {
                     <tr class="total-amount">
                       <th class="fw-600 text-dark-gray alt-font pb-0">Total</th>
                       <td class="pb-0" data-title="Total">
-                        <h6 class="d-block fw-700 mb-0 text-dark-gray alt-font">{{ totals.total }}</h6>
+                        <h6 class="d-block fw-700 mb-0 text-dark-gray alt-font">
+                          {{ totals.total }}
+                        </h6>
                         <span class="fs-14">{{ totals.tax }}</span>
                       </td>
                     </tr>
                   </tbody>
                 </table>
-                <a :href="fashionStoreRoutePaths.checkout" data-fashion-store-route class="btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-25px">
-                  <span><span class="btn-double-text" data-text="Proceed to checkout">Proceed to checkout</span></span>
+                <a
+                  :href="fashionStoreRoutePaths.checkout"
+                  data-fashion-store-route
+                  class="btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-25px"
+                >
+                  <span
+                    ><span class="btn-double-text" data-text="Proceed to checkout"
+                      >Proceed to checkout</span
+                    ></span
+                  >
                 </a>
               </div>
             </div>

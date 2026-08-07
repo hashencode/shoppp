@@ -102,6 +102,15 @@ describe("source-contract comparison", () => {
     expect(compareSourceContractSnapshots(reference, implementation)).toEqual([]);
   });
 
+  test("accepts identical non-identity transforms", () => {
+    const reference = snapshot();
+    const implementation = structuredClone(reference);
+    reference.probes[0]!.elements[0]!.styles.transform = "matrix(1, 0, 0, 1, 0, -58.2734)";
+    implementation.probes[0]!.elements[0]!.styles.transform = "matrix(1, 0, 0, 1, 0, -58.2734)";
+
+    expect(compareSourceContractSnapshots(reference, implementation)).toEqual([]);
+  });
+
   test("allows only explicitly registered source-correction style pairs", () => {
     const reference = snapshot();
     const implementation = structuredClone(reference);

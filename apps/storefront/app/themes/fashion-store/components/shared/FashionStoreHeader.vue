@@ -23,10 +23,19 @@ const menuToggle = ref<HTMLButtonElement>();
 const miniCart = ref<MiniCartHandle>();
 const searchOpen = ref(false);
 const searchOverlay = ref<SearchOverlayHandle>();
+const highDensity = ref(false);
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
+
+function densityAsset(standardPath: string, highDensityPath: string): string {
+  return sourceAsset(highDensity.value ? highDensityPath : standardPath);
+}
+
+onMounted(() => {
+  highDensity.value = window.devicePixelRatio > 1;
+});
 
 watch(searchOpen, (open) => {
   if (open) miniCart.value?.closeCart();
@@ -132,19 +141,34 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
             <img
               alt=""
               class="default-logo"
-              v-bind:src="sourceAsset('images/demo-fashion-store-logo-black.png')"
+              v-bind:src="
+                densityAsset(
+                  'images/demo-fashion-store-logo-black.png',
+                  'images/demo-fashion-store-logo-black@2x.png',
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
             <img
               alt=""
               class="alt-logo"
-              v-bind:src="sourceAsset('images/demo-fashion-store-logo-black.png')"
+              v-bind:src="
+                densityAsset(
+                  'images/demo-fashion-store-logo-black.png',
+                  'images/demo-fashion-store-logo-black@2x.png',
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
             <img
               alt=""
               class="mobile-logo"
-              v-bind:src="sourceAsset('images/demo-fashion-store-logo-black.png')"
+              v-bind:src="
+                densityAsset(
+                  'images/demo-fashion-store-logo-black.png',
+                  'images/demo-fashion-store-logo-black@2x.png',
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
           </a>

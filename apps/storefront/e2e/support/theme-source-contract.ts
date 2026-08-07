@@ -91,7 +91,8 @@ function normalizedText(value: string): string {
 }
 
 function equivalentComputedStyle(property: string, expected: string, actual: string): boolean {
-  if (property !== "transform") return expected === actual;
+  if (expected === actual) return true;
+  if (property !== "transform") return false;
   const identityTransforms = new Set([
     "none",
     "matrix(1, 0, 0, 1, 0, 0)",

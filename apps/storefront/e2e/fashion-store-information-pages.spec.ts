@@ -29,7 +29,12 @@ test("About, FAQ, and Contact preserve source inventories across responsive view
   await expect(page.locator(".fashion-about-carousel-slide img")).toHaveCount(6);
   await expect(page.locator(".fashion-about-timeline .feature-box")).toHaveCount(4);
   await expect(page.locator(".fashion-about-mission .accordion-item")).toHaveCount(3);
-  await expect(page.locator(".fashion-about-brand-track img")).toHaveCount(8);
+  await expect(
+    page.locator(".fashion-about-brand-track > div:not([data-source-clone]) img"),
+  ).toHaveCount(8);
+  await expect(
+    page.locator('.fashion-about-brand-track > div[data-source-clone="true"]'),
+  ).toHaveCount(2);
 
   await prepare(page, "/faq");
   await expect(page.locator(".fashion-faq-content [role='tab']")).toHaveCount(6);
@@ -39,7 +44,9 @@ test("About, FAQ, and Contact preserve source inventories across responsive view
   );
 
   await prepare(page, "/contact");
-  await expect(page.locator(".fashion-contact-locations .col-sm-6")).toHaveCount(2);
+  await expect(
+    page.locator(".fashion-contact-locations [data-fashion-store-location]"),
+  ).toHaveCount(2);
   await expect(page.locator(".fashion-contact-marker")).toHaveCount(2);
   await expect(page.locator(".fashion-contact-form :is(input, textarea)")).toHaveCount(5);
   await expect(page.locator(".fashion-contact-parallax")).toHaveCSS(

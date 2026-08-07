@@ -29,6 +29,7 @@ const cookieVisible = ref(true);
 const documentReadyClass = ref<"js" | "no-js">("no-js");
 const header = ref<HeaderHandle>();
 const searchOpen = ref(false);
+const sourceInlineGap = " ";
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -164,18 +165,27 @@ onBeforeUnmount(() => {
             <span class="alt-font">Facebook</span>
           </a>
         </li>
+        {{
+          sourceInlineGap
+        }}
         <li class="me-30px">
           <a class="dribbble" href="http://www.dribbble.com" target="_blank">
             <i class="fa-brands fa-dribbble me-10px"></i>
             <span class="alt-font">Dribbble</span>
           </a>
         </li>
+        {{
+          sourceInlineGap
+        }}
         <li class="me-30px">
           <a class="twitter" href="http://www.twitter.com" target="_blank">
             <i class="fa-brands fa-twitter me-10px"></i>
             <span class="alt-font">Twitter</span>
           </a>
         </li>
+        {{
+          sourceInlineGap
+        }}
         <li>
           <a class="instagram" href="http://www.instagram.com" target="_blank">
             <i class="fa-brands fa-instagram me-10px"></i>

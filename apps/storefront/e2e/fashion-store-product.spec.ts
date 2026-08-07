@@ -73,7 +73,10 @@ test("Product preserves source structure, facts, assets, and responsive geometry
     product.locator(".fashion-product-gallery .row.overflow-hidden").boundingBox(),
     product.locator(".product-info").boundingBox(),
   ]);
-  expect(Math.round(breadcrumb!.y)).toBe(page.viewportSize()!.width >= 992 ? 118 : 79);
+  const viewportWidth = page.viewportSize()!.width;
+  expect(Math.round(breadcrumb!.y)).toBe(
+    viewportWidth >= 992 ? 118 : viewportWidth >= 768 ? 119 : 79,
+  );
   expect(gallery).not.toBeNull();
   expect(info).not.toBeNull();
   if (page.viewportSize()!.width >= 992) expect(gallery!.x).toBeLessThan(info!.x);
@@ -212,10 +215,7 @@ test("Product add-to-cart reaches the typed guest-cart owner once", async ({ pag
   });
   await prepareProduct(page);
   await page.getByRole("button", { name: "Increase quantity" }).click();
-  await page
-    .locator(".product-info")
-    .getByRole("button", { name: "Add to wishlist" })
-    .click();
+  await page.locator(".product-info").getByRole("button", { name: "Add to wishlist" }).click();
   const addToCart = page.locator(".product-info .btn-cart");
   await addToCart.focus();
   await page.keyboard.press("Enter");

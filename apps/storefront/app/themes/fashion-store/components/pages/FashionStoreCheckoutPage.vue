@@ -140,7 +140,9 @@ function validateHelper(): void {
   helperInvalid.value = helperValue.value.trim().length === 0;
   localActionCount.value += 1;
   if (helperInvalid.value) {
-    void nextTick(() => document.querySelector<HTMLInputElement>("#fashion-checkout-helper")?.focus());
+    void nextTick(() =>
+      document.querySelector<HTMLInputElement>("#fashion-checkout-helper")?.focus(),
+    );
   }
 }
 
@@ -207,7 +209,10 @@ async function continueCheckout(): Promise<void> {
         currency: cart.value.currency,
         email: email.value,
         idempotencyKey: `fashion-checkout-${crypto.randomUUID()}`,
-        shippingAddress: { ...address, name: alternateShippingOpen.value ? address.name : billingAddress.name },
+        shippingAddress: {
+          ...address,
+          name: alternateShippingOpen.value ? address.name : billingAddress.name,
+        },
         shippingMethodId: selectedMethod.value,
       },
       turnstileToken.value || undefined,
@@ -240,7 +245,8 @@ onMounted(async () => {
     turnstileRequired.value = configurationResult.value.turnstile.required;
     turnstileSiteKey.value = configurationResult.value.turnstile.siteKey ?? "";
     if (turnstileRequired.value && !turnstileSiteKey.value) {
-      securityConfigurationError.value = "Checkout security is not configured. Please try again later.";
+      securityConfigurationError.value =
+        "Checkout security is not configured. Please try again later.";
     }
   } else {
     securityConfigurationError.value =
@@ -267,12 +273,20 @@ onMounted(async () => {
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
-            <div class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large">
+            <div
+              class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large"
+            >
               <h1 class="alt-font fw-600 text-dark-gray mb-10px">Checkout</h1>
             </div>
-            <nav class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center" aria-label="Breadcrumb">
+            <nav
+              class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center"
+              aria-label="Breadcrumb"
+            >
               <ul>
                 <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                {{
+                  " "
+                }}
                 <li>Checkout</li>
               </ul>
             </nav>
@@ -282,66 +296,183 @@ onMounted(async () => {
 
       <section class="pt-0 fashion-checkout-body">
         <div class="container">
-          <div class="row justify-content-center mb-8 lg-mb-10 align-items-center fashion-checkout-helpers">
+          <div
+            class="row justify-content-center mb-8 lg-mb-10 align-items-center fashion-checkout-helpers"
+          >
             <div class="col-auto icon-with-text-style-08 lg-mb-10px">
               <div class="feature-box feature-box-left-icon">
-                <div class="feature-box-icon me-5px"><i class="feather icon-feather-user top-9px position-relative text-dark-gray icon-small"></i></div>
+                <div class="feature-box-icon me-5px">
+                  <i
+                    class="feather icon-feather-user top-9px position-relative text-dark-gray icon-small"
+                  ></i>
+                </div>
                 <div class="feature-box-content">
-                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500">Returning customer? <a href="#" class="text-decoration-line-bottom fw-600 text-dark-gray" :aria-expanded="helperPanel === 'login'" @click.prevent="toggleHelper('login')">Click here to login</a></span>
+                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
+                    >Returning customer?
+                    <a
+                      href="#"
+                      class="text-decoration-line-bottom fw-600 text-dark-gray"
+                      :aria-expanded="helperPanel === 'login'"
+                      @click.prevent="toggleHelper('login')"
+                      >Click here to login</a
+                    ></span
+                  >
                 </div>
               </div>
             </div>
-            <div class="col-auto d-none d-lg-inline-block"><span class="w-1px h-20px bg-extra-medium-gray d-block"></span></div>
+            <div class="col-auto d-none d-lg-inline-block">
+              <span class="w-1px h-20px bg-extra-medium-gray d-block"></span>
+            </div>
             <div class="col-auto icon-with-text-style-08">
               <div class="feature-box feature-box-left-icon">
-                <div class="feature-box-icon me-5px"><i class="feather icon-feather-scissors top-9px position-relative text-dark-gray icon-small"></i></div>
+                <div class="feature-box-icon me-5px">
+                  <i
+                    class="feather icon-feather-scissors top-9px position-relative text-dark-gray icon-small"
+                  ></i>
+                </div>
                 <div class="feature-box-content">
-                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500">Have a coupon? <a href="#" class="text-decoration-line-bottom fw-600 text-dark-gray" :aria-expanded="helperPanel === 'coupon'" @click.prevent="toggleHelper('coupon')">Click here to enter your code</a></span>
+                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
+                    >Have a coupon?
+                    <a
+                      href="#"
+                      class="text-decoration-line-bottom fw-600 text-dark-gray"
+                      :aria-expanded="helperPanel === 'coupon'"
+                      @click.prevent="toggleHelper('coupon')"
+                      >Click here to enter your code</a
+                    ></span
+                  >
                 </div>
               </div>
             </div>
             <div v-if="helperPanel" class="col-12 fashion-checkout-helper-panel mt-20px">
-              <label class="visually-hidden" for="fashion-checkout-helper">{{ helperPanel === "login" ? "Account email" : "Coupon code" }}</label>
-              <input id="fashion-checkout-helper" v-model="helperValue" class="border-radius-4px input-small" :aria-invalid="helperInvalid" :type="helperPanel === 'login' ? 'email' : 'text'" />
-              <button type="button" class="btn btn-dark-gray btn-small btn-round-edge" @click="validateHelper">Apply</button>
+              <label class="visually-hidden" for="fashion-checkout-helper">{{
+                helperPanel === "login" ? "Account email" : "Coupon code"
+              }}</label>
+              <input
+                id="fashion-checkout-helper"
+                v-model="helperValue"
+                class="border-radius-4px input-small"
+                :aria-invalid="helperInvalid"
+                :type="helperPanel === 'login' ? 'email' : 'text'"
+              />
+              <button
+                type="button"
+                class="btn btn-dark-gray btn-small btn-round-edge"
+                @click="validateHelper"
+              >
+                Apply
+              </button>
             </div>
           </div>
 
           <form ref="form" class="row align-items-start" @submit.prevent="continueCheckout">
             <div class="col-lg-7 pe-50px md-pe-15px md-mb-50px xs-mb-35px fashion-checkout-billing">
-              <span class="fs-26 alt-font fw-600 text-dark-gray mb-20px d-block">Billing details</span>
+              <span class="fs-26 alt-font fw-600 text-dark-gray mb-20px d-block"
+                >Billing details</span
+              >
               <div class="row">
                 <div class="col-md-6 mb-20px">
-                  <label class="mb-10px" for="fashion-first-name">First name <span class="text-red">*</span></label>
-                  <input id="fashion-first-name" v-model="firstName" class="border-radius-4px input-small" type="text" required autocomplete="given-name" />
+                  <label class="mb-10px" for="fashion-first-name"
+                    >First name <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-first-name"
+                    v-model="firstName"
+                    class="border-radius-4px input-small"
+                    type="text"
+                    required
+                    autocomplete="given-name"
+                  />
                 </div>
                 <div class="col-md-6 mb-20px">
-                  <label class="mb-10px" for="fashion-last-name">Last name <span class="text-red">*</span></label>
-                  <input id="fashion-last-name" v-model="lastName" class="border-radius-4px input-small" type="text" required autocomplete="family-name" />
+                  <label class="mb-10px" for="fashion-last-name"
+                    >Last name <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-last-name"
+                    v-model="lastName"
+                    class="border-radius-4px input-small"
+                    type="text"
+                    required
+                    autocomplete="family-name"
+                  />
                 </div>
                 <div class="col-12 mb-20px">
                   <label class="mb-10px" for="fashion-company">Company name (optional)</label>
-                  <input id="fashion-company" v-model="company" class="border-radius-4px input-small" type="text" autocomplete="organization" />
+                  <input
+                    id="fashion-company"
+                    v-model="company"
+                    class="border-radius-4px input-small"
+                    type="text"
+                    autocomplete="organization"
+                  />
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-country">Country <span class="text-red">*</span></label>
-                  <select id="fashion-country" v-model="billingAddress.countryCode" class="form-select select-small" required autocomplete="country">
+                  <label class="mb-10px" for="fashion-country"
+                    >Country <span class="text-red">*</span></label
+                  >
+                  <select
+                    id="fashion-country"
+                    v-model="billingAddress.countryCode"
+                    class="form-select select-small"
+                    required
+                    autocomplete="country"
+                  >
                     <option value="">Select a country</option>
-                    <option v-for="country in data.countries" :key="country.code" :value="country.code">{{ country.label }}</option>
+                    <option
+                      v-for="country in data.countries"
+                      :key="country.code"
+                      :value="country.code"
+                    >
+                      {{ country.label }}
+                    </option>
                   </select>
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-address">Street address <span class="text-red">*</span></label>
-                  <input id="fashion-address" v-model="billingAddress.line1" class="border-radius-4px input-small mb-20px" type="text" required autocomplete="shipping address-line1" placeholder="House number and street name" />
-                  <input v-model="billingAddress.line2" class="border-radius-4px input-small" type="text" autocomplete="shipping address-line2" placeholder="Apartment,suite,unit etc. (optional)" />
+                  <label class="mb-10px" for="fashion-address"
+                    >Street address <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-address"
+                    v-model="billingAddress.line1"
+                    class="border-radius-4px input-small mb-20px"
+                    type="text"
+                    required
+                    autocomplete="shipping address-line1"
+                    placeholder="House number and street name"
+                  />
+                  <input
+                    v-model="billingAddress.line2"
+                    class="border-radius-4px input-small"
+                    type="text"
+                    autocomplete="shipping address-line2"
+                    placeholder="Apartment,suite,unit etc. (optional)"
+                  />
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-city">Town / City <span class="text-red">*</span></label>
-                  <input id="fashion-city" v-model="billingAddress.city" class="border-radius-4px input-small" type="text" required autocomplete="shipping address-level2" />
+                  <label class="mb-10px" for="fashion-city"
+                    >Town / City <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-city"
+                    v-model="billingAddress.city"
+                    class="border-radius-4px input-small"
+                    type="text"
+                    required
+                    autocomplete="shipping address-level2"
+                  />
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-state">State <span class="text-red">*</span></label>
-                  <select id="fashion-state" v-model="billingAddress.region" class="form-select select-small border-radius-4px" required autocomplete="shipping address-level1">
+                  <label class="mb-10px" for="fashion-state"
+                    >State <span class="text-red">*</span></label
+                  >
+                  <select
+                    id="fashion-state"
+                    v-model="billingAddress.region"
+                    class="form-select select-small border-radius-4px"
+                    required
+                    autocomplete="shipping address-level1"
+                  >
                     <option value="">Select a state</option>
                     <option value="CA">California</option>
                     <option value="NY">New York</option>
@@ -349,52 +480,138 @@ onMounted(async () => {
                   </select>
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-postal">ZIP <span class="text-red">*</span></label>
-                  <input id="fashion-postal" v-model="billingAddress.postalCode" class="border-radius-4px input-small" type="text" required autocomplete="shipping postal-code" />
+                  <label class="mb-10px" for="fashion-postal"
+                    >ZIP <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-postal"
+                    v-model="billingAddress.postalCode"
+                    class="border-radius-4px input-small"
+                    type="text"
+                    required
+                    autocomplete="shipping postal-code"
+                  />
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-phone">Phone <span class="text-red">*</span></label>
-                  <input id="fashion-phone" v-model="billingAddress.phone" class="border-radius-4px input-small" type="tel" required autocomplete="tel" />
+                  <label class="mb-10px" for="fashion-phone"
+                    >Phone <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-phone"
+                    v-model="billingAddress.phone"
+                    class="border-radius-4px input-small"
+                    type="tel"
+                    required
+                    autocomplete="tel"
+                  />
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-email">Email address <span class="text-red">*</span></label>
-                  <input id="fashion-email" v-model="email" class="border-radius-4px input-small" type="email" required autocomplete="email" />
+                  <label class="mb-10px" for="fashion-email"
+                    >Email address <span class="text-red">*</span></label
+                  >
+                  <input
+                    id="fashion-email"
+                    v-model="email"
+                    class="border-radius-4px input-small"
+                    type="email"
+                    required
+                    autocomplete="email"
+                  />
                 </div>
 
                 <div class="col-md-12 mb-5px checkout-accordion">
-                  <div class="position-relative terms-condition-box text-start d-flex align-items-center">
+                  <div
+                    class="position-relative terms-condition-box text-start d-flex align-items-center"
+                  >
                     <label>
-                      <input id="fashion-create-account" :checked="accountOpen" type="checkbox" class="check-box align-middle" @change="toggleAccount" />
-                      <span class="box" role="checkbox" tabindex="0" :aria-checked="accountOpen" @keydown.space.prevent="toggleAccount">Create an account?</span>
+                      <input
+                        id="fashion-create-account"
+                        :checked="accountOpen"
+                        type="checkbox"
+                        class="check-box align-middle"
+                        @change="toggleAccount"
+                      />
+                      <span
+                        class="box"
+                        role="checkbox"
+                        tabindex="0"
+                        :aria-checked="accountOpen"
+                        @keydown.space.prevent="toggleAccount"
+                        >Create an account?</span
+                      >
                     </label>
                   </div>
                   <div class="collapse" :class="{ show: accountOpen }">
                     <div class="ps-30px mb-30px mt-15px">
-                      <label class="mb-10px" for="fashion-account-username">Account username <span class="text-red">*</span></label>
-                      <input id="fashion-account-username" v-model="accountUsername" class="border-radius-4px input-small mb-15px" type="email" :required="accountOpen" autocomplete="off" />
-                      <label class="mb-10px" for="fashion-account-password">Create account password <span class="text-red">*</span></label>
-                      <input id="fashion-account-password" v-model="accountPassword" class="border-radius-4px input-small" type="password" :required="accountOpen" autocomplete="new-password" />
+                      <label class="mb-10px" for="fashion-account-username"
+                        >Account username <span class="text-red">*</span></label
+                      >
+                      <input
+                        id="fashion-account-username"
+                        v-model="accountUsername"
+                        class="border-radius-4px input-small mb-15px"
+                        type="email"
+                        :required="accountOpen"
+                        autocomplete="off"
+                      />
+                      <label class="mb-10px" for="fashion-account-password"
+                        >Create account password <span class="text-red">*</span></label
+                      >
+                      <input
+                        id="fashion-account-password"
+                        v-model="accountPassword"
+                        class="border-radius-4px input-small"
+                        type="password"
+                        :required="accountOpen"
+                        autocomplete="new-password"
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div class="col-md-12 mb-20px checkout-accordion">
-                  <div class="position-relative terms-condition-box text-start d-flex align-items-center">
+                  <div
+                    class="position-relative terms-condition-box text-start d-flex align-items-center"
+                  >
                     <label>
-                      <input id="fashion-alternate-shipping" :checked="alternateShippingOpen" type="checkbox" class="check-box align-middle" @change="toggleAlternateShipping" />
-                      <span class="box" role="checkbox" tabindex="0" :aria-checked="alternateShippingOpen" @keydown.space.prevent="toggleAlternateShipping">Ship to a different address?</span>
+                      <input
+                        id="fashion-alternate-shipping"
+                        :checked="alternateShippingOpen"
+                        type="checkbox"
+                        class="check-box align-middle"
+                        @change="toggleAlternateShipping"
+                      />
+                      <span
+                        class="box"
+                        role="checkbox"
+                        tabindex="0"
+                        :aria-checked="alternateShippingOpen"
+                        @keydown.space.prevent="toggleAlternateShipping"
+                        >Ship to a different address?</span
+                      >
                     </label>
                   </div>
                   <div class="collapse" :class="{ show: alternateShippingOpen }">
                     <div class="ps-30px mb-30px mt-15px">
-                      <CheckoutAddress v-model="alternateAddress" :disabled="!alternateShippingOpen" :show-legend="false" />
+                      <CheckoutAddress
+                        v-model="alternateAddress"
+                        :disabled="!alternateShippingOpen"
+                        :show-legend="false"
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div class="col-12">
                   <label class="mb-10px" for="fashion-order-notes">Order notes (optional)</label>
-                  <textarea id="fashion-order-notes" v-model="orderNotes" class="border-radius-4px textarea-small" rows="5" cols="5" placeholder="Notes about your order, e.g. special notes for delivery."></textarea>
+                  <textarea
+                    id="fashion-order-notes"
+                    v-model="orderNotes"
+                    class="border-radius-4px textarea-small"
+                    rows="5"
+                    cols="5"
+                    placeholder="Notes about your order, e.g. special notes for delivery."
+                  ></textarea>
                 </div>
               </div>
             </div>
@@ -404,15 +621,26 @@ onMounted(async () => {
                 <span class="fs-26 alt-font fw-600 text-dark-gray mb-5px d-block">Your order</span>
                 <table class="w-100 total-price-table your-order-table">
                   <tbody>
-                    <tr><th class="w-60 lg-w-55 xs-w-50 fw-600 text-dark-gray alt-font">Product</th><td class="fw-600 text-dark-gray alt-font">Total</td></tr>
+                    <tr>
+                      <th class="w-60 lg-w-55 xs-w-50 fw-600 text-dark-gray alt-font">Product</th>
+                      <td class="fw-600 text-dark-gray alt-font">Total</td>
+                    </tr>
                     <tr v-for="line in displayedLines" :key="line.variantId" class="product">
                       <td class="product-thumbnail">
-                        <a :href="fashionStoreRoutePaths.product" data-fashion-store-route class="text-dark-gray fw-500 d-block lh-initial">{{ line.name }} x {{ line.quantity }}</a>
+                        <a
+                          :href="fashionStoreRoutePaths.product"
+                          data-fashion-store-route
+                          class="text-dark-gray fw-500 d-block lh-initial"
+                          >{{ line.name }} x {{ line.quantity }}</a
+                        >
                         <span class="fs-14 d-block">Color: {{ line.color }}</span>
                       </td>
                       <td class="product-price" data-title="Price">{{ line.total }}</td>
                     </tr>
-                    <tr><th class="w-50 fw-600 text-dark-gray alt-font">Subtotal</th><td class="text-dark-gray fw-600">{{ displayedTotals.subtotal }}</td></tr>
+                    <tr>
+                      <th class="w-50 fw-600 text-dark-gray alt-font">Subtotal</th>
+                      <td class="text-dark-gray fw-600">{{ displayedTotals.subtotal }}</td>
+                    </tr>
                     <tr class="shipping">
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
@@ -445,41 +673,114 @@ onMounted(async () => {
                     </tr>
                     <tr class="total-amount">
                       <th class="fw-600 text-dark-gray alt-font">Total</th>
-                      <td data-title="Total"><h6 class="d-block fw-700 mb-0 text-dark-gray alt-font">{{ displayedTotals.total }}</h6><span class="fs-14">{{ displayedTotals.tax }}</span></td>
+                      <td data-title="Total">
+                        <h6 class="d-block fw-700 mb-0 text-dark-gray alt-font">
+                          {{ displayedTotals.total }}
+                        </h6>
+                        <span class="fs-14">{{ displayedTotals.tax }}</span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
                 <p v-if="shippingError" class="form-error" role="alert">{{ shippingError }}</p>
 
-                <div class="p-40px lg-p-25px bg-white border-radius-6px box-shadow-large mt-10px mb-30px sm-mb-25px checkout-accordion">
+                <div
+                  class="p-40px lg-p-25px bg-white border-radius-6px box-shadow-large mt-10px mb-30px sm-mb-25px checkout-accordion"
+                >
                   <div id="fashion-payment-accordion" class="w-100">
-                    <div v-for="payment in data.payment" :key="payment.id" class="fashion-payment-option">
+                    <div
+                      v-for="payment in data.payment"
+                      :key="payment.id"
+                      class="fashion-payment-option"
+                    >
                       <div class="heading active-accordion">
                         <label class="mb-5px">
-                          <input v-model="selectedPayment" class="d-inline w-auto me-5px mb-0 p-0" type="radio" name="payment-option" :value="payment.id" @change="selectPayment(payment.id)" />
-                          <span class="d-inline-block text-dark-gray fw-500">{{ payment.label }} <img v-if="payment.sourceImage" :src="sourceAsset(payment.sourceImage)" class="w-120px ms-10px" alt="" /></span>
+                          <input
+                            v-model="selectedPayment"
+                            class="d-inline w-auto me-5px mb-0 p-0"
+                            type="radio"
+                            name="payment-option"
+                            :value="payment.id"
+                            @change="selectPayment(payment.id)"
+                          />
+                          <span class="d-inline-block text-dark-gray fw-500"
+                            >{{ payment.label }}
+                            <img
+                              v-if="payment.sourceImage"
+                              :src="sourceAsset(payment.sourceImage)"
+                              class="w-120px ms-10px"
+                              alt=""
+                          /></span>
                         </label>
                       </div>
                       <div class="collapse" :class="{ show: selectedPayment === payment.id }">
-                        <div class="p-25px bg-very-light-gray mt-20px mb-20px fs-14 lh-24">{{ payment.detail }}</div>
+                        <div class="p-25px bg-very-light-gray mt-20px mb-20px fs-14 lh-24">
+                          {{ payment.detail }}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <p class="fs-14 lh-24">Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our <a class="text-decoration-line-bottom text-dark-gray fw-500" href="/policies/privacy" data-fashion-store-route>privacy policy.</a></p>
-                <div class="position-relative terms-condition-box text-start d-flex align-items-center">
+                <p class="fs-14 lh-24">
+                  Your personal data will be used to process your order, support your experience
+                  throughout this website, and for other purposes described in our
+                  <a
+                    class="text-decoration-line-bottom text-dark-gray fw-500"
+                    href="/policies/privacy"
+                    data-fashion-store-route
+                    >privacy policy.</a
+                  >
+                </p>
+                <div
+                  class="position-relative terms-condition-box text-start d-flex align-items-center"
+                >
                   <label>
-                    <input v-model="termsAccepted" type="checkbox" required class="check-box align-middle" />
-                    <span class="box fs-14 lh-28">I have agree to the website <a href="/policies/terms" data-fashion-store-route class="text-decoration-line-bottom text-dark-gray fw-500">terms and conditions.</a></span>
+                    <input
+                      v-model="termsAccepted"
+                      type="checkbox"
+                      required
+                      class="check-box align-middle"
+                    />
+                    <span class="box fs-14 lh-28"
+                      >I have agree to the website
+                      <a
+                        href="/policies/terms"
+                        data-fashion-store-route
+                        class="text-decoration-line-bottom text-dark-gray fw-500"
+                        >terms and conditions.</a
+                      ></span
+                    >
                   </label>
                 </div>
-                <TurnstileChallenge v-if="!securityConfigurationLoading && turnstileRequired && turnstileSiteKey" :key="turnstileRenderKey" v-model="turnstileToken" :sitekey="turnstileSiteKey" />
-                <p v-if="securityConfigurationError" class="form-error" role="alert">{{ securityConfigurationError }}</p>
-                <button class="fashion-checkout-submit btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-30px" type="submit" :disabled="submitting || shippingBusy || securityConfigurationLoading || Boolean(securityConfigurationError) || !cart?.canCheckout || (turnstileRequired && !turnstileToken)">
-                  <span><span class="btn-double-text" data-text="Place order">Place order</span></span>
+                <TurnstileChallenge
+                  v-if="!securityConfigurationLoading && turnstileRequired && turnstileSiteKey"
+                  :key="turnstileRenderKey"
+                  v-model="turnstileToken"
+                  :sitekey="turnstileSiteKey"
+                />
+                <p v-if="securityConfigurationError" class="form-error" role="alert">
+                  {{ securityConfigurationError }}
+                </p>
+                <button
+                  class="fashion-checkout-submit btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-30px"
+                  type="submit"
+                  :disabled="
+                    submitting ||
+                    shippingBusy ||
+                    securityConfigurationLoading ||
+                    Boolean(securityConfigurationError) ||
+                    !cart?.canCheckout ||
+                    (turnstileRequired && !turnstileToken)
+                  "
+                >
+                  <span
+                    ><span class="btn-double-text" data-text="Place order">Place order</span></span
+                  >
                 </button>
-                <p v-if="loadError || submitError" class="form-error mt-15px" role="alert">{{ loadError || submitError }}</p>
+                <p v-if="loadError || submitError" class="form-error mt-15px" role="alert">
+                  {{ loadError || submitError }}
+                </p>
               </div>
             </div>
           </form>

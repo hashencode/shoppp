@@ -158,7 +158,10 @@ async function fulfillFashionStoreCheckoutCaptureApi(route: Route): Promise<void
     const cart = fashionStoreCheckoutCaptureCart();
     await route.fulfill({
       contentType: "application/json",
-      json: request.method() === "POST" ? { data: { cart, token: "capture_cart_token" } } : { data: cart },
+      json:
+        request.method() === "POST"
+          ? { data: { cart, token: "capture_cart_token" } }
+          : { data: cart },
     });
     return;
   }
@@ -170,11 +173,19 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
   await page.addStyleTag({ content: captureCss });
   await page.addStyleTag({
     content:
-      ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; } [data-parallax-background-ratio], .fashion-contact-parallax { background-position: center center !important; }",
+      ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; } [data-parallax-background-ratio], .fashion-contact-parallax { background-attachment: scroll !important; background-position: center center !important; } [data-bottom-top], [data-top-bottom], .animation-rotation { animation: none !important; transform: none !important; }",
   });
   await page.evaluate(async () => {
     document.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
       image.loading = "eager";
+    });
+    document.querySelectorAll<HTMLElement>("[data-shadow-animation]").forEach((element) => {
+      element.classList.add("shadow-in");
+      element.style.setProperty("transition", "none", "important");
+      element.querySelectorAll<HTMLElement>("img").forEach((image) => {
+        image.style.setProperty("opacity", "1", "important");
+        image.style.setProperty("transition", "none", "important");
+      });
     });
     await document.fonts.ready;
     await Promise.race([
@@ -370,6 +381,183 @@ async function stabilizeDecorMarquee(page: Page, source: boolean): Promise<void>
     track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + targetX - text.x}, ${
       matrix.f + Math.round(text.y) - text.y
     })`;
+  }, source);
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreHero(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(1) .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0, true);
+    });
+    await page.waitForFunction(() =>
+      document
+        .querySelector('section:nth-of-type(1) .swiper-slide[data-swiper-slide-index="0"]')
+        ?.classList.contains("swiper-slide-active"),
+    );
+  } else {
+    await page.locator('[data-fashion-store-slide="0"]').click();
+    await page.waitForFunction(
+      () => {
+        const hero = document.querySelector<HTMLElement>("#fashion-store-main .swiper");
+        return hero?.dataset.motionActiveIndex === "0" && hero.dataset.motionPhase === "idle";
+      },
+      undefined,
+      { timeout: 6_000 },
+    );
+  }
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreMarquee(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(9) .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0);
+    });
+    await page.waitForTimeout(100);
+  }
+  await page.evaluate((sourceSide) => {
+    const root = document.querySelector<HTMLElement>("section:nth-of-type(9)");
+    const track = root?.querySelector<HTMLElement>(
+      sourceSide ? ".swiper-wrapper" : "[data-fashion-store-marquee]",
+    );
+    const item = root?.querySelector<HTMLElement>(
+      sourceSide
+        ? '.swiper-slide[data-swiper-slide-index="0"] > div'
+        : "[data-fashion-store-marquee] > .swiper-slide:first-child > div",
+    );
+    if (!track || !item) return;
+    track.style.animation = "none";
+    track.style.transition = "none";
+    const targetX = Math.round(innerWidth * 0.31);
+    const textNode = [...item.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+    const range = textNode ? document.createRange() : null;
+    if (range && textNode) range.selectNode(textNode);
+    const text = range?.getBoundingClientRect();
+    if (!text) return;
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(track).transform);
+    track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + targetX - text.x}, ${
+      matrix.f + Math.round(text.y) - text.y
+    })`;
+  }, source);
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreAboutCarousel(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(4) .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0, true);
+    });
+  } else {
+    const carousel = page.locator(".fashion-about-carousel");
+    const current = Number(
+      (await page.locator("[data-fashion-store-about]").getAttribute("data-carousel-index")) ?? 0,
+    );
+    for (let index = 0; index < current; index += 1) await carousel.press("ArrowLeft");
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector("[data-fashion-store-about]")
+          ?.getAttribute("data-carousel-index") === "0",
+    );
+  }
+  await page.evaluate((sourceSide) => {
+    const root = document.querySelector<HTMLElement>(
+      sourceSide ? "section:nth-of-type(4)" : ".fashion-about-carousel-section",
+    );
+    const track = root?.querySelector<HTMLElement>(
+      sourceSide ? ".swiper-wrapper" : ".fashion-about-carousel-track",
+    );
+    if (!track) return;
+    const slides = [
+      ...track.querySelectorAll<HTMLElement>(
+        sourceSide ? ":scope > .swiper-slide" : ":scope > .fashion-about-carousel-slide",
+      ),
+    ];
+    const gap = sourceSide
+      ? Number.parseFloat(getComputedStyle(slides[0]!).marginRight) || 0
+      : Number.parseFloat(getComputedStyle(track).gap) || 0;
+    track.style.gap = "0px";
+    for (const slide of slides) {
+      const width = slide.getBoundingClientRect().width;
+      slide.style.flex = `0 0 ${width}px`;
+      slide.style.width = `${width}px`;
+      slide.style.marginRight = `${gap}px`;
+    }
+  }, source);
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreAboutBrands(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(6) .clients-style-08 .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0, true);
+    });
+    await page.waitForTimeout(100);
+  }
+  await page.evaluate((sourceSide) => {
+    const root = document.querySelector<HTMLElement>(
+      sourceSide ? "section:nth-of-type(6)" : ".fashion-about-mission",
+    );
+    const track = root?.querySelector<HTMLElement>(
+      sourceSide ? ".clients-style-08 .swiper-wrapper" : ".fashion-about-brand-track",
+    );
+    const candidates = [
+      ...(root?.querySelectorAll<HTMLElement>(
+        sourceSide
+          ? '.clients-style-08 .swiper-slide[data-swiper-slide-index="0"]'
+          : ".fashion-about-brand-track > div:first-child",
+      ) ?? []),
+    ];
+    if (!track || candidates.length === 0) return;
+    track.style.animation = "none";
+    track.style.transition = "none";
+    const targetX = Math.round(innerWidth * 0.18);
+    const item = candidates.reduce((closest, candidate) =>
+      Math.abs(candidate.getBoundingClientRect().x - targetX) <
+      Math.abs(closest.getBoundingClientRect().x - targetX)
+        ? candidate
+        : closest,
+    );
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(track).transform);
+    const itemRect = item.getBoundingClientRect();
+    track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + targetX - itemRect.x}, 0)`;
   }, source);
   await page.waitForTimeout(100);
 }
@@ -862,17 +1050,20 @@ async function normalizeRegionCaptureHeight(page: Page, selector: string): Promi
 
 async function settleRegionInViewport(page: Page, selector: string): Promise<void> {
   await page.locator(selector).first().scrollIntoViewIfNeeded();
-  await page.locator(selector).first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    if (rect.height <= innerHeight) {
-      if (rect.bottom > innerHeight) scrollBy(0, Math.ceil(rect.bottom - innerHeight));
-      else if (rect.top < 0) scrollBy(0, Math.floor(rect.top));
-    }
-    if (rect.width <= innerWidth) {
-      if (rect.right > innerWidth) scrollBy(Math.ceil(rect.right - innerWidth), 0);
-      else if (rect.left < 0) scrollBy(Math.floor(rect.left), 0);
-    }
-  });
+  await page
+    .locator(selector)
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      if (rect.height <= innerHeight) {
+        if (rect.bottom > innerHeight) scrollBy(0, Math.ceil(rect.bottom - innerHeight));
+        else if (rect.top < 0) scrollBy(0, Math.floor(rect.top));
+      }
+      if (rect.width <= innerWidth) {
+        if (rect.right > innerWidth) scrollBy(Math.ceil(rect.right - innerWidth), 0);
+        else if (rect.left < 0) scrollBy(Math.floor(rect.left), 0);
+      }
+    });
   await page.evaluate(
     () =>
       new Promise<void>((resolvePromise) =>
@@ -882,14 +1073,17 @@ async function settleRegionInViewport(page: Page, selector: string): Promise<voi
 }
 
 async function normalizeRegionFractionalOrigin(page: Page, selector: string): Promise<void> {
-  await page.locator(selector).first().evaluate((element: HTMLElement) => {
-    const rect = element.getBoundingClientRect();
-    const x = Math.floor(rect.left) - rect.left;
-    const y = Math.floor(rect.top) - rect.top;
-    if (getComputedStyle(element).position === "static") element.style.position = "relative";
-    element.style.left = `${x}px`;
-    element.style.top = `${y}px`;
-  });
+  await page
+    .locator(selector)
+    .first()
+    .evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const x = Math.floor(rect.left) - rect.left;
+      const y = Math.floor(rect.top) - rect.top;
+      if (getComputedStyle(element).position === "static") element.style.position = "relative";
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+    });
   await page.evaluate(
     () =>
       new Promise<void>((resolvePromise) =>
@@ -898,27 +1092,26 @@ async function normalizeRegionFractionalOrigin(page: Page, selector: string): Pr
   );
 }
 
-async function captureRegionScreenshot(
-  page: Page,
-  selector: string,
-  path: string,
-): Promise<void> {
-  const bounds = await page.locator(selector).first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return {
-      documentLeft: rect.left + scrollX,
-      documentTop: rect.top + scrollY,
-      height: rect.height,
-      left: rect.left,
-      top: rect.top,
-      viewportHeight: innerHeight,
-      viewportWidth: innerWidth,
-      width: rect.width,
-    };
-  });
+async function captureRegionScreenshot(page: Page, selector: string, path: string): Promise<void> {
+  const bounds = await page
+    .locator(selector)
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        documentLeft: rect.left + scrollX,
+        documentTop: rect.top + scrollY,
+        height: rect.height,
+        left: rect.left,
+        top: rect.top,
+        viewportHeight: innerHeight,
+        viewportWidth: innerWidth,
+        width: rect.width,
+      };
+    });
   const density = await page.evaluate(() => devicePixelRatio);
   const fullPage = bounds.height > bounds.viewportHeight || bounds.width > bounds.viewportWidth;
-  const screenshot = await page.screenshot({ animations: "disabled", fullPage });
+  const screenshot = await page.screenshot({ animations: "allow", fullPage });
   const left = fullPage ? bounds.documentLeft : bounds.left;
   const top = fullPage ? bounds.documentTop : bounds.top;
   const cropLeft = Math.floor(left * density);
@@ -1154,13 +1347,51 @@ export async function captureThemeRouteRegion(options: {
         if (message.type() === "error")
           runtimeErrors.push(`source console error: ${message.text()}`);
       });
-      if (options.routeId === "fashion-product")
+      if (options.routeId === "fashion-store-product")
         await Promise.all([
           stabilizeProductGallery(source, true),
           stabilizeProductGallery(implementation, false),
         ]);
       const decorHomeFullPage =
         options.routeId === "decor-home" && options.regionId === "full-page";
+      const fashionStoreHomeFullPage =
+        options.routeId === "fashion-store-home" && options.regionId === "full-page";
+      const fashionStoreAboutFullPage =
+        options.routeId === "fashion-store-about" && options.regionId === "full-page";
+      if (options.routeId === "fashion-store-about")
+        await Promise.all([source.waitForTimeout(1_600), implementation.waitForTimeout(1_600)]);
+      if (
+        options.routeId === "fashion-store-home" &&
+        (options.regionId === "hero" || fashionStoreHomeFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreHero(source, true),
+          stabilizeFashionStoreHero(implementation, false),
+        ]);
+      if (
+        options.routeId === "fashion-store-home" &&
+        (options.regionId === "marquee" || fashionStoreHomeFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreMarquee(source, true),
+          stabilizeFashionStoreMarquee(implementation, false),
+        ]);
+      if (
+        options.routeId === "fashion-store-about" &&
+        (options.regionId === "carousel" || fashionStoreAboutFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreAboutCarousel(source, true),
+          stabilizeFashionStoreAboutCarousel(implementation, false),
+        ]);
+      if (
+        options.routeId === "fashion-store-about" &&
+        (options.regionId === "mission" || fashionStoreAboutFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreAboutBrands(source, true),
+          stabilizeFashionStoreAboutBrands(implementation, false),
+        ]);
       if (options.routeId === "decor-home" && (options.regionId === "hero" || decorHomeFullPage))
         await Promise.all([
           stabilizeDecorHero(source, true),
@@ -1347,6 +1578,60 @@ export async function captureThemeRouteRegion(options: {
           settleRegionInViewport(source, region.sourceSelector),
           settleRegionInViewport(implementation, region.implementationSelector),
         ]);
+        const sourceSlideEffects = source.locator(
+          `${region.sourceSelector}[data-anime*='"effect": "slide"'], ${region.sourceSelector} [data-anime*='"effect": "slide"']`,
+        );
+        if ((await sourceSlideEffects.count()) > 0) {
+          await source.waitForTimeout(2_100);
+          await sourceSlideEffects.evaluateAll((elements) => {
+            for (const element of elements as HTMLElement[]) {
+              element.style.setProperty("background", "transparent", "important");
+              element
+                .querySelectorAll<HTMLElement>(":scope > div:not([class])")
+                .forEach((overlay) => overlay.remove());
+              element.querySelectorAll<HTMLElement>("img").forEach((image) => {
+                image.style.setProperty("clip-path", "none", "important");
+                image.style.setProperty("opacity", "1", "important");
+                image.style.setProperty("transform", "none", "important");
+                image.style.setProperty("visibility", "visible", "important");
+              });
+            }
+          });
+        }
+        await Promise.all(
+          [source, implementation].map((page) =>
+            page.locator(".animation-rotation").evaluateAll((elements) => {
+              for (const element of elements as HTMLElement[])
+                element.style.setProperty("display", "none", "important");
+            }),
+          ),
+        );
+        if (options.routeId === "fashion-store-about")
+          await Promise.all([
+            source
+              .locator("section:nth-of-type(6) .w-75.position-relative > [data-bottom-top]")
+              .evaluateAll((elements) => {
+                for (const element of elements as HTMLElement[])
+                  element.style.setProperty("display", "none", "important");
+              }),
+            implementation.locator(".fashion-about-mission-seal").evaluateAll((elements) => {
+              for (const element of elements as HTMLElement[])
+                element.style.setProperty("display", "none", "important");
+            }),
+          ]);
+        if (options.routeId === "fashion-store-contact" && region.id === "map")
+          await Promise.all([
+            source.locator(`${region.sourceSelector} .video-icon-box`).evaluateAll((elements) => {
+              for (const element of elements as HTMLElement[])
+                element.style.setProperty("visibility", "hidden", "important");
+            }),
+            implementation
+              .locator(`${region.implementationSelector} .fashion-contact-marker`)
+              .evaluateAll((elements) => {
+                for (const element of elements as HTMLElement[])
+                  element.style.setProperty("visibility", "hidden", "important");
+              }),
+          ]);
         await Promise.all([
           normalizeRegionFractionalOrigin(source, region.sourceSelector),
           normalizeRegionFractionalOrigin(implementation, region.implementationSelector),
@@ -1421,11 +1706,7 @@ export async function captureThemeRouteRegion(options: {
           region.implementationSelector,
           implementationPath,
         );
-        await captureRegionScreenshot(
-          source,
-          region.sourceSelector,
-          referencePath,
-        );
+        await captureRegionScreenshot(source, region.sourceSelector, referencePath);
         await normalizeEquivalentRegionScreenshotDimensions(
           referencePath,
           implementationPath,

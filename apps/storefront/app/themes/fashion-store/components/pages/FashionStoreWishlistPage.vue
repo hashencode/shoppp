@@ -90,6 +90,9 @@ async function removeProduct(productId: string): Promise<void> {
             >
               <ul>
                 <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                {{
+                  " "
+                }}
                 <li>Wishlist</li>
               </ul>
             </nav>

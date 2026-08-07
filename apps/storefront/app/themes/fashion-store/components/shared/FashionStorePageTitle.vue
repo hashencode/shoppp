@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { fashionStoreRoutePaths } from "../../page-contracts";
 
-defineProps<{ title: string }>();
+withDefaults(defineProps<{ breadcrumbLabel?: string; title: string }>(), {
+  breadcrumbLabel: undefined,
+});
+
+const sourceInlineGap = " ";
 </script>
 
 <template>
@@ -14,7 +18,10 @@ defineProps<{ title: string }>();
         <div class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center">
           <ul>
             <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
-            <li>{{ title }}</li>
+            {{
+              sourceInlineGap
+            }}
+            <li>{{ breadcrumbLabel ?? title }}</li>
           </ul>
         </div>
       </div>

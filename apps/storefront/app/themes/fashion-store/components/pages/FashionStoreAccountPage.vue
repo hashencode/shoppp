@@ -57,6 +57,9 @@ function submitRegister(): void {
             >
               <ul>
                 <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                {{
+                  " "
+                }}
                 <li>My account</li>
               </ul>
             </nav>

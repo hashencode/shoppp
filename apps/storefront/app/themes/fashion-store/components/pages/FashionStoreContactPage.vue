@@ -93,7 +93,9 @@ function recordLocalSubmission(event: Event): void {
                 Call or visit us at different <span class="fw-600">locations.</span>
               </h2>
               <template v-for="(location, index) in data.locations" :key="location.city">
-                <div class="fs-22 fw-700 text-dark-gray mb-10px">{{ location.city }}</div>
+                <div class="fs-22 fw-700 text-dark-gray mb-10px" data-fashion-store-location>
+                  {{ location.city }}
+                </div>
                 <div
                   class="row row-cols-1 row-cols-sm-2"
                   :class="{ 'mb-10': index < data.locations.length - 1 }"
@@ -181,8 +183,8 @@ function recordLocalSubmission(event: Event): void {
                   novalidate
                   @submit.prevent="recordLocalSubmission"
                 >
-                  <div class="row">
-                    <div class="col-md-6">
+                  <div class="row justify-content-center">
+                    <div class="col-md-6 sm-mb-30px">
                       <label
                         for="fashion-contact-name"
                         class="form-label fw-600 text-dark-gray mb-0"
@@ -200,7 +202,7 @@ function recordLocalSubmission(event: Event): void {
                         />
                       </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 sm-mb-30px">
                       <label
                         for="fashion-contact-email"
                         class="form-label fw-600 text-dark-gray mb-0"
@@ -218,7 +220,7 @@ function recordLocalSubmission(event: Event): void {
                         />
                       </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 sm-mb-30px">
                       <label
                         for="fashion-contact-phone"
                         class="form-label fw-600 text-dark-gray mb-0"
@@ -237,7 +239,7 @@ function recordLocalSubmission(event: Event): void {
                         />
                       </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 sm-mb-30px">
                       <label
                         for="fashion-contact-subject"
                         class="form-label fw-600 text-dark-gray mb-0"

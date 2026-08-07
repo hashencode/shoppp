@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import ThemeProductLightbox from "../../../../theme-engine/components/ThemeProductLightbox.vue";
-import {
-  previewActionAdapterKey,
-  recordPreviewIntent,
-} from "../../../../theme-engine/actions";
+import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import {
@@ -292,6 +289,7 @@ onBeforeUnmount(stopGalleryAutoplay);
             </div>
 
             <div class="col-12 col-lg-5 product-info">
+              <h1 class="sr-only">{{ data.product.name }}</h1>
               <span class="fw-500 text-dark-gray d-block">{{ data.product.brand }}</span>
               <h4 class="alt-font text-dark-gray fw-500 mb-5px">{{ data.product.name }}</h4>
               <div class="d-block d-sm-flex align-items-center mb-15px">
@@ -301,11 +299,7 @@ onBeforeUnmount(stopGalleryAutoplay);
                     class="section-link ls-minus-1px icon-small"
                     aria-label="5 out of 5 stars"
                   >
-                    <i
-                      v-for="star in 5"
-                      :key="star"
-                      class="bi bi-star-fill text-golden-yellow"
-                    ></i>
+                    <i v-for="star in 5" :key="star" class="bi bi-star-fill text-golden-yellow"></i>
                   </a>
                 </div>
                 <a href="#tab" class="me-25px text-dark-gray fw-500 section-link xs-me-0"
@@ -382,7 +376,11 @@ onBeforeUnmount(stopGalleryAutoplay);
                     type="text"
                     inputmode="numeric"
                     :value="quantity"
+                    role="spinbutton"
                     aria-label="Quantity"
+                    aria-valuemin="1"
+                    aria-valuemax="20"
+                    :aria-valuenow="quantity"
                     @change="updateQuantity(Number(($event.target as HTMLInputElement).value))"
                   />
                   <button
@@ -425,11 +423,11 @@ onBeforeUnmount(stopGalleryAutoplay);
                     <div class="feature-box-icon me-10px">
                       <i
                         class="feather align-middle text-dark-gray"
-                        :class="[
-                          'icon-feather-repeat',
-                          'icon-feather-mail',
-                          'icon-feather-share-2',
-                        ][index]"
+                        :class="
+                          ['icon-feather-repeat', 'icon-feather-mail', 'icon-feather-share-2'][
+                            index
+                          ]
+                        "
                       ></i>
                     </div>
                     <div class="feature-box-content">
@@ -486,11 +484,7 @@ onBeforeUnmount(stopGalleryAutoplay);
                   >Guarantee safe and secure checkout</span
                 >
                 <div class="fashion-product-payments">
-                  <a
-                    v-for="payment in data.payments"
-                    :key="payment"
-                    href="#"
-                    @click.prevent
+                  <a v-for="payment in data.payments" :key="payment" href="#" @click.prevent
                     ><img
                       :src="sourceAsset(payment)"
                       class="h-30px"
@@ -555,7 +549,10 @@ onBeforeUnmount(stopGalleryAutoplay);
                 <div
                   id="product-panel-description"
                   class="tab-pane fade in fashion-product-tab-panel"
-                  :class="{ active: activeTab === 'description', show: activeTab === 'description' }"
+                  :class="{
+                    active: activeTab === 'description',
+                    show: activeTab === 'description',
+                  }"
                   role="tabpanel"
                   aria-labelledby="product-tab-description"
                   :hidden="activeTab !== 'description'"
@@ -600,7 +597,10 @@ onBeforeUnmount(stopGalleryAutoplay);
                 <div
                   id="product-panel-information"
                   class="tab-pane fade in fashion-product-tab-panel"
-                  :class="{ active: activeTab === 'information', show: activeTab === 'information' }"
+                  :class="{
+                    active: activeTab === 'information',
+                    show: activeTab === 'information',
+                  }"
                   role="tabpanel"
                   aria-labelledby="product-tab-information"
                   :hidden="activeTab !== 'information'"

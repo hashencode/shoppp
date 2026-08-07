@@ -35,6 +35,7 @@ describe("Fashion Store information pages", () => {
     );
     expect(fashionStoreAboutSourceContract.timelineCount).toBe(4);
     expect(fashionStoreAboutData.carouselImages).toHaveLength(6);
+    expect(fashionStoreAboutData.brandLogos).toHaveLength(8);
     expect(fashionStoreFaqSourceContract.categoryCount).toBe(6);
     expect(fashionStoreFaqData.categories).toHaveLength(6);
     expect(fashionStoreFaqData.categories.every(({ questions }) => questions.length === 6)).toBe(

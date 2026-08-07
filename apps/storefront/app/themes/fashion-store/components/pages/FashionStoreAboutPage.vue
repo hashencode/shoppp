@@ -108,7 +108,9 @@ onBeforeUnmount(() => {
           <div class="row">
             <div class="col-12 col-lg-5">
               <div class="alt-font text-dark-gray mb-15px fs-20">
-                <span class="text-highlight">{{ data.story.eyebrow }}</span>
+                <span class="text-highlight"
+                  >{{ data.story.eyebrow }}<span class="bg-base-color h-8px bottom-0px"></span
+                ></span>
               </div>
               <h2 class="alt-font text-dark-gray fw-400 ls-minus-1px">
                 The journey of <span class="fw-600">crafto lifestyle.</span>
@@ -201,7 +203,7 @@ onBeforeUnmount(() => {
           <div class="row justify-content-center mb-10 overlap-section">
             <div class="col-xl-9 col-lg-10">
               <div
-                class="row align-items-center justify-content-center bg-white box-shadow-medium-bottom border border-color-extra-medium-gray border-radius-100px sm-border-radius-6px"
+                class="row align-items-center justify-content-center bg-white box-shadow-medium-bottom border border-color-extra-medium-gray border-radius-100px sm-border-radius-6px md-mx-0"
               >
                 <div
                   class="col-lg-6 p-20px border-end border-color-transparent-dark-very-light text-center ls-minus-05px align-items-center d-flex justify-content-center md-border-end-0 md-pb-10px"
@@ -257,7 +259,9 @@ onBeforeUnmount(() => {
                   >Our fashion store mission<span class="bg-base-color h-8px bottom-0px"></span
                 ></span>
               </div>
-              <h2 class="alt-font text-dark-gray mb-20px fw-400 ls-minus-1px w-90 lg-w-100">
+              <h2
+                class="alt-font text-dark-gray mb-20px fw-400 ls-minus-1px w-90 lg-fs-50 lg-w-100"
+              >
                 Quality product with <span class="fw-600">exceptional price-value.</span>
               </h2>
               <FashionStoreAccordion
@@ -269,7 +273,12 @@ onBeforeUnmount(() => {
           </div>
           <div class="fashion-about-brands" aria-label="Client brands">
             <div class="fashion-about-brand-track">
-              <div v-for="(logo, index) in data.brandLogos" :key="`${logo}-${index}`">
+              <div
+                v-for="(logo, index) in [...data.brandLogos, ...data.brandLogos.slice(0, 2)]"
+                :key="`${logo}-${index}`"
+                :data-source-clone="index >= data.brandLogos.length ? 'true' : undefined"
+                :aria-hidden="index >= data.brandLogos.length ? 'true' : undefined"
+              >
                 <img :src="sourceAsset(logo)" alt="" />
               </div>
             </div>

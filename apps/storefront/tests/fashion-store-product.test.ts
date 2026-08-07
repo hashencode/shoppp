@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
 
 import {
   buildFashionStoreProductCartRequest,
@@ -52,6 +53,18 @@ describe("Fashion Store product detail", () => {
       releaseId: "representative-release-2026-07-30",
       variantId: "var_01J00000000000000000000000",
     });
+  });
+
+  test("keeps a meaningful product heading in prerendered preview HTML", async () => {
+    const source = await readFile(
+      new URL(
+        "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain('<h1 class="sr-only">{{ data.product.name }}</h1>');
   });
 
   test("readiness enables product only after its page contract is complete", () => {

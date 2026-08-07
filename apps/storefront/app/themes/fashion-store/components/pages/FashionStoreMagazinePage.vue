@@ -57,6 +57,9 @@ function retainPaginationPresentation(): void {
             >
               <ul>
                 <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                {{
+                  " "
+                }}
                 <li>Magazine</li>
               </ul>
             </nav>

@@ -151,9 +151,9 @@ function submitComment(): void {
                         >inventore veritatis et quasi</span
                       >
                       architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia
-                      voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores
-                      eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui
-                      dolorem ipsum quia.
+                      voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni
+                      dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est,
+                      qui dolorem ipsum quia.
                     </p>
                   </div>
                 </div>
@@ -162,7 +162,9 @@ function submitComment(): void {
           </div>
         </section>
 
-        <section class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media-secondary">
+        <section
+          class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media fashion-article-media-secondary"
+        >
           <div class="container-fluid">
             <div class="row justify-content-center">
               <div class="col-12">
@@ -209,7 +211,9 @@ function submitComment(): void {
           </div>
         </section>
 
-        <section class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media-secondary">
+        <section
+          class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media fashion-article-media-secondary"
+        >
           <div class="container-fluid">
             <div class="row justify-content-center">
               <div class="col-12">
@@ -258,13 +262,15 @@ function submitComment(): void {
               <div class="col-lg-10">
                 <div class="row mb-30px">
                   <div class="tag-cloud col-md-9 text-center text-md-start sm-mb-15px">
-                    <a
+                    <template
                       v-for="tag in ['Development', 'Event', 'Multimedia', 'Fashion']"
                       :key="tag"
-                      :href="fashionStoreRoutePaths.magazine"
-                      data-fashion-store-route
-                      >{{ tag }}</a
                     >
+                      <a :href="fashionStoreRoutePaths.magazine" data-fashion-store-route>{{
+                        tag
+                      }}</a
+                      >{{ " " }}
+                    </template>
                   </div>
                   <div class="tag-cloud col-md-3 text-uppercase text-center text-md-end">
                     <button
@@ -311,16 +317,19 @@ function submitComment(): void {
                     class="col-12 text-center elements-social social-icon-style-04 fashion-article-share"
                   >
                     <ul class="large-icon dark">
-                      <li v-for="share in data.shareLinks" :key="share.label">
-                        <a
-                          :class="share.label.toLowerCase()"
-                          :href="share.href"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          :aria-label="`Share on ${share.label}`"
-                          ><i class="fa-brands" :class="`fa-${share.icon}`"></i><span></span
-                        ></a>
-                      </li>
+                      <template v-for="share in data.shareLinks" :key="share.label">
+                        <li>
+                          <a
+                            :class="share.label.toLowerCase()"
+                            :href="share.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            :aria-label="`Share on ${share.label}`"
+                            ><i class="fa-brands" :class="`fa-${share.icon}`"></i><span></span
+                          ></a>
+                        </li>
+                        {{ " " }}
+                      </template>
                     </ul>
                   </div>
                 </div>
