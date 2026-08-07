@@ -80,7 +80,7 @@ onBeforeUnmount(() => {
       <section class="pt-0 ps-8 pe-8 lg-ps-3 lg-pe-3 position-relative xs-px-0 fashion-about-hero">
         <div class="container-fluid">
           <div class="row">
-            <div class="col-12 position-relative">
+            <div class="col-12">
               <img
                 :src="sourceAsset('images/demo-fashion-store-about-01.jpg')"
                 class="w-100"
