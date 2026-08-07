@@ -30,8 +30,10 @@ const data = computed<FashionStoreProductData>(() => {
 const galleryIndex = ref(0);
 const galleryPaused = ref(false);
 const gallery = computed(() => data.value.gallery);
-const selectedColor = ref(data.value.options.colors[0]?.id ?? "");
-const selectedSize = ref(data.value.options.sizes[0]?.id ?? "");
+// The source document marks every radio as checked, so the browser resolves the
+// group to its final option during parsing.
+const selectedColor = ref(data.value.options.colors.at(-1)?.id ?? "");
+const selectedSize = ref(data.value.options.sizes.at(-1)?.id ?? "");
 const quantity = ref(1);
 const activeTab = ref<"description" | "information" | "reviews" | "shipping">("description");
 const tabIds = ["description", "information", "shipping", "reviews"] as const;
@@ -291,10 +293,20 @@ onBeforeUnmount(stopGalleryAutoplay);
 
             <div class="col-12 col-lg-5 product-info">
               <span class="fw-500 text-dark-gray d-block">{{ data.product.brand }}</span>
-              <h1 class="alt-font text-dark-gray fw-500 mb-5px">{{ data.product.name }}</h1>
+              <h4 class="alt-font text-dark-gray fw-500 mb-5px">{{ data.product.name }}</h4>
               <div class="d-block d-sm-flex align-items-center mb-15px">
-                <div class="me-10px xs-me-0 text-golden-yellow" aria-label="5 out of 5 stars">
-                  ★★★★★
+                <div class="me-10px xs-me-0">
+                  <a
+                    href="#tab"
+                    class="section-link ls-minus-1px icon-small"
+                    aria-label="5 out of 5 stars"
+                  >
+                    <i
+                      v-for="star in 5"
+                      :key="star"
+                      class="bi bi-star-fill text-golden-yellow"
+                    ></i>
+                  </a>
                 </div>
                 <a href="#tab" class="me-25px text-dark-gray fw-500 section-link xs-me-0"
                   >165 Reviews</a
@@ -367,9 +379,8 @@ onBeforeUnmount(stopGalleryAutoplay);
                   </button>
                   <input
                     class="qty-text"
-                    type="number"
-                    min="1"
-                    max="20"
+                    type="text"
+                    inputmode="numeric"
                     :value="quantity"
                     aria-label="Quantity"
                     @change="updateQuantity(Number(($event.target as HTMLInputElement).value))"
@@ -406,36 +417,66 @@ onBeforeUnmount(stopGalleryAutoplay);
 
               <div class="row mb-20px fashion-product-secondary-actions">
                 <div
-                  v-for="action in ['compare', 'question', 'share'] as const"
+                  v-for="(action, index) in ['compare', 'question', 'share'] as const"
                   :key="action"
-                  class="col-auto"
+                  class="col-auto icon-with-text-style-08"
                 >
-                  <button
-                    type="button"
-                    class="alt-font fw-500 text-dark-gray"
-                    @click="recordAction(action)"
-                  >
-                    {{ data.actions[action].label }}
-                  </button>
+                  <div class="feature-box feature-box-left-icon-middle d-inline-flex align-middle">
+                    <div class="feature-box-icon me-10px">
+                      <i
+                        class="feather align-middle text-dark-gray"
+                        :class="[
+                          'icon-feather-repeat',
+                          'icon-feather-mail',
+                          'icon-feather-share-2',
+                        ][index]"
+                      ></i>
+                    </div>
+                    <div class="feature-box-content">
+                      <button
+                        type="button"
+                        class="alt-font fw-500 text-dark-gray d-block"
+                        @click="recordAction(action)"
+                      >
+                        {{ data.actions[action].label }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="mb-20px h-1px w-100 bg-extra-medium-gray d-block"></div>
               <div class="row mb-15px">
-                <div class="col-12 mb-10px">
-                  <i class="feather icon-feather-truck me-10px text-dark-gray"></i>
-                  <span
-                    ><span class="alt-font text-dark-gray fw-500">Estimated delivery:</span> March
-                    03 - March 07</span
-                  >
+                <div class="col-12 icon-with-text-style-08">
+                  <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
+                    <div class="feature-box-icon me-10px">
+                      <i
+                        class="feather icon-feather-truck top-8px position-relative align-middle text-dark-gray"
+                      ></i>
+                    </div>
+                    <div class="feature-box-content">
+                      <span
+                        ><span class="alt-font text-dark-gray fw-500">Estimated delivery:</span>
+                        March 03 - March 07</span
+                      >
+                    </div>
+                  </div>
                 </div>
-                <div class="col-12">
-                  <i class="feather icon-feather-archive me-10px text-dark-gray"></i>
-                  <span
-                    ><span class="alt-font text-dark-gray fw-500"
-                      >Free shipping &amp; returns:</span
-                    >
-                    On all orders over $50</span
-                  >
+                <div class="col-12 icon-with-text-style-08 mb-10px">
+                  <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
+                    <div class="feature-box-icon me-10px">
+                      <i
+                        class="feather icon-feather-archive top-8px position-relative align-middle text-dark-gray"
+                      ></i>
+                    </div>
+                    <div class="feature-box-content">
+                      <span
+                        ><span class="alt-font text-dark-gray fw-500"
+                          >Free shipping &amp; returns:</span
+                        >
+                        On all orders over $50</span
+                      >
+                    </div>
+                  </div>
                 </div>
               </div>
               <div
@@ -445,21 +486,30 @@ onBeforeUnmount(stopGalleryAutoplay);
                   >Guarantee safe and secure checkout</span
                 >
                 <div class="fashion-product-payments">
-                  <img
+                  <a
                     v-for="payment in data.payments"
                     :key="payment"
-                    :src="sourceAsset(payment)"
-                    class="h-30px me-5px mb-5px"
-                    alt=""
-                  />
+                    href="#"
+                    @click.prevent
+                    ><img
+                      :src="sourceAsset(payment)"
+                      class="h-30px"
+                      :class="{ 'me-5px mb-5px': payment !== data.payments.at(-1) }"
+                      alt=""
+                  /></a>
                 </div>
               </div>
               <div>
-                <div>
-                  <span class="text-dark-gray alt-font fw-500">Category:</span> Fashion, Woman
+                <div class="w-100 d-block">
+                  <span class="text-dark-gray alt-font fw-500">Category:</span>
+                  <a href="#" @click.prevent>Fashion,</a>
+                  <a href="#" @click.prevent>Woman</a>
                 </div>
                 <div>
-                  <span class="text-dark-gray alt-font fw-500">Tags: </span>Shirts, Cotton, Printed
+                  <span class="text-dark-gray alt-font fw-500">Tags: </span
+                  ><a href="#" @click.prevent>Shirts,</a>
+                  <a href="#" @click.prevent>Cotton,</a>
+                  <a href="#" @click.prevent>Printed</a>
                 </div>
               </div>
             </div>
@@ -471,60 +521,76 @@ onBeforeUnmount(stopGalleryAutoplay);
         <div class="container">
           <div class="row">
             <div class="col-12 tab-style-04">
-              <div
+              <ul
                 class="nav nav-tabs border-0 justify-content-center alt-font fs-19"
                 role="tablist"
                 aria-label="Product information"
               >
-                <button
-                  v-for="(tab, index) in tabIds"
-                  :id="`product-tab-${tab}`"
-                  :key="tab"
-                  type="button"
-                  class="nav-link"
-                  :class="{ active: activeTab === tab }"
-                  role="tab"
-                  :aria-selected="activeTab === tab"
-                  :aria-controls="`product-panel-${tab}`"
-                  :tabindex="activeTab === tab ? 0 : -1"
-                  @click="activeTab = tab"
-                  @keydown="handleTabKey($event, index)"
-                >
-                  {{
-                    tab === "description"
-                      ? "Description"
-                      : tab === "information"
-                        ? "Additional information"
-                        : tab === "shipping"
-                          ? "Shipping and return"
-                          : "Reviews (3)"
-                  }}
-                  <span class="tab-border bg-dark-gray"></span>
-                </button>
-              </div>
+                <li v-for="(tab, index) in tabIds" :key="tab" class="nav-item">
+                  <a
+                    :id="`product-tab-${tab}`"
+                    :href="`#product-panel-${tab}`"
+                    class="nav-link"
+                    :class="{ active: activeTab === tab }"
+                    role="tab"
+                    :aria-selected="activeTab === tab"
+                    :aria-controls="`product-panel-${tab}`"
+                    :tabindex="activeTab === tab ? 0 : -1"
+                    @click.prevent="activeTab = tab"
+                    @keydown="handleTabKey($event, index)"
+                    >{{
+                      tab === "description"
+                        ? "Description"
+                        : tab === "information"
+                          ? "Additional information"
+                          : tab === "shipping"
+                            ? "Shipping and return"
+                            : "Reviews (3)"
+                    }}<span class="tab-border bg-dark-gray"></span
+                  ></a>
+                </li>
+              </ul>
               <div class="mb-5 h-1px w-100 bg-extra-medium-gray sm-mt-10px xs-mb-8"></div>
               <div class="tab-content">
                 <div
                   id="product-panel-description"
-                  class="fashion-product-tab-panel"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{ active: activeTab === 'description', show: activeTab === 'description' }"
                   role="tabpanel"
                   aria-labelledby="product-tab-description"
                   :hidden="activeTab !== 'description'"
                 >
                   <div class="row align-items-center justify-content-center">
                     <div class="col-lg-6 md-mb-40px">
-                      <div class="alt-font fw-500 text-dark-gray mb-5px">
-                        ♥ {{ data.description.eyebrow }}
+                      <div class="d-flex align-items-center mb-5px">
+                        <div class="col-auto pe-5px">
+                          <i class="bi bi-heart-fill text-red fs-16"></i>
+                        </div>
+                        <div class="col alt-font fw-500 text-dark-gray">
+                          {{ data.description.eyebrow }}
+                        </div>
                       </div>
-                      <h2 class="alt-font text-dark-gray fw-500 mb-20px w-90 lg-w-100">
+                      <h4 class="alt-font text-dark-gray fw-500 mb-20px w-90 lg-w-100">
                         {{ data.description.heading }}
-                      </h2>
+                      </h4>
                       <p class="w-90">{{ data.description.text }}</p>
-                      <ul class="fashion-product-bullets">
-                        <li v-for="bullet in data.description.bullets" :key="bullet">
-                          {{ bullet }}
-                        </li>
-                      </ul>
+                      <div>
+                        <div
+                          v-for="(bullet, index) in data.description.bullets"
+                          :key="bullet"
+                          class="feature-box feature-box-left-icon-middle"
+                          :class="{ 'mb-10px': index < data.description.bullets.length - 1 }"
+                        >
+                          <div
+                            class="feature-box-icon feature-box-icon-rounded w-30px h-30px rounded-circle bg-very-light-gray me-10px"
+                          >
+                            <i class="fa-solid fa-check fs-12 text-dark-gray"></i>
+                          </div>
+                          <div class="feature-box-content">
+                            <span class="d-block text-dark-gray fw-500">{{ bullet }}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div class="col-lg-6 col-md-8">
                       <img :src="sourceAsset(data.description.sourceImage)" alt="" class="w-100" />
@@ -533,7 +599,8 @@ onBeforeUnmount(stopGalleryAutoplay);
                 </div>
                 <div
                   id="product-panel-information"
-                  class="fashion-product-tab-panel"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{ active: activeTab === 'information', show: activeTab === 'information' }"
                   role="tabpanel"
                   aria-labelledby="product-tab-information"
                   :hidden="activeTab !== 'information'"
@@ -556,7 +623,8 @@ onBeforeUnmount(stopGalleryAutoplay);
                 </div>
                 <div
                   id="product-panel-shipping"
-                  class="fashion-product-tab-panel"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{ active: activeTab === 'shipping', show: activeTab === 'shipping' }"
                   role="tabpanel"
                   aria-labelledby="product-tab-shipping"
                   :hidden="activeTab !== 'shipping'"
@@ -575,7 +643,8 @@ onBeforeUnmount(stopGalleryAutoplay);
                 </div>
                 <div
                   id="product-panel-reviews"
-                  class="fashion-product-tab-panel"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{ active: activeTab === 'reviews', show: activeTab === 'reviews' }"
                   role="tabpanel"
                   aria-labelledby="product-tab-reviews"
                   :hidden="activeTab !== 'reviews'"

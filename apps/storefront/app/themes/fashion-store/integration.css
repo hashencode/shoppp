@@ -6,6 +6,14 @@
   src: url("./upstream/fonts/figtree-latin.woff2") format("woff2");
 }
 
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./upstream/fonts/outfit-latin.woff2") format("woff2");
+}
+
 [data-fashion-store-shop] .shop-wrapper {
   display: flex;
   flex-wrap: wrap;
@@ -30,13 +38,22 @@
   margin-top: 118px;
 }
 
-[data-fashion-store-product] .product-image-slider .swiper-slide:not(.swiper-slide-active) {
-  display: none;
+[data-fashion-store-article] .top-space-margin {
+  margin-top: 118px;
 }
 
 [data-fashion-store-product] .product-info h1 {
   font-size: 38px;
-  line-height: 1.2;
+  line-height: 43.2px;
+  margin-top: 0;
+}
+
+[data-fashion-store-product] .product-info {
+  padding: 0 15px;
+}
+
+[data-fashion-store-product] .breadcrumb li + li {
+  margin-left: 3.46875px;
 }
 
 [data-fashion-store-product] .fashion-product-option-input {
@@ -61,6 +78,10 @@
   width: 100%;
 }
 
+[data-fashion-store-product] .product-image-slider .swiper-wrapper {
+  gap: 10px;
+}
+
 [data-fashion-store-product] .product-image-thumb .swiper-wrapper {
   display: flex;
   flex-direction: column;
@@ -69,11 +90,13 @@
 
 [data-fashion-store-product] .product-image-thumb .swiper-slide {
   width: 100%;
-  opacity: 0.55;
+  border: 1px solid transparent;
+  opacity: 1;
   cursor: pointer;
 }
 
 [data-fashion-store-product] .product-image-thumb .swiper-slide-thumb-active {
+  border-color: var(--light-gray);
   opacity: 1;
 }
 
@@ -90,7 +113,16 @@
   background: #fff;
   color: #232323;
   box-shadow: 0 4px 18px rgb(0 0 0 / 12%);
+  opacity: 0;
   transform: translateY(-50%);
+  transition: opacity 0.2s ease;
+}
+
+[data-fashion-store-product] .product-image:hover .slider-product-prev,
+[data-fashion-store-product] .product-image:hover .slider-product-next,
+[data-fashion-store-product] .product-image:focus-within .slider-product-prev,
+[data-fashion-store-product] .product-image:focus-within .slider-product-next {
+  opacity: 1;
 }
 
 [data-fashion-store-product] .slider-product-prev {
@@ -108,50 +140,28 @@
 }
 
 [data-fashion-store-product] .fashion-product-secondary-actions button {
+  color: var(--dark-gray);
   cursor: pointer;
 }
 
-[data-fashion-store-product] .fashion-product-tabs .nav-link {
-  position: relative;
-  margin: 0 18px;
-  padding-bottom: 12px;
-  cursor: pointer;
+[data-fashion-store-product] .product-info > .row.mb-15px {
+  min-height: 77.5px;
 }
 
-[data-fashion-store-product] .fashion-product-tabs .nav-link .tab-border {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  opacity: 0;
+[data-fashion-store-product] .fashion-product-payments a:not(:last-child) {
+  margin-right: 4.203125px;
 }
 
-[data-fashion-store-product] .fashion-product-tabs .nav-link.active .tab-border {
-  opacity: 1;
+[data-fashion-store-product] .fashion-product-tabs {
+  padding-bottom: 90px;
 }
 
-[data-fashion-store-product] .fashion-product-bullets {
-  padding: 0;
-  list-style: none;
+[data-fashion-store-product] .product-info > .d-flex .wishlist {
+  background-color: #fff;
 }
 
-[data-fashion-store-product] .fashion-product-bullets li {
-  margin-bottom: 10px;
-  color: #232323;
-  font-weight: 500;
-}
-
-[data-fashion-store-product] .fashion-product-bullets li::before {
-  display: inline-grid;
-  width: 30px;
-  height: 30px;
-  margin-right: 10px;
-  border-radius: 50%;
-  background: #f7f7f7;
-  content: "✓";
-  font-size: 12px;
-  place-items: center;
+[data-fashion-store-product] .product-info .section-link.icon-small .bi:not(:last-child) {
+  margin-right: 3.453125px;
 }
 
 .no-js [data-fashion-store-product] .fashion-product-tab-panel[hidden] {
@@ -232,13 +242,34 @@
 [data-fashion-store-shop] .tag-cloud button {
   display: inline-block;
   margin: 0 6px 10px 0;
-  padding: 7px 18px;
+  padding: 5px 10px;
   color: inherit;
+  font-size: 14px;
   line-height: 20px;
   text-align: center;
   background: transparent;
   border: 1px solid var(--extra-medium-gray);
   border-radius: 4px;
+}
+
+[data-fashion-store-shop] .slider-one-slide {
+  overflow: hidden;
+}
+
+[data-fashion-store-shop] .slider-one-slide .swiper-wrapper {
+  position: relative;
+}
+
+[data-fashion-store-shop] .slider-one-slide .swiper-slide:not(.swiper-slide-active) {
+  position: absolute;
+  top: 0;
+  left: 181px;
+  display: block !important;
+  width: 212px;
+}
+
+.shop-modern .price {
+  font-weight: 400;
 }
 
 [data-fashion-store-shop] .tag-cloud button:hover,
@@ -291,14 +322,6 @@
   [data-fashion-store-header] + main[data-fashion-store-shop] > .top-space-margin {
     margin-top: 79px;
   }
-}
-
-@font-face {
-  font-family: "Outfit";
-  font-style: normal;
-  font-weight: 300 900;
-  font-display: swap;
-  src: url("./upstream/fonts/outfit-latin.woff2") format("woff2");
 }
 
 /* Nuxt owns navigation and preview actions while preserving Crafto's visible controls. */
@@ -677,7 +700,8 @@
 }
 
 [data-fashion-store-article] .fashion-comment-child {
-  margin-left: 70px;
+  margin-top: -5px;
+  margin-left: 102px;
 }
 
 [data-fashion-store-magazine] button:focus-visible,
@@ -692,6 +716,7 @@
 
 @media (max-width: 767px) {
   [data-fashion-store-article] .fashion-comment-child {
+    margin-top: 0;
     margin-left: 20px;
   }
 }
@@ -775,12 +800,6 @@
   }
 }
 
-[data-fashion-store-checkout] .fashion-link {
-  padding: 0;
-  background: transparent;
-  border: 0;
-}
-
 [data-fashion-store-checkout] .fashion-checkout-helper-panel {
   display: flex;
   max-width: 560px;
@@ -790,6 +809,10 @@
 
 [data-fashion-store-checkout] .fashion-checkout-helper-panel input {
   margin-bottom: 0;
+}
+
+[data-fashion-store-checkout] .fashion-checkout-submit {
+  line-height: 27px;
 }
 
 [data-fashion-store-checkout] .address-fields,
@@ -825,6 +848,28 @@
 [data-fashion-store-checkout] .shipping-methods strong {
   margin-left: auto;
   font-weight: 400;
+}
+
+[data-fashion-store-checkout] .fashion-checkout-shipping-methods {
+  display: block;
+  gap: 0;
+  margin: 0 0 16px;
+}
+
+[data-fashion-store-checkout] .fashion-checkout-shipping-methods label {
+  display: inline-block;
+  padding: 0;
+  margin-bottom: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+[data-fashion-store-checkout] .fashion-payment-option img {
+  margin-left: 10px !important;
+}
+
+[data-fashion-store-checkout] .fashion-payment-option input {
+  margin-right: 9.203125px !important;
 }
 
 [data-fashion-store-checkout] .fashion-payment-option .collapse {
@@ -877,8 +922,9 @@
 }
 
 [data-fashion-store-cart] .product-remove button {
-  width: 30px;
-  height: 30px;
+  width: 12.515625px;
+  font-size: 20px;
+  font-weight: 500;
   line-height: 30px;
 }
 
@@ -896,7 +942,11 @@
 }
 
 [data-fashion-store-cart] .coupon-code-panel .apply-coupon-btn {
-  border: 0;
+  appearance: none;
+  border: 2px solid transparent;
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 [data-fashion-store-cart] input[aria-invalid="true"],
@@ -1142,6 +1192,43 @@
 
 .fashion-contact-form .form-control {
   margin-bottom: 0;
+}
+
+.fashion-wishlist-grid,
+.fashion-product-related .grid,
+.fashion-magazine-grid,
+.fashion-article-related .grid {
+  display: grid;
+}
+
+.fashion-wishlist-grid,
+.fashion-product-related .grid,
+.fashion-magazine-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fashion-article-related .grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fashion-wishlist-grid > li,
+.fashion-product-related .grid > li,
+.fashion-magazine-grid > li,
+.fashion-article-related .grid > li {
+  width: auto !important;
+}
+
+.fashion-wishlist-grid > .grid-sizer,
+.fashion-product-related .grid > .grid-sizer,
+.fashion-magazine-grid > .grid-sizer,
+.fashion-article-related .grid > .grid-sizer {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .fashion-magazine-grid > .grid-item:nth-child(n + 6):not(:nth-child(4n + 1)) {
+    transform: translateY(-30px);
+  }
 }
 
 @keyframes fashion-contact-marker {

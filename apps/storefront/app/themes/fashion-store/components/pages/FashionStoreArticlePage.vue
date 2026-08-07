@@ -150,7 +150,10 @@ function submitComment(): void {
                       <span class="text-dark-gray text-decoration-line-bottom"
                         >inventore veritatis et quasi</span
                       >
-                      architecto beatae vitae dicta sunt explicabo.
+                      architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia
+                      voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores
+                      eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui
+                      dolorem ipsum quia.
                     </p>
                   </div>
                 </div>
@@ -159,7 +162,7 @@ function submitComment(): void {
           </div>
         </section>
 
-        <section class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media">
+        <section class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media-secondary">
           <div class="container-fluid">
             <div class="row justify-content-center">
               <div class="col-12">
@@ -206,7 +209,7 @@ function submitComment(): void {
           </div>
         </section>
 
-        <section class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media">
+        <section class="py-0 ps-13 pe-13 lg-ps-4 lg-pe-4 sm-px-0 fashion-article-media-secondary">
           <div class="container-fluid">
             <div class="row justify-content-center">
               <div class="col-12">
@@ -420,9 +423,9 @@ function submitComment(): void {
               <div class="col-lg-9">
                 <form class="row contact-form-style-02" @submit.prevent="submitComment">
                   <div class="col-md-6 mb-30px">
-                    <label class="visually-hidden" for="fashion-comment-name">Name</label
-                    ><input
+                    <input
                       id="fashion-comment-name"
+                      aria-label="Name"
                       class="input-name border-radius-4px form-control"
                       type="text"
                       name="name"
@@ -431,9 +434,9 @@ function submitComment(): void {
                     />
                   </div>
                   <div class="col-md-6 mb-30px">
-                    <label class="visually-hidden" for="fashion-comment-email">Email address</label
-                    ><input
+                    <input
                       id="fashion-comment-email"
+                      aria-label="Email address"
                       class="border-radius-4px form-control"
                       type="email"
                       name="email"
@@ -442,9 +445,9 @@ function submitComment(): void {
                     />
                   </div>
                   <div class="col-md-12 mb-30px">
-                    <label class="visually-hidden" for="fashion-comment-message">Your message</label
-                    ><textarea
+                    <textarea
                       id="fashion-comment-message"
+                      aria-label="Your message"
                       class="border-radius-4px form-control"
                       cols="40"
                       rows="4"

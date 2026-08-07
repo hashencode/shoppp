@@ -302,7 +302,7 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
       region(
         "helper-controls",
         "control",
-        "section:nth-of-type(2) .row:first-child",
+        "section:nth-of-type(2) > .container > .row:first-child",
         ".fashion-checkout-helpers",
       ),
       region(
@@ -322,7 +322,7 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
       region(
         "payment",
         "control",
-        ".checkout-accordion",
+        ".your-order-box .checkout-accordion",
         ".your-order-box .checkout-accordion",
         shopStates(fashionStoreCheckoutBehaviorContract, "payment"),
       ),
@@ -418,7 +418,7 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
       region(
         "author-share",
         "section",
-        "section.half-section",
+        "section.half-section.pt-0",
         ".fashion-article-author-share",
         shopStates(fashionStoreArticleBehaviorContract, "author-share"),
       ),

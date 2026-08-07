@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { chromium, type Browser, type Page } from "@playwright/test";
+import { chromium, type Browser, type Page, type Route } from "@playwright/test";
 import sharp from "../apps/storefront/node_modules/sharp";
 
 import {
@@ -99,6 +99,72 @@ function url(base: string, path: string): string {
   return new URL(path.replace(/^\//, ""), base.endsWith("/") ? base : `${base}/`).href;
 }
 
+function fashionStoreCheckoutCaptureCart() {
+  const shippingMethods = [
+    ["ship_01J00000000000000000000000", "Free shipping", 0],
+    ["ship_01J00000000000000000000001", "Flat", 1_200],
+    ["ship_01J00000000000000000000002", "Local pickup", 0],
+  ] as const;
+  return {
+    adjustments: [],
+    canCheckout: true,
+    currency: "USD",
+    expiresAt: "2026-08-08T00:00:00.000Z",
+    id: "cart_01J00000000000000000000000",
+    lines: [
+      ["Textured sweater", "Pink", 1, 2_300, "var_01J00000000000000000000000"],
+      ["Bermuda shorts", "Brown", 2, 3_500, "var_01J00000000000000000000001"],
+      ["Pocket sweatshirt", "White", 1, 1_500, "var_01J00000000000000000000002"],
+    ].map(([productName, variantName, quantity, unitAmount, variantId]) => ({
+      availableQuantity: 20,
+      lineTotal: { amount: Number(unitAmount) * Number(quantity), currency: "USD" },
+      productName: String(productName),
+      quantity: Number(quantity),
+      unitPrice: { amount: Number(unitAmount), currency: "USD" },
+      variantId: String(variantId),
+      variantName: String(variantName),
+    })),
+    selectedShippingMethodId: shippingMethods[0][0],
+    shippingAddress: null,
+    shippingMethods: shippingMethods.map(([id, name, amount]) => ({
+      amount,
+      currency: "USD",
+      estimatedDaysMax: 5,
+      estimatedDaysMin: 3,
+      id,
+      name,
+    })),
+    totals: {
+      discountTotal: 0,
+      grandTotal: 40_500,
+      shippingTotal: 0,
+      subtotal: 40_500,
+      taxTotal: 1_929,
+    },
+  };
+}
+
+async function fulfillFashionStoreCheckoutCaptureApi(route: Route): Promise<void> {
+  const request = route.request();
+  const path = new URL(request.url()).pathname;
+  if (path === "/api/platform/config") {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { data: { turnstile: { required: false, siteKey: null } } },
+    });
+    return;
+  }
+  if (path === "/api/cart") {
+    const cart = fashionStoreCheckoutCaptureCart();
+    await route.fulfill({
+      contentType: "application/json",
+      json: request.method() === "POST" ? { data: { cart, token: "capture_cart_token" } } : { data: cart },
+    });
+    return;
+  }
+  await route.continue();
+}
+
 async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
   const captureCss = captureCssForMode(mode);
   await page.addStyleTag({ content: captureCss });
@@ -181,12 +247,12 @@ async function stabilizeProductGallery(page: Page, source: boolean): Promise<voi
   }
   await page.evaluate(() => {
     document
-      .querySelector<HTMLElement>(".fashion-product-gallery-stage")
+      .querySelector<HTMLElement>(".product-image-slider")
       ?.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
   });
   await page.waitForTimeout(350);
   await page.evaluate(() => {
-    document.querySelector<HTMLButtonElement>(".fashion-product-thumbs button")?.click();
+    document.querySelector<HTMLButtonElement>(".product-image-thumb button")?.click();
     scrollTo(0, 0);
   });
   await page.waitForTimeout(350);
@@ -778,26 +844,6 @@ function localizeContract(
   };
 }
 
-async function normalizeRegionCaptureOrigin(page: Page, selector: string): Promise<void> {
-  await page
-    .locator(selector)
-    .first()
-    .evaluate((root: HTMLElement) => {
-      const rect = root.getBoundingClientRect();
-      const stablePhase = (size: number): number => {
-        const fraction = size - Math.floor(size);
-        if (fraction < 0.0001 || 1 - fraction < 0.0001) return 0;
-        return Math.min(0.25, (1 - fraction) / 2);
-      };
-      // Avoid placing a fractional box edge directly on an integer boundary. CSS
-      // serialization can otherwise move equivalent documents to opposite sides of
-      // that boundary and make locator screenshots differ by one output pixel.
-      const x = Math.floor(rect.left) + stablePhase(rect.width) - rect.left;
-      const y = Math.floor(rect.top) + stablePhase(rect.height) - rect.top;
-      root.style.setProperty("translate", `${x}px ${y}px`, "important");
-    });
-}
-
 async function normalizeRegionCaptureHeight(page: Page, selector: string): Promise<void> {
   await page
     .locator(selector)
@@ -812,6 +858,95 @@ async function normalizeRegionCaptureHeight(page: Page, selector: string): Promi
       if (roundedHeight - height <= 0.1)
         root.style.setProperty("height", `${roundedHeight}px`, "important");
     });
+}
+
+async function settleRegionInViewport(page: Page, selector: string): Promise<void> {
+  await page.locator(selector).first().scrollIntoViewIfNeeded();
+  await page.locator(selector).first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.height <= innerHeight) {
+      if (rect.bottom > innerHeight) scrollBy(0, Math.ceil(rect.bottom - innerHeight));
+      else if (rect.top < 0) scrollBy(0, Math.floor(rect.top));
+    }
+    if (rect.width <= innerWidth) {
+      if (rect.right > innerWidth) scrollBy(Math.ceil(rect.right - innerWidth), 0);
+      else if (rect.left < 0) scrollBy(Math.floor(rect.left), 0);
+    }
+  });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolvePromise) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+      ),
+  );
+}
+
+async function normalizeRegionFractionalOrigin(page: Page, selector: string): Promise<void> {
+  await page.locator(selector).first().evaluate((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const x = Math.floor(rect.left) - rect.left;
+    const y = Math.floor(rect.top) - rect.top;
+    if (getComputedStyle(element).position === "static") element.style.position = "relative";
+    element.style.left = `${x}px`;
+    element.style.top = `${y}px`;
+  });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolvePromise) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+      ),
+  );
+}
+
+async function captureRegionScreenshot(
+  page: Page,
+  selector: string,
+  path: string,
+): Promise<void> {
+  const bounds = await page.locator(selector).first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      documentLeft: rect.left + scrollX,
+      documentTop: rect.top + scrollY,
+      height: rect.height,
+      left: rect.left,
+      top: rect.top,
+      viewportHeight: innerHeight,
+      viewportWidth: innerWidth,
+      width: rect.width,
+    };
+  });
+  const density = await page.evaluate(() => devicePixelRatio);
+  const fullPage = bounds.height > bounds.viewportHeight || bounds.width > bounds.viewportWidth;
+  const screenshot = await page.screenshot({ animations: "disabled", fullPage });
+  const left = fullPage ? bounds.documentLeft : bounds.left;
+  const top = fullPage ? bounds.documentTop : bounds.top;
+  const cropLeft = Math.floor(left * density);
+  const cropTop = Math.floor(top * density);
+  const cropWidth = Math.ceil(bounds.width * density);
+  const cropHeight = Math.ceil(bounds.height * density);
+  const metadata = await sharp(screenshot).metadata();
+  const screenshotWidth = metadata.width ?? 0;
+  const screenshotHeight = metadata.height ?? 0;
+  const clampedLeft = Math.max(0, Math.min(cropLeft, screenshotWidth - 1));
+  const clampedTop = Math.max(0, Math.min(cropTop, screenshotHeight - 1));
+  const clampedRight = Math.max(
+    clampedLeft + 1,
+    Math.min(clampedLeft + cropWidth, screenshotWidth),
+  );
+  const clampedBottom = Math.max(
+    clampedTop + 1,
+    Math.min(clampedTop + cropHeight, screenshotHeight),
+  );
+  await sharp(screenshot)
+    .extract({
+      height: clampedBottom - clampedTop,
+      left: clampedLeft,
+      top: clampedTop,
+      width: clampedRight - clampedLeft,
+    })
+    .png()
+    .toFile(path);
 }
 
 async function normalizeEquivalentRegionScreenshotDimensions(
@@ -964,23 +1099,35 @@ export async function captureThemeRouteRegion(options: {
   const lease = await acquireCaptureLease({
     origins: [sourceUrl, implementationUrl],
     outputRoot,
-    requestedWorkers: 1,
+    requestedWorkers: 2,
   });
-  let browser: Browser | undefined;
+  let sourceBrowser: Browser | undefined;
+  let implementationBrowser: Browser | undefined;
   const failures: string[] = [];
   try {
-    browser = await chromium.launch(
-      process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-        : undefined,
-    );
-    const context = await browser.newContext({
+    const launchOptions = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : undefined;
+    [sourceBrowser, implementationBrowser] = await Promise.all([
+      chromium.launch(launchOptions),
+      chromium.launch(launchOptions),
+    ]);
+    const contextOptions = {
       deviceScaleFactor: options.density,
       reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
       viewport,
-    });
-    const source = await context.newPage();
-    const implementation = await context.newPage();
+    } as const;
+    const [sourceContext, implementationContext] = await Promise.all([
+      sourceBrowser.newContext(contextOptions),
+      implementationBrowser.newContext(contextOptions),
+    ]);
+    const [source, implementation] = await Promise.all([
+      sourceContext.newPage(),
+      implementationContext.newPage(),
+    ]);
+    if (options.routeId === "fashion-store-checkout") {
+      await implementation.route("**/api/**", fulfillFashionStoreCheckoutCaptureApi);
+    }
     await source.route("https://via.placeholder.com/**", (route) =>
       route.fulfill({ body: "", contentType: "image/png", status: 204 }),
     );
@@ -1158,14 +1305,18 @@ export async function captureThemeRouteRegion(options: {
       if (!fullPage)
         await Promise.all([
           source.addStyleTag({
-            content: ".sticky-wrap, .scroll-progress { visibility: hidden !important; }",
+            content: `.sticky-wrap, .scroll-progress${region.id === "cookie" ? "" : ", .cookie-message"} { visibility: hidden !important; }${region.id === "header" ? "" : " header { display: none !important; }"}`,
           }),
           implementation.addStyleTag({
-            content:
-              ".decor-sticky-actions, .decor-scroll-progress { visibility: hidden !important; }",
+            content: `.sticky-wrap, .scroll-progress, .decor-sticky-actions, .decor-scroll-progress${region.id === "cookie" ? "" : ", .cookie-message"} { visibility: hidden !important; }${region.id === "header" ? "" : " header { display: none !important; }"}`,
           }),
         ]);
-      if (region.kind !== "full-page-smoke") {
+      const mutuallyHidden =
+        region.kind !== "full-page-smoke" &&
+        !(await source.locator(region.sourceSelector).first().isVisible()) &&
+        !(await implementation.locator(region.implementationSelector).first().isVisible());
+
+      if (region.kind !== "full-page-smoke" && !mutuallyHidden) {
         const [sourceOcclusion, implementationOcclusion] = await Promise.all([
           regionOcclusion(source, region.sourceSelector),
           regionOcclusion(implementation, region.implementationSelector),
@@ -1191,20 +1342,20 @@ export async function captureThemeRouteRegion(options: {
           ]);
       }
 
-      if (region.kind !== "full-page-smoke") {
+      if (region.kind !== "full-page-smoke" && !mutuallyHidden) {
         await Promise.all([
-          source.locator(region.sourceSelector).first().scrollIntoViewIfNeeded(),
-          implementation.locator(region.implementationSelector).first().scrollIntoViewIfNeeded(),
+          settleRegionInViewport(source, region.sourceSelector),
+          settleRegionInViewport(implementation, region.implementationSelector),
+        ]);
+        await Promise.all([
+          normalizeRegionFractionalOrigin(source, region.sourceSelector),
+          normalizeRegionFractionalOrigin(implementation, region.implementationSelector),
         ]);
         if (region.normalizeFractionalCaptureHeight)
           await Promise.all([
             normalizeRegionCaptureHeight(source, region.sourceSelector),
             normalizeRegionCaptureHeight(implementation, region.implementationSelector),
           ]);
-        await Promise.all([
-          normalizeRegionCaptureOrigin(source, region.sourceSelector),
-          normalizeRegionCaptureOrigin(implementation, region.implementationSelector),
-        ]);
       }
 
       const captureBounds =
@@ -1248,16 +1399,33 @@ export async function captureThemeRouteRegion(options: {
           fullPage: true,
           path: implementationPath,
         });
+      } else if (mutuallyHidden) {
+        const transparentPixel = await sharp({
+          create: {
+            background: { alpha: 0, b: 0, g: 0, r: 0 },
+            channels: 4,
+            height: 1,
+            width: 1,
+          },
+        })
+          .png()
+          .toBuffer();
+        await Promise.all([
+          writeFile(referencePath, transparentPixel),
+          writeFile(implementationPath, transparentPixel),
+        ]);
       } else {
         if (!captureBounds) throw new Error("Regional capture bounds were not measured.");
-        await source.locator(region.sourceSelector).first().screenshot({
-          animations: "disabled",
-          path: referencePath,
-        });
-        await implementation.locator(region.implementationSelector).first().screenshot({
-          animations: "disabled",
-          path: implementationPath,
-        });
+        await captureRegionScreenshot(
+          implementation,
+          region.implementationSelector,
+          implementationPath,
+        );
+        await captureRegionScreenshot(
+          source,
+          region.sourceSelector,
+          referencePath,
+        );
         await normalizeEquivalentRegionScreenshotDimensions(
           referencePath,
           implementationPath,
@@ -1318,10 +1486,10 @@ export async function captureThemeRouteRegion(options: {
       );
     } finally {
       await Promise.allSettled([source.close(), implementation.close()]);
-      await context.close();
+      await Promise.allSettled([sourceContext.close(), implementationContext.close()]);
     }
   } finally {
-    await browser?.close();
+    await Promise.allSettled([sourceBrowser?.close(), implementationBrowser?.close()]);
     await lease.release();
   }
   if (failures.length > 0)

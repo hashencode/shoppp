@@ -189,22 +189,28 @@ onBeforeUnmount(stopArrivalAutoplay);
                 <div class="d-flex align-items-center mb-20px">
                   <span class="alt-font fw-500 fs-19 text-dark-gray">New arrivals</span>
                   <div class="d-flex ms-auto">
-                    <button
-                      type="button"
+                    <div
                       class="slider-one-slide-prev-1 icon-very-small swiper-button-prev slider-navigation-style-08 me-5px"
+                      role="button"
+                      tabindex="0"
                       aria-label="Previous arrivals"
                       @click="showArrival(arrivalIndex - 1)"
+                      @keydown.enter.prevent="showArrival(arrivalIndex - 1)"
+                      @keydown.space.prevent="showArrival(arrivalIndex - 1)"
                     >
                       <i class="fa-solid fa-arrow-left text-dark-gray"></i>
-                    </button>
-                    <button
-                      type="button"
+                    </div>
+                    <div
                       class="slider-one-slide-next-1 icon-very-small swiper-button-next slider-navigation-style-08 ms-5px"
+                      role="button"
+                      tabindex="0"
                       aria-label="Next arrivals"
                       @click="showArrival(arrivalIndex + 1)"
+                      @keydown.enter.prevent="showArrival(arrivalIndex + 1)"
+                      @keydown.space.prevent="showArrival(arrivalIndex + 1)"
                     >
                       <i class="fa-solid fa-arrow-right text-dark-gray"></i>
-                    </button>
+                    </div>
                   </div>
                 </div>
                 <div
@@ -265,16 +271,16 @@ onBeforeUnmount(stopArrivalAutoplay);
                   >Filter by tags</span
                 >
                 <div class="shop-filter tag-cloud fs-16">
-                  <button
+                  <a
                     v-for="option in data.filters.tag"
                     :key="option.label"
-                    type="button"
+                    href="#"
                     :class="{ active: activeFilters.tag === option.label }"
                     :aria-pressed="activeFilters.tag === option.label"
-                    @click="toggleFilter('tag', option.label)"
+                    @click.prevent="toggleFilter('tag', option.label)"
                   >
                     {{ option.label }}
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>

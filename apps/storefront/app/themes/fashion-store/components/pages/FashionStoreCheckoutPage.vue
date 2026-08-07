@@ -2,7 +2,6 @@
 import type { Cart, ShippingMethodQuote, ShippingQuoteRequest } from "@shoppp/contracts";
 
 import CheckoutAddress from "~/features/checkout/address.vue";
-import CheckoutShipping from "~/features/checkout/shipping.vue";
 import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
@@ -288,7 +287,7 @@ onMounted(async () => {
               <div class="feature-box feature-box-left-icon">
                 <div class="feature-box-icon me-5px"><i class="feather icon-feather-user top-9px position-relative text-dark-gray icon-small"></i></div>
                 <div class="feature-box-content">
-                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500">Returning customer? <button type="button" class="fashion-link text-decoration-line-bottom fw-600 text-dark-gray" :aria-expanded="helperPanel === 'login'" @click="toggleHelper('login')">Click here to login</button></span>
+                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500">Returning customer? <a href="#" class="text-decoration-line-bottom fw-600 text-dark-gray" :aria-expanded="helperPanel === 'login'" @click.prevent="toggleHelper('login')">Click here to login</a></span>
                 </div>
               </div>
             </div>
@@ -297,7 +296,7 @@ onMounted(async () => {
               <div class="feature-box feature-box-left-icon">
                 <div class="feature-box-icon me-5px"><i class="feather icon-feather-scissors top-9px position-relative text-dark-gray icon-small"></i></div>
                 <div class="feature-box-content">
-                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500">Have a coupon? <button type="button" class="fashion-link text-decoration-line-bottom fw-600 text-dark-gray" :aria-expanded="helperPanel === 'coupon'" @click="toggleHelper('coupon')">Click here to enter your code</button></span>
+                  <span class="d-inline-block text-dark-gray align-middle alt-font fw-500">Have a coupon? <a href="#" class="text-decoration-line-bottom fw-600 text-dark-gray" :aria-expanded="helperPanel === 'coupon'" @click.prevent="toggleHelper('coupon')">Click here to enter your code</a></span>
                 </div>
               </div>
             </div>
@@ -417,7 +416,31 @@ onMounted(async () => {
                     <tr class="shipping">
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
-                        <CheckoutShipping v-model="selectedMethod" :currency="cart?.currency ?? 'USD'" :methods="shippingMethods" :show-legend="false" @change="updateShipping" />
+                        <ul class="shipping-methods fashion-checkout-shipping-methods p-0">
+                          <li
+                            v-for="method in shippingMethods"
+                            :key="method.id"
+                            class="d-flex align-items-center"
+                          >
+                            <input
+                              :id="`fashion-checkout-shipping-${method.id}`"
+                              v-model="selectedMethod"
+                              type="radio"
+                              name="shipping-method"
+                              class="d-block w-auto mb-0 me-10px p-0"
+                              :value="method.id"
+                              @change="updateShipping"
+                            />
+                            <label
+                              class="md-line-height-18px"
+                              :for="`fashion-checkout-shipping-${method.id}`"
+                              >{{ method.name
+                              }}<template v-if="method.amount > 0"
+                                >: {{ money(method.amount, method.currency) }}</template
+                              ></label
+                            >
+                          </li>
+                        </ul>
                       </td>
                     </tr>
                     <tr class="total-amount">
