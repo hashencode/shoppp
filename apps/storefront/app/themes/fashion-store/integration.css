@@ -202,6 +202,12 @@
   }
 }
 
+@media (min-width: 768px) and (max-width: 991px) {
+  [data-fashion-store-product] .fashion-product-tabs {
+    padding-bottom: 75px;
+  }
+}
+
 @media (max-width: 575px) {
   [data-fashion-store-product] .fashion-product-tabs .nav-link {
     margin-bottom: -1px;
@@ -806,6 +812,14 @@
     margin-left: 40px;
     padding-bottom: 0;
   }
+
+  [data-fashion-store-article] .blog-comment > li:first-child {
+    padding-bottom: 0;
+  }
+
+  [data-fashion-store-article] .fashion-comment-child:nth-child(3) {
+    padding-bottom: 50px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -941,6 +955,22 @@
   display: block;
   gap: 0;
   margin: 0 0 16px;
+}
+
+@media (max-width: 991px) {
+  [data-fashion-store-checkout] .fashion-checkout-shipping-methods {
+    margin-bottom: 14px;
+  }
+}
+
+@media (max-width: 575px) {
+  [data-fashion-store-checkout] .fashion-checkout-shipping-methods {
+    margin-bottom: 12px;
+  }
+
+  [data-fashion-store-checkout] .fashion-checkout-submit {
+    line-height: 25.5px;
+  }
 }
 
 [data-fashion-store-checkout] .fashion-checkout-shipping-methods label {
@@ -1317,6 +1347,17 @@
 @media (max-width: 1399px) {
   .fashion-wishlist-grid.xl-grid-3col {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .fashion-wishlist-grid.xl-grid-3col {
+    grid-template-columns: repeat(3, calc(33.333333% - 0.03125px));
+  }
+
+  .fashion-wishlist-grid.xl-grid-3col > .grid-item:nth-child(3n + 3),
+  .fashion-wishlist-grid.xl-grid-3col > .grid-item:nth-child(3n + 4) {
+    left: -0.015625px;
   }
 }
 

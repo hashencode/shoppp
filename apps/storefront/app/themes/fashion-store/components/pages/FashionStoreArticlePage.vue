@@ -120,14 +120,14 @@ function submitComment(): void {
                         >
                       </li>
                       <li>
-                        <button
-                          type="button"
+                        <a
+                          href="#"
                           class="fashion-article-like text-uppercase alt-font fs-13"
-                          @click="recordLocalAction"
+                          @click.prevent="recordLocalAction"
                         >
                           <i class="feather icon-feather-heart me-5px icon-small align-middle"></i
                           >Like
-                        </button>
+                        </a>
                       </li>
                     </ul>
                   </aside>

@@ -302,7 +302,7 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
       region(
         "helper-controls",
         "control",
-        "section:nth-of-type(2) > .container > .row:first-child",
+        "section:nth-of-type(2) > .container > .row.justify-content-center",
         ".fashion-checkout-helpers",
       ),
       region(

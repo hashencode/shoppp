@@ -1151,7 +1151,7 @@ async function normalizeRegionFractionalOrigin(page: Page, selector: string): Pr
 }
 
 async function captureRegionScreenshot(page: Page, selector: string, path: string): Promise<void> {
-  const bounds = await page
+  let bounds = await page
     .locator(selector)
     .first()
     .evaluate((element) => {
@@ -1169,6 +1169,31 @@ async function captureRegionScreenshot(page: Page, selector: string, path: strin
     });
   const density = await page.evaluate(() => devicePixelRatio);
   const fullPage = bounds.height > bounds.viewportHeight || bounds.width > bounds.viewportWidth;
+  if (fullPage) {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolvePromise) => {
+          scrollTo(0, 0);
+          requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise()));
+        }),
+    );
+    bounds = await page
+      .locator(selector)
+      .first()
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          documentLeft: rect.left + scrollX,
+          documentTop: rect.top + scrollY,
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
+          viewportHeight: innerHeight,
+          viewportWidth: innerWidth,
+          width: rect.width,
+        };
+      });
+  }
   const screenshot = await page.screenshot({ animations: "allow", fullPage });
   const left = fullPage ? bounds.documentLeft : bounds.left;
   const top = fullPage ? bounds.documentTop : bounds.top;
