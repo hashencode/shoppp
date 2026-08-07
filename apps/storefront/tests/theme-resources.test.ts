@@ -31,6 +31,7 @@ describe("selected theme resources", () => {
       "product",
       "cart",
       "checkout",
+      "content",
     ]);
     expect(input.snapshot.bindings).toEqual([
       expect.objectContaining({
@@ -52,6 +53,10 @@ describe("selected theme resources", () => {
       expect.objectContaining({
         fixtureId: "fashion-store-checkout",
         instanceId: "fashion-store-checkout",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-content",
+        instanceId: "fashion-store-content",
       }),
     ]);
   });

@@ -25,6 +25,8 @@ describe("static generation manifest", () => {
       "/products/relaxed-corduroy-shirt",
       "/cart",
       "/checkout",
+      "/wishlist",
+      "/account",
     ]);
   });
 

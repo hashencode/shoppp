@@ -41,6 +41,14 @@
       "kind": "fixture",
       "resource": "checkout",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-content",
+      "id": "fashion-store-content-binding",
+      "instanceId": "fashion-store-content",
+      "kind": "fixture",
+      "resource": "content",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-fashion-store-fixture",

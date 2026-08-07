@@ -14,6 +14,9 @@ import {
 import { fashionStoreCartBehaviorContract } from "./contracts/pages/cart";
 import { fashionStoreCheckoutBehaviorContract } from "./contracts/pages/checkout";
 import { fashionStoreProductBehaviorContract } from "./contracts/pages/product";
+import { fashionStoreCollectionBehaviorContract } from "./contracts/pages/collection";
+import { fashionStoreAccountBehaviorContract } from "./contracts/pages/account";
+import { fashionStoreWishlistBehaviorContract } from "./contracts/pages/wishlist";
 
 const named = (state: NamedStateContract, fidelityState?: string): ThemeBehaviorEvidenceState => ({
   ...(fidelityState ? { fidelityState } : {}),
@@ -514,19 +517,25 @@ export const fashionStoreFidelityStatesByRegion = fidelityStatesByRegionFromBeha
 
 export {
   fashionStoreCartBehaviorContract,
+  fashionStoreCollectionBehaviorContract,
   fashionStoreCheckoutBehaviorContract,
+  fashionStoreAccountBehaviorContract,
   fashionStoreProductBehaviorContract,
   fashionStoreShopLeftBehaviorContract,
   fashionStoreShopNoneBehaviorContract,
   fashionStoreShopRightBehaviorContract,
+  fashionStoreWishlistBehaviorContract,
 };
 
 export const fashionStorePageBehaviorContracts = [
   fashionStoreBehaviorContract,
   fashionStoreCartBehaviorContract,
+  fashionStoreCollectionBehaviorContract,
   fashionStoreCheckoutBehaviorContract,
+  fashionStoreAccountBehaviorContract,
   fashionStoreProductBehaviorContract,
   fashionStoreShopLeftBehaviorContract,
   fashionStoreShopNoneBehaviorContract,
   fashionStoreShopRightBehaviorContract,
+  fashionStoreWishlistBehaviorContract,
 ] as const;

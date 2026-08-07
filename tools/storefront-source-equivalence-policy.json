@@ -41,7 +41,18 @@
         "browserProject": "fashion-store-desktop"
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "collection", "product", "cart", "checkout"],
+      "equivalenceScope": [
+        "home",
+        "shop-left",
+        "shop-none",
+        "shop-right",
+        "collection",
+        "product",
+        "cart",
+        "checkout",
+        "wishlist",
+        "account"
+      ],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
       "pages": [
@@ -242,6 +253,44 @@
           "sourceEntrySha256": "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b",
           "sourceRegionsExport": "fashionStoreCheckoutSourceRegions",
           "sourceRuntimeReadySelector": ".your-order-box"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreWishlistBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/wishlist.ts",
+          "focusedStates": [{ "id": "wishlist-first-product-actions", "modes": ["interaction"] }],
+          "id": "wishlist",
+          "implementationRoute": "/wishlist",
+          "implementationRuntimeReadySelector": "[data-fashion-store-wishlist][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": ["productCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/wishlist.ts",
+          "sourceEntry": "demo-fashion-store-wishlist.html",
+          "sourceEntrySha256": "b1531a70ce47ae1f79da4026ad918b8796582c4fdb1b2e852454b5306a3e13fc",
+          "sourceRegionsExport": "fashionStoreWishlistSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .shop-modern"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreAccountBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/account.ts",
+          "focusedStates": [{ "id": "account-forms-ready", "modes": ["static"] }],
+          "id": "account",
+          "implementationRoute": "/account",
+          "implementationRuntimeReadySelector": "[data-fashion-store-account][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": ["formCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/account.ts",
+          "sourceEntry": "demo-fashion-store-account.html",
+          "sourceEntrySha256": "1b7c1cc83c0f224f8f95dec2ded2246a9ebcc52a7011acd3d5afcfdd4248da62",
+          "sourceRegionsExport": "fashionStoreAccountSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .row"
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"

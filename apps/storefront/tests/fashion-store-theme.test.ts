@@ -46,6 +46,7 @@ describe("Fashion Store preview registration", () => {
       "product",
       "cart",
       "checkout",
+      "content",
     ]);
     expect(source).toContain('from "../themes/fashion-store/registry"');
     expect(source).not.toContain("themes/fashion/registry");

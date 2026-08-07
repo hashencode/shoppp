@@ -12,6 +12,8 @@ import { fashionStoreProductBehaviorContract } from "../../app/themes/fashion-st
 import { fashionStoreCartBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/cart";
 import { fashionStoreCheckoutBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/checkout";
 import { fashionStoreCollectionBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/collection";
+import { fashionStoreAccountBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/account";
+import { fashionStoreWishlistBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/wishlist";
 import {
   fidelityStatesByRegionFromBehaviorContract,
   type ThemeBehaviorContract,
@@ -292,7 +294,12 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     regions: [
       region("header", "section", "header", "header"),
       region("breadcrumb", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
-      region("helper-controls", "control", "section:nth-of-type(2) .row:first-child", ".fashion-checkout-helpers"),
+      region(
+        "helper-controls",
+        "control",
+        "section:nth-of-type(2) .row:first-child",
+        ".fashion-checkout-helpers",
+      ),
       region(
         "billing",
         "section",
@@ -320,6 +327,53 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath: "/demo-fashion-store-checkout.html",
     viewports: themeViewportIds,
   },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-wishlist",
+    implementationPath: "/wishlist",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "products",
+        "section",
+        "section:nth-of-type(2) .shop-modern",
+        ".fashion-wishlist-grid",
+        shopStates(fashionStoreWishlistBehaviorContract, "products"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-wishlist.html",
+    viewports: themeViewportIds,
+  },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-account",
+    implementationPath: "/account",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "login",
+        "section",
+        "section:nth-of-type(2) .contact-form-style-04",
+        ".contact-form-style-04",
+        shopStates(fashionStoreAccountBehaviorContract, "login"),
+      ),
+      region(
+        "register",
+        "section",
+        "section:nth-of-type(2) .box-shadow-extra-large",
+        ".fashion-account-register-panel",
+        shopStates(fashionStoreAccountBehaviorContract, "register"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-account.html",
+    viewports: themeViewportIds,
+  },
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -334,12 +388,14 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
   },
   ...[
     fashionStoreCartBehaviorContract,
+    fashionStoreAccountBehaviorContract,
     fashionStoreCheckoutBehaviorContract,
     fashionStoreCollectionBehaviorContract,
     fashionStoreProductBehaviorContract,
     fashionStoreShopLeftBehaviorContract,
     fashionStoreShopNoneBehaviorContract,
     fashionStoreShopRightBehaviorContract,
+    fashionStoreWishlistBehaviorContract,
   ].map((contract) => ({
     contract,
     fidelityStatesByRegion: fidelityStatesByRegionFromBehaviorContract(contract),

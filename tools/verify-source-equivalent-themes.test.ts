@@ -56,6 +56,8 @@ describe("source-equivalent theme policy", () => {
         "product",
         "cart",
         "checkout",
+        "wishlist",
+        "account",
       ],
       pages: [
         {
@@ -106,6 +108,18 @@ describe("source-equivalent theme policy", () => {
           pageType: "checkout",
           sourceEntry: "demo-fashion-store-checkout.html",
         },
+        {
+          id: "wishlist",
+          implementationRoute: "/wishlist",
+          pageType: "content",
+          sourceEntry: "demo-fashion-store-wishlist.html",
+        },
+        {
+          id: "account",
+          implementationRoute: "/account",
+          pageType: "content",
+          sourceEntry: "demo-fashion-store-account.html",
+        },
       ],
     });
     expect(policy.waivers).toEqual([]);
@@ -148,6 +162,8 @@ describe("source-equivalent theme policy", () => {
       "product",
       "cart",
       "checkout",
+      "wishlist",
+      "account",
       "synthetic-shop",
     ]);
     expect(
@@ -173,6 +189,8 @@ describe("source-equivalent theme policy", () => {
       },
       { implementationRoute: "/cart", sourceEntry: "demo-fashion-store-cart.html" },
       { implementationRoute: "/checkout", sourceEntry: "demo-fashion-store-checkout.html" },
+      { implementationRoute: "/wishlist", sourceEntry: "demo-fashion-store-wishlist.html" },
+      { implementationRoute: "/account", sourceEntry: "demo-fashion-store-account.html" },
       { implementationRoute: "/synthetic-shop", sourceEntry: "demo-fashion-store-shop.html" },
     ]);
   });

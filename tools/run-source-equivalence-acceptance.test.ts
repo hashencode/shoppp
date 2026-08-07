@@ -40,6 +40,8 @@ describe("source-equivalence acceptance orchestration", () => {
       "product",
       "cart",
       "checkout",
+      "wishlist",
+      "account",
     ]);
     expect(theme.steps.map(({ label }) => label)).toEqual([
       "fashion-store/home/page",
@@ -50,6 +52,8 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/product/page",
       "fashion-store/cart/page",
       "fashion-store/checkout/page",
+      "fashion-store/wishlist/page",
+      "fashion-store/account/page",
     ]);
   });
 
@@ -88,6 +92,8 @@ describe("source-equivalence acceptance orchestration", () => {
       "product",
       "cart",
       "checkout",
+      "wishlist",
+      "account",
       "synthetic",
     ]);
     expect(allPages.steps.map(({ label }) => label)).toEqual([
@@ -99,6 +105,8 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/product/page",
       "fashion-store/cart/page",
       "fashion-store/checkout/page",
+      "fashion-store/wishlist/page",
+      "fashion-store/account/page",
       "fashion-store/synthetic/page",
     ]);
   });
@@ -115,6 +123,7 @@ describe("source-equivalence acceptance orchestration", () => {
         "fashion-store-product.spec.ts",
         "fashion-store-cart.spec.ts",
         "fashion-store-checkout.spec.ts",
+        "fashion-store-content.spec.ts",
         "theme-behavior-contract.spec.ts",
       ].map((file) => readFile(resolve(import.meta.dir, "../apps/storefront/e2e", file), "utf8")),
     );
@@ -145,6 +154,8 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/product/page",
       "fashion-store/cart/page",
       "fashion-store/checkout/page",
+      "fashion-store/wishlist/page",
+      "fashion-store/account/page",
       "fidelity-evidence",
     ]);
   });
