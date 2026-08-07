@@ -418,7 +418,7 @@ Decor then exercises the same engine with a materially different composition ins
   - `tools/deploy-workflow.test.ts`
   - `tools/release-validate.ts`
   - `docs/architecture/storefront-theme-platform.md`
-  - `docs/runbooks/storefront-preview.md`
+  - `docs/runbooks/source-equivalent-html-acceptance-evidence.md`
   - `package.json`
 - **Approach:** Extend selected-theme scans to cover image and font assets, run both full theme builds plus production fallback, retain secondary-route regression coverage, document that reference fidelity currently applies only to home, and record user-approved comparison evidence in the release handoff.
 - **Patterns to follow:** Existing release-validation gates, selected-theme bundle scan, immutable preview report, and production-fallback verification.

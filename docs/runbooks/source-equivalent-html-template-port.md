@@ -21,8 +21,19 @@ Never use an existing approximation or a screenshot as the implementation baseli
 
 The port must continue to use the Theme Engine, manifest, preset, namespaced registry, fixtures,
 Nuxt routes, and theme asset resolver. A normal theme must not change the renderer. Do not ship
-upstream global styles, unreviewed runtime, demo handlers, remote fonts, placeholder media, or
-substitute assets. Reimplement observable behavior with scoped Vue state and semantic controls.
+unreviewed upstream global styles or runtime, demo handlers, remote fonts, placeholder media, or
+substitute assets.
+
+Choose and record one implementation strategy for each source capability:
+
+- preserve the complete, reviewed, hash-pinned source capability inside the selected-theme
+  isolation boundary; or
+- rebuild its observable state transitions with scoped framework code and semantic controls.
+
+Do not silently mix fragments of the two strategies. A capability includes its source DOM, default
+CSS state, initializer, generated classes/DOM, inline geometry, responsive branches, and teardown.
+Keeping a hiding rule such as `cursor: none` while omitting the runtime-created replacement is a
+failed capability, not an acceptable partial port.
 
 Declare the equivalence scope before work begins. A page is either:
 
@@ -41,11 +52,27 @@ Record the source identity and revision, entry documents, allowed page types, fo
 canonical viewports, interaction states, thresholds, and any known intentional difference. Name a
 single theme as the active implementation unit; complete it before starting another.
 
+Separate the work into explicit milestones: source-equivalent reconstruction, platform integration,
+repository stabilization, theme promotion, and legacy-theme cleanup. Do not make deletion or
+promotion a hidden consequence of completing the reconstruction.
+
+Set the default visible-content difference budget to zero. Any new, removed, or rewritten visible
+copy or control requires a source citation or a pre-approved waiver. Typed application intents and
+accessibility improvements do not automatically authorize new visible UI.
+
+Set an authored-override budget before implementation. Every non-source CSS rule must be classified
+as framework integration, documented accessibility adaptation, or approved source deviation.
+Unclassified visual rules fail immediately; crossing the agreed rule/byte review threshold requires
+human approval so the port cannot silently turn into another handwritten theme.
+
 Exit evidence:
 
 - immutable source identity and ownership approval;
 - explicit source-equivalent page list;
 - implementation and acceptance routes;
+- implementation strategy and owner for every runtime-bearing capability;
+- zero unapproved visible-content differences;
+- authored-override classification and review threshold recorded;
 - no unresolved scope decision.
 
 ### Gate 1: Executable original
@@ -53,6 +80,11 @@ Exit evidence:
 Serve the complete upstream package root from one stable origin. Confirm all local dependencies,
 images, fonts, and initialization files load. Wait for `document.fonts.ready`, decoded images, and
 lazy content before measuring. Provide a deterministic seam to pause or seek autoplay and motion.
+
+Operate the original page, not only its HTML. Exercise every link, button, pointer cursor, hover-only
+container, dropdown, overlay, carousel, marquee, sticky control, progress indicator, timer, resize
+branch, and scroll action. Read the relevant source JavaScript as a behavioral specification even
+when it will not execute in the application.
 
 Exit evidence:
 
@@ -62,7 +94,14 @@ Exit evidence:
 
 ### Gate 2: Source inventory and contract
 
-Walk the original document in order. For every visible region record:
+Walk the original document in order. Keep three explicit contracts rather than one undifferentiated
+inventory:
+
+- **structural parity:** DOM, content, assets, styles, breakpoints, and initial geometry;
+- **behavioral parity:** user-visible state transitions and runtime dependencies; and
+- **absence parity:** source-visible content that may not be silently added, removed, or rewritten.
+
+For every visible region record:
 
 - HTML range and contributing selector families;
 - exact copy, counts, link intent, and control semantics;
@@ -73,13 +112,33 @@ Walk the original document in order. For every visible region record:
 - pointer, keyboard, touch, focus, dismissal, disabled, and reduced-motion behavior;
 - motion direction, easing, duration, delay, loop, autoplay, pause, midpoint, exit, and interruption.
 
-Store this in `source-contract.ts`. Fixtures and preset order must derive from the contract, not
-from an older implementation.
+For every actionable or stateful element, add a behavior-ledger row:
+
+| Field              | Required value                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| Source selector    | Exact element or selector family                                                            |
+| Role               | Navigation, external link, form, overlay trigger, state control, carousel, or scroll action |
+| Triggers           | Load, timer, hover, focus, click, keyboard, touch, resize, or scroll                        |
+| Initial state      | Classes, attributes, computed visibility, and geometry                                      |
+| Capability chain   | DOM, CSS, initializer, generated state/geometry, fallback, and teardown                     |
+| Observable outcome | Open, close, move, focus, visibility, or navigation result                                  |
+| Branches           | Breakpoint, pointer/touch, keyboard, and reduced-motion behavior                            |
+| Owner              | Preserved source runtime, framework adapter, approved adaptation, or explicit deferral      |
+| Evidence           | Focused outcome assertion and named-state/temporal capture                                  |
+
+Every row must be classified as `reproduced`, `approved adaptation`, or `explicitly deferred`.
+Store structure and content in `source-contract.ts`; keep behavioral rows in a dedicated contract
+when that makes completeness easier to verify. Fixtures, preset order, named states, and browser
+tests must derive from these contracts, not from an older implementation or the implementation
+under test.
 
 Exit evidence:
 
 - every visible region and state is named;
 - every string, link, asset, font role, and breakpoint is represented;
+- every source behavior has an owner, fallback, and outcome-based test;
+- the behavior ledger and fidelity matrix contain the same declared states;
+- source-only, implementation-only, and changed visible text all fail without a current waiver;
 - source-contract tests fail against an incomplete implementation.
 
 ### Gate 3: Asset and font provenance
@@ -101,6 +160,14 @@ Before production implementation, introduce a controlled fixture mismatch and sh
 contract, geometry, or pixel gate rejects it. A harness that only proves elements exist, images
 decode, or the page has no overflow is insufficient.
 
+Also prove that the harness rejects:
+
+- an implementation-only visible sentence or control;
+- a control present in the DOM but hidden by missing runtime state;
+- an initialized carousel whose visible card count or width is wrong;
+- a timer-driven surface whose index or transform does not change; and
+- a state declared in the behavior ledger but absent from the fidelity matrix.
+
 The harness must capture structured DOM inventory, visible copy, links, image properties,
 computed styles, text metrics, geometry, motion state, route scroll state, console errors, failed
 requests, screenshots, heatmaps, and ranked diagnostic crops.
@@ -109,6 +176,8 @@ Exit evidence:
 
 - a known geometry or style defect fails for the expected selector/property;
 - an over-threshold synthetic image change fails and retains diff evidence;
+- known absence-parity and behavioral defects fail on their observable outcome;
+- test-only CSS does not hide or disable the capability in its own acceptance capture;
 - stale or mismatched capture identity is rejected.
 
 ### Gate 5: Shared application foundations
@@ -120,6 +189,10 @@ the theme.
 
 New routes start at the top, browser history restores saved positions, and hash navigation waits
 for rendered targets.
+
+Classify each anchor before framework routing takes ownership. Search triggers, dropdown controls,
+back-to-top links, and other state controllers must not be converted into navigation merely because
+the source used an `<a>` element.
 
 Exit evidence:
 
@@ -141,6 +214,15 @@ Use intrinsic control sizing and flexible parents. Do not hide font or wrapping 
 widths. Do not replace hover with click, a track with `v-show`, or a plugin timeline with a final
 static frame. Every actionable-looking control must work for its declared inputs.
 
+Implement each behavior-ledger row as a complete capability. A library global, initializer call,
+item count, or generated class is diagnostic evidence only; completion requires the expected user-
+visible result. Use capability-specific ready/failure states instead of one global runtime-ready
+flag that can mask partial initialization.
+
+Do not add source-absent visible success, failure, loading, empty-state, or accessibility copy.
+Prefer semantic markup and non-visual ARIA where it preserves the source. Register and approve any
+necessary visible deviation before implementing it.
+
 Exit evidence:
 
 - regional contract and visual gates pass at each viewport and DPR;
@@ -160,7 +242,20 @@ Exit evidence:
 
 ### Gate 8: Incremental acceptance
 
-Run validation in three levels:
+Run acceptance in five modes:
+
+1. **Static visual:** freeze motion only for geometry, typography, and pixel comparison.
+2. **Temporal:** run real autoplay and continuous motion; sample visible index/transform/position
+   before and after elapsed time and across the loop boundary.
+3. **Interaction:** exercise hover, focus, click, Escape, outside click, keyboard, and touch.
+4. **Scroll/fixed:** keep sticky rails and progress controls visible; verify thresholds, progress,
+   fixed geometry, and back-to-top without route changes.
+5. **Fallback:** cover no-JS, individual capability failure, reduced motion, and remount cleanup.
+
+Static visual stabilization must not count as evidence that motion exists. Test-only CSS must not
+hide a component in the only mode responsible for validating that component.
+
+Within each mode, run validation at three levels:
 
 1. Failed region/state only: source contract, focused browser assertion, computed style, geometry,
    and diagnostic crop.
@@ -171,6 +266,9 @@ Run validation in three levels:
 
 Do not rerun an already passing full matrix for every local correction. Re-run it once after all
 failed regions pass.
+
+Before accepting the matrix, automatically compare it with the behavior ledger. Missing tests,
+captures, selectors, or states fail; “not represented in the matrix” is not a valid pass condition.
 
 ### Gate 9: Live review and handoff
 
@@ -184,6 +282,22 @@ Missing, duplicate, unknown, self-relaxed, or wrong-source identities fail evide
 
 Approval never follows from a low full-page ratio alone. A missing menu or incorrect route remains
 a failure even when aggregate pixels are under budget.
+
+Do checklist-driven side-by-side review during implementation, not only at handoff:
+
+1. header, hero, and one representative product card;
+2. the first carousel and first time-based animation;
+3. the full desktop page, including edge rails and scroll controls; and
+4. mobile plus hover/focus/scroll/timer/remount states.
+
+Any issue found by human review must first add or correct a contract row and regression test, then
+receive the implementation fix. This prevents the same category from reappearing elsewhere.
+
+After handoff, record the number of behaviors added after intake, defects that escaped automation,
+visible-content exceptions, and time spent maintaining the ledger. Review these signals after the
+next port; reduce or automate ledger detail if a smaller source-derived capability inventory proves
+equally effective. The ledger is a selected countermeasure whose value must be measured, not a
+ceremonial document.
 
 ## Standard acceptance policy
 
@@ -214,6 +328,10 @@ A waiver must be narrow and machine-readable. It requires:
 Waivers cannot cover missing content, inert controls, substitute assets, wrong navigation, broken
 responsive states, failed runtime diagnostics, or unexplained layout drift. Expired, unused,
 unknown, or target-mismatched waivers fail `verify:source-equivalence`.
+
+Visible-content waivers must additionally record the exact source text, implementation text,
+reason the source cannot be preserved, and explicit human approval. Framework conventions alone
+are not sufficient justification.
 
 ## Resource and analysis policy
 
@@ -247,6 +365,27 @@ Verify policy, harness self-tests, waiver registration, and matrix contracts:
 bun run verify:source-equivalence
 ```
 
+Use the policy-driven acceptance runner for iteration. A focused run intentionally reports that
+final evidence is still outstanding:
+
+```sh
+bun run accept:source-equivalence -- \
+  --scope focused --theme fashion-store --state search-open --mode interaction
+
+bun run accept:source-equivalence -- --scope page --theme fashion-store
+
+bun run accept:source-equivalence -- \
+  --scope repository --evidence=<report-directory> --commit=<exact-commit-sha>
+```
+
+`focused` runs one policy-declared browser state, `page` runs the current page contract, and
+`repository` runs deterministic source-equivalence checks, the existing theme matrix, and
+commit-bound fidelity evidence validation. It refuses to report completion without both
+`--evidence` and `--commit`.
+Use `--dry-run` to inspect commands and outstanding evidence without launching a browser. The
+machine-readable page routing lives in `tools/storefront-source-equivalence-policy.json`; do not
+add theme conditionals to the orchestration script.
+
 Verify retained reports before handoff:
 
 ```sh
@@ -259,15 +398,20 @@ bun tools/verify-source-equivalent-themes.ts \
 Then run the standard theme and repository gates described in
 `docs/runbooks/storefront-theme-onboarding.md`.
 
+Evidence modes, artifact identity, failure triage, model routing, and the post-port metrics template
+are defined in [Source-equivalence acceptance evidence](source-equivalent-html-acceptance-evidence.md).
+
 ## Handoff checklist
 
 - Equivalence scope and source revision are explicit.
 - Source contract covers every visible region, state, breakpoint, link, asset, and motion branch.
+- Behavior ledger covers every actionable/stateful source element and matches the acceptance matrix.
 - Asset provenance and local font inspection pass.
 - Controlled harness mismatches fail as expected.
-- Focused, page, and final matrices pass in that order.
+- Static, temporal, interaction, scroll/fixed, and fallback modes pass at focused, page, and final levels.
 - All actionable controls work with declared pointer/keyboard/touch behavior.
 - Route destinations and scroll lifecycle pass.
+- There is no unapproved implementation-only visible text or control.
 - No prohibited runtime, remote font, placeholder, or inactive-theme asset ships.
 - Evidence matches the reviewed commit and uses distinct source/implementation origins.
 - Intentional differences have current, approved, used waivers.
