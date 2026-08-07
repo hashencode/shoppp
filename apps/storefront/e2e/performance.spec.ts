@@ -27,14 +27,11 @@ const thresholds = {
 } as const;
 const routeThresholds = (route: string) => ({
   ...thresholds,
-  // Fashion 2 intentionally preserves the source package's audited low-contrast labels and
+  // Fashion Store intentionally preserves the source package's audited low-contrast labels and
   // secondary copy. Its dedicated Axe gate enforces every serious rule and a narrow list of
-  // source-exact contrast exceptions without lowering the current Fashion/Decor threshold.
-  accessibility: theme === "fashion-2" ? 0.85 : thresholds.accessibility,
-  // The source Decor Revolution hero scores 0.54 on the same cold mobile profile.
-  // Preserve its source-timed layered entrance while requiring the Vue port to stay
-  // materially above that baseline. Secondary Decor routes retain a stricter 0.85 floor.
-  performance: theme === "decor" ? (route === "/" ? 0.75 : 0.85) : thresholds.performance,
+  // source-exact contrast exceptions.
+  accessibility: theme === "fashion-store" ? 0.85 : thresholds.accessibility,
+  performance: thresholds.performance,
   // Private previews and production transaction shells are intentionally noindex, which
   // Lighthouse reports as an SEO deduction. verify-static.ts separately enforces their
   // canonical metadata, meaningful HTML, noindex tags, and sitemap exclusion.

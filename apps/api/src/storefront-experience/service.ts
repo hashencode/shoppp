@@ -19,15 +19,9 @@ import {
 } from "@shoppp/domain";
 import type { Context } from "hono";
 
-import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
-import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
-import { fashion2Manifest } from "../../../storefront/app/themes/fashion-2/manifest";
-import { fashion2Preset } from "../../../storefront/app/themes/fashion-2/presets/source-parity";
-import { fashionManifest } from "../../../storefront/app/themes/fashion/manifest";
-import { fashionPreset } from "../../../storefront/app/themes/fashion/presets/editorial";
-import decorFixture from "../../../storefront/fixtures/experience/decor.json";
-import fashion2Fixture from "../../../storefront/fixtures/experience/fashion-2.json";
-import fashionFixture from "../../../storefront/fixtures/experience/fashion.json";
+import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
+import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
+import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
@@ -117,14 +111,10 @@ interface SnapshotRow {
 
 const PLATFORM_CONTRACT_VERSION = "1.0.0";
 const defaultPackages = [
-  themePackageSchema.parse({ manifest: decorManifest, presets: [decorPreset] }),
-  themePackageSchema.parse({ manifest: fashionManifest, presets: [fashionPreset] }),
-  themePackageSchema.parse({ manifest: fashion2Manifest, presets: [fashion2Preset] }),
+  themePackageSchema.parse({ manifest: fashionStoreManifest, presets: [fashionStorePreset] }),
 ] as const;
 const fixtureBindingsByThemeId = {
-  decor: decorFixture.bindings,
-  fashion: fashionFixture.bindings,
-  "fashion-2": fashion2Fixture.bindings,
+  "fashion-store": fashionStoreFixture.bindings,
 } as const;
 
 function packages(options?: StorefrontExperienceServiceOptions): readonly ThemePackage[] {

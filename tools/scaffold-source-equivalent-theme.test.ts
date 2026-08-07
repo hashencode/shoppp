@@ -26,6 +26,9 @@ describe("source-equivalent theme scaffold", () => {
 
     expect([...files.keys()].sort()).toEqual([
       "UPSTREAM.md",
+      "acceptance-adapter.ts",
+      "behavior-contract.test.ts",
+      "behavior-contract.ts",
       "components/AtelierFooter.vue",
       "components/AtelierHeader.vue",
       "components/AtelierHero.vue",
@@ -36,11 +39,18 @@ describe("source-equivalent theme scaffold", () => {
       "resources.ts",
       "source-contract.test.ts",
       "source-contract.ts",
+      "source-equivalence-policy.fragment.json",
       "source-equivalence-waivers.json",
       "tokens.css",
     ]);
     expect(files.get("source-contract.ts")).toContain('html: "demo-atelier-store.html"');
     expect(files.get("source-contract.ts")).toContain("interactionStates");
+    expect(files.get("behavior-contract.ts")).toContain("behaviors: []");
+    expect(files.get("behavior-contract.test.ts")).toContain("assertThemeBehaviorContractComplete");
+    expect(files.get("acceptance-adapter.ts")).toContain("shared behavior probes");
+    expect(files.get("source-equivalence-policy.fragment.json")).toContain(
+      '"behaviorContractExport": "atelierBehaviorContract"',
+    );
     expect(files.get("source-contract.ts")).toContain("responsiveStates");
     expect(files.get("source-contract.test.ts")).toContain(".assets.length");
     expect(files.get("source-contract.test.ts")).toContain(".computedStyles.length");
@@ -95,7 +105,7 @@ describe("source-equivalent theme scaffold", () => {
       sourceIdentity: "atelier-template-v1",
       themeId: "atelier",
     };
-    expect(await writeSourceEquivalentThemeScaffold(options)).toHaveLength(13);
+    expect(await writeSourceEquivalentThemeScaffold(options)).toHaveLength(17);
     expect(await readFile(join(destinationRoot, "atelier/source-contract.ts"), "utf8")).toContain(
       "SOURCE_INTAKE_REQUIRED",
     );

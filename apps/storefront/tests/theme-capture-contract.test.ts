@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 
 import {
   captureGeometryIssues,
+  captureCssForMode,
+  captureModePreservesTarget,
   deterministicCaptureCss,
-  fashion2ComparisonDescriptor,
+  fashionStoreComparisonDescriptor,
   initialCarouselSelectors,
   resolveThemeComparison,
 } from "../e2e/support/theme-capture-contract";
@@ -17,27 +19,35 @@ describe("theme capture contract", () => {
     expect(deterministicCaptureCss).toContain(".decor-sticky-actions");
   });
 
+  test("preserves the capability under acceptance in temporal and scroll/fixed modes", () => {
+    expect(captureCssForMode("temporal")).not.toContain("animation-duration: 0s !important");
+    expect(captureCssForMode("scroll-fixed")).not.toContain(
+      ".scroll-progress, .sticky-wrap, .decor-scroll-progress { display: none !important; }",
+    );
+    expect(captureCssForMode("static")).toContain("animation-duration: 0s !important");
+    expect(captureModePreservesTarget("static", ".scroll-progress")).toBe(false);
+    expect(captureModePreservesTarget("scroll-fixed", ".scroll-progress")).toBe(true);
+  });
+
   test("names every autoplay carousel that must return to its initial index", () => {
     expect(initialCarouselSelectors).toEqual({
-      decor: [".decor-hero", ".decor-collection"],
-      fashion: [".fashion-hero", ".fashion-collection-rail"],
-      "fashion-2": [".swiper.full-screen"],
+      "fashion-store": [".swiper.full-screen"],
     });
   });
 
-  test("describes Fashion source and Fashion 2 implementation as distinct evidence roots", () => {
-    expect(resolveThemeComparison("fashion", "fashion-2")).toBe(fashion2ComparisonDescriptor);
-    expect(fashion2ComparisonDescriptor).toMatchObject({
+  test("describes Fashion source and Fashion Store implementation as distinct evidence roots", () => {
+    expect(resolveThemeComparison("fashion", "fashion-store")).toBe(fashionStoreComparisonDescriptor);
+    expect(fashionStoreComparisonDescriptor).toMatchObject({
       artifactRoots: {
-        implementation: "implementation/fashion-2",
+        implementation: "implementation/fashion-store",
         reference: "reference/fashion",
       },
       densities: [1, 2],
-      implementationThemeId: "fashion-2",
+      implementationThemeId: "fashion-store",
       referenceEntry: "demo-fashion-store.html",
       referenceThemeId: "fashion",
     });
-    expect(() => resolveThemeComparison("fashion-2", "fashion-2")).toThrow("implementation-only");
+    expect(() => resolveThemeComparison("fashion-store", "fashion-store")).toThrow("implementation-only");
   });
 
   test("checks every bounding-box edge in the correct coordinate space", () => {

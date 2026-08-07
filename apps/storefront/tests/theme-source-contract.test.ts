@@ -59,7 +59,7 @@ function snapshot(): SourceContractSnapshot {
 }
 
 describe("source-contract comparison", () => {
-  test("retains targeted evidence for controlled Fashion 2 copy, count, icon, asset, and geometry defects", () => {
+  test("retains targeted evidence for controlled Fashion Store copy, count, icon, asset, and geometry defects", () => {
     const reference = snapshot();
     reference.probes[0]!.elements[0]!.pseudoStyles!.before.content = '"\\e8e1"';
     const implementation = structuredClone(reference);

@@ -1,7 +1,8 @@
 import { themeViewports } from "./theme-viewports";
+import type { NamedStateContract, ThemeAcceptanceMode } from "./theme-behavior-contract";
 
-export type CaptureThemeId = "decor" | "fashion";
-export type ImplementationCaptureThemeId = CaptureThemeId | "fashion-2";
+export type CaptureThemeId = "fashion";
+export type ImplementationCaptureThemeId = "fashion-store";
 
 export interface ThemeComparisonDescriptor {
   artifactRoots: {
@@ -19,15 +20,15 @@ export interface ThemeComparisonDescriptor {
   viewports: typeof themeViewports;
 }
 
-export const fashion2ComparisonDescriptor = {
+export const fashionStoreComparisonDescriptor = {
   artifactRoots: {
-    implementation: "implementation/fashion-2",
+    implementation: "implementation/fashion-store",
     reference: "reference/fashion",
   },
   densities: [1, 2],
-  id: "fashion-to-fashion-2",
+  id: "fashion-to-fashion-store",
   implementationPath: "/",
-  implementationThemeId: "fashion-2",
+  implementationThemeId: "fashion-store",
   namedStates: [
     "initial-home",
     "navigation-open",
@@ -63,11 +64,11 @@ export function resolveThemeComparison(
   referenceThemeId: string,
   implementationThemeId: string,
 ): ThemeComparisonDescriptor {
-  if (referenceThemeId === "fashion-2") {
-    throw new Error("fashion-2 is implementation-only and has no source entry filename.");
+  if (referenceThemeId === "fashion-store") {
+    throw new Error("fashion-store is implementation-only and has no source entry filename.");
   }
-  if (referenceThemeId === "fashion" && implementationThemeId === "fashion-2") {
-    return fashion2ComparisonDescriptor;
+  if (referenceThemeId === "fashion" && implementationThemeId === "fashion-store") {
+    return fashionStoreComparisonDescriptor;
   }
   throw new Error(`Unsupported theme comparison: ${referenceThemeId} -> ${implementationThemeId}.`);
 }
@@ -110,7 +111,22 @@ export function captureGeometryIssues(
   );
 }
 
-export const deterministicCaptureCss = `
+const captureBaseCss = `
+  *, *::before, *::after {
+    caret-color: transparent !important;
+  }
+  [data-anime], [data-anime] > *, .appear, .anime-complete, [data-source-reveal] {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  #cookies-model, .cookie-message, .fashion-cookie-message, .decor-cookie-message,
+  .theme-demos, .all-demo, .buy-theme, .mfp-wrap, .mfp-bg,
+  .fashion-skip-link, .decor-sticky-actions {
+    display: none !important;
+  }
+`;
+
+const frozenCaptureCss = `
   *, *::before, *::after {
     animation-delay: 0s !important;
     animation-duration: 0s !important;
@@ -123,15 +139,47 @@ export const deterministicCaptureCss = `
     transform: none !important;
     visibility: visible !important;
   }
-  #cookies-model, .cookie-message, .fashion-cookie-message, .decor-cookie-message, .scroll-progress,
-  .theme-demos, .all-demo, .buy-theme, .mfp-wrap, .mfp-bg,
-  .fashion-skip-link, .decor-sticky-actions, .decor-scroll-progress {
-    display: none !important;
-  }
 `;
 
+const staticOnlyChromeCss = `
+  .scroll-progress, .sticky-wrap, .decor-scroll-progress { display: none !important; }
+`;
+
+export function captureCssForMode(mode: ThemeAcceptanceMode): string {
+  if (mode === "temporal") return captureBaseCss;
+  if (mode === "interaction" || mode === "scroll-fixed")
+    return `${captureBaseCss}\n${frozenCaptureCss}`;
+  return `${captureBaseCss}\n${frozenCaptureCss}\n${staticOnlyChromeCss}`;
+}
+
+export function captureModePreservesTarget(mode: ThemeAcceptanceMode, selector: string): boolean {
+  if (mode !== "static" && mode !== "fallback") return true;
+  return !/[.]?(scroll-progress|sticky-wrap|decor-scroll-progress)/.test(selector);
+}
+
+export function captureModeForNamedState(state: NamedStateContract): ThemeAcceptanceMode {
+  if (state.id === "footer-sticky") return "scroll-fixed";
+  if (
+    [
+      "cart",
+      "collection-hover",
+      "navigation",
+      "pause",
+      "product-focus",
+      "product-hover",
+      "search",
+    ].includes(state.action.kind)
+  )
+    return "interaction";
+  return "static";
+}
+
+export function captureModeForRegion(regionId: string): ThemeAcceptanceMode {
+  return regionId === "sticky" || regionId === "scroll-progress" ? "scroll-fixed" : "static";
+}
+
+export const deterministicCaptureCss = captureCssForMode("static");
+
 export const initialCarouselSelectors = {
-  decor: [".decor-hero", ".decor-collection"],
-  fashion: [".fashion-hero", ".fashion-collection-rail"],
-  "fashion-2": [".swiper.full-screen"],
+  "fashion-store": [".swiper.full-screen"],
 } as const satisfies Record<ImplementationCaptureThemeId, readonly string[]>;

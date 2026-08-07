@@ -81,14 +81,14 @@ async function fixture(): Promise<{
   return { destinationRoot, manifest, manifestPath, root, source };
 }
 
-async function fashion2Fixture(): Promise<{
+async function fashionStoreFixture(): Promise<{
   destinationRoot: string;
   manifest: StorefrontThemeSourceManifest;
   manifestPath: string;
   root: string;
   source: string;
 }> {
-  const root = await mkdtemp(join(tmpdir(), "shoppp-fashion-2-import-"));
+  const root = await mkdtemp(join(tmpdir(), "shoppp-fashion-store-import-"));
   temporaryRoots.push(root);
   const source = join(root, "source");
   const destinationRoot = join(root, "themes");
@@ -107,7 +107,7 @@ async function fashion2Fixture(): Promise<{
     writeFixture(source, "images/hero.png", png),
     writeFixture(source, "js/vendors.min.js", runtime),
   ]);
-  const license = "Authorized Fashion 2 test source";
+  const license = "Authorized Fashion Store test source";
   const allowlist = [
     ["demo-fashion-store.html", "markup", html],
     ["css/theme.css", "stylesheet", css],
@@ -130,10 +130,10 @@ async function fashion2Fixture(): Promise<{
         closedSourceDirectories: ["demos/fashion-store"],
         importedAt: null,
         importedFiles: [],
-        ownershipApproval: "Fixture owner approved Fashion 2 source reuse.",
+        ownershipApproval: "Fixture owner approved Fashion Store source reuse.",
         sourceIdentity: "local://fixture/demo-fashion-store.html",
-        sourceRevision: "fixture-fashion-2-revision-1",
-        themeId: "fashion-2",
+        sourceRevision: "fixture-fashion-store-revision-1",
+        themeId: "fashion-store",
       },
     ],
   } as StorefrontThemeSourceManifest;
@@ -351,9 +351,9 @@ describe("importStorefrontTheme", () => {
   });
 });
 
-describe("Fashion 2 source implementation import", () => {
+describe("Fashion Store source implementation import", () => {
   test("verifies pinned hashes and preserves the source-relative tree", async () => {
-    const value = await fashion2Fixture();
+    const value = await fashionStoreFixture();
 
     const imported = await importStorefrontTheme({
       destinationRoot: value.destinationRoot,
@@ -361,20 +361,20 @@ describe("Fashion 2 source implementation import", () => {
       manifest: value.manifest,
       manifestPath: value.manifestPath,
       source: value.source,
-      themeId: "fashion-2",
+      themeId: "fashion-store",
     });
 
     expect(imported.themes[0]?.importedFiles).toHaveLength(6);
     expect(
-      await readFile(join(value.destinationRoot, "fashion-2/upstream/css/theme.css"), "utf8"),
+      await readFile(join(value.destinationRoot, "fashion-store/upstream/css/theme.css"), "utf8"),
     ).toContain("../fonts/exact.woff2");
-    expect(await readFile(join(value.destinationRoot, "fashion-2/UPSTREAM.md"), "utf8")).toMatch(
-      /hash-pinned|main\.js|visual runtime/i,
-    );
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/UPSTREAM.md"), "utf8"),
+    ).toMatch(/hash-pinned|main\.js|visual runtime/i);
   });
 
   test("copies a hash-pinned local font supplement when the package references a remote font", async () => {
-    const value = await fashion2Fixture();
+    const value = await fashionStoreFixture();
     const font = new Uint8Array([0x77, 0x4f, 0x46, 0x32, 0x01]);
     await writeFixture(value.root, "repository/fonts/remote-source.woff2", font);
     value.manifest.themes[0]!.allowlist.push({
@@ -393,16 +393,18 @@ describe("Fashion 2 source implementation import", () => {
       manifestPath: value.manifestPath,
       repositoryRoot: join(value.root, "repository"),
       source: value.source,
-      themeId: "fashion-2",
+      themeId: "fashion-store",
     });
 
     expect(
-      await readFile(join(value.destinationRoot, "fashion-2/upstream/fonts/remote-source.woff2")),
+      await readFile(
+        join(value.destinationRoot, "fashion-store/upstream/fonts/remote-source.woff2"),
+      ),
     ).toEqual(Buffer.from(font));
   });
 
   test("fails before copying on a changed hash, missing dependency, or symlink", async () => {
-    const changed = await fashion2Fixture();
+    const changed = await fashionStoreFixture();
     await writeFixture(changed.source, "css/theme.css", ".changed{}\n");
     await expect(
       importStorefrontTheme({
@@ -411,11 +413,11 @@ describe("Fashion 2 source implementation import", () => {
         manifest: changed.manifest,
         manifestPath: changed.manifestPath,
         source: changed.source,
-        themeId: "fashion-2",
+        themeId: "fashion-store",
       }),
     ).rejects.toThrow(/hash/i);
 
-    const missing = await fashion2Fixture();
+    const missing = await fashionStoreFixture();
     await rm(join(missing.source, "images/hero.png"));
     await expect(
       importStorefrontTheme({
@@ -424,11 +426,11 @@ describe("Fashion 2 source implementation import", () => {
         manifest: missing.manifest,
         manifestPath: missing.manifestPath,
         source: missing.source,
-        themeId: "fashion-2",
+        themeId: "fashion-store",
       }),
     ).rejects.toThrow(/missing/i);
 
-    const linked = await fashion2Fixture();
+    const linked = await fashionStoreFixture();
     await rm(join(linked.source, "images/hero.png"));
     await writeFixture(linked.root, "outside.png", png);
     await symlink(join(linked.root, "outside.png"), join(linked.source, "images/hero.png"));
@@ -439,13 +441,13 @@ describe("Fashion 2 source implementation import", () => {
         manifest: linked.manifest,
         manifestPath: linked.manifestPath,
         source: linked.source,
-        themeId: "fashion-2",
+        themeId: "fashion-store",
       }),
     ).rejects.toThrow(/symlink/i);
   });
 
   test("rejects unsafe declarations, unresolved CSS URLs, and closed-scope additions", async () => {
-    const unsafe = await fashion2Fixture();
+    const unsafe = await fashionStoreFixture();
     unsafe.manifest.themes[0]!.allowlist[0]!.sourcePath = "../escape.html";
     await expect(
       importStorefrontTheme({
@@ -454,11 +456,11 @@ describe("Fashion 2 source implementation import", () => {
         manifest: unsafe.manifest,
         manifestPath: unsafe.manifestPath,
         source: unsafe.source,
-        themeId: "fashion-2",
+        themeId: "fashion-store",
       }),
     ).rejects.toThrow(/unsafe/i);
 
-    const unresolved = await fashion2Fixture();
+    const unresolved = await fashionStoreFixture();
     const css = '.hero{background:url("../images/missing.png")}\n';
     await writeFixture(unresolved.source, "css/theme.css", css);
     unresolved.manifest.themes[0]!.allowlist[1]!.expectedSha256 = sha256(css);
@@ -469,11 +471,11 @@ describe("Fashion 2 source implementation import", () => {
         manifest: unresolved.manifest,
         manifestPath: unresolved.manifestPath,
         source: unresolved.source,
-        themeId: "fashion-2",
+        themeId: "fashion-store",
       }),
     ).rejects.toThrow(/CSS.*missing|missing.*CSS/i);
 
-    const addition = await fashion2Fixture();
+    const addition = await fashionStoreFixture();
     await writeFixture(addition.source, "demos/fashion-store/unlisted.js", "alert(1)\n");
     await expect(
       importStorefrontTheme({
@@ -482,7 +484,7 @@ describe("Fashion 2 source implementation import", () => {
         manifest: addition.manifest,
         manifestPath: addition.manifestPath,
         source: addition.source,
-        themeId: "fashion-2",
+        themeId: "fashion-store",
       }),
     ).rejects.toThrow(/unlisted|executable/i);
   });

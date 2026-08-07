@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 3200px;
+        font: 16px sans-serif;
+      }
+      .hero {
+        cursor: auto;
+        height: 160px;
+        background: #eee;
+      }
+      [data-defect="cursor-hidden"] .hero {
+        cursor: none;
+      }
+      .collection {
+        overflow: hidden;
+        width: 900px;
+      }
+      .collection .swiper-wrapper {
+        display: flex;
+        gap: 12px;
+        transition: transform 20ms linear;
+      }
+      .collection .swiper-slide {
+        flex: 0 0 280px;
+        height: 100px;
+        background: #ddd;
+      }
+      [data-defect="collection-full-width"] .collection .swiper-slide {
+        flex-basis: 900px;
+      }
+      .marquee {
+        width: 600px;
+        overflow: hidden;
+      }
+      .marquee-track {
+        display: flex;
+        width: 1200px;
+        animation: travel 400ms linear infinite;
+      }
+      [data-defect="static-marquee"] .marquee-track {
+        animation: none;
+      }
+      @keyframes travel {
+        to {
+          transform: translateX(-200px);
+        }
+      }
+      .search-panel,
+      .cart-panel {
+        display: none;
+      }
+      .search-panel.open {
+        display: block;
+      }
+      .cart:hover .cart-panel,
+      .cart:focus-within .cart-panel {
+        display: block;
+      }
+      [data-defect="inert-cart"] .cart:hover .cart-panel,
+      [data-defect="inert-cart"] .cart:focus-within .cart-panel {
+        display: none;
+      }
+      .social {
+        position: fixed;
+        left: 10px;
+        top: 45%;
+      }
+      [data-defect="hidden-social"] .social {
+        display: none;
+      }
+      .scroll-progress {
+        position: fixed;
+        right: 10px;
+        top: 45%;
+        width: 20px;
+        height: 100px;
+      }
+      .scroll-point {
+        display: block;
+        width: 4px;
+        height: 0;
+        background: black;
+      }
+    </style>
+  </head>
+  <body data-defect="__DEFECT__">
+    <section class="hero">Hero</section>
+    <button class="search-trigger" type="button">Search</button>
+    <div class="search-panel"><input class="search-input" aria-label="Search" /></div>
+    <div class="cart" tabindex="0">
+      Cart
+      <div class="cart-panel">Ribbed tank Pleated dress</div>
+    </div>
+    <section class="collection swiper" data-collection-index="0">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide">Ethnic wear</div>
+        <div class="swiper-slide">Casual wear</div>
+        <div class="swiper-slide">Office wear</div>
+      </div>
+    </section>
+    <section class="marquee">
+      <div class="marquee-track">
+        Get 20% off for your first order — The fashion core collection
+      </div>
+    </section>
+    <nav class="social">Facebook Dribbble Twitter Instagram</nav>
+    <div class="scroll-progress">
+      <span class="scroll-point"></span><button class="scroll-top" type="button">Top</button>
+    </div>
+    <p class="unexpected-copy" hidden>Product added to the preview cart.</p>
+    <script>
+      (() => {
+        const defect = document.body.dataset.defect;
+        const searchTrigger = document.querySelector(".search-trigger");
+        const searchPanel = document.querySelector(".search-panel");
+        const searchInput = document.querySelector(".search-input");
+        if (defect !== "inert-search")
+          searchTrigger.addEventListener("click", () => {
+            searchPanel.classList.add("open");
+            searchInput.focus();
+          });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            searchPanel.classList.remove("open");
+            searchTrigger.focus();
+          }
+        });
+        const collection = document.querySelector(".collection");
+        const advanceCollection = () => {
+          const index = Number(collection.dataset.collectionIndex) + 1;
+          collection.dataset.collectionIndex = String(index);
+          collection.querySelector(".swiper-wrapper").style.transform =
+            `translateX(${-index * 24}px)`;
+        };
+        if (defect !== "static-collection" && defect !== "autoplay-only-collection")
+          collection.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowRight") advanceCollection();
+          });
+        if (defect !== "static-collection")
+          setInterval(() => {
+            if (!collection.matches(":hover")) advanceCollection();
+          }, 120);
+        const progress = document.querySelector(".scroll-point");
+        if (defect !== "inert-progress")
+          addEventListener("scroll", () => {
+            progress.style.height = `${Math.min(100, scrollY / 20)}px`;
+          });
+        document.querySelector(".scroll-top").addEventListener("click", () => scrollTo(0, 0));
+        if (defect === "extra-copy") document.querySelector(".unexpected-copy").hidden = false;
+      })();
+    </script>
+  </body>
+</html>

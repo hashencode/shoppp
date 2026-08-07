@@ -16,7 +16,11 @@ import {
   type SourceContractProbe,
   type SourceContractSnapshot,
 } from "../apps/storefront/e2e/support/theme-source-contract";
-import { deterministicCaptureCss } from "../apps/storefront/e2e/support/theme-capture-contract";
+import {
+  captureCssForMode,
+  captureModePreservesTarget,
+} from "../apps/storefront/e2e/support/theme-capture-contract";
+import type { ThemeAcceptanceMode } from "../apps/storefront/e2e/support/theme-behavior-contract";
 import {
   assertThemeScreenshotDifference,
   compareThemeScreenshots,
@@ -95,8 +99,9 @@ function url(base: string, path: string): string {
   return new URL(path.replace(/^\//, ""), base.endsWith("/") ? base : `${base}/`).href;
 }
 
-async function stabilize(page: Page): Promise<void> {
-  await page.addStyleTag({ content: deterministicCaptureCss });
+async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
+  const captureCss = captureCssForMode(mode);
+  await page.addStyleTag({ content: captureCss });
   await page.addStyleTag({
     content: ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; }",
   });
@@ -112,13 +117,13 @@ async function stabilize(page: Page): Promise<void> {
     scrollTo(0, 0);
   });
   await page.waitForTimeout(100);
-  await page.addStyleTag({ content: deterministicCaptureCss });
-  await page.evaluate(() => {
+  await page.addStyleTag({ content: captureCss });
+  await page.evaluate((preserveMotion) => {
     document
       .querySelectorAll<HTMLElement>("[data-anime], .appear, .anime-complete, [data-source-reveal]")
       .forEach((element) => {
         element.style.setProperty("opacity", "1", "important");
-        element.style.setProperty("transform", "none", "important");
+        if (!preserveMotion) element.style.setProperty("transform", "none", "important");
         element.style.setProperty("visibility", "visible", "important");
       });
     dispatchEvent(new Event("resize"));
@@ -137,7 +142,7 @@ async function stabilize(page: Page): Promise<void> {
         isotopeGrid.isotope?.("layout");
       });
     scrollTo(0, 0);
-  });
+  }, mode === "temporal");
   await page.waitForTimeout(100);
 }
 
@@ -907,6 +912,7 @@ function compareImageDiagnostics(
 }
 
 export async function captureThemeRouteRegion(options: {
+  captureMode?: ThemeAcceptanceMode;
   commit: string;
   density: FidelityDensity;
   implementationOrigin: string;
@@ -924,6 +930,14 @@ export async function captureThemeRouteRegion(options: {
     throw new Error(`${options.routeId} does not declare viewport ${options.viewportId}.`);
   if (!route.densities.includes(options.density))
     throw new Error(`${options.routeId} does not declare DPR ${options.density}.`);
+  const captureMode = options.captureMode ?? "static";
+  if (
+    !captureModePreservesTarget(captureMode, region.sourceSelector) ||
+    !captureModePreservesTarget(captureMode, region.implementationSelector)
+  )
+    throw new Error(
+      `${options.routeId}/${options.regionId}: ${captureMode} capture CSS hides the target control.`,
+    );
 
   const viewport = fidelityMatrixViewports[options.viewportId];
   const outputRoot = resolve(
@@ -951,7 +965,7 @@ export async function captureThemeRouteRegion(options: {
     );
     const context = await browser.newContext({
       deviceScaleFactor: options.density,
-      reducedMotion: "reduce",
+      reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
       viewport,
     });
     const source = await context.newPage();
@@ -976,7 +990,7 @@ export async function captureThemeRouteRegion(options: {
         }),
       ]);
       await hydrateSourcePlaceholderImages(source);
-      await Promise.all([stabilize(source), stabilize(implementation)]);
+      await Promise.all([stabilize(source, captureMode), stabilize(implementation, captureMode)]);
       source.on("pageerror", (error) => runtimeErrors.push(`source page error: ${error.message}`));
       source.on("console", (message) => {
         if (message.type() === "error")
@@ -1273,6 +1287,7 @@ export async function captureThemeRouteRegion(options: {
           {
             capturedAt: new Date().toISOString(),
             captureBounds,
+            captureMode,
             commit: options.commit,
             contract: { implementation: implementationContract, reference: referenceContract },
             density: options.density,
@@ -1315,6 +1330,7 @@ if (import.meta.main) {
   const implementationOrigin = argumentValue(arguments_, "--implementation-origin");
   const outputRoot = argumentValue(arguments_, "--output");
   const commit = argumentValue(arguments_, "--commit");
+  const captureMode = (argumentValue(arguments_, "--mode") ?? "static") as ThemeAcceptanceMode;
   if (
     !routeId ||
     !regionId ||
@@ -1329,6 +1345,7 @@ if (import.meta.main) {
     );
   await captureThemeRouteRegion({
     commit,
+    captureMode,
     density,
     implementationOrigin,
     outputRoot,

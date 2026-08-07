@@ -1,0 +1,369 @@
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("./upstream/fonts/figtree-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./upstream/fonts/outfit-latin.woff2") format("woff2");
+}
+
+/* Nuxt owns navigation and preview actions while preserving Crafto's visible controls. */
+.fashion-store-home {
+  color: var(--medium-gray);
+  font-family: var(--primary-font);
+  font-size: 17px;
+  line-height: 32px;
+}
+
+.fashion-store-home .fashion-store-source-action {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+.fashion-store-home .shop-hover button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+}
+
+.fashion-store-home button:focus-visible,
+.fashion-store-home a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.fashion-store-home .navbar {
+  line-height: 32px;
+  padding: 0;
+}
+
+.fashion-store-home .container,
+.fashion-store-home .container-fluid,
+.fashion-store-home .container-lg,
+.fashion-store-home .container-md,
+.fashion-store-home .container-sm,
+.fashion-store-home .container-xl,
+.fashion-store-home .container-xxl {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+.fashion-store-home .row {
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+.fashion-store-home .row > * {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+/* Preserve Crafto's breakpoint-specific navigation gutters after the scoped
+   Bootstrap gutter normalization above. */
+.fashion-store-home .header-with-topbar .navbar > .container-fluid {
+  padding-right: 45px;
+  padding-left: 45px;
+}
+
+.fashion-store-home .header-cart > .fashion-store-source-action {
+  position: relative;
+  padding-left: 14px;
+  color: var(--dark-gray);
+  font-size: 17px;
+}
+
+@media (min-width: 992px) {
+  .fashion-store-home .header-with-topbar .navbar {
+    top: 40px !important;
+  }
+
+  .fashion-store-home .swiper.top-space-margin {
+    height: calc(100vh - 118px) !important;
+    margin-top: 118px;
+  }
+}
+
+.fashion-store-home a,
+.fashion-store-home button {
+  cursor: pointer;
+}
+
+/* The source template replaces the pointer with a JS-driven magic cursor. The
+   integration intentionally keeps the platform cursor, including over the hero. */
+.fashion-store-home .swiper.full-screen {
+  cursor: auto;
+}
+
+.fashion-store-home .fashion-store-hero-slide:not([data-active="true"]) {
+  display: none;
+}
+
+.fashion-store-home .fashion-store-product-slice {
+  padding-top: 90px;
+  padding-bottom: 90px;
+}
+
+.fashion-store-home .fashion-store-product-slice .shop-wrapper {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 217.672px;
+  margin: 0 auto;
+  position: relative;
+  top: -0.3125px;
+  left: 0.640625px;
+}
+
+.fashion-store-home .fashion-store-product-slice .shop-wrapper .grid-item {
+  width: 100% !important;
+}
+
+.fashion-store-home .fashion-store-product-slice .shop-image img {
+  width: 100%;
+}
+
+/* Isotope uses these same column widths after hydration; CSS owns the usable no-JS baseline. */
+.fashion-store-home section:nth-of-type(4) .shop-wrapper,
+.fashion-store-home section:nth-of-type(8) .shop-wrapper,
+.fashion-store-home section:nth-of-type(10) .blog-wrapper {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fashion-store-home section:nth-of-type(4) .grid-sizer,
+.fashion-store-home section:nth-of-type(8) .grid-sizer,
+.fashion-store-home section:nth-of-type(10) .grid-sizer {
+  display: none;
+}
+
+.fashion-store-home section:nth-of-type(4) .grid-item,
+.fashion-store-home section:nth-of-type(8) .grid-item,
+.fashion-store-home section:nth-of-type(10) .grid-item {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  width: 100% !important;
+}
+
+.fashion-store-home section:nth-of-type(10) .blog-wrapper {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fashion-store-home .slider-three-slide .fashion-store-collection-track {
+  display: flex;
+  gap: 30px;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.fashion-store-home .slider-three-slide .fashion-store-collection-track > .swiper-slide {
+  flex: 0 0 calc((100% - 90px) / 4);
+  width: calc((100% - 90px) / 4) !important;
+}
+
+.fashion-store-home .scroll-progress .scroll-top {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.fashion-store-home .scroll-progress .scroll-point {
+  height: calc(var(--fashion-store-scroll-progress, 0) * 100%);
+}
+
+/* Keep the source marquee moving even when the optional vendor runtime is not
+   available (for example, during Vite development). Two identical runs make
+   the -50% reset visually seamless. */
+.fashion-store-home .swiper-width-auto {
+  overflow: hidden;
+}
+
+.fashion-store-home .swiper-width-auto .marquee-slide {
+  display: flex;
+  width: max-content;
+  max-width: none;
+  animation: fashion-store-marquee 24s linear infinite;
+  transition: none !important;
+}
+
+.fashion-store-home .swiper-width-auto .marquee-slide .swiper-slide {
+  flex: 0 0 auto;
+  width: auto !important;
+}
+
+@keyframes fashion-store-marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (max-width: 1199px) {
+  .fashion-store-home .header-with-topbar .navbar > .container-fluid {
+    padding-right: 35px;
+    padding-left: 35px;
+  }
+
+  .fashion-store-home section:nth-of-type(4) .shop-wrapper {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .fashion-store-home section:nth-of-type(8) .shop-wrapper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fashion-store-home section:nth-of-type(10) .blog-wrapper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fashion-store-home .slider-three-slide .fashion-store-collection-track > .swiper-slide {
+    flex-basis: calc((100% - 60px) / 3);
+    width: calc((100% - 60px) / 3) !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .fashion-store-home footer {
+    margin-top: -0.203125px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .fashion-store-home .header-with-topbar .navbar {
+    padding-right: 15px;
+    padding-left: 15px;
+    top: 41px !important;
+  }
+
+  .fashion-store-home .swiper.top-space-margin {
+    margin-top: 119px;
+  }
+
+  .fashion-store-home section:nth-of-type(4) {
+    margin-bottom: -0.1875px;
+  }
+
+  .fashion-store-home section:nth-of-type(6) {
+    margin-bottom: 0.015625px;
+  }
+
+  .fashion-store-home section:nth-of-type(8) {
+    margin-bottom: -0.09375px;
+  }
+
+  .fashion-store-home footer {
+    margin-top: 0.015625px;
+  }
+}
+
+@media (max-width: 991px) {
+  .fashion-store-home .header-with-topbar .navbar > .container-fluid {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .fashion-store-home section:nth-of-type(4) .shop-wrapper,
+  .fashion-store-home section:nth-of-type(8) .shop-wrapper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fashion-store-home section:nth-of-type(10) .blog-wrapper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .fashion-store-home .slider-three-slide {
+    top: -0.046875px;
+  }
+
+  .fashion-store-home footer {
+    margin-top: -0.109375px;
+  }
+}
+
+@media (max-width: 767px) {
+  .fashion-store-home section:nth-of-type(4) .shop-wrapper,
+  .fashion-store-home section:nth-of-type(8) .shop-wrapper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fashion-store-home .slider-three-slide .fashion-store-collection-track > .swiper-slide {
+    flex-basis: calc((100% - 30px) / 2);
+    width: calc((100% - 30px) / 2) !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .fashion-store-home section:nth-of-type(4) .shop-wrapper,
+  .fashion-store-home section:nth-of-type(8) .shop-wrapper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fashion-store-home section:nth-of-type(10) .blog-wrapper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fashion-store-home .slider-three-slide .fashion-store-collection-track > .swiper-slide {
+    flex-basis: 100%;
+    width: 100% !important;
+  }
+}
+
+.fashion-store-home .btn.btn-large {
+  padding: 15px 30px;
+  font-family: var(--alt-font);
+  font-size: 18px;
+}
+
+@media (max-width: 767px) {
+  .fashion-store-home .fashion-store-product-slice {
+    padding-top: 55px;
+    padding-bottom: 55px;
+  }
+
+  .fashion-store-home .fashion-store-product-slice .shop-wrapper {
+    width: 100%;
+    max-width: 360px;
+    top: 0;
+    left: 0;
+  }
+
+  .fashion-store-home .header-with-topbar .navbar {
+    top: 0 !important;
+  }
+
+  .fashion-store-home .swiper.top-space-margin {
+    margin-top: 79px;
+  }
+
+  .fashion-store-home .btn.btn-large {
+    padding: 13px 25px;
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fashion-store-home .swiper-width-auto .marquee-slide {
+    animation: none;
+    transform: none !important;
+  }
+
+  .fashion-store-home *,
+  .fashion-store-home *::before,
+  .fashion-store-home *::after {
+    animation-duration: 0s !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+  }
+}

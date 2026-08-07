@@ -192,7 +192,7 @@ let buildStatus: 'building' | 'deployed' = 'building'
 const validValidation = {
   createdAt: '2026-07-30T00:10:00.000Z',
   draftVersion: 2,
-  id: 'validation-fashion-2',
+  id: 'validation-fashion-store',
   issues: [],
   status: 'valid' as const,
   validatedBy: 'theme-admin',
@@ -205,7 +205,7 @@ const previewSnapshot = {
   createdAt: '2026-07-30T00:11:00.000Z',
   createdBy: 'theme-admin',
   experienceId: 'storefront-fashion',
-  id: 'snapshot-preview-fashion-2',
+  id: 'snapshot-preview-fashion-store',
   kind: 'preview' as const,
   sourceDraftId: baseDraft.id,
   sourceDraftVersion: 2,
@@ -295,7 +295,7 @@ const server = setupServer(
         ...previewSnapshot,
         approvedAt: '2026-07-30T00:15:00.000Z',
         approvedBy: 'theme-admin',
-        id: 'snapshot-approved-fashion-2',
+        id: 'snapshot-approved-fashion-store',
         kind: 'approved',
       },
     })
@@ -685,7 +685,7 @@ describe('ThemeEditorPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Approve exact draft v1' }))
 
-    await waitFor(() => expect(screen.getByText(/snapshot-approved-fashion-2/)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/snapshot-approved-fashion-store/)).toBeTruthy())
     expect(approvalBody).toMatchObject({
       confirm: true,
       expectedVersion: 1,

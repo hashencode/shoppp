@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { PreviewIntentRecorder, previewActionSchema } from "../app/theme-engine/actions";
 
 describe("theme preview actions", () => {
-  test("records Fashion 2 commerce affordances through the typed boundary", () => {
+  test("records Fashion Store commerce affordances through the typed boundary", () => {
     const recorder = new PreviewIntentRecorder();
     const actions = [
       {
@@ -18,7 +18,7 @@ describe("theme preview actions", () => {
       },
     ] as const;
 
-    for (const action of actions) recorder.record(previewActionSchema.parse(action), "fashion-2");
+    for (const action of actions) recorder.record(previewActionSchema.parse(action), "fashion-store");
 
     expect(recorder.all().map(({ intent }) => intent)).toEqual([
       "wishlist.toggle-preview",

@@ -102,6 +102,7 @@ export async function captureThemeEvidence(
     `${JSON.stringify(
       {
         capturedAt: new Date().toISOString(),
+        captureMode: "static",
         commit: process.env.THEME_FIDELITY_COMMIT ?? "uncommitted",
         state: "initial-home",
         themeId,
@@ -127,7 +128,7 @@ async function resetInitialCarousels(
   page: Page,
   themeId: ImplementationCaptureThemeId,
 ): Promise<void> {
-  if (themeId === "fashion" || themeId === "fashion-2") {
+  if (themeId === "fashion" || themeId === "fashion-store") {
     const firstSlide = page.getByRole("button", { name: "Show slide 1" });
     await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
     await expect(page.locator(initialCarouselSelectors[themeId][0])).toHaveAttribute(

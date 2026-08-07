@@ -3,10 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import {
-  decorNamedStates,
-  fashion2NamedStates,
-} from "../apps/storefront/e2e/support/theme-named-state-contract";
+import { fashionStoreNamedStates } from "../apps/storefront/e2e/support/theme-named-state-contract";
 import {
   loadSourceEquivalencePolicy,
   validateImportedSourceTree,
@@ -14,18 +11,44 @@ import {
   validateSourceEquivalencePolicy,
   type SourceEquivalencePolicy,
 } from "./verify-source-equivalent-themes";
+import {
+  captureModeForNamedState,
+  captureModeForRegion,
+} from "../apps/storefront/e2e/support/theme-capture-contract";
+import {
+  fidelityMatrixViewports,
+  themeFidelityMatrix,
+} from "../apps/storefront/e2e/support/theme-fidelity-matrix";
+import { createThemeBehaviorDescriptor } from "../apps/storefront/e2e/support/theme-behavior-descriptor";
+import { fashionStoreBehaviorContract } from "../apps/storefront/app/themes/fashion-store/behavior-contract";
+import { fashionStoreAcceptanceAdapters } from "../apps/storefront/app/themes/fashion-store/acceptance-adapter";
+import { fashionStoreSourceRegions } from "../apps/storefront/app/themes/fashion-store/source-contract";
 
 const root = resolve(import.meta.dir, "..");
+const behaviorDescriptors = new Map([
+  [
+    "fashion-store",
+    createThemeBehaviorDescriptor({
+      adapters: fashionStoreAcceptanceAdapters,
+      contract: fashionStoreBehaviorContract,
+      sourceRegions: fashionStoreSourceRegions.map((region) => ({
+        id: region.key,
+        selector: "inventorySelector" in region ? region.inventorySelector : region.selector,
+      })),
+    }),
+  ],
+]);
 
 describe("source-equivalent theme policy", () => {
   test("accepts the repository policy and its explicit intentional-difference waivers", async () => {
     const policy = await loadSourceEquivalencePolicy(root);
-    expect(() => validateSourceEquivalencePolicy(policy, root)).not.toThrow();
-    expect(policy.themes.map(({ id }) => id)).toEqual(["decor", "fashion", "fashion-2"]);
-    expect(policy.waivers.map(({ id }) => id)).toEqual([
-      "decor-home-journal-accessible-contrast",
-      "decor-home-services-accessible-contrast",
-    ]);
+    await expect(validateSourceEquivalencePolicy(policy, root)).resolves.toBeUndefined();
+    expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
+    expect(policy.themes[0]).toMatchObject({
+      authorizedSourceRoot: "templates/Crafto - The Multipurpose HTML5 Template/html",
+      sourceEntry: "demo-fashion-store.html",
+    });
+    expect(policy.waivers).toEqual([]);
   });
 
   test("rejects permissive thresholds, excess workers, and unapproved waivers", async () => {
@@ -33,16 +56,25 @@ describe("source-equivalent theme policy", () => {
     const permissive = structuredClone(policy);
     permissive.thresholds.fullPageChangedPixelRatio = 0.02;
     permissive.resources.maxConcurrentBrowserWorkers = 3;
-    permissive.waivers[0]!.approvedBy = "";
+    permissive.waivers.push({
+      approvedBy: "",
+      expiresAt: "2026-08-07",
+      id: "unapproved-waiver",
+      owner: "storefront",
+      rationale: "Test fixture",
+      regionId: "home",
+      routeId: "fashion-store-home",
+      themeId: "fashion-store",
+    });
 
-    expect(() => validateSourceEquivalencePolicy(permissive, root)).toThrow(
+    await expect(validateSourceEquivalencePolicy(permissive, root)).rejects.toThrow(
       /full-page pixel threshold|concurrent browser workers|approvedBy/,
     );
 
     const nonsensical = structuredClone(policy);
     nonsensical.thresholds.channelTolerance = -1;
     nonsensical.resources.maxConcurrentBrowserWorkers = 0;
-    expect(() => validateSourceEquivalencePolicy(nonsensical, root)).toThrow(
+    await expect(validateSourceEquivalencePolicy(nonsensical, root)).rejects.toThrow(
       /channel tolerance|concurrent browser workers/,
     );
   });
@@ -53,7 +85,7 @@ describe("source-equivalent theme policy", () => {
     invalid.themes[0]!.id = "Decor Store";
     invalid.themes[0]!.requiredContractFacets = ["sources", "not-present"];
 
-    expect(() => validateSourceEquivalencePolicy(invalid, root)).toThrow(
+    await expect(validateSourceEquivalencePolicy(invalid, root)).rejects.toThrow(
       /lowercase theme ID|required contract facet/,
     );
   });
@@ -70,7 +102,7 @@ describe("source-equivalent theme policy", () => {
       policy.themes[0]!.sourceContractPath = contractPath;
       policy.themes[0]!.requiredContractFacets = ["sources", "phantom"];
 
-      expect(() => validateSourceEquivalencePolicy(policy, root)).toThrow(
+      await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
         /missing required contract facet phantom/,
       );
     } finally {
@@ -82,24 +114,34 @@ describe("source-equivalent theme policy", () => {
     const policy = await loadSourceEquivalencePolicy(root);
     policy.requiredEvidence = policy.requiredEvidence.filter((facet) => facet !== "motionStates");
 
-    expect(() => validateSourceEquivalencePolicy(policy, root)).toThrow(
+    await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
       /required evidence dimensions/,
+    );
+  });
+
+  test("rejects implementation-owned or digest-mismatched reference sources", async () => {
+    const policy = await loadSourceEquivalencePolicy(root);
+    policy.themes[0]!.authorizedSourceRoot = "apps/storefront/app/themes/fashion-store/upstream";
+    policy.themes[0]!.sourceEntrySha256 = "0".repeat(64);
+
+    await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
+      /independent of implementation inputs|digest does not match policy/,
     );
   });
 });
 
-describe("Fashion 2 imported source tree", () => {
+describe("Fashion Store imported source tree", () => {
   test("accepts exact manifest-bound files and rejects later drift", async () => {
-    const temporaryRoot = await mkdtemp(resolve(tmpdir(), "shoppp-fashion-2-source-"));
+    const temporaryRoot = await mkdtemp(resolve(tmpdir(), "shoppp-fashion-store-source-"));
     const contents = ".fashion{}\n";
     const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
     const sourcePath = resolve(
       temporaryRoot,
-      "apps/storefront/app/themes/fashion-2/upstream/demos/fashion-store/fashion-store.css",
+      "apps/storefront/app/themes/fashion-store/upstream/demos/fashion-store/fashion-store.css",
     );
     const provenancePath = resolve(
       temporaryRoot,
-      "apps/storefront/app/themes/fashion-2/UPSTREAM.md",
+      "apps/storefront/app/themes/fashion-store/UPSTREAM.md",
     );
     const manifestPath = resolve(temporaryRoot, "tools/storefront-theme-source-manifest.json");
     await mkdir(resolve(sourcePath, ".."), { recursive: true });
@@ -107,7 +149,7 @@ describe("Fashion 2 imported source tree", () => {
     await writeFile(sourcePath, contents);
     await writeFile(
       provenancePath,
-      `# Fashion 2\n\nlocal://fixture/demo-fashion-store.html\n${digest}\njs/main.js is a behavioral reference.\n`,
+      `# Fashion Store\n\nlocal://fixture/demo-fashion-store.html\n${digest}\njs/main.js is a behavioral reference.\n`,
     );
     await writeFile(
       manifestPath,
@@ -140,7 +182,7 @@ describe("Fashion 2 imported source tree", () => {
               ownershipApproval: "Fixture owner approved source reuse.",
               sourceIdentity: "local://fixture/demo-fashion-store.html",
               sourceRevision: "fixture-1",
-              themeId: "fashion-2",
+              themeId: "fashion-store",
             },
           ],
         },
@@ -161,6 +203,7 @@ describe("Fashion 2 imported source tree", () => {
 
 describe("fidelity evidence freshness", () => {
   const validRecord = {
+    captureMode: "static",
     capturedAt: "2026-08-05T00:00:00.000Z",
     commit: "abcdef1",
     density: 1,
@@ -168,17 +211,24 @@ describe("fidelity evidence freshness", () => {
     failures: [],
     implementationUrl: "http://127.0.0.1:3433/",
     region: { id: "header", maxChangedPixelRatio: 0.005 },
-    route: "fashion-home",
+    route: "fashion-store-home",
     sourceUrl: "http://127.0.0.1:4321/demo-fashion-store.html",
     viewport: { height: 1000, id: "desktop", width: 1440 },
   };
-  const validRegionalRecords = [
-    { height: 1000, id: "desktop", width: 1440 },
-    { height: 900, id: "laptop", width: 1024 },
-    { height: 1024, id: "tablet", width: 768 },
-    { height: 844, id: "mobile", width: 390 },
-  ].flatMap((viewport) =>
-    ([1, 2] as const).map((density) => ({ ...validRecord, density, viewport })),
+  const validRegionalRecords = themeFidelityMatrix.flatMap((route) =>
+    route.regions.flatMap((region) =>
+      route.viewports.flatMap((viewportId) =>
+        route.densities.map((density) => ({
+          ...validRecord,
+          captureMode: captureModeForRegion(region.id),
+          density,
+          region: { id: region.id, maxChangedPixelRatio: region.maxChangedPixelRatio },
+          route: route.id,
+          sourceUrl: `http://127.0.0.1:4321${route.sourcePath}`,
+          viewport: { id: viewportId, ...fidelityMatrixViewports[viewportId] },
+        })),
+      ),
+    ),
   );
   const namedStateViewports = ["desktop", "laptop", "tablet", "mobile"] as const;
   const namedStateGeometry = {
@@ -190,17 +240,18 @@ describe("fidelity evidence freshness", () => {
     commit: "abcdef1",
     failures: [],
     implementationUrl: "http://127.0.0.1:3434/",
-    results: decorNamedStates.flatMap(({ id: state }) =>
+    results: fashionStoreNamedStates.flatMap((stateContract) =>
       namedStateViewports.map((viewport) => ({
+        captureMode: captureModeForNamedState(stateContract),
         difference: { changedPixelRatio: 0, dimensionsMatch: true },
         geometry: namedStateGeometry,
-        state,
+        state: stateContract.id,
         viewport,
       })),
     ),
-    sourceUrl: "http://127.0.0.1:4321/demo-decor-store.html",
-    state: "decor-named-states",
-    themeId: "decor",
+    sourceUrl: "http://127.0.0.1:4321/demo-fashion-store.html",
+    state: "fashion-store-named-states",
+    themeId: "fashion-store",
     viewports: {
       desktop: { height: 1000, width: 1440 },
       laptop: { height: 900, width: 1024 },
@@ -264,34 +315,18 @@ describe("fidelity evidence freshness", () => {
     ).toThrow(/source URL does not match/);
   });
 
-  test("accepts a commit-bound named-state aggregate report", () => {
+  test("requires regional evidence alongside a commit-bound named-state aggregate report", () => {
     expect(() =>
       validateFidelityEvidenceRecords([validNamedStateRecord], {
+        behaviorDescriptors,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
-    ).not.toThrow();
-  });
-
-  test("accepts Fashion 2 named-state evidence against the Fashion source identity", () => {
-    const record = {
-      ...validNamedStateRecord,
-      implementationUrl: "http://127.0.0.1:3435/",
-      results: fashion2NamedStates.flatMap(({ id: state }) =>
-        namedStateViewports.map((viewport) => ({
-          difference: { changedPixelRatio: 0, dimensionsMatch: true },
-          geometry: namedStateGeometry,
-          state,
-          viewport,
-        })),
-      ),
-      sourceUrl: "http://127.0.0.1:4321/demo-fashion-store.html",
-      state: "fashion-2-named-states",
-      themeId: "fashion-2",
-    };
+    ).toThrow(/regional capture set is incomplete/);
 
     expect(() =>
-      validateFidelityEvidenceRecords([record], {
+      validateFidelityEvidenceRecords([...validRegionalRecords, validNamedStateRecord], {
+        behaviorDescriptors,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -307,7 +342,11 @@ describe("fidelity evidence freshness", () => {
             results: validNamedStateRecord.results.slice(0, -1),
           },
         ],
-        { commit: "abcdef1", now: new Date("2026-08-05T12:00:00.000Z") },
+        {
+          behaviorDescriptors,
+          commit: "abcdef1",
+          now: new Date("2026-08-05T12:00:00.000Z"),
+        },
       ),
     ).toThrow(/named-state matrix is incomplete/);
   });
@@ -319,10 +358,26 @@ describe("fidelity evidence freshness", () => {
 
     expect(() =>
       validateFidelityEvidenceRecords([invalid], {
+        behaviorDescriptors,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
     ).toThrow(/absent from the named-state contract|geometry evidence is missing/);
+  });
+
+  test("rejects evidence captured in the wrong acceptance mode", () => {
+    const invalid = structuredClone(validNamedStateRecord);
+    const search = invalid.results.find(({ state }) => state === "search-open");
+    expect(search).toBeDefined();
+    search!.captureMode = "static";
+
+    expect(() =>
+      validateFidelityEvidenceRecords([invalid], {
+        behaviorDescriptors,
+        commit: "abcdef1",
+        now: new Date("2026-08-05T12:00:00.000Z"),
+      }),
+    ).toThrow(/capture mode/);
   });
 
   test("honors stricter policy thresholds and rejects invalid evidence time windows", () => {
@@ -336,6 +391,7 @@ describe("fidelity evidence freshness", () => {
 
     expect(() =>
       validateFidelityEvidenceRecords([record], {
+        behaviorDescriptors,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
         thresholds: { geometryEdgePx: 1, namedStateChangedPixelRatio: 0.003 },
@@ -343,6 +399,7 @@ describe("fidelity evidence freshness", () => {
     ).toThrow(/named-state pixel threshold/);
     expect(() =>
       validateFidelityEvidenceRecords([record], {
+        behaviorDescriptors,
         commit: "abcdef1",
         maxAgeHours: Number.NaN,
         now: new Date("2026-08-04T12:00:00.000Z"),

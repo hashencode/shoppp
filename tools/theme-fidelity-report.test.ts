@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "../apps/storefront/node_modules/sharp";
-import { fashion2ComparisonDescriptor } from "../apps/storefront/e2e/support/theme-capture-contract";
+import { fashionStoreComparisonDescriptor } from "../apps/storefront/e2e/support/theme-capture-contract";
 import { generateThemeFidelityReport } from "./theme-fidelity-report";
 
 const roots: string[] = [];
@@ -18,7 +18,7 @@ async function png(path: string, width: number, height: number, background = "#f
 }
 
 async function captureRoot(
-  themeId: "fashion" | "decor" | "fashion-2",
+  themeId: "fashion" | "decor" | "fashion-store",
   width = 1440,
   desktopViewportHeight = 1000,
   dpr = 1,
@@ -36,6 +36,7 @@ async function captureRoot(
   await writeFile(
     join(root, themeId, "metadata.json"),
     JSON.stringify({
+      captureMode: "static",
       capturedAt,
       commit: "abcdef1234567",
       state: "initial-home",
@@ -52,38 +53,38 @@ async function captureRoot(
 }
 
 describe("theme fidelity report", () => {
-  test("retains over-threshold Fashion 2 pixel evidence and rejects stale identity", async () => {
+  test("retains over-threshold Fashion Store pixel evidence and rejects stale identity", async () => {
     const referenceRoot = await captureRoot("fashion");
-    const implementationRoot = await captureRoot("fashion-2");
+    const implementationRoot = await captureRoot("fashion-store");
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
-    await png(join(implementationRoot, "fashion-2", "mobile.png"), 390, 844, "#000000");
+    await png(join(implementationRoot, "fashion-store", "mobile.png"), 390, 844, "#000000");
 
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
-        comparison: fashion2ComparisonDescriptor,
+        comparison: fashionStoreComparisonDescriptor,
         implementationRoot,
         outputRoot,
         referenceRoot,
       }),
-    ).rejects.toThrow("fashion-to-fashion-2 mobile");
+    ).rejects.toThrow("fashion-to-fashion-store mobile");
     expect(
-      await readFile(join(outputRoot, "fashion-to-fashion-2-mobile-diff.json"), "utf8"),
+      await readFile(join(outputRoot, "fashion-to-fashion-store-mobile-diff.json"), "utf8"),
     ).toContain('"changedPixelRatio": 1');
 
     const staleMetadata = JSON.parse(
-      await readFile(join(implementationRoot, "fashion-2", "metadata.json"), "utf8"),
+      await readFile(join(implementationRoot, "fashion-store", "metadata.json"), "utf8"),
     ) as Record<string, unknown>;
     staleMetadata.commit = "deadbee";
     await writeFile(
-      join(implementationRoot, "fashion-2", "metadata.json"),
+      join(implementationRoot, "fashion-store", "metadata.json"),
       JSON.stringify(staleMetadata),
     );
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
-        comparison: fashion2ComparisonDescriptor,
+        comparison: fashionStoreComparisonDescriptor,
         implementationRoot,
         outputRoot,
         referenceRoot,
@@ -91,16 +92,16 @@ describe("theme fidelity report", () => {
     ).rejects.toThrow("does not match commit");
   });
 
-  test("rejects mismatched DPR and stale Fashion-to-Fashion-2 captures", async () => {
+  test("rejects mismatched DPR and stale Fashion-to-Fashion Store captures", async () => {
     const referenceRoot = await captureRoot("fashion");
-    const implementationRoot = await captureRoot("fashion-2", 1440, 1000, 2);
+    const implementationRoot = await captureRoot("fashion-store", 1440, 1000, 2);
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
 
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
-        comparison: fashion2ComparisonDescriptor,
+        comparison: fashionStoreComparisonDescriptor,
         implementationRoot,
         outputRoot,
         referenceRoot,
@@ -114,16 +115,37 @@ describe("theme fidelity report", () => {
       1,
       "2020-01-01T00:00:00.000Z",
     );
-    const matchingImplementationRoot = await captureRoot("fashion-2");
+    const matchingImplementationRoot = await captureRoot("fashion-store");
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
-        comparison: fashion2ComparisonDescriptor,
+        comparison: fashionStoreComparisonDescriptor,
         implementationRoot: matchingImplementationRoot,
         outputRoot,
         referenceRoot: staleReferenceRoot,
       }),
     ).rejects.toThrow("reference capture is stale");
+  });
+
+  test("does not accept temporal-only evidence as the initial static report", async () => {
+    const referenceRoot = await captureRoot("fashion");
+    const implementationRoot = await captureRoot("fashion-store");
+    const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
+    roots.push(outputRoot);
+    const path = join(implementationRoot, "fashion-store", "metadata.json");
+    const metadata = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+    metadata.captureMode = "temporal";
+    await writeFile(path, JSON.stringify(metadata));
+
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        comparison: fashionStoreComparisonDescriptor,
+        implementationRoot,
+        outputRoot,
+        referenceRoot,
+      }),
+    ).rejects.toThrow(/requires static capture mode/);
   });
 
   test("creates review evidence without blessing an unapproved implementation", async () => {
@@ -156,6 +178,18 @@ describe("theme fidelity report", () => {
       themes: ["fashion"],
     });
     await expect(readFile(join(outputRoot, "approval.json"))).rejects.toThrow();
+  });
+
+  test("requires the explicit comparison descriptor for Fashion Store", async () => {
+    await expect(
+      generateThemeFidelityReport({
+        commit: "abcdef1234567",
+        implementationRoot: "/tmp/implementation",
+        outputRoot: "/tmp/output",
+        referenceRoot: "/tmp/reference",
+        themes: ["fashion-store" as never],
+      }),
+    ).rejects.toThrow(/comparison descriptor/);
   });
 
   test("fails above the full-page threshold and retains actionable diff artifacts", async () => {

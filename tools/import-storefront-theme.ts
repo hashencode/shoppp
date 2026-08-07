@@ -3,7 +3,7 @@ import { dirname, extname, join, normalize, posix, relative, resolve, sep } from
 import { pathToFileURL } from "node:url";
 import { format } from "prettier";
 
-export type StorefrontThemeId = "decor" | "fashion" | "fashion-2";
+export type StorefrontThemeId = "decor" | "fashion" | "fashion-store";
 export type StorefrontThemeAssetKind =
   "font" | "icon" | "image" | "markup" | "stylesheet" | "visual-runtime";
 
@@ -110,15 +110,15 @@ function validateAssetDeclaration(
 ): void {
   const sourcePath = normalizedRelativePath(asset.sourcePath);
   const destinationPath = normalizedRelativePath(asset.destinationPath);
-  const isSourceImplementation = themeId === "fashion-2";
+  const isSourceImplementation = themeId === "fashion-store";
   if (isSourceImplementation) {
     if (destinationPath !== `upstream/${sourcePath}`) {
       throw new Error(
-        `Fashion 2 must preserve its source-relative path below upstream/: ${destinationPath}`,
+        `Fashion Store must preserve its source-relative path below upstream/: ${destinationPath}`,
       );
     }
     if (!/^[a-f0-9]{64}$/.test(asset.expectedSha256 ?? "")) {
-      throw new Error(`Fashion 2 requires an expected SHA-256 hash for ${sourcePath}.`);
+      throw new Error(`Fashion Store requires an expected SHA-256 hash for ${sourcePath}.`);
     }
     if (asset.supplementalSourcePath) normalizedRelativePath(asset.supplementalSourcePath);
   } else if (!destinationPath.startsWith("assets/") || destinationPath === "assets/") {
@@ -337,7 +337,7 @@ function validateStylesheetReferences(
     if (ignoredReferences[asset.sourcePath]?.includes(reference)) continue;
     if (!sourcePaths.has(resolvedReference)) {
       throw new Error(
-        `CSS reference ${reference} from ${asset.sourcePath} is missing from the Fashion 2 allowlist.`,
+        `CSS reference ${reference} from ${asset.sourcePath} is missing from the Fashion Store allowlist.`,
       );
     }
   }
@@ -349,24 +349,24 @@ function sha256(contents: Uint8Array): string {
 
 function upstreamMarkdown(source: StorefrontThemeSource): string {
   const title =
-    source.themeId === "fashion-2"
-      ? "Fashion 2"
+    source.themeId === "fashion-store"
+      ? "Fashion Store"
       : source.themeId === "fashion"
         ? "Fashion"
         : "Decor";
-  if (source.themeId === "fashion-2") {
+  if (source.themeId === "fashion-store") {
     return `# ${title} Theme Source Provenance
 
 - Source identity: \`${source.sourceIdentity}\`
 - Source revision: \`${source.sourceRevision}\`
 - Imported on: ${source.importedAt}
 - Ownership approval: ${source.ownershipApproval}
-- Import policy: hash-pinned Fashion 2 source implementation; source-relative paths are preserved below \`upstream/\`.
+- Import policy: hash-pinned Fashion Store source implementation; source-relative paths are preserved below \`upstream/\`.
 - Manifest: \`../../../../../tools/storefront-theme-source-manifest.json\`
 
 ## Runtime boundary
 
-The pinned vendor files provide reviewed visual runtime capabilities. \`js/main.js\` is retained as a line-addressable behavioral reference and is not executed as the application entry point. Nuxt owns rendering, routing, fixture data, and commerce actions; the Fashion 2 adapter may initialize only reviewed visual behavior and must dispose it on unmount.
+The pinned vendor files provide reviewed visual runtime capabilities. \`js/main.js\` is retained as a line-addressable behavioral reference and is not executed as the application entry point. Nuxt owns rendering, routing, fixture data, and commerce actions; the Fashion Store adapter may initialize only reviewed visual behavior and must dispose it on unmount.
 
 The preview build removes only the four exact Google Fonts \`@import\` statements from the compiled \`style.css\` and \`fashion-store.css\` modules. Fashion overrides the base families, so the unused Plus Jakarta Sans and Inter requests are omitted; Outfit and Figtree are supplied from the hash-pinned local WOFF2 files. The imported upstream stylesheets remain byte-identical and retain their original positions in the five-file cascade; \`integration.css\` contains this documented hosting adaptation and accessibility-only rules.
 
@@ -462,7 +462,7 @@ export async function importStorefrontTheme({
 
   const resolvedSource = resolve(source);
   const allowedPaths = new Set(sourcePaths);
-  if (themeId === "fashion-2") {
+  if (themeId === "fashion-store") {
     await Promise.all(
       declaration.allowlist.map((asset) =>
         sourceFilePath(resolvedSource, resolve(repositoryRoot), asset),
@@ -484,7 +484,7 @@ export async function importStorefrontTheme({
   )) {
     const contents = new Uint8Array(
       await readFile(
-        themeId === "fashion-2"
+        themeId === "fashion-store"
           ? await sourceFilePath(resolvedSource, resolve(repositoryRoot), asset)
           : join(resolvedSource, asset.sourcePath),
       ),
@@ -494,8 +494,8 @@ export async function importStorefrontTheme({
     }
     validateMime(asset, contents);
     const digest = sha256(contents);
-    if (themeId === "fashion-2" && digest !== asset.expectedSha256) {
-      throw new Error(`Fashion 2 source hash mismatch: ${asset.sourcePath}`);
+    if (themeId === "fashion-store" && digest !== asset.expectedSha256) {
+      throw new Error(`Fashion Store source hash mismatch: ${asset.sourcePath}`);
     }
     validateStylesheetReferences(
       asset,
@@ -527,7 +527,7 @@ export async function importStorefrontTheme({
       await writeFile(outputPath, contents);
     }
     const themeRoot = join(resolvedDestinationRoot, themeId);
-    const destinationSubtree = themeId === "fashion-2" ? "upstream" : "assets";
+    const destinationSubtree = themeId === "fashion-store" ? "upstream" : "assets";
     const destinationAssets = join(themeRoot, destinationSubtree);
     await mkdir(themeRoot, { recursive: true });
     await rm(destinationAssets, { force: true, recursive: true });
@@ -555,11 +555,11 @@ async function main(): Promise<void> {
   const themeId = argumentValue(arguments_, "--theme");
   if (
     !source ||
-    (themeId !== "fashion" && themeId !== "decor" && themeId !== "fashion-2") ||
+    (themeId !== "fashion" && themeId !== "decor" && themeId !== "fashion-store") ||
     !arguments_.includes("--ownership-confirmed")
   ) {
     throw new Error(
-      "Usage: bun tools/import-storefront-theme.ts --source=<path> --theme=<fashion|decor|fashion-2> --ownership-confirmed",
+      "Usage: bun tools/import-storefront-theme.ts --source=<path> --theme=<fashion|decor|fashion-store> --ownership-confirmed",
     );
   }
   const root = process.cwd();

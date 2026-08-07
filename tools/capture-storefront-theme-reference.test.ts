@@ -7,6 +7,7 @@ import {
   referenceCaptureConfigs,
   referenceCaptureViewports,
   resolveReferenceCaptureConfig,
+  validateIndependentReferenceSource,
   validateReferenceSource,
 } from "./capture-storefront-theme-reference";
 
@@ -27,12 +28,12 @@ async function fixture(themeId: "decor" | "fashion"): Promise<string> {
 }
 
 describe("reference source validation", () => {
-  test("keeps the Fashion source identity distinct from Fashion 2", () => {
+  test("keeps the Fashion source identity distinct from Fashion Store", () => {
     expect(resolveReferenceCaptureConfig("fashion")).toMatchObject({
       entry: "demo-fashion-store.html",
       themeId: "fashion",
     });
-    expect(() => resolveReferenceCaptureConfig("fashion-2")).toThrow("implementation identity");
+    expect(() => resolveReferenceCaptureConfig("fashion-store")).toThrow("implementation identity");
   });
   test("captures every approved fidelity width with stable viewport identities", () => {
     expect(referenceCaptureViewports).toEqual([
@@ -72,5 +73,39 @@ describe("reference source validation", () => {
     await expect(validateReferenceSource(root, config)).rejects.toThrow(
       "HTML entry point is missing",
     );
+  });
+
+  test("rejects an implementation-owned reference root and a mismatched source digest", async () => {
+    const sourceRoot = await fixture("fashion");
+    const config = referenceCaptureConfigs.fashion;
+    const entry = await Bun.file(join(sourceRoot, config.entry)).arrayBuffer();
+    const digest = new Bun.CryptoHasher("sha256").update(entry).digest("hex");
+
+    await expect(
+      validateIndependentReferenceSource({
+        config,
+        expectedEntrySha256: digest,
+        implementationThemeRoot: join(sourceRoot, "implementation"),
+        sourceRoot,
+      }),
+    ).resolves.toMatchObject({ entrySha256: digest, sourceRoot });
+
+    await expect(
+      validateIndependentReferenceSource({
+        config,
+        expectedEntrySha256: digest,
+        implementationThemeRoot: sourceRoot,
+        sourceRoot,
+      }),
+    ).rejects.toThrow("must not be served from the implementation theme directory");
+
+    await expect(
+      validateIndependentReferenceSource({
+        config,
+        expectedEntrySha256: "0".repeat(64),
+        implementationThemeRoot: join(sourceRoot, "implementation"),
+        sourceRoot,
+      }),
+    ).rejects.toThrow("digest mismatch");
   });
 });

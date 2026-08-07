@@ -3,17 +3,17 @@ import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import sharp from "../apps/storefront/node_modules/sharp";
 import {
-  decorNamedStates,
-  fashion2NamedStates,
-  fashionNamedStates,
+  fashionStoreNamedStates,
   namedStatePixelThreshold,
   type NamedStateAction,
   type NamedStateContract,
 } from "../apps/storefront/e2e/support/theme-named-state-contract";
 import {
   captureGeometryIssues,
-  deterministicCaptureCss,
+  captureCssForMode,
+  captureModeForNamedState,
 } from "../apps/storefront/e2e/support/theme-capture-contract";
+import type { ThemeAcceptanceMode } from "../apps/storefront/e2e/support/theme-behavior-contract";
 import { themeViewports } from "../apps/storefront/e2e/support/theme-viewports";
 import {
   assertThemeScreenshotDifference,
@@ -30,19 +30,19 @@ interface Box {
   y: number;
 }
 
-const namedStateCss =
-  deterministicCaptureCss.replace(
+const namedStateCss = (mode: ThemeAcceptanceMode) =>
+  captureCssForMode(mode).replace(
     "#cookies-model, .cookie-message, .scroll-progress,",
     ".scroll-progress,",
   ) +
   `
-  .fashion-scroll-progress { display: none !important; }
+  ${mode === "scroll-fixed" ? "" : ".fashion-scroll-progress { display: none !important; }"}
   .fashion-promises-track {
     animation: none !important;
     margin-left: 0 !important;
     transform: none !important;
   }
-  .sticky-wrap { display: none !important; }
+  ${mode === "scroll-fixed" ? "" : ".sticky-wrap { display: none !important; }"}
   .capture-cookie-overlay #cookies-model,
   .capture-cookie-overlay .fashion-cookie-message {
     display: block !important;
@@ -50,36 +50,28 @@ const namedStateCss =
     transform: none !important;
     visibility: visible !important;
   }
-  .decor-scroll-progress { display: none !important; }
-  .decor-marquee-track {
-    animation: none !important;
-  }
-  .decor-clients-track {
-    animation: none !important;
-    transform: none !important;
-  }
-  .decor-hero, .decor-collection { outline: none !important; }
-  .decor-hero-slide .decor-hero-accent,
-  .decor-hero-slide .decor-hero-product,
-  .decor-hero-slide .decor-hero-copy h1,
-  .decor-hero-slide .decor-hero-copy p,
-  .decor-hero-slide .decor-hero-copy a {
-    animation: none !important;
-  }
   *:focus { outline: none !important; }
-  .capture-cookie-overlay #cookies-model,
-  .capture-cookie-overlay .decor-cookie-message {
-    display: block !important;
-    opacity: 1 !important;
-    transform: none !important;
-    visibility: visible !important;
-  }
 `;
 
-async function fashion2SourceFontCss(): Promise<string> {
+async function installNamedStateCss(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
+  await page.evaluate(
+    ({ css, id }) => {
+      let style = document.querySelector<HTMLStyleElement>(`#${id}`);
+      if (!style) {
+        style = document.createElement("style");
+        style.id = id;
+        document.head.append(style);
+      }
+      style.textContent = css;
+    },
+    { css: namedStateCss(mode), id: "theme-named-state-capture-css" },
+  );
+}
+
+async function fashionStoreSourceFontCss(): Promise<string> {
   const fontsRoot = resolve(
     import.meta.dir,
-    "../apps/storefront/app/themes/fashion-2/upstream/fonts",
+    "../apps/storefront/app/themes/fashion-store/upstream/fonts",
   );
   const [figtree, outfit] = await Promise.all([
     readFile(join(fontsRoot, "figtree-latin.woff2")),
@@ -104,7 +96,7 @@ async function fashion2SourceFontCss(): Promise<string> {
 }
 
 async function stabilize(page: Page): Promise<void> {
-  await page.addStyleTag({ content: namedStateCss });
+  await page.addStyleTag({ content: namedStateCss("temporal") });
   await page.evaluate(async () => {
     document.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
       image.loading = "eager";
@@ -163,31 +155,6 @@ async function prepareFashionPages(source: Page, implementation: Page): Promise<
   );
   await hydrateFashionSourceImages(source);
   await Promise.all([stabilize(source), stabilize(implementation)]);
-}
-
-async function prepareDecorPages(source: Page, implementation: Page): Promise<void> {
-  await implementation.waitForFunction(() =>
-    Boolean(
-      (document.querySelector("#__nuxt") as (HTMLElement & { __vue_app__?: unknown }) | null)
-        ?.__vue_app__,
-    ),
-  );
-  await source.waitForFunction(() => {
-    const swipersReady = [...document.querySelectorAll<HTMLElement>(".swiper")].every((element) =>
-      Boolean((element as HTMLElement & { swiper?: unknown }).swiper),
-    );
-    return swipersReady && Boolean(document.querySelector("#decor-store-slider .active-revslide"));
-  });
-  await source.waitForTimeout(3_200);
-  await Promise.all([stabilize(source), stabilize(implementation)]);
-  await source.evaluate(() => {
-    const jquery = (
-      window as unknown as {
-        jQuery?: (selector: string) => { revpause?(): void };
-      }
-    ).jQuery;
-    jquery?.("#decor-store-slider").revpause?.();
-  });
 }
 
 async function resetFashion(page: Page, side: "implementation" | "source"): Promise<void> {
@@ -344,7 +311,7 @@ async function applyFashionAction(
   await page.waitForTimeout(100);
 }
 
-async function applyFashion2Action(
+async function applyFashionStoreAction(
   page: Page,
   side: "implementation" | "source",
   action: NamedStateAction,
@@ -361,6 +328,12 @@ async function applyFashion2Action(
     return;
   }
   await page.mouse.move(0, 0);
+  await page.keyboard.press("Escape").catch(() => undefined);
+  await page.evaluate(() => {
+    document.documentElement.classList.remove("show-search-popup");
+    document.body.classList.remove("show-search-popup");
+    document.querySelector(".header-cart")?.classList.remove("open");
+  });
   const toggle = page.locator(".navbar-toggler");
   if ((await toggle.getAttribute("aria-expanded")) === "true") await toggle.click();
   const waitForHeroIdle = () =>
@@ -420,6 +393,14 @@ async function applyFashion2Action(
         dropdowns[index]?.querySelector<HTMLElement>(".dropdown-menu")?.classList.add("show");
       }, menu);
     }
+  } else if (action.kind === "search") {
+    await page.locator(".header-search-form").click();
+    await page.waitForTimeout(650);
+  } else if (action.kind === "cart") {
+    await page.locator(".header-cart").hover();
+    await page.waitForFunction(() =>
+      document.querySelector(".header-cart")?.classList.contains("open"),
+    );
   } else if (action.kind === "product-hover") {
     await page.locator(".shop-modern .grid-item .shop-image").first().hover();
   } else if (action.kind === "product-focus") {
@@ -433,280 +414,6 @@ async function applyFashion2Action(
         element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }
       ).swiper?.autoplay?.stop();
     });
-  }
-  await page.waitForTimeout(100);
-}
-
-async function resetDecor(page: Page, side: "implementation" | "source"): Promise<void> {
-  const viewport = page.viewportSize();
-  if (viewport) await page.mouse.move(viewport.width - 1, 0);
-  await page.keyboard.press("Escape").catch(() => undefined);
-  if (side === "implementation") {
-    const mobileMenu = page.locator(".decor-mobile-menu[open]");
-    if (await mobileMenu.count()) await mobileMenu.locator(":scope > summary").click();
-    const selectedTab = page.getByRole("tab", { selected: true });
-    if ((await selectedTab.count()) && (await selectedTab.getAttribute("id")) !== "decor-tab-0")
-      await page.getByRole("tab", { name: "Best sellers" }).click();
-    const languageTrigger = page.locator(".decor-language > button");
-    if ((await languageTrigger.getAttribute("aria-expanded")) === "true")
-      await languageTrigger.evaluate((element) => (element as HTMLButtonElement).click());
-    const openNavigation = page.locator('.decor-nav-item > button[aria-expanded="true"]');
-    if (await openNavigation.count())
-      await openNavigation.first().evaluate((element) => (element as HTMLButtonElement).click());
-    const hero = page.locator(".decor-hero");
-    const heroIndex = Number(await hero.getAttribute("data-motion-active-index"));
-    if (Number.isInteger(heroIndex) && heroIndex > 0) {
-      await hero.focus();
-      for (let index = 0; index < heroIndex; index += 1) await page.keyboard.press("ArrowLeft");
-      await page.waitForFunction(
-        () => document.querySelector(".decor-hero")?.getAttribute("data-motion-phase") === "idle",
-      );
-    }
-    const collection = page.locator(".decor-collection");
-    const collectionIndex = Number(await collection.getAttribute("data-motion-active-index"));
-    if (Number.isInteger(collectionIndex) && collectionIndex > 0) {
-      await collection.focus();
-      for (let index = 0; index < collectionIndex; index += 1)
-        await page.keyboard.press("ArrowLeft");
-      await page.waitForFunction(
-        () =>
-          document.querySelector(".decor-collection")?.getAttribute("data-motion-phase") === "idle",
-      );
-    }
-  } else {
-    const changedHero = await page.evaluate(() => {
-      document
-        .querySelectorAll<HTMLElement>(".dropdown.show, .dropdown-menu.show")
-        .forEach((node) => node.classList.remove("show"));
-      document.querySelector("#navbarNav")?.classList.remove("show");
-      const jquery = (
-        window as unknown as {
-          jQuery?: (selector: string) => {
-            revpause?(): void;
-            revresume?(): void;
-            revshowslide?(index: number): void;
-          };
-        }
-      ).jQuery;
-      const revolution = jquery?.("#decor-store-slider");
-      const activeSlide = document.querySelector("#decor-store-slider .active-revslide");
-      const changed = activeSlide?.getAttribute("data-index") !== "rs-73";
-      revolution?.revresume?.();
-      revolution?.revshowslide?.(1);
-      const primaryProductsTab = document.querySelector<HTMLAnchorElement>('a[href="#tab_five1"]');
-      if (primaryProductsTab && !primaryProductsTab.classList.contains("active"))
-        primaryProductsTab.click();
-      document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
-        const swiper = (
-          element as HTMLElement & {
-            swiper?: {
-              autoplay?: { stop(): void };
-              slideToLoop?(index: number, speed: number): void;
-            };
-          }
-        ).swiper;
-        swiper?.autoplay?.stop();
-        swiper?.slideToLoop?.(0, 0);
-      });
-      return changed;
-    });
-    if (changedHero) await page.waitForTimeout(5_000);
-    await page.waitForFunction(
-      () => {
-        const item = document.querySelector<HTMLElement>(".shop-boxed .grid-item");
-        if (!item) return false;
-        const style = getComputedStyle(item);
-        return (
-          Number(style.opacity) > 0.99 &&
-          (style.transform === "none" || style.transform === "matrix(1, 0, 0, 1, 0, 0)")
-        );
-      },
-      undefined,
-      { timeout: 5_000 },
-    );
-    await page.evaluate(() => {
-      const jquery = (window as unknown as { jQuery?: (selector: string) => { revpause?(): void } })
-        .jQuery;
-      jquery?.("#decor-store-slider").revpause?.();
-    });
-  }
-  await page.evaluate(() => {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-  });
-  await page.waitForTimeout(100);
-}
-
-async function applyDecorAction(
-  page: Page,
-  side: "implementation" | "source",
-  action: NamedStateAction,
-  viewportWidth: number,
-): Promise<void> {
-  await resetDecor(page, side);
-  if (action.kind === "initial" || action.kind === "overlay") return;
-  if (action.kind === "hero") {
-    if (side === "source") {
-      await page.evaluate((index) => {
-        const jquery = (
-          window as unknown as {
-            jQuery?: (selector: string) => {
-              revresume?(): void;
-              revshowslide?(slide: number): void;
-            };
-          }
-        ).jQuery;
-        const revolution = jquery?.("#decor-store-slider");
-        revolution?.revresume?.();
-        revolution?.revshowslide?.(index + 1);
-      }, action.index);
-      await page.waitForTimeout(5_000);
-      await page.waitForFunction(
-        (slide) => {
-          const sourceIndexes = ["rs-73", "rs-72", "rs-74"];
-          const active = document.querySelector(
-            `#decor-store-slider li[data-index="${sourceIndexes[slide]}"]`,
-          );
-          if (!active?.classList.contains("active-revslide")) return false;
-          return [7, 8, 9].every((layer) => {
-            const element = document.querySelector<HTMLElement>(
-              `#slide-${slide + 1}-layer-0${layer}`,
-            );
-            if (!element) return false;
-            const style = getComputedStyle(element);
-            return (
-              Number(style.opacity) > 0.99 &&
-              (style.filter === "none" || /blur\(0(?:px)?\)/.test(style.filter))
-            );
-          });
-        },
-        action.index,
-        { timeout: 15_000 },
-      );
-      await page.evaluate(() => {
-        const jquery = (
-          window as unknown as { jQuery?: (selector: string) => { revpause?(): void } }
-        ).jQuery;
-        jquery?.("#decor-store-slider").revpause?.();
-      });
-    } else {
-      const hero = page.locator(".decor-hero");
-      await hero.focus();
-      for (let index = 0; index < action.index; index += 1) await page.keyboard.press("ArrowRight");
-      await page.waitForFunction(
-        (index) =>
-          document.querySelector(".decor-hero")?.getAttribute("data-motion-active-index") ===
-            String(index) &&
-          document.querySelector(".decor-hero")?.getAttribute("data-motion-phase") === "idle",
-        action.index,
-      );
-    }
-  } else if (action.kind === "navigation") {
-    if (viewportWidth >= 992) {
-      if (side === "source") await page.locator(".navbar-nav .nav-item.dropdown").first().hover();
-      else await page.locator(".decor-nav-item").filter({ hasText: "Shop" }).hover();
-    } else if (side === "source") {
-      await page.evaluate(() => document.querySelector("#navbarNav")?.classList.add("show"));
-    } else {
-      await page.locator(".decor-mobile-menu > summary").click();
-    }
-  } else if (action.kind === "language") {
-    if (viewportWidth < 768) return;
-    if (side === "source") await page.locator(".header-language").hover();
-    else
-      await page.locator(".decor-language > button").evaluate((element) => {
-        (element as HTMLButtonElement).click();
-      });
-  } else if (action.kind === "category-hover") {
-    const selector = side === "source" ? ".categories-style-01" : ".decor-category-icon-list a";
-    await page.locator(selector).first().hover();
-  } else if (action.kind === "product-hover" || action.kind === "product-focus") {
-    if (side === "source") {
-      const product = page.locator(".shop-boxed .grid-item .shop-box").first();
-      await product.hover();
-      await page.waitForFunction(() => {
-        const element = document.querySelector<HTMLElement>(".shop-boxed .grid-item .shop-box");
-        const item = element?.closest<HTMLElement>(".grid-item");
-        if (!element || !item) return false;
-        const style = getComputedStyle(item);
-        return style.visibility !== "hidden" && Number(style.opacity) > 0.99;
-      });
-    } else if (action.kind === "product-focus") {
-      await page.locator('.decor-product-card button[aria-label^="Save"]').first().focus();
-    } else {
-      await page.locator(".decor-product-media").first().hover();
-    }
-  } else if (action.kind === "tab-secondary") {
-    if (side === "source") await page.locator('a[href="#tab_five2"]').click();
-    else await page.getByRole("tab", { name: "New arrivals" }).click();
-  } else if (action.kind === "collection") {
-    if (side === "source") {
-      await page.locator("section:nth-of-type(5) .swiper").evaluate((element, index) => {
-        (
-          element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
-        ).swiper?.slideToLoop?.(index, 0);
-      }, action.index);
-    } else {
-      const collection = page.locator(".decor-collection");
-      await collection.focus();
-      for (let index = 0; index < action.index; index += 1) await page.keyboard.press("ArrowRight");
-      await page.waitForFunction(
-        (index) =>
-          document.querySelector(".decor-collection")?.getAttribute("data-motion-active-index") ===
-          String(index),
-        action.index,
-      );
-    }
-  } else if (action.kind === "promo-pause") {
-    if (side === "source") {
-      await page.locator("section:nth-of-type(4)").hover();
-      await page.locator("section:nth-of-type(4) .swiper").evaluate((element) => {
-        (
-          element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }
-        ).swiper?.autoplay?.stop();
-      });
-    } else await page.locator(".decor-marquee").hover();
-    await page.evaluate((currentSide) => {
-      const root = document.querySelector(
-        currentSide === "source" ? "section:nth-of-type(4)" : ".decor-marquee",
-      );
-      const track = root?.querySelector<HTMLElement>(
-        currentSide === "source" ? ".swiper-wrapper" : ".decor-marquee-track",
-      );
-      const items = [
-        ...(root?.querySelectorAll<HTMLElement>(
-          currentSide === "source" ? ".swiper-slide > div" : ".decor-marquee-track > span",
-        ) ?? []),
-      ].filter((element) => element.textContent?.includes("Pay with multiple credit cards"));
-      if (!root || !track || items.length === 0) return;
-      track.style.animation = "none";
-      track.style.transition = "none";
-      const targetX = Math.round(innerWidth * 0.31);
-      const item = items
-        .map((element) => {
-          const textNode = [...element.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
-          const range = textNode ? document.createRange() : null;
-          if (range && textNode) range.selectNode(textNode);
-          return { element, text: range?.getBoundingClientRect() };
-        })
-        .filter((entry): entry is { element: HTMLElement; text: DOMRect } => Boolean(entry.text))
-        .sort(
-          (left, right) => Math.abs(left.text.x - targetX) - Math.abs(right.text.x - targetX),
-        )[0];
-      if (!item) return;
-      const matrix = new DOMMatrixReadOnly(getComputedStyle(track).transform);
-      const deltaX = targetX - item.text.x;
-      const deltaY = Math.round(item.text.y) - item.text.y;
-      track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + deltaX}, ${matrix.f + deltaY})`;
-    }, side);
-  } else if (action.kind === "client-pause") {
-    if (side === "source") {
-      await page.locator("section:nth-of-type(6)").hover();
-      await page.locator("section:nth-of-type(6) .swiper").evaluate((element) => {
-        (
-          element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }
-        ).swiper?.autoplay?.stop();
-      });
-    } else await page.locator(".decor-clients").hover();
   }
   await page.waitForTimeout(100);
 }
@@ -762,19 +469,11 @@ async function captureVisibleElement(
     .toFile(path);
 }
 
-async function marqueeDiagnostics(page: Page, side: "implementation" | "source") {
-  return page.evaluate((currentSide) => {
-    const root = document.querySelector(
-      currentSide === "source" ? "section:nth-of-type(4)" : ".decor-marquee",
-    );
-    const track = root?.querySelector<HTMLElement>(
-      currentSide === "source" ? ".swiper-wrapper" : ".decor-marquee-track",
-    );
-    const items = [
-      ...(root?.querySelectorAll<HTMLElement>(
-        currentSide === "source" ? ".swiper-slide > div" : ".decor-marquee-track > span",
-      ) ?? []),
-    ]
+async function marqueeDiagnostics(page: Page) {
+  return page.evaluate(() => {
+    const root = document.querySelector("section:nth-of-type(9)");
+    const track = root?.querySelector<HTMLElement>(".swiper-wrapper");
+    const items = [...(root?.querySelectorAll<HTMLElement>(".swiper-slide > div") ?? [])]
       .map((element) => {
         const rect = element.getBoundingClientRect();
         const bullet = element.querySelector<HTMLElement>("span, i")?.getBoundingClientRect();
@@ -807,7 +506,7 @@ async function marqueeDiagnostics(page: Page, side: "implementation" | "source")
           }
         : null,
     };
-  }, side);
+  });
 }
 
 async function elementDiagnostics(page: Page, selector: string) {
@@ -860,7 +559,6 @@ async function elementDiagnostics(page: Page, selector: string) {
 
 export async function captureFashionNamedStates(options: {
   commit: string;
-  comparisonMode?: "fashion-2";
   implementationUrl: string;
   outputRoot: string;
   sourceUrl: string;
@@ -868,8 +566,8 @@ export async function captureFashionNamedStates(options: {
   viewportFilter?: string;
 }): Promise<void> {
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
-  const implementationThemeId = options.comparisonMode ?? "fashion";
-  const contracts = options.comparisonMode ? fashion2NamedStates : fashionNamedStates;
+  const implementationThemeId = "fashion-store";
+  const contracts = fashionStoreNamedStates;
   const outputRoot = resolve(options.outputRoot, implementationThemeId, "named");
   await mkdir(outputRoot, { recursive: true });
   const lease = await acquireCaptureLease({
@@ -880,7 +578,7 @@ export async function captureFashionNamedStates(options: {
   let browser: Browser | undefined;
   const failures: string[] = [];
   const results: unknown[] = [];
-  const sourceFontCss = options.comparisonMode ? await fashion2SourceFontCss() : undefined;
+  const sourceFontCss = await fashionStoreSourceFontCss();
   try {
     browser = await chromium.launch(
       process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
@@ -890,7 +588,7 @@ export async function captureFashionNamedStates(options: {
     for (const [viewportId, viewport] of Object.entries(themeViewports)) {
       if (options.viewportFilter && viewportId !== options.viewportFilter) continue;
       const context = await browser.newContext({
-        reducedMotion: options.comparisonMode ? "no-preference" : "reduce",
+        reducedMotion: "no-preference",
         viewport,
       });
       const source = await context.newPage();
@@ -913,14 +611,14 @@ export async function captureFashionNamedStates(options: {
           }),
         ]);
         await prepareFashionPages(source, implementation);
-        if (options.comparisonMode) {
+        {
           await implementation
-            .locator("[data-fashion-2-source-parity]")
+            .locator("[data-fashion-store-source-parity]")
             .waitFor({ state: "attached" });
           await implementation.waitForFunction(
             () =>
               document
-                .querySelector("[data-fashion-2-source-parity]")
+                .querySelector("[data-fashion-store-source-parity]")
                 ?.getAttribute("data-runtime-status") === "ready",
           );
           await Promise.all([
@@ -980,13 +678,20 @@ export async function captureFashionNamedStates(options: {
                 .catch(() => undefined),
             ]);
           }
+          const captureMode = captureModeForNamedState(state);
           await Promise.all([
-            options.comparisonMode
-              ? applyFashion2Action(source, "source", state.action, viewport.width)
-              : applyFashionAction(source, "source", state.action, viewport.width),
-            options.comparisonMode
-              ? applyFashion2Action(implementation, "implementation", state.action, viewport.width)
-              : applyFashionAction(implementation, "implementation", state.action, viewport.width),
+            source.emulateMedia({
+              reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
+            }),
+            implementation.emulateMedia({
+              reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
+            }),
+            installNamedStateCss(source, captureMode),
+            installNamedStateCss(implementation, captureMode),
+          ]);
+          await Promise.all([
+            applyFashionStoreAction(source, "source", state.action, viewport.width),
+            applyFashionStoreAction(implementation, "implementation", state.action, viewport.width),
           ]);
           const [referenceBox, implementationBox] = await Promise.all([
             box(source, state.sourceSelector),
@@ -1066,11 +771,12 @@ export async function captureFashionNamedStates(options: {
           const diagnostics =
             state.id === "promotional-marquee-paused"
               ? {
-                  implementation: await marqueeDiagnostics(implementation, "implementation"),
-                  reference: await marqueeDiagnostics(source, "source"),
+                  implementation: await marqueeDiagnostics(implementation),
+                  reference: await marqueeDiagnostics(source),
                 }
               : undefined;
           results.push({
+            captureMode: captureModeForNamedState(state),
             diagnostics:
               diagnostics ??
               ([
@@ -1144,235 +850,10 @@ export async function captureFashionNamedStates(options: {
     throw new Error(`${implementationThemeId} named-state capture failed:\n${failures.join("\n")}`);
 }
 
-export async function captureFashion2NamedStates(
-  options: Omit<Parameters<typeof captureFashionNamedStates>[0], "comparisonMode">,
+export async function captureFashionStoreNamedStates(
+  options: Parameters<typeof captureFashionNamedStates>[0],
 ): Promise<void> {
-  await captureFashionNamedStates({ ...options, comparisonMode: "fashion-2" });
-}
-
-export async function captureDecorNamedStates(options: {
-  commit: string;
-  implementationUrl: string;
-  outputRoot: string;
-  sourceUrl: string;
-  stateFilter?: string;
-  viewportFilter?: string;
-}): Promise<void> {
-  if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
-  const outputRoot = resolve(options.outputRoot, "decor", "named");
-  await mkdir(outputRoot, { recursive: true });
-  const lease = await acquireCaptureLease({
-    origins: [options.sourceUrl, options.implementationUrl],
-    outputRoot,
-    requestedWorkers: 1,
-  });
-  let browser: Browser | undefined;
-  const failures: string[] = [];
-  const results: unknown[] = [];
-  try {
-    browser = await chromium.launch(
-      process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-        : undefined,
-    );
-    for (const [viewportId, viewport] of Object.entries(themeViewports)) {
-      if (options.viewportFilter && viewportId !== options.viewportFilter) continue;
-      const context = await browser.newContext({ reducedMotion: "reduce", viewport });
-      const source = await context.newPage();
-      const implementation = await context.newPage();
-      try {
-        await Promise.all([
-          source.goto(options.sourceUrl, { timeout: 60_000, waitUntil: "domcontentloaded" }),
-          implementation.goto(options.implementationUrl, {
-            timeout: 60_000,
-            waitUntil: "domcontentloaded",
-          }),
-        ]);
-        await prepareDecorPages(source, implementation);
-        if (options.stateFilter && options.stateFilter !== "cookie-overlay") {
-          await Promise.all([
-            source
-              .locator("[data-accept-btn]")
-              .click()
-              .catch(() => undefined),
-            implementation
-              .getByRole("button", { name: "Allow cookies" })
-              .click()
-              .catch(() => undefined),
-          ]);
-        }
-        for (const state of decorNamedStates) {
-          if (options.stateFilter && state.id !== options.stateFilter) continue;
-          if (
-            !options.stateFilter &&
-            ["category-hover", "new-arrivals-tab", "product-hover", "product-focus"].includes(
-              state.id,
-            )
-          ) {
-            await Promise.all([
-              source.reload({ timeout: 60_000, waitUntil: "domcontentloaded" }),
-              implementation.reload({ timeout: 60_000, waitUntil: "domcontentloaded" }),
-            ]);
-            await prepareDecorPages(source, implementation);
-          }
-          await Promise.all([
-            applyDecorAction(source, "source", state.action, viewport.width),
-            applyDecorAction(implementation, "implementation", state.action, viewport.width),
-          ]);
-          const [referenceBox, implementationBox] = await Promise.all([
-            box(source, state.sourceSelector),
-            box(implementation, state.implementationSelector),
-          ]);
-          failures.push(
-            ...geometryIssues(state, referenceBox, implementationBox).map(
-              (issue) => `${viewportId}: ${issue}`,
-            ),
-          );
-          const width =
-            state.capture === "viewport-top"
-              ? viewport.width
-              : Math.floor(Math.min(referenceBox.width, implementationBox.width));
-          const height =
-            state.capture === "viewport-top"
-              ? Math.min(viewport.height, 620)
-              : Math.floor(Math.min(referenceBox.height, implementationBox.height));
-          const referencePath = join(outputRoot, `${viewportId}-${state.id}-reference.png`);
-          const implementationPath = join(
-            outputRoot,
-            `${viewportId}-${state.id}-implementation.png`,
-          );
-          if (["initial", "hero", "collection"].includes(state.action.kind)) {
-            await Promise.all([
-              source.mouse.move(viewport.width - 1, 0),
-              implementation.mouse.move(viewport.width - 1, 0),
-            ]);
-          }
-          if (state.capture === "viewport-top") {
-            await Promise.all([
-              source.screenshot({
-                animations: "disabled",
-                clip: { height, width, x: 0, y: 0 },
-                path: referencePath,
-              }),
-              implementation.screenshot({
-                animations: "disabled",
-                clip: { height, width, x: 0, y: 0 },
-                path: implementationPath,
-              }),
-            ]);
-          } else {
-            const referenceRegion = visibleRegion(referenceBox, viewport);
-            const implementationRegion = visibleRegion(implementationBox, viewport);
-            const dimensions = {
-              height: Math.min(referenceRegion.height, implementationRegion.height),
-              width: Math.min(referenceRegion.width, implementationRegion.width),
-            };
-            if (dimensions.height <= 0 || dimensions.width <= 0)
-              throw new Error(`${viewportId} ${state.id} has no visible capture region.`);
-            await Promise.all([
-              captureVisibleElement(source, referenceRegion, dimensions, referencePath),
-              captureVisibleElement(
-                implementation,
-                implementationRegion,
-                dimensions,
-                implementationPath,
-              ),
-            ]);
-          }
-          const differencePath = join(outputRoot, `${viewportId}-${state.id}-diff.png`);
-          const difference = await compareThemeScreenshots(
-            referencePath,
-            implementationPath,
-            differencePath,
-            16,
-            {
-              cropsDirectory: join(outputRoot, "diagnostics", `${viewportId}-${state.id}`),
-              emitWhenChangedPixelRatioExceeds: namedStatePixelThreshold(state),
-              heatmapPath: join(outputRoot, `${viewportId}-${state.id}-heatmap.png`),
-              maximumCrops: 3,
-            },
-          );
-          try {
-            assertThemeScreenshotDifference(difference, namedStatePixelThreshold(state));
-          } catch (error) {
-            failures.push(`${viewportId} ${state.id}: ${(error as Error).message}`);
-          }
-          const diagnostics =
-            state.id === "promotional-marquee-paused"
-              ? {
-                  implementation: await marqueeDiagnostics(implementation, "implementation"),
-                  reference: await marqueeDiagnostics(source, "source"),
-                }
-              : undefined;
-          results.push({
-            diagnostics:
-              diagnostics ??
-              ([
-                "collection-slide-1",
-                "footer",
-                "hero-slide-1",
-                "hero-slide-2",
-                "hero-slide-3",
-                "language-open",
-                "navigation-open",
-                "new-arrivals-tab",
-                "product-default",
-              ].includes(state.id)
-                ? {
-                    implementation: await elementDiagnostics(
-                      implementation,
-                      state.implementationSelector,
-                    ),
-                    reference: await elementDiagnostics(source, state.sourceSelector),
-                  }
-                : undefined),
-            difference,
-            geometry: { implementation: implementationBox, reference: referenceBox },
-            state: state.id,
-            viewport: viewportId,
-          });
-          if (state.action.kind === "overlay") {
-            await Promise.all([
-              source
-                .locator("[data-accept-btn]")
-                .click()
-                .catch(() => undefined),
-              implementation
-                .getByRole("button", { name: "Allow cookies" })
-                .click()
-                .catch(() => undefined),
-            ]);
-          }
-        }
-      } finally {
-        await Promise.allSettled([source.close(), implementation.close()]);
-        await context.close();
-      }
-    }
-  } finally {
-    await browser?.close();
-    await lease.release();
-  }
-  await writeFile(
-    join(outputRoot, "report.json"),
-    `${JSON.stringify(
-      {
-        capturedAt: new Date().toISOString(),
-        commit: options.commit,
-        failures,
-        implementationUrl: options.implementationUrl,
-        results,
-        sourceUrl: options.sourceUrl,
-        state: "decor-named-states",
-        themeId: "decor",
-        viewports: themeViewports,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  if (failures.length > 0)
-    throw new Error(`Decor named-state capture failed:\n${failures.join("\n")}`);
+  await captureFashionNamedStates(options);
 }
 
 function value(arguments_: string[], name: string): string | undefined {
@@ -1386,33 +867,15 @@ if (import.meta.main) {
   const implementationUrl = value(arguments_, "--implementation-url");
   const outputRoot = value(arguments_, "--output");
   const commit = value(arguments_, "--commit");
-  const theme = value(arguments_, "--theme") ?? "fashion";
+  const theme = value(arguments_, "--theme") ?? "fashion-store";
   const stateFilter = value(arguments_, "--state");
   const viewportFilter = value(arguments_, "--viewport");
   if (!sourceUrl || !implementationUrl || !outputRoot || !commit)
     throw new Error(
-      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=<fashion|fashion-2|decor>] [--state=<id>] [--viewport=<id>]",
+      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=fashion-store] [--state=<id>] [--viewport=<id>]",
     );
-  if (theme === "decor")
-    await captureDecorNamedStates({
-      commit,
-      implementationUrl,
-      outputRoot,
-      sourceUrl,
-      ...(stateFilter ? { stateFilter } : {}),
-      ...(viewportFilter ? { viewportFilter } : {}),
-    });
-  else if (theme === "fashion")
-    await captureFashionNamedStates({
-      commit,
-      implementationUrl,
-      outputRoot,
-      sourceUrl,
-      ...(stateFilter ? { stateFilter } : {}),
-      ...(viewportFilter ? { viewportFilter } : {}),
-    });
-  else if (theme === "fashion-2")
-    await captureFashion2NamedStates({
+  if (theme === "fashion-store")
+    await captureFashionStoreNamedStates({
       commit,
       implementationUrl,
       outputRoot,

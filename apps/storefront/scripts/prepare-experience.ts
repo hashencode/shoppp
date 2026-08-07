@@ -52,9 +52,7 @@ export interface PrepareExperienceOptions extends RenderActiveThemeOptions {
 }
 
 const defaultModuleAllowlist = {
-  decor: "../themes/decor/registry",
-  fashion: "../themes/fashion/registry",
-  "fashion-2": "../themes/fashion-2/registry",
+  "fashion-store": "../themes/fashion-store/registry",
 } as const;
 
 function compareVersions(left: string, right: string): number {

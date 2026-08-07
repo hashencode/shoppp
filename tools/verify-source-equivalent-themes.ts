@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { lstat, readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
@@ -6,6 +7,9 @@ import ts from "typescript";
 
 import type { StorefrontThemeSourceManifest } from "./import-storefront-theme";
 
+import { assertThemeBehaviorContractComplete } from "../apps/storefront/e2e/support/theme-behavior-contract";
+import type { ThemeBehaviorDescriptor } from "../apps/storefront/e2e/support/theme-behavior-descriptor";
+import { assertCustomBehaviorAdaptersRegistered } from "../apps/storefront/e2e/support/theme-behavior-runner";
 import {
   assertFidelityMatrixComplete,
   fidelityMatrixViewports,
@@ -13,14 +17,12 @@ import {
 } from "../apps/storefront/e2e/support/theme-fidelity-matrix";
 import {
   captureGeometryIssues,
+  captureModeForNamedState,
+  captureModeForRegion,
   type CaptureGeometryBox,
 } from "../apps/storefront/e2e/support/theme-capture-contract";
-import {
-  decorNamedStates,
-  fashion2NamedStates,
-  fashionNamedStates,
-  namedStatePixelThreshold,
-} from "../apps/storefront/e2e/support/theme-named-state-contract";
+import { namedStatePixelThreshold } from "../apps/storefront/e2e/support/theme-named-state-contract";
+import { loadThemeBehaviorDescriptor } from "./load-theme-behavior-descriptor";
 
 export interface SourceEquivalencePolicy {
   schemaVersion: 1;
@@ -41,10 +43,27 @@ export interface SourceEquivalencePolicy {
   };
   requiredEvidence: string[];
   themes: {
+    acceptance: {
+      browserConfig: string;
+      browserProject: string;
+      focusedStates: { id: string; modes: string[] }[];
+      implementationRuntimeReadySelector: string;
+      pageCommand: string[];
+      sourceRuntimeReadySelector: string;
+    };
+    acceptanceAdapterExport: string;
+    acceptanceAdapterPath: string;
+    authorizedSourceRoot: string;
+    behaviorContractExport: string;
+    behaviorContractPath: string;
     equivalenceScope: string[];
     id: string;
     requiredContractFacets: string[];
+    sourceEntry: string;
+    sourceEntrySha256: string;
     sourceContractPath: string;
+    sourceFirstHero: string;
+    sourceRegionsExport: string;
     upstreamPath: string;
   }[];
   waivers: {
@@ -60,6 +79,7 @@ export interface SourceEquivalencePolicy {
 }
 
 interface EvidenceOptions {
+  behaviorDescriptors?: ReadonlyMap<string, ThemeBehaviorDescriptor>;
   commit: string;
   maxAgeHours?: number;
   now?: Date;
@@ -70,6 +90,7 @@ interface EvidenceOptions {
 }
 
 interface EvidenceRecord {
+  captureMode?: unknown;
   capturedAt?: unknown;
   commit?: unknown;
   density?: unknown;
@@ -78,6 +99,7 @@ interface EvidenceRecord {
   implementationUrl?: unknown;
   region?: { id?: unknown; maxChangedPixelRatio?: unknown };
   results?: {
+    captureMode?: unknown;
     difference?: { changedPixelRatio?: unknown; dimensionsMatch?: unknown };
     geometry?: {
       implementation?: Partial<Record<keyof CaptureGeometryBox, unknown>>;
@@ -118,12 +140,6 @@ const REQUIRED_EVIDENCE = [
   "runtimeDiagnostics",
   "visibleCopy",
 ] as const;
-const NAMED_STATES_BY_THEME = {
-  decor: decorNamedStates,
-  fashion: fashionNamedStates,
-  "fashion-2": fashion2NamedStates,
-} as const;
-
 function assertNoErrors(errors: string[], label: string): void {
   if (errors.length > 0) throw new Error(`${label}:\n- ${errors.join("\n- ")}`);
 }
@@ -212,20 +228,20 @@ export async function validateImportedSourceTree(root = ROOT): Promise<void> {
   const manifest = JSON.parse(
     await readFile(manifestPath, "utf8"),
   ) as StorefrontThemeSourceManifest;
-  const declaration = manifest.themes.find(({ themeId }) => themeId === "fashion-2");
-  if (!declaration) throw new Error("Fashion 2 source declaration is missing.");
+  const declaration = manifest.themes.find(({ themeId }) => themeId === "fashion-store");
+  if (!declaration) throw new Error("Fashion Store source declaration is missing.");
   const errors: string[] = [];
-  if (!declaration.importedAt) errors.push("Fashion 2 importedAt is missing");
+  if (!declaration.importedAt) errors.push("Fashion Store importedAt is missing");
   if (declaration.importedFiles.length !== declaration.allowlist.length)
-    errors.push("Fashion 2 imported file count does not match the allowlist");
+    errors.push("Fashion Store imported file count does not match the allowlist");
 
-  const themeRoot = resolve(root, "apps/storefront/app/themes/fashion-2");
+  const themeRoot = resolve(root, "apps/storefront/app/themes/fashion-store");
   const upstreamRoot = resolve(themeRoot, "upstream");
   const expectedPaths = new Set<string>();
   for (const asset of declaration.allowlist) {
     const destinationPath = asset.destinationPath;
     if (!destinationPath.startsWith("upstream/") || destinationPath.includes("..")) {
-      errors.push(`${destinationPath}: unsafe Fashion 2 destination path`);
+      errors.push(`${destinationPath}: unsafe Fashion Store destination path`);
       continue;
     }
     expectedPaths.add(destinationPath);
@@ -283,25 +299,26 @@ export async function validateImportedSourceTree(root = ROOT): Promise<void> {
   try {
     const provenance = await readFile(resolve(themeRoot, "UPSTREAM.md"), "utf8");
     if (!provenance.includes(declaration.sourceIdentity ?? "(missing source identity)"))
-      errors.push("Fashion 2 provenance source identity does not match");
+      errors.push("Fashion Store provenance source identity does not match");
     if (!provenance.includes("js/main.js") || !/behavioral reference/i.test(provenance))
-      errors.push("Fashion 2 provenance does not document the main.js execution boundary");
+      errors.push("Fashion Store provenance does not document the main.js execution boundary");
     for (const { sha256 } of declaration.importedFiles) {
-      if (!provenance.includes(sha256)) errors.push(`Fashion 2 provenance omits hash ${sha256}`);
+      if (!provenance.includes(sha256))
+        errors.push(`Fashion Store provenance omits hash ${sha256}`);
     }
   } catch (error) {
     errors.push(
-      `Fashion 2 provenance is missing (${error instanceof Error ? error.message : String(error)})`,
+      `Fashion Store provenance is missing (${error instanceof Error ? error.message : String(error)})`,
     );
   }
-  assertNoErrors(errors, "Fashion 2 imported source verification failed");
+  assertNoErrors(errors, "Fashion Store imported source verification failed");
 }
 
-export function validateSourceEquivalencePolicy(
+export async function validateSourceEquivalencePolicy(
   policy: SourceEquivalencePolicy,
   root = ROOT,
   now = new Date(),
-): void {
+): Promise<void> {
   const errors: string[] = [];
   if (policy.schemaVersion !== 1) errors.push("policy schemaVersion must be 1");
   if (
@@ -375,6 +392,25 @@ export function validateSourceEquivalencePolicy(
     if (themeIds.has(theme.id)) errors.push(`${theme.id}: duplicate theme policy`);
     themeIds.add(theme.id);
     if (theme.equivalenceScope.length === 0) errors.push(`${theme.id}: equivalence scope is empty`);
+    if (
+      !theme.acceptance?.browserConfig ||
+      !existsSync(resolve(root, theme.acceptance.browserConfig))
+    )
+      errors.push(`${theme.id}: acceptance browser config is missing`);
+    if (!theme.acceptance?.browserProject?.trim())
+      errors.push(`${theme.id}: acceptance browser project is missing`);
+    if (
+      !Array.isArray(theme.acceptance?.focusedStates) ||
+      theme.acceptance.focusedStates.length === 0 ||
+      theme.acceptance.focusedStates.some(
+        (state) => !state.id?.trim() || !Array.isArray(state.modes) || state.modes.length === 0,
+      )
+    )
+      errors.push(`${theme.id}: focused acceptance states are missing`);
+    if (!Array.isArray(theme.acceptance?.pageCommand) || theme.acceptance.pageCommand.length === 0)
+      errors.push(`${theme.id}: page acceptance command is missing`);
+    if (!theme.acceptanceAdapterPath || !existsSync(resolve(root, theme.acceptanceAdapterPath)))
+      errors.push(`${theme.id}: acceptance adapter module is missing`);
     const upstreamPath = resolve(root, theme.upstreamPath);
     if (!existsSync(upstreamPath))
       errors.push(`${theme.id}: missing required file ${theme.upstreamPath}`);
@@ -388,6 +424,44 @@ export function validateSourceEquivalencePolicy(
     for (const facet of theme.requiredContractFacets) {
       if (!contractFacets.has(facet))
         errors.push(`${theme.id}: missing required contract facet ${facet}`);
+    }
+    const behaviorPath = resolve(root, theme.behaviorContractPath);
+    if (!existsSync(behaviorPath))
+      errors.push(`${theme.id}: missing required file ${theme.behaviorContractPath}`);
+    try {
+      const descriptor = await loadThemeBehaviorDescriptor(theme, root);
+      if (descriptor.contract.themeId !== theme.id)
+        errors.push(`${theme.id}: behavior contract theme identity does not match policy`);
+      else {
+        assertThemeBehaviorContractComplete(descriptor.contract, descriptor.structuralRegionIds);
+        assertCustomBehaviorAdaptersRegistered(descriptor.contract, descriptor.adapters);
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+    const authorizedSourceRoot = resolve(root, theme.authorizedSourceRoot);
+    const implementationThemeRoot = resolve(root, `apps/storefront/app/themes/${theme.id}`);
+    const sourceRelativeToImplementation = relative(implementationThemeRoot, authorizedSourceRoot);
+    if (
+      sourceRelativeToImplementation === "" ||
+      (!sourceRelativeToImplementation.startsWith(`..${sep}`) &&
+        sourceRelativeToImplementation !== "..")
+    )
+      errors.push(
+        `${theme.id}: authorized source root must be independent of implementation inputs`,
+      );
+    const sourceEntryPath = resolve(authorizedSourceRoot, theme.sourceEntry);
+    const sourceEntryRelative = relative(authorizedSourceRoot, sourceEntryPath);
+    if (
+      sourceEntryRelative === ".." ||
+      sourceEntryRelative.startsWith(`..${sep}`) ||
+      !existsSync(sourceEntryPath)
+    )
+      errors.push(`${theme.id}: authorized source entry is missing or outside its root`);
+    else {
+      const digest = createHash("sha256").update(readFileSync(sourceEntryPath)).digest("hex");
+      if (digest !== theme.sourceEntrySha256)
+        errors.push(`${theme.id}: authorized source entry digest does not match policy`);
     }
   }
 
@@ -455,7 +529,6 @@ export function validateFidelityEvidenceRecords(
   const namedStatePixelLimit =
     options.thresholds?.namedStateChangedPixelRatio ?? MAX_NAMED_STATE_CHANGED_PIXEL_RATIO;
   const identities = new Set<string>();
-  const regionalCaptureSets = new Set<string>();
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) errors.push("a real commit SHA is required");
   if (records.length === 0) errors.push("no fidelity report records found");
   for (const [index, record] of records.entries()) {
@@ -478,19 +551,15 @@ export function validateFidelityEvidenceRecords(
     else if (source.origin === implementation.origin)
       errors.push(`${label}: source and implementation must use distinct origins`);
     if (results) {
-      const namedStateContracts =
-        record.themeId === "decor" || record.themeId === "fashion" || record.themeId === "fashion-2"
-          ? NAMED_STATES_BY_THEME[record.themeId]
-          : null;
+      const descriptor = options.behaviorDescriptors?.get(String(record.themeId));
+      const namedStateContracts = descriptor?.namedStates ?? null;
       if (!namedStateContracts) errors.push(`${label}: invalid named-state theme identity`);
       if (record.state !== `${record.themeId}-named-states`)
         errors.push(`${label}: invalid named-state suite identity`);
-      const expectedSourcePath =
-        record.themeId === "decor"
-          ? "/demo-decor-store.html"
-          : record.themeId === "fashion" || record.themeId === "fashion-2"
-            ? "/demo-fashion-store.html"
-            : null;
+      const expectedSourcePath = descriptor
+        ? (themeFidelityMatrix.find(({ id }) => id === descriptor.contract.routeId)?.sourcePath ??
+          null)
+        : null;
       if (source && source.pathname !== expectedSourcePath)
         errors.push(`${label}: source URL does not match the named-state contract`);
       if (
@@ -520,6 +589,8 @@ export function validateFidelityEvidenceRecords(
         const stateContract = namedStateContracts?.find(({ id }) => id === stateId);
         if (stateId && !stateContract)
           errors.push(`${resultLabel}: state is absent from the named-state contract`);
+        if (stateContract && result.captureMode !== captureModeForNamedState(stateContract))
+          errors.push(`${resultLabel}: capture mode does not match the named-state contract`);
         if (stateContract && viewportId) {
           const resultIdentity = `${stateId}:${viewportId}`;
           if (resultIdentities.has(resultIdentity))
@@ -578,6 +649,8 @@ export function validateFidelityEvidenceRecords(
         : undefined;
     if (!route) errors.push(`${label}: route is absent from the fidelity matrix`);
     if (!region) errors.push(`${label}: region is absent from the fidelity matrix`);
+    if (region && record.captureMode !== captureModeForRegion(region.id))
+      errors.push(`${label}: capture mode does not match the region contract`);
     if (source && route && source.pathname !== route.sourcePath)
       errors.push(`${label}: source URL does not match the fidelity matrix`);
     const viewportId =
@@ -613,20 +686,24 @@ export function validateFidelityEvidenceRecords(
     if (identities.has(identity))
       errors.push(`${label}: duplicate capture identity at record ${index}`);
     identities.add(identity);
-    if (route && region) regionalCaptureSets.add(`${route.id}:${region.id}`);
   }
-  for (const captureSet of regionalCaptureSets) {
-    const separator = captureSet.indexOf(":");
-    const routeId = captureSet.slice(0, separator);
-    const regionId = captureSet.slice(separator + 1);
-    const route = themeFidelityMatrix.find(({ id }) => id === routeId);
-    if (!route) continue;
-    for (const viewportId of route.viewports) {
-      for (const density of route.densities) {
-        if (!identities.has(`${routeId}:${regionId}:${viewportId}:${density}`))
-          errors.push(`${routeId}/${regionId}: regional capture set is incomplete`);
+  const requiredRouteIds = options.behaviorDescriptors
+    ? new Set([...options.behaviorDescriptors.values()].map(({ contract }) => contract.routeId))
+    : new Set(themeFidelityMatrix.map(({ id }) => id));
+  for (const route of themeFidelityMatrix) {
+    if (!requiredRouteIds.has(route.id)) continue;
+    for (const region of route.regions) {
+      for (const viewportId of route.viewports) {
+        for (const density of route.densities) {
+          if (!identities.has(`${route.id}:${region.id}:${viewportId}:${density}`))
+            errors.push(`${route.id}/${region.id}: regional capture set is incomplete`);
+        }
       }
     }
+  }
+  for (const [themeId, descriptor] of options.behaviorDescriptors ?? []) {
+    if (descriptor.namedStates.length > 0 && !identities.has(`${themeId}:${themeId}-named-states`))
+      errors.push(`${themeId}: named-state aggregate evidence is missing`);
   }
   assertNoErrors(errors, "fidelity evidence failed");
 }
@@ -654,7 +731,14 @@ async function main(): Promise<void> {
   });
   const policy = await loadSourceEquivalencePolicy();
   await validateImportedSourceTree();
-  validateSourceEquivalencePolicy(policy);
+  const behaviorDescriptors = new Map(
+    await Promise.all(
+      policy.themes.map(
+        async (theme) => [theme.id, await loadThemeBehaviorDescriptor(theme, ROOT)] as const,
+      ),
+    ),
+  );
+  await validateSourceEquivalencePolicy(policy);
   if (values.evidence) {
     if (!values.commit) throw new Error("--commit is required with --evidence");
     const paths = await reportFiles(resolve(ROOT, values.evidence));
@@ -664,6 +748,7 @@ async function main(): Promise<void> {
     validateFidelityEvidenceRecords(records, {
       commit: values.commit,
       ...(values["max-age-hours"] ? { maxAgeHours: Number(values["max-age-hours"]) } : {}),
+      behaviorDescriptors,
       thresholds: policy.thresholds,
     });
     console.log(`Verified ${records.length} commit-bound fidelity reports.`);

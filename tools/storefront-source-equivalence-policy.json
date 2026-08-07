@@ -35,63 +35,40 @@
   ],
   "themes": [
     {
-      "id": "decor",
-      "equivalenceScope": ["home", "collection", "product"],
-      "sourceContractPath": "apps/storefront/app/themes/decor/source-contract.ts",
-      "upstreamPath": "apps/storefront/app/themes/decor/UPSTREAM.md",
-      "requiredContractFacets": ["sources", "regions", "font", "interactions"]
-    },
-    {
-      "id": "fashion",
-      "equivalenceScope": [
-        "home",
-        "about",
-        "account",
-        "article",
-        "cart",
-        "checkout",
-        "collection",
-        "collection-showcase",
-        "contact",
-        "faq",
-        "magazine-page",
-        "no-sidebar",
-        "product",
-        "right-sidebar",
-        "wishlist"
-      ],
-      "sourceContractPath": "apps/storefront/app/themes/fashion/source-contract.ts",
-      "upstreamPath": "apps/storefront/app/themes/fashion/UPSTREAM.md",
-      "requiredContractFacets": ["sources", "regions", "fonts", "interactions"]
-    },
-    {
-      "id": "fashion-2",
+      "id": "fashion-store",
+      "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+      "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+      "acceptance": {
+        "browserConfig": "apps/storefront/playwright.fashion-store.config.ts",
+        "browserProject": "fashion-store-desktop",
+        "focusedStates": [
+          { "id": "search-open", "modes": ["interaction"] },
+          { "id": "collection-slide-1", "modes": ["temporal", "interaction"] },
+          { "id": "cart-open", "modes": ["interaction"] },
+          { "id": "marquee-paused", "modes": ["temporal"] },
+          { "id": "scroll-progress-visible", "modes": ["scroll-fixed"] }
+        ],
+        "implementationRuntimeReadySelector": "[data-fashion-store-source-parity][data-runtime-status='ready']",
+        "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+        "sourceRuntimeReadySelector": ".swiper.slider-three-slide"
+      },
       "equivalenceScope": ["home"],
-      "sourceContractPath": "apps/storefront/app/themes/fashion-2/source-contract.ts",
-      "upstreamPath": "apps/storefront/app/themes/fashion-2/UPSTREAM.md",
-      "requiredContractFacets": ["homeSectionCount", "regionOrder", "stylesheetOrder"]
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "behaviorContractExport": "fashionStoreBehaviorContract",
+      "behaviorContractPath": "apps/storefront/app/themes/fashion-store/behavior-contract.ts",
+      "sourceEntry": "demo-fashion-store.html",
+      "sourceEntrySha256": "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465",
+      "sourceContractPath": "apps/storefront/app/themes/fashion-store/source-contract.ts",
+      "sourceFirstHero": "images/demo-fashion-store-slider-01.jpg",
+      "sourceRegionsExport": "fashionStoreSourceRegions",
+      "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md",
+      "requiredContractFacets": [
+        "behaviorContractPath",
+        "homeSectionCount",
+        "regionOrder",
+        "stylesheetOrder"
+      ]
     }
   ],
-  "waivers": [
-    {
-      "id": "decor-home-journal-accessible-contrast",
-      "approvedBy": "shoppp-theme-team",
-      "expiresAt": "2027-08-05T00:00:00.000Z",
-      "owner": "shoppp-theme-team",
-      "rationale": "The source gray fails the repository accessibility contrast requirement; geometry, typography, and all other properties remain source-equivalent.",
-      "regionId": "journal",
-      "routeId": "decor-home",
-      "themeId": "decor"
-    },
-    {
-      "id": "decor-home-services-accessible-contrast",
-      "approvedBy": "shoppp-theme-team",
-      "expiresAt": "2027-08-05T00:00:00.000Z",
-      "owner": "shoppp-theme-team",
-      "rationale": "The source gray fails the repository accessibility contrast requirement; geometry, typography, and all other properties remain source-equivalent.",
-      "regionId": "services",
-      "routeId": "decor-home",
-      "themeId": "decor"
-    }
-  ]
+  "waivers": []
 }

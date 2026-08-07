@@ -6,52 +6,7 @@ import type { StorefrontThemeDescriptor } from "@shoppp/contracts";
 export const storefrontThemeCatalog = [
   {
     "configurationSchemaVersion": 1,
-    "id": "decor",
-    "platformCompatibility": {
-      "maxExclusive": "2.0.0",
-      "min": "1.0.0"
-    },
-    "platformContractVersion": "1.0.0",
-    "presets": [
-      "layered"
-    ],
-    "supportedPageTemplates": [
-      "home",
-      "collection",
-      "product",
-      "cart",
-      "checkout",
-      "order",
-      "policy"
-    ],
-    "themeVersion": "1.0.0"
-  },
-  {
-    "configurationSchemaVersion": 1,
-    "id": "fashion",
-    "platformCompatibility": {
-      "maxExclusive": "2.0.0",
-      "min": "1.0.0"
-    },
-    "platformContractVersion": "1.0.0",
-    "presets": [
-      "editorial"
-    ],
-    "supportedPageTemplates": [
-      "home",
-      "collection",
-      "product",
-      "cart",
-      "checkout",
-      "order",
-      "policy",
-      "content"
-    ],
-    "themeVersion": "1.0.0"
-  },
-  {
-    "configurationSchemaVersion": 1,
-    "id": "fashion-2",
+    "id": "fashion-store",
     "platformCompatibility": {
       "maxExclusive": "2.0.0",
       "min": "1.0.0"

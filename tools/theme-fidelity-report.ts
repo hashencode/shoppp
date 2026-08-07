@@ -2,6 +2,7 @@ import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+  fashionStoreComparisonDescriptor,
   resolveThemeComparison,
   type ThemeComparisonDescriptor,
 } from "../apps/storefront/e2e/support/theme-capture-contract";
@@ -10,12 +11,14 @@ import {
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
 
-export type FidelityThemeId = "decor" | "fashion" | "fashion-2";
+export type FidelityThemeId = "decor" | "fashion" | "fashion-store";
+export type SameIdentityFidelityThemeId = Exclude<FidelityThemeId, "fashion-store">;
 export type FidelityViewportId = "desktop" | "laptop" | "tablet" | "mobile";
 
 export const fidelityViewportIds: FidelityViewportId[] = ["desktop", "laptop", "tablet", "mobile"];
 
 interface CaptureMetadata {
+  captureMode?: "fallback" | "interaction" | "scroll-fixed" | "static" | "temporal";
   capturedAt: string;
   commit?: string;
   state?: string;
@@ -53,19 +56,25 @@ export async function generateThemeFidelityReport(options: {
   implementationRoot: string;
   outputRoot: string;
   referenceRoot: string;
-  themes?: FidelityThemeId[];
+  themes?: SameIdentityFidelityThemeId[];
 }): Promise<string> {
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
-  const themes = options.themes ?? ["fashion", "decor"];
-  const comparisons = options.comparison
+  if ((options.themes as FidelityThemeId[] | undefined)?.includes("fashion-store"))
+    throw new Error(
+      "Fashion Store fidelity must use the Fashion-to-Fashion Store comparison descriptor.",
+    );
+  const themes = options.themes;
+  const comparison = options.comparison ?? (themes ? undefined : fashionStoreComparisonDescriptor);
+  const comparisonRequested = comparison !== undefined;
+  const comparisons = comparison
     ? [
         {
-          artifactId: options.comparison.id,
-          implementationThemeId: options.comparison.implementationThemeId,
-          referenceThemeId: options.comparison.referenceThemeId,
+          artifactId: comparison.id,
+          implementationThemeId: comparison.implementationThemeId,
+          referenceThemeId: comparison.referenceThemeId,
         },
       ]
-    : themes.map((themeId) => ({
+    : themes!.map((themeId) => ({
         artifactId: themeId,
         implementationThemeId: themeId,
         referenceThemeId: themeId,
@@ -81,7 +90,7 @@ export async function generateThemeFidelityReport(options: {
       resolve(options.implementationRoot),
       implementationThemeId,
     );
-    if (options.comparison) {
+    if (comparisonRequested) {
       const maximumAgeMs = 30 * 24 * 60 * 60 * 1_000;
       for (const [side, capturedAt] of [
         ["reference", referenceMetadata.capturedAt],
@@ -92,6 +101,11 @@ export async function generateThemeFidelityReport(options: {
           throw new Error(`${artifactId} ${side} capture is stale.`);
         }
       }
+      if (
+        referenceMetadata.captureMode !== "static" ||
+        implementationMetadata.captureMode !== "static"
+      )
+        throw new Error(`${artifactId} initial-home report requires static capture mode.`);
     }
     if (implementationMetadata.commit !== options.commit) {
       throw new Error(
@@ -116,13 +130,13 @@ export async function generateThemeFidelityReport(options: {
         !actual ||
         expected.width !== actual.width ||
         expected.height !== actual.height ||
-        (options.comparison &&
+        (comparisonRequested &&
           (typeof expected.dpr !== "number" ||
             typeof actual.dpr !== "number" ||
             expected.dpr !== actual.dpr))
       ) {
         throw new Error(
-          options.comparison
+          comparisonRequested
             ? `${artifactId} ${viewport} capture viewport or DPR does not match.`
             : `${artifactId} ${viewport} capture viewport dimensions do not match.`,
         );
@@ -184,7 +198,7 @@ export async function generateThemeFidelityReport(options: {
   const reportPath = join(outputRoot, "index.html");
   await writeFile(
     reportPath,
-    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Fashion and Decor fidelity review</title><style>body{margin:0;padding:32px;background:#eef1f3;color:#14202b;font:16px system-ui}main{max-width:1600px;margin:auto}section{margin:0 0 40px;padding:24px;background:#fff;border-radius:16px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}figure{margin:0}figcaption{font-weight:700;margin-bottom:8px}img{display:block;width:100%;height:auto;border:1px solid #d8dde2}@media(max-width:800px){.comparison{grid-template-columns:1fr}}</style><main><h1>Fashion and Decor fidelity review</h1><p>Reference evidence remains separate from implementation captures. This report does not imply approval.</p>${cards.join("")}</main></html>`,
+    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Source-equivalence fidelity review</title><style>body{margin:0;padding:32px;background:#eef1f3;color:#14202b;font:16px system-ui}main{max-width:1600px;margin:auto}section{margin:0 0 40px;padding:24px;background:#fff;border-radius:16px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}figure{margin:0}figcaption{font-weight:700;margin-bottom:8px}img{display:block;width:100%;height:auto;border:1px solid #d8dde2}@media(max-width:800px){.comparison{grid-template-columns:1fr}}</style><main><h1>Source-equivalence fidelity review</h1><p>Reference evidence remains separate from implementation captures. This report does not imply approval.</p>${cards.join("")}</main></html>`,
   );
   if (options.approvalBy?.trim()) {
     await writeFile(
@@ -195,7 +209,7 @@ export async function generateThemeFidelityReport(options: {
           approvedBy: options.approvalBy.trim(),
           commit: options.commit,
           report: basename(reportPath),
-          ...(options.comparison
+          ...(comparisonRequested
             ? { comparisons: comparisons.map(({ artifactId }) => artifactId) }
             : { themes }),
         },
@@ -223,11 +237,11 @@ async function main(): Promise<void> {
   const implementationRoot = value(arguments_, "--implementation");
   const outputRoot = value(arguments_, "--output");
   const commit = value(arguments_, "--commit");
-  const referenceThemeId = value(arguments_, "--reference-theme");
-  const implementationThemeId = value(arguments_, "--implementation-theme");
+  const referenceThemeId = value(arguments_, "--reference-theme") ?? "fashion";
+  const implementationThemeId = value(arguments_, "--implementation-theme") ?? "fashion-store";
   if (!referenceRoot || !implementationRoot || !outputRoot || !commit) {
     throw new Error(
-      "Usage: bun tools/theme-fidelity-report.ts --reference=<root> --implementation=<root> --output=<root> --commit=<sha> [--reference-theme=fashion --implementation-theme=fashion-2]",
+      "Usage: bun tools/theme-fidelity-report.ts --reference=<root> --implementation=<root> --output=<root> --commit=<sha> [--reference-theme=fashion --implementation-theme=fashion-store]",
     );
   }
   console.log(
@@ -236,9 +250,7 @@ async function main(): Promise<void> {
       implementationRoot,
       outputRoot,
       referenceRoot,
-      ...(referenceThemeId && implementationThemeId
-        ? { comparison: resolveThemeComparison(referenceThemeId, implementationThemeId) }
-        : {}),
+      comparison: resolveThemeComparison(referenceThemeId, implementationThemeId),
     }),
   );
 }

@@ -311,7 +311,7 @@ describe("private preview artifacts", () => {
     const first = await uploadPreviewArtifact(bucket, "snapshot-fashion-1", previewFiles);
     const putCount = bucket.puts;
     const repeated = await uploadPreviewArtifact(bucket, "snapshot-fashion-1", previewFiles);
-    const other = await uploadPreviewArtifact(bucket, "snapshot-fashion-2", previewFiles);
+    const other = await uploadPreviewArtifact(bucket, "snapshot-fashion-store", previewFiles);
 
     expect(repeated).toEqual(first);
     expect(bucket.puts).toBe(putCount + previewFiles.length + 1);

@@ -2,7 +2,7 @@ import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
-const fashion2FontImports = [
+const fashionStoreFontImports = [
   "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');",
   "@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap');",
   '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");',
@@ -26,12 +26,12 @@ export default defineNuxtConfig({
   vite: {
     plugins: [
       {
-        name: "fashion-2-local-font-adaptation",
+        name: "fashion-store-local-font-adaptation",
         enforce: "pre",
         transform(source, id) {
           const cleanId = id.split("?", 1)[0]!;
-          if (!cleanId.includes("/themes/fashion-2/upstream/") || !cleanId.endsWith(".css")) return;
-          const adapted = fashion2FontImports.reduce(
+          if (!cleanId.includes("/themes/fashion-store/upstream/") || !cleanId.endsWith(".css")) return;
+          const adapted = fashionStoreFontImports.reduce(
             (css, remoteImport) => css.replace(remoteImport, ""),
             source,
           );
@@ -43,6 +43,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "en" },
+      link: [{ href: "/favicon.svg", rel: "icon", type: "image/svg+xml" }],
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },

@@ -442,3 +442,68 @@ export function compareSourceContractSnapshots(
 
   return issues;
 }
+
+export interface ThemeVisibleCopyEntry {
+  fingerprint: string;
+  region: string;
+  text: string;
+}
+
+export interface ThemeVisibleCopyComparison {
+  changed: { actual: string; expected: string; fingerprint: string; region: string }[];
+  implementationOnly: ThemeVisibleCopyEntry[];
+  sourceOnly: ThemeVisibleCopyEntry[];
+}
+
+export function normalizeThemeVisibleCopy(value: string): string {
+  return value.replaceAll(/\s+/g, " ").trim();
+}
+
+export function compareThemeVisibleCopy(
+  source: readonly ThemeVisibleCopyEntry[],
+  implementation: readonly ThemeVisibleCopyEntry[],
+): ThemeVisibleCopyComparison {
+  const sourceByFingerprint = new Map(source.map((entry) => [entry.fingerprint, entry]));
+  const implementationByFingerprint = new Map(
+    implementation.map((entry) => [entry.fingerprint, entry]),
+  );
+  const changed: ThemeVisibleCopyComparison["changed"] = [];
+  const sourceOnly: ThemeVisibleCopyEntry[] = [];
+  const implementationOnly: ThemeVisibleCopyEntry[] = [];
+
+  for (const entry of source) {
+    const actual = implementationByFingerprint.get(entry.fingerprint);
+    if (!actual) sourceOnly.push(entry);
+    else if (normalizeThemeVisibleCopy(actual.text) !== normalizeThemeVisibleCopy(entry.text))
+      changed.push({
+        actual: actual.text,
+        expected: entry.text,
+        fingerprint: entry.fingerprint,
+        region: entry.region,
+      });
+  }
+  for (const entry of implementation) {
+    if (!sourceByFingerprint.has(entry.fingerprint)) implementationOnly.push(entry);
+  }
+  return { changed, implementationOnly, sourceOnly };
+}
+
+export function assertThemeVisibleCopyEquivalent(
+  source: readonly ThemeVisibleCopyEntry[],
+  implementation: readonly ThemeVisibleCopyEntry[],
+): void {
+  const comparison = compareThemeVisibleCopy(source, implementation);
+  const issues = [
+    ...comparison.sourceOnly.map(
+      ({ fingerprint, region, text }) => `${region}/${fingerprint}: source-only "${text}"`,
+    ),
+    ...comparison.implementationOnly.map(
+      ({ fingerprint, region, text }) => `${region}/${fingerprint}: implementation-only "${text}"`,
+    ),
+    ...comparison.changed.map(
+      ({ actual, expected, fingerprint, region }) =>
+        `${region}/${fingerprint}: changed from "${expected}" to "${actual}"`,
+    ),
+  ];
+  if (issues.length > 0) throw new Error(`Visible-copy parity failed:\n${issues.join("\n")}`);
+}

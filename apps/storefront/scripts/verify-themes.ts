@@ -8,12 +8,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
-import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
-import { decorPreset } from "../app/themes/decor/presets/layered";
-import { fashionManifest, fashionThemeDescriptor } from "../app/themes/fashion/manifest";
-import { fashionPreset } from "../app/themes/fashion/presets/editorial";
-import { fashion2Manifest, fashion2ThemeDescriptor } from "../app/themes/fashion-2/manifest";
-import { fashion2Preset } from "../app/themes/fashion-2/presets/source-parity";
+import { fashionStoreManifest, fashionStoreThemeDescriptor } from "../app/themes/fashion-store/manifest";
+import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
 
 export const STOREFRONT_PLATFORM_CONTRACT_VERSION = "1.0.0";
 export const REQUIRED_STOREFRONT_PAGE_TYPES = [
@@ -41,24 +37,10 @@ export type ThemeMatrixEntry = {
 
 export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
   {
-    assetPolicy: "binary-only",
-    descriptor: decorThemeDescriptor,
-    migrations: [],
-    package: { manifest: decorManifest, presets: [decorPreset] },
-    requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
-  },
-  {
-    assetPolicy: "binary-only",
-    descriptor: fashionThemeDescriptor,
-    migrations: [],
-    package: { manifest: fashionManifest, presets: [fashionPreset] },
-    requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
-  },
-  {
     assetPolicy: "source-equivalent",
-    descriptor: fashion2ThemeDescriptor,
+    descriptor: fashionStoreThemeDescriptor,
     migrations: [],
-    package: { manifest: fashion2Manifest, presets: [fashion2Preset] },
+    package: { manifest: fashionStoreManifest, presets: [fashionStorePreset] },
     requiredPageTypes: ["home"],
   },
 ];
