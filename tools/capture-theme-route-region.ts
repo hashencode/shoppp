@@ -1190,10 +1190,16 @@ async function captureRegionScreenshot(page: Page, selector: string, path: strin
     await page.evaluate(
       () =>
         new Promise<void>((resolvePromise) => {
-          scrollTo(0, 0);
-          requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise()));
+          document.documentElement.style.setProperty("scroll-behavior", "auto", "important");
+          document.body.style.setProperty("scroll-behavior", "auto", "important");
+          scrollTo({ behavior: "auto", left: 0, top: 0 });
+          requestAnimationFrame(() => {
+            scrollTo(0, 0);
+            requestAnimationFrame(() => resolvePromise());
+          });
         }),
     );
+    await page.waitForFunction(() => scrollX === 0 && scrollY === 0);
     bounds = await page
       .locator(selector)
       .first()
