@@ -99,7 +99,7 @@ export const fashionStorePageContracts = [
     id: "checkout",
     path: "/checkout",
     pageType: "checkout",
-    ready: false,
+    ready: true,
     sourceEntry: "demo-fashion-store-checkout.html",
     variant: "checkout",
   },

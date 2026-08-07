@@ -15,8 +15,9 @@ const redirectRules = Object.fromEntries(
     { redirect: { to: redirect.to, statusCode: 301 } },
   ]),
 );
+const previewPlatformRoutes = ["/checkout/complete"] as const;
 const prerenderRoutes = previewBuild
-  ? [...fashionStorePreviewRoutes]
+  ? [...fashionStorePreviewRoutes, ...previewPlatformRoutes]
   : [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"];
 
 export default defineNuxtConfig({

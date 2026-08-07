@@ -18,6 +18,8 @@ export type NamedStateAction =
   | { kind: "cart-coupon" }
   | { index: number; kind: "cart-quantity" }
   | { kind: "cart-shipping" }
+  | { kind: "checkout-account" }
+  | { kind: "checkout-payment"; payment: "bank" | "cash" | "check" | "paypal" }
   | { kind: "category-hover" }
   | { kind: "client-pause" }
   | { index: number; kind: "collection" }

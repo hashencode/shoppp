@@ -165,6 +165,8 @@ export function captureModeForNamedState(state: NamedStateContract): ThemeAccept
       "cart-coupon",
       "cart-quantity",
       "cart-shipping",
+      "checkout-account",
+      "checkout-payment",
       "collection-hover",
       "navigation",
       "pause",

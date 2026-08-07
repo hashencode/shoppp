@@ -81,6 +81,16 @@ if (previewBuild && activeThemeId === "fashion-store") {
       throw error;
     }
   }
+
+  const checkoutComplete = await readFile(outputPath("/checkout/complete"), "utf8");
+  if (
+    !checkoutComplete.includes("Provider-verified status") ||
+    !/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(checkoutComplete)
+  ) {
+    throw new Error(
+      "Fashion Store preview must prerender the non-indexable checkout completion shell.",
+    );
+  }
 }
 
 for (const file of ["404.html", "robots.txt", "sitemap.xml", "_redirects"]) {

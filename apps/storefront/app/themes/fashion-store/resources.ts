@@ -70,6 +70,7 @@ import image68 from "./upstream/images/discover.svg";
 import image69 from "./upstream/images/mastercard.svg";
 import image70 from "./upstream/images/union-pay.svg";
 import image71 from "./upstream/images/visa.svg";
+import image72 from "./upstream/images/paypal-logo.jpg";
 
 const sourceImages = new Map<string, string>([
   ["images/apple-touch-icon-114x114.png", image0],
@@ -144,6 +145,7 @@ const sourceImages = new Map<string, string>([
   ["images/mastercard.svg", image69],
   ["images/union-pay.svg", image70],
   ["images/visa.svg", image71],
+  ["images/paypal-logo.jpg", image72],
 ]);
 
 const establishedIds: Readonly<Record<string, string>> = {

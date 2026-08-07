@@ -23,6 +23,7 @@ describe("static generation manifest", () => {
       "/shop/right-sidebar",
       "/products/relaxed-corduroy-shirt",
       "/cart",
+      "/checkout",
     ]);
   });
 
@@ -33,6 +34,12 @@ describe("static generation manifest", () => {
       ),
     );
     expect(scripts.every((source) => source.includes("activeThemeRoutes"))).toBe(true);
+  });
+
+  test("prerenders the platform checkout completion shell alongside theme preview routes", async () => {
+    const nuxtConfig = await readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8");
+    expect(nuxtConfig).toContain('const previewPlatformRoutes = ["/checkout/complete"]');
+    expect(nuxtConfig).toContain("[...fashionStorePreviewRoutes, ...previewPlatformRoutes]");
   });
 
   test("contains every published route exactly once in isolated modules", async () => {

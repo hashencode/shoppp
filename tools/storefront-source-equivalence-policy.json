@@ -41,7 +41,7 @@
         "browserProject": "fashion-store-desktop"
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "product", "cart"],
+      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "product", "cart", "checkout"],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
       "pages": [
@@ -201,6 +201,28 @@
           "sourceEntrySha256": "fe60f6a7e897350e927a7b222eb8ea6c21c1598712a6784380eeeb487d8eca51",
           "sourceRegionsExport": "fashionStoreCartSourceRegions",
           "sourceRuntimeReadySelector": ".cart-products"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreCheckoutBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/checkout.ts",
+          "focusedStates": [
+            { "id": "checkout-account-open", "modes": ["interaction"] },
+            { "id": "checkout-payment-paypal", "modes": ["interaction"] }
+          ],
+          "id": "checkout",
+          "implementationRoute": "/checkout",
+          "implementationRuntimeReadySelector": "[data-fashion-store-checkout][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "checkout",
+          "requiredContractFacets": ["lineCount", "paymentCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/checkout.ts",
+          "sourceEntry": "demo-fashion-store-checkout.html",
+          "sourceEntrySha256": "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b",
+          "sourceRegionsExport": "fashionStoreCheckoutSourceRegions",
+          "sourceRuntimeReadySelector": ".your-order-box"
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"

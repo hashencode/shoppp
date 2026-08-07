@@ -46,6 +46,13 @@
           "sourcePath": "demo-fashion-store-cart.html"
         },
         {
+          "destinationPath": "upstream/demo-fashion-store-checkout.html",
+          "expectedSha256": "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-checkout.html"
+        },
+        {
           "destinationPath": "upstream/demo-fashion-store-single-product.html",
           "expectedSha256": "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
           "kind": "markup",
@@ -734,6 +741,13 @@
           "sourcePath": "images/mfg-close.png"
         },
         {
+          "destinationPath": "upstream/images/paypal-logo.jpg",
+          "expectedSha256": "701142b5d94966aaf1a1d3ec5360eef4e673f07dabcb4db2d8ee02fa355edda6",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/paypal-logo.jpg"
+        },
+        {
           "destinationPath": "upstream/js/jquery.js",
           "expectedSha256": "c30b56bf74c6057c8b9104b92d33b4ade752667fe4dcc1a5d121fc4336fffdf1",
           "kind": "visual-runtime",
@@ -861,6 +875,15 @@
           "sourcePath": "demo-fashion-store-cart.html",
           "bytes": 75984,
           "sha256": "fe60f6a7e897350e927a7b222eb8ea6c21c1598712a6784380eeeb487d8eca51"
+        },
+        {
+          "destinationPath": "upstream/demo-fashion-store-checkout.html",
+          "expectedSha256": "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-checkout.html",
+          "bytes": 107391,
+          "sha256": "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b"
         },
         {
           "destinationPath": "upstream/demo-fashion-store-single-product.html",
@@ -1736,6 +1759,15 @@
           "sourcePath": "images/mfg-close.png",
           "bytes": 610,
           "sha256": "8972efa9737fa05affa933cd8a203fb11545e2ce83ad303e7da930ccd23bcf3f"
+        },
+        {
+          "destinationPath": "upstream/images/paypal-logo.jpg",
+          "expectedSha256": "701142b5d94966aaf1a1d3ec5360eef4e673f07dabcb4db2d8ee02fa355edda6",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/paypal-logo.jpg",
+          "bytes": 13137,
+          "sha256": "701142b5d94966aaf1a1d3ec5360eef4e673f07dabcb4db2d8ee02fa355edda6"
         },
         {
           "destinationPath": "upstream/images/union-pay.svg",

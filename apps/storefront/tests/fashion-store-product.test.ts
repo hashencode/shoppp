@@ -62,6 +62,7 @@ describe("Fashion Store product detail", () => {
       "shop-right",
       "product",
       "cart",
+      "checkout",
     ]);
   });
 });

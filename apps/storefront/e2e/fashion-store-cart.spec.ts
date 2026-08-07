@@ -204,7 +204,7 @@ test("cart-coupon-invalid interaction: local controls never post coupon data and
   await page.evaluate(() => document.querySelector<HTMLElement>(".header-cart")?.classList.add("open"));
   await page.getByRole("link", { name: "Proceed to checkout" }).click();
   await expect(page).toHaveURL(/\/checkout$/);
-  await expect(page.getByText("Preview template unavailable")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("shoppp.guest-cart-token"))).toBe("cart-token");
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,

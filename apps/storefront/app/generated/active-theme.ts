@@ -45,6 +45,14 @@ export const activeExperienceSnapshot = {
       "kind": "fixture",
       "resource": "cart",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-checkout",
+      "id": "fashion-store-checkout-binding",
+      "instanceId": "fashion-store-checkout",
+      "kind": "fixture",
+      "resource": "checkout",
+      "state": "populated"
     }
   ],
   "configurationSchemaVersion": 1,
@@ -119,6 +127,22 @@ export const activeExperienceSnapshot = {
           "required": true,
           "settings": {},
           "type": "fashion-store.cart",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "fashion-store-checkout",
+      "pageType": "checkout",
+      "requiredCapabilities": [],
+      "sections": [
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-checkout",
+          "required": true,
+          "settings": {},
+          "type": "fashion-store.checkout",
           "visible": true
         }
       ]

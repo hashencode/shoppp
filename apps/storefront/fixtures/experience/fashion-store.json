@@ -33,6 +33,14 @@
       "kind": "fixture",
       "resource": "cart",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-checkout",
+      "id": "fashion-store-checkout-binding",
+      "instanceId": "fashion-store-checkout",
+      "kind": "fixture",
+      "resource": "checkout",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-fashion-store-fixture",

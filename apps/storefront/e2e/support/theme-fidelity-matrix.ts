@@ -10,6 +10,7 @@ import {
 } from "../../app/themes/fashion-store/contracts/pages/shop";
 import { fashionStoreProductBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/product";
 import { fashionStoreCartBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/cart";
+import { fashionStoreCheckoutBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/checkout";
 import {
   fidelityStatesByRegionFromBehaviorContract,
   type ThemeBehaviorContract,
@@ -263,6 +264,41 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath: "/demo-fashion-store-cart.html",
     viewports: themeViewportIds,
   },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-checkout",
+    implementationPath: "/checkout",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("breadcrumb", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region("helper-controls", "control", "section:nth-of-type(2) .row:first-child", ".fashion-checkout-helpers"),
+      region(
+        "billing",
+        "section",
+        "section:nth-of-type(2) .col-lg-7",
+        ".fashion-checkout-billing",
+        shopStates(fashionStoreCheckoutBehaviorContract, "billing"),
+      ),
+      region(
+        "order-summary",
+        "section",
+        ".your-order-box",
+        ".your-order-box",
+        shopStates(fashionStoreCheckoutBehaviorContract, "order-summary"),
+      ),
+      region(
+        "payment",
+        "control",
+        ".checkout-accordion",
+        ".your-order-box .checkout-accordion",
+        shopStates(fashionStoreCheckoutBehaviorContract, "payment"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-checkout.html",
+    viewports: themeViewportIds,
+  },
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -277,6 +313,7 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
   },
   ...[
     fashionStoreCartBehaviorContract,
+    fashionStoreCheckoutBehaviorContract,
     fashionStoreProductBehaviorContract,
     fashionStoreShopLeftBehaviorContract,
     fashionStoreShopNoneBehaviorContract,

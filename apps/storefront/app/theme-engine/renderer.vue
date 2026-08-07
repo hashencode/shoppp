@@ -3,6 +3,7 @@ import type { FixtureBinding, PageTemplate } from "@shoppp/contracts";
 
 import type { ThemeAssetResolver } from "./assets";
 import { previewActionAdapterKey, type PreviewActionAdapter } from "./actions";
+import { previewCheckoutAdapterKey, type PreviewCheckoutAdapter } from "./checkout";
 import { coreThemeRegistry } from "./core-registry";
 import { composeThemeRegistries, renderTemplatePlan, type ThemeRegistry } from "./registry";
 import {
@@ -18,9 +19,11 @@ const properties = defineProps<{
   registry: ThemeRegistry;
   resolveAsset: ThemeAssetResolver;
   template: PageTemplate;
+  checkoutAdapter: PreviewCheckoutAdapter;
 }>();
 
 provide(previewActionAdapterKey, properties.actionAdapter);
+provide(previewCheckoutAdapterKey, properties.checkoutAdapter);
 
 const plan = computed(() =>
   renderTemplatePlan(
