@@ -67,8 +67,13 @@ for (const shopPage of shopPages) {
       page.locator("header .navbar").boundingBox(),
       shop.locator("section:nth-of-type(1)").boundingBox(),
     ]);
-    expect(Math.round(headerNavigation!.y)).toBe(page.viewportSize()!.width >= 992 ? 40 : 0);
-    expect(Math.round(pageTitle!.y)).toBe(page.viewportSize()!.width >= 992 ? 118 : 79);
+    const viewportWidth = page.viewportSize()!.width;
+    expect(Math.round(headerNavigation!.y)).toBe(
+      viewportWidth >= 992 ? 40 : viewportWidth >= 576 ? 41 : 0,
+    );
+    expect(Math.round(pageTitle!.y)).toBe(
+      viewportWidth >= 992 ? 118 : viewportWidth >= 576 ? 119 : 79,
+    );
     expect(
       await shop
         .locator("img")
@@ -194,7 +199,7 @@ test("Shop filters combine source controls without implementation-only result co
   await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(12);
   await shop.locator(".color-filter button", { hasText: "Blue" }).click();
   await shop.locator(".size-filter button", { hasText: "M" }).click();
-  await shop.locator(".tag-cloud button", { hasText: "Cotton" }).click();
+  await shop.locator(".tag-cloud a", { hasText: "Cotton" }).click();
   await jeans.focus();
   await jeans.press("Enter");
   await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(1);

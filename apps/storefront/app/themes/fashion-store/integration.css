@@ -267,9 +267,9 @@
 [data-fashion-store-shop] .slider-one-slide .swiper-slide:not(.swiper-slide-active) {
   position: absolute;
   top: 0;
-  left: 181px;
+  left: 100%;
   display: block !important;
-  width: 212px;
+  width: 100%;
 }
 
 .shop-modern .price {
@@ -315,6 +315,10 @@
 [data-fashion-store-shop] .slider-one-slide .swiper-slide {
   flex: 0 0 100%;
   width: 100% !important;
+}
+
+[data-fashion-store-shop] .shop-filter.tag-cloud a {
+  margin-right: 10px;
 }
 
 @media (min-width: 992px) {

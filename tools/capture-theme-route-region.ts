@@ -193,8 +193,22 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
       new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 2_000)),
     ]);
     document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
-      const swiper = (element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }).swiper;
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideTo?(index: number, speed?: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
       swiper?.autoplay?.stop();
+      if (element.matches(".shop-sidebar .slider-one-slide")) {
+        swiper?.slideTo?.(0, 0, false);
+        // The implementation owns its arrivals autoplay outside Swiper. Hovering
+        // pauses that timer before the longer image/font stabilization can cross
+        // its first tick and expose a different slide than the frozen source.
+        element.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+      }
     });
     scrollTo(0, 0);
   });
@@ -268,6 +282,31 @@ async function stabilizeProductGallery(page: Page, source: boolean): Promise<voi
   });
   await page.waitForTimeout(350);
   await page.evaluate(() => scrollTo(0, 0));
+}
+
+async function stabilizeFashionStoreShopArrivals(page: Page, source: boolean): Promise<void> {
+  await page.evaluate((sourceSide) => {
+    const slider = document.querySelector<HTMLElement>(".shop-sidebar .slider-one-slide");
+    if (!slider) return;
+    slider.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+    if (sourceSide) {
+      const swiper = (
+        slider as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideTo?(index: number, speed?: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideTo?.(0, 0, false);
+      return;
+    }
+    const currentIndex = Number(slider.dataset.arrivalIndex ?? "0");
+    const previous = document.querySelector<HTMLElement>(".shop-sidebar .slider-one-slide-prev-1");
+    for (let index = 0; index < currentIndex; index += 1) previous?.click();
+  }, source);
+  await page.waitForTimeout(100);
 }
 
 async function stabilizeDecorHero(page: Page, source: boolean): Promise<void> {
@@ -1361,6 +1400,14 @@ export async function captureThemeRouteRegion(options: {
       ]);
       await hydrateSourcePlaceholderImages(source);
       await Promise.all([stabilize(source, captureMode), stabilize(implementation, captureMode)]);
+      if (
+        options.routeId === "fashion-store-shop-left" ||
+        options.routeId === "fashion-store-shop-right"
+      )
+        await Promise.all([
+          stabilizeFashionStoreShopArrivals(source, true),
+          stabilizeFashionStoreShopArrivals(implementation, false),
+        ]);
       source.on("pageerror", (error) => runtimeErrors.push(`source page error: ${error.message}`));
       source.on("console", (message) => {
         if (message.type() === "error")
