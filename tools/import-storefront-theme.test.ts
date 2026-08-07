@@ -10,7 +10,7 @@ import {
 
 const temporaryRoots: string[] = [];
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const safeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M0 0h20v20H0z"/></svg>\n`;
+const safeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><defs><clipPath id="card"><rect width="20" height="20"/></clipPath></defs><g clip-path="url(#card)"><path d="M0 0h20v20H0z"/></g></svg>\n`;
 
 function sha256(contents: string | Uint8Array): string {
   return new Bun.CryptoHasher("sha256").update(contents).digest("hex");
@@ -401,6 +401,45 @@ describe("Fashion Store source implementation import", () => {
         join(value.destinationRoot, "fashion-store/upstream/fonts/remote-source.woff2"),
       ),
     ).toEqual(Buffer.from(font));
+  });
+
+  test("appends newly pinned files without replacing or re-reading existing source assets", async () => {
+    const value = await fashionStoreFixture();
+    const first = await importStorefrontTheme({
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-06",
+      manifest: value.manifest,
+      manifestPath: value.manifestPath,
+      source: value.source,
+      themeId: "fashion-store",
+    });
+    await writeFixture(value.source, "css/theme.css", ".source-drift{}\n");
+    await writeFixture(value.source, "images/detail.png", png);
+    first.themes[0]!.allowlist.push({
+      destinationPath: "upstream/images/detail.png",
+      expectedSha256: sha256(png),
+      kind: "image",
+      license: "Authorized Fashion Store test source",
+      sourcePath: "images/detail.png",
+    });
+
+    const appended = await importStorefrontTheme({
+      appendOnly: true,
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-07",
+      manifest: first,
+      manifestPath: value.manifestPath,
+      source: value.source,
+      themeId: "fashion-store",
+    });
+
+    expect(appended.themes[0]?.importedFiles).toHaveLength(7);
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/upstream/css/theme.css"), "utf8"),
+    ).not.toContain("source-drift");
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/upstream/images/detail.png")),
+    ).toEqual(Buffer.from(png));
   });
 
   test("fails before copying on a changed hash, missing dependency, or symlink", async () => {

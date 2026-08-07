@@ -31,12 +31,13 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(page.steps[0]!.label).toBe("fashion-store/home/page");
 
     const theme = buildAcceptancePlan(policy, { scope: "theme", themeId: "fashion-store" });
-    expect(theme.pageIds).toEqual(["home", "shop-left", "shop-none", "shop-right"]);
+    expect(theme.pageIds).toEqual(["home", "shop-left", "shop-none", "shop-right", "product"]);
     expect(theme.steps.map(({ label }) => label)).toEqual([
       "fashion-store/home/page",
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
+      "fashion-store/product/page",
     ]);
   });
 
@@ -66,12 +67,20 @@ describe("source-equivalence acceptance orchestration", () => {
       scope: "theme",
       themeId: "fashion-store",
     });
-    expect(allPages.pageIds).toEqual(["home", "shop-left", "shop-none", "shop-right", "synthetic"]);
+    expect(allPages.pageIds).toEqual([
+      "home",
+      "shop-left",
+      "shop-none",
+      "shop-right",
+      "product",
+      "synthetic",
+    ]);
     expect(allPages.steps.map(({ label }) => label)).toEqual([
       "fashion-store/home/page",
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
+      "fashion-store/product/page",
       "fashion-store/synthetic/page",
     ]);
   });
@@ -84,6 +93,7 @@ describe("source-equivalence acceptance orchestration", () => {
         "fashion-store-acceptance-slice.spec.ts",
         "fashion-store-acceptance-self-test.spec.ts",
         "fashion-store-shop.spec.ts",
+        "fashion-store-product.spec.ts",
         "theme-behavior-contract.spec.ts",
       ].map((file) => readFile(resolve(import.meta.dir, "../apps/storefront/e2e", file), "utf8")),
     );
@@ -110,6 +120,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
+      "fashion-store/product/page",
       "fidelity-evidence",
     ]);
   });

@@ -83,7 +83,7 @@ export const fashionStorePageContracts = [
     id: "product",
     path: "/products/relaxed-corduroy-shirt",
     pageType: "product",
-    ready: false,
+    ready: true,
     sourceEntry: "demo-fashion-store-single-product.html",
     variant: "product",
   },

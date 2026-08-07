@@ -7,8 +7,10 @@ import "./integration.css";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import FashionStoreHome from "./components/FashionStoreHome.vue";
 import FashionStoreShopPage from "./components/pages/FashionStoreShopPage.vue";
+import FashionStoreProductPage from "./components/pages/FashionStoreProductPage.vue";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
 import { fashionStoreShopFixtures } from "./fixtures/pages/shop";
+import { fashionStoreProductFixtures } from "./fixtures/pages/product";
 import { fashionStoreEnabledPageContracts } from "./page-contracts";
 import { themeAssets } from "./resources";
 
@@ -17,9 +19,14 @@ export const themeRegistry = {
   sections: {
     "fashion-store.home": FashionStoreHome,
     "fashion-store.collection": FashionStoreShopPage,
+    "fashion-store.product": FashionStoreProductPage,
   },
 } as const satisfies ThemeRegistry;
 
 export { themeAssets };
-export const themeFixtures = { ...fashionStoreHomeFixtures, ...fashionStoreShopFixtures };
+export const themeFixtures = {
+  ...fashionStoreHomeFixtures,
+  ...fashionStoreProductFixtures,
+  ...fashionStoreShopFixtures,
+};
 export const themeRoutes = fashionStoreEnabledPageContracts;

@@ -54,6 +54,22 @@ import image52 from "./upstream/images/logo-chanel.svg";
 import image53 from "./upstream/images/logo-gucci.svg";
 import image54 from "./upstream/images/marker02.png";
 import image55 from "./upstream/images/mfg-close.png";
+import image56 from "./upstream/images/avtar-27.jpg";
+import image57 from "./upstream/images/avtar-28.jpg";
+import image58 from "./upstream/images/avtar-29.jpg";
+import image59 from "./upstream/images/demo-fashion-store-product-detail-01.jpg";
+import image60 from "./upstream/images/demo-fashion-store-product-detail-02.jpg";
+import image61 from "./upstream/images/demo-fashion-store-product-detail-03.jpg";
+import image62 from "./upstream/images/demo-fashion-store-product-detail-04.jpg";
+import image63 from "./upstream/images/demo-fashion-store-product-detail-05.jpg";
+import image64 from "./upstream/images/demo-fashion-store-product-detail-06.jpg";
+import image65 from "./upstream/images/demo-fashion-store-product-detail-07.jpg";
+import image66 from "./upstream/images/american-express.svg";
+import image67 from "./upstream/images/diners-club.svg";
+import image68 from "./upstream/images/discover.svg";
+import image69 from "./upstream/images/mastercard.svg";
+import image70 from "./upstream/images/union-pay.svg";
+import image71 from "./upstream/images/visa.svg";
 
 const sourceImages = new Map<string, string>([
   ["images/apple-touch-icon-114x114.png", image0],
@@ -112,6 +128,22 @@ const sourceImages = new Map<string, string>([
   ["images/logo-gucci.svg", image53],
   ["images/marker02.png", image54],
   ["images/mfg-close.png", image55],
+  ["images/avtar-27.jpg", image56],
+  ["images/avtar-28.jpg", image57],
+  ["images/avtar-29.jpg", image58],
+  ["images/demo-fashion-store-product-detail-01.jpg", image59],
+  ["images/demo-fashion-store-product-detail-02.jpg", image60],
+  ["images/demo-fashion-store-product-detail-03.jpg", image61],
+  ["images/demo-fashion-store-product-detail-04.jpg", image62],
+  ["images/demo-fashion-store-product-detail-05.jpg", image63],
+  ["images/demo-fashion-store-product-detail-06.jpg", image64],
+  ["images/demo-fashion-store-product-detail-07.jpg", image65],
+  ["images/american-express.svg", image66],
+  ["images/diners-club.svg", image67],
+  ["images/discover.svg", image68],
+  ["images/mastercard.svg", image69],
+  ["images/union-pay.svg", image70],
+  ["images/visa.svg", image71],
 ]);
 
 const establishedIds: Readonly<Record<string, string>> = {

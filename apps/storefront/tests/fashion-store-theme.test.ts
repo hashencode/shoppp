@@ -43,6 +43,7 @@ describe("Fashion Store preview registration", () => {
     expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual([
       "home",
       "collection",
+      "product",
     ]);
     expect(source).toContain('from "../themes/fashion-store/registry"');
     expect(source).not.toContain("themes/fashion/registry");

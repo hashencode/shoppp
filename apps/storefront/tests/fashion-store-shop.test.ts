@@ -92,12 +92,13 @@ describe("Fashion Store Shop layout family", () => {
     ).toEqual(["textured-sweater-01"]);
   });
 
-  test("readiness-enables exactly the complete Shop family plus home", () => {
+  test("keeps the complete Shop family enabled as later pages become ready", () => {
     expect(fashionStoreEnabledPageContracts.map(({ id }) => id)).toEqual([
       "home",
       "shop-left",
       "shop-none",
       "shop-right",
+      "product",
     ]);
   });
 });

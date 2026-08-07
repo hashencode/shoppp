@@ -8,6 +8,7 @@ import {
   fashionStoreShopNoneBehaviorContract,
   fashionStoreShopRightBehaviorContract,
 } from "../../app/themes/fashion-store/contracts/pages/shop";
+import { fashionStoreProductBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/product";
 import {
   fidelityStatesByRegionFromBehaviorContract,
   type ThemeBehaviorContract,
@@ -198,6 +199,41 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath,
     viewports: themeViewportIds,
   })),
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-product",
+    implementationPath: "/products/relaxed-corduroy-shirt",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("breadcrumb", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "gallery",
+        "component",
+        ".col-lg-7 .row.overflow-hidden",
+        ".fashion-product-gallery .row.overflow-hidden",
+        shopStates(fashionStoreProductBehaviorContract, "gallery"),
+      ),
+      region(
+        "product-info",
+        "section",
+        ".product-info",
+        ".product-info",
+        shopStates(fashionStoreProductBehaviorContract, "product-info"),
+      ),
+      region(
+        "tabs",
+        "section",
+        "#tab",
+        "#tab",
+        shopStates(fashionStoreProductBehaviorContract, "tabs"),
+      ),
+      region("related-products", "section", "section:nth-of-type(4)", ".fashion-product-related"),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-single-product.html",
+    viewports: themeViewportIds,
+  },
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -211,6 +247,7 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
     fidelityStatesByRegion: fashionStoreFidelityStatesByRegion,
   },
   ...[
+    fashionStoreProductBehaviorContract,
     fashionStoreShopLeftBehaviorContract,
     fashionStoreShopNoneBehaviorContract,
     fashionStoreShopRightBehaviorContract,

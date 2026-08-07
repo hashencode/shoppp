@@ -12,12 +12,20 @@ import { createThemeAssetResolver, mergeExperienceFixtureRegistries } from "./th
 import { resolveThemeRoute } from "./theme-engine/routes";
 import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
+import { useGuestCart } from "./features/cart/use-guest-cart";
+import type { PreviewActionAdapter } from "./theme-engine/actions";
 
 const selectedFixtures = mergeExperienceFixtureRegistries(
   experienceFixtureRegistry,
   activeThemeFixtures,
 );
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
+const { add: addGuestCartLine } = useGuestCart();
+const previewActionAdapter: PreviewActionAdapter = async (dispatch) => {
+  if (dispatch.kind === "cart.add") {
+    await addGuestCartLine(dispatch.input, dispatch.currency);
+  }
+};
 
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
@@ -61,6 +69,7 @@ if (activeExperienceSnapshot && previewOrigin) {
   <div class="app-shell">
     <ThemeRenderer
       v-if="previewTemplate"
+      :action-adapter="previewActionAdapter"
       :bindings="activeExperienceSnapshot?.bindings ?? []"
       :fixtures="selectedFixtures"
       :registry="activeThemeRegistry"

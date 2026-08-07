@@ -14,6 +14,11 @@ export {
   fashionStoreShopRightSourceRegions,
   fashionStoreShopSourcePages,
 } from "./contracts/pages/shop";
+export {
+  fashionStoreProductSourceContract,
+  fashionStoreProductSourcePage,
+  fashionStoreProductSourceRegions,
+} from "./contracts/pages/product";
 
 export const fashionStoreSourceEntries = [
   "demo-fashion-store.html",

@@ -1,4 +1,14 @@
-import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import {
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, extname, join, normalize, posix, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { format } from "prettier";
@@ -46,6 +56,7 @@ export interface StorefrontThemeSourceManifest {
 }
 
 export interface ImportStorefrontThemeOptions {
+  appendOnly?: boolean;
   destinationRoot: string;
   importedAt: string;
   manifest: StorefrontThemeSourceManifest;
@@ -243,7 +254,7 @@ function validateSvg(contents: Uint8Array, path: string): void {
     throw new Error(`SVG MIME content is invalid for ${path}.`);
   }
   if (
-    /<script|<foreignObject|<style|<!DOCTYPE|<!ENTITY|\son[a-z]+\s*=|javascript:|data:|url\s*\(/i.test(
+    /<script|<foreignObject|<style|<!DOCTYPE|<!ENTITY|\son[a-z]+\s*=|javascript:|data:/i.test(
       markup,
     )
   ) {
@@ -251,6 +262,11 @@ function validateSvg(contents: Uint8Array, path: string): void {
   }
   if (/(?:href|xlink:href)\s*=\s*["'](?:https?:|\/\/)/i.test(markup)) {
     throw new Error(`External SVG references are prohibited for ${path}.`);
+  }
+  for (const match of markup.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/gi)) {
+    if (!/^#[A-Za-z][\w:.-]*$/.test(match[1] ?? "")) {
+      throw new Error(`External SVG references are prohibited for ${path}.`);
+    }
   }
 }
 
@@ -432,6 +448,7 @@ function validateManifest(manifest: StorefrontThemeSourceManifest): void {
 }
 
 export async function importStorefrontTheme({
+  appendOnly = false,
   destinationRoot,
   importedAt,
   manifest,
@@ -450,6 +467,11 @@ export async function importStorefrontTheme({
     throw new Error("A verified source identity and revision are required before copying assets.");
   }
   if (!importedAt.trim()) throw new Error("A deterministic import date is required.");
+  if (appendOnly && themeId !== "fashion-store") {
+    throw new Error(
+      "Append-only imports are restricted to the Fashion Store source implementation.",
+    );
+  }
   declaration.allowlist.forEach((asset) => validateAssetDeclaration(asset, themeId));
   const sourcePaths = declaration.allowlist.map(({ sourcePath }) => sourcePath);
   const destinationPaths = declaration.allowlist.map(({ destinationPath }) => destinationPath);
@@ -462,11 +484,19 @@ export async function importStorefrontTheme({
 
   const resolvedSource = resolve(source);
   const allowedPaths = new Set(sourcePaths);
+  const existingFiles = appendOnly ? declaration.importedFiles : [];
+  const existingDestinations = new Set(existingFiles.map(({ destinationPath }) => destinationPath));
+  const assetsToImport = appendOnly
+    ? declaration.allowlist.filter(
+        ({ destinationPath }) => !existingDestinations.has(destinationPath),
+      )
+    : declaration.allowlist;
+  if (appendOnly && assetsToImport.length === 0) {
+    throw new Error("Append-only import requires at least one new allowlisted asset.");
+  }
   if (themeId === "fashion-store") {
     await Promise.all(
-      declaration.allowlist.map((asset) =>
-        sourceFilePath(resolvedSource, resolve(repositoryRoot), asset),
-      ),
+      assetsToImport.map((asset) => sourceFilePath(resolvedSource, resolve(repositoryRoot), asset)),
     );
     await assertClosedSourceDirectories(resolvedSource, declaration);
   } else {
@@ -477,9 +507,9 @@ export async function importStorefrontTheme({
     if (missing) throw new Error(`Allowlisted theme source asset is missing: ${missing}`);
   }
 
-  const importedFiles: ImportedStorefrontThemeAsset[] = [];
+  const importedFiles: ImportedStorefrontThemeAsset[] = structuredClone(existingFiles);
   const fileContents = new Map<string, Uint8Array>();
-  for (const asset of [...declaration.allowlist].sort((left, right) =>
+  for (const asset of [...assetsToImport].sort((left, right) =>
     left.destinationPath.localeCompare(right.destinationPath),
   )) {
     const contents = new Uint8Array(
@@ -511,6 +541,34 @@ export async function importStorefrontTheme({
     });
   }
 
+  if (appendOnly) {
+    const declarationByDestination = new Map(
+      declaration.allowlist.map((asset) => [asset.destinationPath, asset]),
+    );
+    for (const imported of existingFiles) {
+      const declared = declarationByDestination.get(imported.destinationPath);
+      if (
+        !declared ||
+        declared.sourcePath !== imported.sourcePath ||
+        declared.expectedSha256 !== imported.sha256
+      ) {
+        throw new Error(
+          `Append-only import cannot change an existing declaration: ${imported.destinationPath}`,
+        );
+      }
+      const destination = join(resolve(destinationRoot), themeId, imported.destinationPath);
+      await assertRegularSourceFile(
+        join(resolve(destinationRoot), themeId),
+        imported.destinationPath,
+      );
+      const digest = sha256(new Uint8Array(await readFile(destination)));
+      if (digest !== imported.sha256) {
+        throw new Error(`Append-only import found destination drift: ${imported.destinationPath}`);
+      }
+    }
+  }
+  importedFiles.sort((left, right) => left.destinationPath.localeCompare(right.destinationPath));
+
   const nextManifest = structuredClone(manifest);
   const nextDeclaration = nextManifest.themes.find((theme) => theme.themeId === themeId)!;
   nextDeclaration.importedAt = importedAt;
@@ -521,14 +579,17 @@ export async function importStorefrontTheme({
   await mkdir(resolvedDestinationRoot, { recursive: true });
   const staging = await mkdtemp(join(resolvedDestinationRoot, ".theme-import-"));
   try {
+    const themeRoot = join(resolvedDestinationRoot, themeId);
+    const destinationSubtree = themeId === "fashion-store" ? "upstream" : "assets";
+    const destinationAssets = join(themeRoot, destinationSubtree);
+    if (appendOnly) {
+      await cp(destinationAssets, join(staging, destinationSubtree), { recursive: true });
+    }
     for (const [destinationPath, contents] of fileContents) {
       const outputPath = join(staging, destinationPath);
       await mkdir(dirname(outputPath), { recursive: true });
       await writeFile(outputPath, contents);
     }
-    const themeRoot = join(resolvedDestinationRoot, themeId);
-    const destinationSubtree = themeId === "fashion-store" ? "upstream" : "assets";
-    const destinationAssets = join(themeRoot, destinationSubtree);
     await mkdir(themeRoot, { recursive: true });
     await rm(destinationAssets, { force: true, recursive: true });
     await rename(join(staging, destinationSubtree), destinationAssets);
@@ -568,6 +629,7 @@ async function main(): Promise<void> {
     await readFile(manifestPath, "utf8"),
   ) as StorefrontThemeSourceManifest;
   const next = await importStorefrontTheme({
+    appendOnly: arguments_.includes("--append-only"),
     destinationRoot: join(root, "apps/storefront/app/themes"),
     importedAt: new Date().toISOString().slice(0, 10),
     manifest,

@@ -29,6 +29,14 @@ export const activeExperienceSnapshot = {
       "kind": "fixture",
       "resource": "shop",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-product",
+      "id": "fashion-store-product-binding",
+      "instanceId": "fashion-store-product",
+      "kind": "fixture",
+      "resource": "product",
+      "state": "populated"
     }
   ],
   "configurationSchemaVersion": 1,
@@ -71,6 +79,22 @@ export const activeExperienceSnapshot = {
           "required": true,
           "settings": {},
           "type": "fashion-store.collection",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "fashion-store-product",
+      "pageType": "product",
+      "requiredCapabilities": [],
+      "sections": [
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-product",
+          "required": true,
+          "settings": {},
+          "type": "fashion-store.product",
           "visible": true
         }
       ]

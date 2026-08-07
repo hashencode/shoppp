@@ -26,6 +26,181 @@
   font-size: 17px;
 }
 
+[data-fashion-store-product] .top-space-margin {
+  margin-top: 118px;
+}
+
+[data-fashion-store-product] .product-image-slider .swiper-slide:not(.swiper-slide-active) {
+  display: none;
+}
+
+[data-fashion-store-product] .product-info h1 {
+  font-size: 38px;
+  line-height: 1.2;
+}
+
+[data-fashion-store-product] .fashion-product-option-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+[data-fashion-store-product] .product-image-slider .gallery-box > button,
+[data-fashion-store-product] .product-image-thumb button,
+[data-fashion-store-product] .fashion-product-secondary-actions button,
+[data-fashion-store-product] .fashion-product-tabs .nav-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+[data-fashion-store-product] .product-image-slider .gallery-box > button {
+  display: block;
+  width: 100%;
+}
+
+[data-fashion-store-product] .product-image-thumb .swiper-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+[data-fashion-store-product] .product-image-thumb .swiper-slide {
+  width: 100%;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+[data-fashion-store-product] .product-image-thumb .swiper-slide-thumb-active {
+  opacity: 1;
+}
+
+[data-fashion-store-product] .slider-product-prev,
+[data-fashion-store-product] .slider-product-next {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #232323;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 12%);
+  transform: translateY(-50%);
+}
+
+[data-fashion-store-product] .slider-product-prev {
+  left: 45px;
+}
+
+[data-fashion-store-product] .slider-product-next {
+  right: 15px;
+}
+
+[data-fashion-store-product] .shop-color input:focus-visible + label,
+[data-fashion-store-product] .shop-size input:focus-visible + label {
+  outline: 2px solid #232323;
+  outline-offset: 3px;
+}
+
+[data-fashion-store-product] .fashion-product-secondary-actions button {
+  cursor: pointer;
+}
+
+[data-fashion-store-product] .fashion-product-tabs .nav-link {
+  position: relative;
+  margin: 0 18px;
+  padding-bottom: 12px;
+  cursor: pointer;
+}
+
+[data-fashion-store-product] .fashion-product-tabs .nav-link .tab-border {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  opacity: 0;
+}
+
+[data-fashion-store-product] .fashion-product-tabs .nav-link.active .tab-border {
+  opacity: 1;
+}
+
+[data-fashion-store-product] .fashion-product-bullets {
+  padding: 0;
+  list-style: none;
+}
+
+[data-fashion-store-product] .fashion-product-bullets li {
+  margin-bottom: 10px;
+  color: #232323;
+  font-weight: 500;
+}
+
+[data-fashion-store-product] .fashion-product-bullets li::before {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: #f7f7f7;
+  content: "✓";
+  font-size: 12px;
+  place-items: center;
+}
+
+.no-js [data-fashion-store-product] .fashion-product-tab-panel[hidden] {
+  display: block !important;
+}
+
+@media (max-width: 991px) {
+  [data-fashion-store-product] .top-space-margin {
+    margin-top: 79px;
+  }
+
+  [data-fashion-store-product] .product-image-thumb .swiper-wrapper {
+    flex-direction: row;
+    margin-top: 15px;
+    overflow-x: auto;
+  }
+
+  [data-fashion-store-product] .product-image-thumb .swiper-slide {
+    flex: 0 0 76px;
+  }
+
+  [data-fashion-store-product] .fashion-product-reviews article {
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 575px) {
+  [data-fashion-store-product] .fashion-product-tabs .nav {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  [data-fashion-store-product] .fashion-product-tabs .nav-link {
+    margin: 0;
+    padding: 10px 0;
+    text-align: left;
+  }
+
+  [data-fashion-store-product] .slider-product-prev {
+    left: 25px;
+  }
+
+  [data-fashion-store-product] .slider-product-next {
+    right: 10px;
+  }
+}
+
 [data-fashion-store-shop] .shop-hover button,
 [data-fashion-store-shop] .shop-filter button,
 [data-fashion-store-shop] .pagination button,

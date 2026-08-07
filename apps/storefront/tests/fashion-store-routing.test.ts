@@ -55,12 +55,14 @@ describe("Fashion Store route readiness", () => {
       "shop-left",
       "shop-none",
       "shop-right",
+      "product",
     ]);
     expect(fashionStorePreviewRoutes).toEqual([
       "/",
       "/shop",
       "/shop/no-sidebar",
       "/shop/right-sidebar",
+      "/products/relaxed-corduroy-shirt",
     ]);
   });
 
@@ -70,6 +72,7 @@ describe("Fashion Store route readiness", () => {
     expect(resolveFashionStorePage("/shop/")?.id).toBe("shop-left");
     expect(resolveFashionStorePage("/shop/no-sidebar/")?.id).toBe("shop-none");
     expect(resolveFashionStorePage("/shop/right-sidebar/")?.id).toBe("shop-right");
+    expect(resolveFashionStorePage("/products/relaxed-corduroy-shirt/")?.id).toBe("product");
     expect(resolveFashionStorePage("/shop/unknown")).toBeUndefined();
     expect(resolveFashionStorePage("/magazine/unknown")).toBeUndefined();
     expect(

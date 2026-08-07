@@ -28,6 +28,7 @@ describe("selected theme resources", () => {
     expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual([
       "home",
       "collection",
+      "product",
     ]);
     expect(input.snapshot.bindings).toEqual([
       expect.objectContaining({
@@ -37,6 +38,10 @@ describe("selected theme resources", () => {
       expect.objectContaining({
         fixtureId: "fashion-store-shop",
         instanceId: "fashion-store-collection",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-product",
+        instanceId: "fashion-store-product",
       }),
     ]);
   });

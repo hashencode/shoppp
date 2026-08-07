@@ -27,7 +27,10 @@ export type NamedStateAction =
   | { kind: "pause" }
   | { kind: "promo-pause" }
   | { kind: "product-focus" }
+  | { index: number; kind: "product-gallery" }
   | { kind: "product-hover" }
+  | { group: "color" | "size"; kind: "product-option"; value: string }
+  | { kind: "product-tab"; tab: "description" | "information" | "reviews" | "shipping" }
   | { kind: "search" }
   | { group: "category" | "color" | "size" | "tag"; kind: "shop-filter"; label: string }
   | { index: number; kind: "shop-arrivals" }

@@ -17,6 +17,14 @@
       "kind": "fixture",
       "resource": "shop",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-product",
+      "id": "fashion-store-product-binding",
+      "instanceId": "fashion-store-product",
+      "kind": "fixture",
+      "resource": "product",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-fashion-store-fixture",

@@ -1,4 +1,6 @@
 import * as z from "zod";
+import type { AddCartLineRequest } from "@shoppp/contracts";
+import type { InjectionKey } from "vue";
 
 export const previewActionIntentSchema = z.enum([
   "navigation",
@@ -52,6 +54,20 @@ export const previewActionSchema = z
 
 export type PreviewAction = z.infer<typeof previewActionSchema>;
 export type PreviewActionIntent = z.infer<typeof previewActionIntentSchema>;
+
+export interface PreviewCartAddDispatch {
+  action: PreviewAction;
+  context: string;
+  currency: string;
+  input: AddCartLineRequest;
+  kind: "cart.add";
+}
+
+export type PreviewActionDispatch = PreviewCartAddDispatch;
+export type PreviewActionAdapter = (dispatch: PreviewActionDispatch) => Promise<void>;
+export const previewActionAdapterKey = Symbol(
+  "preview-action-adapter",
+) as InjectionKey<PreviewActionAdapter>;
 
 export interface RecordedPreviewIntent extends PreviewAction {
   context: string;

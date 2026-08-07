@@ -41,7 +41,7 @@
         "browserProject": "fashion-store-desktop"
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right"],
+      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "product"],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
       "pages": [
@@ -150,6 +150,35 @@
           "sourceEntrySha256": "54d681fffdb48e25c230264a3fa896c12a488d3b3d817581d73a49784b6afbe9",
           "sourceRegionsExport": "fashionStoreShopRightSourceRegions",
           "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreProductBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/product.ts",
+          "focusedStates": [
+            { "id": "product-gallery-slide-2", "modes": ["temporal", "interaction"] },
+            { "id": "product-size-m", "modes": ["interaction"] },
+            { "id": "product-reviews-tab", "modes": ["interaction"] }
+          ],
+          "id": "product",
+          "implementationRoute": "/products/relaxed-corduroy-shirt",
+          "implementationRuntimeReadySelector": "[data-fashion-store-product][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "product",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "galleryCount",
+            "regionOrder",
+            "relatedCount",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/product.ts",
+          "sourceEntry": "demo-fashion-store-single-product.html",
+          "sourceEntrySha256": "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
+          "sourceRegionsExport": "fashionStoreProductSourceRegions",
+          "sourceRuntimeReadySelector": ".product-image-slider.swiper-initialized"
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"
