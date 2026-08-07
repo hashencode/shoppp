@@ -1,10 +1,14 @@
 import type { ThemeBehaviorContract } from "./theme-behavior-contract";
-import { namedStatesFromBehaviorContract } from "./theme-behavior-contract";
+import {
+  fidelityStatesByRegionFromBehaviorContract,
+  namedStatesFromBehaviorContract,
+} from "./theme-behavior-contract";
 import type { ThemeBehaviorAdapter } from "./theme-behavior-runner";
 
 export interface ThemeBehaviorDescriptor {
   adapters: Readonly<Record<string, ThemeBehaviorAdapter>>;
   contract: ThemeBehaviorContract;
+  fidelityStatesByRegion: ReturnType<typeof fidelityStatesByRegionFromBehaviorContract>;
   namedStates: ReturnType<typeof namedStatesFromBehaviorContract>;
   sourceRegions: readonly {
     id: string;
@@ -20,6 +24,7 @@ export function createThemeBehaviorDescriptor(options: {
 }): ThemeBehaviorDescriptor {
   return {
     ...options,
+    fidelityStatesByRegion: fidelityStatesByRegionFromBehaviorContract(options.contract),
     namedStates: namedStatesFromBehaviorContract(options.contract),
     structuralRegionIds: options.sourceRegions.map(({ id }) => id),
   };

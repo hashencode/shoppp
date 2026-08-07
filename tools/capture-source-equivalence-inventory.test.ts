@@ -105,8 +105,10 @@ describe("source equivalence inventory", () => {
         {
           entry: "demo-fashion-store.html",
           entrySha256: "a".repeat(64),
+          implementationRoute: "/alternate",
           implementationThemeRoot: "/themes/fashion-2",
           implementationUrl: "not-a-url",
+          pageId: "alternate",
           sourceRevision: `sha256:${"b".repeat(64)}`,
           sourceRoot: "/implementation/upstream",
           themeId: "fashion-2",
@@ -114,12 +116,14 @@ describe("source equivalence inventory", () => {
         {
           entry: "demo-fashion-store.html",
           entrySha256: "b".repeat(64),
+          implementationRoute: "/",
           implementationThemeRoot: "/themes/fashion-store",
+          pageId: "home",
           sourceRoot: "/templates/crafto/html",
           themeId: "fashion-store",
         },
       ),
-    ).toThrow(/root.*digest.*theme id.*theme root.*URL.*revision/s);
+    ).toThrow(/root.*digest.*page id.*route.*theme id.*theme root.*URL.*revision/s);
   });
 
   test("rejects a caller-selected copy of the authorized source tree", () => {

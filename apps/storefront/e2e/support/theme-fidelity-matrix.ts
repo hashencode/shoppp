@@ -1,5 +1,9 @@
 import type { FidelityViewportId } from "../../../../tools/theme-fidelity-report";
-import { fashionStoreFidelityStatesByRegion } from "../../app/themes/fashion-store/behavior-contract";
+import {
+  fashionStoreBehaviorContract,
+  fashionStoreFidelityStatesByRegion,
+} from "../../app/themes/fashion-store/behavior-contract";
+import type { ThemeBehaviorDescriptor } from "./theme-behavior-descriptor";
 import { themeViewportIds, themeViewports } from "./theme-viewports";
 
 export type FidelityDensity = 1 | 2;
@@ -118,13 +122,7 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
         fashionStoreStates("marquee"),
       ),
       region("footer", "component", "footer", "footer", fashionStoreStates("footer")),
-      region(
-        "sticky",
-        "control",
-        ".sticky-wrap",
-        ".sticky-wrap",
-        fashionStoreStates("sticky"),
-      ),
+      region("sticky", "control", ".sticky-wrap", ".sticky-wrap", fashionStoreStates("sticky")),
       region(
         "scroll-progress",
         "control",
@@ -139,9 +137,27 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
   },
 ] as const;
 
-export function assertFidelityMatrixComplete(matrix = themeFidelityMatrix): void {
+type FidelityBehaviorDescriptor = Pick<
+  ThemeBehaviorDescriptor,
+  "contract" | "fidelityStatesByRegion"
+>;
+
+const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
+  {
+    contract: fashionStoreBehaviorContract,
+    fidelityStatesByRegion: fashionStoreFidelityStatesByRegion,
+  },
+];
+
+export function assertFidelityMatrixComplete(
+  matrix = themeFidelityMatrix,
+  behaviorDescriptors: readonly FidelityBehaviorDescriptor[] = defaultBehaviorDescriptors,
+): void {
   const issues: string[] = [];
   const routeIds = new Set<FidelityRouteId>();
+  const descriptorsByRoute = new Map(
+    behaviorDescriptors.map((descriptor) => [descriptor.contract.routeId, descriptor] as const),
+  );
   for (const route of matrix) {
     if (routeIds.has(route.id)) issues.push(`${route.id}: duplicate route contract`);
     routeIds.add(route.id);
@@ -151,6 +167,8 @@ export function assertFidelityMatrixComplete(matrix = themeFidelityMatrix): void
     if (!route.viewports.includes("desktop") || !route.viewports.includes("mobile")) {
       issues.push(`${route.id}: desktop and mobile viewports are required`);
     }
+    const descriptor = descriptorsByRoute.get(route.id);
+    if (!descriptor) issues.push(`${route.id}: behavior descriptor is missing`);
     const regionIds = new Set<string>();
     for (const contractRegion of route.regions) {
       if (regionIds.has(contractRegion.id)) {
@@ -160,8 +178,8 @@ export function assertFidelityMatrixComplete(matrix = themeFidelityMatrix): void
       if (contractRegion.states.length === 0) {
         issues.push(`${route.id}/${contractRegion.id}: at least one state is required`);
       }
-      if (route.id === "fashion-store-home") {
-        const requiredBehaviorStates = fashionStoreFidelityStatesByRegion[contractRegion.id] ?? [];
+      if (descriptor) {
+        const requiredBehaviorStates = descriptor.fidelityStatesByRegion[contractRegion.id] ?? [];
         for (const state of requiredBehaviorStates) {
           if (!contractRegion.states.includes(state))
             issues.push(`${route.id}/${contractRegion.id}: missing behavior state ${state}`);
@@ -173,8 +191,15 @@ export function assertFidelityMatrixComplete(matrix = themeFidelityMatrix): void
         }
       }
     }
+    for (const [regionId, states] of Object.entries(descriptor?.fidelityStatesByRegion ?? {})) {
+      if (states.length > 0 && !regionIds.has(regionId))
+        issues.push(`${route.id}/${regionId}: behavior region is absent from the fidelity matrix`);
+    }
     if (!regionIds.has("full-page")) issues.push(`${route.id}: full-page smoke region is required`);
   }
-  if (!routeIds.has("fashion-store-home")) issues.push("fashion-store-home: missing route contract");
+  for (const descriptor of behaviorDescriptors) {
+    if (!routeIds.has(descriptor.contract.routeId))
+      issues.push(`${descriptor.contract.routeId}: missing route contract`);
+  }
   if (issues.length > 0) throw new Error(`Incomplete fidelity matrix:\n${issues.join("\n")}`);
 }

@@ -6,6 +6,7 @@ import {
 } from "../apps/storefront/e2e/support/theme-behavior-descriptor";
 import type { ThemeBehaviorContract } from "../apps/storefront/e2e/support/theme-behavior-contract";
 import type { ThemeBehaviorAdapter } from "../apps/storefront/e2e/support/theme-behavior-runner";
+import type { SourceEquivalenceThemePolicy } from "./verify-source-equivalent-themes";
 
 export interface ThemeBehaviorDescriptorPolicy {
   acceptanceAdapterExport: string;
@@ -60,4 +61,17 @@ export async function loadThemeBehaviorDescriptor(
     contract: contract as ThemeBehaviorContract,
     sourceRegions,
   });
+}
+
+export async function loadThemeBehaviorDescriptors(
+  theme: SourceEquivalenceThemePolicy,
+  root: string,
+): Promise<ReadonlyMap<string, ThemeBehaviorDescriptor>> {
+  return new Map(
+    await Promise.all(
+      theme.pages.map(
+        async (page) => [page.id, await loadThemeBehaviorDescriptor(page, root)] as const,
+      ),
+    ),
+  );
 }

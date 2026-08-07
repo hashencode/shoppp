@@ -36,38 +36,48 @@
   "themes": [
     {
       "id": "fashion-store",
-      "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
-      "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
       "acceptance": {
         "browserConfig": "apps/storefront/playwright.fashion-store.config.ts",
-        "browserProject": "fashion-store-desktop",
-        "focusedStates": [
-          { "id": "search-open", "modes": ["interaction"] },
-          { "id": "collection-slide-1", "modes": ["temporal", "interaction"] },
-          { "id": "cart-open", "modes": ["interaction"] },
-          { "id": "marquee-paused", "modes": ["temporal"] },
-          { "id": "scroll-progress-visible", "modes": ["scroll-fixed"] }
-        ],
-        "implementationRuntimeReadySelector": "[data-fashion-store-source-parity][data-runtime-status='ready']",
-        "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
-        "sourceRuntimeReadySelector": ".swiper.slider-three-slide"
+        "browserProject": "fashion-store-desktop"
       },
-      "equivalenceScope": ["home"],
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "behaviorContractExport": "fashionStoreBehaviorContract",
-      "behaviorContractPath": "apps/storefront/app/themes/fashion-store/behavior-contract.ts",
-      "sourceEntry": "demo-fashion-store.html",
-      "sourceEntrySha256": "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465",
-      "sourceContractPath": "apps/storefront/app/themes/fashion-store/source-contract.ts",
-      "sourceFirstHero": "images/demo-fashion-store-slider-01.jpg",
-      "sourceRegionsExport": "fashionStoreSourceRegions",
-      "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md",
-      "requiredContractFacets": [
-        "behaviorContractPath",
-        "homeSectionCount",
-        "regionOrder",
-        "stylesheetOrder"
-      ]
+      "equivalenceScope": ["home"],
+      "manifestExport": "fashionStoreManifest",
+      "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
+      "pages": [
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/behavior-contract.ts",
+          "focusedStates": [
+            { "id": "search-open", "modes": ["interaction"] },
+            { "id": "collection-slide-1", "modes": ["temporal", "interaction"] },
+            { "id": "cart-open", "modes": ["interaction"] },
+            { "id": "marquee-paused", "modes": ["temporal"] },
+            { "id": "scroll-progress-visible", "modes": ["scroll-fixed"] }
+          ],
+          "id": "home",
+          "implementationRoute": "/",
+          "implementationRuntimeReadySelector": "[data-fashion-store-source-parity][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "home",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "homeSectionCount",
+            "regionOrder",
+            "stylesheetOrder"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/source-contract.ts",
+          "sourceEntry": "demo-fashion-store.html",
+          "sourceEntrySha256": "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465",
+          "sourceFirstHero": "images/demo-fashion-store-slider-01.jpg",
+          "sourceRegionsExport": "fashionStoreSourceRegions",
+          "sourceRuntimeReadySelector": ".swiper.slider-three-slide"
+        }
+      ],
+      "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"
     }
   ],
   "waivers": []

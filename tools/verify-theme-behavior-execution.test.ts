@@ -73,6 +73,7 @@ describe("executed behavior-mode evidence", () => {
   test("accepts complete evidence from passed Playwright results", async () => {
     await expect(
       verifyThemeBehaviorExecution({
+        pageId: "home",
         reportPath: await report(completeEvidence()),
         root: resolve(import.meta.dir, ".."),
         themeId: "fashion-store",
@@ -85,6 +86,7 @@ describe("executed behavior-mode evidence", () => {
     records.pop();
     await expect(
       verifyThemeBehaviorExecution({
+        pageId: "home",
         reportPath: await report(records),
         root: resolve(import.meta.dir, ".."),
         themeId: "fashion-store",
@@ -98,6 +100,7 @@ describe("executed behavior-mode evidence", () => {
     temporal.temporalSamples = { after: 1, before: 0, elapsedMs: "not-a-number" };
     await expect(
       verifyThemeBehaviorExecution({
+        pageId: "home",
         reportPath: await report(records as unknown as ThemeBehaviorModeEvidence[]),
         root: resolve(import.meta.dir, ".."),
         themeId: "fashion-store",
@@ -113,6 +116,7 @@ describe("executed behavior-mode evidence", () => {
     }
     await expect(
       verifyThemeBehaviorExecution({
+        pageId: "home",
         reportPath: await report(records),
         root: resolve(import.meta.dir, ".."),
         themeId: "fashion-store",

@@ -41,6 +41,14 @@ describe("theme fidelity matrix", () => {
 
     const orphaned = structuredClone(themeFidelityMatrix);
     orphaned[0]!.regions.find(({ id }) => id === "header")!.states.push("ghost-open");
-    expect(() => assertFidelityMatrixComplete(orphaned)).toThrow(/unknown behavior state ghost-open/);
+    expect(() => assertFidelityMatrixComplete(orphaned)).toThrow(
+      /unknown behavior state ghost-open/,
+    );
+
+    const missingRegion = structuredClone(themeFidelityMatrix);
+    missingRegion[0]!.regions = missingRegion[0]!.regions.filter(({ id }) => id !== "collection");
+    expect(() => assertFidelityMatrixComplete(missingRegion)).toThrow(
+      /fashion-store-home\/collection: behavior region is absent from the fidelity matrix/,
+    );
   });
 });

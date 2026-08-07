@@ -11,6 +11,7 @@ import {
   assertThemeBehaviorModeEvidenceComplete,
   type ThemeBehaviorContract,
 } from "../e2e/support/theme-behavior-contract";
+import { createThemeBehaviorDescriptor } from "../e2e/support/theme-behavior-descriptor";
 
 const completeFixture = {
   behaviors: [
@@ -58,7 +59,10 @@ const completeFixture = {
 describe("theme behavior contract", () => {
   test("accepts the complete Fashion Store contract and derives both evidence surfaces", () => {
     expect(() =>
-      assertThemeBehaviorContractComplete(fashionStoreBehaviorContract, fashionStoreSourceRegionOrder),
+      assertThemeBehaviorContractComplete(
+        fashionStoreBehaviorContract,
+        fashionStoreSourceRegionOrder,
+      ),
     ).not.toThrow();
     expect(fashionStoreNamedStateContracts.map(({ id }) => id)).toContain("search-open");
     expect(fashionStoreFidelityStatesByRegion.header).toContain("navigation-open");
@@ -66,6 +70,13 @@ describe("theme behavior contract", () => {
 
   test("accepts multiple trigger branches without duplicating behavior identity", () => {
     expect(() => assertThemeBehaviorContractComplete(completeFixture, ["header"])).not.toThrow();
+    expect(
+      createThemeBehaviorDescriptor({
+        adapters: {},
+        contract: completeFixture,
+        sourceRegions: [{ id: "header", selector: "header" }],
+      }).fidelityStatesByRegion.header,
+    ).toEqual(["open"]);
   });
 
   test.each([

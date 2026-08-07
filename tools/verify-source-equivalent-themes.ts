@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { lstat, readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
+import { pathToFileURL } from "node:url";
 import ts from "typescript";
 
 import type { StorefrontThemeSourceManifest } from "./import-storefront-theme";
@@ -42,30 +43,7 @@ export interface SourceEquivalencePolicy {
     scriptFirst: boolean;
   };
   requiredEvidence: string[];
-  themes: {
-    acceptance: {
-      browserConfig: string;
-      browserProject: string;
-      focusedStates: { id: string; modes: string[] }[];
-      implementationRuntimeReadySelector: string;
-      pageCommand: string[];
-      sourceRuntimeReadySelector: string;
-    };
-    acceptanceAdapterExport: string;
-    acceptanceAdapterPath: string;
-    authorizedSourceRoot: string;
-    behaviorContractExport: string;
-    behaviorContractPath: string;
-    equivalenceScope: string[];
-    id: string;
-    requiredContractFacets: string[];
-    sourceEntry: string;
-    sourceEntrySha256: string;
-    sourceContractPath: string;
-    sourceFirstHero: string;
-    sourceRegionsExport: string;
-    upstreamPath: string;
-  }[];
+  themes: SourceEquivalenceThemePolicy[];
   waivers: {
     approvedBy: string;
     expiresAt: string;
@@ -76,6 +54,41 @@ export interface SourceEquivalencePolicy {
     routeId: string;
     themeId: string;
   }[];
+}
+
+export interface SourceEquivalencePagePolicy {
+  acceptanceAdapterExport: string;
+  acceptanceAdapterPath: string;
+  applicableModes: string[];
+  behaviorContractExport: string;
+  behaviorContractPath: string;
+  focusedStates: { id: string; modes: string[] }[];
+  id: string;
+  implementationRoute: string;
+  implementationRuntimeReadySelector: string;
+  pageCommand: string[];
+  pageType: string;
+  requiredContractFacets: string[];
+  sourceContractPath: string;
+  sourceEntry: string;
+  sourceEntrySha256: string;
+  sourceFirstHero: string;
+  sourceRegionsExport: string;
+  sourceRuntimeReadySelector: string;
+}
+
+export interface SourceEquivalenceThemePolicy {
+  acceptance: {
+    browserConfig: string;
+    browserProject: string;
+  };
+  authorizedSourceRoot: string;
+  equivalenceScope: string[];
+  id: string;
+  manifestExport: string;
+  manifestPath: string;
+  pages: SourceEquivalencePagePolicy[];
+  upstreamPath: string;
 }
 
 interface EvidenceOptions {
@@ -387,11 +400,14 @@ export async function validateSourceEquivalencePolicy(
     errors.push("required evidence dimensions must not be removed or replaced");
 
   const themeIds = new Set<string>();
+  const policyBehaviorDescriptors: ThemeBehaviorDescriptor[] = [];
   for (const theme of policy.themes) {
     if (!SAFE_THEME_ID.test(theme.id)) errors.push(`${theme.id}: expected a lowercase theme ID`);
     if (themeIds.has(theme.id)) errors.push(`${theme.id}: duplicate theme policy`);
     themeIds.add(theme.id);
     if (theme.equivalenceScope.length === 0) errors.push(`${theme.id}: equivalence scope is empty`);
+    if (!Array.isArray(theme.pages) || theme.pages.length === 0)
+      errors.push(`${theme.id}: page collection is empty`);
     if (
       !theme.acceptance?.browserConfig ||
       !existsSync(resolve(root, theme.acceptance.browserConfig))
@@ -399,46 +415,27 @@ export async function validateSourceEquivalencePolicy(
       errors.push(`${theme.id}: acceptance browser config is missing`);
     if (!theme.acceptance?.browserProject?.trim())
       errors.push(`${theme.id}: acceptance browser project is missing`);
-    if (
-      !Array.isArray(theme.acceptance?.focusedStates) ||
-      theme.acceptance.focusedStates.length === 0 ||
-      theme.acceptance.focusedStates.some(
-        (state) => !state.id?.trim() || !Array.isArray(state.modes) || state.modes.length === 0,
-      )
-    )
-      errors.push(`${theme.id}: focused acceptance states are missing`);
-    if (!Array.isArray(theme.acceptance?.pageCommand) || theme.acceptance.pageCommand.length === 0)
-      errors.push(`${theme.id}: page acceptance command is missing`);
-    if (!theme.acceptanceAdapterPath || !existsSync(resolve(root, theme.acceptanceAdapterPath)))
-      errors.push(`${theme.id}: acceptance adapter module is missing`);
     const upstreamPath = resolve(root, theme.upstreamPath);
     if (!existsSync(upstreamPath))
       errors.push(`${theme.id}: missing required file ${theme.upstreamPath}`);
-    const contractPath = resolve(root, theme.sourceContractPath);
-    if (!existsSync(contractPath)) {
-      errors.push(`${theme.id}: missing required file ${theme.sourceContractPath}`);
-      continue;
-    }
-    const contract = readFileSync(contractPath, "utf8");
-    const contractFacets = sourceContractFacets(contract, contractPath);
-    for (const facet of theme.requiredContractFacets) {
-      if (!contractFacets.has(facet))
-        errors.push(`${theme.id}: missing required contract facet ${facet}`);
-    }
-    const behaviorPath = resolve(root, theme.behaviorContractPath);
-    if (!existsSync(behaviorPath))
-      errors.push(`${theme.id}: missing required file ${theme.behaviorContractPath}`);
-    try {
-      const descriptor = await loadThemeBehaviorDescriptor(theme, root);
-      if (descriptor.contract.themeId !== theme.id)
-        errors.push(`${theme.id}: behavior contract theme identity does not match policy`);
-      else {
-        assertThemeBehaviorContractComplete(descriptor.contract, descriptor.structuralRegionIds);
-        assertCustomBehaviorAdaptersRegistered(descriptor.contract, descriptor.adapters);
+
+    let supportedPageTypes = new Set<string>();
+    const manifestPath = resolve(root, theme.manifestPath);
+    if (!theme.manifestPath || !existsSync(manifestPath)) {
+      errors.push(`${theme.id}: theme manifest module is missing`);
+    } else {
+      try {
+        const module = (await import(pathToFileURL(manifestPath).href)) as Record<string, unknown>;
+        const manifest = module[theme.manifestExport] as
+          { supportedPageTemplates?: unknown } | undefined;
+        if (!manifest || !Array.isArray(manifest.supportedPageTemplates))
+          errors.push(`${theme.id}: theme manifest export is invalid`);
+        else supportedPageTypes = new Set(manifest.supportedPageTemplates as string[]);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
       }
-    } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
     }
+
     const authorizedSourceRoot = resolve(root, theme.authorizedSourceRoot);
     const implementationThemeRoot = resolve(root, `apps/storefront/app/themes/${theme.id}`);
     const sourceRelativeToImplementation = relative(implementationThemeRoot, authorizedSourceRoot);
@@ -450,18 +447,101 @@ export async function validateSourceEquivalencePolicy(
       errors.push(
         `${theme.id}: authorized source root must be independent of implementation inputs`,
       );
-    const sourceEntryPath = resolve(authorizedSourceRoot, theme.sourceEntry);
-    const sourceEntryRelative = relative(authorizedSourceRoot, sourceEntryPath);
-    if (
-      sourceEntryRelative === ".." ||
-      sourceEntryRelative.startsWith(`..${sep}`) ||
-      !existsSync(sourceEntryPath)
-    )
-      errors.push(`${theme.id}: authorized source entry is missing or outside its root`);
-    else {
-      const digest = createHash("sha256").update(readFileSync(sourceEntryPath)).digest("hex");
-      if (digest !== theme.sourceEntrySha256)
-        errors.push(`${theme.id}: authorized source entry digest does not match policy`);
+
+    const pageIds = new Set<string>();
+    const implementationRoutes = new Set<string>();
+    const sourceEntries = new Map<string, string>();
+    for (const page of theme.pages ?? []) {
+      const label = `${theme.id}/${page.id || "unknown-page"}`;
+      if (!SAFE_THEME_ID.test(page.id)) errors.push(`${label}: expected a lowercase page ID`);
+      if (pageIds.has(page.id)) errors.push(`${label}: duplicate page ID`);
+      pageIds.add(page.id);
+      if (!page.implementationRoute?.startsWith("/"))
+        errors.push(`${label}: implementation route must be root-relative`);
+      if (implementationRoutes.has(page.implementationRoute))
+        errors.push(`${label}: duplicate implementation route`);
+      implementationRoutes.add(page.implementationRoute);
+      const priorDigest = sourceEntries.get(page.sourceEntry);
+      if (priorDigest && priorDigest !== page.sourceEntrySha256)
+        errors.push(`${label}: conflicting source digest for ${page.sourceEntry}`);
+      sourceEntries.set(page.sourceEntry, page.sourceEntrySha256);
+      if (!supportedPageTypes.has(page.pageType))
+        errors.push(`${label}: page type ${page.pageType} is absent from the theme manifest`);
+      if (!Array.isArray(page.applicableModes) || page.applicableModes.length === 0)
+        errors.push(`${label}: applicable acceptance modes are missing`);
+      if (!Array.isArray(page.focusedStates) || page.focusedStates.length === 0)
+        errors.push(`${label}: focused acceptance states are missing`);
+      for (const state of page.focusedStates ?? []) {
+        if (!state.id?.trim() || !Array.isArray(state.modes) || state.modes.length === 0)
+          errors.push(`${label}: focused state without an acceptance mode`);
+        for (const mode of state.modes ?? []) {
+          if (!page.applicableModes.includes(mode))
+            errors.push(`${label}/${state.id}: focused mode ${mode} is not applicable`);
+        }
+      }
+      if (!Array.isArray(page.pageCommand) || page.pageCommand.length === 0)
+        errors.push(`${label}: page acceptance command is missing`);
+      if (!page.acceptanceAdapterPath || !existsSync(resolve(root, page.acceptanceAdapterPath)))
+        errors.push(`${label}: acceptance adapter module is missing`);
+      const contractPath = resolve(root, page.sourceContractPath);
+      if (!existsSync(contractPath)) {
+        errors.push(`${label}: missing required file ${page.sourceContractPath}`);
+      } else {
+        const contract = readFileSync(contractPath, "utf8");
+        const contractFacets = sourceContractFacets(contract, contractPath);
+        for (const facet of page.requiredContractFacets) {
+          if (!contractFacets.has(facet))
+            errors.push(`${label}: missing required contract facet ${facet}`);
+        }
+      }
+      const behaviorPath = resolve(root, page.behaviorContractPath);
+      if (!existsSync(behaviorPath))
+        errors.push(`${label}: missing required file ${page.behaviorContractPath}`);
+      try {
+        const descriptor = await loadThemeBehaviorDescriptor(page, root);
+        policyBehaviorDescriptors.push(descriptor);
+        if (descriptor.contract.themeId !== theme.id)
+          errors.push(`${label}: behavior contract theme identity does not match policy`);
+        if (descriptor.contract.routeId !== `${theme.id}-${page.id}`)
+          errors.push(`${label}: behavior contract route identity does not match policy`);
+        assertThemeBehaviorContractComplete(descriptor.contract, descriptor.structuralRegionIds);
+        assertCustomBehaviorAdaptersRegistered(descriptor.contract, descriptor.adapters);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+      }
+      const sourceEntryPath = resolve(authorizedSourceRoot, page.sourceEntry);
+      const sourceEntryRelative = relative(authorizedSourceRoot, sourceEntryPath);
+      let sourceEntrySafe =
+        sourceEntryRelative !== ".." &&
+        !sourceEntryRelative.startsWith(`..${sep}`) &&
+        existsSync(sourceEntryPath);
+      if (sourceEntrySafe) {
+        try {
+          const realSourceRoot = realpathSync(authorizedSourceRoot);
+          const realEntryPath = realpathSync(sourceEntryPath);
+          const realEntryRelative = relative(realSourceRoot, realEntryPath);
+          sourceEntrySafe =
+            !lstatSync(sourceEntryPath).isSymbolicLink() &&
+            realEntryRelative !== ".." &&
+            !realEntryRelative.startsWith(`..${sep}`);
+        } catch {
+          sourceEntrySafe = false;
+        }
+      }
+      if (!sourceEntrySafe) {
+        errors.push(`${label}: authorized source entry is missing or outside its root`);
+      } else {
+        const digest = createHash("sha256").update(readFileSync(sourceEntryPath)).digest("hex");
+        if (digest !== page.sourceEntrySha256)
+          errors.push(`${label}: authorized source entry digest does not match policy`);
+      }
+    }
+    for (const pageId of theme.equivalenceScope) {
+      if (!pageIds.has(pageId)) errors.push(`${theme.id}: scope references unknown page ${pageId}`);
+    }
+    for (const pageId of pageIds) {
+      if (!theme.equivalenceScope.includes(pageId))
+        errors.push(`${theme.id}/${pageId}: page is absent from the declared equivalence scope`);
     }
   }
 
@@ -479,19 +559,34 @@ export async function validateSourceEquivalencePolicy(
   }
 
   try {
-    assertFidelityMatrixComplete();
+    assertFidelityMatrixComplete(themeFidelityMatrix, policyBehaviorDescriptors);
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
   }
+  const pagePoliciesByRoute = new Map<
+    string,
+    { page: SourceEquivalencePagePolicy; theme: SourceEquivalenceThemePolicy }
+  >(
+    policy.themes.flatMap((theme) =>
+      theme.pages.map((page) => [`${theme.id}-${page.id}`, { page, theme }] as const),
+    ),
+  );
+  for (const routeId of pagePoliciesByRoute.keys()) {
+    if (!themeFidelityMatrix.some(({ id }) => id === routeId))
+      errors.push(`${routeId}: registered page is absent from the fidelity matrix`);
+  }
   const usedWaivers = new Set<string>();
   for (const route of themeFidelityMatrix) {
-    const policyTheme = [...policy.themes]
-      .sort((left, right) => right.id.length - left.id.length)
-      .find(({ id }) => route.id.startsWith(`${id}-`));
-    const themeId = policyTheme?.id ?? route.id.split("-")[0]!;
-    const pageType = route.id.slice(themeId.length + 1);
-    if (!policyTheme?.equivalenceScope.includes(pageType))
-      errors.push(`${route.id}: route is absent from the declared equivalence scope`);
+    const policyPage = pagePoliciesByRoute.get(route.id);
+    const themeId = policyPage?.theme.id ?? route.id.split("-")[0]!;
+    if (!policyPage) {
+      errors.push(`${route.id}: route is absent from the declared page collection`);
+    } else {
+      if (route.sourcePath !== `/${policyPage.page.sourceEntry}`)
+        errors.push(`${route.id}: source path does not match page policy`);
+      if (route.implementationPath !== policyPage.page.implementationRoute)
+        errors.push(`${route.id}: implementation path does not match page policy`);
+    }
     for (const region of route.regions) {
       if (!region.styleEquivalences) continue;
       if (!region.waiverId) {
@@ -733,8 +828,14 @@ async function main(): Promise<void> {
   await validateImportedSourceTree();
   const behaviorDescriptors = new Map(
     await Promise.all(
-      policy.themes.map(
-        async (theme) => [theme.id, await loadThemeBehaviorDescriptor(theme, ROOT)] as const,
+      policy.themes.flatMap((theme) =>
+        theme.pages.map(
+          async (page) =>
+            [
+              page.id === "home" ? theme.id : `${theme.id}/${page.id}`,
+              await loadThemeBehaviorDescriptor(page, ROOT),
+            ] as const,
+        ),
       ),
     ),
   );

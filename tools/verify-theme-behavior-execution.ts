@@ -42,6 +42,7 @@ function collectPassedEvidence(node: unknown, inheritedPassed = true): ThemeBeha
 }
 
 export async function verifyThemeBehaviorExecution(options: {
+  pageId: string;
   reportPath: string;
   root?: string;
   themeId: string;
@@ -50,7 +51,10 @@ export async function verifyThemeBehaviorExecution(options: {
   const policy = await loadSourceEquivalencePolicy(root);
   const theme = policy.themes.find(({ id }) => id === options.themeId);
   if (!theme) throw new Error(`Unknown source-equivalence theme: ${options.themeId}.`);
-  const descriptor = await loadThemeBehaviorDescriptor(theme, root);
+  const page = theme.pages.find(({ id }) => id === options.pageId);
+  if (!page)
+    throw new Error(`Unknown source-equivalence page: ${options.themeId}/${options.pageId}.`);
+  const descriptor = await loadThemeBehaviorDescriptor(page, root);
   const report = JSON.parse(await readFile(resolve(options.reportPath), "utf8")) as unknown;
   const evidence = collectPassedEvidence(report);
   assertThemeBehaviorModeEvidenceComplete(descriptor.contract, evidence);
@@ -60,13 +64,16 @@ export async function verifyThemeBehaviorExecution(options: {
 if (import.meta.main) {
   const { values } = parseArgs({
     options: {
+      page: { type: "string" },
       report: { type: "string" },
       theme: { type: "string" },
     },
     strict: true,
   });
-  if (!values.report || !values.theme) throw new Error("--report and --theme are required");
+  if (!values.page || !values.report || !values.theme)
+    throw new Error("--page, --report and --theme are required");
   const count = await verifyThemeBehaviorExecution({
+    pageId: values.page,
     reportPath: values.report,
     themeId: values.theme,
   });

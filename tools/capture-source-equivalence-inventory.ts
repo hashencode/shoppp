@@ -14,8 +14,10 @@ import { loadSourceEquivalencePolicy } from "./verify-source-equivalent-themes";
 export interface SourceInventoryEvidenceIdentity {
   entry: string;
   entrySha256: string;
+  implementationRoute: string;
   implementationThemeRoot: string;
   implementationUrl: string;
+  pageId: string;
   sourceRevision: string;
   sourceRoot: string;
   themeId: string;
@@ -32,7 +34,13 @@ export function assertSourceInventoryEvidenceIdentity(
   identity: SourceInventoryEvidenceIdentity,
   expected: Pick<
     SourceInventoryEvidenceIdentity,
-    "entry" | "entrySha256" | "implementationThemeRoot" | "sourceRoot" | "themeId"
+    | "entry"
+    | "entrySha256"
+    | "implementationRoute"
+    | "implementationThemeRoot"
+    | "pageId"
+    | "sourceRoot"
+    | "themeId"
   >,
 ): void {
   const issues: string[] = [];
@@ -41,6 +49,9 @@ export function assertSourceInventoryEvidenceIdentity(
   if (identity.entry !== expected.entry) issues.push("source entry does not match policy");
   if (identity.entrySha256 !== expected.entrySha256)
     issues.push("source digest does not match policy");
+  if (identity.pageId !== expected.pageId) issues.push("page id does not match policy");
+  if (identity.implementationRoute !== expected.implementationRoute)
+    issues.push("implementation route does not match policy");
   if (identity.themeId !== expected.themeId)
     issues.push("implementation theme id does not match policy");
   if (resolve(identity.implementationThemeRoot) !== resolve(expected.implementationThemeRoot))
@@ -60,6 +71,7 @@ export async function captureSourceEquivalenceInventory(options: {
   implementationThemeRoot: string;
   implementationUrl: string;
   outputPath: string;
+  pageId: string;
   sourceRoot: string;
   sourceUrl: string;
   themeId: string;
@@ -67,21 +79,24 @@ export async function captureSourceEquivalenceInventory(options: {
   const policy = await loadSourceEquivalencePolicy();
   const theme = policy.themes.find(({ id }) => id === options.themeId);
   if (!theme) throw new Error(`Unknown source-equivalence theme: ${options.themeId}.`);
+  const pagePolicy = theme.pages.find(({ id }) => id === options.pageId);
+  if (!pagePolicy)
+    throw new Error(`Unknown source-equivalence page: ${options.themeId}/${options.pageId}.`);
   const root = resolve(import.meta.dir, "..");
   const authorizedSourceRoot = resolve(root, theme.authorizedSourceRoot);
   const authorizedImplementationThemeRoot = resolve(root, "apps/storefront/app/themes", theme.id);
   assertAuthorizedSourceRoot(options.sourceRoot, authorizedSourceRoot);
   if (resolve(options.implementationThemeRoot) !== authorizedImplementationThemeRoot)
     throw new Error(`implementation theme root must match ${authorizedImplementationThemeRoot}.`);
-  const descriptor = await loadThemeBehaviorDescriptor(theme, root);
+  const descriptor = await loadThemeBehaviorDescriptor(pagePolicy, root);
   const referenceConfig = {
-    entry: theme.sourceEntry,
-    firstHero: theme.sourceFirstHero,
+    entry: pagePolicy.sourceEntry,
+    firstHero: pagePolicy.sourceFirstHero,
     themeId: theme.id,
   };
   const validated = await validateIndependentReferenceSource({
     config: referenceConfig,
-    expectedEntrySha256: theme.sourceEntrySha256,
+    expectedEntrySha256: pagePolicy.sourceEntrySha256,
     implementationThemeRoot: options.implementationThemeRoot,
     sourceRoot: options.sourceRoot,
   });
@@ -106,8 +121,8 @@ export async function captureSourceEquivalenceInventory(options: {
       }, selector);
     };
     await Promise.all([
-      waitForRuntime(source, theme.acceptance.sourceRuntimeReadySelector),
-      waitForRuntime(implementation, theme.acceptance.implementationRuntimeReadySelector),
+      waitForRuntime(source, pagePolicy.sourceRuntimeReadySelector),
+      waitForRuntime(implementation, pagePolicy.implementationRuntimeReadySelector),
     ]);
     await Promise.all([
       source
@@ -174,18 +189,22 @@ export async function captureSourceEquivalenceInventory(options: {
     const sourceEntry = await readFile(validated.entryPath);
     const entrySha256 = createHash("sha256").update(sourceEntry).digest("hex");
     const identity = {
-      entry: theme.sourceEntry,
+      entry: pagePolicy.sourceEntry,
       entrySha256,
+      implementationRoute: pagePolicy.implementationRoute,
       implementationThemeRoot: authorizedImplementationThemeRoot,
       implementationUrl: options.implementationUrl,
+      pageId: pagePolicy.id,
       sourceRevision: `sha256:${entrySha256}`,
       sourceRoot: validated.sourceRoot,
       themeId: theme.id,
     };
     assertSourceInventoryEvidenceIdentity(identity, {
-      entry: theme.sourceEntry,
-      entrySha256: theme.sourceEntrySha256,
+      entry: pagePolicy.sourceEntry,
+      entrySha256: pagePolicy.sourceEntrySha256,
+      implementationRoute: pagePolicy.implementationRoute,
       implementationThemeRoot: authorizedImplementationThemeRoot,
+      pageId: pagePolicy.id,
       sourceRoot: authorizedSourceRoot,
       themeId: theme.id,
     });
@@ -225,6 +244,7 @@ if (import.meta.main) {
     implementationThemeRoot: argument("implementation-theme-root"),
     implementationUrl: argument("implementation-url"),
     outputPath: argument("output"),
+    pageId: argument("page"),
     sourceRoot: argument("source-root"),
     sourceUrl: argument("source-url"),
     themeId: argument("theme"),

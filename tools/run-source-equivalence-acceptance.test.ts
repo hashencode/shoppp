@@ -8,14 +8,64 @@ describe("source-equivalence acceptance orchestration", () => {
   test("focuses one policy-declared state and reports incomplete final evidence", async () => {
     const plan = buildAcceptancePlan(await loadSourceEquivalencePolicy(), {
       mode: "interaction",
+      pageId: "home",
       scope: "focused",
       state: "search-open",
       themeId: "fashion-store",
     });
     expect(plan.fullEvidenceOutstanding).toBe(true);
     expect(plan.filteredModes).toEqual(["interaction"]);
+    expect(plan.pageIds).toEqual(["home"]);
     expect(plan.steps[0]!.command).toContain("search-open interaction");
     expect(plan.steps[0]!.command).toContain("apps/storefront/playwright.fashion-store.config.ts");
+  });
+
+  test("selects one page for focused/page scope and enumerates pages for theme scope", async () => {
+    const policy = await loadSourceEquivalencePolicy();
+    const page = buildAcceptancePlan(policy, {
+      pageId: "home",
+      scope: "page",
+      themeId: "fashion-store",
+    });
+    expect(page.pageIds).toEqual(["home"]);
+    expect(page.steps[0]!.label).toBe("fashion-store/home/page");
+
+    const theme = buildAcceptancePlan(policy, { scope: "theme", themeId: "fashion-store" });
+    expect(theme.pageIds).toEqual(["home"]);
+    expect(theme.steps.map(({ label }) => label)).toEqual(["fashion-store/home/page"]);
+  });
+
+  test("does not leak a synthetic second page into a focused page run", async () => {
+    const policy = structuredClone(await loadSourceEquivalencePolicy());
+    const theme = policy.themes[0]!;
+    theme.pages.push({
+      ...theme.pages[0]!,
+      focusedStates: [{ id: "synthetic-open", modes: ["interaction"] }],
+      id: "synthetic",
+      implementationRoute: "/synthetic",
+      pageCommand: ["bun", "test", "synthetic-page.test.ts"],
+    });
+    theme.equivalenceScope.push("synthetic");
+
+    const focused = buildAcceptancePlan(policy, {
+      mode: "interaction",
+      pageId: "synthetic",
+      scope: "focused",
+      state: "synthetic-open",
+      themeId: "fashion-store",
+    });
+    expect(focused.pageIds).toEqual(["synthetic"]);
+    expect(focused.steps[0]!.label).toBe("fashion-store/synthetic/synthetic-open");
+
+    const allPages = buildAcceptancePlan(policy, {
+      scope: "theme",
+      themeId: "fashion-store",
+    });
+    expect(allPages.pageIds).toEqual(["home", "synthetic"]);
+    expect(allPages.steps.map(({ label }) => label)).toEqual([
+      "fashion-store/home/page",
+      "fashion-store/synthetic/page",
+    ]);
   });
 
   test("binds every policy-focused state and mode to a discoverable test title", async () => {
@@ -30,8 +80,10 @@ describe("source-equivalence acceptance orchestration", () => {
     );
     const testSource = e2eSources.join("\n");
     for (const theme of policy.themes) {
-      for (const state of theme.acceptance.focusedStates) {
-        for (const mode of state.modes) expect(testSource).toContain(`${state.id} ${mode}`);
+      for (const page of theme.pages) {
+        for (const state of page.focusedStates) {
+          for (const mode of state.modes) expect(testSource).toContain(`${state.id} ${mode}`);
+        }
       }
     }
   });
@@ -45,7 +97,7 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(plan.fullEvidenceOutstanding).toBe(false);
     expect(plan.steps.map(({ label }) => label)).toEqual([
       "contracts",
-      "all-pages",
+      "fashion-store/home/page",
       "fidelity-evidence",
     ]);
   });
@@ -55,9 +107,13 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(() => buildAcceptancePlan(policy, { scope: "page", themeId: "missing" })).toThrow(
       /unknown/,
     );
+    expect(() => buildAcceptancePlan(policy, { scope: "page", themeId: "fashion-store" })).toThrow(
+      /--page/,
+    );
     expect(() =>
       buildAcceptancePlan(policy, {
         mode: "interaction",
+        pageId: "home",
         scope: "focused",
         state: "invented-state",
         themeId: "fashion-store",
@@ -66,6 +122,7 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(() =>
       buildAcceptancePlan(policy, {
         mode: "temporal",
+        pageId: "home",
         scope: "focused",
         state: "search-open",
         themeId: "fashion-store",

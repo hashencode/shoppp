@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -23,6 +23,7 @@ import { createThemeBehaviorDescriptor } from "../apps/storefront/e2e/support/th
 import { fashionStoreBehaviorContract } from "../apps/storefront/app/themes/fashion-store/behavior-contract";
 import { fashionStoreAcceptanceAdapters } from "../apps/storefront/app/themes/fashion-store/acceptance-adapter";
 import { fashionStoreSourceRegions } from "../apps/storefront/app/themes/fashion-store/source-contract";
+import { loadThemeBehaviorDescriptors } from "./load-theme-behavior-descriptor";
 
 const root = resolve(import.meta.dir, "..");
 const behaviorDescriptors = new Map([
@@ -46,9 +47,121 @@ describe("source-equivalent theme policy", () => {
     expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
     expect(policy.themes[0]).toMatchObject({
       authorizedSourceRoot: "templates/Crafto - The Multipurpose HTML5 Template/html",
-      sourceEntry: "demo-fashion-store.html",
+      equivalenceScope: ["home"],
+      pages: [
+        {
+          id: "home",
+          implementationRoute: "/",
+          pageType: "home",
+          sourceEntry: "demo-fashion-store.html",
+        },
+      ],
     });
     expect(policy.waivers).toEqual([]);
+  });
+
+  test("rejects duplicate page identities, routes, and conflicting source digests", async () => {
+    const policy = (await loadSourceEquivalencePolicy(root)) as SourceEquivalencePolicy;
+    const invalid = structuredClone(policy);
+    const home = invalid.themes[0]!.pages[0]!;
+    invalid.themes[0]!.pages.push({
+      ...home,
+      sourceEntrySha256: "0".repeat(64),
+    });
+
+    await expect(validateSourceEquivalencePolicy(invalid, root)).rejects.toThrow(
+      /duplicate page ID.*duplicate implementation route.*conflicting source digest/s,
+    );
+  });
+
+  test("loads independently addressed descriptors for a synthetic second page", async () => {
+    const policy = await loadSourceEquivalencePolicy(root);
+    const theme = structuredClone(policy.themes[0]!);
+    const sourceEntry = "demo-fashion-store-shop.html";
+    const contents = await readFile(resolve(root, theme.authorizedSourceRoot, sourceEntry));
+    theme.pages.push({
+      ...theme.pages[0]!,
+      id: "synthetic-shop",
+      implementationRoute: "/synthetic-shop",
+      sourceEntry,
+      sourceEntrySha256: new Bun.CryptoHasher("sha256").update(contents).digest("hex"),
+    });
+    const descriptors = await loadThemeBehaviorDescriptors(theme, root);
+
+    expect([...descriptors.keys()]).toEqual(["home", "synthetic-shop"]);
+    expect(
+      theme.pages.map(({ implementationRoute, sourceEntry }) => ({
+        implementationRoute,
+        sourceEntry,
+      })),
+    ).toEqual([
+      { implementationRoute: "/", sourceEntry: "demo-fashion-store.html" },
+      { implementationRoute: "/synthetic-shop", sourceEntry: "demo-fashion-store-shop.html" },
+    ]);
+  });
+
+  test("rejects empty page scope and page types outside the theme manifest", async () => {
+    const empty = structuredClone(await loadSourceEquivalencePolicy(root));
+    empty.themes[0]!.equivalenceScope = [];
+    empty.themes[0]!.pages = [];
+    await expect(validateSourceEquivalencePolicy(empty, root)).rejects.toThrow(
+      /equivalence scope is empty.*page collection is empty/s,
+    );
+
+    const unsupported = structuredClone(await loadSourceEquivalencePolicy(root));
+    unsupported.themes[0]!.pages[0]!.pageType = "order";
+    await expect(validateSourceEquivalencePolicy(unsupported, root)).rejects.toThrow(
+      /page type order is absent from the theme manifest/,
+    );
+  });
+
+  test("rejects page source escapes, missing files, and digest drift before browser work", async () => {
+    const policy = structuredClone(await loadSourceEquivalencePolicy(root));
+    const page = policy.themes[0]!.pages[0]!;
+    page.sourceEntry = "../demo-fashion-store.html";
+    page.sourceEntrySha256 = "0".repeat(64);
+    await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
+      /home: authorized source entry is missing or outside its root/,
+    );
+
+    const missing = structuredClone(await loadSourceEquivalencePolicy(root));
+    missing.themes[0]!.pages[0]!.sourceEntry = "missing.html";
+    await expect(validateSourceEquivalencePolicy(missing, root)).rejects.toThrow(
+      /home: authorized source entry is missing or outside its root/,
+    );
+
+    const drifted = structuredClone(await loadSourceEquivalencePolicy(root));
+    drifted.themes[0]!.pages[0]!.sourceEntrySha256 = "0".repeat(64);
+    await expect(validateSourceEquivalencePolicy(drifted, root)).rejects.toThrow(
+      /home: authorized source entry digest does not match policy/,
+    );
+
+    const symlinkRoot = await mkdtemp(resolve(tmpdir(), "shoppp-source-entry-symlink-"));
+    try {
+      await symlink(
+        resolve(
+          root,
+          "templates/Crafto - The Multipurpose HTML5 Template/html/demo-fashion-store.html",
+        ),
+        resolve(symlinkRoot, "escaped.html"),
+      );
+      const escaped = structuredClone(await loadSourceEquivalencePolicy(root));
+      escaped.themes[0]!.authorizedSourceRoot = symlinkRoot;
+      escaped.themes[0]!.pages[0]!.sourceEntry = "escaped.html";
+      await expect(validateSourceEquivalencePolicy(escaped, root)).rejects.toThrow(
+        /home: authorized source entry is missing or outside its root/,
+      );
+    } finally {
+      await rm(symlinkRoot, { force: true, recursive: true });
+    }
+  });
+
+  test("rejects focused states without declared acceptance modes", async () => {
+    const policy = structuredClone(await loadSourceEquivalencePolicy(root));
+    policy.themes[0]!.pages[0]!.focusedStates[0]!.modes = [];
+    await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
+      /home: focused state without an acceptance mode/,
+    );
   });
 
   test("rejects permissive thresholds, excess workers, and unapproved waivers", async () => {
@@ -83,7 +196,7 @@ describe("source-equivalent theme policy", () => {
     const policy = await loadSourceEquivalencePolicy(root);
     const invalid = structuredClone(policy) as SourceEquivalencePolicy;
     invalid.themes[0]!.id = "Decor Store";
-    invalid.themes[0]!.requiredContractFacets = ["sources", "not-present"];
+    invalid.themes[0]!.pages[0]!.requiredContractFacets = ["sources", "not-present"];
 
     await expect(validateSourceEquivalencePolicy(invalid, root)).rejects.toThrow(
       /lowercase theme ID|required contract facet/,
@@ -99,8 +212,8 @@ describe("source-equivalent theme policy", () => {
     );
     try {
       const policy = await loadSourceEquivalencePolicy(root);
-      policy.themes[0]!.sourceContractPath = contractPath;
-      policy.themes[0]!.requiredContractFacets = ["sources", "phantom"];
+      policy.themes[0]!.pages[0]!.sourceContractPath = contractPath;
+      policy.themes[0]!.pages[0]!.requiredContractFacets = ["sources", "phantom"];
 
       await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
         /missing required contract facet phantom/,
@@ -122,7 +235,7 @@ describe("source-equivalent theme policy", () => {
   test("rejects implementation-owned or digest-mismatched reference sources", async () => {
     const policy = await loadSourceEquivalencePolicy(root);
     policy.themes[0]!.authorizedSourceRoot = "apps/storefront/app/themes/fashion-store/upstream";
-    policy.themes[0]!.sourceEntrySha256 = "0".repeat(64);
+    policy.themes[0]!.pages[0]!.sourceEntrySha256 = "0".repeat(64);
 
     await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
       /independent of implementation inputs|digest does not match policy/,
