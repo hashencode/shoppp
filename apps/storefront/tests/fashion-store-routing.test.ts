@@ -61,6 +61,8 @@ describe("Fashion Store route readiness", () => {
       "checkout",
       "wishlist",
       "account",
+      "magazine",
+      "article",
     ]);
     expect(fashionStorePreviewRoutes).toEqual([
       "/",
@@ -73,6 +75,8 @@ describe("Fashion Store route readiness", () => {
       "/checkout",
       "/wishlist",
       "/account",
+      "/magazine",
+      "/magazine/marketing-tips-and-tricks",
     ]);
   });
 
@@ -88,6 +92,8 @@ describe("Fashion Store route readiness", () => {
     expect(resolveFashionStorePage("/checkout/")?.id).toBe("checkout");
     expect(resolveFashionStorePage("/wishlist/")?.id).toBe("wishlist");
     expect(resolveFashionStorePage("/account/")?.id).toBe("account");
+    expect(resolveFashionStorePage("/magazine/")?.id).toBe("magazine");
+    expect(resolveFashionStorePage("/magazine/marketing-tips-and-tricks/")?.id).toBe("article");
     expect(resolveFashionStorePage("/shop/unknown")).toBeUndefined();
     expect(resolveFashionStorePage("/magazine/unknown")).toBeUndefined();
     expect(

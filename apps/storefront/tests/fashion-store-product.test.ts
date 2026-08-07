@@ -66,6 +66,8 @@ describe("Fashion Store product detail", () => {
       "checkout",
       "wishlist",
       "account",
+      "magazine",
+      "article",
     ]);
   });
 });

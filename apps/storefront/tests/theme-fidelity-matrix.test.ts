@@ -19,6 +19,8 @@ describe("theme fidelity matrix", () => {
       "fashion-store-checkout",
       "fashion-store-wishlist",
       "fashion-store-account",
+      "fashion-store-magazine",
+      "fashion-store-article",
     ]);
   });
 

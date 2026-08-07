@@ -44,6 +44,16 @@ export {
   fashionStoreWishlistSourcePage,
   fashionStoreWishlistSourceRegions,
 } from "./contracts/pages/wishlist";
+export {
+  fashionStoreMagazineSourceContract,
+  fashionStoreMagazineSourcePage,
+  fashionStoreMagazineSourceRegions,
+} from "./contracts/pages/magazine";
+export {
+  fashionStoreArticleSourceContract,
+  fashionStoreArticleSourcePage,
+  fashionStoreArticleSourceRegions,
+} from "./contracts/pages/article";
 
 export const fashionStoreSourceEntries = [
   "demo-fashion-store.html",

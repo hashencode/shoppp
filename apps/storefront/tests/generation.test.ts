@@ -27,6 +27,8 @@ describe("static generation manifest", () => {
       "/checkout",
       "/wishlist",
       "/account",
+      "/magazine",
+      "/magazine/marketing-tips-and-tricks",
     ]);
   });
 

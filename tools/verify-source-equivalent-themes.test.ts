@@ -58,6 +58,8 @@ describe("source-equivalent theme policy", () => {
         "checkout",
         "wishlist",
         "account",
+        "magazine",
+        "article",
       ],
       pages: [
         {
@@ -120,6 +122,18 @@ describe("source-equivalent theme policy", () => {
           pageType: "content",
           sourceEntry: "demo-fashion-store-account.html",
         },
+        {
+          id: "magazine",
+          implementationRoute: "/magazine",
+          pageType: "content",
+          sourceEntry: "demo-fashion-store-magazine.html",
+        },
+        {
+          id: "article",
+          implementationRoute: "/magazine/marketing-tips-and-tricks",
+          pageType: "content",
+          sourceEntry: "demo-fashion-store-blog-single-creative.html",
+        },
       ],
     });
     expect(policy.waivers).toEqual([]);
@@ -164,6 +178,8 @@ describe("source-equivalent theme policy", () => {
       "checkout",
       "wishlist",
       "account",
+      "magazine",
+      "article",
       "synthetic-shop",
     ]);
     expect(
@@ -191,6 +207,11 @@ describe("source-equivalent theme policy", () => {
       { implementationRoute: "/checkout", sourceEntry: "demo-fashion-store-checkout.html" },
       { implementationRoute: "/wishlist", sourceEntry: "demo-fashion-store-wishlist.html" },
       { implementationRoute: "/account", sourceEntry: "demo-fashion-store-account.html" },
+      { implementationRoute: "/magazine", sourceEntry: "demo-fashion-store-magazine.html" },
+      {
+        implementationRoute: "/magazine/marketing-tips-and-tricks",
+        sourceEntry: "demo-fashion-store-blog-single-creative.html",
+      },
       { implementationRoute: "/synthetic-shop", sourceEntry: "demo-fashion-store-shop.html" },
     ]);
   });

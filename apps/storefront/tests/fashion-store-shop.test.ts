@@ -104,6 +104,8 @@ describe("Fashion Store Shop layout family", () => {
       "checkout",
       "wishlist",
       "account",
+      "magazine",
+      "article",
     ]);
   });
 });

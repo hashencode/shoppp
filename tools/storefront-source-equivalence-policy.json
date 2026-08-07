@@ -51,7 +51,9 @@
         "cart",
         "checkout",
         "wishlist",
-        "account"
+        "account",
+        "magazine",
+        "article"
       ],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
@@ -291,6 +293,50 @@
           "sourceEntrySha256": "1b7c1cc83c0f224f8f95dec2ded2246a9ebcc52a7011acd3d5afcfdd4248da62",
           "sourceRegionsExport": "fashionStoreAccountSourceRegions",
           "sourceRuntimeReadySelector": "section:nth-of-type(2) .row"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreMagazineBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/magazine.ts",
+          "focusedStates": [{ "id": "magazine-grid-ready", "modes": ["static"] }],
+          "id": "magazine",
+          "implementationRoute": "/magazine",
+          "implementationRuntimeReadySelector": "[data-fashion-store-magazine][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": ["cardCount", "paginationActive", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/magazine.ts",
+          "sourceEntry": "demo-fashion-store-magazine.html",
+          "sourceEntrySha256": "86283e48d94e8cd9de658b258690ad3a1b0f8b08b2c796e5a59f961d63a6e7fe",
+          "sourceRegionsExport": "fashionStoreMagazineSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .blog-classic"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreArticleBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/article.ts",
+          "focusedStates": [{ "id": "article-body-ready", "modes": ["static"] }],
+          "id": "article",
+          "implementationRoute": "/magazine/marketing-tips-and-tricks",
+          "implementationRuntimeReadySelector": "[data-fashion-store-article][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": [
+            "commentCount",
+            "mediaCount",
+            "relatedCount",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/article.ts",
+          "sourceEntry": "demo-fashion-store-blog-single-creative.html",
+          "sourceEntrySha256": "48c7213781db41be93fe6ec46611995f308e3fef93bfef596a15fb8b01ad5c3a",
+          "sourceRegionsExport": "fashionStoreArticleSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) img"
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"

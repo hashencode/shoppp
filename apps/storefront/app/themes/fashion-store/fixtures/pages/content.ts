@@ -1,6 +1,8 @@
 import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
 import { fashionStoreShopData, type FashionStoreShopProduct } from "./shop";
+import { fashionStoreArticleData, type FashionStoreArticleData } from "./article";
+import { fashionStoreMagazineData, type FashionStoreMagazineData } from "./magazine";
 
 export interface FashionStoreWishlistData {
   actions: {
@@ -18,6 +20,8 @@ export interface FashionStoreAccountData {
 
 export interface FashionStoreContentData {
   account: FashionStoreAccountData;
+  article: FashionStoreArticleData;
+  magazine: FashionStoreMagazineData;
   wishlist: FashionStoreWishlistData;
 }
 
@@ -27,6 +31,8 @@ export const fashionStoreContentData = {
     privacyCopy:
       "Your personal data will be used to support your experience throughout this website, to manage access to your account, and for other purposes described in our privacy policy.",
   },
+  article: fashionStoreArticleData,
+  magazine: fashionStoreMagazineData,
   wishlist: {
     actions: {
       cart: { id: "wishlist-add-cart", intent: "cart.add-preview", label: "Add to cart" },

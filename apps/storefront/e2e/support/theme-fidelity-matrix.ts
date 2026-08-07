@@ -14,6 +14,8 @@ import { fashionStoreCheckoutBehaviorContract } from "../../app/themes/fashion-s
 import { fashionStoreCollectionBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/collection";
 import { fashionStoreAccountBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/account";
 import { fashionStoreWishlistBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/wishlist";
+import { fashionStoreArticleBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/article";
+import { fashionStoreMagazineBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/magazine";
 import {
   fidelityStatesByRegionFromBehaviorContract,
   type ThemeBehaviorContract,
@@ -374,6 +376,70 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath: "/demo-fashion-store-account.html",
     viewports: themeViewportIds,
   },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-magazine",
+    implementationPath: "/magazine",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "posts",
+        "section",
+        "section:nth-of-type(2) .blog-classic",
+        ".fashion-magazine-grid",
+        shopStates(fashionStoreMagazineBehaviorContract, "posts"),
+      ),
+      region(
+        "pagination",
+        "control",
+        "section:nth-of-type(2) .pagination",
+        ".fashion-magazine-pagination",
+        shopStates(fashionStoreMagazineBehaviorContract, "pagination"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-magazine.html",
+    viewports: themeViewportIds,
+  },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-article",
+    implementationPath: "/magazine/marketing-tips-and-tricks",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("article-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region("article-media", "section", "section:nth-of-type(2)", ".fashion-article-media"),
+      region("article-body", "section", "section:nth-of-type(3)", ".fashion-article-body"),
+      region(
+        "author-share",
+        "section",
+        "section.half-section",
+        ".fashion-article-author-share",
+        shopStates(fashionStoreArticleBehaviorContract, "author-share"),
+      ),
+      region(
+        "related",
+        "section",
+        "section.bg-very-light-gray",
+        ".fashion-article-related",
+        shopStates(fashionStoreArticleBehaviorContract, "related"),
+      ),
+      region("comments", "section", ".blog-comment", ".fashion-article-comments .blog-comment"),
+      region(
+        "comment-form",
+        "control",
+        "#comments form",
+        ".fashion-article-comment-form form",
+        shopStates(fashionStoreArticleBehaviorContract, "comment-form"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-blog-single-creative.html",
+    viewports: themeViewportIds,
+  },
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -389,9 +455,11 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
   ...[
     fashionStoreCartBehaviorContract,
     fashionStoreAccountBehaviorContract,
+    fashionStoreArticleBehaviorContract,
     fashionStoreCheckoutBehaviorContract,
     fashionStoreCollectionBehaviorContract,
     fashionStoreProductBehaviorContract,
+    fashionStoreMagazineBehaviorContract,
     fashionStoreShopLeftBehaviorContract,
     fashionStoreShopNoneBehaviorContract,
     fashionStoreShopRightBehaviorContract,

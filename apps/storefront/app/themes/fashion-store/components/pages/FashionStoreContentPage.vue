@@ -2,6 +2,8 @@
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import FashionStoreAccountPage from "./FashionStoreAccountPage.vue";
+import FashionStoreArticlePage from "./FashionStoreArticlePage.vue";
+import FashionStoreMagazinePage from "./FashionStoreMagazinePage.vue";
 import FashionStoreWishlistPage from "./FashionStoreWishlistPage.vue";
 
 defineProps<{
@@ -9,9 +11,17 @@ defineProps<{
   viewModel: PresentationViewModel;
 }>();
 
-const route = useRoute();
-const page = computed(() =>
-  route.path === "/account" ? FashionStoreAccountPage : FashionStoreWishlistPage,
+const router = useRouter();
+const contentPages = {
+  "/account": FashionStoreAccountPage,
+  "/magazine": FashionStoreMagazinePage,
+  "/magazine/marketing-tips-and-tricks": FashionStoreArticlePage,
+  "/wishlist": FashionStoreWishlistPage,
+} as const;
+const page = computed(
+  () =>
+    contentPages[router.currentRoute.value.path as keyof typeof contentPages] ??
+    FashionStoreWishlistPage,
 );
 </script>
 
