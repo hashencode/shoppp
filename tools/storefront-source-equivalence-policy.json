@@ -53,7 +53,10 @@
         "wishlist",
         "account",
         "magazine",
-        "article"
+        "article",
+        "about",
+        "faq",
+        "contact"
       ],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
@@ -336,6 +339,80 @@
           "sourceEntry": "demo-fashion-store-blog-single-creative.html",
           "sourceEntrySha256": "48c7213781db41be93fe6ec46611995f308e3fef93bfef596a15fb8b01ad5c3a",
           "sourceRegionsExport": "fashionStoreArticleSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) img"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreAboutBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/about.ts",
+          "focusedStates": [{ "id": "about-carousel-ready", "modes": ["temporal", "interaction"] }],
+          "id": "about",
+          "implementationRoute": "/about",
+          "implementationRuntimeReadySelector": "[data-fashion-store-about][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": [
+            "accordionCount",
+            "carouselImageCount",
+            "timelineCount",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/about.ts",
+          "sourceEntry": "demo-fashion-store-about.html",
+          "sourceEntrySha256": "4672c84511fd86b8f3466e1d5cac52a49be7d03b09bd2d0804782171da0dec6d",
+          "sourceRegionsExport": "fashionStoreAboutSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(4) .swiper"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreFaqBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/faq.ts",
+          "focusedStates": [{ "id": "faq-secondary-tab", "modes": ["interaction"] }],
+          "id": "faq",
+          "implementationRoute": "/faq",
+          "implementationRuntimeReadySelector": "[data-fashion-store-faq][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": [
+            "categoryCount",
+            "questionsPerCategory",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/faq.ts",
+          "sourceEntry": "demo-fashion-store-faq.html",
+          "sourceEntrySha256": "7849b03b3b3e19beb204897d1dcc18ef2d33e525f9b6322488ee8000812ea8fa",
+          "sourceRegionsExport": "fashionStoreFaqSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .tab-content"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreContactBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/contact.ts",
+          "focusedStates": [{ "id": "contact-map-ready", "modes": ["static"] }],
+          "id": "contact",
+          "implementationRoute": "/contact",
+          "implementationRuntimeReadySelector": "[data-fashion-store-contact][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "content",
+          "requiredContractFacets": [
+            "locationCount",
+            "markerCount",
+            "requiredFieldCount",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/contact.ts",
+          "sourceEntry": "demo-fashion-store-contact.html",
+          "sourceEntrySha256": "20c2fa93b6926d28e1683fe39e7acc36957bbfe4004dfec4b3772e9fdf41b668",
+          "sourceRegionsExport": "fashionStoreContactSourceRegions",
           "sourceRuntimeReadySelector": "section:nth-of-type(2) img"
         }
       ],

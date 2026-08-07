@@ -94,6 +94,21 @@ import image92 from "./upstream/images/avtar-07.jpg";
 import image93 from "./upstream/images/avtar-17.jpg";
 import image94 from "./upstream/images/avtar-18.jpg";
 import image95 from "./upstream/images/avtar-19.jpg";
+import image96 from "./upstream/images/demo-fashion-store-about-01.jpg";
+import image97 from "./upstream/images/demo-fashion-store-about-02.png";
+import image98 from "./upstream/images/demo-fashion-store-about-03.png";
+import image99 from "./upstream/images/demo-fashion-store-about-04.jpg";
+import image100 from "./upstream/images/demo-fashion-store-about-05.jpg";
+import image101 from "./upstream/images/demo-fashion-store-about-06.jpg";
+import image102 from "./upstream/images/demo-fashion-store-about-07.jpg";
+import image103 from "./upstream/images/demo-fashion-store-about-08.jpg";
+import image104 from "./upstream/images/demo-fashion-store-about-09.jpg";
+import image105 from "./upstream/images/demo-fashion-store-about-10.jpg";
+import image106 from "./upstream/images/demo-fashion-store-about-11.jpg";
+import image107 from "./upstream/images/demo-fashion-store-about-12.png";
+import image108 from "./upstream/images/demo-fashion-store-about-13.png";
+import image109 from "./upstream/images/demo-fashion-store-contatc-01.png";
+import image110 from "./upstream/images/demo-fashion-store-contatc-02.jpg";
 
 const sourceImages = new Map<string, string>([
   ["images/apple-touch-icon-114x114.png", image0],
@@ -192,6 +207,21 @@ const sourceImages = new Map<string, string>([
   ["images/avtar-17.jpg", image93],
   ["images/avtar-18.jpg", image94],
   ["images/avtar-19.jpg", image95],
+  ["images/demo-fashion-store-about-01.jpg", image96],
+  ["images/demo-fashion-store-about-02.png", image97],
+  ["images/demo-fashion-store-about-03.png", image98],
+  ["images/demo-fashion-store-about-04.jpg", image99],
+  ["images/demo-fashion-store-about-05.jpg", image100],
+  ["images/demo-fashion-store-about-06.jpg", image101],
+  ["images/demo-fashion-store-about-07.jpg", image102],
+  ["images/demo-fashion-store-about-08.jpg", image103],
+  ["images/demo-fashion-store-about-09.jpg", image104],
+  ["images/demo-fashion-store-about-10.jpg", image105],
+  ["images/demo-fashion-store-about-11.jpg", image106],
+  ["images/demo-fashion-store-about-12.png", image107],
+  ["images/demo-fashion-store-about-13.png", image108],
+  ["images/demo-fashion-store-contatc-01.png", image109],
+  ["images/demo-fashion-store-contatc-02.jpg", image110],
 ]);
 
 const establishedIds: Readonly<Record<string, string>> = {

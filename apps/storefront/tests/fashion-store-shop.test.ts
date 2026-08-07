@@ -106,6 +106,9 @@ describe("Fashion Store Shop layout family", () => {
       "account",
       "magazine",
       "article",
+      "about",
+      "faq",
+      "contact",
     ]);
   });
 });

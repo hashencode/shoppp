@@ -54,6 +54,21 @@ export {
   fashionStoreArticleSourcePage,
   fashionStoreArticleSourceRegions,
 } from "./contracts/pages/article";
+export {
+  fashionStoreAboutSourceContract,
+  fashionStoreAboutSourcePage,
+  fashionStoreAboutSourceRegions,
+} from "./contracts/pages/about";
+export {
+  fashionStoreContactSourceContract,
+  fashionStoreContactSourcePage,
+  fashionStoreContactSourceRegions,
+} from "./contracts/pages/contact";
+export {
+  fashionStoreFaqSourceContract,
+  fashionStoreFaqSourcePage,
+  fashionStoreFaqSourceRegions,
+} from "./contracts/pages/faq";
 
 export const fashionStoreSourceEntries = [
   "demo-fashion-store.html",

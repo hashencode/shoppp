@@ -920,3 +920,247 @@
     transition-duration: 0s !important;
   }
 }
+
+.fashion-accordion-trigger {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.fashion-accordion-trigger:focus-visible,
+.fashion-about-carousel:focus-visible,
+.fashion-faq-content [role="tab"]:focus-visible,
+.fashion-contact-form :is(input, textarea, button):focus-visible {
+  outline: 2px solid #232323;
+  outline-offset: 3px;
+}
+
+.fashion-about-hero .col-12 {
+  overflow: hidden;
+}
+
+.fashion-about-seal {
+  top: 0;
+  left: 15%;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+}
+
+.fashion-about-seal img,
+.fashion-about-mission-seal img {
+  width: 100%;
+}
+
+.fashion-about-carousel {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.fashion-about-carousel:active {
+  cursor: grabbing;
+}
+
+.fashion-about-carousel-track {
+  display: flex;
+  align-items: center;
+  transform: translateX(calc(var(--fashion-about-carousel-index) * -25%));
+  transition: transform 0.45s ease;
+}
+
+.fashion-about-carousel-slide {
+  flex: 0 0 25%;
+  min-height: 1px;
+  padding-right: 35px;
+}
+
+.fashion-about-carousel-slide img {
+  display: block;
+  width: 100%;
+}
+
+.fashion-about-mission-media {
+  min-height: 500px;
+}
+
+.fashion-about-mission-seal {
+  position: absolute;
+  top: 30px;
+  right: -100px;
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+}
+
+.fashion-about-secondary-image {
+  position: absolute;
+  right: -15px;
+  bottom: -30px;
+  width: 55%;
+  overflow: hidden;
+}
+
+.fashion-about-brands {
+  overflow: hidden;
+  text-align: center;
+}
+
+.fashion-about-brand-track {
+  display: flex;
+  width: max-content;
+  animation: fashion-about-brands 24s linear infinite;
+}
+
+.fashion-about-brand-track > div {
+  display: grid;
+  width: min(25vw, 285px);
+  min-height: 80px;
+  place-items: center;
+}
+
+.fashion-about-brand-track img {
+  width: auto;
+  max-width: 140px;
+  height: 30px;
+}
+
+@keyframes fashion-about-brands {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.fashion-faq-content [role="tablist"] {
+  display: flex;
+  flex-direction: column;
+}
+
+.fashion-faq-content [role="tab"] {
+  position: relative;
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.fashion-contact-map > img {
+  display: block;
+  width: 100%;
+}
+
+.fashion-contact-marker {
+  position: absolute;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  color: #fff;
+  background: #232323;
+  border: 5px solid #fee300;
+  border-radius: 50%;
+  place-items: center;
+  box-shadow: 0 0 0 0 rgb(254 227 0 / 55%);
+  animation: fashion-contact-marker 2s ease-out infinite;
+}
+
+.fashion-contact-marker-london {
+  top: 18%;
+  left: 18%;
+}
+
+.fashion-contact-marker-new-york {
+  right: 42%;
+  bottom: 18%;
+}
+
+.fashion-contact-parallax {
+  background-position: center;
+  background-size: cover;
+}
+
+.fashion-contact-form .form-control {
+  margin-bottom: 25px;
+}
+
+@keyframes fashion-contact-marker {
+  70% {
+    box-shadow: 0 0 0 15px rgb(254 227 0 / 0%);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgb(254 227 0 / 0%);
+  }
+}
+
+@media (max-width: 991px) {
+  .fashion-about-carousel-track {
+    transform: translateX(calc(var(--fashion-about-carousel-index) * -33.3333%));
+  }
+
+  .fashion-about-carousel-slide {
+    flex-basis: 33.3333%;
+    padding-right: 45px;
+  }
+
+  .fashion-about-mission-media {
+    min-height: 560px;
+  }
+
+  .fashion-faq-content [role="tablist"] {
+    flex-flow: row wrap;
+  }
+
+  .fashion-faq-content [role="tab"] {
+    width: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .fashion-about-seal {
+    left: 15px;
+    width: 110px;
+    height: 110px;
+  }
+
+  .fashion-about-carousel-track {
+    transform: translateX(calc(var(--fashion-about-carousel-index) * -50%));
+  }
+
+  .fashion-about-carousel-slide {
+    flex-basis: 50%;
+    padding-right: 35px;
+  }
+
+  .fashion-about-mission-media {
+    min-height: 470px;
+  }
+
+  .fashion-about-mission-seal {
+    right: -50px;
+    width: 130px;
+    height: 130px;
+  }
+
+  .fashion-about-secondary-image {
+    right: 15px;
+    width: 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fashion-about-carousel-track,
+  .fashion-about-brand-track,
+  .fashion-about-seal .animation-rotation,
+  .fashion-about-mission-seal .animation-rotation,
+  .fashion-contact-marker {
+    animation: none !important;
+    transition: none !important;
+  }
+}

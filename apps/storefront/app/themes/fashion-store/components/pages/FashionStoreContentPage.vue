@@ -2,7 +2,10 @@
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import FashionStoreAccountPage from "./FashionStoreAccountPage.vue";
+import FashionStoreAboutPage from "./FashionStoreAboutPage.vue";
 import FashionStoreArticlePage from "./FashionStoreArticlePage.vue";
+import FashionStoreContactPage from "./FashionStoreContactPage.vue";
+import FashionStoreFaqPage from "./FashionStoreFaqPage.vue";
 import FashionStoreMagazinePage from "./FashionStoreMagazinePage.vue";
 import FashionStoreWishlistPage from "./FashionStoreWishlistPage.vue";
 
@@ -14,6 +17,9 @@ defineProps<{
 const router = useRouter();
 const contentPages = {
   "/account": FashionStoreAccountPage,
+  "/about": FashionStoreAboutPage,
+  "/contact": FashionStoreContactPage,
+  "/faq": FashionStoreFaqPage,
   "/magazine": FashionStoreMagazinePage,
   "/magazine/marketing-tips-and-tricks": FashionStoreArticlePage,
   "/wishlist": FashionStoreWishlistPage,

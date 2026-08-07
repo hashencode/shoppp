@@ -944,6 +944,132 @@
           "sourcePath": "images/paypal-logo.jpg"
         },
         {
+          "destinationPath": "upstream/demo-fashion-store-about.html",
+          "expectedSha256": "4672c84511fd86b8f3466e1d5cac52a49be7d03b09bd2d0804782171da0dec6d",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-about.html"
+        },
+        {
+          "destinationPath": "upstream/demo-fashion-store-faq.html",
+          "expectedSha256": "7849b03b3b3e19beb204897d1dcc18ef2d33e525f9b6322488ee8000812ea8fa",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-faq.html"
+        },
+        {
+          "destinationPath": "upstream/demo-fashion-store-contact.html",
+          "expectedSha256": "20c2fa93b6926d28e1683fe39e7acc36957bbfe4004dfec4b3772e9fdf41b668",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-contact.html"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-01.jpg",
+          "expectedSha256": "d168c1fb780be6d2cc2d2ee9d224d65e7c9fe5929b2e4aeb28750fda79d6f019",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-01.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-02.png",
+          "expectedSha256": "c156bf8014c8774ac32babefdc19a401fdf90e7050d27401546c10703c31e447",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-02.png"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-03.png",
+          "expectedSha256": "9c37bd737c59d1f5299a832aa77fa61e6e8a6d3b35aea6d3c5fa9923ed1047a9",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-03.png"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-04.jpg",
+          "expectedSha256": "88766869780d9c0478f88412a4a519903fadce7541a1e0f88e2ffec6143c0782",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-04.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-05.jpg",
+          "expectedSha256": "2df4a7cad3c88dee2ea13038d155d16e631a4eb8c116137d26b29b4c9f04acd4",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-05.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-06.jpg",
+          "expectedSha256": "24448354ce7529fdc7a3db90bdb5bc909f320b5c7314a55bf64760bd33f81236",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-06.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-07.jpg",
+          "expectedSha256": "809adb3ddec25ce41ac74c19f8f5003913e036c7925c134324409919317b96f5",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-07.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-08.jpg",
+          "expectedSha256": "139057ab17beca9e0d190437c08a8aeb2c5b520bf502901089bed191563565fd",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-08.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-09.jpg",
+          "expectedSha256": "1e99567d8664cbaa747428cc5880ab92720291c323f662d95d3a2a1beb2a9205",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-09.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-10.jpg",
+          "expectedSha256": "041fff8b6a2054d86610416f9b1791cc73973f6c7a0843ffb07ddd60ff348ea4",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-10.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-11.jpg",
+          "expectedSha256": "2e477d3759bf1120229dfd288af5669faf1d1ef12f6b0fcb80405570f2d956d9",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-11.jpg"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-12.png",
+          "expectedSha256": "7bdd80cd3bb911639ed6f2dd957e0cb892f0e62a68ad1c6be3f6a3f76166f2dd",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-12.png"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-13.png",
+          "expectedSha256": "805b89021c1a4ac9505cae053540f05107e281ebc7a3be9501a04b1c3630ff91",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-13.png"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-contatc-01.png",
+          "expectedSha256": "b327a0950bd697f2b5c254de2516cd81909f9fddb3b13df6857d99610d671f82",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-contatc-01.png"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-contatc-02.jpg",
+          "expectedSha256": "e2b5f256130a7f4ef8b4a9bd1c44ea7cd02c2fae67debb15ea956bc336697348",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-contatc-02.jpg"
+        },
+        {
           "destinationPath": "upstream/js/jquery.js",
           "expectedSha256": "c30b56bf74c6057c8b9104b92d33b4ade752667fe4dcc1a5d121fc4336fffdf1",
           "kind": "visual-runtime",
@@ -1064,6 +1190,15 @@
           "sha256": "311b7d8d26702239f15af05598f43e3fdeca39528ee31d5ac4f9cfbcbf059e5b"
         },
         {
+          "destinationPath": "upstream/demo-fashion-store-about.html",
+          "expectedSha256": "4672c84511fd86b8f3466e1d5cac52a49be7d03b09bd2d0804782171da0dec6d",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-about.html",
+          "bytes": 61476,
+          "sha256": "4672c84511fd86b8f3466e1d5cac52a49be7d03b09bd2d0804782171da0dec6d"
+        },
+        {
           "destinationPath": "upstream/demo-fashion-store-account.html",
           "expectedSha256": "1b7c1cc83c0f224f8f95dec2ded2246a9ebcc52a7011acd3d5afcfdd4248da62",
           "kind": "markup",
@@ -1107,6 +1242,24 @@
           "sourcePath": "demo-fashion-store-collection.html",
           "bytes": 46040,
           "sha256": "66f7ef2c07925577063efb4a60355857f2a70af0cff1955648ec2ba1401e2f1d"
+        },
+        {
+          "destinationPath": "upstream/demo-fashion-store-contact.html",
+          "expectedSha256": "20c2fa93b6926d28e1683fe39e7acc36957bbfe4004dfec4b3772e9fdf41b668",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-contact.html",
+          "bytes": 49792,
+          "sha256": "20c2fa93b6926d28e1683fe39e7acc36957bbfe4004dfec4b3772e9fdf41b668"
+        },
+        {
+          "destinationPath": "upstream/demo-fashion-store-faq.html",
+          "expectedSha256": "7849b03b3b3e19beb204897d1dcc18ef2d33e525f9b6322488ee8000812ea8fa",
+          "kind": "markup",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "demo-fashion-store-faq.html",
+          "bytes": 108807,
+          "sha256": "7849b03b3b3e19beb204897d1dcc18ef2d33e525f9b6322488ee8000812ea8fa"
         },
         {
           "destinationPath": "upstream/demo-fashion-store-magazine.html",
@@ -1570,6 +1723,123 @@
           "sha256": "00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7"
         },
         {
+          "destinationPath": "upstream/images/demo-fashion-store-about-01.jpg",
+          "expectedSha256": "d168c1fb780be6d2cc2d2ee9d224d65e7c9fe5929b2e4aeb28750fda79d6f019",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-01.jpg",
+          "bytes": 134724,
+          "sha256": "d168c1fb780be6d2cc2d2ee9d224d65e7c9fe5929b2e4aeb28750fda79d6f019"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-02.png",
+          "expectedSha256": "c156bf8014c8774ac32babefdc19a401fdf90e7050d27401546c10703c31e447",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-02.png",
+          "bytes": 2183,
+          "sha256": "c156bf8014c8774ac32babefdc19a401fdf90e7050d27401546c10703c31e447"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-03.png",
+          "expectedSha256": "9c37bd737c59d1f5299a832aa77fa61e6e8a6d3b35aea6d3c5fa9923ed1047a9",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-03.png",
+          "bytes": 1995,
+          "sha256": "9c37bd737c59d1f5299a832aa77fa61e6e8a6d3b35aea6d3c5fa9923ed1047a9"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-04.jpg",
+          "expectedSha256": "88766869780d9c0478f88412a4a519903fadce7541a1e0f88e2ffec6143c0782",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-04.jpg",
+          "bytes": 48104,
+          "sha256": "88766869780d9c0478f88412a4a519903fadce7541a1e0f88e2ffec6143c0782"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-05.jpg",
+          "expectedSha256": "2df4a7cad3c88dee2ea13038d155d16e631a4eb8c116137d26b29b4c9f04acd4",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-05.jpg",
+          "bytes": 61019,
+          "sha256": "2df4a7cad3c88dee2ea13038d155d16e631a4eb8c116137d26b29b4c9f04acd4"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-06.jpg",
+          "expectedSha256": "24448354ce7529fdc7a3db90bdb5bc909f320b5c7314a55bf64760bd33f81236",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-06.jpg",
+          "bytes": 78025,
+          "sha256": "24448354ce7529fdc7a3db90bdb5bc909f320b5c7314a55bf64760bd33f81236"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-07.jpg",
+          "expectedSha256": "809adb3ddec25ce41ac74c19f8f5003913e036c7925c134324409919317b96f5",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-07.jpg",
+          "bytes": 35225,
+          "sha256": "809adb3ddec25ce41ac74c19f8f5003913e036c7925c134324409919317b96f5"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-08.jpg",
+          "expectedSha256": "139057ab17beca9e0d190437c08a8aeb2c5b520bf502901089bed191563565fd",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-08.jpg",
+          "bytes": 41228,
+          "sha256": "139057ab17beca9e0d190437c08a8aeb2c5b520bf502901089bed191563565fd"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-09.jpg",
+          "expectedSha256": "1e99567d8664cbaa747428cc5880ab92720291c323f662d95d3a2a1beb2a9205",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-09.jpg",
+          "bytes": 82756,
+          "sha256": "1e99567d8664cbaa747428cc5880ab92720291c323f662d95d3a2a1beb2a9205"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-10.jpg",
+          "expectedSha256": "041fff8b6a2054d86610416f9b1791cc73973f6c7a0843ffb07ddd60ff348ea4",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-10.jpg",
+          "bytes": 61153,
+          "sha256": "041fff8b6a2054d86610416f9b1791cc73973f6c7a0843ffb07ddd60ff348ea4"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-11.jpg",
+          "expectedSha256": "2e477d3759bf1120229dfd288af5669faf1d1ef12f6b0fcb80405570f2d956d9",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-11.jpg",
+          "bytes": 26572,
+          "sha256": "2e477d3759bf1120229dfd288af5669faf1d1ef12f6b0fcb80405570f2d956d9"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-12.png",
+          "expectedSha256": "7bdd80cd3bb911639ed6f2dd957e0cb892f0e62a68ad1c6be3f6a3f76166f2dd",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-12.png",
+          "bytes": 1927,
+          "sha256": "7bdd80cd3bb911639ed6f2dd957e0cb892f0e62a68ad1c6be3f6a3f76166f2dd"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-about-13.png",
+          "expectedSha256": "805b89021c1a4ac9505cae053540f05107e281ebc7a3be9501a04b1c3630ff91",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-about-13.png",
+          "bytes": 1790,
+          "sha256": "805b89021c1a4ac9505cae053540f05107e281ebc7a3be9501a04b1c3630ff91"
+        },
+        {
           "destinationPath": "upstream/images/demo-fashion-store-banner-01.jpg",
           "expectedSha256": "1708a6311f634aec006daa0ea2dfea8a6e8f19eb121a16a8b5231fcc6d268cf0",
           "kind": "image",
@@ -1802,6 +2072,24 @@
           "sourcePath": "images/demo-fashion-store-collections-06.jpg",
           "bytes": 45833,
           "sha256": "e5c161a5bc873a089f70d4438ff333518b7673b7b89582fc090a3bc78049a8df"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-contatc-01.png",
+          "expectedSha256": "b327a0950bd697f2b5c254de2516cd81909f9fddb3b13df6857d99610d671f82",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-contatc-01.png",
+          "bytes": 27969,
+          "sha256": "b327a0950bd697f2b5c254de2516cd81909f9fddb3b13df6857d99610d671f82"
+        },
+        {
+          "destinationPath": "upstream/images/demo-fashion-store-contatc-02.jpg",
+          "expectedSha256": "e2b5f256130a7f4ef8b4a9bd1c44ea7cd02c2fae67debb15ea956bc336697348",
+          "kind": "image",
+          "license": "User-supplied Crafto package; explicitly authorized for the Fashion Store source-parity implementation.",
+          "sourcePath": "images/demo-fashion-store-contatc-02.jpg",
+          "bytes": 197701,
+          "sha256": "e2b5f256130a7f4ef8b4a9bd1c44ea7cd02c2fae67debb15ea956bc336697348"
         },
         {
           "destinationPath": "upstream/images/demo-fashion-store-logo-black.png",

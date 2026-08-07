@@ -21,6 +21,9 @@ describe("theme fidelity matrix", () => {
       "fashion-store-account",
       "fashion-store-magazine",
       "fashion-store-article",
+      "fashion-store-about",
+      "fashion-store-faq",
+      "fashion-store-contact",
     ]);
   });
 

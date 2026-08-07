@@ -18,6 +18,9 @@ import { fashionStoreCollectionBehaviorContract } from "./contracts/pages/collec
 import { fashionStoreAccountBehaviorContract } from "./contracts/pages/account";
 import { fashionStoreWishlistBehaviorContract } from "./contracts/pages/wishlist";
 import { fashionStoreArticleBehaviorContract } from "./contracts/pages/article";
+import { fashionStoreAboutBehaviorContract } from "./contracts/pages/about";
+import { fashionStoreContactBehaviorContract } from "./contracts/pages/contact";
+import { fashionStoreFaqBehaviorContract } from "./contracts/pages/faq";
 import { fashionStoreMagazineBehaviorContract } from "./contracts/pages/magazine";
 
 const named = (state: NamedStateContract, fidelityState?: string): ThemeBehaviorEvidenceState => ({
@@ -518,11 +521,14 @@ export const fashionStoreFidelityStatesByRegion = fidelityStatesByRegionFromBeha
 );
 
 export {
+  fashionStoreAboutBehaviorContract,
   fashionStoreCartBehaviorContract,
   fashionStoreCollectionBehaviorContract,
   fashionStoreCheckoutBehaviorContract,
   fashionStoreAccountBehaviorContract,
   fashionStoreArticleBehaviorContract,
+  fashionStoreContactBehaviorContract,
+  fashionStoreFaqBehaviorContract,
   fashionStoreProductBehaviorContract,
   fashionStoreMagazineBehaviorContract,
   fashionStoreShopLeftBehaviorContract,
@@ -533,11 +539,14 @@ export {
 
 export const fashionStorePageBehaviorContracts = [
   fashionStoreBehaviorContract,
+  fashionStoreAboutBehaviorContract,
   fashionStoreCartBehaviorContract,
   fashionStoreCollectionBehaviorContract,
   fashionStoreCheckoutBehaviorContract,
   fashionStoreAccountBehaviorContract,
   fashionStoreArticleBehaviorContract,
+  fashionStoreContactBehaviorContract,
+  fashionStoreFaqBehaviorContract,
   fashionStoreProductBehaviorContract,
   fashionStoreMagazineBehaviorContract,
   fashionStoreShopLeftBehaviorContract,

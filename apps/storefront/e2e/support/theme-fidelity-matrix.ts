@@ -15,6 +15,9 @@ import { fashionStoreCollectionBehaviorContract } from "../../app/themes/fashion
 import { fashionStoreAccountBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/account";
 import { fashionStoreWishlistBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/wishlist";
 import { fashionStoreArticleBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/article";
+import { fashionStoreAboutBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/about";
+import { fashionStoreContactBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/contact";
+import { fashionStoreFaqBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/faq";
 import { fashionStoreMagazineBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/magazine";
 import {
   fidelityStatesByRegionFromBehaviorContract,
@@ -440,6 +443,92 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath: "/demo-fashion-store-blog-single-creative.html",
     viewports: themeViewportIds,
   },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-about",
+    implementationPath: "/about",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region("hero", "section", "section:nth-of-type(2)", ".fashion-about-hero"),
+      region("story", "section", "section:nth-of-type(3)", ".fashion-about-story"),
+      region(
+        "carousel",
+        "section",
+        "section:nth-of-type(4)",
+        ".fashion-about-carousel-section",
+        shopStates(fashionStoreAboutBehaviorContract, "carousel"),
+      ),
+      region("timeline", "section", "section:nth-of-type(5)", ".fashion-about-timeline"),
+      region(
+        "mission",
+        "section",
+        "section:nth-of-type(6)",
+        ".fashion-about-mission",
+        shopStates(fashionStoreAboutBehaviorContract, "mission"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-about.html",
+    viewports: themeViewportIds,
+  },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-faq",
+    implementationPath: "/faq",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "categories",
+        "control",
+        "section:nth-of-type(2) .nav-tabs",
+        ".fashion-faq-content [role='tablist']",
+        shopStates(fashionStoreFaqBehaviorContract, "categories"),
+      ),
+      region(
+        "questions",
+        "section",
+        "section:nth-of-type(2) .tab-content",
+        ".fashion-faq-content .tab-content",
+        shopStates(fashionStoreFaqBehaviorContract, "questions"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-faq.html",
+    viewports: themeViewportIds,
+  },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-contact",
+    implementationPath: "/contact",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region("locations", "section", "section:nth-of-type(2)", ".fashion-contact-locations"),
+      region(
+        "map",
+        "component",
+        "section:nth-of-type(2) .outside-box-right-30",
+        ".fashion-contact-map",
+        shopStates(fashionStoreContactBehaviorContract, "map"),
+      ),
+      region("parallax", "section", "section:nth-of-type(3)", ".fashion-contact-parallax"),
+      region(
+        "form",
+        "control",
+        "section:nth-of-type(4) form",
+        ".fashion-contact-form form",
+        shopStates(fashionStoreContactBehaviorContract, "form"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-contact.html",
+    viewports: themeViewportIds,
+  },
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -454,8 +543,11 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
   },
   ...[
     fashionStoreCartBehaviorContract,
+    fashionStoreAboutBehaviorContract,
     fashionStoreAccountBehaviorContract,
     fashionStoreArticleBehaviorContract,
+    fashionStoreContactBehaviorContract,
+    fashionStoreFaqBehaviorContract,
     fashionStoreCheckoutBehaviorContract,
     fashionStoreCollectionBehaviorContract,
     fashionStoreProductBehaviorContract,

@@ -29,6 +29,9 @@ describe("static generation manifest", () => {
       "/account",
       "/magazine",
       "/magazine/marketing-tips-and-tricks",
+      "/about",
+      "/faq",
+      "/contact",
     ]);
   });
 

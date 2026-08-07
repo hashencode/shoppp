@@ -63,6 +63,9 @@ describe("Fashion Store route readiness", () => {
       "account",
       "magazine",
       "article",
+      "about",
+      "faq",
+      "contact",
     ]);
     expect(fashionStorePreviewRoutes).toEqual([
       "/",
@@ -77,6 +80,9 @@ describe("Fashion Store route readiness", () => {
       "/account",
       "/magazine",
       "/magazine/marketing-tips-and-tricks",
+      "/about",
+      "/faq",
+      "/contact",
     ]);
   });
 

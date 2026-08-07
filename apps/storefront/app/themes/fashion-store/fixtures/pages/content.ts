@@ -1,7 +1,10 @@
 import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
 import { fashionStoreShopData, type FashionStoreShopProduct } from "./shop";
+import { fashionStoreAboutData, type FashionStoreAboutData } from "./about";
 import { fashionStoreArticleData, type FashionStoreArticleData } from "./article";
+import { fashionStoreContactData, type FashionStoreContactData } from "./contact";
+import { fashionStoreFaqData, type FashionStoreFaqData } from "./faq";
 import { fashionStoreMagazineData, type FashionStoreMagazineData } from "./magazine";
 
 export interface FashionStoreWishlistData {
@@ -20,7 +23,10 @@ export interface FashionStoreAccountData {
 
 export interface FashionStoreContentData {
   account: FashionStoreAccountData;
+  about: FashionStoreAboutData;
   article: FashionStoreArticleData;
+  contact: FashionStoreContactData;
+  faq: FashionStoreFaqData;
   magazine: FashionStoreMagazineData;
   wishlist: FashionStoreWishlistData;
 }
@@ -31,7 +37,10 @@ export const fashionStoreContentData = {
     privacyCopy:
       "Your personal data will be used to support your experience throughout this website, to manage access to your account, and for other purposes described in our privacy policy.",
   },
+  about: fashionStoreAboutData,
   article: fashionStoreArticleData,
+  contact: fashionStoreContactData,
+  faq: fashionStoreFaqData,
   magazine: fashionStoreMagazineData,
   wishlist: {
     actions: {
