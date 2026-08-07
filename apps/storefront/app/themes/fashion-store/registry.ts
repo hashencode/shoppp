@@ -7,6 +7,7 @@ import "./integration.css";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import FashionStoreHome from "./components/FashionStoreHome.vue";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
+import { fashionStoreEnabledPageContracts } from "./page-contracts";
 import { themeAssets } from "./resources";
 
 export const themeRegistry = {
@@ -18,3 +19,4 @@ export const themeRegistry = {
 
 export { themeAssets };
 export const themeFixtures = fashionStoreHomeFixtures;
+export const themeRoutes = fashionStoreEnabledPageContracts;

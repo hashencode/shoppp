@@ -616,9 +616,12 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
     timing: { autoplayDelayMs: 4000, delayMs: 0, durationMs: 1000 },
   });
   expect(initialMotion.layers).toHaveLength(3);
-  await page.goto("/cart");
+  await page
+    .locator('.header-cart a[href="/cart"][data-fashion-store-route]')
+    .dispatchEvent("click");
+  await expect(page).toHaveURL(/\/cart$/);
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(0);
-  expect(await page.locator("body").getAttribute("class")).toBeNull();
+  expect((await page.locator("body").getAttribute("class")) ?? "").toBe("");
   await page.goBack({ waitUntil: "networkidle" });
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(1);
   await expect(page.locator(".swiper.full-screen")).toHaveAttribute("data-motion-ready", "true");
@@ -651,7 +654,9 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
   const navigationEntries = await page.evaluate(
     () => performance.getEntriesByType("navigation").length,
   );
-  await page.locator('a[href="/cart"][data-fashion-store-route]').dispatchEvent("click");
+  await page
+    .locator('.header-cart a[href="/cart"][data-fashion-store-route]')
+    .dispatchEvent("click");
   await expect(page).toHaveURL(/\/cart$/);
   expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(
     navigationEntries,

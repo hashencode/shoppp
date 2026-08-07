@@ -15,22 +15,33 @@ function minimalThirdTheme(): ThemeMatrixEntry {
     license: "Repository-owned test fixture",
     source: "internal://shoppp/themes/minimal",
   };
+  entry.package.manifest.supportedPageTemplates = ["home"];
   entry.package.manifest.componentRegistry.sections =
-    entry.package.manifest.componentRegistry.sections.map((definition) =>
-      definition.type === "fashion-store.home" ? { ...definition, type: "minimal.home" } : definition,
-    );
+    entry.package.manifest.componentRegistry.sections
+      .filter(
+        (definition) =>
+          !definition.type.startsWith("fashion-store.") || definition.type === "fashion-store.home",
+      )
+      .map((definition) =>
+        definition.type === "fashion-store.home"
+          ? { ...definition, type: "minimal.home" }
+          : definition,
+      );
   entry.package.presets = entry.package.presets.map((preset) => ({
     ...preset,
-    templates: preset.templates.map((template) => ({
-      ...template,
-      sections: template.sections.map((section) =>
-        section.type === "fashion-store.home" ? { ...section, type: "minimal.home" } : section,
-      ),
-    })),
+    templates: preset.templates
+      .filter(({ pageType }) => pageType === "home")
+      .map((template) => ({
+        ...template,
+        sections: template.sections.map((section) =>
+          section.type === "fashion-store.home" ? { ...section, type: "minimal.home" } : section,
+        ),
+      })),
   }));
   entry.descriptor = {
     ...entry.descriptor,
     id: "minimal",
+    supportedPageTemplates: ["home"],
   };
   return entry;
 }
@@ -45,11 +56,20 @@ describe("storefront theme matrix", () => {
     ).not.toThrow();
   });
 
-  test("registers Fashion Store as a source-equivalent, home-only preview", () => {
-    const fashionStore = storefrontThemeMatrix.find(({ descriptor }) => descriptor.id === "fashion-store");
+  test("registers Fashion Store platform templates while readiness remains home-only", () => {
+    const fashionStore = storefrontThemeMatrix.find(
+      ({ descriptor }) => descriptor.id === "fashion-store",
+    );
     expect(fashionStore?.assetPolicy).toBe("source-equivalent");
     expect(fashionStore?.requiredPageTypes).toEqual(["home"]);
-    expect(fashionStore?.package.manifest.supportedPageTemplates).toEqual(["home"]);
+    expect(fashionStore?.package.manifest.supportedPageTemplates).toEqual([
+      "home",
+      "collection",
+      "product",
+      "cart",
+      "checkout",
+      "content",
+    ]);
   });
 
   test("rejects duplicate IDs, incomplete provenance, incompatibility, schema drift, and page gaps", () => {
@@ -92,7 +112,9 @@ describe("storefront theme matrix", () => {
     );
     missingPage.descriptor.supportedPageTemplates =
       missingPage.package.manifest.supportedPageTemplates;
-    expect(() => verifyThemeMatrix([missingPage], [missingPage.descriptor])).toThrow("invalid");
+    expect(() => verifyThemeMatrix([missingPage], [missingPage.descriptor])).toThrow(
+      "missing required home support",
+    );
   });
 
   test("requires a contiguous migration chain for every schema version", () => {

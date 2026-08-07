@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { fashionStoreRoutePaths } from "../../page-contracts";
+
 const properties = defineProps<{
   sourceAsset: (sourcePath: string) => string;
 }>();
@@ -27,30 +29,45 @@ const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
             {{
               sourceInlineGap
             }}
-            <li class="nav-item"><a href="/" data-fashion-store-route class="nav-link">Shop</a></li>
-            {{
-              sourceInlineGap
-            }}
             <li class="nav-item">
-              <a href="/" data-fashion-store-route class="nav-link">Collection</a>
+              <a
+                :href="fashionStoreRoutePaths['shop-left']"
+                data-fashion-store-route
+                class="nav-link"
+                >Shop</a
+              >
             </li>
             {{
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a href="/" data-fashion-store-route class="nav-link">Magazine</a>
+              <a :href="fashionStoreRoutePaths.collection" data-fashion-store-route class="nav-link"
+                >Collection</a
+              >
             </li>
             {{
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a href="/" data-fashion-store-route class="nav-link">About</a>
+              <a :href="fashionStoreRoutePaths.magazine" data-fashion-store-route class="nav-link"
+                >Magazine</a
+              >
             </li>
             {{
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a href="/" data-fashion-store-route class="nav-link">Contact</a>
+              <a :href="fashionStoreRoutePaths.about" data-fashion-store-route class="nav-link"
+                >About</a
+              >
+            </li>
+            {{
+              sourceInlineGap
+            }}
+            <li class="nav-item">
+              <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route class="nav-link"
+                >Contact</a
+              >
             </li>
           </ul>
         </div>
@@ -76,8 +93,10 @@ const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Information</span>
           <ul>
-            <li><a href="/" data-fashion-store-route>About us</a></li>
-            <li><a href="/" data-fashion-store-route>Contact us</a></li>
+            <li><a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About us</a></li>
+            <li>
+              <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route>Contact us</a>
+            </li>
             <li><a href="/" data-fashion-store-route>Terms &amp; conditions</a></li>
             <li><a href="/" data-fashion-store-route>Shipping &amp; delivery</a></li>
             <li><a href="/" data-fashion-store-route>Privacy policy</a></li>
@@ -87,11 +106,13 @@ const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Quick links</span>
           <ul>
-            <li><a href="/" data-fashion-store-route>My account</a></li>
+            <li>
+              <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>My account</a>
+            </li>
             <li><a href="/" data-fashion-store-route>Orders tracking</a></li>
             <li><a href="/" data-fashion-store-route>Our store</a></li>
             <li><a href="/" data-fashion-store-route>Size guide</a></li>
-            <li><a href="/" data-fashion-store-route>FAQs</a></li>
+            <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>FAQs</a></li>
           </ul>
         </div>
 

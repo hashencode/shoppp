@@ -1,24 +1,23 @@
 import type { ThemePreset } from "@shoppp/contracts";
+import { fashionStoreTemplatePageTypes } from "../page-contracts";
 
 export const fashionStorePreset = {
   id: "source-parity",
   label: "Source parity",
-  templates: [
-    {
-      id: "fashion-store-home",
-      pageType: "home",
-      requiredCapabilities: [],
-      sections: [
-        {
-          blocks: [],
-          capabilities: [],
-          id: "fashion-store-home",
-          required: true,
-          settings: {},
-          type: "fashion-store.home",
-          visible: true,
-        },
-      ],
-    },
-  ],
+  templates: fashionStoreTemplatePageTypes.map((pageType) => ({
+    id: `fashion-store-${pageType}`,
+    pageType,
+    requiredCapabilities: [],
+    sections: [
+      {
+        blocks: [],
+        capabilities: [],
+        id: `fashion-store-${pageType}`,
+        required: true,
+        settings: {},
+        type: `fashion-store.${pageType}`,
+        visible: true,
+      },
+    ],
+  })),
 } as const satisfies ThemePreset;

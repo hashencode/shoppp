@@ -12,12 +12,7 @@ const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: [
-    "fashion-store-theme.spec.ts",
-    "fashion-store-acceptance-slice.spec.ts",
-    "fashion-store-acceptance-self-test.spec.ts",
-    "theme-behavior-contract.spec.ts",
-  ],
+  testMatch: ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
   outputDir: "test-results/fashion-store",
   fullyParallel: false,
   reporter: [
@@ -58,7 +53,7 @@ export default defineConfig({
     ? undefined
     : [
         {
-          command: `bun run build:preview:fashion-store && STOREFRONT_BUILD_MODE=preview bun run verify:static && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
+          command: `bun run build:preview:fashion-store && env STOREFRONT_BUILD_MODE=preview bun scripts/verify-static.ts && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`,
           url: baseURL,
           reuseExistingServer: false,
           timeout: 180_000,

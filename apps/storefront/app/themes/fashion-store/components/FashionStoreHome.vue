@@ -5,6 +5,7 @@ import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import type { FashionStoreHomeData } from "../fixtures/home";
 import { useFashionStoreRuntime } from "../composables/useFashionStoreRuntime";
 import { fashionStoreAssetId } from "../resources";
+import { fashionStoreRoutePaths } from "../page-contracts";
 import FashionStoreShell from "./shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
@@ -226,7 +227,7 @@ onBeforeUnmount(() => {
                       data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
                     >
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.collection"
                         data-fashion-store-route
                         class="btn btn-dark-gray btn-box-shadow btn-large"
                         >View collection</a
@@ -276,7 +277,7 @@ onBeforeUnmount(() => {
                       data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
                     >
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.collection"
                         data-fashion-store-route
                         class="btn btn-dark-gray btn-box-shadow btn-large"
                         >View collection</a
@@ -326,7 +327,7 @@ onBeforeUnmount(() => {
                       data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
                     >
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.collection"
                         data-fashion-store-route
                         class="btn btn-dark-gray btn-box-shadow btn-large"
                         >View collection</a
@@ -1295,7 +1296,10 @@ onBeforeUnmount(() => {
             <p class="xs-pe-15px xs-ps-15px">
               Flash summer sale 70% off on selected collection for him.
             </p>
-            <a href="/" data-fashion-store-route class="btn btn-dark-gray btn-box-shadow btn-medium"
+            <a
+              :href="fashionStoreRoutePaths.collection"
+              data-fashion-store-route
+              class="btn btn-dark-gray btn-box-shadow btn-medium"
               >View collection</a
             >
           </div>
@@ -2134,7 +2138,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="card bg-transparent border-0 h-100">
                   <div class="blog-image position-relative overflow-hidden">
-                    <a href="/" data-fashion-store-route
+                    <a :href="fashionStoreRoutePaths.article" data-fashion-store-route
                       ><img
                         v-bind:alt="data.magazine[0].name"
                         v-bind:src="sourceAsset(data.magazine[0].sourceImage)"
@@ -2144,16 +2148,19 @@ onBeforeUnmount(() => {
                     <span class="mb-5px d-block"
                       >By
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.magazine"
                         data-fashion-store-route
                         class="text-dark-gray fw-500 categories-text"
                         >{{ data.magazine[0].author }}</a
-                      ><a href="/" data-fashion-store-route class="blog-date">{{
-                        data.magazine[0].date
-                      }}</a></span
+                      ><a
+                        :href="fashionStoreRoutePaths.magazine"
+                        data-fashion-store-route
+                        class="blog-date"
+                        >{{ data.magazine[0].date }}</a
+                      ></span
                     >
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.article"
                       data-fashion-store-route
                       class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                       >{{ data.magazine[0].name }}</a
@@ -2165,7 +2172,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="card bg-transparent border-0 h-100">
                   <div class="blog-image position-relative overflow-hidden">
-                    <a href="/" data-fashion-store-route
+                    <a :href="fashionStoreRoutePaths.article" data-fashion-store-route
                       ><img
                         v-bind:alt="data.magazine[1].name"
                         v-bind:src="sourceAsset(data.magazine[1].sourceImage)"
@@ -2175,16 +2182,19 @@ onBeforeUnmount(() => {
                     <span class="mb-5px d-block"
                       >By
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.magazine"
                         data-fashion-store-route
                         class="text-dark-gray fw-500 categories-text"
                         >{{ data.magazine[1].author }}</a
-                      ><a href="/" data-fashion-store-route class="blog-date">{{
-                        data.magazine[1].date
-                      }}</a></span
+                      ><a
+                        :href="fashionStoreRoutePaths.magazine"
+                        data-fashion-store-route
+                        class="blog-date"
+                        >{{ data.magazine[1].date }}</a
+                      ></span
                     >
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.article"
                       data-fashion-store-route
                       class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                       >{{ data.magazine[1].name }}</a
@@ -2196,7 +2206,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="card bg-transparent border-0 h-100">
                   <div class="blog-image position-relative overflow-hidden">
-                    <a href="/" data-fashion-store-route
+                    <a :href="fashionStoreRoutePaths.article" data-fashion-store-route
                       ><img
                         v-bind:alt="data.magazine[2].name"
                         v-bind:src="sourceAsset(data.magazine[2].sourceImage)"
@@ -2206,16 +2216,19 @@ onBeforeUnmount(() => {
                     <span class="mb-5px d-block"
                       >By
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.magazine"
                         data-fashion-store-route
                         class="text-dark-gray fw-500 categories-text"
                         >{{ data.magazine[2].author }}</a
-                      ><a href="/" data-fashion-store-route class="blog-date">{{
-                        data.magazine[2].date
-                      }}</a></span
+                      ><a
+                        :href="fashionStoreRoutePaths.magazine"
+                        data-fashion-store-route
+                        class="blog-date"
+                        >{{ data.magazine[2].date }}</a
+                      ></span
                     >
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.article"
                       data-fashion-store-route
                       class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                       >{{ data.magazine[2].name }}</a
@@ -2227,7 +2240,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="card bg-transparent border-0 h-100">
                   <div class="blog-image position-relative overflow-hidden">
-                    <a href="/" data-fashion-store-route
+                    <a :href="fashionStoreRoutePaths.article" data-fashion-store-route
                       ><img
                         v-bind:alt="data.magazine[3].name"
                         v-bind:src="sourceAsset(data.magazine[3].sourceImage)"
@@ -2237,16 +2250,19 @@ onBeforeUnmount(() => {
                     <span class="mb-5px d-block"
                       >By
                       <a
-                        href="/"
+                        :href="fashionStoreRoutePaths.magazine"
                         data-fashion-store-route
                         class="text-dark-gray fw-500 categories-text"
                         >{{ data.magazine[3].author }}</a
-                      ><a href="/" data-fashion-store-route class="blog-date">{{
-                        data.magazine[3].date
-                      }}</a></span
+                      ><a
+                        :href="fashionStoreRoutePaths.magazine"
+                        data-fashion-store-route
+                        class="blog-date"
+                        >{{ data.magazine[3].date }}</a
+                      ></span
                     >
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.article"
                       data-fashion-store-route
                       class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                       >{{ data.magazine[3].name }}</a

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreMiniCart from "./FashionStoreMiniCart.vue";
 import FashionStoreSearchOverlay from "./FashionStoreSearchOverlay.vue";
@@ -100,7 +101,7 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
           <div class="col-12 justify-content-center alt-font fs-13 fw-500 text-uppercase">
             <div class="text-dark-gray">{{ announcement }}</div>
             <a
-              href="/"
+              :href="fashionStoreRoutePaths['shop-left']"
               data-fashion-store-route
               class="text-dark-gray fw-600 ms-5px text-dark-gray-hover"
               ><span class="text-decoration-line-bottom">Shop now</span></a
@@ -175,7 +176,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                 <a href="/" data-fashion-store-route class="nav-link">Home</a>
               </li>
               <li class="nav-item dropdown submenu">
-                <a href="/" data-fashion-store-route class="nav-link">Shop</a>
+                <a
+                  :href="fashionStoreRoutePaths['shop-left']"
+                  data-fashion-store-route
+                  class="nav-link"
+                  >Shop</a
+                >
                 <i
                   class="fa-solid fa-angle-down dropdown-toggle"
                   id="navbarDropdownMenuLink1"
@@ -272,7 +278,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                 </div>
               </li>
               <li class="nav-item dropdown submenu">
-                <a href="/" data-fashion-store-route class="nav-link">Collection</a>
+                <a
+                  :href="fashionStoreRoutePaths.collection"
+                  data-fashion-store-route
+                  class="nav-link"
+                  >Collection</a
+                >
                 <i
                   class="fa-solid fa-angle-down dropdown-toggle"
                   id="navbarDropdownMenuLink2"
@@ -434,7 +445,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
             </ul>
             <ul class="navbar-nav alt-font navbar-right justify-content-start">
               <li class="nav-item">
-                <a href="/" data-fashion-store-route class="nav-link">Magazine</a>
+                <a :href="fashionStoreRoutePaths.magazine" data-fashion-store-route class="nav-link"
+                  >Magazine</a
+                >
               </li>
               <li class="nav-item dropdown simple-dropdown">
                 <button type="button" class="nav-link fashion-store-source-action">Pages</button>
@@ -447,16 +460,26 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                   aria-expanded="false"
                 ></i>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink3">
-                  <li><a href="/" data-fashion-store-route>About</a></li>
-                  <li><a href="/" data-fashion-store-route>Faq</a></li>
-                  <li><a href="/" data-fashion-store-route>Wishlist</a></li>
-                  <li><a href="/" data-fashion-store-route>Account</a></li>
-                  <li><a href="/" data-fashion-store-route>Cart</a></li>
-                  <li><a href="/" data-fashion-store-route>Checkout</a></li>
+                  <li>
+                    <a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About</a>
+                  </li>
+                  <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>Faq</a></li>
+                  <li>
+                    <a :href="fashionStoreRoutePaths.wishlist" data-fashion-store-route>Wishlist</a>
+                  </li>
+                  <li>
+                    <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>Account</a>
+                  </li>
+                  <li><a :href="fashionStoreRoutePaths.cart" data-fashion-store-route>Cart</a></li>
+                  <li>
+                    <a :href="fashionStoreRoutePaths.checkout" data-fashion-store-route>Checkout</a>
+                  </li>
                 </ul>
               </li>
               <li class="nav-item">
-                <a href="/" data-fashion-store-route class="nav-link">Contact</a>
+                <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route class="nav-link"
+                  >Contact</a
+                >
               </li>
             </ul>
           </div>
@@ -465,7 +488,10 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
           <div class="header-icon">
             <FashionStoreSearchOverlay ref="searchOverlay" v-model="searchOpen" />
             <div class="widget-text icon alt-font">
-              <a href="/" data-fashion-store-route aria-label="Account"
+              <a
+                :href="fashionStoreRoutePaths.account"
+                data-fashion-store-route
+                aria-label="Account"
                 ><i class="feather icon-feather-user d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Account</span></a
               >

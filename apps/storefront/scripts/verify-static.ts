@@ -1,6 +1,11 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
-import { activeExperienceSnapshot, activeThemeId } from "../app/generated/active-theme";
+import {
+  activeExperienceSnapshot,
+  activeThemeId,
+  activeThemeRoutes,
+} from "../app/generated/active-theme";
+import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
 import manifest from "../app/generated/route-manifest.json";
 import verificationCatalog from "../app/generated/verification-catalog.json";
 
@@ -29,7 +34,8 @@ if (previewBuild) {
 const outputPath = (route: string) =>
   route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
 
-for (const route of manifest.routes) {
+const pageRoutes = previewBuild ? activeThemeRoutes.map(({ path }) => path) : manifest.routes;
+for (const route of pageRoutes) {
   const html = await readFile(outputPath(route), "utf8");
   if (!html.includes('<link rel="canonical"') || !html.includes("<h1")) {
     throw new Error(`${route} is missing canonical metadata or meaningful static content.`);
@@ -54,10 +60,26 @@ for (const route of manifest.routes) {
   }
 }
 
-for (const route of ["/cart", "/checkout", "/checkout/complete", "/orders/access"]) {
-  const html = await readFile(outputPath(route), "utf8");
-  if (!/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html)) {
-    throw new Error(`${route} must be a deployable, non-indexable static commerce shell.`);
+if (!previewBuild) {
+  for (const route of ["/cart", "/checkout", "/checkout/complete", "/orders/access"]) {
+    const html = await readFile(outputPath(route), "utf8");
+    if (!/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html)) {
+      throw new Error(`${route} must be a deployable, non-indexable static commerce shell.`);
+    }
+  }
+}
+
+if (previewBuild && activeThemeId === "fashion-store") {
+  const enabledPaths = new Set(activeThemeRoutes.map(({ path }) => path));
+  for (const { path } of fashionStorePageContracts) {
+    if (enabledPaths.has(path)) continue;
+    try {
+      await stat(outputPath(path));
+      throw new Error(`Disabled Fashion Store route ${path} must not be prerendered.`);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") continue;
+      throw error;
+    }
   }
 }
 

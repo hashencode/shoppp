@@ -5,6 +5,7 @@ import { fixtureBindingSchema } from "@shoppp/contracts";
 import * as z from "zod";
 
 import { fashionStoreManifest } from "../app/themes/fashion-store/manifest";
+import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
 import type { ExperienceBuildInput } from "./prepare-experience";
 
@@ -27,6 +28,9 @@ export async function fashionStorePreviewBuildInput(
       await readFile(resolve(import.meta.dir, "../fixtures/experience/fashion-store.json"), "utf8"),
     ),
   );
+  const enabledPageTypes = new Set(
+    fashionStoreEnabledPageContracts.map(({ pageType }) => pageType),
+  );
   return {
     environment: "preview",
     expectedOrigin,
@@ -41,7 +45,9 @@ export async function fashionStorePreviewBuildInput(
       overrides: [],
       platformContractVersion: fashionStoreManifest.platformContractVersion,
       provenance: fashionStoreManifest.provenance,
-      resolvedTemplates: fashionStorePreset.templates,
+      resolvedTemplates: fashionStorePreset.templates.filter(({ pageType }) =>
+        enabledPageTypes.has(pageType),
+      ),
       themeId: fashionStoreManifest.id,
       themeVersion: fashionStoreManifest.themeVersion,
       version: fixture.version,

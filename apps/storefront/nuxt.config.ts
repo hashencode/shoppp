@@ -1,5 +1,6 @@
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
+import { fashionStorePreviewRoutes } from "./app/themes/fashion-store/page-contracts";
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
 const fashionStoreFontImports = [
@@ -14,6 +15,9 @@ const redirectRules = Object.fromEntries(
     { redirect: { to: redirect.to, statusCode: 301 } },
   ]),
 );
+const prerenderRoutes = previewBuild
+  ? [...fashionStorePreviewRoutes]
+  : [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"];
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-07-30",
@@ -30,7 +34,8 @@ export default defineNuxtConfig({
         enforce: "pre",
         transform(source, id) {
           const cleanId = id.split("?", 1)[0]!;
-          if (!cleanId.includes("/themes/fashion-store/upstream/") || !cleanId.endsWith(".css")) return;
+          if (!cleanId.includes("/themes/fashion-store/upstream/") || !cleanId.endsWith(".css"))
+            return;
           const adapted = fashionStoreFontImports.reduce(
             (css, remoteImport) => css.replace(remoteImport, ""),
             source,
@@ -82,9 +87,9 @@ export default defineNuxtConfig({
         }
       : {},
     prerender: {
-      crawlLinks: true,
+      crawlLinks: !previewBuild,
       failOnError: true,
-      routes: [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"],
+      routes: prerenderRoutes,
     },
   },
   routeRules: {

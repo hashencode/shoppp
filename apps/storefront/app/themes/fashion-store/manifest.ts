@@ -4,14 +4,15 @@ import type {
   ThemeManifest,
 } from "@shoppp/contracts";
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
+import { fashionStoreTemplatePageTypes } from "./page-contracts";
 
 const fashionStoreSectionDefinitions = [
-  {
+  ...fashionStoreTemplatePageTypes.map((pageType) => ({
     allowedBlockTypes: [],
     capabilities: [],
     settings: [],
-    type: "fashion-store.home",
-  },
+    type: `fashion-store.${pageType}`,
+  })),
 ] satisfies SectionDefinition[];
 
 export const fashionStoreManifest = {
@@ -40,7 +41,7 @@ export const fashionStoreManifest = {
     license: "User-authorized source-parity implementation",
     source: "local://user-supplied/demo-fashion-store.html",
   },
-  supportedPageTemplates: ["home"],
+  supportedPageTemplates: [...fashionStoreTemplatePageTypes],
   themeVersion: "1.0.0",
 } as const satisfies ThemeManifest;
 
@@ -50,6 +51,6 @@ export const fashionStoreThemeDescriptor = {
   platformCompatibility: fashionStoreManifest.platformCompatibility,
   platformContractVersion: fashionStoreManifest.platformContractVersion,
   presets: ["source-parity"],
-  supportedPageTemplates: fashionStoreManifest.supportedPageTemplates,
+  supportedPageTemplates: [...fashionStoreManifest.supportedPageTemplates],
   themeVersion: fashionStoreManifest.themeVersion,
 } as const satisfies StorefrontThemeDescriptor;

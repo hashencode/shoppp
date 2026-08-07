@@ -7,6 +7,7 @@ import {
   validateThemeAssets,
 } from "../app/theme-engine/assets";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
+import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 
 const fixture = {
   id: "fashion-home",
@@ -22,6 +23,17 @@ const fixture = {
 } as const;
 
 describe("selected theme resources", () => {
+  test("keeps every enabled Fashion Store binding backed by a namespaced fixture", async () => {
+    const input = await fashionStorePreviewBuildInput("https://preview.example.test");
+    expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual(["home"]);
+    expect(input.snapshot.bindings).toEqual([
+      expect.objectContaining({
+        fixtureId: "fashion-store-home",
+        instanceId: "fashion-store-home",
+      }),
+    ]);
+  });
+
   test("derives accessible payment names from namespaced asset IDs", () => {
     expect(paymentAssetName("fashion.payment-american-express")).toBe("American Express");
     expect(paymentAssetName("decor.payment-union-pay")).toBe("Union Pay");

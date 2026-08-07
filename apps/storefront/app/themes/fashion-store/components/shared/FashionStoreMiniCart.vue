@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { fashionStoreRoutePaths } from "../../page-contracts";
+
 const properties = defineProps<{
   sourceAsset: (sourcePath: string) => string;
 }>();
@@ -75,7 +77,7 @@ defineExpose({ closeCart });
             ×
           </button>
           <div class="product-image">
-            <a href="/" data-fashion-store-route
+            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
               ><img
                 class="cart-thumb"
                 alt=""
@@ -83,7 +85,7 @@ defineExpose({ closeCart });
             /></a>
           </div>
           <div class="product-detail fw-600">
-            <a href="/" data-fashion-store-route>Ribbed tank</a>
+            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>Ribbed tank</a>
             <span class="item-ammount fw-400">1 x $23.00</span>
           </div>
         </li>
@@ -96,7 +98,7 @@ defineExpose({ closeCart });
             ×
           </button>
           <div class="product-image">
-            <a href="/" data-fashion-store-route
+            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
               ><img
                 class="cart-thumb"
                 alt=""
@@ -104,7 +106,7 @@ defineExpose({ closeCart });
             /></a>
           </div>
           <div class="product-detail fw-600">
-            <a href="/" data-fashion-store-route>Pleated dress</a>
+            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>Pleated dress</a>
             <span class="item-ammount fw-400">2 x $15.00</span>
           </div>
         </li>
@@ -114,13 +116,13 @@ defineExpose({ closeCart });
             ><span class="w-50 text-end fw-700">$199.99</span>
           </div>
           <a
-            href="/cart"
+            :href="fashionStoreRoutePaths.cart"
             data-fashion-store-route
             class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
             >View cart</a
           >
           <a
-            href="/checkout"
+            :href="fashionStoreRoutePaths.checkout"
             data-fashion-store-route
             class="btn btn-large btn-dark-gray btn-box-shadow"
             >Checkout</a

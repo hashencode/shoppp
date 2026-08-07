@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PageTemplate } from "@shoppp/contracts";
-
 import {
   activeExperienceSnapshot,
   activePreviewOrigin,
@@ -8,8 +6,10 @@ import {
   activeThemeFixtures,
   activeThemeId,
   activeThemeRegistry,
+  activeThemeRoutes,
 } from "./generated/active-theme";
 import { createThemeAssetResolver, mergeExperienceFixtureRegistries } from "./theme-engine/assets";
+import { resolveThemeRoute } from "./theme-engine/routes";
 import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 
@@ -21,28 +21,16 @@ const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAss
 
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
-const contentRoutes = new Set(["/about", "/account", "/contact", "/faq", "/magazine", "/wishlist"]);
-const pageType = computed<PageTemplate["pageType"] | null>(() => {
-  const path = currentRoute.value.path.replace(/\/+$/, "") || "/";
-  if (path === "/") return "home";
-  if (path === "/cart") return "cart";
-  if (path.startsWith("/checkout")) return "checkout";
-  if (path.startsWith("/collections/")) return "collection";
-  if (path.startsWith("/orders/")) return "order";
-  if (path.startsWith("/policies/")) return "policy";
-  if (path.startsWith("/products/")) return "product";
-  if (contentRoutes.has(path) || path.startsWith("/magazine/")) return "content";
-  return null;
-});
+const pageContract = computed(() => resolveThemeRoute(currentRoute.value.path, activeThemeRoutes));
 const previewTemplate = computed(() =>
-  pageType.value
+  pageContract.value
     ? activeExperienceSnapshot?.resolvedTemplates.find(
-        (template) => template.pageType === pageType.value,
+        (template) => template.pageType === pageContract.value?.pageType,
       )
     : undefined,
 );
 const previewTitle = computed(() =>
-  pageType.value
+  pageContract.value
     ? {
         cart: "Preview bag",
         checkout: "Checkout presentation",
@@ -52,7 +40,7 @@ const previewTitle = computed(() =>
         order: "Order status presentation",
         policy: "Fixture policy",
         product: "Fixture product",
-      }[pageType.value]
+      }[pageContract.value.pageType]
     : "Page unavailable",
 );
 

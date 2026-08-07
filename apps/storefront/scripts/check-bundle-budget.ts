@@ -1,15 +1,18 @@
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { gzipSync } from "node:zlib";
-import { activeThemeId } from "../app/generated/active-theme";
+import { activeThemeId, activeThemeRoutes } from "../app/generated/active-theme";
 import manifest from "../app/generated/route-manifest.json";
 
 const output = resolve(import.meta.dir, "../.output/public");
-const representativeRoutes = [
-  "/",
-  manifest.routes.find((route) => route.startsWith("/collections/")),
-  manifest.routes.find((route) => route.startsWith("/products/")),
-].filter((route): route is string => Boolean(route));
+const representativeRoutes =
+  activeThemeId === "fashion-store"
+    ? activeThemeRoutes.map(({ path }) => path)
+    : [
+        "/",
+        manifest.routes.find((route) => route.startsWith("/collections/")),
+        manifest.routes.find((route) => route.startsWith("/products/")),
+      ].filter((route): route is string => Boolean(route));
 const outputPath = (route: string) =>
   route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
 const initialJavaScriptBudgets = {

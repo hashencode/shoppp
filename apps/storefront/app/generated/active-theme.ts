@@ -6,6 +6,7 @@ import {
   themeAssets as selectedThemeAssets,
   themeFixtures as selectedThemeFixtures,
   themeRegistry as selectedThemeRegistry,
+  themeRoutes as selectedThemeRoutes,
 } from "../themes/fashion-store/registry";
 
 export const activeThemeId = "fashion-store";
@@ -61,4 +62,5 @@ export const activeExperienceSnapshot = {
 export const activeThemeRegistry = selectedThemeRegistry;
 export const activeThemeAssets = selectedThemeAssets;
 export const activeThemeFixtures = selectedThemeFixtures;
+export const activeThemeRoutes = selectedThemeRoutes;
 export const activePreviewOrigin = "https://preview.example.test";

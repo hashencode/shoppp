@@ -9,18 +9,26 @@ import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 
 describe("Fashion Store preview registration", () => {
-  test("declares one home-only preset and one namespaced section", () => {
+  test("declares the existing platform templates while keeping one section per page type", () => {
     expect(fashionStoreManifest.id).toBe("fashion-store");
     expect(fashionStoreThemeDescriptor).toMatchObject({
       id: "fashion-store",
       presets: ["source-parity"],
-      supportedPageTemplates: ["home"],
+      supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "content"],
     });
-    expect(fashionStorePreset.templates).toHaveLength(1);
-    expect(fashionStorePreset.templates[0]).toMatchObject({
-      pageType: "home",
-      sections: [{ type: "fashion-store.home" }],
-    });
+    expect(
+      fashionStorePreset.templates.map(({ pageType, sections }) => ({
+        pageType,
+        sectionType: sections[0]?.type,
+      })),
+    ).toEqual([
+      { pageType: "home", sectionType: "fashion-store.home" },
+      { pageType: "collection", sectionType: "fashion-store.collection" },
+      { pageType: "product", sectionType: "fashion-store.product" },
+      { pageType: "cart", sectionType: "fashion-store.cart" },
+      { pageType: "checkout", sectionType: "fashion-store.checkout" },
+      { pageType: "content", sectionType: "fashion-store.content" },
+    ]);
   });
 
   test("prepares a signed descriptor-compatible snapshot and selects one static registry", async () => {
@@ -38,7 +46,7 @@ describe("Fashion Store preview registration", () => {
     expect(source).not.toContain("themes/decor/registry");
   });
 
-  test("rejects mismatched versions and non-home templates", async () => {
+  test("rejects mismatched versions and templates outside the platform vocabulary", async () => {
     const input = await fashionStorePreviewBuildInput("https://preview.example.test");
     const options = {
       catalog: [fashionStoreThemeDescriptor],
@@ -65,8 +73,8 @@ describe("Fashion Store preview registration", () => {
             resolvedTemplates: [
               {
                 ...input.snapshot.resolvedTemplates[0]!,
-                id: "fashion-store-product",
-                pageType: "product",
+                id: "fashion-store-order",
+                pageType: "order",
               },
             ],
           },

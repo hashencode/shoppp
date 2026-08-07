@@ -282,7 +282,8 @@ describe("storefront theme browser matrix", () => {
 
     expect(productionIgnore).toContain('"fashion-store-*.spec.ts"');
     expect(productionIgnore).toContain('"theme-behavior-contract.spec.ts"');
-    expect(fashionStore).toContain('"fashion-store-theme.spec.ts"');
+    expect(fashionStore).toContain('"fashion-store-*.spec.ts"');
+    expect(fashionStore).not.toContain('testMatch: ["*.spec.ts"');
     expect(fashionStore).toContain("check-bundle-budget.ts");
   });
 

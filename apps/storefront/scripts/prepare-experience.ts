@@ -111,6 +111,7 @@ import type { ExperienceSnapshot } from "@shoppp/contracts";
 import type { ThemeRegistry } from "../theme-engine/registry";
 import type { ThemeAssetMap } from "../theme-engine/assets";
 import type { ExperienceFixtureRegistry } from "../theme-engine/view-models";
+import type { ThemeRouteContract } from "../theme-engine/routes";
 
 export const activeThemeId = "production-fallback";
 export const activeExperienceSnapshot: ExperienceSnapshot | null = null;
@@ -120,6 +121,7 @@ export const activeThemeRegistry = {
 } as const satisfies ThemeRegistry;
 export const activeThemeAssets = {} as const satisfies ThemeAssetMap;
 export const activeThemeFixtures = {} as const satisfies ExperienceFixtureRegistry;
+export const activeThemeRoutes = [] as const satisfies readonly ThemeRouteContract[];
 export const activePreviewOrigin: string | null = null;
 `;
 }
@@ -147,6 +149,7 @@ import {
   themeAssets as selectedThemeAssets,
   themeFixtures as selectedThemeFixtures,
   themeRegistry as selectedThemeRegistry,
+  themeRoutes as selectedThemeRoutes,
 } from "${modulePath}";
 
 export const activeThemeId = ${JSON.stringify(input.themeId)};
@@ -160,6 +163,7 @@ export const activeExperienceSnapshot = ${JSON.stringify(
 export const activeThemeRegistry = selectedThemeRegistry;
 export const activeThemeAssets = selectedThemeAssets;
 export const activeThemeFixtures = selectedThemeFixtures;
+export const activeThemeRoutes = selectedThemeRoutes;
 export const activePreviewOrigin = ${JSON.stringify(input.expectedOrigin)};
 `;
 }
