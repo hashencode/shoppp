@@ -91,7 +91,7 @@ export const fashionStorePageContracts = [
     id: "cart",
     path: "/cart",
     pageType: "cart",
-    ready: false,
+    ready: true,
     sourceEntry: "demo-fashion-store-cart.html",
     variant: "cart",
   },

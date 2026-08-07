@@ -25,6 +25,14 @@
       "kind": "fixture",
       "resource": "product",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-cart",
+      "id": "fashion-store-cart-binding",
+      "instanceId": "fashion-store-cart",
+      "kind": "fixture",
+      "resource": "cart",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-fashion-store-fixture",

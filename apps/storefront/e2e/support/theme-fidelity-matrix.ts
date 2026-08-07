@@ -9,6 +9,7 @@ import {
   fashionStoreShopRightBehaviorContract,
 } from "../../app/themes/fashion-store/contracts/pages/shop";
 import { fashionStoreProductBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/product";
+import { fashionStoreCartBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/cart";
 import {
   fidelityStatesByRegionFromBehaviorContract,
   type ThemeBehaviorContract,
@@ -234,6 +235,34 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath: "/demo-fashion-store-single-product.html",
     viewports: themeViewportIds,
   },
+  {
+    densities: [1, 2] as const,
+    id: "fashion-store-cart",
+    implementationPath: "/cart",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("breadcrumb", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "cart-lines",
+        "section",
+        ".cart-products",
+        ".cart-products",
+        shopStates(fashionStoreCartBehaviorContract, "cart-lines"),
+      ),
+      region("cart-controls", "control", ".coupon-code-panel", ".coupon-code-panel"),
+      region(
+        "cart-totals",
+        "section",
+        ".total-price-table",
+        ".total-price-table",
+        shopStates(fashionStoreCartBehaviorContract, "cart-totals"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-cart.html",
+    viewports: themeViewportIds,
+  },
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -247,6 +276,7 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
     fidelityStatesByRegion: fashionStoreFidelityStatesByRegion,
   },
   ...[
+    fashionStoreCartBehaviorContract,
     fashionStoreProductBehaviorContract,
     fashionStoreShopLeftBehaviorContract,
     fashionStoreShopNoneBehaviorContract,

@@ -99,6 +99,7 @@ describe("Fashion Store Shop layout family", () => {
       "shop-none",
       "shop-right",
       "product",
+      "cart",
     ]);
   });
 });

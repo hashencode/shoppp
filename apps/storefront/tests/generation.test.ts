@@ -22,6 +22,7 @@ describe("static generation manifest", () => {
       "/shop/no-sidebar",
       "/shop/right-sidebar",
       "/products/relaxed-corduroy-shirt",
+      "/cart",
     ]);
   });
 

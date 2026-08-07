@@ -41,7 +41,7 @@
         "browserProject": "fashion-store-desktop"
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "product"],
+      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "product", "cart"],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
       "pages": [
@@ -179,6 +179,28 @@
           "sourceEntrySha256": "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
           "sourceRegionsExport": "fashionStoreProductSourceRegions",
           "sourceRuntimeReadySelector": ".product-image-slider.swiper-initialized"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreCartBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/cart.ts",
+          "focusedStates": [
+            { "id": "cart-first-line-quantity-2", "modes": ["interaction"] },
+            { "id": "cart-shipping-open", "modes": ["interaction"] }
+          ],
+          "id": "cart",
+          "implementationRoute": "/cart",
+          "implementationRuntimeReadySelector": "[data-fashion-store-cart][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "cart",
+          "requiredContractFacets": ["lineCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/cart.ts",
+          "sourceEntry": "demo-fashion-store-cart.html",
+          "sourceEntrySha256": "fe60f6a7e897350e927a7b222eb8ea6c21c1598712a6784380eeeb487d8eca51",
+          "sourceRegionsExport": "fashionStoreCartSourceRegions",
+          "sourceRuntimeReadySelector": ".cart-products"
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"

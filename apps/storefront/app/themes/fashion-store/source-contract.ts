@@ -6,6 +6,11 @@ export interface FashionStoreSourceRegion {
 }
 
 export {
+  fashionStoreCartSourceContract,
+  fashionStoreCartSourcePage,
+  fashionStoreCartSourceRegions,
+} from "./contracts/pages/cart";
+export {
   fashionStoreShopLeftSourceContract,
   fashionStoreShopLeftSourceRegions,
   fashionStoreShopNoneSourceContract,

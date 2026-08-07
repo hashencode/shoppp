@@ -15,6 +15,9 @@ export type ThemeBehaviorRole =
 
 export type NamedStateAction =
   | { kind: "cart" }
+  | { kind: "cart-coupon" }
+  | { index: number; kind: "cart-quantity" }
+  | { kind: "cart-shipping" }
   | { kind: "category-hover" }
   | { kind: "client-pause" }
   | { index: number; kind: "collection" }

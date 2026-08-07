@@ -654,3 +654,61 @@
     transition-duration: 0s !important;
   }
 }
+
+[data-fashion-store-cart] button {
+  font: inherit;
+}
+
+[data-fashion-store-cart] .product-remove button,
+[data-fashion-store-cart] .quantity button,
+[data-fashion-store-cart] .calculate-shipping-title {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+
+[data-fashion-store-cart] .product-remove button {
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+}
+
+[data-fashion-store-cart] .calculate-shipping-title {
+  width: 100%;
+  text-align: left;
+}
+
+[data-fashion-store-cart] .calculate-shipping-title i {
+  transition: transform 0.2s ease;
+}
+
+[data-fashion-store-cart] .calculate-shipping-title[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+
+[data-fashion-store-cart] .coupon-code-panel .apply-coupon-btn {
+  border: 0;
+}
+
+[data-fashion-store-cart] input[aria-invalid="true"],
+[data-fashion-store-cart] select[aria-invalid="true"] {
+  border-color: #dc3545;
+}
+
+[data-fashion-store-cart] button:focus-visible,
+[data-fashion-store-cart] input:focus-visible,
+[data-fashion-store-cart] select:focus-visible,
+[data-fashion-store-cart] a:focus-visible {
+  outline: 2px solid #232323;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-fashion-store-cart] *,
+  [data-fashion-store-cart] *::before,
+  [data-fashion-store-cart] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+  }
+}

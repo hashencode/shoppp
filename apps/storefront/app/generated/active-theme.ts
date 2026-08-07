@@ -37,6 +37,14 @@ export const activeExperienceSnapshot = {
       "kind": "fixture",
       "resource": "product",
       "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-cart",
+      "id": "fashion-store-cart-binding",
+      "instanceId": "fashion-store-cart",
+      "kind": "fixture",
+      "resource": "cart",
+      "state": "populated"
     }
   ],
   "configurationSchemaVersion": 1,
@@ -95,6 +103,22 @@ export const activeExperienceSnapshot = {
           "required": true,
           "settings": {},
           "type": "fashion-store.product",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "fashion-store-cart",
+      "pageType": "cart",
+      "requiredCapabilities": [],
+      "sections": [
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-cart",
+          "required": true,
+          "settings": {},
+          "type": "fashion-store.cart",
           "visible": true
         }
       ]

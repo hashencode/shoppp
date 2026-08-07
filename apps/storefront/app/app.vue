@@ -20,11 +20,19 @@ const selectedFixtures = mergeExperienceFixtureRegistries(
   activeThemeFixtures,
 );
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
-const { add: addGuestCartLine } = useGuestCart();
+const {
+  add: addGuestCartLine,
+  remove: removeGuestCartLine,
+  shipping: quoteGuestCartShipping,
+  update: updateGuestCartLine,
+} = useGuestCart();
 const previewActionAdapter: PreviewActionAdapter = async (dispatch) => {
   if (dispatch.kind === "cart.add") {
-    await addGuestCartLine(dispatch.input, dispatch.currency);
+    return addGuestCartLine(dispatch.input, dispatch.currency);
   }
+  if (dispatch.kind === "cart.remove") return removeGuestCartLine(dispatch.variantId);
+  if (dispatch.kind === "cart.shipping") return quoteGuestCartShipping(dispatch.input);
+  return updateGuestCartLine(dispatch.variantId, dispatch.input);
 };
 
 const router = useRouter();

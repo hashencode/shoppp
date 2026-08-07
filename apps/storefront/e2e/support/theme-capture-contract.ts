@@ -162,6 +162,9 @@ export function captureModeForNamedState(state: NamedStateContract): ThemeAccept
   if (
     [
       "cart",
+      "cart-coupon",
+      "cart-quantity",
+      "cart-shipping",
       "collection-hover",
       "navigation",
       "pause",

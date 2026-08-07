@@ -14,6 +14,7 @@ describe("theme fidelity matrix", () => {
       "fashion-store-shop-none",
       "fashion-store-shop-right",
       "fashion-store-product",
+      "fashion-store-cart",
     ]);
   });
 

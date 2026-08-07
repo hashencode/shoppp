@@ -1,13 +1,22 @@
 import * as z from "zod";
-import type { AddCartLineRequest } from "@shoppp/contracts";
+import type {
+  AddCartLineRequest,
+  Cart,
+  ShippingQuoteRequest,
+  UpdateCartLineRequest,
+} from "@shoppp/contracts";
 import type { InjectionKey } from "vue";
 
 export const previewActionIntentSchema = z.enum([
   "navigation",
   "variant.select",
   "cart.add-preview",
+  "cart.remove-preview",
   "cart.quantity-preview",
+  "cart.shipping-preview",
+  "cart.update-preview",
   "checkout.start-preview",
+  "coupon.validate-local",
   "wishlist.toggle-preview",
   "product.quick-view-preview",
 ]);
@@ -63,8 +72,34 @@ export interface PreviewCartAddDispatch {
   kind: "cart.add";
 }
 
-export type PreviewActionDispatch = PreviewCartAddDispatch;
-export type PreviewActionAdapter = (dispatch: PreviewActionDispatch) => Promise<void>;
+export interface PreviewCartUpdateDispatch {
+  action: PreviewAction;
+  context: string;
+  input: UpdateCartLineRequest;
+  kind: "cart.update";
+  variantId: string;
+}
+
+export interface PreviewCartRemoveDispatch {
+  action: PreviewAction;
+  context: string;
+  kind: "cart.remove";
+  variantId: string;
+}
+
+export interface PreviewCartShippingDispatch {
+  action: PreviewAction;
+  context: string;
+  input: ShippingQuoteRequest;
+  kind: "cart.shipping";
+}
+
+export type PreviewActionDispatch =
+  | PreviewCartAddDispatch
+  | PreviewCartRemoveDispatch
+  | PreviewCartShippingDispatch
+  | PreviewCartUpdateDispatch;
+export type PreviewActionAdapter = (dispatch: PreviewActionDispatch) => Promise<Cart>;
 export const previewActionAdapterKey = Symbol(
   "preview-action-adapter",
 ) as InjectionKey<PreviewActionAdapter>;

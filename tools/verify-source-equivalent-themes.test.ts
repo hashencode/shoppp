@@ -47,7 +47,7 @@ describe("source-equivalent theme policy", () => {
     expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
     expect(policy.themes[0]).toMatchObject({
       authorizedSourceRoot: "templates/Crafto - The Multipurpose HTML5 Template/html",
-      equivalenceScope: ["home", "shop-left", "shop-none", "shop-right", "product"],
+      equivalenceScope: ["home", "shop-left", "shop-none", "shop-right", "product", "cart"],
       pages: [
         {
           id: "home",
@@ -78,6 +78,12 @@ describe("source-equivalent theme policy", () => {
           implementationRoute: "/products/relaxed-corduroy-shirt",
           pageType: "product",
           sourceEntry: "demo-fashion-store-single-product.html",
+        },
+        {
+          id: "cart",
+          implementationRoute: "/cart",
+          pageType: "cart",
+          sourceEntry: "demo-fashion-store-cart.html",
         },
       ],
     });
@@ -118,6 +124,7 @@ describe("source-equivalent theme policy", () => {
       "shop-none",
       "shop-right",
       "product",
+      "cart",
       "synthetic-shop",
     ]);
     expect(
@@ -140,6 +147,7 @@ describe("source-equivalent theme policy", () => {
         implementationRoute: "/products/relaxed-corduroy-shirt",
         sourceEntry: "demo-fashion-store-single-product.html",
       },
+      { implementationRoute: "/cart", sourceEntry: "demo-fashion-store-cart.html" },
       { implementationRoute: "/synthetic-shop", sourceEntry: "demo-fashion-store-shop.html" },
     ]);
   });

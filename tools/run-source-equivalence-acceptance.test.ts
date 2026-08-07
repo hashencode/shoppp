@@ -31,13 +31,14 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(page.steps[0]!.label).toBe("fashion-store/home/page");
 
     const theme = buildAcceptancePlan(policy, { scope: "theme", themeId: "fashion-store" });
-    expect(theme.pageIds).toEqual(["home", "shop-left", "shop-none", "shop-right", "product"]);
+    expect(theme.pageIds).toEqual(["home", "shop-left", "shop-none", "shop-right", "product", "cart"]);
     expect(theme.steps.map(({ label }) => label)).toEqual([
       "fashion-store/home/page",
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
       "fashion-store/product/page",
+      "fashion-store/cart/page",
     ]);
   });
 
@@ -73,6 +74,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "shop-none",
       "shop-right",
       "product",
+      "cart",
       "synthetic",
     ]);
     expect(allPages.steps.map(({ label }) => label)).toEqual([
@@ -81,6 +83,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
       "fashion-store/product/page",
+      "fashion-store/cart/page",
       "fashion-store/synthetic/page",
     ]);
   });
@@ -94,6 +97,7 @@ describe("source-equivalence acceptance orchestration", () => {
         "fashion-store-acceptance-self-test.spec.ts",
         "fashion-store-shop.spec.ts",
         "fashion-store-product.spec.ts",
+        "fashion-store-cart.spec.ts",
         "theme-behavior-contract.spec.ts",
       ].map((file) => readFile(resolve(import.meta.dir, "../apps/storefront/e2e", file), "utf8")),
     );
@@ -121,6 +125,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
       "fashion-store/product/page",
+      "fashion-store/cart/page",
       "fidelity-evidence",
     ]);
   });
