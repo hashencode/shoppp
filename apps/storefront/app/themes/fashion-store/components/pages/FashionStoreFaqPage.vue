@@ -57,7 +57,7 @@ function moveCategory(event: KeyboardEvent, step: number): void {
           <div class="row">
             <div class="col-xl-3 col-lg-4 tab-style-07 md-mb-20px">
               <div
-                class="nav nav-tabs justify-content-center border-0 text-start alt-font fw-500"
+                class="nav nav-tabs justify-content-center border-0 alt-font fw-500"
                 role="tablist"
                 aria-label="FAQ categories"
               >

@@ -31,6 +31,8 @@ export const fashionStoreAboutData = {
     "images/logo-asos.svg",
     "images/logo-chanel.svg",
     "images/logo-gucci.svg",
+    "images/logo-celine.svg",
+    "images/logo-adidas.svg",
   ],
   carouselImages: Array.from(
     { length: 6 },

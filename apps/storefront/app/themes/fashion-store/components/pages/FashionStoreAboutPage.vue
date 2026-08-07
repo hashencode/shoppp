@@ -174,9 +174,12 @@ onBeforeUnmount(() => {
             >
               <div class="feature-box text-start ps-30px sm-ps-20px">
                 <div class="feature-box-icon position-absolute left-0px top-10px">
-                  <h3 class="alt-font fs-90 opacity-1 fw-800 ls-minus-1px mb-0">
+                  <h1
+                    class="opacity-1 fw-800 ls-minus-1px mb-0"
+                    :class="index === 0 ? 'fs-100' : 'alt-font fs-90'"
+                  >
                     {{ milestone.number }}
-                  </h3>
+                  </h1>
                 </div>
                 <div
                   class="feature-box-content last-paragraph-no-margin pt-30 lg-pt-60px sm-pt-40px"
@@ -200,14 +203,20 @@ onBeforeUnmount(() => {
               <div
                 class="row align-items-center justify-content-center bg-white box-shadow-medium-bottom border border-color-extra-medium-gray border-radius-100px sm-border-radius-6px"
               >
-                <div class="col-lg-6 p-20px text-center">
-                  <span class="text-dark-gray fs-20 fw-500"
-                    >Join the <strong>10000+</strong> people trusting us.</span
+                <div
+                  class="col-lg-6 p-20px border-end border-color-transparent-dark-very-light text-center ls-minus-05px align-items-center d-flex justify-content-center md-border-end-0 md-pb-10px"
+                >
+                  <i class="bi bi-emoji-smile text-dark-gray icon-extra-medium me-10px"></i>
+                  <span class="text-dark-gray fs-20 text-start fw-500"
+                    >Join the <span class="fw-700">10000+</span> people trusting us.</span
                   >
                 </div>
-                <div class="col-lg-6 p-20px text-center">
-                  <span class="text-dark-gray fs-20 fw-500"
-                    >4.9 out of 5 - <strong>8549</strong> Total reviews.</span
+                <div
+                  class="col-lg-6 p-20px md-pt-0 text-center ls-minus-05px align-items-center d-flex justify-content-center"
+                >
+                  <i class="bi bi-star text-dark-gray icon-extra-medium me-10px"></i>
+                  <span class="text-dark-gray fs-20 text-start fw-500"
+                    >4.9 out of 5 - <span class="fw-700">8549</span> Total reviews.</span
                   >
                 </div>
               </div>
@@ -244,7 +253,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="col-12 col-lg-5 offset-lg-1">
               <div class="alt-font text-dark-gray mb-15px fs-20">
-                <span class="text-highlight">Our fashion store mission</span>
+                <span class="text-highlight"
+                  >Our fashion store mission<span class="bg-base-color h-8px bottom-0px"></span
+                ></span>
               </div>
               <h2 class="alt-font text-dark-gray mb-20px fw-400 ls-minus-1px w-90 lg-w-100">
                 Quality product with <span class="fw-600">exceptional price-value.</span>

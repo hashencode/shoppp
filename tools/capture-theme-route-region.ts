@@ -103,7 +103,8 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
   const captureCss = captureCssForMode(mode);
   await page.addStyleTag({ content: captureCss });
   await page.addStyleTag({
-    content: ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; }",
+    content:
+      ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; } [data-parallax-background-ratio], .fashion-contact-parallax { background-position: center center !important; }",
   });
   await page.evaluate(async () => {
     document.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
@@ -114,8 +115,18 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
       Promise.all([...document.images].map((image) => image.decode().catch(() => undefined))),
       new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 2_000)),
     ]);
+    document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
+      const swiper = (element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }).swiper;
+      swiper?.autoplay?.stop();
+    });
     scrollTo(0, 0);
   });
+  if (
+    mode !== "temporal" &&
+    (await page.locator(`[data-anime*='"effect": "slide"']`).count()) > 0
+  ) {
+    await page.waitForTimeout(2_100);
+  }
   await page.waitForTimeout(100);
   await page.addStyleTag({ content: captureCss });
   await page.evaluate((preserveMotion) => {
