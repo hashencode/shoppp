@@ -5,6 +5,47 @@ export interface FashionStoreSourceRegion {
   selector: string;
 }
 
+export const fashionStoreSourceEntries = [
+  "demo-fashion-store.html",
+  "demo-fashion-store-about.html",
+  "demo-fashion-store-account.html",
+  "demo-fashion-store-blog-single-creative.html",
+  "demo-fashion-store-cart.html",
+  "demo-fashion-store-checkout.html",
+  "demo-fashion-store-collection.html",
+  "demo-fashion-store-contact.html",
+  "demo-fashion-store-faq.html",
+  "demo-fashion-store-magazine.html",
+  "demo-fashion-store-no-sidebar.html",
+  "demo-fashion-store-right-sidebar.html",
+  "demo-fashion-store-shop.html",
+  "demo-fashion-store-single-product.html",
+  "demo-fashion-store-wishlist.html",
+] as const;
+
+export const fashionStoreShellSourceInventory = {
+  conditionalRegions: {
+    cookie: fashionStoreSourceEntries,
+    scrollProgress: fashionStoreSourceEntries,
+    stickySocialRail: ["demo-fashion-store.html"],
+  },
+  footer: {
+    entryCount: 15,
+    sha256: "fa45b97142f50e3b2a069f21aa86f4ba0abceed3dcbf05cbcdb6314f64e6a4d9",
+  },
+  header: {
+    commonEntryCount: 14,
+    commonSha256: "325a2a59cad2f8cb22353ad2c8ed413fc2d8e5c30fc2fa52e739bce17f7bdc8e",
+    exceptions: [
+      {
+        difference: 'Search input adds source-only aria-label="text".',
+        entry: "demo-fashion-store-checkout.html",
+        sha256: "3ffb8a42c844a8cf43b3f2f219d9f24ff92c477b768a0711593ef4ea9b618382",
+      },
+    ],
+  },
+} as const;
+
 export const fashionStoreSourceRegions = [
   { inventorySelector: "header", key: "header", selector: "header.header-with-topbar" },
   {

@@ -80,6 +80,7 @@ async function revealInventorySurface(page: Page): Promise<void> {
       await new Promise((resolvePromise) => setTimeout(resolvePromise, 40));
     }
     scrollTo(0, 0);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 1_000));
   });
 }
 

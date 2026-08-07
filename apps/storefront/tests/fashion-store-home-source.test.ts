@@ -2,16 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
 import {
+  fashionStoreShellSourceInventory,
   fashionStoreSourceContract,
+  fashionStoreSourceEntries,
   fashionStoreSourceRegions,
 } from "../app/themes/fashion-store/source-contract";
 import { fashionStoreHomeData } from "../app/themes/fashion-store/fixtures/home";
 import { fashionStoreAssetId, themeAssets } from "../app/themes/fashion-store/resources";
 
-const componentPath = new URL(
-  "../app/themes/fashion-store/components/FashionStoreHome.vue",
-  import.meta.url,
-);
+const componentRoot = new URL("../app/themes/fashion-store/components/", import.meta.url);
 const regionMarkers: Readonly<Record<string, string>> = {
   cookie: "cookie-message",
   footer: "footer-dark",
@@ -21,8 +20,53 @@ const regionMarkers: Readonly<Record<string, string>> = {
 };
 
 describe("Fashion Store complete static source home", () => {
+  test("records the fifteen-entry shell inventory and its two source-driven differences", () => {
+    expect(fashionStoreSourceEntries).toHaveLength(15);
+    expect(fashionStoreShellSourceInventory.footer.entryCount).toBe(15);
+    expect(fashionStoreShellSourceInventory.header.commonEntryCount).toBe(14);
+    expect(fashionStoreShellSourceInventory.header.exceptions).toEqual([
+      expect.objectContaining({ entry: "demo-fashion-store-checkout.html" }),
+    ]);
+    expect(fashionStoreShellSourceInventory.conditionalRegions.stickySocialRail).toEqual([
+      "demo-fashion-store.html",
+    ]);
+  });
+
+  test("extracts one reusable source shell without duplicating shell regions in home", async () => {
+    const [home, shell, header, search, cart, footer] = await Promise.all(
+      [
+        "FashionStoreHome.vue",
+        "shared/FashionStoreShell.vue",
+        "shared/FashionStoreHeader.vue",
+        "shared/FashionStoreSearchOverlay.vue",
+        "shared/FashionStoreMiniCart.vue",
+        "shared/FashionStoreFooter.vue",
+      ].map((path) => readFile(new URL(path, componentRoot), "utf8")),
+    );
+    expect(home).toContain("<FashionStoreShell");
+    expect(home).not.toContain('<header class="header-with-topbar"');
+    expect(home).not.toContain('<footer class="footer-dark');
+    expect(shell).toContain("<FashionStoreHeader");
+    expect(shell).toContain("<FashionStoreFooter");
+    expect(header).toContain('<header class="header-with-topbar"');
+    expect(header).toContain("<FashionStoreSearchOverlay");
+    expect(header).toContain("<FashionStoreMiniCart");
+    expect(search).toContain('class="search-form-wrapper"');
+    expect(cart).toContain('class="header-cart dropdown"');
+    expect(footer).toContain('<footer class="footer-dark');
+  });
+
   test("keeps all declared regions and source sentinels in source order", async () => {
-    const component = await readFile(componentPath, "utf8");
+    const component = (
+      await Promise.all(
+        [
+          "shared/FashionStoreHeader.vue",
+          "FashionStoreHome.vue",
+          "shared/FashionStoreFooter.vue",
+          "shared/FashionStoreShell.vue",
+        ].map((path) => readFile(new URL(path, componentRoot), "utf8")),
+      )
+    ).join("\n");
     let cursor = -1;
     for (const region of fashionStoreSourceRegions) {
       const marker = regionMarkers[region.key] ?? "section class=";
