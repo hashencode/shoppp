@@ -404,8 +404,21 @@ async function stabilizeFashionStoreHero(page: Page, source: boolean): Promise<v
         .querySelector('section:nth-of-type(1) .swiper-slide[data-swiper-slide-index="0"]')
         ?.classList.contains("swiper-slide-active"),
     );
+    // The source runtime restarts its slide reveal after slideToLoop(), even at
+    // zero Swiper speed. Wait for that reveal before recording geometry so the
+    // contract and screenshot observe the same settled frame.
+    await page.waitForTimeout(2_100);
+    await page.locator("section:nth-of-type(1) .swiper").evaluate((element: HTMLElement) => {
+      const targetHeight = innerWidth >= 992 ? innerHeight : innerWidth >= 576 ? 600 : 500;
+      element.style.setProperty("height", `${targetHeight}px`, "important");
+      element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
+        slide.style.setProperty("height", `${targetHeight}px`, "important");
+      });
+    });
   } else {
-    await page.locator('[data-fashion-store-slide="0"]').click();
+    await page.locator('[data-fashion-store-slide="0"]').evaluate((button: HTMLButtonElement) => {
+      button.click();
+    });
     await page.waitForFunction(
       () => {
         const hero = document.querySelector<HTMLElement>("#fashion-store-main .swiper");
@@ -439,24 +452,30 @@ async function stabilizeFashionStoreMarquee(page: Page, source: boolean): Promis
     const track = root?.querySelector<HTMLElement>(
       sourceSide ? ".swiper-wrapper" : "[data-fashion-store-marquee]",
     );
-    const item = root?.querySelector<HTMLElement>(
-      sourceSide
-        ? '.swiper-slide[data-swiper-slide-index="0"] > div'
-        : "[data-fashion-store-marquee] > .swiper-slide:first-child > div",
-    );
-    if (!track || !item) return;
-    track.style.animation = "none";
-    track.style.transition = "none";
+    if (!track) return;
+    const slides = [...track.querySelectorAll<HTMLElement>(":scope > .swiper-slide")];
+    const canonicalSlides = sourceSide
+      ? [0, 1, 2].map((index) =>
+          slides.find((slide) => slide.dataset.swiperSlideIndex === String(index)),
+        )
+      : slides.slice(0, 3);
+    if (canonicalSlides.some((slide) => !slide)) return;
+    for (const slide of slides) slide.style.setProperty("display", "none", "important");
+    canonicalSlides.forEach((slide, index) => {
+      slide!.style.setProperty("display", "block", "important");
+      slide!.style.setProperty("order", String(index), "important");
+      slide!.style.setProperty("margin-left", "0px", "important");
+    });
+    track.style.setProperty("animation", "none", "important");
+    track.style.setProperty("transition", "none", "important");
+    track.style.setProperty("transform", "none", "important");
     const targetX = Math.round(innerWidth * 0.31);
-    const textNode = [...item.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
-    const range = textNode ? document.createRange() : null;
-    if (range && textNode) range.selectNode(textNode);
-    const text = range?.getBoundingClientRect();
-    if (!text) return;
-    const matrix = new DOMMatrixReadOnly(getComputedStyle(track).transform);
-    track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + targetX - text.x}, ${
-      matrix.f + Math.round(text.y) - text.y
-    })`;
+    const trackRect = track.getBoundingClientRect();
+    canonicalSlides[0]!.style.setProperty(
+      "margin-left",
+      `${targetX - trackRect.left}px`,
+      "important",
+    );
   }, source);
   await page.waitForTimeout(100);
 }
@@ -1636,6 +1655,32 @@ export async function captureThemeRouteRegion(options: {
           normalizeRegionFractionalOrigin(source, region.sourceSelector),
           normalizeRegionFractionalOrigin(implementation, region.implementationSelector),
         ]);
+        if (options.routeId === "fashion-store-home" && region.id === "collection")
+          await Promise.all(
+            [
+              [source, region.sourceSelector],
+              [implementation, region.implementationSelector],
+            ].map(([page, selector]) =>
+              (page as Page)
+                .locator(`${selector as string} .image-content .mt-auto`)
+                .evaluateAll((elements) => {
+                  for (const element of elements as HTMLElement[]) {
+                    const title = element.querySelector<HTMLElement>(".fs-22");
+                    if (!title) continue;
+                    const slide = element.closest<HTMLElement>(".swiper-slide");
+                    const track = element.closest<HTMLElement>(".swiper-wrapper");
+                    slide?.style.setProperty("transform", "none", "important");
+                    slide?.style.setProperty("will-change", "auto", "important");
+                    track?.style.setProperty("transform", "none", "important");
+                    track?.style.setProperty("will-change", "auto", "important");
+                    const rect = title.getBoundingClientRect();
+                    if (getComputedStyle(element).position === "static")
+                      element.style.position = "relative";
+                    element.style.top = `${Math.round(rect.top) - rect.top}px`;
+                  }
+                }),
+            ),
+          );
         if (region.normalizeFractionalCaptureHeight)
           await Promise.all([
             normalizeRegionCaptureHeight(source, region.sourceSelector),
