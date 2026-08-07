@@ -23,6 +23,7 @@ export type NamedStateAction =
   | { kind: "category-hover" }
   | { kind: "client-pause" }
   | { index: number; kind: "collection" }
+  | { kind: "collection-card" }
   | { kind: "collection-hover" }
   | { index: number; kind: "hero" }
   | { kind: "initial" }

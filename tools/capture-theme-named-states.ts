@@ -297,6 +297,8 @@ async function applyFashionAction(
         ? ".swiper.slider-three-slide .swiper-slide-active"
         : ".fashion-collection-track article";
     await page.locator(selector).first().hover();
+  } else if (action.kind === "collection-card") {
+    await page.locator(".categories-style-02").first().hover();
   } else if (action.kind === "pause") {
     const selector = side === "source" ? "section:nth-of-type(9)" : ".fashion-promises";
     await page.locator(selector).hover();
@@ -407,6 +409,8 @@ async function applyFashionStoreAction(
     const product = page.locator(".shop-modern .grid-item .shop-image").first();
     await product.hover();
     await product.getByRole("button", { name: "Add to wishlist" }).focus();
+  } else if (action.kind === "collection-card") {
+    await page.locator(".categories-style-02").first().hover();
   } else if (action.kind === "pause") {
     await page.locator("section:nth-of-type(9)").hover();
     await page.locator(".swiper-width-auto").evaluate((element) => {

@@ -1,5 +1,9 @@
 import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
+import {
+  fashionStoreCollectionData,
+  type FashionStoreCollectionData,
+} from "./collection";
 
 export type FashionStoreShopFilterGroup = "category" | "color" | "size" | "tag";
 
@@ -33,6 +37,7 @@ export interface FashionStoreShopArrival {
 export interface FashionStoreShopData {
   announcement: string;
   arrivals: readonly (readonly FashionStoreShopArrival[])[];
+  collection: FashionStoreCollectionData;
   filters: Readonly<Record<FashionStoreShopFilterGroup, readonly FashionStoreShopFilterOption[]>>;
   productActions: {
     cart: PreviewAction;
@@ -114,6 +119,7 @@ export const fashionStoreShopData = {
       },
     ],
   ],
+  collection: fashionStoreCollectionData,
   filters: {
     category: [
       { count: "22", label: "Jeans" },

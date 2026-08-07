@@ -21,6 +21,7 @@ describe("static generation manifest", () => {
       "/shop",
       "/shop/no-sidebar",
       "/shop/right-sidebar",
+      "/collections",
       "/products/relaxed-corduroy-shirt",
       "/cart",
       "/checkout",

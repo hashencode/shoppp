@@ -19,8 +19,8 @@ const properties = defineProps<{
   viewModel: PresentationViewModel;
 }>();
 
-const route = useRoute();
-const page = computed(() => resolveFashionStoreShopLayout(route.path));
+const router = useRouter();
+const page = computed(() => resolveFashionStoreShopLayout(router.currentRoute.value.path));
 const layout = computed(() => page.value.layout);
 const data = computed<FashionStoreShopData>(() => {
   if (properties.viewModel.kind !== "theme-section") {

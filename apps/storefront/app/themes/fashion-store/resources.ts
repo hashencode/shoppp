@@ -71,6 +71,12 @@ import image69 from "./upstream/images/mastercard.svg";
 import image70 from "./upstream/images/union-pay.svg";
 import image71 from "./upstream/images/visa.svg";
 import image72 from "./upstream/images/paypal-logo.jpg";
+import image73 from "./upstream/images/demo-fashion-store-collections-01.jpg";
+import image74 from "./upstream/images/demo-fashion-store-collections-02.jpg";
+import image75 from "./upstream/images/demo-fashion-store-collections-03.jpg";
+import image76 from "./upstream/images/demo-fashion-store-collections-04.jpg";
+import image77 from "./upstream/images/demo-fashion-store-collections-05.jpg";
+import image78 from "./upstream/images/demo-fashion-store-collections-06.jpg";
 
 const sourceImages = new Map<string, string>([
   ["images/apple-touch-icon-114x114.png", image0],
@@ -146,6 +152,12 @@ const sourceImages = new Map<string, string>([
   ["images/union-pay.svg", image70],
   ["images/visa.svg", image71],
   ["images/paypal-logo.jpg", image72],
+  ["images/demo-fashion-store-collections-01.jpg", image73],
+  ["images/demo-fashion-store-collections-02.jpg", image74],
+  ["images/demo-fashion-store-collections-03.jpg", image75],
+  ["images/demo-fashion-store-collections-04.jpg", image76],
+  ["images/demo-fashion-store-collections-05.jpg", image77],
+  ["images/demo-fashion-store-collections-06.jpg", image78],
 ]);
 
 const establishedIds: Readonly<Record<string, string>> = {

@@ -98,6 +98,7 @@ describe("Fashion Store Shop layout family", () => {
       "shop-left",
       "shop-none",
       "shop-right",
+      "collection",
       "product",
       "cart",
       "checkout",

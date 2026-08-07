@@ -75,7 +75,7 @@ export const fashionStorePageContracts = [
     id: "collection",
     path: "/collections",
     pageType: "collection",
-    ready: false,
+    ready: true,
     sourceEntry: "demo-fashion-store-collection.html",
     variant: "collection",
   },

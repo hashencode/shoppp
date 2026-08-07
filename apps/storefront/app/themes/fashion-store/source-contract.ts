@@ -11,6 +11,11 @@ export {
   fashionStoreCartSourceRegions,
 } from "./contracts/pages/cart";
 export {
+  fashionStoreCollectionSourceContract,
+  fashionStoreCollectionSourcePage,
+  fashionStoreCollectionSourceRegions,
+} from "./contracts/pages/collection";
+export {
   fashionStoreCheckoutSourceContract,
   fashionStoreCheckoutSourcePage,
   fashionStoreCheckoutSourceRegions,

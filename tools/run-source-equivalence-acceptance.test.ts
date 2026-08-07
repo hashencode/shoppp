@@ -31,12 +31,22 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(page.steps[0]!.label).toBe("fashion-store/home/page");
 
     const theme = buildAcceptancePlan(policy, { scope: "theme", themeId: "fashion-store" });
-    expect(theme.pageIds).toEqual(["home", "shop-left", "shop-none", "shop-right", "product", "cart", "checkout"]);
+    expect(theme.pageIds).toEqual([
+      "home",
+      "shop-left",
+      "shop-none",
+      "shop-right",
+      "collection",
+      "product",
+      "cart",
+      "checkout",
+    ]);
     expect(theme.steps.map(({ label }) => label)).toEqual([
       "fashion-store/home/page",
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
+      "fashion-store/collection/page",
       "fashion-store/product/page",
       "fashion-store/cart/page",
       "fashion-store/checkout/page",
@@ -74,6 +84,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "shop-left",
       "shop-none",
       "shop-right",
+      "collection",
       "product",
       "cart",
       "checkout",
@@ -84,6 +95,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
+      "fashion-store/collection/page",
       "fashion-store/product/page",
       "fashion-store/cart/page",
       "fashion-store/checkout/page",
@@ -99,6 +111,7 @@ describe("source-equivalence acceptance orchestration", () => {
         "fashion-store-acceptance-slice.spec.ts",
         "fashion-store-acceptance-self-test.spec.ts",
         "fashion-store-shop.spec.ts",
+        "fashion-store-collection.spec.ts",
         "fashion-store-product.spec.ts",
         "fashion-store-cart.spec.ts",
         "fashion-store-checkout.spec.ts",
@@ -128,6 +141,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "fashion-store/shop-left/page",
       "fashion-store/shop-none/page",
       "fashion-store/shop-right/page",
+      "fashion-store/collection/page",
       "fashion-store/product/page",
       "fashion-store/cart/page",
       "fashion-store/checkout/page",

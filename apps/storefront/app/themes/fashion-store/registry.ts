@@ -8,7 +8,6 @@ import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import FashionStoreHome from "./components/FashionStoreHome.vue";
 import FashionStoreCartPage from "./components/pages/FashionStoreCartPage.vue";
-import FashionStoreShopPage from "./components/pages/FashionStoreShopPage.vue";
 import FashionStoreProductPage from "./components/pages/FashionStoreProductPage.vue";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
 import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
@@ -21,6 +20,9 @@ import { themeAssets } from "./resources";
 const FashionStoreCheckoutPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreCheckoutPage.vue"),
 );
+const FashionStoreCollectionPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreCollectionPage.vue"),
+);
 
 export const themeRegistry = {
   blocks: {},
@@ -28,7 +30,7 @@ export const themeRegistry = {
     "fashion-store.home": FashionStoreHome,
     "fashion-store.cart": FashionStoreCartPage,
     "fashion-store.checkout": FashionStoreCheckoutPage,
-    "fashion-store.collection": FashionStoreShopPage,
+    "fashion-store.collection": FashionStoreCollectionPage,
     "fashion-store.product": FashionStoreProductPage,
   },
 } as const satisfies ThemeRegistry;

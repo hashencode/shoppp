@@ -11,6 +11,7 @@ import {
 import { fashionStoreProductBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/product";
 import { fashionStoreCartBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/cart";
 import { fashionStoreCheckoutBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/checkout";
+import { fashionStoreCollectionBehaviorContract } from "../../app/themes/fashion-store/contracts/pages/collection";
 import {
   fidelityStatesByRegionFromBehaviorContract,
   type ThemeBehaviorContract,
@@ -203,6 +204,26 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
   })),
   {
     densities: [1, 2] as const,
+    id: "fashion-store-collection",
+    implementationPath: "/collections",
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "category-grid",
+        "section",
+        "section:nth-of-type(2) .row",
+        ".fashion-collection-grid",
+        shopStates(fashionStoreCollectionBehaviorContract, "category-grid"),
+      ),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-fashion-store-collection.html",
+    viewports: themeViewportIds,
+  },
+  {
+    densities: [1, 2] as const,
     id: "fashion-store-product",
     implementationPath: "/products/relaxed-corduroy-shirt",
     regions: [
@@ -314,6 +335,7 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
   ...[
     fashionStoreCartBehaviorContract,
     fashionStoreCheckoutBehaviorContract,
+    fashionStoreCollectionBehaviorContract,
     fashionStoreProductBehaviorContract,
     fashionStoreShopLeftBehaviorContract,
     fashionStoreShopNoneBehaviorContract,

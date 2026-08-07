@@ -41,7 +41,7 @@
         "browserProject": "fashion-store-desktop"
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "product", "cart", "checkout"],
+      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right", "collection", "product", "cart", "checkout"],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
       "pages": [
@@ -150,6 +150,25 @@
           "sourceEntrySha256": "54d681fffdb48e25c230264a3fa896c12a488d3b3d817581d73a49784b6afbe9",
           "sourceRegionsExport": "fashionStoreShopRightSourceRegions",
           "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreCollectionBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/collection.ts",
+          "focusedStates": [{ "id": "collection-card-focus", "modes": ["interaction"] }],
+          "id": "collection",
+          "implementationRoute": "/collections",
+          "implementationRuntimeReadySelector": "[data-fashion-store-collection][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "collection",
+          "requiredContractFacets": ["cardCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/collection.ts",
+          "sourceEntry": "demo-fashion-store-collection.html",
+          "sourceEntrySha256": "66f7ef2c07925577063efb4a60355857f2a70af0cff1955648ec2ba1401e2f1d",
+          "sourceRegionsExport": "fashionStoreCollectionSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .categories-style-02"
         },
         {
           "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",

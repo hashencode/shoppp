@@ -60,6 +60,7 @@ describe("Fashion Store product detail", () => {
       "shop-left",
       "shop-none",
       "shop-right",
+      "collection",
       "product",
       "cart",
       "checkout",
