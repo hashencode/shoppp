@@ -25,11 +25,18 @@ const fixture = {
 describe("selected theme resources", () => {
   test("keeps every enabled Fashion Store binding backed by a namespaced fixture", async () => {
     const input = await fashionStorePreviewBuildInput("https://preview.example.test");
-    expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual(["home"]);
+    expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual([
+      "home",
+      "collection",
+    ]);
     expect(input.snapshot.bindings).toEqual([
       expect.objectContaining({
         fixtureId: "fashion-store-home",
         instanceId: "fashion-store-home",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-shop",
+        instanceId: "fashion-store-collection",
       }),
     ]);
   });

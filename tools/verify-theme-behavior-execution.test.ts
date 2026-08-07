@@ -81,6 +81,25 @@ describe("executed behavior-mode evidence", () => {
     ).resolves.toBe(31);
   });
 
+  test("filters valid evidence owned by another page contract", async () => {
+    const records = [
+      ...completeEvidence(),
+      {
+        actionOutcome: true,
+        behaviorId: "shop-product-actions",
+        mode: "fallback" as const,
+      },
+    ];
+    await expect(
+      verifyThemeBehaviorExecution({
+        pageId: "home",
+        reportPath: await report(records),
+        root: resolve(import.meta.dir, ".."),
+        themeId: "fashion-store",
+      }),
+    ).resolves.toBe(31);
+  });
+
   test("rejects a missing mode and ignores evidence from failed tests", async () => {
     const records = completeEvidence();
     records.pop();

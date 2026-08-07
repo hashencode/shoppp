@@ -3,6 +3,15 @@ import {
   fashionStoreBehaviorContract,
   fashionStoreFidelityStatesByRegion,
 } from "../../app/themes/fashion-store/behavior-contract";
+import {
+  fashionStoreShopLeftBehaviorContract,
+  fashionStoreShopNoneBehaviorContract,
+  fashionStoreShopRightBehaviorContract,
+} from "../../app/themes/fashion-store/contracts/pages/shop";
+import {
+  fidelityStatesByRegionFromBehaviorContract,
+  type ThemeBehaviorContract,
+} from "./theme-behavior-contract";
 import type { ThemeBehaviorDescriptor } from "./theme-behavior-descriptor";
 import { themeViewportIds, themeViewports } from "./theme-viewports";
 
@@ -63,6 +72,12 @@ const fashionStoreStates = (regionId: string, defaults: readonly string[] = ["in
   ...(fashionStoreFidelityStatesByRegion[regionId] ?? []),
 ];
 
+const shopStates = (
+  contract: ThemeBehaviorContract,
+  regionId: string,
+  defaults: readonly string[] = ["initial"],
+) => [...defaults, ...(fidelityStatesByRegionFromBehaviorContract(contract)[regionId] ?? [])];
+
 const region = (
   id: string,
   kind: FidelityRegionKind,
@@ -83,7 +98,7 @@ const region = (
 
 export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
   {
-    densities: [1, 2],
+    densities: [1, 2] as const,
     id: "fashion-store-home",
     implementationPath: "/",
     regions: [
@@ -135,6 +150,54 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
     sourcePath: "/demo-fashion-store.html",
     viewports: themeViewportIds,
   },
+  ...(
+    [
+      {
+        behavior: fashionStoreShopLeftBehaviorContract,
+        id: "fashion-store-shop-left",
+        implementationPath: "/shop",
+        layout: "left",
+        sourcePath: "/demo-fashion-store-shop.html",
+      },
+      {
+        behavior: fashionStoreShopNoneBehaviorContract,
+        id: "fashion-store-shop-none",
+        implementationPath: "/shop/no-sidebar",
+        layout: "none",
+        sourcePath: "/demo-fashion-store-no-sidebar.html",
+      },
+      {
+        behavior: fashionStoreShopRightBehaviorContract,
+        id: "fashion-store-shop-right",
+        implementationPath: "/shop/right-sidebar",
+        layout: "right",
+        sourcePath: "/demo-fashion-store-right-sidebar.html",
+      },
+    ] as const
+  ).map(({ behavior, id, implementationPath, layout, sourcePath }) => ({
+    densities: [1, 2] as const,
+    id,
+    implementationPath,
+    regions: [
+      region("header", "section", "header", "header"),
+      region("page-title", "component", "section:nth-of-type(1)", "section:nth-of-type(1)"),
+      region(
+        "product-grid",
+        "section",
+        "section:nth-of-type(2) .shop-modern",
+        "section:nth-of-type(2) .shop-modern",
+        shopStates(behavior, "product-grid"),
+      ),
+      ...(layout === "none"
+        ? []
+        : [region("sidebar", "section", ".shop-sidebar", ".shop-sidebar")]),
+      region("pagination", "control", ".pagination", ".pagination"),
+      region("footer", "component", "footer", "footer"),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath,
+    viewports: themeViewportIds,
+  })),
 ] as const;
 
 type FidelityBehaviorDescriptor = Pick<
@@ -147,6 +210,14 @@ const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
     contract: fashionStoreBehaviorContract,
     fidelityStatesByRegion: fashionStoreFidelityStatesByRegion,
   },
+  ...[
+    fashionStoreShopLeftBehaviorContract,
+    fashionStoreShopNoneBehaviorContract,
+    fashionStoreShopRightBehaviorContract,
+  ].map((contract) => ({
+    contract,
+    fidelityStatesByRegion: fidelityStatesByRegionFromBehaviorContract(contract),
+  })),
 ];
 
 export function assertFidelityMatrixComplete(

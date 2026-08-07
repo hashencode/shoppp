@@ -56,9 +56,12 @@ export async function verifyThemeBehaviorExecution(options: {
     throw new Error(`Unknown source-equivalence page: ${options.themeId}/${options.pageId}.`);
   const descriptor = await loadThemeBehaviorDescriptor(page, root);
   const report = JSON.parse(await readFile(resolve(options.reportPath), "utf8")) as unknown;
-  const evidence = collectPassedEvidence(report);
-  assertThemeBehaviorModeEvidenceComplete(descriptor.contract, evidence);
-  return evidence.length;
+  const behaviorIds = new Set(descriptor.contract.behaviors.map(({ id }) => id));
+  const pageEvidence = collectPassedEvidence(report).filter(({ behaviorId }) =>
+    behaviorIds.has(behaviorId),
+  );
+  assertThemeBehaviorModeEvidenceComplete(descriptor.contract, pageEvidence);
+  return pageEvidence.length;
 }
 
 if (import.meta.main) {

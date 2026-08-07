@@ -16,7 +16,12 @@ describe("static generation manifest", () => {
       fashionStoreEnabledPageContracts.map(({ path }) => path),
     );
     expect(new Set(fashionStorePreviewRoutes).size).toBe(fashionStorePreviewRoutes.length);
-    expect(fashionStorePreviewRoutes).toEqual(["/"]);
+    expect(fashionStorePreviewRoutes).toEqual([
+      "/",
+      "/shop",
+      "/shop/no-sidebar",
+      "/shop/right-sidebar",
+    ]);
   });
 
   test("makes static verification and bundle budgets consume active preview routes", async () => {

@@ -41,7 +41,7 @@
         "browserProject": "fashion-store-desktop"
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
-      "equivalenceScope": ["home"],
+      "equivalenceScope": ["home", "shop-left", "shop-none", "shop-right"],
       "manifestExport": "fashionStoreManifest",
       "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
       "pages": [
@@ -75,6 +75,81 @@
           "sourceFirstHero": "images/demo-fashion-store-slider-01.jpg",
           "sourceRegionsExport": "fashionStoreSourceRegions",
           "sourceRuntimeReadySelector": ".swiper.slider-three-slide"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreShopLeftBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "focusedStates": [{ "id": "shop-product-hover", "modes": ["interaction"] }],
+          "id": "shop-left",
+          "implementationRoute": "/shop",
+          "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='left'][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "collection",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "layoutMode",
+            "productCount",
+            "regionOrder",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "sourceEntry": "demo-fashion-store-shop.html",
+          "sourceEntrySha256": "1efb50af3ca47307a3c214457dacebb1493e97fb610dad5c28cc6c639c149af3",
+          "sourceRegionsExport": "fashionStoreShopLeftSourceRegions",
+          "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static"],
+          "behaviorContractExport": "fashionStoreShopNoneBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "focusedStates": [{ "id": "shop-product-hover", "modes": ["interaction"] }],
+          "id": "shop-none",
+          "implementationRoute": "/shop/no-sidebar",
+          "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='none'][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "collection",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "layoutMode",
+            "productCount",
+            "regionOrder",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "sourceEntry": "demo-fashion-store-no-sidebar.html",
+          "sourceEntrySha256": "b4b91a8b91aac11fe333a1618e2923be8db5dafca734431dc897830ad8c29bc6",
+          "sourceRegionsExport": "fashionStoreShopNoneSourceRegions",
+          "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreShopRightBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "focusedStates": [{ "id": "shop-product-hover", "modes": ["interaction"] }],
+          "id": "shop-right",
+          "implementationRoute": "/shop/right-sidebar",
+          "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='right'][data-runtime-status='ready']",
+          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
+          "pageType": "collection",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "layoutMode",
+            "productCount",
+            "regionOrder",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "sourceEntry": "demo-fashion-store-right-sidebar.html",
+          "sourceEntrySha256": "54d681fffdb48e25c230264a3fa896c12a488d3b3d817581d73a49784b6afbe9",
+          "sourceRegionsExport": "fashionStoreShopRightSourceRegions",
+          "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"

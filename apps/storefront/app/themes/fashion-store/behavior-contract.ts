@@ -6,6 +6,11 @@ import {
   type ThemeBehaviorContractRow,
   type ThemeBehaviorEvidenceState,
 } from "../../../e2e/support/theme-behavior-contract";
+import {
+  fashionStoreShopLeftBehaviorContract,
+  fashionStoreShopNoneBehaviorContract,
+  fashionStoreShopRightBehaviorContract,
+} from "./contracts/pages/shop";
 
 const named = (state: NamedStateContract, fidelityState?: string): ThemeBehaviorEvidenceState => ({
   ...(fidelityState ? { fidelityState } : {}),
@@ -503,3 +508,16 @@ export const fashionStoreNamedStateContracts = namedStatesFromBehaviorContract(
 export const fashionStoreFidelityStatesByRegion = fidelityStatesByRegionFromBehaviorContract(
   fashionStoreBehaviorContract,
 );
+
+export {
+  fashionStoreShopLeftBehaviorContract,
+  fashionStoreShopNoneBehaviorContract,
+  fashionStoreShopRightBehaviorContract,
+};
+
+export const fashionStorePageBehaviorContracts = [
+  fashionStoreBehaviorContract,
+  fashionStoreShopLeftBehaviorContract,
+  fashionStoreShopNoneBehaviorContract,
+  fashionStoreShopRightBehaviorContract,
+] as const;

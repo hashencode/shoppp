@@ -6,9 +6,14 @@ import {
 } from "../e2e/support/theme-fidelity-matrix";
 
 describe("theme fidelity matrix", () => {
-  test("covers the retained Fashion Store home at desktop/mobile and DPR 1/2", () => {
+  test("covers the enabled Fashion Store pages at desktop/mobile and DPR 1/2", () => {
     expect(() => assertFidelityMatrixComplete()).not.toThrow();
-    expect(themeFidelityMatrix).toHaveLength(1);
+    expect(themeFidelityMatrix.map(({ id }) => id)).toEqual([
+      "fashion-store-home",
+      "fashion-store-shop-left",
+      "fashion-store-shop-none",
+      "fashion-store-shop-right",
+    ]);
   });
 
   test("maps the Crafto Fashion source home to Fashion Store", () => {

@@ -5,6 +5,16 @@ export interface FashionStoreSourceRegion {
   selector: string;
 }
 
+export {
+  fashionStoreShopLeftSourceContract,
+  fashionStoreShopLeftSourceRegions,
+  fashionStoreShopNoneSourceContract,
+  fashionStoreShopNoneSourceRegions,
+  fashionStoreShopRightSourceContract,
+  fashionStoreShopRightSourceRegions,
+  fashionStoreShopSourcePages,
+} from "./contracts/pages/shop";
+
 export const fashionStoreSourceEntries = [
   "demo-fashion-store.html",
   "demo-fashion-store-about.html",

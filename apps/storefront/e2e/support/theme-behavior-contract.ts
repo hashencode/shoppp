@@ -29,6 +29,8 @@ export type NamedStateAction =
   | { kind: "product-focus" }
   | { kind: "product-hover" }
   | { kind: "search" }
+  | { group: "category" | "color" | "size" | "tag"; kind: "shop-filter"; label: string }
+  | { index: number; kind: "shop-arrivals" }
   | { kind: "tab-secondary" };
 
 export interface NamedStateContract {

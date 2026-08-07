@@ -60,7 +60,10 @@ function scrollToTop(): void {
 
 useHead(() => ({
   bodyAttrs: {
-    class: searchOpen.value ? `${properties.bodyClass} show-search-popup` : properties.bodyClass,
+    class:
+      [properties.bodyClass, searchOpen.value ? "show-search-popup" : ""]
+        .filter(Boolean)
+        .join(" ") || undefined,
     "data-mobile-nav-style": "classic",
   },
   htmlAttrs: { class: documentReadyClass.value, lang: "en" },
@@ -117,6 +120,7 @@ onBeforeUnmount(() => {
     id="cookies-model"
     class="cookie-message bg-dark-gray border-radius-8px"
     v-if="cookieVisible"
+    style="display: block"
   >
     <div class="cookie-description fs-14 text-white mb-20px lh-22">
       We use cookies to enhance your browsing experience, serve personalized ads or content, and

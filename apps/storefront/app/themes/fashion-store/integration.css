@@ -6,6 +6,118 @@
   src: url("./upstream/fonts/figtree-latin.woff2") format("woff2");
 }
 
+[data-fashion-store-shop] .shop-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+[data-fashion-store-shop] .shop-wrapper > .grid-sizer {
+  display: none;
+}
+
+[data-fashion-store-shop] button {
+  font: inherit;
+}
+
+[data-fashion-store-header] .header-cart > .fashion-store-source-action {
+  position: relative;
+  padding-left: 18px;
+  color: var(--dark-gray);
+  font-size: 17px;
+}
+
+[data-fashion-store-shop] .shop-hover button,
+[data-fashion-store-shop] .shop-filter button,
+[data-fashion-store-shop] .pagination button,
+[data-fashion-store-shop] .swiper-button-prev,
+[data-fashion-store-shop] .swiper-button-next {
+  border: 0;
+  cursor: pointer;
+}
+
+[data-fashion-store-shop] .shop-filter li > button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+}
+
+[data-fashion-store-shop] .shop-filter li > button:hover .product-cb,
+[data-fashion-store-shop] .shop-filter li > button.active .product-cb {
+  border-color: var(--dark-gray);
+}
+
+[data-fashion-store-shop] .shop-filter li > button:hover .product-cb::after,
+[data-fashion-store-shop] .shop-filter li > button.active .product-cb::after {
+  opacity: 1;
+}
+
+[data-fashion-store-shop] .tag-cloud button {
+  display: inline-block;
+  margin: 0 6px 10px 0;
+  padding: 7px 18px;
+  color: inherit;
+  line-height: 20px;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--extra-medium-gray);
+  border-radius: 4px;
+}
+
+[data-fashion-store-shop] .tag-cloud button:hover,
+[data-fashion-store-shop] .tag-cloud button.active {
+  color: var(--dark-gray);
+  background-color: var(--white);
+  box-shadow: 0 0 10px rgb(23 23 23 / 10%);
+}
+
+[data-fashion-store-shop] .shop-box:focus-within .shop-image .shop-buttons-wrap .btn,
+[data-fashion-store-shop] .shop-box.actions-open .shop-image .shop-buttons-wrap .btn,
+[data-fashion-store-shop] .shop-box:focus-within .shop-image .shop-hover {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+[data-fashion-store-shop] .shop-box:focus-within .shop-image .shop-hover li {
+  transform: translateY(0);
+}
+
+[data-fashion-store-shop] .shop-box.actions-open .shop-image .shop-hover {
+  top: 20px;
+  opacity: 1;
+}
+
+[data-fashion-store-shop] .shop-box.actions-open .shop-image .shop-hover li {
+  transform: translateY(0);
+}
+
+[data-fashion-store-shop] .slider-one-slide .swiper-slide {
+  display: none;
+}
+
+[data-fashion-store-shop] .slider-one-slide .swiper-slide-active {
+  display: block;
+}
+
+@media (min-width: 992px) {
+  [data-fashion-store-header]:has(+ main[data-fashion-store-shop]) .navbar.disable-fixed {
+    top: 40px;
+  }
+
+  [data-fashion-store-header] + main[data-fashion-store-shop] > .top-space-margin {
+    margin-top: 118px;
+  }
+}
+
+@media (max-width: 991px) {
+  [data-fashion-store-header] + main[data-fashion-store-shop] > .top-space-margin {
+    margin-top: 79px;
+  }
+}
+
 @font-face {
   font-family: "Outfit";
   font-style: normal;

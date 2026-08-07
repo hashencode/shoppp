@@ -168,6 +168,8 @@ export function captureModeForNamedState(state: NamedStateContract): ThemeAccept
       "product-focus",
       "product-hover",
       "search",
+      "shop-arrivals",
+      "shop-filter",
     ].includes(state.action.kind)
   )
     return "interaction";

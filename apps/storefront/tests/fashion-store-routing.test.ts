@@ -50,14 +50,26 @@ describe("Fashion Store route readiness", () => {
       { id: "faq", path: "/faq", pageType: "content", variant: "faq" },
       { id: "contact", path: "/contact", pageType: "content", variant: "contact" },
     ]);
-    expect(fashionStoreEnabledPageContracts.map(({ id }) => id)).toEqual(["home"]);
-    expect(fashionStorePreviewRoutes).toEqual(["/"]);
+    expect(fashionStoreEnabledPageContracts.map(({ id }) => id)).toEqual([
+      "home",
+      "shop-left",
+      "shop-none",
+      "shop-right",
+    ]);
+    expect(fashionStorePreviewRoutes).toEqual([
+      "/",
+      "/shop",
+      "/shop/no-sidebar",
+      "/shop/right-sidebar",
+    ]);
   });
 
   test("normalizes trailing slashes and never falls through to a sibling variant", () => {
     expect(resolveFashionStorePage("/")?.id).toBe("home");
     expect(resolveFashionStorePage("///")?.id).toBe("home");
-    expect(resolveFashionStorePage("/shop/")).toBeUndefined();
+    expect(resolveFashionStorePage("/shop/")?.id).toBe("shop-left");
+    expect(resolveFashionStorePage("/shop/no-sidebar/")?.id).toBe("shop-none");
+    expect(resolveFashionStorePage("/shop/right-sidebar/")?.id).toBe("shop-right");
     expect(resolveFashionStorePage("/shop/unknown")).toBeUndefined();
     expect(resolveFashionStorePage("/magazine/unknown")).toBeUndefined();
     expect(

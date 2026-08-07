@@ -47,13 +47,31 @@ describe("source-equivalent theme policy", () => {
     expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
     expect(policy.themes[0]).toMatchObject({
       authorizedSourceRoot: "templates/Crafto - The Multipurpose HTML5 Template/html",
-      equivalenceScope: ["home"],
+      equivalenceScope: ["home", "shop-left", "shop-none", "shop-right"],
       pages: [
         {
           id: "home",
           implementationRoute: "/",
           pageType: "home",
           sourceEntry: "demo-fashion-store.html",
+        },
+        {
+          id: "shop-left",
+          implementationRoute: "/shop",
+          pageType: "collection",
+          sourceEntry: "demo-fashion-store-shop.html",
+        },
+        {
+          id: "shop-none",
+          implementationRoute: "/shop/no-sidebar",
+          pageType: "collection",
+          sourceEntry: "demo-fashion-store-no-sidebar.html",
+        },
+        {
+          id: "shop-right",
+          implementationRoute: "/shop/right-sidebar",
+          pageType: "collection",
+          sourceEntry: "demo-fashion-store-right-sidebar.html",
         },
       ],
     });
@@ -88,7 +106,13 @@ describe("source-equivalent theme policy", () => {
     });
     const descriptors = await loadThemeBehaviorDescriptors(theme, root);
 
-    expect([...descriptors.keys()]).toEqual(["home", "synthetic-shop"]);
+    expect([...descriptors.keys()]).toEqual([
+      "home",
+      "shop-left",
+      "shop-none",
+      "shop-right",
+      "synthetic-shop",
+    ]);
     expect(
       theme.pages.map(({ implementationRoute, sourceEntry }) => ({
         implementationRoute,
@@ -96,6 +120,15 @@ describe("source-equivalent theme policy", () => {
       })),
     ).toEqual([
       { implementationRoute: "/", sourceEntry: "demo-fashion-store.html" },
+      { implementationRoute: "/shop", sourceEntry: "demo-fashion-store-shop.html" },
+      {
+        implementationRoute: "/shop/no-sidebar",
+        sourceEntry: "demo-fashion-store-no-sidebar.html",
+      },
+      {
+        implementationRoute: "/shop/right-sidebar",
+        sourceEntry: "demo-fashion-store-right-sidebar.html",
+      },
       { implementationRoute: "/synthetic-shop", sourceEntry: "demo-fashion-store-shop.html" },
     ]);
   });
