@@ -739,6 +739,22 @@ export function equivalentRoundedSectionTarget(
   return { left: Math.round(sourceRect.left), top: Math.round(sourceRect.top) };
 }
 
+export function regionFitsAtDocumentOrigin(bounds: {
+  documentLeft: number;
+  documentTop: number;
+  height: number;
+  viewportHeight: number;
+  viewportWidth: number;
+  width: number;
+}): boolean {
+  return (
+    bounds.documentLeft >= 0 &&
+    bounds.documentTop >= 0 &&
+    bounds.documentLeft + bounds.width <= bounds.viewportWidth &&
+    bounds.documentTop + bounds.height <= bounds.viewportHeight
+  );
+}
+
 async function alignDecorHomeFullPageSections(source: Page, implementation: Page): Promise<void> {
   const sourceSelectors = [
     "section:nth-of-type(1)",
@@ -1169,7 +1185,8 @@ async function captureRegionScreenshot(page: Page, selector: string, path: strin
     });
   const density = await page.evaluate(() => devicePixelRatio);
   const fullPage = bounds.height > bounds.viewportHeight || bounds.width > bounds.viewportWidth;
-  if (fullPage) {
+  const captureFromDocumentOrigin = !fullPage && regionFitsAtDocumentOrigin(bounds);
+  if (fullPage || captureFromDocumentOrigin) {
     await page.evaluate(
       () =>
         new Promise<void>((resolvePromise) => {

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   captureThemeRouteRegion,
   equivalentRoundedSectionTarget,
+  regionFitsAtDocumentOrigin,
 } from "./capture-theme-route-region";
 
 describe("full-page section origin normalization", () => {
@@ -13,6 +14,31 @@ describe("full-page section origin normalization", () => {
     expect(
       equivalentRoundedSectionTarget({ left: 0, top: 100 }, { left: 0, top: 100.11 }),
     ).toBeNull();
+  });
+});
+
+describe("regional screenshot origin stabilization", () => {
+  test("resets only regions that fit inside the viewport at document origin", () => {
+    expect(
+      regionFitsAtDocumentOrigin({
+        documentLeft: 0,
+        documentTop: 159,
+        height: 374,
+        viewportHeight: 844,
+        viewportWidth: 390,
+        width: 390,
+      }),
+    ).toBe(true);
+    expect(
+      regionFitsAtDocumentOrigin({
+        documentLeft: 0,
+        documentTop: 600,
+        height: 374,
+        viewportHeight: 844,
+        viewportWidth: 390,
+        width: 390,
+      }),
+    ).toBe(false);
   });
 });
 
