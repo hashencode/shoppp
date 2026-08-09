@@ -27,6 +27,32 @@ export interface AcceptancePlan {
   themeIds: string[];
 }
 
+function uniquePageCommandSteps(
+  themes: SourceEquivalencePolicy["themes"],
+): { command: string[]; label: string }[] {
+  const groups = new Map<
+    string,
+    { command: string[]; pageLabels: string[]; themeIds: Set<string> }
+  >();
+  for (const theme of themes) {
+    for (const page of theme.pages) {
+      const key = JSON.stringify(page.pageCommand);
+      const group = groups.get(key) ?? {
+        command: page.pageCommand,
+        pageLabels: [],
+        themeIds: new Set<string>(),
+      };
+      group.pageLabels.push(page.id);
+      group.themeIds.add(theme.id);
+      groups.set(key, group);
+    }
+  }
+  return [...groups.values()].map(({ command, pageLabels, themeIds }) => ({
+    command,
+    label: `${[...themeIds].join("+")}/pages[${pageLabels.join(",")}]`,
+  }));
+}
+
 const ROOT = resolve(import.meta.dir, "..");
 const MODES = new Set(["fallback", "interaction", "scroll-fixed", "static", "temporal"]);
 
@@ -139,12 +165,7 @@ export function buildAcceptancePlan(
     scope: options.scope,
     steps: [
       { command: ["bun", "run", "verify:source-equivalence"], label: "contracts" },
-      ...themes.flatMap((theme) =>
-        theme.pages.map((page) => ({
-          command: page.pageCommand,
-          label: `${theme.id}/${page.id}/page`,
-        })),
-      ),
+      ...uniquePageCommandSteps(themes),
       {
         command: [
           "bun",

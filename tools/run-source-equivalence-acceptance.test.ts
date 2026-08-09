@@ -168,23 +168,12 @@ describe("source-equivalence acceptance orchestration", () => {
     expect(plan.fullEvidenceOutstanding).toBe(false);
     expect(plan.steps.map(({ label }) => label)).toEqual([
       "contracts",
-      "fashion-store/home/page",
-      "fashion-store/shop-left/page",
-      "fashion-store/shop-none/page",
-      "fashion-store/shop-right/page",
-      "fashion-store/collection/page",
-      "fashion-store/product/page",
-      "fashion-store/cart/page",
-      "fashion-store/checkout/page",
-      "fashion-store/wishlist/page",
-      "fashion-store/account/page",
-      "fashion-store/magazine/page",
-      "fashion-store/article/page",
-      "fashion-store/about/page",
-      "fashion-store/faq/page",
-      "fashion-store/contact/page",
+      "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
       "fidelity-evidence",
     ]);
+    expect(
+      plan.steps.filter(({ command }) => command.join(" ").includes("test:fashion-store")),
+    ).toHaveLength(1);
   });
 
   test("rejects unknown selectors and excessive browser workers", async () => {
