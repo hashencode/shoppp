@@ -30,6 +30,27 @@ interface Box {
   y: number;
 }
 
+export function fashionNamedStateHeroHeight(viewport: {
+  height: number;
+  width: number;
+}): number {
+  return viewport.width >= 992 ? viewport.height : viewport.width >= 576 ? 600 : 500;
+}
+
+export function fashionCollectionNavigationKeys(
+  currentIndex: number,
+  targetIndex: number,
+): ("ArrowLeft" | "ArrowRight")[] {
+  return [
+    ...Array.from({ length: Math.max(0, currentIndex) }, () => "ArrowLeft" as const),
+    ...Array.from({ length: Math.max(0, targetIndex) }, () => "ArrowRight" as const),
+  ];
+}
+
+export function namedStateFractionalOriginOffset(value: number): number {
+  return Math.floor(value) - value;
+}
+
 const namedStateCss = (mode: ThemeAcceptanceMode) =>
   captureCssForMode(mode).replace(
     "#cookies-model, .cookie-message, .scroll-progress,",
@@ -141,20 +162,50 @@ async function hydrateFashionSourceImages(page: Page): Promise<void> {
   });
 }
 
+async function normalizeNamedStateHeroHeight(page: Page): Promise<void> {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Fashion named-state capture requires a fixed viewport.");
+  const targetHeight = fashionNamedStateHeroHeight(viewport);
+  await page.locator(".swiper.full-screen").evaluate((element, height) => {
+    (element as HTMLElement).style.setProperty("height", `${height}px`, "important");
+    element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
+      slide.style.setProperty("height", `${height}px`, "important");
+    });
+  }, targetHeight);
+}
+
 async function prepareFashionPages(source: Page, implementation: Page): Promise<void> {
   await implementation.waitForFunction(() =>
     Boolean(
       (document.querySelector("#__nuxt") as (HTMLElement & { __vue_app__?: unknown }) | null)
         ?.__vue_app__,
     ),
+    undefined,
+    { timeout: 60_000 },
+  );
+  await implementation.waitForFunction(
+    () => {
+      const status = document
+        .querySelector("[data-fashion-store-source-parity]")
+        ?.getAttribute("data-runtime-status");
+      return status === "ready" || status === "static";
+    },
+    undefined,
+    { timeout: 60_000 },
   );
   await source.waitForFunction(() =>
     [...document.querySelectorAll<HTMLElement>(".swiper")].every((element) =>
       Boolean((element as HTMLElement & { swiper?: unknown }).swiper),
     ),
+    undefined,
+    { timeout: 60_000 },
   );
   await hydrateFashionSourceImages(source);
   await Promise.all([stabilize(source), stabilize(implementation)]);
+  await Promise.all([
+    normalizeNamedStateHeroHeight(source),
+    normalizeNamedStateHeroHeight(implementation),
+  ]);
 }
 
 async function resetFashion(page: Page, side: "implementation" | "source"): Promise<void> {
@@ -349,18 +400,29 @@ async function applyFashionStoreAction(
     await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
     await waitForHeroIdle();
   }
-  await page.locator(".swiper.slider-three-slide").evaluate((element) => {
-    const swiper = (
-      element as HTMLElement & {
-        swiper?: {
-          autoplay?: { stop(): void };
-          slideToLoop?(index: number, speed: number): void;
-        };
-      }
-    ).swiper;
-    swiper?.autoplay?.stop();
-    swiper?.slideToLoop?.(0, 0);
+  const collection = page.locator(".swiper.slider-three-slide");
+  await collection.evaluate((element) => {
+    element.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
   });
+  const currentCollectionIndex = Number(await collection.getAttribute("data-collection-index"));
+  const targetCollectionIndex = action.kind === "collection" ? action.index : 0;
+  if (Number.isInteger(currentCollectionIndex)) {
+    let expectedIndex = currentCollectionIndex;
+    for (const key of fashionCollectionNavigationKeys(
+      currentCollectionIndex,
+      targetCollectionIndex,
+    )) {
+      await collection.press(key);
+      expectedIndex += key === "ArrowLeft" ? -1 : 1;
+      await page.waitForFunction(
+        (expected) =>
+          document
+            .querySelector(".swiper.slider-three-slide")
+            ?.getAttribute("data-collection-index") === String(expected),
+        expectedIndex,
+      );
+    }
+  }
   if (action.kind === "initial") return;
   if (action.kind === "hero") {
     await page
@@ -368,11 +430,13 @@ async function applyFashionStoreAction(
       .evaluate((button) => (button as HTMLButtonElement).click());
     await waitForHeroIdle();
   } else if (action.kind === "collection") {
-    await page.locator(".swiper.slider-three-slide").evaluate((element, index) => {
-      (
-        element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
-      ).swiper?.slideToLoop?.(index, 0);
-    }, action.index);
+    await page.waitForFunction(
+      (index) =>
+        document
+          .querySelector(".swiper.slider-three-slide")
+          ?.getAttribute("data-collection-index") === String(index),
+      action.index,
+    );
   } else if (action.kind === "navigation") {
     const menu = action.menu ?? "Shop";
     if (viewportWidth >= 992) {
@@ -471,6 +535,50 @@ async function captureVisibleElement(
     })
     .png()
     .toFile(path);
+}
+
+async function normalizeNamedStateFractionalOrigin(page: Page, selector: string): Promise<void> {
+  const locator = page.locator(selector).first();
+  const origin = await locator.evaluate(async (element: HTMLElement) => {
+    const isCollectionRail = element.matches(".swiper.slider-three-slide");
+    if (isCollectionRail) {
+      const track = element.querySelector<HTMLElement>(".swiper-wrapper");
+      track?.style.setProperty("gap", "30px", "important");
+      track?.style.setProperty("will-change", "transform", "important");
+      element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
+        slide.style.setProperty("backface-visibility", "visible", "important");
+        slide.style.setProperty("margin-right", "0", "important");
+        slide.style.setProperty("transform", "none", "important");
+      });
+      element
+        .querySelectorAll<HTMLElement>(".interactive-banner-style-09")
+        .forEach((card) => {
+          card.style.setProperty("transform", "translate3d(0, 0, 0)", "important");
+        });
+      await new Promise<void>((resolvePromise) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+      );
+      return null;
+    }
+    if (element.tagName === "FOOTER") return null;
+    element.style.translate = "none";
+    await new Promise<void>((resolvePromise) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+    );
+    const rect = element.getBoundingClientRect();
+    return { left: rect.left, top: rect.top };
+  });
+  if (!origin) return;
+  const offset = {
+    x: namedStateFractionalOriginOffset(origin.left),
+    y: namedStateFractionalOriginOffset(origin.top),
+  };
+  await locator.evaluate(async (element: HTMLElement, translate) => {
+    element.style.translate = `${translate.x}px ${translate.y}px`;
+    await new Promise<void>((resolvePromise) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+    );
+  }, offset);
 }
 
 async function marqueeDiagnostics(page: Page) {
@@ -662,10 +770,13 @@ export async function captureFashionNamedStates(options: {
               state.id === "cookie-overlay",
             ),
           ]);
-          if (
-            !options.stateFilter &&
-            ["product-default", "product-hover", "product-focus"].includes(state.id)
-          ) {
+          if (["product-default", "product-hover", "product-focus"].includes(state.id)) {
+            await Promise.all([
+              source.emulateMedia({ reducedMotion: "no-preference" }),
+              implementation.emulateMedia({ reducedMotion: "no-preference" }),
+              source.evaluate(() => scrollTo(0, 0)),
+              implementation.evaluate(() => scrollTo(0, 0)),
+            ]);
             await Promise.all([
               source.reload({ timeout: 60_000, waitUntil: "domcontentloaded" }),
               implementation.reload({ timeout: 60_000, waitUntil: "domcontentloaded" }),
@@ -697,6 +808,14 @@ export async function captureFashionNamedStates(options: {
             applyFashionStoreAction(source, "source", state.action, viewport.width),
             applyFashionStoreAction(implementation, "implementation", state.action, viewport.width),
           ]);
+          if (state.capture === "element")
+            await Promise.all([
+              normalizeNamedStateFractionalOrigin(source, state.sourceSelector),
+              normalizeNamedStateFractionalOrigin(
+                implementation,
+                state.implementationSelector,
+              ),
+            ]);
           const [referenceBox, implementationBox] = await Promise.all([
             box(source, state.sourceSelector),
             box(implementation, state.implementationSelector),

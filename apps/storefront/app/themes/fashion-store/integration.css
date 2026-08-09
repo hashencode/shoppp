@@ -585,6 +585,11 @@
 }
 
 @media (min-width: 992px) and (max-width: 1199px) {
+  .fashion-store-home .slider-three-slide .fashion-store-collection-track > .swiper-slide {
+    flex-basis: calc((100% - 60px) / 3 + 0.078125px);
+    width: calc((100% - 60px) / 3 + 0.078125px) !important;
+  }
+
   .fashion-store-home footer {
     margin-top: -0.203125px;
   }
@@ -640,10 +645,6 @@
 }
 
 @media (min-width: 1200px) {
-  .fashion-store-home .slider-three-slide {
-    top: -0.046875px;
-  }
-
   .fashion-store-home .slider-three-slide .fashion-store-collection-track > .swiper-slide {
     flex-basis: calc((100% - 90px) / 4 + 0.109375px);
     width: calc((100% - 90px) / 4 + 0.109375px) !important;

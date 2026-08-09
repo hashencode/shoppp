@@ -37,12 +37,19 @@ const marqueeMessages = computed(() => data.value.marquee);
 const collectionIndex = ref(0);
 const collectionTransitionEnabled = ref(true);
 const collectionVisibleSlides = ref(4);
+const collectionUsesLaptopStep = ref(false);
 const collectionPaused = ref(false);
 const collectionTransform = computed(() => {
   const visible = collectionVisibleSlides.value;
   const percentage = (collectionIndex.value * 100) / visible;
   const gap = (collectionIndex.value * 30) / visible;
-  return `translate3d(calc(-${percentage}% - ${gap}px), 0, 0)`;
+  const fractionalCardWidthCorrection =
+    visible === 4
+      ? collectionIndex.value * 0.09765625
+      : collectionUsesLaptopStep.value
+        ? collectionIndex.value / 12
+        : 0;
+  return `translate3d(calc(-${percentage}% - ${gap}px - ${fractionalCardWidthCorrection}px), 0, 0)`;
 });
 let collectionAutoplayTimer: ReturnType<typeof setInterval> | undefined;
 let collectionResetTimer: ReturnType<typeof setTimeout> | undefined;
@@ -76,6 +83,7 @@ function sourceBackground(sourcePath: string): string {
 function updateCollectionVisibleSlides(): void {
   collectionVisibleSlides.value =
     innerWidth >= 1400 ? 4 : innerWidth >= 768 ? 3 : innerWidth >= 576 ? 2 : 1;
+  collectionUsesLaptopStep.value = innerWidth >= 992 && innerWidth < 1200;
 }
 
 function resetCollectionLoop(): void {
