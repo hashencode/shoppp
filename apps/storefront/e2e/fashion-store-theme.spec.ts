@@ -43,8 +43,9 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
     await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
   } else {
     await page.evaluate(() => {
+      const element = document.querySelector(".swiper.full-screen") as HTMLElement;
       const swiper = (
-        document.querySelector(".swiper") as HTMLElement & {
+        element as HTMLElement & {
           swiper?: {
             autoplay?: { stop(): void };
             slideToLoop(index: number, speed: number): void;
@@ -53,6 +54,11 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
       ).swiper;
       swiper?.autoplay?.stop();
       swiper?.slideToLoop(0, 0);
+      const targetHeight = innerWidth >= 992 ? innerHeight : innerWidth >= 576 ? 600 : 500;
+      element.style.setProperty("height", `${targetHeight}px`, "important");
+      element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
+        slide.style.setProperty("height", `${targetHeight}px`, "important");
+      });
     });
   }
   await page.evaluate(async () => document.fonts.ready);

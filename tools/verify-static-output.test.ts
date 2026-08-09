@@ -26,6 +26,16 @@ describe("static artifact safety", () => {
     ).resolves.toBeUndefined();
   });
 
+  test("does not treat long fractional or digest values as card-shaped data", async () => {
+    await expect(
+      verifyNoSensitiveBuildArtifacts([
+        await fixture(
+          '{"density":{"value_area":1843.9238699953512},"sha256":"dfe997b0abd996f0e53ee01158720b9104656158157328c7e52e8d0ffff1b8c5"}',
+        ),
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
   test("rejects a provider secret", async () => {
     const secret = ["sk", "live", "should-never-ship"].join("_");
     await expect(verifyNoSensitiveBuildArtifacts([await fixture(secret)])).rejects.toThrow(

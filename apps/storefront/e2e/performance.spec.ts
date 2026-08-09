@@ -3,22 +3,40 @@ import { join, resolve } from "node:path";
 
 import { chromium, expect, test, type Page } from "@playwright/test";
 
+import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
+
 const manifest = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../app/generated/route-manifest.json"), "utf8"),
 ) as { routes: string[] };
 const theme = process.env.STOREFRONT_THEME ?? "production-fallback";
 const rootUrlOverride = process.env.STOREFRONT_PERF_ROOT_URL;
+const fashionStorePerformancePageIds = new Set([
+  "home",
+  "shop-left",
+  "product",
+  "cart",
+  "checkout",
+  "magazine",
+]);
+const fashionStoreRoutes = fashionStorePageContracts
+  .filter(({ id }) => fashionStorePerformancePageIds.has(id))
+  .map(({ path }) => path);
+if (fashionStoreRoutes.length !== fashionStorePerformancePageIds.size) {
+  throw new Error("Fashion Store performance routes are incomplete.");
+}
 const routes = rootUrlOverride
   ? ["/"]
-  : [
-      "/",
-      manifest.routes.find((route) => route.startsWith("/collections/")),
-      manifest.routes.find((route) => route.startsWith("/products/")),
-      "/cart",
-      "/checkout",
-      "/orders/fixture-order",
-      manifest.routes.find((route) => route.startsWith("/policies/")),
-    ].filter((route): route is string => Boolean(route));
+  : theme === "fashion-store"
+    ? fashionStoreRoutes
+    : [
+        "/",
+        manifest.routes.find((route) => route.startsWith("/collections/")),
+        manifest.routes.find((route) => route.startsWith("/products/")),
+        "/cart",
+        "/checkout",
+        "/orders/fixture-order",
+        manifest.routes.find((route) => route.startsWith("/policies/")),
+      ].filter((route): route is string => Boolean(route));
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,

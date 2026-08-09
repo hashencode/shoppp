@@ -231,6 +231,7 @@ onBeforeUnmount(stopArrivalAutoplay);
                       class="swiper-slide"
                       :class="{ 'swiper-slide-active': arrivalIndex === groupIndex }"
                       :aria-hidden="arrivalIndex === groupIndex ? undefined : 'true'"
+                      :inert="arrivalIndex === groupIndex ? undefined : true"
                     >
                       <div class="shop-filter new-arribals">
                         <div
@@ -240,11 +241,16 @@ onBeforeUnmount(stopArrivalAutoplay);
                           :class="{ 'mb-20px': index < group.length - 1 }"
                         >
                           <figure class="mb-0">
-                            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
+                            <a
+                              :href="fashionStoreRoutePaths.product"
+                              data-fashion-store-route
+                              :aria-label="product.name"
                               ><img
                                 class="border-radius-4px w-80px"
                                 :src="sourceAsset(product.sourceImage)"
                                 alt=""
+                                width="600"
+                                height="765"
                             /></a>
                           </figure>
                           <div class="col ps-25px">
@@ -275,6 +281,7 @@ onBeforeUnmount(stopArrivalAutoplay);
                     v-for="option in data.filters.tag"
                     :key="option.label"
                     href="#"
+                    role="button"
                     :class="{ active: activeFilters.tag === option.label }"
                     :aria-pressed="activeFilters.tag === option.label"
                     @click.prevent="toggleFilter('tag', option.label)"

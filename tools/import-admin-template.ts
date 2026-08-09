@@ -1,5 +1,6 @@
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, normalize, resolve, sep } from "node:path";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 const APPROVED_COMMIT = "fdd1935d35b1919ae6673970e8c428777c71d261";
@@ -70,36 +71,56 @@ export interface ImportAdminTemplateOptions {
   sourceLabel: string;
 }
 
-async function runGitText(source: string, arguments_: string[]): Promise<string> {
-  const process = Bun.spawn(["git", "-C", source, ...arguments_], {
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(`git ${arguments_.join(" ")} failed: ${stderr.trim()}`);
+interface GitCaptureResult {
+  exitCode: number;
+  stderr: string;
+  stdoutBase64: string;
+}
+
+const gitCaptureRunner = `
+const [source, argumentsJson, resultPath] = process.argv.slice(1);
+const result = Bun.spawnSync(["git", "--no-pager", "-C", source, ...JSON.parse(argumentsJson)], {
+  stderr: "pipe",
+  stdout: "pipe",
+});
+await Bun.write(resultPath, JSON.stringify({
+  exitCode: result.exitCode,
+  stderr: result.stderr.toString(),
+  stdoutBase64: Buffer.from(result.stdout).toString("base64"),
+}));
+`;
+
+async function runGit(source: string, arguments_: string[]): Promise<Uint8Array> {
+  const captureRoot = await mkdtemp(join(tmpdir(), "shoppp-admin-git-"));
+  const resultPath = join(captureRoot, "result.json");
+  try {
+    const runner = Bun.spawnSync(
+      [process.execPath, "-e", gitCaptureRunner, source, JSON.stringify(arguments_), resultPath],
+      { stderr: "pipe", stdout: "ignore" },
+    );
+    if (runner.exitCode !== 0) {
+      throw new Error(`Unable to run git capture: ${runner.stderr.toString().trim()}`);
+    }
+    const result = JSON.parse(await readFile(resultPath, "utf8")) as GitCaptureResult;
+    if (result.exitCode !== 0) {
+      throw new Error(`git ${arguments_.join(" ")} failed: ${result.stderr.trim()}`);
+    }
+    return Uint8Array.from(Buffer.from(result.stdoutBase64, "base64"));
+  } finally {
+    await rm(captureRoot, { force: true, recursive: true });
   }
-  return stdout.trim();
+}
+
+async function runGitText(source: string, arguments_: string[]): Promise<string> {
+  return new TextDecoder().decode(await runGit(source, arguments_)).trim();
 }
 
 async function readGitBlob(source: string, commit: string, path: string): Promise<Uint8Array> {
-  const process = Bun.spawn(["git", "-C", source, "show", `${commit}:${path}`], {
-    stderr: "pipe",
-    stdout: "pipe",
+  return runGit(source, ["show", `${commit}:${path}`]).catch((error) => {
+    throw new Error(
+      `Unable to read ${path} from ${commit}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stdout).arrayBuffer(),
-    new Response(process.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(`Unable to read ${path} from ${commit}: ${stderr.trim()}`);
-  }
-  return new Uint8Array(stdout);
 }
 
 function isAllowed(path: string): boolean {

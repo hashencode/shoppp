@@ -50,7 +50,7 @@ function handleProductLink(event: MouseEvent): void {
           :data-fashion-store-route="productLinkEnabled ? '' : undefined"
           @click="handleProductLink"
         >
-          <img :src="productImage" alt="" />
+          <img :src="productImage" :alt="product.name" width="600" height="765" />
           <span v-if="product.badge" class="lable" :class="product.badge.toLowerCase()">{{
             product.badge
           }}</span>

@@ -53,11 +53,14 @@ async function prepareSource(page: Page): Promise<void> {
     .catch(() => undefined);
 }
 
-async function prepareImplementation(page: Page): Promise<void> {
+async function prepareImplementation(page: Page, allowStatic = false): Promise<void> {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page
-    .locator('[data-fashion-store-source-parity][data-runtime-status="ready"]')
-    .waitFor({ state: "attached" });
+  await page.waitForFunction((staticAllowed) => {
+    const status = document
+      .querySelector("[data-fashion-store-source-parity]")
+      ?.getAttribute("data-runtime-status");
+    return status === "ready" || (staticAllowed && status === "static");
+  }, allowStatic);
   await page
     .getByRole("button", { name: "Allow cookies" })
     .click({ timeout: 2_000 })
@@ -82,6 +85,30 @@ async function revealInventorySurface(page: Page): Promise<void> {
     scrollTo(0, 0);
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 1_000));
   });
+}
+
+async function resetInventoryHero(page: Page, side: "implementation" | "source"): Promise<void> {
+  if (side === "source") {
+    await page.locator(".swiper.full-screen").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0);
+    });
+    return;
+  }
+  await page.locator(".swiper.full-screen").waitFor({ state: "visible" });
+  await expect(page.locator(".swiper.full-screen")).toHaveAttribute(
+    "data-motion-active-index",
+    "0",
+  );
+  await expect(page.locator(".swiper.full-screen")).toHaveAttribute("data-motion-phase", "idle");
 }
 
 async function exerciseKeyboardSearch(page: Page): Promise<void> {
@@ -182,8 +209,13 @@ test("source-inventory static: independent candidates and visible copy match", a
   test.skip(testInfo.project.name !== "fashion-store-desktop", "Inventory runs once at desktop.");
   const source = await browser.newPage(sourcePageOptions(page, testInfo.project.name));
   try {
-    await Promise.all([prepareSource(source), prepareImplementation(page)]);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
     await Promise.all([revealInventorySurface(source), revealInventorySurface(page)]);
+    await Promise.all([
+      resetInventoryHero(source, "source"),
+      resetInventoryHero(page, "implementation"),
+    ]);
     const regions = fashionStoreSourceRegions.map((region) => ({
       id: region.key,
       selector: "inventorySelector" in region ? region.inventorySelector : region.selector,

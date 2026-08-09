@@ -239,13 +239,20 @@ onBeforeUnmount(stopGalleryAutoplay);
                         class="swiper-slide gallery-box"
                         :class="{ 'swiper-slide-active': index === galleryIndex }"
                         :aria-hidden="index === galleryIndex ? undefined : 'true'"
+                        :inert="index === galleryIndex ? undefined : true"
                       >
                         <button
                           type="button"
                           aria-label="Open product image preview"
                           @click="lightbox?.open()"
                         >
-                          <img class="w-100" :src="sourceAsset(image)" alt="" />
+                          <img
+                            class="w-100"
+                            :src="sourceAsset(image)"
+                            alt=""
+                            width="600"
+                            height="765"
+                          />
                         </button>
                       </div>
                     </div>
@@ -280,7 +287,13 @@ onBeforeUnmount(stopGalleryAutoplay);
                         :aria-current="index === galleryIndex ? 'true' : undefined"
                         @click="showGallery(index)"
                       >
-                        <img class="w-100" :src="sourceAsset(image)" alt="" />
+                        <img
+                          class="w-100"
+                          :src="sourceAsset(image)"
+                          alt=""
+                          width="600"
+                          height="765"
+                        />
                       </button>
                     </div>
                   </div>
@@ -291,7 +304,9 @@ onBeforeUnmount(stopGalleryAutoplay);
             <div class="col-12 col-lg-5 product-info">
               <h1 class="sr-only">{{ data.product.name }}</h1>
               <span class="fw-500 text-dark-gray d-block">{{ data.product.brand }}</span>
-              <h4 class="alt-font text-dark-gray fw-500 mb-5px">{{ data.product.name }}</h4>
+              <h4 class="alt-font text-dark-gray fw-500 mb-5px" role="heading" aria-level="2">
+                {{ data.product.name }}
+              </h4>
               <div class="d-block d-sm-flex align-items-center mb-15px">
                 <div class="me-10px xs-me-0">
                   <a
@@ -332,9 +347,10 @@ onBeforeUnmount(stopGalleryAutoplay);
                         :disabled="option.disabled"
                         @change="selectOption('color', option.id)"
                       />
-                      <label :for="`product-color-${option.id}`" :aria-label="option.label"
+                      <label :for="`product-color-${option.id}`"
                         ><span :style="{ backgroundColor: option.color }"></span
-                      ></label>
+                        ><span class="visually-hidden">{{ option.label }}</span></label
+                      >
                     </li>
                   </ul>
                 </div>
@@ -484,7 +500,12 @@ onBeforeUnmount(stopGalleryAutoplay);
                   >Guarantee safe and secure checkout</span
                 >
                 <div class="fashion-product-payments">
-                  <a v-for="payment in data.payments" :key="payment" href="#" @click.prevent
+                  <a
+                    v-for="(payment, index) in data.payments"
+                    :key="payment"
+                    href="#"
+                    :aria-label="`Payment method ${index + 1}`"
+                    @click.prevent
                     ><img
                       :src="sourceAsset(payment)"
                       class="h-30px"
@@ -520,7 +541,7 @@ onBeforeUnmount(stopGalleryAutoplay);
                 role="tablist"
                 aria-label="Product information"
               >
-                <li v-for="(tab, index) in tabIds" :key="tab" class="nav-item">
+                <li v-for="(tab, index) in tabIds" :key="tab" class="nav-item" role="presentation">
                   <a
                     :id="`product-tab-${tab}`"
                     :href="`#product-panel-${tab}`"
