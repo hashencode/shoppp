@@ -11,7 +11,7 @@ export const fashionStoreCartSourceRegions = [
   { key: "header", selector: "header.header-with-topbar" },
   { key: "breadcrumb", selector: "section:nth-of-type(1)" },
   { itemCount: 3, key: "cart-lines", selector: ".cart-products tbody tr" },
-  { key: "cart-controls", selector: ".coupon-code-panel" },
+  { key: "cart-controls", selector: "section:nth-of-type(2) .row.mt-20px" },
   { key: "cart-totals", selector: ".total-price-table" },
   { key: "footer", selector: "footer.footer-dark" },
   { key: "cookie", selector: ".cookie-message" },

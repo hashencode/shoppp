@@ -1,11 +1,17 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, test } from "bun:test";
 
-import { fashionStoreCartSourceContract } from "../app/themes/fashion-store/contracts/pages/cart";
+import {
+  fashionStoreCartSourceContract,
+  fashionStoreCartSourceRegions,
+} from "../app/themes/fashion-store/contracts/pages/cart";
 import {
   fashionStoreCartData,
   fashionStoreCartFixtures,
 } from "../app/themes/fashion-store/fixtures/pages/cart";
 import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
+import { themeFidelityMatrix } from "../e2e/support/theme-fidelity-matrix";
 
 describe("Fashion Store cart", () => {
   test("pins the cart source and deterministic populated presentation", () => {
@@ -39,5 +45,37 @@ describe("Fashion Store cart", () => {
     const contract = fashionStorePageContracts.find(({ id }) => id === "cart");
     expect(contract?.ready).toBe(true);
     expect(contract?.sourceEntry).toBe("demo-fashion-store-cart.html");
+  });
+
+  test("captures the complete cart action row at source button geometry", () => {
+    const selector = "section:nth-of-type(2) .row.mt-20px";
+    expect(fashionStoreCartSourceRegions.find(({ key }) => key === "cart-controls")?.selector).toBe(
+      selector,
+    );
+
+    const matrixRegion = themeFidelityMatrix
+      .find(({ id }) => id === "fashion-store-cart")
+      ?.regions.find(({ id }) => id === "cart-controls");
+    expect(matrixRegion?.sourceSelector).toBe(selector);
+    expect(matrixRegion?.implementationSelector).toBe(selector);
+
+    const integrationCss = readFileSync(
+      new URL("../app/themes/fashion-store/integration.css", import.meta.url),
+      "utf8",
+    );
+    expect(integrationCss).toContain(`[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.btn-small {
+  appearance: none;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  line-height: 24px;
+}`);
+    expect(integrationCss).toContain(`[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.me-15px {
+  margin-right: 19.203125px !important;
+}`);
+    expect(integrationCss).toContain(`@media (max-width: 1199px) {
+  [data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.me-15px {
+    margin-right: 9.203125px !important;
+  }
+}`);
   });
 });

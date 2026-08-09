@@ -1029,6 +1029,23 @@
   font: inherit;
 }
 
+[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.btn-small {
+  appearance: none;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.me-15px {
+  margin-right: 19.203125px !important;
+}
+
+@media (max-width: 1199px) {
+  [data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.me-15px {
+    margin-right: 9.203125px !important;
+  }
+}
+
 [data-fashion-store-cart] .product-remove button,
 [data-fashion-store-cart] .quantity button,
 [data-fashion-store-cart] .calculate-shipping-title {

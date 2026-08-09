@@ -278,7 +278,12 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
         ".cart-products",
         shopStates(fashionStoreCartBehaviorContract, "cart-lines"),
       ),
-      region("cart-controls", "control", ".coupon-code-panel", ".coupon-code-panel"),
+      region(
+        "cart-controls",
+        "control",
+        "section:nth-of-type(2) .row.mt-20px",
+        "section:nth-of-type(2) .row.mt-20px",
+      ),
       region(
         "cart-totals",
         "section",
