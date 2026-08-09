@@ -886,13 +886,19 @@
   border: 0;
 }
 
-[data-fashion-store-account] .terms-condition-box input[type="checkbox"] {
+[data-fashion-store-account] .terms-condition-box input[type="checkbox"],
+[data-fashion-store-product] .terms-condition-box input[type="checkbox"] {
   width: 20px;
   height: 20px;
   visibility: visible;
+  z-index: 1;
 }
 
 [data-fashion-store-account]
+  .terms-condition-box
+  input[type="checkbox"]:focus-visible
+  + .box::before,
+[data-fashion-store-product]
   .terms-condition-box
   input[type="checkbox"]:focus-visible
   + .box::before {
