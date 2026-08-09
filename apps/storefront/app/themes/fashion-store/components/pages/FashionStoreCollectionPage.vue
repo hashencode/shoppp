@@ -30,11 +30,7 @@ function sourceAsset(sourcePath: string): string {
 </script>
 
 <template>
-  <FashionStoreShopPage
-    v-if="!isLanding"
-    :resolve-asset="resolveAsset"
-    :view-model="viewModel"
-  />
+  <FashionStoreShopPage v-if="!isLanding" :resolve-asset="resolveAsset" :view-model="viewModel" />
   <FashionStoreShell
     v-else
     :announcement="data.announcement"
@@ -42,15 +38,13 @@ function sourceAsset(sourcePath: string): string {
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >
-    <main
-      id="fashion-store-main"
-      data-fashion-store-collection
-      data-runtime-status="ready"
-    >
+    <main id="fashion-store-main" data-fashion-store-collection data-runtime-status="ready">
       <FashionStorePageTitle title="Collection" />
       <section class="pt-0">
         <div class="container">
-          <div class="row row-cols-1 row-cols-xl-3 row-cols-md-2 row-cols-sm-1 fashion-collection-grid">
+          <div
+            class="row row-cols-1 row-cols-xl-3 row-cols-md-2 row-cols-sm-1 fashion-collection-grid"
+          >
             <div
               v-for="(card, index) in data.cards"
               :key="card.label"

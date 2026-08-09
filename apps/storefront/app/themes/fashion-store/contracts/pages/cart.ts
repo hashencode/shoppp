@@ -108,7 +108,8 @@ export const fashionStoreCartBehaviorContract = {
       owner: "nuxt-commerce",
       region: "cart-totals",
       role: "state-control",
-      sourceCandidate: ".calculate-shipping-title, #shipping-accordion input, #shipping-accordion select",
+      sourceCandidate:
+        ".calculate-shipping-title, #shipping-accordion input, #shipping-accordion select",
       sourceSelector: ".calculate-shipping",
       triggers: ["click", "keyboard", "focus"],
     },

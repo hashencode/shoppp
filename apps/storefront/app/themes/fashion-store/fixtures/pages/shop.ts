@@ -1,9 +1,6 @@
 import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
-import {
-  fashionStoreCollectionData,
-  type FashionStoreCollectionData,
-} from "./collection";
+import { fashionStoreCollectionData, type FashionStoreCollectionData } from "./collection";
 
 export type FashionStoreShopFilterGroup = "category" | "color" | "size" | "tag";
 

@@ -12,11 +12,13 @@ describe("Fashion Store checkout", () => {
     expect(fashionStoreCheckoutSourceContract.source.sha256).toBe(
       "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b",
     );
-    expect(fashionStoreCheckoutData.lines.map(({ name, quantity, total }) => ({
-      name,
-      quantity,
-      total,
-    }))).toEqual([
+    expect(
+      fashionStoreCheckoutData.lines.map(({ name, quantity, total }) => ({
+        name,
+        quantity,
+        total,
+      })),
+    ).toEqual([
       { name: "Textured sweater", quantity: 1, total: "$23.00" },
       { name: "Bermuda shorts", quantity: 2, total: "$70.00" },
       { name: "Pocket sweatshirt", quantity: 1, total: "$15.00" },

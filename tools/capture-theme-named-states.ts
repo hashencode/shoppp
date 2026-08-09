@@ -30,10 +30,7 @@ interface Box {
   y: number;
 }
 
-export function fashionNamedStateHeroHeight(viewport: {
-  height: number;
-  width: number;
-}): number {
+export function fashionNamedStateHeroHeight(viewport: { height: number; width: number }): number {
   return viewport.width >= 992 ? viewport.height : viewport.width >= 576 ? 600 : 500;
 }
 
@@ -175,11 +172,12 @@ async function normalizeNamedStateHeroHeight(page: Page): Promise<void> {
 }
 
 async function prepareFashionPages(source: Page, implementation: Page): Promise<void> {
-  await implementation.waitForFunction(() =>
-    Boolean(
-      (document.querySelector("#__nuxt") as (HTMLElement & { __vue_app__?: unknown }) | null)
-        ?.__vue_app__,
-    ),
+  await implementation.waitForFunction(
+    () =>
+      Boolean(
+        (document.querySelector("#__nuxt") as (HTMLElement & { __vue_app__?: unknown }) | null)
+          ?.__vue_app__,
+      ),
     undefined,
     { timeout: 60_000 },
   );
@@ -193,10 +191,11 @@ async function prepareFashionPages(source: Page, implementation: Page): Promise<
     undefined,
     { timeout: 60_000 },
   );
-  await source.waitForFunction(() =>
-    [...document.querySelectorAll<HTMLElement>(".swiper")].every((element) =>
-      Boolean((element as HTMLElement & { swiper?: unknown }).swiper),
-    ),
+  await source.waitForFunction(
+    () =>
+      [...document.querySelectorAll<HTMLElement>(".swiper")].every((element) =>
+        Boolean((element as HTMLElement & { swiper?: unknown }).swiper),
+      ),
     undefined,
     { timeout: 60_000 },
   );
@@ -550,11 +549,9 @@ async function normalizeNamedStateFractionalOrigin(page: Page, selector: string)
         slide.style.setProperty("margin-right", "0", "important");
         slide.style.setProperty("transform", "none", "important");
       });
-      element
-        .querySelectorAll<HTMLElement>(".interactive-banner-style-09")
-        .forEach((card) => {
-          card.style.setProperty("transform", "translate3d(0, 0, 0)", "important");
-        });
+      element.querySelectorAll<HTMLElement>(".interactive-banner-style-09").forEach((card) => {
+        card.style.setProperty("transform", "translate3d(0, 0, 0)", "important");
+      });
       await new Promise<void>((resolvePromise) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
       );
@@ -811,10 +808,7 @@ export async function captureFashionNamedStates(options: {
           if (state.capture === "element")
             await Promise.all([
               normalizeNamedStateFractionalOrigin(source, state.sourceSelector),
-              normalizeNamedStateFractionalOrigin(
-                implementation,
-                state.implementationSelector,
-              ),
+              normalizeNamedStateFractionalOrigin(implementation, state.implementationSelector),
             ]);
           const [referenceBox, implementationBox] = await Promise.all([
             box(source, state.sourceSelector),

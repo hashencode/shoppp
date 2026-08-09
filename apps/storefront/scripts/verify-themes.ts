@@ -8,7 +8,10 @@ import { readdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
-import { fashionStoreManifest, fashionStoreThemeDescriptor } from "../app/themes/fashion-store/manifest";
+import {
+  fashionStoreManifest,
+  fashionStoreThemeDescriptor,
+} from "../app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
 
 export const STOREFRONT_PLATFORM_CONTRACT_VERSION = "1.0.0";

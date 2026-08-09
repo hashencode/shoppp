@@ -18,12 +18,14 @@ describe("Fashion Store cart", () => {
     expect(fashionStoreCartSourceContract.source.sha256).toBe(
       "fe60f6a7e897350e927a7b222eb8ea6c21c1598712a6784380eeeb487d8eca51",
     );
-    expect(fashionStoreCartData.lines.map(({ name, price, quantity, total }) => ({
-      name,
-      price,
-      quantity,
-      total,
-    }))).toEqual([
+    expect(
+      fashionStoreCartData.lines.map(({ name, price, quantity, total }) => ({
+        name,
+        price,
+        quantity,
+        total,
+      })),
+    ).toEqual([
       { name: "Textured sweater", price: "$23.00", quantity: 1, total: "$23.00" },
       { name: "Bermuda shorts", price: "$35.00", quantity: 1, total: "$70.00" },
       { name: "Pocket sweatshirt", price: "$15.00", quantity: 1, total: "$15.00" },
@@ -63,13 +65,15 @@ describe("Fashion Store cart", () => {
       new URL("../app/themes/fashion-store/integration.css", import.meta.url),
       "utf8",
     );
-    expect(integrationCss).toContain(`[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.btn-small {
+    expect(integrationCss)
+      .toContain(`[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.btn-small {
   appearance: none;
   font-family: "Outfit", sans-serif;
   font-weight: 600;
   line-height: 24px;
 }`);
-    expect(integrationCss).toContain(`[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.me-15px {
+    expect(integrationCss)
+      .toContain(`[data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.me-15px {
   margin-right: 19.203125px !important;
 }`);
     expect(integrationCss).toContain(`@media (max-width: 1199px) {

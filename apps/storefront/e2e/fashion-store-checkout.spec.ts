@@ -18,7 +18,9 @@ const shippingAddress = {
   region: "NY",
 };
 
-function checkoutCart(options: { canCheckout?: boolean; address?: typeof shippingAddress | null } = {}) {
+function checkoutCart(
+  options: { canCheckout?: boolean; address?: typeof shippingAddress | null } = {},
+) {
   return {
     adjustments: [],
     canCheckout: options.canCheckout ?? true,
@@ -176,10 +178,9 @@ async function prepareCheckout(
   page: Page,
   options: Parameters<typeof fulfillCheckoutApi>[1] = {},
 ): Promise<void> {
-  await page.addInitScript(
-    ({ token }) => localStorage.setItem("shoppp.guest-cart-token", token),
-    { token: cartToken },
-  );
+  await page.addInitScript(({ token }) => localStorage.setItem("shoppp.guest-cart-token", token), {
+    token: cartToken,
+  });
   await page.route("**/api/**", (route) => fulfillCheckoutApi(route, options));
   await page.goto("/checkout", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-checkout][data-runtime-status='ready']").waitFor();
@@ -234,7 +235,10 @@ test("Checkout preserves source billing, order, delivery, payment, and responsiv
 test("checkout-account-open interaction: optional account and shipping fields stay local", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Dependent-field evidence runs once.");
+  test.skip(
+    testInfo.project.name !== "fashion-store-desktop",
+    "Dependent-field evidence runs once.",
+  );
   const mutations: string[] = [];
   page.on("request", (request) => {
     if (request.method() !== "GET") mutations.push(request.url());
@@ -268,7 +272,9 @@ test("checkout-payment-paypal interaction: payment rows support pointer and keyb
   const paypal = page.getByRole("radio", { name: /PayPal/ });
   await paypal.click();
   await expect(paypal).toBeChecked();
-  await expect(page.locator(".fashion-payment-option").last().locator(".collapse")).toHaveClass(/show/);
+  await expect(page.locator(".fashion-payment-option").last().locator(".collapse")).toHaveClass(
+    /show/,
+  );
   const check = page.getByRole("radio", { name: "Check payments" });
   await check.focus();
   await page.keyboard.press("ArrowRight");

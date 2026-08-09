@@ -14,16 +14,10 @@ describe("Fashion Store preview registration", () => {
   test("keeps collection steps aligned with fractional card widths", async () => {
     const [component, integration] = await Promise.all([
       readFile(
-        resolve(
-          import.meta.dir,
-          "../app/themes/fashion-store/components/FashionStoreHome.vue",
-        ),
+        resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
         "utf8",
       ),
-      readFile(
-        resolve(import.meta.dir, "../app/themes/fashion-store/integration.css"),
-        "utf8",
-      ),
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/integration.css"), "utf8"),
     ]);
     expect(component).toContain("collectionIndex.value * 0.09765625");
     expect(component).toContain("collectionIndex.value / 12");

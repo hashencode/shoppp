@@ -26,12 +26,12 @@ describe("Fashion Store collection", () => {
       ["Winter jackets", "7 items"],
       ["Men's shorts", "3 items"],
     ]);
-    expect(new Set(fashionStoreCollectionData.cards.map(({ sourceImage }) => sourceImage)).size).toBe(
-      6,
-    );
-    expect(fashionStoreCollectionData.cards.every(({ destination }) => destination === "/shop")).toBe(
-      true,
-    );
+    expect(
+      new Set(fashionStoreCollectionData.cards.map(({ sourceImage }) => sourceImage)).size,
+    ).toBe(6);
+    expect(
+      fashionStoreCollectionData.cards.every(({ destination }) => destination === "/shop"),
+    ).toBe(true);
     expect(
       fashionStoreCollectionData.cards.every(
         ({ sourceImage }) => typeof themeAssets[fashionStoreAssetId(sourceImage)] === "string",

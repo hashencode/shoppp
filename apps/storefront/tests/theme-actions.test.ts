@@ -18,7 +18,8 @@ describe("theme preview actions", () => {
       },
     ] as const;
 
-    for (const action of actions) recorder.record(previewActionSchema.parse(action), "fashion-store");
+    for (const action of actions)
+      recorder.record(previewActionSchema.parse(action), "fashion-store");
 
     expect(recorder.all().map(({ intent }) => intent)).toEqual([
       "wishlist.toggle-preview",

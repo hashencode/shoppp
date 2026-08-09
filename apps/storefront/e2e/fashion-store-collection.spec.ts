@@ -33,9 +33,11 @@ test("Collection preserves source cards, imagery, counts, order, links, and resp
   await expect(collection.locator(".shop-modern")).toHaveCount(0);
   await expect(cards.locator("img")).toHaveCount(6);
   expect(
-    await cards.locator("img").evaluateAll((images) =>
-      images.map((image) => [image.getAttribute("width"), image.getAttribute("height")]),
-    ),
+    await cards
+      .locator("img")
+      .evaluateAll((images) =>
+        images.map((image) => [image.getAttribute("width"), image.getAttribute("height")]),
+      ),
   ).toEqual(Array.from({ length: 6 }, () => ["600", "450"]));
 
   for (const [index, label] of labels.entries()) {
@@ -46,9 +48,9 @@ test("Collection preserves source cards, imagery, counts, order, links, and resp
       "/shop",
     );
   }
-  const imageSources = await cards.locator("img").evaluateAll((images) =>
-    images.map((image) => image.getAttribute("src")),
-  );
+  const imageSources = await cards
+    .locator("img")
+    .evaluateAll((images) => images.map((image) => image.getAttribute("src")));
   expect(new Set(imageSources).size).toBe(6);
 
   const source = await page.context().newPage();

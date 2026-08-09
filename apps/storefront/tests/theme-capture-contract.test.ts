@@ -56,7 +56,9 @@ describe("theme capture contract", () => {
   });
 
   test("describes Fashion source and Fashion Store implementation as distinct evidence roots", () => {
-    expect(resolveThemeComparison("fashion", "fashion-store")).toBe(fashionStoreComparisonDescriptor);
+    expect(resolveThemeComparison("fashion", "fashion-store")).toBe(
+      fashionStoreComparisonDescriptor,
+    );
     expect(fashionStoreComparisonDescriptor).toMatchObject({
       artifactRoots: {
         implementation: "implementation/fashion-store",
@@ -67,7 +69,9 @@ describe("theme capture contract", () => {
       referenceEntry: "demo-fashion-store.html",
       referenceThemeId: "fashion",
     });
-    expect(() => resolveThemeComparison("fashion-store", "fashion-store")).toThrow("implementation-only");
+    expect(() => resolveThemeComparison("fashion-store", "fashion-store")).toThrow(
+      "implementation-only",
+    );
   });
 
   test("checks every bounding-box edge in the correct coordinate space", () => {

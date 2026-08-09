@@ -88,7 +88,12 @@ test("Cart preserves source rows, totals, controls, and responsive geometry", as
   expect(Math.abs(referenceBox!.x - implementationBox!.x)).toBeLessThanOrEqual(2);
   await source.close();
 
-  expect(["fashion-store-desktop", "fashion-store-laptop", "fashion-store-tablet", "fashion-store-mobile"]).toContain(testInfo.project.name);
+  expect([
+    "fashion-store-desktop",
+    "fashion-store-laptop",
+    "fashion-store-tablet",
+    "fashion-store-mobile",
+  ]).toContain(testInfo.project.name);
 });
 
 test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once through guest cart", async ({
@@ -116,8 +121,13 @@ test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once
   await firstRow.getByRole("button", { name: "Increase Textured sweater quantity" }).click();
   await expect.poll(() => patchCount).toBe(1);
   expect(quantityBody).toEqual({ quantity: 2 });
-  await expect(firstRow.getByRole("spinbutton", { name: "Textured sweater quantity" })).toHaveValue("2");
-  await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute("data-mutation-count", "1");
+  await expect(firstRow.getByRole("spinbutton", { name: "Textured sweater quantity" })).toHaveValue(
+    "2",
+  );
+  await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute(
+    "data-mutation-count",
+    "1",
+  );
 
   const remove = page.getByRole("button", { name: "Remove Bermuda shorts" });
   await remove.focus();
@@ -125,7 +135,10 @@ test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once
   await expect.poll(() => deleteCount).toBe(1);
   await expect(page.locator(".cart-products tbody tr")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Remove Pocket sweatshirt" })).toBeFocused();
-  await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute("data-mutation-count", "2");
+  await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute(
+    "data-mutation-count",
+    "2",
+  );
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "cart-line-mutations",
@@ -198,14 +211,21 @@ test("cart-coupon-invalid interaction: local controls never post coupon data and
   await coupon.fill("SOURCE10");
   await page.getByRole("button", { name: "Apply" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute("data-local-action-count", "2");
+  await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute(
+    "data-local-action-count",
+    "2",
+  );
   expect(requests).toEqual([]);
 
-  await page.evaluate(() => document.querySelector<HTMLElement>(".header-cart")?.classList.add("open"));
+  await page.evaluate(() =>
+    document.querySelector<HTMLElement>(".header-cart")?.classList.add("open"),
+  );
   await page.getByRole("link", { name: "Proceed to checkout" }).click();
   await expect(page).toHaveURL(/\/checkout$/);
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem("shoppp.guest-cart-token"))).toBe("cart-token");
+  expect(await page.evaluate(() => localStorage.getItem("shoppp.guest-cart-token"))).toBe(
+    "cart-token",
+  );
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "cart-local-controls",
@@ -226,7 +246,10 @@ test("Cart fallback keeps native lines, calculator, local controls, and checkout
   await expect(page.locator(".cart-products tbody tr")).toHaveCount(3);
   await expect(page.locator(".cart-products input[type='number']")).toHaveCount(3);
   await expect(page.getByRole("button", { name: "Calculate shipping" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Proceed to checkout" })).toHaveAttribute("href", "/checkout");
+  await expect(page.getByRole("link", { name: "Proceed to checkout" })).toHaveAttribute(
+    "href",
+    "/checkout",
+  );
   await prepareCart(page);
   await expect(page.locator(".cart-products tbody tr")).toHaveCount(3);
   recordThemeBehaviorEvidence(

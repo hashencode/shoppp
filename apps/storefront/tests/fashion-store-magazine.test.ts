@@ -84,9 +84,11 @@ describe("Fashion Store Magazine and article", () => {
       "utf8",
     );
     expect(
-      source.replace(/\s+/g, " ").match(
-        /Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur\./g,
-      ),
+      source
+        .replace(/\s+/g, " ")
+        .match(
+          /Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur\./g,
+        ),
     ).toHaveLength(3);
   });
 

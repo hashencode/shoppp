@@ -9,7 +9,8 @@ export function namedStatePixelThreshold(state: NamedStateContract): number {
   return 0.005;
 }
 
-export const fashionStoreNamedStates: readonly NamedStateContract[] = fashionStoreNamedStateContracts;
+export const fashionStoreNamedStates: readonly NamedStateContract[] =
+  fashionStoreNamedStateContracts;
 
 export const namedStateViewportIds: readonly FidelityViewportId[] = [
   "desktop",

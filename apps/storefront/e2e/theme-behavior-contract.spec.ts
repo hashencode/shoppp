@@ -130,7 +130,10 @@ test("scroll-progress-visible scroll-fixed: behavior runner verifies monotonic p
   const source = await browser.newPage({ viewport: page.viewportSize()! });
   try {
     await Promise.all([prepare(source, "source"), prepare(page, "implementation")]);
-    const indicatorBehavior = behaviorRow(fashionStoreBehaviorContract, "scroll-progress-indicator");
+    const indicatorBehavior = behaviorRow(
+      fashionStoreBehaviorContract,
+      "scroll-progress-indicator",
+    );
     const backToTopBehavior = behaviorRow(fashionStoreBehaviorContract, "back-to-top-control");
     const [sourceResult, implementationResult] = await Promise.all([
       runScrollBehavior({

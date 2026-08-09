@@ -25,7 +25,9 @@ describe("theme named-state contract", () => {
       "footer-sticky",
     ]);
     expect(namedStateViewportIds).toEqual(["desktop", "laptop", "tablet", "mobile"]);
-    expect(new Set(fashionStoreNamedStates.map(({ id }) => id)).size).toBe(fashionStoreNamedStates.length);
+    expect(new Set(fashionStoreNamedStates.map(({ id }) => id)).size).toBe(
+      fashionStoreNamedStates.length,
+    );
   });
 
   test("uses stricter gates for transient controls", () => {
