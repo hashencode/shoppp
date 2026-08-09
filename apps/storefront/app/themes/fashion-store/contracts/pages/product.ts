@@ -87,7 +87,7 @@ export const fashionStoreProductBehaviorContract = {
             action: { group: "size", kind: "product-option", value: "M" },
             capture: "element",
             id: "product-size-m",
-            implementationSelector: ".fashion-product-options",
+            implementationSelector: ".product-info .shop-size",
             sourceSelector: ".product-info .shop-size",
           },
         },

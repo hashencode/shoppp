@@ -134,9 +134,10 @@ const filterBehavior = {
       namedState: {
         action: { group: "category", kind: "shop-filter", label: "Jeans" },
         capture: "element",
+        geometrySpace: "viewport",
         id: "shop-filter-category-jeans",
-        implementationSelector: ".shop-sidebar",
-        sourceSelector: ".shop-sidebar",
+        implementationSelector: ".category-filter",
+        sourceSelector: ".category-filter",
       },
     },
   ],
@@ -171,6 +172,7 @@ const arrivalBehavior = {
       namedState: {
         action: { index: 1, kind: "shop-arrivals" },
         capture: "element",
+        geometrySpace: "viewport",
         id: "shop-arrival-slide-1",
         implementationSelector: ".slider-one-slide",
         sourceSelector: ".slider-one-slide",

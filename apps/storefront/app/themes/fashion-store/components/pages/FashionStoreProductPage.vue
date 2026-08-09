@@ -232,7 +232,12 @@ onBeforeUnmount(stopGalleryAutoplay);
                     @touchstart="touchStartX = $event.touches[0]?.clientX ?? 0"
                     @touchend="handleTouchEnd"
                   >
-                    <div class="swiper-wrapper">
+                    <div
+                      class="swiper-wrapper"
+                      :style="{
+                        transform: `translate3d(calc(-${galleryIndex * 100}% - ${galleryIndex * 10}px), 0, 0)`,
+                      }"
+                    >
                       <div
                         v-for="(image, index) in gallery"
                         :key="image"
@@ -277,15 +282,11 @@ onBeforeUnmount(stopGalleryAutoplay);
                 <div class="col-12 col-lg-2 order-lg-1 position-relative single-product-thumb">
                   <div class="swiper-container product-image-thumb slider-vertical">
                     <div class="swiper-wrapper">
-                      <button
+                      <div
                         v-for="(image, index) in gallery"
                         :key="image"
-                        type="button"
                         class="swiper-slide"
                         :class="{ 'swiper-slide-thumb-active': index === galleryIndex }"
-                        :aria-label="`View product image ${index + 1}`"
-                        :aria-current="index === galleryIndex ? 'true' : undefined"
-                        @click="showGallery(index)"
                       >
                         <img
                           class="w-100"
@@ -294,7 +295,14 @@ onBeforeUnmount(stopGalleryAutoplay);
                           width="600"
                           height="765"
                         />
-                      </button>
+                        <button
+                          type="button"
+                          class="fashion-product-thumb-control"
+                          :aria-label="`View product image ${index + 1}`"
+                          :aria-current="index === galleryIndex ? 'true' : undefined"
+                          @click="showGallery(index)"
+                        ></button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -670,95 +678,224 @@ onBeforeUnmount(stopGalleryAutoplay);
                   aria-labelledby="product-tab-reviews"
                   :hidden="activeTab !== 'reviews'"
                 >
-                  <div class="row align-items-center mb-6">
-                    <div class="col-lg-4">
-                      <h2 class="alt-font text-dark-gray fw-500">
-                        <strong>25,000+</strong> people are like our product and say good story.
-                      </h2>
+                  <div class="row align-items-center mb-6 sm-mb-10">
+                    <div class="col-lg-4 col-md-12 col-sm-7 md-mb-30px text-center text-lg-start">
+                      <h5 class="alt-font text-dark-gray fw-500 mb-0 w-85 lg-w-100">
+                        <span class="fw-600">25,000+</span> people are like our product and say good
+                        story.
+                      </h5>
                     </div>
-                    <div class="col-lg-2 text-center bg-very-light-gray p-30px">
-                      <strong class="fs-36">4.9</strong
-                      ><span class="d-block text-golden-yellow">★★★★★</span
-                      ><span class="bg-dark-gray text-white fs-12 p-10px d-inline-block"
-                        >2,488 Reviews</span
-                      >
-                    </div>
-                  </div>
-                  <div class="fashion-product-reviews">
-                    <article
-                      v-for="review in data.reviews"
-                      :key="review.author"
-                      class="d-flex border-bottom border-color-extra-medium-gray pb-40px mb-40px"
+                    <div
+                      class="col-lg-2 col-md-4 col-sm-5 text-center sm-mb-20px p-0 md-ps-15px md-pe-15px"
                     >
-                      <div class="w-300px text-center">
-                        <img
-                          :src="sourceAsset(review.sourceImage)"
-                          class="rounded-circle w-90px mb-10px"
-                          alt=""
-                        /><strong class="text-dark-gray d-block">{{ review.author }}</strong
-                        ><span class="fs-14">{{ review.date }}</span>
-                      </div>
-                      <div>
-                        <span class="text-golden-yellow">★★★★★</span>
-                        <p>{{ review.text }}</p>
-                      </div>
-                    </article>
-                  </div>
-                  <form
-                    class="row contact-form-style-02 bg-very-light-gray p-7"
-                    @submit.prevent="submitReview"
-                  >
-                    <div class="col-12">
-                      <h2 class="alt-font text-dark-gray fw-500">Add a review</h2>
-                    </div>
-                    <div class="col-lg-5 col-md-6 mb-20px">
-                      <label for="review-name" class="form-label">Your name*</label
-                      ><input
-                        id="review-name"
-                        class="form-control"
-                        type="text"
-                        required
-                        placeholder="Enter your name"
-                      />
-                    </div>
-                    <div class="col-lg-5 col-md-6 mb-20px">
-                      <label for="review-email" class="form-label">Your email address*</label
-                      ><input
-                        id="review-email"
-                        class="form-control"
-                        type="email"
-                        required
-                        placeholder="Enter your email address"
-                      />
-                    </div>
-                    <div class="col-lg-2 mb-20px">
-                      <span class="form-label">Your rating*</span
-                      ><span class="d-block text-golden-yellow mt-20px">☆☆☆☆☆</span>
-                    </div>
-                    <div class="col-12 mb-20px">
-                      <label for="review-message" class="form-label">Your review</label
-                      ><textarea
-                        id="review-message"
-                        class="form-control"
-                        rows="4"
-                        placeholder="Your message"
-                      ></textarea>
-                    </div>
-                    <div class="col-lg-9">
-                      <label
-                        ><input type="checkbox" required />
+                      <div class="border-radius-4px bg-very-light-gray p-30px xl-p-20px">
+                        <h2 class="mb-5px alt-font text-dark-gray fw-600">4.9</h2>
                         <span
-                          >I accept the crafto terms and conditions and I have read the privacy
-                          policy.</span
-                        ></label
+                          class="text-golden-yellow icon-small d-block ls-minus-1px mb-5px fashion-product-rating-stars"
+                        >
+                          <template v-for="index in 5" :key="index">
+                            <i class="bi bi-star-fill"></i>{{ index < 5 ? " " : "" }}
+                          </template>
+                        </span>
+                        <span
+                          class="ps-15px pe-15px pt-10px pb-10px lh-normal bg-dark-gray text-white fs-12 fw-600 text-uppercase border-radius-4px d-inline-block text-center"
+                          >2,488 Reviews</span
+                        >
+                      </div>
+                    </div>
+                    <div class="col-9 col-lg-4 col-md-5 col-sm-8 progress-bar-style-02">
+                      <div class="ps-20px md-ps-0">
+                        <div class="text-dark-gray mb-15px fw-600">Average customer ratings</div>
+                        <div
+                          v-for="(rating, index) in [95, 66, 40, 25, 5]"
+                          :key="rating"
+                          class="progress border-radius-6px"
+                          :class="index === 4 ? 'sm-mb-0' : 'mb-20px'"
+                        >
+                          <div
+                            class="progress-bar bg-green m-0"
+                            role="progressbar"
+                            :style="{ width: `${rating}%` }"
+                            :aria-valuenow="rating"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            aria-label="rating"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-3 col-lg-2 col-md-3 col-sm-4 mt-45px">
+                      <div
+                        v-for="(rating, index) in [5, 4, 3, 2, 1]"
+                        :key="rating"
+                        :class="
+                          index === 4 ? 'lh-0 xs-lh-normal' : 'mb-15px lh-0 xs-lh-normal xs-mb-10px'
+                        "
                       >
+                        <span
+                          class="text-golden-yellow fs-15 ls-minus-1px d-none d-sm-inline-block fashion-product-rating-stars"
+                        >
+                          <template v-for="star in 5" :key="star">
+                            <i
+                              :class="
+                                star <= rating ? 'bi bi-star-fill' : 'feather icon-feather-star'
+                              "
+                            ></i
+                            >{{ star < 5 ? " " : "" }}
+                          </template>
+                        </span>
+                        <span class="fs-13 text-dark-gray fw-600 ms-10px xs-ms-0">{{
+                          ["80%", "10%", "05%", "03%", "02%"][index]
+                        }}</span>
+                      </div>
                     </div>
-                    <div class="col-lg-3 text-lg-end">
-                      <button class="btn btn-dark-gray btn-small btn-round-edge" type="submit">
-                        Submit review
-                      </button>
+                  </div>
+                  <div class="row g-0 mb-4 md-mb-35px fashion-product-reviews">
+                    <div
+                      v-for="(review, reviewIndex) in data.reviews"
+                      :key="review.author"
+                      :class="[
+                        'col-12 border-bottom border-color-extra-medium-gray pb-40px mb-40px xs-pb-30px',
+                        reviewIndex === data.reviews.length - 1 ? 'md-mb-25px' : 'xs-mb-30px',
+                      ]"
+                    >
+                      <div class="d-block d-md-flex w-100 align-items-center">
+                        <div class="w-300px md-w-250px sm-w-100 sm-mb-10px text-center">
+                          <img
+                            :src="sourceAsset(review.sourceImage)"
+                            class="rounded-circle w-90px mb-10px"
+                            alt=""
+                          /><span class="text-dark-gray fw-600 d-block">{{ review.author }}</span>
+                          <div class="fs-14 lh-18">{{ review.date }}</div>
+                        </div>
+                        <div
+                          class="w-100 last-paragraph-no-margin sm-ps-0 position-relative text-center text-md-start"
+                        >
+                          <span
+                            class="text-golden-yellow ls-minus-1px mb-5px sm-me-10px sm-mb-0 d-inline-block d-md-block fashion-product-rating-stars"
+                          >
+                            <template v-for="index in 5" :key="index">
+                              <i class="bi bi-star-fill"></i>{{ index < 5 ? " " : "" }}
+                            </template>
+                          </span>
+                          <a
+                            href="#"
+                            class="w-65px bg-light-red border-radius-15px fs-13 text-dark-gray fw-600 text-center position-absolute sm-position-relative d-inline-block d-md-block right-0px top-0px"
+                            @click.prevent
+                            ><i
+                              :class="
+                                review.author === 'Colene landin'
+                                  ? 'fa-regular fa-heart'
+                                  : 'fa-solid fa-heart'
+                              "
+                              class="text-red me-5px"
+                            ></i
+                            ><span>{{ ["08", "06", "00"][reviewIndex] }}</span></a
+                          >
+                          <p class="w-85 sm-w-100 sm-mt-15px">{{ review.text }}</p>
+                        </div>
+                      </div>
                     </div>
-                  </form>
+                    <div class="col-12 last-paragraph-no-margin text-center">
+                      <a
+                        href="#"
+                        class="btn btn-link btn-hover-animation-switch btn-extra-large text-dark-gray"
+                        @click.prevent
+                      >
+                        <span>
+                          <span class="btn-text">Show more reviews</span>
+                          <span class="btn-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                          <span class="btn-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                  <div class="row justify-content-center">
+                    <div class="col-12">
+                      <div class="p-7 lg-p-5 sm-p-7 bg-very-light-gray">
+                        <div class="row justify-content-center mb-30px sm-mb-10px">
+                          <div class="col-md-9 text-center">
+                            <h4 class="alt-font text-dark-gray fw-500 mb-15px">Add a review</h4>
+                          </div>
+                        </div>
+                        <form class="row contact-form-style-02" @submit.prevent="submitReview">
+                          <div class="col-lg-5 col-md-6 mb-20px">
+                            <label for="review-name" class="form-label mb-15px">Your name*</label>
+                            <input
+                              id="review-name"
+                              class="input-name border-radius-4px form-control required"
+                              type="text"
+                              required
+                              placeholder="Enter your name"
+                            />
+                          </div>
+                          <div class="col-lg-5 col-md-6 mb-20px">
+                            <label for="review-email" class="form-label mb-15px"
+                              >Your email address*</label
+                            >
+                            <input
+                              id="review-email"
+                              class="border-radius-4px form-control required"
+                              type="email"
+                              required
+                              placeholder="Enter your email address"
+                            />
+                          </div>
+                          <div class="col-lg-2 mb-20px">
+                            <label class="form-label">Your rating*</label>
+                            <div>
+                              <span class="ls-minus-1px icon-small d-block mt-20px md-mt-0">
+                                <template v-for="index in 5" :key="index">
+                                  <i class="feather icon-feather-star text-golden-yellow"></i
+                                  >{{ index < 5 ? " " : "" }}
+                                </template>
+                              </span>
+                            </div>
+                          </div>
+                          <div class="col-md-12 mb-20px">
+                            <label for="review-message" class="form-label mb-15px"
+                              >Your review</label
+                            >
+                            <textarea
+                              id="review-message"
+                              class="border-radius-4px form-control"
+                              cols="40"
+                              rows="4"
+                              placeholder="Your message"
+                            ></textarea>
+                          </div>
+                          <div class="col-lg-9 md-mb-25px">
+                            <div
+                              class="position-relative terms-condition-box text-start is-invalid mt-10px"
+                            >
+                              <label class="d-inline-block">
+                                <input
+                                  id="review-terms"
+                                  type="checkbox"
+                                  required
+                                  class="terms-condition check-box align-middle required"
+                                />
+                                <span class="box fs-15"
+                                  >I accept the crafto terms and conditions and I have read the
+                                  privacy policy.</span
+                                >
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-lg-3 text-start text-lg-end">
+                            <input type="hidden" name="redirect" value="" />
+                            <button
+                              class="btn btn-dark-gray btn-small btn-box-shadow btn-round-edge submit"
+                              type="submit"
+                            >
+                              Submit review
+                            </button>
+                          </div>
+                          <div class="col-12"><div class="form-results mt-20px d-none"></div></div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

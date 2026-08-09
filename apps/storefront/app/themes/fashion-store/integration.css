@@ -82,6 +82,10 @@
   gap: 10px;
 }
 
+[data-fashion-store-product] .product-image-slider .swiper-slide {
+  flex: 0 0 100%;
+}
+
 [data-fashion-store-product] .product-image-thumb .swiper-wrapper {
   display: flex;
   flex-direction: column;
@@ -89,9 +93,20 @@
 }
 
 [data-fashion-store-product] .product-image-thumb .swiper-slide {
+  position: relative;
   width: 100%;
   border: 1px solid transparent;
   opacity: 1;
+  cursor: pointer;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+[data-fashion-store-product] .product-image-thumb .fashion-product-thumb-control {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   cursor: pointer;
 }
 
@@ -198,7 +213,28 @@
   }
 
   [data-fashion-store-product] .product-image-slider .swiper-slide {
+    flex-basis: calc(100% + 0.515625px);
     width: calc(100% + 0.515625px) !important;
+  }
+
+  [data-fashion-store-product] .product-image-slider[data-gallery-index="1"] .swiper-wrapper {
+    transform: translate3d(calc(-100% - 10.515625px), 0, 0) !important;
+  }
+
+  [data-fashion-store-product] .product-image-slider[data-gallery-index="2"] .swiper-wrapper {
+    transform: translate3d(calc(-200% - 21.03125px), 0, 0) !important;
+  }
+
+  [data-fashion-store-product] .product-image-slider[data-gallery-index="3"] .swiper-wrapper {
+    transform: translate3d(calc(-300% - 31.546875px), 0, 0) !important;
+  }
+
+  [data-fashion-store-product] .product-image-slider[data-gallery-index="4"] .swiper-wrapper {
+    transform: translate3d(calc(-400% - 42.0625px), 0, 0) !important;
+  }
+
+  [data-fashion-store-product] .product-image-slider[data-gallery-index="5"] .swiper-wrapper {
+    transform: translate3d(calc(-500% - 52.578125px), 0, 0) !important;
   }
 }
 
@@ -842,7 +878,7 @@
 }
 
 [data-fashion-store-wishlist] .fashion-wishlist-add {
-  border: 0;
+  border: 2px solid transparent;
 }
 
 [data-fashion-store-wishlist] .fashion-wishlist-remove {
@@ -1076,6 +1112,18 @@
   transform: rotate(180deg);
 }
 
+[data-fashion-store-cart] #shipping-accordion button.btn {
+  font-family: var(--alt-font);
+  line-height: 24px;
+}
+
+[data-fashion-store-shop] .shop-modern .add-to-cart,
+[data-fashion-store-wishlist] .shop-modern .add-to-cart {
+  font-family: var(--alt-font);
+  font-weight: 500;
+  line-height: 24px;
+}
+
 [data-fashion-store-cart] .coupon-code-panel .apply-coupon-btn {
   appearance: none;
   border: 2px solid transparent;
@@ -1120,6 +1168,11 @@
   text-align: left;
   background: transparent;
   border: 0;
+}
+
+.fashion-accordion-trigger .accordion-title {
+  display: block;
+  width: 100%;
 }
 
 .fashion-accordion-trigger:focus-visible,
@@ -1293,18 +1346,33 @@
   place-items: center;
 }
 
+.fashion-contact-marker::before {
+  position: absolute;
+  z-index: 0;
+  top: -30px;
+  left: -30px;
+  width: 100px;
+  height: 100px;
+  background: #ffea23;
+  border-radius: 50%;
+  content: "";
+}
+
 .fashion-contact-marker-core {
   position: absolute;
+  z-index: 1;
   top: 50%;
   left: 50%;
-  display: grid;
+  display: flex;
   flex: 0 0 auto;
   width: 50px;
   height: 50px;
   color: #fff;
   background: #232323;
   border-radius: 50%;
-  box-shadow: 0 0 0 25px #ffea23;
+  box-shadow: none;
+  align-items: center;
+  justify-content: center;
   place-items: center;
   transform: translate(-50%, -50%);
 }
@@ -1312,6 +1380,8 @@
 .fashion-contact-marker-core > i {
   position: relative;
   z-index: 1;
+  font-size: 18px;
+  line-height: 18px;
 }
 
 .fashion-contact-marker-london {

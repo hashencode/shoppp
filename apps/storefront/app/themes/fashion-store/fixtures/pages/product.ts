@@ -182,19 +182,19 @@ export const fashionStoreProductData = {
       author: "Herman miller",
       date: "06 April 2023",
       sourceImage: "images/avtar-27.jpg",
-      text: "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      text: "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.",
     },
     {
       author: "Wilbur haddock",
       date: "26 April 2023",
       sourceImage: "images/avtar-28.jpg",
-      text: "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      text: "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniamnisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.",
     },
     {
       author: "Colene landin",
       date: "28 April 2023",
       sourceImage: "images/avtar-29.jpg",
-      text: "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim adquis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      text: "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim adquis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.",
     },
   ],
   shipping: {

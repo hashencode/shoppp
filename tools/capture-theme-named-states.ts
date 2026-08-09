@@ -8,12 +8,14 @@ import {
   type NamedStateAction,
   type NamedStateContract,
 } from "../apps/storefront/e2e/support/theme-named-state-contract";
+import { fashionStorePageBehaviorContracts } from "../apps/storefront/app/themes/fashion-store/behavior-contract";
 import {
   captureGeometryIssues,
   captureCssForMode,
   captureModeForNamedState,
 } from "../apps/storefront/e2e/support/theme-capture-contract";
 import type { ThemeAcceptanceMode } from "../apps/storefront/e2e/support/theme-behavior-contract";
+import { namedStatesFromBehaviorContract } from "../apps/storefront/e2e/support/theme-behavior-contract";
 import { themeViewports } from "../apps/storefront/e2e/support/theme-viewports";
 import {
   assertThemeScreenshotDifference,
@@ -55,6 +57,7 @@ const namedStateCss = (mode: ThemeAcceptanceMode) =>
   ) +
   `
   ${mode === "scroll-fixed" ? "" : ".fashion-scroll-progress { display: none !important; }"}
+  .scroll-progress { display: none !important; }
   .fashion-promises-track {
     animation: none !important;
     margin-left: 0 !important;
@@ -183,10 +186,10 @@ async function prepareFashionPages(source: Page, implementation: Page): Promise<
   );
   await implementation.waitForFunction(
     () => {
-      const status = document
-        .querySelector("[data-fashion-store-source-parity]")
-        ?.getAttribute("data-runtime-status");
-      return status === "ready" || status === "static";
+      const statuses = [...document.querySelectorAll<HTMLElement>("[data-runtime-status]")].map(
+        (element) => element.getAttribute("data-runtime-status"),
+      );
+      return statuses.some((status) => status === "ready" || status === "static");
     },
     undefined,
     { timeout: 60_000 },
@@ -201,10 +204,32 @@ async function prepareFashionPages(source: Page, implementation: Page): Promise<
   );
   await hydrateFashionSourceImages(source);
   await Promise.all([stabilize(source), stabilize(implementation)]);
-  await Promise.all([
-    normalizeNamedStateHeroHeight(source),
-    normalizeNamedStateHeroHeight(implementation),
-  ]);
+  if (
+    (await source.locator(".swiper.full-screen").count()) > 0 &&
+    (await implementation.locator(".swiper.full-screen").count()) > 0
+  )
+    await Promise.all([
+      normalizeNamedStateHeroHeight(source),
+      normalizeNamedStateHeroHeight(implementation),
+    ]);
+}
+
+export function fashionStoreNamedStateSelection(pageId = "home"): {
+  contracts: readonly NamedStateContract[];
+  evidenceThemeId: string;
+  routeId: string;
+} {
+  const routeId = pageId === "home" ? "fashion-store-home" : `fashion-store-${pageId}`;
+  const contract = fashionStorePageBehaviorContracts.find(
+    (candidate) => candidate.routeId === routeId,
+  );
+  if (!contract) throw new Error(`Unknown Fashion Store page for named-state capture: ${pageId}`);
+  return {
+    contracts:
+      pageId === "home" ? fashionStoreNamedStates : namedStatesFromBehaviorContract(contract),
+    evidenceThemeId: pageId === "home" ? "fashion-store" : `fashion-store/${pageId}`,
+    routeId,
+  };
 }
 
 async function resetFashion(page: Page, side: "implementation" | "source"): Promise<void> {
@@ -485,6 +510,166 @@ async function applyFashionStoreAction(
   await page.waitForTimeout(100);
 }
 
+async function clickFirstVisible(page: Page, selectors: readonly string[]): Promise<void> {
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    if ((await locator.count()) > 0 && (await locator.isVisible())) {
+      await locator.click();
+      return;
+    }
+  }
+  throw new Error(`No visible named-state control matched: ${selectors.join(", ")}`);
+}
+
+async function applyFashionStorePageAction(
+  page: Page,
+  side: "implementation" | "source",
+  state: NamedStateContract,
+): Promise<void> {
+  await resetFashion(page, side);
+  const { action } = state;
+  if (side === "implementation") {
+    const about = page.locator("[data-fashion-store-about]");
+    if ((await about.count()) > 0) {
+      const carousel = page.locator(".fashion-about-carousel");
+      const activeIndex = Number(await about.getAttribute("data-carousel-index"));
+      if (Number.isInteger(activeIndex) && activeIndex > 0) {
+        await carousel.focus();
+        for (let index = activeIndex; index > 0; index -= 1) await carousel.press("ArrowLeft");
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector("[data-fashion-store-about]")
+              ?.getAttribute("data-carousel-index") === "0",
+        );
+      }
+    }
+  }
+  if (action.kind === "initial") return;
+  if (action.kind === "product-hover" || action.kind === "collection-card") {
+    await page
+      .locator(side === "source" ? state.sourceSelector : state.implementationSelector)
+      .first()
+      .hover();
+  } else if (action.kind === "product-focus") {
+    await page
+      .locator(side === "source" ? state.sourceSelector : state.implementationSelector)
+      .first()
+      .focus();
+  } else if (action.kind === "cart-quantity") {
+    const row = page.locator(".cart-products tbody tr").nth(action.index);
+    await clickFirstVisible(row.page(), [
+      `.cart-products tbody tr:nth-child(${action.index + 1}) .qty-plus`,
+      `.cart-products tbody tr:nth-child(${action.index + 1}) button[aria-label^="Increase"]`,
+    ]);
+  } else if (action.kind === "cart-shipping") {
+    await clickFirstVisible(page, [".calculate-shipping-title", "#shipping-accordion-trigger"]);
+  } else if (action.kind === "cart-coupon") {
+    const input = page.locator(".coupon-code-panel input").first();
+    await input.fill("INVALID");
+    await clickFirstVisible(page, [".apply-coupon-btn", ".coupon-code-panel button"]);
+  } else if (action.kind === "checkout-account") {
+    await clickFirstVisible(page, [
+      "#fashion-create-account + .box",
+      "#createaccount + .box",
+      "label[for='fashion-create-account']",
+      "label[for='createaccount']",
+      '.terms-condition-box label:has-text("Create an account?") .box',
+    ]);
+  } else if (action.kind === "checkout-payment") {
+    const paymentIds: Record<typeof action.payment, readonly string[]> = {
+      bank: ["#payment_method_bacs", "#fashion-payment-bank"],
+      cash: ["#payment_method_cod", "#fashion-payment-cash"],
+      check: ["#payment_method_cheque", "#fashion-payment-check"],
+      paypal: ["#payment_method_paypal", "#fashion-payment-paypal"],
+    };
+    await clickFirstVisible(page, [
+      ...paymentIds[action.payment].flatMap((id) => [`label[for='${id.slice(1)}']`, id]),
+      `.checkout-accordion label:has-text("${
+        {
+          bank: "Direct bank transfer",
+          cash: "Cash on delivery",
+          check: "Check payments",
+          paypal: "PayPal",
+        }[action.payment]
+      }")`,
+    ]);
+  } else if (action.kind === "tab-secondary") {
+    await clickFirstVisible(page, [
+      ".fashion-faq-tabs button:nth-child(2)",
+      "section:nth-of-type(2) .nav-tabs .nav-link:nth-child(2)",
+      "section:nth-of-type(2) .nav-tabs li:nth-child(2) .nav-link",
+    ]);
+  } else if (action.kind === "product-gallery") {
+    await page.locator(".product-image-thumb .swiper-slide").evaluateAll((slides) => {
+      for (const slide of slides)
+        (slide as HTMLElement).style.setProperty("backface-visibility", "hidden", "important");
+    });
+    if (side === "source")
+      await page.locator(".product-image-slider").evaluate((element, index) => {
+        (
+          element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
+        ).swiper?.slideToLoop?.(index, 0);
+      }, action.index);
+    else {
+      await clickFirstVisible(page, [
+        `.product-image-thumb .swiper-slide:nth-child(${action.index + 1}) button`,
+      ]);
+      await page.waitForFunction(
+        (index) =>
+          document.querySelector(".product-image-slider")?.getAttribute("data-gallery-index") ===
+          String(index),
+        action.index,
+      );
+    }
+  } else if (action.kind === "product-option") {
+    const value = action.value.toLowerCase();
+    await clickFirstVisible(page, [
+      `label[for='product-${action.group}-${value}']`,
+      `.shop-${action.group} label:has-text("${action.value}")`,
+      `.fashion-product-options label:has-text("${action.value}")`,
+    ]);
+  } else if (action.kind === "product-tab") {
+    const tabIndex = { description: 1, information: 2, reviews: 4, shipping: 3 }[action.tab];
+    await clickFirstVisible(page, [
+      `#tab .nav-link:nth-child(${tabIndex})`,
+      `#tab li:nth-child(${tabIndex}) .nav-link`,
+      `a[href='#tab_four${tabIndex}']`,
+    ]);
+    if (action.tab === "reviews") {
+      await page.waitForTimeout(350);
+      await page.locator(".progress-bar[aria-valuenow]").evaluateAll((bars) => {
+        for (const bar of bars) {
+          const value = bar.getAttribute("aria-valuenow");
+          if (value) (bar as HTMLElement).style.setProperty("width", `${value}%`, "important");
+        }
+      });
+    }
+  } else if (action.kind === "shop-filter") {
+    const label = action.label.replaceAll('"', '\\"');
+    await clickFirstVisible(page, [
+      `.${action.group}-filter button:has-text("${label}")`,
+      `.${action.group}-filter a:has-text("${label}")`,
+      `.${action.group}-filter label:has-text("${label}")`,
+    ]);
+  } else if (action.kind === "shop-arrivals") {
+    const carousel = page.locator(".slider-one-slide").first();
+    if (side === "source")
+      await carousel.evaluate((element, index) => {
+        (
+          element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
+        ).swiper?.slideToLoop?.(index, 0);
+      }, action.index);
+    else {
+      await carousel.focus();
+      for (let index = 0; index < action.index; index += 1) await carousel.press("ArrowRight");
+    }
+  } else {
+    throw new Error(`Unsupported page named-state action: ${action.kind}`);
+  }
+  await page.waitForTimeout(100);
+}
+
 async function box(page: Page, selector: string): Promise<Box> {
   const locator = page.locator(selector).first();
   await locator.evaluate((element) => {
@@ -501,12 +686,21 @@ async function box(page: Page, selector: string): Promise<Box> {
   return { ...value, pageX: value.x + scroll.x, pageY: value.y + scroll.y };
 }
 
+async function currentBox(page: Page, selector: string): Promise<Box> {
+  const value = await page.locator(selector).first().boundingBox();
+  if (!value || value.width <= 0 || value.height <= 0)
+    throw new Error(`Named-state selector is not visible: ${selector}`);
+  const scroll = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
+  return { ...value, pageX: value.x + scroll.x, pageY: value.y + scroll.y };
+}
+
 function geometryIssues(state: NamedStateContract, reference: Box, implementation: Box): string[] {
   return captureGeometryIssues(
     state.id,
     reference,
     implementation,
-    state.capture === "viewport-top" || state.id === "cookie-overlay" ? "viewport" : "document",
+    state.geometrySpace ??
+      (state.capture === "viewport-top" || state.id === "cookie-overlay" ? "viewport" : "document"),
   );
 }
 
@@ -670,14 +864,16 @@ export async function captureFashionNamedStates(options: {
   commit: string;
   implementationUrl: string;
   outputRoot: string;
+  pageId?: string;
   sourceUrl: string;
   stateFilter?: string;
   viewportFilter?: string;
 }): Promise<void> {
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
   const implementationThemeId = "fashion-store";
-  const contracts = fashionStoreNamedStates;
-  const outputRoot = resolve(options.outputRoot, implementationThemeId, "named");
+  const selection = fashionStoreNamedStateSelection(options.pageId);
+  const contracts = selection.contracts;
+  const outputRoot = resolve(options.outputRoot, selection.evidenceThemeId, "named");
   await mkdir(outputRoot, { recursive: true });
   const lease = await acquireCaptureLease({
     origins: [options.sourceUrl, options.implementationUrl],
@@ -722,13 +918,13 @@ export async function captureFashionNamedStates(options: {
         await prepareFashionPages(source, implementation);
         {
           await implementation
-            .locator("[data-fashion-store-source-parity]")
+            .locator("[data-runtime-status]")
+            .first()
             .waitFor({ state: "attached" });
-          await implementation.waitForFunction(
-            () =>
-              document
-                .querySelector("[data-fashion-store-source-parity]")
-                ?.getAttribute("data-runtime-status") === "ready",
+          await implementation.waitForFunction(() =>
+            [...document.querySelectorAll<HTMLElement>("[data-runtime-status]")].some(
+              (element) => element.getAttribute("data-runtime-status") === "ready",
+            ),
           );
           await Promise.all([
             source
@@ -791,29 +987,51 @@ export async function captureFashionNamedStates(options: {
             ]);
           }
           const captureMode = captureModeForNamedState(state);
+          const reducedMotion =
+            captureMode === "temporal" ||
+            (state.action.kind === "collection-card" && viewport.width < 1200)
+              ? "no-preference"
+              : "reduce";
           await Promise.all([
-            source.emulateMedia({
-              reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
-            }),
-            implementation.emulateMedia({
-              reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
-            }),
+            source.emulateMedia({ reducedMotion }),
+            implementation.emulateMedia({ reducedMotion }),
             installNamedStateCss(source, captureMode),
             installNamedStateCss(implementation, captureMode),
           ]);
           await Promise.all([
-            applyFashionStoreAction(source, "source", state.action, viewport.width),
-            applyFashionStoreAction(implementation, "implementation", state.action, viewport.width),
+            options.pageId && options.pageId !== "home"
+              ? applyFashionStorePageAction(source, "source", state)
+              : applyFashionStoreAction(source, "source", state.action, viewport.width),
+            options.pageId && options.pageId !== "home"
+              ? applyFashionStorePageAction(implementation, "implementation", state)
+              : applyFashionStoreAction(
+                  implementation,
+                  "implementation",
+                  state.action,
+                  viewport.width,
+                ),
           ]);
           if (state.capture === "element")
             await Promise.all([
               normalizeNamedStateFractionalOrigin(source, state.sourceSelector),
               normalizeNamedStateFractionalOrigin(implementation, state.implementationSelector),
             ]);
-          const [referenceBox, implementationBox] = await Promise.all([
+          let [referenceBox, implementationBox] = await Promise.all([
             box(source, state.sourceSelector),
             box(implementation, state.implementationSelector),
           ]);
+          if (
+            ["collection-card", "collection-hover", "product-hover"].includes(state.action.kind)
+          ) {
+            await Promise.all([
+              source.locator(state.sourceSelector).first().hover(),
+              implementation.locator(state.implementationSelector).first().hover(),
+            ]);
+            [referenceBox, implementationBox] = await Promise.all([
+              currentBox(source, state.sourceSelector),
+              currentBox(implementation, state.implementationSelector),
+            ]);
+          }
           const stateGeometryIssues = geometryIssues(state, referenceBox, implementationBox);
           failures.push(...stateGeometryIssues.map((issue) => `${viewportId}: ${issue}`));
           const width =
@@ -829,7 +1047,9 @@ export async function captureFashionNamedStates(options: {
             outputRoot,
             `${viewportId}-${state.id}-implementation.png`,
           );
-          if (["initial", "hero", "collection"].includes(state.action.kind)) {
+          if (
+            !["collection-card", "collection-hover", "product-hover"].includes(state.action.kind)
+          ) {
             await Promise.all([
               source.mouse.move(viewport.width - 1, 0),
               implementation.mouse.move(viewport.width - 1, 0),
@@ -955,8 +1175,8 @@ export async function captureFashionNamedStates(options: {
         sourceUrl: options.sourceUrl,
         implementationThemeId,
         referenceThemeId: "fashion",
-        state: `${implementationThemeId}-named-states`,
-        themeId: implementationThemeId,
+        state: `${selection.evidenceThemeId}-named-states`,
+        themeId: selection.evidenceThemeId,
         viewports: themeViewports,
       },
       null,
@@ -964,7 +1184,9 @@ export async function captureFashionNamedStates(options: {
     )}\n`,
   );
   if (failures.length > 0)
-    throw new Error(`${implementationThemeId} named-state capture failed:\n${failures.join("\n")}`);
+    throw new Error(
+      `${selection.evidenceThemeId} named-state capture failed:\n${failures.join("\n")}`,
+    );
 }
 
 export async function captureFashionStoreNamedStates(
@@ -985,11 +1207,12 @@ if (import.meta.main) {
   const outputRoot = value(arguments_, "--output");
   const commit = value(arguments_, "--commit");
   const theme = value(arguments_, "--theme") ?? "fashion-store";
+  const pageId = value(arguments_, "--page");
   const stateFilter = value(arguments_, "--state");
   const viewportFilter = value(arguments_, "--viewport");
   if (!sourceUrl || !implementationUrl || !outputRoot || !commit)
     throw new Error(
-      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=fashion-store] [--state=<id>] [--viewport=<id>]",
+      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=fashion-store] [--page=<id>] [--state=<id>] [--viewport=<id>]",
     );
   if (theme === "fashion-store")
     await captureFashionStoreNamedStates({
@@ -997,6 +1220,7 @@ if (import.meta.main) {
       implementationUrl,
       outputRoot,
       sourceUrl,
+      ...(pageId ? { pageId } : {}),
       ...(stateFilter ? { stateFilter } : {}),
       ...(viewportFilter ? { viewportFilter } : {}),
     });

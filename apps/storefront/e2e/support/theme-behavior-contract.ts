@@ -45,6 +45,7 @@ export type NamedStateAction =
 export interface NamedStateContract {
   action: NamedStateAction;
   capture: "element" | "viewport-top";
+  geometrySpace?: "document" | "viewport";
   id: string;
   implementationSelector: string;
   sourceSelector: string;

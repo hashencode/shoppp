@@ -62,9 +62,10 @@ const tasks = themeFidelityMatrix
                 phase === "full-page"
                   ? region.kind === "full-page-smoke"
                   : region.kind !== "full-page-smoke" &&
-                    !["bag", "header", "search"].includes(region.id),
+                    (regionFilter
+                      ? region.id === regionFilter
+                      : !["bag", "header", "search"].includes(region.id)),
               )
-              .filter((region) => !regionFilter || region.id === regionFilter)
               .map((region) => ({ density, region, route, viewport })),
           ),
       ),
