@@ -12,6 +12,8 @@ export const fashionStoreArticleSourceRegions = [
   { key: "article-title", selector: "section:nth-of-type(1)" },
   { itemCount: 3, key: "article-media", selector: "section.py-0 img.w-100" },
   { key: "article-body", selector: "section:nth-of-type(3)" },
+  { key: "article-quote", selector: "section:nth-of-type(5)" },
+  { key: "article-conclusion", selector: "section:nth-of-type(7)" },
   { key: "author-share", selector: "section.half-section" },
   { itemCount: 3, key: "related", selector: "section.bg-very-light-gray .grid-item" },
   {

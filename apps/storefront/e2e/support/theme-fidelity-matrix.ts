@@ -425,6 +425,13 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
         ".fashion-article-media:not(.fashion-article-media-secondary)",
       ),
       region("article-body", "section", "section:nth-of-type(3)", ".fashion-article-body"),
+      region("article-quote", "section", "section:nth-of-type(5)", ".fashion-article-quote"),
+      region(
+        "article-conclusion",
+        "section",
+        "section:nth-of-type(7)",
+        ".fashion-article-conclusion",
+      ),
       region(
         "author-share",
         "section",

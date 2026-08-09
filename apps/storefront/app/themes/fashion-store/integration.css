@@ -1361,6 +1361,12 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+@media (min-width: 1200px) {
+  .fashion-magazine-grid {
+    grid-template-columns: repeat(4, calc(25% - 0.0078125px));
+  }
+}
+
 @media (max-width: 1399px) {
   .fashion-wishlist-grid.xl-grid-3col {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1442,6 +1448,10 @@
 }
 
 @media (min-width: 1200px) {
+  .fashion-magazine-grid > .grid-item:nth-child(n + 10) {
+    margin-bottom: -0.015625px;
+  }
+
   .fashion-magazine-grid > .grid-item:nth-child(n + 6):not(:nth-child(4n + 1)) {
     transform: translateY(-30px);
   }

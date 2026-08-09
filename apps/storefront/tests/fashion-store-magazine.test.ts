@@ -45,6 +45,8 @@ describe("Fashion Store Magazine and article", () => {
     expect(resolveFashionStorePage("/magazine")?.variant).toBe("magazine");
     expect(resolveFashionStorePage("/magazine/marketing-tips-and-tricks")?.variant).toBe("article");
     expect(fashionStoreArticleSourceContract.mediaCount).toBe(3);
+    expect(fashionStoreArticleSourceContract.regionOrder).toContain("article-quote");
+    expect(fashionStoreArticleSourceContract.regionOrder).toContain("article-conclusion");
     expect(fashionStoreArticleData.related).toHaveLength(3);
     expect(fashionStoreArticleData.comments).toHaveLength(4);
     expect(fashionStoreMagazineBehaviorContract.behaviors.map(({ id }) => id)).toEqual([
@@ -71,5 +73,35 @@ describe("Fashion Store Magazine and article", () => {
     expect(source).not.toMatch(/\bfetch\s*\(|\$fetch\s*\(|useFetch\s*\(|axios/i);
     expect(source.match(/@submit\.prevent/g)?.length).toBe(1);
     expect(source).not.toMatch(/comment posted|successfully|thanks for your comment/i);
+  });
+
+  test("preserves the repeated source paragraph endings in the article narrative", async () => {
+    const source = await readFile(
+      resolve(
+        import.meta.dir,
+        "../app/themes/fashion-store/components/pages/FashionStoreArticlePage.vue",
+      ),
+      "utf8",
+    );
+    expect(
+      source.replace(/\s+/g, " ").match(
+        /Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur\./g,
+      ),
+    ).toHaveLength(3);
+  });
+
+  test("locks the desktop magazine grid to the source fractional columns", async () => {
+    const integrationCss = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/integration.css"),
+      "utf8",
+    );
+    expect(integrationCss).toContain(`@media (min-width: 1200px) {
+  .fashion-magazine-grid {
+    grid-template-columns: repeat(4, calc(25% - 0.0078125px));
+  }
+}`);
+    expect(integrationCss).toContain(`.fashion-magazine-grid > .grid-item:nth-child(n + 10) {
+    margin-bottom: -0.015625px;
+  }`);
   });
 });
