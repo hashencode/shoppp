@@ -1,18 +1,28 @@
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { gzipSync } from "node:zlib";
-import { activeThemeId } from "../app/generated/active-theme";
+import { activeThemeId, activeThemeRoutes } from "../app/generated/active-theme";
 import manifest from "../app/generated/route-manifest.json";
 
 const output = resolve(import.meta.dir, "../.output/public");
-const representativeRoutes = [
-  "/",
-  manifest.routes.find((route) => route.startsWith("/collections/")),
-  manifest.routes.find((route) => route.startsWith("/products/")),
-].filter((route): route is string => Boolean(route));
+const representativeRoutes =
+  activeThemeId === "fashion-store"
+    ? activeThemeRoutes.map(({ path }) => path)
+    : [
+        "/",
+        manifest.routes.find((route) => route.startsWith("/collections/")),
+        manifest.routes.find((route) => route.startsWith("/products/")),
+      ].filter((route): route is string => Boolean(route));
 const outputPath = (route: string) =>
   route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
-const budget = 200 * 1024;
+const initialJavaScriptBudgets = {
+  default: 200 * 1024,
+  "fashion-store": 300 * 1024,
+} as const;
+const budget =
+  activeThemeId === "fashion-store"
+    ? initialJavaScriptBudgets["fashion-store"]
+    : initialJavaScriptBudgets.default;
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".map", ".txt", ".xml"]);
 const codeExtensions = new Set([".css", ".js", ".map"]);
 const imageExtensions = new Set([".avif", ".jpg", ".jpeg", ".png", ".webp"]);
@@ -46,13 +56,11 @@ for (const route of representativeRoutes) {
 
 const files = await outputFiles(output);
 const prohibitedRuntime =
-  /(?:jquery|revolution(?:\.min)?\.js|revslider|contact\.php|(?:^|[/_-])crafto(?:\.min)?\.(?:css|js)|[/_-]crafto[/_-])/i;
-const inactiveThemes =
-  activeThemeId === "fashion"
-    ? ["decor"]
-    : activeThemeId === "decor"
-      ? ["fashion"]
-      : ["decor", "fashion"];
+  /(?:revolution(?:\.min)?\.js|revslider|contact\.php|(?:^|[/_-])crafto(?:\.min)?\.(?:css|js)|[/_-]crafto[/_-])/i;
+const sourceRuntime = /(?:jquery|vendors(?:\.min)?\.js)/i;
+const forbiddenSourceEntrypointFile = /(?:^|[/_-])main(?:\.[A-Za-z0-9_-]+)?\.js/i;
+const forbiddenSourceEntrypointCode = /(?:theme-demos-main|instagram-feed)/i;
+const inactiveThemes = activeThemeId === "fashion-store" ? [] : ["fashion-store"];
 const inactiveThemePatterns = inactiveThemes.map(
   (theme) => [theme, new RegExp(`${theme}(?:[./_-]|%2f)`, "i")] as const,
 );
@@ -96,6 +104,15 @@ for (const file of files) {
   if (prohibitedRuntime.test(runtimeSurface)) {
     throw new Error(`Storefront output contains a prohibited upstream runtime in ${file}.`);
   }
+  if (
+    forbiddenSourceEntrypointFile.test(file) ||
+    forbiddenSourceEntrypointCode.test(runtimeSurface)
+  ) {
+    throw new Error(`Storefront output contains the excluded upstream main entrypoint in ${file}.`);
+  }
+  if (activeThemeId !== "fashion-store" && sourceRuntime.test(file)) {
+    throw new Error(`${activeThemeId} output contains Fashion Store source runtime in ${file}.`);
+  }
   if (/fonts\.(?:googleapis|gstatic)\.com/i.test(runtimeSurface)) {
     throw new Error(`Storefront output contains an external font request in ${file}.`);
   }
@@ -106,7 +123,8 @@ for (const file of files) {
     throw new Error(`Storefront output eagerly prefetches non-critical images in ${file}.`);
   }
   for (const [inactiveTheme, pattern] of inactiveThemePatterns) {
-    if (containsInactiveTheme(file, contents, inactiveTheme, pattern)) {
+    const isolationContents = contents;
+    if (containsInactiveTheme(file, isolationContents, inactiveTheme, pattern)) {
       throw new Error(
         `${activeThemeId} output contains inactive ${inactiveTheme} theme code or assets in ${file}.`,
       );
@@ -119,19 +137,35 @@ for (const file of files) {
   }
 }
 
-if (activeThemeId === "fashion" || activeThemeId === "decor") {
+if (activeThemeId === "fashion-store") {
   const themedImages = files.filter(
     (file) =>
       imageExtensions.has(extname(file).toLowerCase()) &&
-      file.toLowerCase().includes(`demo-${activeThemeId}-store`),
+      file.toLowerCase().includes("demo-fashion-store"),
   );
-  const expectedFont =
-    activeThemeId === "fashion" ? /(?:figtree|outfit)-latin/i : /plus-jakarta-sans-latin/i;
+  const expectedFont = /(?:figtree|outfit)-latin/i;
   if (themedImages.length < 10) {
     throw new Error(`${activeThemeId} output is missing its selected reference image set.`);
   }
   if (!files.some((file) => extname(file) === ".woff2" && expectedFont.test(file))) {
     throw new Error(`${activeThemeId} output is missing its selected self-hosted font.`);
+  }
+  for (const runtime of [/jquery/i, /vendors\.min/i]) {
+    if (!files.some((file) => extname(file) === ".js" && runtime.test(file))) {
+      throw new Error(`fashion-store output is missing approved source runtime ${runtime}.`);
+    }
+  }
+  const outputText = (
+    await Promise.all(
+      files
+        .filter((file) => textExtensions.has(extname(file)))
+        .map((file) => readFile(resolve(output, file), "utf8")),
+    )
+  ).join("\n");
+  for (const marker of ["data-fashion-store-source-parity", "data-fashion-store-visual-runtime"]) {
+    if (!outputText.includes(marker)) {
+      throw new Error(`fashion-store output is missing required isolation marker ${marker}.`);
+    }
   }
 } else {
   const previewFont = /(?:figtree|outfit|plus-jakarta-sans)-latin/i;

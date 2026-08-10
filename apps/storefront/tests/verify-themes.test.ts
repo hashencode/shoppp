@@ -1,19 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { ThemeMatrixEntry } from "../scripts/verify-themes";
-import {
-  REQUIRED_STOREFRONT_PAGE_TYPES,
-  storefrontThemeMatrix,
-  verifyThemeMatrix,
-} from "../scripts/verify-themes";
+import { storefrontThemeMatrix, verifyThemeMatrix } from "../scripts/verify-themes";
 
 function copyEntry(entry: ThemeMatrixEntry): ThemeMatrixEntry {
   return structuredClone(entry);
 }
 
 function minimalThirdTheme(): ThemeMatrixEntry {
-  const entry = copyEntry(
-    storefrontThemeMatrix.find(({ descriptor }) => descriptor.id === "fashion")!,
-  );
+  const entry = copyEntry(storefrontThemeMatrix[0]!);
   entry.package.manifest.id = "minimal";
   entry.package.manifest.provenance = {
     approvedAt: "2026-07-30T00:00:00.000Z",
@@ -21,48 +15,33 @@ function minimalThirdTheme(): ThemeMatrixEntry {
     license: "Repository-owned test fixture",
     source: "internal://shoppp/themes/minimal",
   };
+  entry.package.manifest.supportedPageTemplates = ["home"];
   entry.package.manifest.componentRegistry.sections =
-    entry.package.manifest.componentRegistry.sections.filter(({ type }) =>
-      type.startsWith("core."),
-    );
-  entry.package.manifest.supportedPageTemplates = [...REQUIRED_STOREFRONT_PAGE_TYPES];
-  for (const preset of entry.package.presets) {
-    preset.templates = preset.templates.filter(({ pageType }) =>
-      REQUIRED_STOREFRONT_PAGE_TYPES.some((candidate) => candidate === pageType),
-    );
-    for (const template of preset.templates) {
-      for (const section of template.sections) {
-        if (section.type.startsWith("core.")) continue;
-        if (section.capabilities.includes("navigation.primary")) {
-          section.type = "core.navigation";
-          section.capabilities = ["navigation.primary", "focus.skip-link"];
-        } else if (section.capabilities.includes("legal.links")) {
-          section.type = "core.footer";
-          section.capabilities = ["legal.links"];
-        } else if (
-          section.capabilities.includes("product.details") ||
-          section.capabilities.includes("product.action")
-        ) {
-          section.type = "core.product";
-          section.capabilities = ["product.details", "product.action"];
-        } else if (section.capabilities.includes("cart.summary")) {
-          section.type = "core.cart";
-          section.capabilities = ["cart.summary", "cart.error"];
-        } else if (section.capabilities.includes("checkout.summary")) {
-          section.type = "core.checkout";
-          section.capabilities = ["checkout.summary", "checkout.error"];
-        } else {
-          section.type = "core.editorial";
-          section.capabilities = [];
-        }
-        section.settings = {};
-      }
-    }
-  }
+    entry.package.manifest.componentRegistry.sections
+      .filter(
+        (definition) =>
+          !definition.type.startsWith("fashion-store.") || definition.type === "fashion-store.home",
+      )
+      .map((definition) =>
+        definition.type === "fashion-store.home"
+          ? { ...definition, type: "minimal.home" }
+          : definition,
+      );
+  entry.package.presets = entry.package.presets.map((preset) => ({
+    ...preset,
+    templates: preset.templates
+      .filter(({ pageType }) => pageType === "home")
+      .map((template) => ({
+        ...template,
+        sections: template.sections.map((section) =>
+          section.type === "fashion-store.home" ? { ...section, type: "minimal.home" } : section,
+        ),
+      })),
+  }));
   entry.descriptor = {
     ...entry.descriptor,
     id: "minimal",
-    supportedPageTemplates: [...REQUIRED_STOREFRONT_PAGE_TYPES],
+    supportedPageTemplates: ["home"],
   };
   return entry;
 }
@@ -75,6 +54,22 @@ describe("storefront theme matrix", () => {
         storefrontThemeMatrix.map(({ descriptor }) => descriptor),
       ),
     ).not.toThrow();
+  });
+
+  test("registers Fashion Store platform templates while readiness remains home-only", () => {
+    const fashionStore = storefrontThemeMatrix.find(
+      ({ descriptor }) => descriptor.id === "fashion-store",
+    );
+    expect(fashionStore?.assetPolicy).toBe("source-equivalent");
+    expect(fashionStore?.requiredPageTypes).toEqual(["home"]);
+    expect(fashionStore?.package.manifest.supportedPageTemplates).toEqual([
+      "home",
+      "collection",
+      "product",
+      "cart",
+      "checkout",
+      "content",
+    ]);
   });
 
   test("rejects duplicate IDs, incomplete provenance, incompatibility, schema drift, and page gaps", () => {
@@ -111,14 +106,14 @@ describe("storefront theme matrix", () => {
 
     const missingPage = copyEntry(storefrontThemeMatrix[0]!);
     missingPage.package.manifest.supportedPageTemplates =
-      missingPage.package.manifest.supportedPageTemplates.filter((page) => page !== "policy");
+      missingPage.package.manifest.supportedPageTemplates.filter((page) => page !== "home");
     missingPage.package.presets[0]!.templates = missingPage.package.presets[0]!.templates.filter(
-      ({ pageType }) => pageType !== "policy",
+      ({ pageType }) => pageType !== "home",
     );
     missingPage.descriptor.supportedPageTemplates =
       missingPage.package.manifest.supportedPageTemplates;
     expect(() => verifyThemeMatrix([missingPage], [missingPage.descriptor])).toThrow(
-      "missing required policy",
+      "missing required home support",
     );
   });
 
@@ -135,9 +130,7 @@ describe("storefront theme matrix", () => {
 
   test("accepts a minimal third internal fixture without changing the renderer", () => {
     const third = minimalThirdTheme();
-    expect(third.package.manifest.supportedPageTemplates).toEqual([
-      ...REQUIRED_STOREFRONT_PAGE_TYPES,
-    ]);
+    expect(third.package.manifest.supportedPageTemplates).toEqual(["home"]);
     expect(() => verifyThemeMatrix([third], [third.descriptor])).not.toThrow();
   });
 });

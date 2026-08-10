@@ -158,6 +158,7 @@ describe("storefront experience fixtures", () => {
       resolve(import.meta.dir, "../app/components/blocks"),
       resolve(import.meta.dir, "../app/theme-engine/actions.ts"),
       resolve(import.meta.dir, "../fixtures/experience"),
+      resolve(import.meta.dir, "../app/themes/fashion-store/components"),
     ];
     const sources: string[] = [];
     for (const root of roots) {
@@ -175,6 +176,7 @@ describe("storefront experience fixtures", () => {
     const source = sources.join("\n");
 
     expect(source).not.toMatch(/\bfetch\s*\(|\$fetch|XMLHttpRequest|useCommerceApi|useGuestCart/);
+    expect(source).not.toMatch(/\.php(?:["'?]|\b)/i);
     expect(source).not.toContain("@shoppp/db");
   });
 });

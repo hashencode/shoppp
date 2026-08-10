@@ -7,6 +7,7 @@ import {
   validateThemeAssets,
 } from "../app/theme-engine/assets";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
+import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 
 const fixture = {
   id: "fashion-home",
@@ -22,6 +23,44 @@ const fixture = {
 } as const;
 
 describe("selected theme resources", () => {
+  test("keeps every enabled Fashion Store binding backed by a namespaced fixture", async () => {
+    const input = await fashionStorePreviewBuildInput("https://preview.example.test");
+    expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual([
+      "home",
+      "collection",
+      "product",
+      "cart",
+      "checkout",
+      "content",
+    ]);
+    expect(input.snapshot.bindings).toEqual([
+      expect.objectContaining({
+        fixtureId: "fashion-store-home",
+        instanceId: "fashion-store-home",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-shop",
+        instanceId: "fashion-store-collection",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-product",
+        instanceId: "fashion-store-product",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-cart",
+        instanceId: "fashion-store-cart",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-checkout",
+        instanceId: "fashion-store-checkout",
+      }),
+      expect.objectContaining({
+        fixtureId: "fashion-store-content",
+        instanceId: "fashion-store-content",
+      }),
+    ]);
+  });
+
   test("derives accessible payment names from namespaced asset IDs", () => {
     expect(paymentAssetName("fashion.payment-american-express")).toBe("American Express");
     expect(paymentAssetName("decor.payment-union-pay")).toBe("Union Pay");

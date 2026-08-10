@@ -1,8 +1,11 @@
 bun.lock
+pnpm-lock.yaml
 apps/admin
 apps/api/src/generated/storefront-theme-catalog.ts
 apps/storefront/app/generated/theme-catalog.ts
+apps/storefront/app/themes/fashion-store/upstream
 apps/storefront/artifacts
+artifacts/source-equivalence
 coverage
 dist
 docs/plans
@@ -12,3 +15,4 @@ node_modules
 playwright-report
 test-results
 tools/admin-template-manifest.json
+templates

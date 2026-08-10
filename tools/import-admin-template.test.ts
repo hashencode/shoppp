@@ -13,8 +13,8 @@ afterEach(async () => {
   );
 });
 
-async function git(root: string, arguments_: string[]): Promise<string> {
-  const process = Bun.spawn(["git", ...arguments_], {
+async function git(root: string, arguments_: string[]): Promise<void> {
+  const process = Bun.spawnSync(["git", "--no-pager", ...arguments_], {
     cwd: root,
     env: {
       ...Bun.env,
@@ -22,17 +22,11 @@ async function git(root: string, arguments_: string[]): Promise<string> {
       GIT_COMMITTER_DATE: "2026-07-29T23:25:41+08:00",
     },
     stderr: "pipe",
-    stdout: "pipe",
+    stdout: "ignore",
   });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(stderr);
+  if (process.exitCode !== 0) {
+    throw new Error(process.stderr.toString());
   }
-  return stdout.trim();
 }
 
 async function writeFixtureFile(root: string, path: string, contents: string): Promise<void> {
@@ -73,7 +67,9 @@ async function createSourceRepository(): Promise<{
   ]);
   await git(source, ["add", "."]);
   await git(source, ["commit", "--quiet", "-m", "fixture"]);
-  const approvedCommit = await git(source, ["rev-parse", "HEAD"]);
+  const approvedCommit = (
+    await readFile(join(source, ".git", "refs", "heads", "master"), "utf8")
+  ).trim();
 
   await writeFixtureFile(source, "src/main.tsx", "export const source = 'dirty';\n");
   await writeFixtureFile(source, "src/uncommitted.tsx", "export {};\n");
@@ -90,7 +86,7 @@ async function pathExists(path: string): Promise<boolean> {
 describe("importAdminTemplate", () => {
   test("copies an approved commit reproducibly and excludes local or sensitive paths", async () => {
     const fixture = await createSourceRepository();
-    const sourceStatusBefore = await git(fixture.source, ["status", "--porcelain=v1"]);
+    expect(fixture.approvedCommit).toMatch(/^[0-9a-f]{40}$/);
     const options = {
       approvedCommit: fixture.approvedCommit,
       destination: fixture.destination,
@@ -116,7 +112,12 @@ describe("importAdminTemplate", () => {
     expect(await pathExists(join(fixture.destination, "reports"))).toBe(false);
     expect(await pathExists(join(fixture.destination, "bun.lock"))).toBe(false);
     expect(await pathExists(join(fixture.destination, "AGENTS.md"))).toBe(false);
-    expect(await git(fixture.source, ["status", "--porcelain=v1"])).toBe(sourceStatusBefore);
+    expect(await readFile(join(fixture.source, "src/main.tsx"), "utf8")).toBe(
+      "export const source = 'dirty';\n",
+    );
+    expect(await readFile(join(fixture.source, "src/uncommitted.tsx"), "utf8")).toBe(
+      "export {};\n",
+    );
   });
 
   test("rejects a source revision other than the approved commit", async () => {

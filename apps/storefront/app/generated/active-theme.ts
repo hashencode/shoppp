@@ -6,623 +6,181 @@ import {
   themeAssets as selectedThemeAssets,
   themeFixtures as selectedThemeFixtures,
   themeRegistry as selectedThemeRegistry,
-} from "../themes/fashion/registry";
+  themeRoutes as selectedThemeRoutes,
+} from "../themes/fashion-store/registry";
 
-export const activeThemeId = "fashion";
+export const activeThemeId = "fashion-store";
 // Preserve deterministic JSON serialization for the signed snapshot payload.
 // prettier-ignore
 export const activeExperienceSnapshot = {
   "bindings": [
     {
-      "fixtureId": "fashion-home",
-      "id": "fashion-header-binding",
-      "instanceId": "site-navigation",
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-binding",
+      "instanceId": "fashion-store-home",
       "kind": "fixture",
-      "resource": "header",
+      "resource": "home",
       "state": "populated"
     },
     {
-      "fixtureId": "fashion-home",
-      "id": "fashion-hero-binding",
-      "instanceId": "fashion-hero",
-      "kind": "fixture",
-      "resource": "hero",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-services-binding",
-      "instanceId": "fashion-services",
-      "kind": "fixture",
-      "resource": "services",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-categories-binding",
-      "instanceId": "fashion-categories",
-      "kind": "fixture",
-      "resource": "categories",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-bestsellers-binding",
-      "instanceId": "fashion-bestsellers",
-      "kind": "fixture",
-      "resource": "bestsellers",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-promotion-binding",
-      "instanceId": "fashion-promotion",
-      "kind": "fixture",
-      "resource": "promotion",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-collection-binding",
-      "instanceId": "fashion-collection",
-      "kind": "fixture",
-      "resource": "collection",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-brands-binding",
-      "instanceId": "fashion-brands",
-      "kind": "fixture",
-      "resource": "brands",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-featured-binding",
-      "instanceId": "fashion-featured",
-      "kind": "fixture",
-      "resource": "featured",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-promises-binding",
-      "instanceId": "fashion-promises",
-      "kind": "fixture",
-      "resource": "promises",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-magazine-binding",
-      "instanceId": "fashion-magazine",
-      "kind": "fixture",
-      "resource": "magazine",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-footer-binding",
-      "instanceId": "site-footer",
-      "kind": "fixture",
-      "resource": "footer",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-shop-binding",
-      "instanceId": "fashion-shop",
+      "fixtureId": "fashion-store-shop",
+      "id": "fashion-store-shop-binding",
+      "instanceId": "fashion-store-collection",
       "kind": "fixture",
       "resource": "shop",
       "state": "populated"
     },
     {
-      "fixtureId": "fashion-home",
-      "id": "fashion-product-binding",
-      "instanceId": "product-main",
+      "fixtureId": "fashion-store-product",
+      "id": "fashion-store-product-binding",
+      "instanceId": "fashion-store-product",
       "kind": "fixture",
       "resource": "product",
       "state": "populated"
     },
     {
-      "fixtureId": "fashion-home",
-      "id": "fashion-content-binding",
-      "instanceId": "content-main",
-      "kind": "fixture",
-      "resource": "content",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "fashion-home",
-      "id": "fashion-cart-binding",
-      "instanceId": "cart-main",
+      "fixtureId": "fashion-store-cart",
+      "id": "fashion-store-cart-binding",
+      "instanceId": "fashion-store-cart",
       "kind": "fixture",
       "resource": "cart",
       "state": "populated"
     },
     {
-      "fixtureId": "fashion-home",
-      "id": "fashion-checkout-binding",
-      "instanceId": "checkout-main",
+      "fixtureId": "fashion-store-checkout",
+      "id": "fashion-store-checkout-binding",
+      "instanceId": "fashion-store-checkout",
       "kind": "fixture",
       "resource": "checkout",
       "state": "populated"
     },
     {
-      "fixtureId": "core-populated",
-      "id": "fashion-order-binding",
-      "instanceId": "order-main",
+      "fixtureId": "fashion-store-content",
+      "id": "fashion-store-content-binding",
+      "instanceId": "fashion-store-content",
       "kind": "fixture",
-      "resource": "order",
-      "state": "success"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "fashion-policy-binding",
-      "instanceId": "policy-main",
-      "kind": "fixture",
-      "resource": "policy",
+      "resource": "content",
       "state": "populated"
     }
   ],
   "configurationSchemaVersion": 1,
-  "experienceId": "experience-fashion-fixture",
-  "id": "snapshot-fashion-fixture-1",
+  "experienceId": "experience-fashion-store-fixture",
+  "id": "snapshot-fashion-store-fixture-1",
   "overrides": [],
   "platformContractVersion": "1.0.0",
   "provenance": {
-    "approvedAt": "2026-07-30T00:00:00.000Z",
+    "approvedAt": "2026-08-06T00:00:00.000Z",
     "approvedBy": "shoppp-theme-team",
-    "license": "Repository implementation with user-authorized reference assets",
+    "license": "User-authorized source-parity implementation",
     "source": "local://user-supplied/demo-fashion-store.html"
   },
   "resolvedTemplates": [
     {
-      "id": "fashion-home",
+      "id": "fashion-store-home",
       "pageType": "home",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "legal.links"
-      ],
+      "requiredCapabilities": [],
       "sections": [
         {
           "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
+          "capabilities": [],
+          "id": "fashion-store-home",
           "required": true,
           "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-hero",
-          "settings": {},
-          "type": "fashion.hero-carousel",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-services",
-          "settings": {},
-          "type": "fashion.service-strip",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-categories",
-          "settings": {},
-          "type": "fashion.category-tiles",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-bestsellers",
-          "settings": {},
-          "type": "fashion.product-showcase",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-promotion",
-          "settings": {},
-          "type": "fashion.promo-band",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-collection",
-          "settings": {},
-          "type": "fashion.collection-carousel",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-brands",
-          "settings": {},
-          "type": "fashion.brand-strip",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-featured",
-          "settings": {},
-          "type": "fashion.product-showcase",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-promises",
-          "settings": {},
-          "type": "fashion.promise-strip",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [],
-          "id": "fashion-magazine",
-          "settings": {},
-          "type": "fashion.magazine",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
-          "required": true,
-          "settings": {},
-          "type": "fashion.footer",
+          "type": "fashion-store.home",
           "visible": true
         }
       ]
     },
     {
-      "id": "fashion-collection",
+      "id": "fashion-store-collection",
       "pageType": "collection",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "legal.links"
-      ],
+      "requiredCapabilities": [],
       "sections": [
         {
           "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
           "capabilities": [],
-          "id": "fashion-shop",
-          "settings": {},
-          "type": "fashion.shop",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
+          "id": "fashion-store-collection",
           "required": true,
           "settings": {},
-          "type": "fashion.footer",
+          "type": "fashion-store.collection",
           "visible": true
         }
       ]
     },
     {
-      "id": "fashion-product",
+      "id": "fashion-store-product",
       "pageType": "product",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "product.details",
-        "product.action",
-        "legal.links"
-      ],
+      "requiredCapabilities": [],
       "sections": [
-        {
-          "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "product.details",
-            "product.action"
-          ],
-          "id": "product-main",
-          "required": true,
-          "settings": {},
-          "type": "fashion.product-details",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
-          "required": true,
-          "settings": {},
-          "type": "fashion.footer",
-          "visible": true
-        }
-      ]
-    },
-    {
-      "id": "fashion-cart",
-      "pageType": "cart",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "cart.summary",
-        "cart.error",
-        "legal.links"
-      ],
-      "sections": [
-        {
-          "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "cart.summary",
-            "cart.error"
-          ],
-          "id": "cart-main",
-          "required": true,
-          "settings": {},
-          "type": "fashion.cart",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
-          "required": true,
-          "settings": {},
-          "type": "fashion.footer",
-          "visible": true
-        }
-      ]
-    },
-    {
-      "id": "fashion-checkout",
-      "pageType": "checkout",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "checkout.summary",
-        "checkout.error",
-        "legal.links"
-      ],
-      "sections": [
-        {
-          "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "checkout.summary",
-            "checkout.error"
-          ],
-          "id": "checkout-main",
-          "required": true,
-          "settings": {},
-          "type": "fashion.checkout",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
-          "required": true,
-          "settings": {},
-          "type": "fashion.footer",
-          "visible": true
-        }
-      ]
-    },
-    {
-      "id": "fashion-order",
-      "pageType": "order",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "order.status",
-        "order.error",
-        "legal.links"
-      ],
-      "sections": [
-        {
-          "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "order.status",
-            "order.error"
-          ],
-          "id": "order-main",
-          "required": true,
-          "settings": {},
-          "type": "core.order",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
-          "required": true,
-          "settings": {},
-          "type": "fashion.footer",
-          "visible": true
-        }
-      ]
-    },
-    {
-      "id": "fashion-policy",
-      "pageType": "policy",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "policy.content",
-        "legal.links"
-      ],
-      "sections": [
-        {
-          "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "policy.content"
-          ],
-          "id": "policy-main",
-          "required": true,
-          "settings": {},
-          "type": "core.policy",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
-          "required": true,
-          "settings": {},
-          "type": "fashion.footer",
-          "visible": true
-        }
-      ]
-    },
-    {
-      "id": "fashion-content",
-      "pageType": "content",
-      "requiredCapabilities": [
-        "navigation.primary",
-        "focus.skip-link",
-        "legal.links"
-      ],
-      "sections": [
-        {
-          "blocks": [],
-          "capabilities": [
-            "navigation.primary",
-            "focus.skip-link"
-          ],
-          "id": "site-navigation",
-          "required": true,
-          "settings": {},
-          "type": "fashion.header",
-          "visible": true
-        },
         {
           "blocks": [],
           "capabilities": [],
-          "id": "content-main",
-          "settings": {},
-          "type": "fashion.content-page",
-          "visible": true
-        },
-        {
-          "blocks": [],
-          "capabilities": [
-            "legal.links"
-          ],
-          "id": "site-footer",
+          "id": "fashion-store-product",
           "required": true,
           "settings": {},
-          "type": "fashion.footer",
+          "type": "fashion-store.product",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "fashion-store-cart",
+      "pageType": "cart",
+      "requiredCapabilities": [],
+      "sections": [
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-cart",
+          "required": true,
+          "settings": {},
+          "type": "fashion-store.cart",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "fashion-store-checkout",
+      "pageType": "checkout",
+      "requiredCapabilities": [],
+      "sections": [
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-checkout",
+          "required": true,
+          "settings": {},
+          "type": "fashion-store.checkout",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "fashion-store-content",
+      "pageType": "content",
+      "requiredCapabilities": [],
+      "sections": [
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-content",
+          "required": true,
+          "settings": {},
+          "type": "fashion-store.content",
           "visible": true
         }
       ]
     }
   ],
-  "themeId": "fashion",
+  "themeId": "fashion-store",
   "themeVersion": "1.0.0",
   "version": 1,
-  "approvedAt": "2026-07-30T00:00:00.000Z",
+  "approvedAt": "2026-08-06T00:00:00.000Z",
   "approvedBy": "fixture-operator",
   "kind": "approved"
 } as const satisfies ExperienceSnapshot;
 export const activeThemeRegistry = selectedThemeRegistry;
 export const activeThemeAssets = selectedThemeAssets;
 export const activeThemeFixtures = selectedThemeFixtures;
+export const activeThemeRoutes = selectedThemeRoutes;
 export const activePreviewOrigin = "https://preview.example.test";

@@ -1,10 +1,26 @@
 {
   "schemaVersion": 1,
   "canonicalViewports": [
-    { "id": "desktop", "width": 1440, "height": 1000 },
-    { "id": "laptop", "width": 1024, "height": 900 },
-    { "id": "tablet", "width": 768, "height": 1024 },
-    { "id": "mobile", "width": 390, "height": 844 }
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "laptop",
+      "width": 1024,
+      "height": 900
+    },
+    {
+      "id": "tablet",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
   ],
   "thresholds": {
     "channelTolerance": 16,
@@ -35,56 +51,472 @@
   ],
   "themes": [
     {
-      "id": "decor",
-      "equivalenceScope": ["home", "collection", "product"],
-      "sourceContractPath": "apps/storefront/app/themes/decor/source-contract.ts",
-      "upstreamPath": "apps/storefront/app/themes/decor/UPSTREAM.md",
-      "requiredContractFacets": ["sources", "regions", "font", "interactions"]
-    },
-    {
-      "id": "fashion",
+      "id": "fashion-store",
+      "acceptance": {
+        "browserConfig": "apps/storefront/playwright.fashion-store.config.ts",
+        "browserProject": "fashion-store-desktop",
+        "pageCommand": [
+          "bun",
+          "tools/run-fashion-store-acceptance.ts",
+          "--scope=page",
+          "--page={page}"
+        ],
+        "themeCommand": ["bun", "tools/run-fashion-store-acceptance.ts", "--scope=theme"]
+      },
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
       "equivalenceScope": [
         "home",
-        "about",
-        "account",
-        "article",
+        "shop-left",
+        "shop-none",
+        "shop-right",
+        "collection",
+        "product",
         "cart",
         "checkout",
-        "collection",
-        "collection-showcase",
-        "contact",
+        "wishlist",
+        "account",
+        "magazine",
+        "article",
+        "about",
         "faq",
-        "magazine-page",
-        "no-sidebar",
-        "product",
-        "right-sidebar",
-        "wishlist"
+        "contact"
       ],
-      "sourceContractPath": "apps/storefront/app/themes/fashion/source-contract.ts",
-      "upstreamPath": "apps/storefront/app/themes/fashion/UPSTREAM.md",
-      "requiredContractFacets": ["sources", "regions", "fonts", "interactions"]
+      "manifestExport": "fashionStoreManifest",
+      "manifestPath": "apps/storefront/app/themes/fashion-store/manifest.ts",
+      "pages": [
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "search-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "collection-slide-1",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "cart-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "marquee-paused",
+              "modes": ["temporal"]
+            },
+            {
+              "id": "scroll-progress-visible",
+              "modes": ["scroll-fixed"]
+            }
+          ],
+          "id": "home",
+          "implementationRoute": "/",
+          "implementationRuntimeReadySelector": "[data-fashion-store-source-parity][data-runtime-status='ready']",
+          "pageType": "home",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "homeSectionCount",
+            "regionOrder",
+            "stylesheetOrder"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/source-contract.ts",
+          "sourceEntry": "demo-fashion-store.html",
+          "sourceEntrySha256": "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465",
+          "sourceFirstHero": "images/demo-fashion-store-slider-01.jpg",
+          "sourceRegionsExport": "fashionStoreSourceRegions",
+          "sourceRuntimeReadySelector": ".swiper.slider-three-slide"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreShopLeftBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "focusedStates": [
+            {
+              "id": "shop-product-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "shop-left",
+          "implementationRoute": "/shop",
+          "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='left'][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "layoutMode",
+            "productCount",
+            "regionOrder",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "sourceEntry": "demo-fashion-store-shop.html",
+          "sourceEntrySha256": "1efb50af3ca47307a3c214457dacebb1493e97fb610dad5c28cc6c639c149af3",
+          "sourceRegionsExport": "fashionStoreShopLeftSourceRegions",
+          "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static"],
+          "behaviorContractExport": "fashionStoreShopNoneBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "focusedStates": [
+            {
+              "id": "shop-product-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "shop-none",
+          "implementationRoute": "/shop/no-sidebar",
+          "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='none'][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "layoutMode",
+            "productCount",
+            "regionOrder",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "sourceEntry": "demo-fashion-store-no-sidebar.html",
+          "sourceEntrySha256": "b4b91a8b91aac11fe333a1618e2923be8db5dafca734431dc897830ad8c29bc6",
+          "sourceRegionsExport": "fashionStoreShopNoneSourceRegions",
+          "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreShopRightBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "focusedStates": [
+            {
+              "id": "shop-product-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "shop-right",
+          "implementationRoute": "/shop/right-sidebar",
+          "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='right'][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "layoutMode",
+            "productCount",
+            "regionOrder",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
+          "sourceEntry": "demo-fashion-store-right-sidebar.html",
+          "sourceEntrySha256": "54d681fffdb48e25c230264a3fa896c12a488d3b3d817581d73a49784b6afbe9",
+          "sourceRegionsExport": "fashionStoreShopRightSourceRegions",
+          "sourceRuntimeReadySelector": ".grid:not(.grid-loading)"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreCollectionBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/collection.ts",
+          "focusedStates": [
+            {
+              "id": "collection-card-focus",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "collection",
+          "implementationRoute": "/collections",
+          "implementationRuntimeReadySelector": "[data-fashion-store-collection][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": ["cardCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/collection.ts",
+          "sourceEntry": "demo-fashion-store-collection.html",
+          "sourceEntrySha256": "66f7ef2c07925577063efb4a60355857f2a70af0cff1955648ec2ba1401e2f1d",
+          "sourceRegionsExport": "fashionStoreCollectionSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .categories-style-02"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreProductBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/product.ts",
+          "focusedStates": [
+            {
+              "id": "product-gallery-slide-2",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "product-size-m",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-reviews-tab",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "product",
+          "implementationRoute": "/products/relaxed-corduroy-shirt",
+          "implementationRuntimeReadySelector": "[data-fashion-store-product][data-runtime-status='ready']",
+          "pageType": "product",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "galleryCount",
+            "regionOrder",
+            "relatedCount",
+            "sourceSha256"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/product.ts",
+          "sourceEntry": "demo-fashion-store-single-product.html",
+          "sourceEntrySha256": "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
+          "sourceRegionsExport": "fashionStoreProductSourceRegions",
+          "sourceRuntimeReadySelector": ".product-image-slider.swiper-initialized"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreCartBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/cart.ts",
+          "focusedStates": [
+            {
+              "id": "cart-first-line-quantity-2",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cart-shipping-open",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "cart",
+          "implementationRoute": "/cart",
+          "implementationRuntimeReadySelector": "[data-fashion-store-cart][data-runtime-status='ready']",
+          "pageType": "cart",
+          "requiredContractFacets": ["lineCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/cart.ts",
+          "sourceEntry": "demo-fashion-store-cart.html",
+          "sourceEntrySha256": "fe60f6a7e897350e927a7b222eb8ea6c21c1598712a6784380eeeb487d8eca51",
+          "sourceRegionsExport": "fashionStoreCartSourceRegions",
+          "sourceRuntimeReadySelector": ".cart-products"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreCheckoutBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/checkout.ts",
+          "focusedStates": [
+            {
+              "id": "checkout-account-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "checkout-payment-paypal",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "checkout",
+          "implementationRoute": "/checkout",
+          "implementationRuntimeReadySelector": "[data-fashion-store-checkout][data-runtime-status='ready']",
+          "pageType": "checkout",
+          "requiredContractFacets": ["lineCount", "paymentCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/checkout.ts",
+          "sourceEntry": "demo-fashion-store-checkout.html",
+          "sourceEntrySha256": "372be1838b010706fd7f03981f4844bb21b5f1dd0978fa7444f8be8daaf38d0b",
+          "sourceRegionsExport": "fashionStoreCheckoutSourceRegions",
+          "sourceRuntimeReadySelector": ".your-order-box"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreWishlistBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/wishlist.ts",
+          "focusedStates": [
+            {
+              "id": "wishlist-first-product-actions",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "wishlist",
+          "implementationRoute": "/wishlist",
+          "implementationRuntimeReadySelector": "[data-fashion-store-wishlist][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["productCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/wishlist.ts",
+          "sourceEntry": "demo-fashion-store-wishlist.html",
+          "sourceEntrySha256": "b1531a70ce47ae1f79da4026ad918b8796582c4fdb1b2e852454b5306a3e13fc",
+          "sourceRegionsExport": "fashionStoreWishlistSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .shop-modern"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreAccountBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/account.ts",
+          "focusedStates": [
+            {
+              "id": "account-forms-ready",
+              "modes": ["static"]
+            }
+          ],
+          "id": "account",
+          "implementationRoute": "/account",
+          "implementationRuntimeReadySelector": "[data-fashion-store-account][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["formCount", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/account.ts",
+          "sourceEntry": "demo-fashion-store-account.html",
+          "sourceEntrySha256": "1b7c1cc83c0f224f8f95dec2ded2246a9ebcc52a7011acd3d5afcfdd4248da62",
+          "sourceRegionsExport": "fashionStoreAccountSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .row"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreMagazineBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/magazine.ts",
+          "focusedStates": [
+            {
+              "id": "magazine-grid-ready",
+              "modes": ["static"]
+            }
+          ],
+          "id": "magazine",
+          "implementationRoute": "/magazine",
+          "implementationRuntimeReadySelector": "[data-fashion-store-magazine][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["cardCount", "paginationActive", "regionOrder", "source"],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/magazine.ts",
+          "sourceEntry": "demo-fashion-store-magazine.html",
+          "sourceEntrySha256": "86283e48d94e8cd9de658b258690ad3a1b0f8b08b2c796e5a59f961d63a6e7fe",
+          "sourceRegionsExport": "fashionStoreMagazineSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .blog-classic"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreArticleBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/article.ts",
+          "focusedStates": [
+            {
+              "id": "article-body-ready",
+              "modes": ["static"]
+            }
+          ],
+          "id": "article",
+          "implementationRoute": "/magazine/marketing-tips-and-tricks",
+          "implementationRuntimeReadySelector": "[data-fashion-store-article][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": [
+            "commentCount",
+            "mediaCount",
+            "relatedCount",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/article.ts",
+          "sourceEntry": "demo-fashion-store-blog-single-creative.html",
+          "sourceEntrySha256": "48c7213781db41be93fe6ec46611995f308e3fef93bfef596a15fb8b01ad5c3a",
+          "sourceRegionsExport": "fashionStoreArticleSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) img"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static", "temporal"],
+          "behaviorContractExport": "fashionStoreAboutBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/about.ts",
+          "focusedStates": [
+            {
+              "id": "about-carousel-ready",
+              "modes": ["temporal", "interaction"]
+            }
+          ],
+          "id": "about",
+          "implementationRoute": "/about",
+          "implementationRuntimeReadySelector": "[data-fashion-store-about][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": [
+            "accordionCount",
+            "carouselImageCount",
+            "timelineCount",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/about.ts",
+          "sourceEntry": "demo-fashion-store-about.html",
+          "sourceEntrySha256": "4672c84511fd86b8f3466e1d5cac52a49be7d03b09bd2d0804782171da0dec6d",
+          "sourceRegionsExport": "fashionStoreAboutSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(4) .swiper"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreFaqBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/faq.ts",
+          "focusedStates": [
+            {
+              "id": "faq-secondary-tab",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "faq",
+          "implementationRoute": "/faq",
+          "implementationRuntimeReadySelector": "[data-fashion-store-faq][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": [
+            "categoryCount",
+            "questionsPerCategory",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/faq.ts",
+          "sourceEntry": "demo-fashion-store-faq.html",
+          "sourceEntrySha256": "7849b03b3b3e19beb204897d1dcc18ef2d33e525f9b6322488ee8000812ea8fa",
+          "sourceRegionsExport": "fashionStoreFaqSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) .tab-content"
+        },
+        {
+          "acceptanceAdapterExport": "fashionStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/fashion-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "static"],
+          "behaviorContractExport": "fashionStoreContactBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/contact.ts",
+          "focusedStates": [
+            {
+              "id": "contact-map-ready",
+              "modes": ["static"]
+            }
+          ],
+          "id": "contact",
+          "implementationRoute": "/contact",
+          "implementationRuntimeReadySelector": "[data-fashion-store-contact][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": [
+            "locationCount",
+            "markerCount",
+            "requiredFieldCount",
+            "regionOrder",
+            "source"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/contact.ts",
+          "sourceEntry": "demo-fashion-store-contact.html",
+          "sourceEntrySha256": "20c2fa93b6926d28e1683fe39e7acc36957bbfe4004dfec4b3772e9fdf41b668",
+          "sourceRegionsExport": "fashionStoreContactSourceRegions",
+          "sourceRuntimeReadySelector": "section:nth-of-type(2) img"
+        }
+      ],
+      "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"
     }
   ],
-  "waivers": [
-    {
-      "id": "decor-home-journal-accessible-contrast",
-      "approvedBy": "shoppp-theme-team",
-      "expiresAt": "2027-08-05T00:00:00.000Z",
-      "owner": "shoppp-theme-team",
-      "rationale": "The source gray fails the repository accessibility contrast requirement; geometry, typography, and all other properties remain source-equivalent.",
-      "regionId": "journal",
-      "routeId": "decor-home",
-      "themeId": "decor"
-    },
-    {
-      "id": "decor-home-services-accessible-contrast",
-      "approvedBy": "shoppp-theme-team",
-      "expiresAt": "2027-08-05T00:00:00.000Z",
-      "owner": "shoppp-theme-team",
-      "rationale": "The source gray fails the repository accessibility contrast requirement; geometry, typography, and all other properties remain source-equivalent.",
-      "regionId": "services",
-      "routeId": "decor-home",
-      "themeId": "decor"
-    }
-  ]
+  "waivers": []
 }

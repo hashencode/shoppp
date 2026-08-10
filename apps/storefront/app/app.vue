@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PageTemplate } from "@shoppp/contracts";
-
 import {
   activeExperienceSnapshot,
   activePreviewOrigin,
@@ -8,41 +6,72 @@ import {
   activeThemeFixtures,
   activeThemeId,
   activeThemeRegistry,
+  activeThemeRoutes,
 } from "./generated/active-theme";
 import { createThemeAssetResolver, mergeExperienceFixtureRegistries } from "./theme-engine/assets";
+import { resolveThemeRoute } from "./theme-engine/routes";
 import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
+import { useGuestCart } from "./features/cart/use-guest-cart";
+import { storeOrderAccess } from "./features/checkout/session";
+import type { PreviewActionAdapter } from "./theme-engine/actions";
+import type { PreviewCheckoutAdapter } from "./theme-engine/checkout";
 
 const selectedFixtures = mergeExperienceFixtureRegistries(
   experienceFixtureRegistry,
   activeThemeFixtures,
 );
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
+const {
+  add: addGuestCartLine,
+  beginCheckout,
+  ensure: ensureGuestCart,
+  remove: removeGuestCartLine,
+  shipping: quoteGuestCartShipping,
+  update: updateGuestCartLine,
+} = useGuestCart();
+const commerceApi = useCommerceApi();
+const previewActionAdapter: PreviewActionAdapter = async (dispatch) => {
+  if (dispatch.kind === "cart.add") {
+    return addGuestCartLine(dispatch.input, dispatch.currency);
+  }
+  if (dispatch.kind === "cart.remove") return removeGuestCartLine(dispatch.variantId);
+  if (dispatch.kind === "cart.shipping") return quoteGuestCartShipping(dispatch.input);
+  return updateGuestCartLine(dispatch.variantId, dispatch.input);
+};
+const previewCheckoutAdapter: PreviewCheckoutAdapter = {
+  begin: beginCheckout,
+  complete(session) {
+    storeOrderAccess({ attemptId: session.attemptId, token: session.orderAccessToken });
+    window.location.assign(session.checkoutUrl);
+  },
+  async configuration() {
+    return (await commerceApi.getPublicRuntimeConfiguration()).data;
+  },
+  async ensure() {
+    return ensureGuestCart();
+  },
+  shipping: quoteGuestCartShipping,
+};
 
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
-const contentRoutes = new Set(["/about", "/account", "/contact", "/faq", "/magazine", "/wishlist"]);
-const pageType = computed<PageTemplate["pageType"] | null>(() => {
-  const path = currentRoute.value.path.replace(/\/+$/, "") || "/";
-  if (path === "/") return "home";
-  if (path === "/cart") return "cart";
-  if (path.startsWith("/checkout")) return "checkout";
-  if (path.startsWith("/collections/")) return "collection";
-  if (path.startsWith("/orders/")) return "order";
-  if (path.startsWith("/policies/")) return "policy";
-  if (path.startsWith("/products/")) return "product";
-  if (contentRoutes.has(path) || path.startsWith("/magazine/")) return "content";
-  return null;
-});
+const pageContract = computed(() => resolveThemeRoute(currentRoute.value.path, activeThemeRoutes));
 const previewTemplate = computed(() =>
-  pageType.value
+  pageContract.value
     ? activeExperienceSnapshot?.resolvedTemplates.find(
-        (template) => template.pageType === pageType.value,
+        (template) => template.pageType === pageContract.value?.pageType,
       )
     : undefined,
 );
+const rendersPlatformRoute = computed(() => {
+  const path = currentRoute.value.path;
+  return (
+    path === "/checkout/complete" || path.startsWith("/orders/") || path.startsWith("/policies/")
+  );
+});
 const previewTitle = computed(() =>
-  pageType.value
+  pageContract.value
     ? {
         cart: "Preview bag",
         checkout: "Checkout presentation",
@@ -52,7 +81,7 @@ const previewTitle = computed(() =>
         order: "Order status presentation",
         policy: "Fixture policy",
         product: "Fixture product",
-      }[pageType.value]
+      }[pageContract.value.pageType]
     : "Page unavailable",
 );
 
@@ -73,12 +102,17 @@ if (activeExperienceSnapshot && previewOrigin) {
   <div class="app-shell">
     <ThemeRenderer
       v-if="previewTemplate"
+      :action-adapter="previewActionAdapter"
+      :checkout-adapter="previewCheckoutAdapter"
       :bindings="activeExperienceSnapshot?.bindings ?? []"
       :fixtures="selectedFixtures"
       :registry="activeThemeRegistry"
       :resolve-asset="resolveThemeAsset"
       :template="previewTemplate"
     />
+    <NuxtLayout v-else-if="activeExperienceSnapshot && rendersPlatformRoute">
+      <NuxtPage />
+    </NuxtLayout>
     <main v-else-if="activeExperienceSnapshot">
       <h1>Preview template unavailable</h1>
       <p>The selected theme does not declare this presentation surface.</p>

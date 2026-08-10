@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import { storefrontExperienceDraftInputSchema, themePackageSchema } from "@shoppp/contracts";
 
-import fashionFixture from "../../../storefront/fixtures/experience/fashion.json";
-import { fashionManifest } from "../../../storefront/app/themes/fashion/manifest";
-import { fashionPreset } from "../../../storefront/app/themes/fashion/presets/editorial";
+import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
+import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
+import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
 import { createApp } from "../../src/http/app";
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
@@ -58,11 +58,11 @@ function writeRequest(
 }
 
 const draftInput = storefrontExperienceDraftInputSchema.parse({
-  bindings: fashionFixture.bindings,
+  bindings: fashionStoreFixture.bindings,
   experienceId: "experience-api-fixture",
   overrides: [],
-  presetId: "editorial",
-  themeId: "fashion",
+  presetId: "source-parity",
+  themeId: "fashion-store",
   themeVersion: "1.0.0",
 });
 
@@ -130,6 +130,12 @@ describe("storefront experience API", () => {
           presetDefinitions: expect.any(Array),
           themeVersion: "1.0.0",
         },
+        {
+          fixtureBindings: expect.any(Array),
+          id: "fashion-store",
+          presetDefinitions: expect.any(Array),
+          themeVersion: "1.0.0",
+        },
       ],
     });
   });
@@ -151,13 +157,13 @@ describe("storefront experience API", () => {
       data: expect.arrayContaining([expect.objectContaining({ id: draftId })]),
     });
     const override = {
-      operations: [{ instanceId: "fashion-magazine", kind: "set-visibility", visible: false }],
-      presetId: "editorial",
+      operations: [{ instanceId: "fashion-store-home", kind: "set-visibility", visible: true }],
+      presetId: "source-parity",
       schemaVersion: 1,
-      templateId: "fashion-home",
+      templateId: "fashion-store-home",
     };
     const updateBody = {
-      bindings: fashionFixture.bindings,
+      bindings: fashionStoreFixture.bindings,
       expectedVersion: 1,
       overrides: [override],
       reason: "Hide one optional section and retain preset reset intent",
@@ -256,15 +262,15 @@ describe("storefront experience API", () => {
               {
                 operations: [
                   {
-                    instanceId: "fashion-hero",
+                    instanceId: "fashion-store-home",
                     kind: "set-setting",
                     settingId: "heading",
                     value: "<script>alert(1)</script>",
                   },
                 ],
-                presetId: "editorial",
+                presetId: "source-parity",
                 schemaVersion: 1,
-                templateId: "fashion-home",
+                templateId: "fashion-store-home",
               },
             ],
           },
@@ -282,15 +288,15 @@ describe("storefront experience API", () => {
         {
           operations: [
             {
-              instanceId: "fashion-hero",
+              instanceId: "fashion-store-home",
               kind: "set-setting",
               settingId: "heading",
               value: 42,
             },
           ],
-          presetId: "editorial",
+          presetId: "source-parity",
           schemaVersion: 1,
-          templateId: "fashion-home",
+          templateId: "fashion-store-home",
         },
       ],
     });
@@ -315,7 +321,7 @@ describe("storefront experience API", () => {
       overrides: [
         {
           operations: [{ instanceId: "product-main", kind: "set-visibility", visible: false }],
-          presetId: "editorial",
+          presetId: "source-parity",
           schemaVersion: 1,
           templateId: "fashion-product",
         },
@@ -330,7 +336,9 @@ describe("storefront experience API", () => {
     );
     expect(await validation.json()).toMatchObject({
       data: {
-        issues: expect.arrayContaining([expect.objectContaining({ code: "override_invalid" })]),
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: "unknown_template_override" }),
+        ]),
         status: "invalid",
       },
     });
@@ -381,7 +389,7 @@ describe("storefront experience API", () => {
       writeRequest(
         `/admin/storefront-experiences/drafts/${draftId}`,
         {
-          bindings: fashionFixture.bindings,
+          bindings: fashionStoreFixture.bindings,
           expectedVersion: 1,
           overrides: [],
           reason: "Advance the draft after its first validation",
@@ -506,31 +514,31 @@ describe("storefront experience API", () => {
 
   test("dry-runs an explicit schema migration, reports stable-ID conflicts, and preserves older snapshots", async () => {
     const sourcePackage = themePackageSchema.parse({
-      manifest: fashionManifest,
-      presets: [fashionPreset],
+      manifest: fashionStoreManifest,
+      presets: [fashionStorePreset],
     });
     const targetPackage = themePackageSchema.parse({
       manifest: {
-        ...fashionManifest,
+        ...fashionStoreManifest,
         configurationSchemaVersion: 2,
         themeVersion: "1.1.0",
       },
-      presets: [fashionPreset],
+      presets: [fashionStorePreset],
     });
     const conflictingPackage = themePackageSchema.parse({
       manifest: {
-        ...fashionManifest,
+        ...fashionStoreManifest,
         configurationSchemaVersion: 2,
         themeVersion: "1.2.0",
       },
       presets: [
         {
-          ...fashionPreset,
-          templates: fashionPreset.templates.map((template) =>
-            template.id === "fashion-home"
+          ...fashionStorePreset,
+          templates: fashionStorePreset.templates.map((template) =>
+            template.id === "fashion-store-home"
               ? {
                   ...template,
-                  sections: template.sections.filter(({ id }) => id !== "fashion-magazine"),
+                  sections: template.sections.filter(({ id }) => id !== "fashion-store-home"),
                 }
               : template,
           ),
@@ -549,7 +557,7 @@ describe("storefront experience API", () => {
             fromConfigurationSchemaVersion: 1,
             migrate: (overrides) =>
               overrides.map((override) => ({ ...override, schemaVersion: 2 })),
-            themeId: "fashion",
+            themeId: "fashion-store",
             toConfigurationSchemaVersion: 2,
           },
         ],
@@ -562,14 +570,14 @@ describe("storefront experience API", () => {
         {
           operations: [
             {
-              instanceId: "fashion-magazine",
+              instanceId: "fashion-store-home",
               kind: "set-visibility",
-              visible: false,
+              visible: true,
             },
           ],
-          presetId: "editorial",
+          presetId: "source-parity",
           schemaVersion: 1,
-          templateId: "fashion-home",
+          templateId: "fashion-store-home",
         },
       ],
     });
@@ -661,7 +669,7 @@ describe("storefront experience API", () => {
     expect(await conflict.json()).toMatchObject({
       data: {
         conflicts: expect.arrayContaining([
-          expect.objectContaining({ code: "instance-removed", instanceId: "fashion-magazine" }),
+          expect.objectContaining({ code: "instance-removed", instanceId: "fashion-store-home" }),
         ]),
       },
     });
@@ -723,7 +731,7 @@ describe("storefront experience API", () => {
         id: first.data.snapshot.id,
         kind: "preview",
       },
-      themeId: "fashion",
+      themeId: "fashion-store",
     });
 
     const failed = await app.fetch(

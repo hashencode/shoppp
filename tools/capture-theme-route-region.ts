@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { chromium, type Browser, type Page } from "@playwright/test";
+import { chromium, type Browser, type Page, type Route } from "@playwright/test";
 import sharp from "../apps/storefront/node_modules/sharp";
 
 import {
@@ -16,11 +16,16 @@ import {
   type SourceContractProbe,
   type SourceContractSnapshot,
 } from "../apps/storefront/e2e/support/theme-source-contract";
-import { deterministicCaptureCss } from "../apps/storefront/e2e/support/theme-capture-contract";
+import {
+  captureCssForMode,
+  captureModePreservesTarget,
+} from "../apps/storefront/e2e/support/theme-capture-contract";
+import type { ThemeAcceptanceMode } from "../apps/storefront/e2e/support/theme-behavior-contract";
 import {
   assertThemeScreenshotDifference,
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
+import { waitForSemanticReadiness } from "../apps/storefront/e2e/support/theme-acceptance-readiness";
 import { acquireCaptureLease } from "./theme-capture-resource-guard";
 
 const computedStyleProperties = [
@@ -95,30 +100,126 @@ function url(base: string, path: string): string {
   return new URL(path.replace(/^\//, ""), base.endsWith("/") ? base : `${base}/`).href;
 }
 
-async function stabilize(page: Page): Promise<void> {
-  await page.addStyleTag({ content: deterministicCaptureCss });
-  await page.addStyleTag({
-    content: ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; }",
-  });
-  await page.evaluate(async () => {
-    document.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
-      image.loading = "eager";
+function fashionStoreCheckoutCaptureCart() {
+  const shippingMethods = [
+    ["ship_01J00000000000000000000000", "Free shipping", 0],
+    ["ship_01J00000000000000000000001", "Flat", 1_200],
+    ["ship_01J00000000000000000000002", "Local pickup", 0],
+  ] as const;
+  return {
+    adjustments: [],
+    canCheckout: true,
+    currency: "USD",
+    expiresAt: "2026-08-08T00:00:00.000Z",
+    id: "cart_01J00000000000000000000000",
+    lines: [
+      ["Textured sweater", "Pink", 1, 2_300, "var_01J00000000000000000000000"],
+      ["Bermuda shorts", "Brown", 2, 3_500, "var_01J00000000000000000000001"],
+      ["Pocket sweatshirt", "White", 1, 1_500, "var_01J00000000000000000000002"],
+    ].map(([productName, variantName, quantity, unitAmount, variantId]) => ({
+      availableQuantity: 20,
+      lineTotal: { amount: Number(unitAmount) * Number(quantity), currency: "USD" },
+      productName: String(productName),
+      quantity: Number(quantity),
+      unitPrice: { amount: Number(unitAmount), currency: "USD" },
+      variantId: String(variantId),
+      variantName: String(variantName),
+    })),
+    selectedShippingMethodId: shippingMethods[0][0],
+    shippingAddress: null,
+    shippingMethods: shippingMethods.map(([id, name, amount]) => ({
+      amount,
+      currency: "USD",
+      estimatedDaysMax: 5,
+      estimatedDaysMin: 3,
+      id,
+      name,
+    })),
+    totals: {
+      discountTotal: 0,
+      grandTotal: 40_500,
+      shippingTotal: 0,
+      subtotal: 40_500,
+      taxTotal: 1_929,
+    },
+  };
+}
+
+async function fulfillFashionStoreCheckoutCaptureApi(route: Route): Promise<void> {
+  const request = route.request();
+  const path = new URL(request.url()).pathname;
+  if (path === "/api/platform/config") {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { data: { turnstile: { required: false, siteKey: null } } },
     });
-    await document.fonts.ready;
-    await Promise.race([
-      Promise.all([...document.images].map((image) => image.decode().catch(() => undefined))),
-      new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 2_000)),
-    ]);
+    return;
+  }
+  if (path === "/api/cart") {
+    const cart = fashionStoreCheckoutCaptureCart();
+    await route.fulfill({
+      contentType: "application/json",
+      json:
+        request.method() === "POST"
+          ? { data: { cart, token: "capture_cart_token" } }
+          : { data: cart },
+    });
+    return;
+  }
+  await route.continue();
+}
+
+async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
+  const captureCss = captureCssForMode(mode);
+  await page.addStyleTag({ content: captureCss });
+  await page.addStyleTag({
+    content:
+      ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; } [data-parallax-background-ratio], .fashion-contact-parallax { background-attachment: scroll !important; background-position: center center !important; } [data-bottom-top], [data-top-bottom], .animation-rotation { animation: none !important; transform: none !important; }",
+  });
+  await waitForSemanticReadiness(page, { imageTimeoutMs: 2_000, timeoutMs: 15_000 });
+  await page.evaluate(() => {
+    document.querySelectorAll<HTMLElement>("[data-shadow-animation]").forEach((element) => {
+      element.classList.add("shadow-in");
+      element.style.setProperty("transition", "none", "important");
+      element.querySelectorAll<HTMLElement>("img").forEach((image) => {
+        image.style.setProperty("opacity", "1", "important");
+        image.style.setProperty("transition", "none", "important");
+      });
+    });
+    document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideTo?(index: number, speed?: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      if (element.matches(".shop-sidebar .slider-one-slide")) {
+        swiper?.slideTo?.(0, 0, false);
+        // The implementation owns its arrivals autoplay outside Swiper. Hovering
+        // pauses that timer before the longer image/font stabilization can cross
+        // its first tick and expose a different slide than the frozen source.
+        element.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+      }
+    });
     scrollTo(0, 0);
   });
+  if (
+    mode !== "temporal" &&
+    (await page.locator(`[data-anime*='"effect": "slide"']`).count()) > 0
+  ) {
+    await page.waitForTimeout(2_100);
+  }
   await page.waitForTimeout(100);
-  await page.addStyleTag({ content: deterministicCaptureCss });
-  await page.evaluate(() => {
+  await page.addStyleTag({ content: captureCss });
+  await page.evaluate((preserveMotion) => {
     document
       .querySelectorAll<HTMLElement>("[data-anime], .appear, .anime-complete, [data-source-reveal]")
       .forEach((element) => {
         element.style.setProperty("opacity", "1", "important");
-        element.style.setProperty("transform", "none", "important");
+        if (!preserveMotion) element.style.setProperty("transform", "none", "important");
         element.style.setProperty("visibility", "visible", "important");
       });
     dispatchEvent(new Event("resize"));
@@ -137,8 +238,8 @@ async function stabilize(page: Page): Promise<void> {
         isotopeGrid.isotope?.("layout");
       });
     scrollTo(0, 0);
-  });
-  await page.waitForTimeout(100);
+  }, mode === "temporal");
+  await waitForSemanticReadiness(page, { imageTimeoutMs: 1_000, timeoutMs: 5_000 });
 }
 
 async function stabilizeProductGallery(page: Page, source: boolean): Promise<void> {
@@ -165,16 +266,41 @@ async function stabilizeProductGallery(page: Page, source: boolean): Promise<voi
   }
   await page.evaluate(() => {
     document
-      .querySelector<HTMLElement>(".fashion-product-gallery-stage")
+      .querySelector<HTMLElement>(".product-image-slider")
       ?.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
   });
   await page.waitForTimeout(350);
   await page.evaluate(() => {
-    document.querySelector<HTMLButtonElement>(".fashion-product-thumbs button")?.click();
+    document.querySelector<HTMLButtonElement>(".product-image-thumb button")?.click();
     scrollTo(0, 0);
   });
   await page.waitForTimeout(350);
   await page.evaluate(() => scrollTo(0, 0));
+}
+
+async function stabilizeFashionStoreShopArrivals(page: Page, source: boolean): Promise<void> {
+  await page.evaluate((sourceSide) => {
+    const slider = document.querySelector<HTMLElement>(".shop-sidebar .slider-one-slide");
+    if (!slider) return;
+    slider.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+    if (sourceSide) {
+      const swiper = (
+        slider as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideTo?(index: number, speed?: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideTo?.(0, 0, false);
+      return;
+    }
+    const currentIndex = Number(slider.dataset.arrivalIndex ?? "0");
+    const previous = document.querySelector<HTMLElement>(".shop-sidebar .slider-one-slide-prev-1");
+    for (let index = 0; index < currentIndex; index += 1) previous?.click();
+  }, source);
+  await page.waitForTimeout(100);
 }
 
 async function stabilizeDecorHero(page: Page, source: boolean): Promise<void> {
@@ -288,6 +414,202 @@ async function stabilizeDecorMarquee(page: Page, source: boolean): Promise<void>
     track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + targetX - text.x}, ${
       matrix.f + Math.round(text.y) - text.y
     })`;
+  }, source);
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreHero(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(1) .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0, true);
+    });
+    await page.waitForFunction(() =>
+      document
+        .querySelector('section:nth-of-type(1) .swiper-slide[data-swiper-slide-index="0"]')
+        ?.classList.contains("swiper-slide-active"),
+    );
+    // The source runtime restarts its slide reveal after slideToLoop(), even at
+    // zero Swiper speed. Wait for that reveal before recording geometry so the
+    // contract and screenshot observe the same settled frame.
+    await page.waitForTimeout(2_100);
+    await page.locator("section:nth-of-type(1) .swiper").evaluate((element: HTMLElement) => {
+      const targetHeight = innerWidth >= 992 ? innerHeight : innerWidth >= 576 ? 600 : 500;
+      element.style.setProperty("height", `${targetHeight}px`, "important");
+      element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
+        slide.style.setProperty("height", `${targetHeight}px`, "important");
+      });
+    });
+  } else {
+    await page.locator('[data-fashion-store-slide="0"]').evaluate((button: HTMLButtonElement) => {
+      button.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const hero = document.querySelector<HTMLElement>("#fashion-store-main .swiper");
+        return hero?.dataset.motionActiveIndex === "0" && hero.dataset.motionPhase === "idle";
+      },
+      undefined,
+      { timeout: 6_000 },
+    );
+  }
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreMarquee(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(9) .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0);
+    });
+    await page.waitForTimeout(100);
+  }
+  await page.evaluate((sourceSide) => {
+    const root = document.querySelector<HTMLElement>("section:nth-of-type(9)");
+    const track = root?.querySelector<HTMLElement>(
+      sourceSide ? ".swiper-wrapper" : "[data-fashion-store-marquee]",
+    );
+    if (!track) return;
+    const slides = [...track.querySelectorAll<HTMLElement>(":scope > .swiper-slide")];
+    const canonicalSlides = sourceSide
+      ? [0, 1, 2].map((index) =>
+          slides.find((slide) => slide.dataset.swiperSlideIndex === String(index)),
+        )
+      : slides.slice(0, 3);
+    if (canonicalSlides.some((slide) => !slide)) return;
+    for (const slide of slides) slide.style.setProperty("display", "none", "important");
+    canonicalSlides.forEach((slide, index) => {
+      slide!.style.setProperty("display", "block", "important");
+      slide!.style.setProperty("order", String(index), "important");
+      slide!.style.setProperty("margin-left", "0px", "important");
+    });
+    track.style.setProperty("animation", "none", "important");
+    track.style.setProperty("transition", "none", "important");
+    track.style.setProperty("transform", "none", "important");
+    const targetX = Math.round(innerWidth * 0.31);
+    const trackRect = track.getBoundingClientRect();
+    canonicalSlides[0]!.style.setProperty(
+      "margin-left",
+      `${targetX - trackRect.left}px`,
+      "important",
+    );
+  }, source);
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreAboutCarousel(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(4) .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0, true);
+    });
+  } else {
+    const carousel = page.locator(".fashion-about-carousel");
+    const current = Number(
+      (await page.locator("[data-fashion-store-about]").getAttribute("data-carousel-index")) ?? 0,
+    );
+    for (let index = 0; index < current; index += 1) await carousel.press("ArrowLeft");
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector("[data-fashion-store-about]")
+          ?.getAttribute("data-carousel-index") === "0",
+    );
+  }
+  await page.evaluate((sourceSide) => {
+    const root = document.querySelector<HTMLElement>(
+      sourceSide ? "section:nth-of-type(4)" : ".fashion-about-carousel-section",
+    );
+    const track = root?.querySelector<HTMLElement>(
+      sourceSide ? ".swiper-wrapper" : ".fashion-about-carousel-track",
+    );
+    if (!track) return;
+    const slides = [
+      ...track.querySelectorAll<HTMLElement>(
+        sourceSide ? ":scope > .swiper-slide" : ":scope > .fashion-about-carousel-slide",
+      ),
+    ];
+    const gap = sourceSide
+      ? Number.parseFloat(getComputedStyle(slides[0]!).marginRight) || 0
+      : Number.parseFloat(getComputedStyle(track).gap) || 0;
+    track.style.gap = "0px";
+    for (const slide of slides) {
+      const width = slide.getBoundingClientRect().width;
+      slide.style.flex = `0 0 ${width}px`;
+      slide.style.width = `${width}px`;
+      slide.style.marginRight = `${gap}px`;
+    }
+  }, source);
+  await page.waitForTimeout(100);
+}
+
+async function stabilizeFashionStoreAboutBrands(page: Page, source: boolean): Promise<void> {
+  if (source) {
+    await page.locator("section:nth-of-type(6) .clients-style-08 .swiper").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: {
+            autoplay?: { stop(): void };
+            slideToLoop?(index: number, speed: number, runCallbacks?: boolean): void;
+          };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideToLoop?.(0, 0, true);
+    });
+    await page.waitForTimeout(100);
+  }
+  await page.evaluate((sourceSide) => {
+    const root = document.querySelector<HTMLElement>(
+      sourceSide ? "section:nth-of-type(6)" : ".fashion-about-mission",
+    );
+    const track = root?.querySelector<HTMLElement>(
+      sourceSide ? ".clients-style-08 .swiper-wrapper" : ".fashion-about-brand-track",
+    );
+    const candidates = [
+      ...(root?.querySelectorAll<HTMLElement>(
+        sourceSide
+          ? '.clients-style-08 .swiper-slide[data-swiper-slide-index="0"]'
+          : ".fashion-about-brand-track > div:first-child",
+      ) ?? []),
+    ];
+    if (!track || candidates.length === 0) return;
+    track.style.animation = "none";
+    track.style.transition = "none";
+    const targetX = Math.round(innerWidth * 0.18);
+    const item = candidates.reduce((closest, candidate) =>
+      Math.abs(candidate.getBoundingClientRect().x - targetX) <
+      Math.abs(closest.getBoundingClientRect().x - targetX)
+        ? candidate
+        : closest,
+    );
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(track).transform);
+    const itemRect = item.getBoundingClientRect();
+    track.style.transform = `matrix(1, 0, 0, 1, ${matrix.e + targetX - itemRect.x}, 0)`;
   }, source);
   await page.waitForTimeout(100);
 }
@@ -409,6 +731,22 @@ export function equivalentRoundedSectionTarget(
   )
     return null;
   return { left: Math.round(sourceRect.left), top: Math.round(sourceRect.top) };
+}
+
+export function regionFitsAtDocumentOrigin(bounds: {
+  documentLeft: number;
+  documentTop: number;
+  height: number;
+  viewportHeight: number;
+  viewportWidth: number;
+  width: number;
+}): boolean {
+  return (
+    bounds.documentLeft >= 0 &&
+    bounds.documentTop >= 0 &&
+    bounds.documentLeft + bounds.width <= bounds.viewportWidth &&
+    bounds.documentTop + bounds.height <= bounds.viewportHeight
+  );
 }
 
 async function alignDecorHomeFullPageSections(source: Page, implementation: Page): Promise<void> {
@@ -762,26 +1100,6 @@ function localizeContract(
   };
 }
 
-async function normalizeRegionCaptureOrigin(page: Page, selector: string): Promise<void> {
-  await page
-    .locator(selector)
-    .first()
-    .evaluate((root: HTMLElement) => {
-      const rect = root.getBoundingClientRect();
-      const stablePhase = (size: number): number => {
-        const fraction = size - Math.floor(size);
-        if (fraction < 0.0001 || 1 - fraction < 0.0001) return 0;
-        return Math.min(0.25, (1 - fraction) / 2);
-      };
-      // Avoid placing a fractional box edge directly on an integer boundary. CSS
-      // serialization can otherwise move equivalent documents to opposite sides of
-      // that boundary and make locator screenshots differ by one output pixel.
-      const x = Math.floor(rect.left) + stablePhase(rect.width) - rect.left;
-      const y = Math.floor(rect.top) + stablePhase(rect.height) - rect.top;
-      root.style.setProperty("translate", `${x}px ${y}px`, "important");
-    });
-}
-
 async function normalizeRegionCaptureHeight(page: Page, selector: string): Promise<void> {
   await page
     .locator(selector)
@@ -796,6 +1114,132 @@ async function normalizeRegionCaptureHeight(page: Page, selector: string): Promi
       if (roundedHeight - height <= 0.1)
         root.style.setProperty("height", `${roundedHeight}px`, "important");
     });
+}
+
+async function settleRegionInViewport(page: Page, selector: string): Promise<void> {
+  await page.locator(selector).first().scrollIntoViewIfNeeded();
+  await page
+    .locator(selector)
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      if (rect.height <= innerHeight) {
+        if (rect.bottom > innerHeight) scrollBy(0, Math.ceil(rect.bottom - innerHeight));
+        else if (rect.top < 0) scrollBy(0, Math.floor(rect.top));
+      }
+      if (rect.width <= innerWidth) {
+        if (rect.right > innerWidth) scrollBy(Math.ceil(rect.right - innerWidth), 0);
+        else if (rect.left < 0) scrollBy(Math.floor(rect.left), 0);
+      }
+    });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolvePromise) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+      ),
+  );
+}
+
+async function normalizeRegionFractionalOrigin(page: Page, selector: string): Promise<void> {
+  await page
+    .locator(selector)
+    .first()
+    .evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const x = Math.floor(rect.left) - rect.left;
+      const y = Math.floor(rect.top) - rect.top;
+      if (getComputedStyle(element).position === "static") element.style.position = "relative";
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+    });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolvePromise) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+      ),
+  );
+}
+
+async function captureRegionScreenshot(page: Page, selector: string, path: string): Promise<void> {
+  let bounds = await page
+    .locator(selector)
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        documentLeft: rect.left + scrollX,
+        documentTop: rect.top + scrollY,
+        height: rect.height,
+        left: rect.left,
+        top: rect.top,
+        viewportHeight: innerHeight,
+        viewportWidth: innerWidth,
+        width: rect.width,
+      };
+    });
+  const density = await page.evaluate(() => devicePixelRatio);
+  const fullPage = bounds.height > bounds.viewportHeight || bounds.width > bounds.viewportWidth;
+  const captureFromDocumentOrigin = !fullPage && regionFitsAtDocumentOrigin(bounds);
+  if (fullPage || captureFromDocumentOrigin) {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolvePromise) => {
+          document.documentElement.style.setProperty("scroll-behavior", "auto", "important");
+          document.body.style.setProperty("scroll-behavior", "auto", "important");
+          scrollTo({ behavior: "auto", left: 0, top: 0 });
+          requestAnimationFrame(() => {
+            scrollTo(0, 0);
+            requestAnimationFrame(() => resolvePromise());
+          });
+        }),
+    );
+    await page.waitForFunction(() => scrollX === 0 && scrollY === 0);
+    bounds = await page
+      .locator(selector)
+      .first()
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          documentLeft: rect.left + scrollX,
+          documentTop: rect.top + scrollY,
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
+          viewportHeight: innerHeight,
+          viewportWidth: innerWidth,
+          width: rect.width,
+        };
+      });
+  }
+  const screenshot = await page.screenshot({ animations: "allow", fullPage });
+  const left = fullPage ? bounds.documentLeft : bounds.left;
+  const top = fullPage ? bounds.documentTop : bounds.top;
+  const cropLeft = Math.floor(left * density);
+  const cropTop = Math.floor(top * density);
+  const cropWidth = Math.ceil(bounds.width * density);
+  const cropHeight = Math.ceil(bounds.height * density);
+  const metadata = await sharp(screenshot).metadata();
+  const screenshotWidth = metadata.width ?? 0;
+  const screenshotHeight = metadata.height ?? 0;
+  const clampedLeft = Math.max(0, Math.min(cropLeft, screenshotWidth - 1));
+  const clampedTop = Math.max(0, Math.min(cropTop, screenshotHeight - 1));
+  const clampedRight = Math.max(
+    clampedLeft + 1,
+    Math.min(clampedLeft + cropWidth, screenshotWidth),
+  );
+  const clampedBottom = Math.max(
+    clampedTop + 1,
+    Math.min(clampedTop + cropHeight, screenshotHeight),
+  );
+  await sharp(screenshot)
+    .extract({
+      height: clampedBottom - clampedTop,
+      left: clampedLeft,
+      top: clampedTop,
+      width: clampedRight - clampedLeft,
+    })
+    .png()
+    .toFile(path);
 }
 
 async function normalizeEquivalentRegionScreenshotDimensions(
@@ -907,6 +1351,8 @@ function compareImageDiagnostics(
 }
 
 export async function captureThemeRouteRegion(options: {
+  artifactDigest: string;
+  captureMode?: ThemeAcceptanceMode;
   commit: string;
   density: FidelityDensity;
   implementationOrigin: string;
@@ -924,6 +1370,14 @@ export async function captureThemeRouteRegion(options: {
     throw new Error(`${options.routeId} does not declare viewport ${options.viewportId}.`);
   if (!route.densities.includes(options.density))
     throw new Error(`${options.routeId} does not declare DPR ${options.density}.`);
+  const captureMode = options.captureMode ?? "static";
+  if (
+    !captureModePreservesTarget(captureMode, region.sourceSelector) ||
+    !captureModePreservesTarget(captureMode, region.implementationSelector)
+  )
+    throw new Error(
+      `${options.routeId}/${options.regionId}: ${captureMode} capture CSS hides the target control.`,
+    );
 
   const viewport = fidelityMatrixViewports[options.viewportId];
   const outputRoot = resolve(
@@ -939,23 +1393,35 @@ export async function captureThemeRouteRegion(options: {
   const lease = await acquireCaptureLease({
     origins: [sourceUrl, implementationUrl],
     outputRoot,
-    requestedWorkers: 1,
+    requestedWorkers: 2,
   });
-  let browser: Browser | undefined;
+  let sourceBrowser: Browser | undefined;
+  let implementationBrowser: Browser | undefined;
   const failures: string[] = [];
   try {
-    browser = await chromium.launch(
-      process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-        : undefined,
-    );
-    const context = await browser.newContext({
+    const launchOptions = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : undefined;
+    [sourceBrowser, implementationBrowser] = await Promise.all([
+      chromium.launch(launchOptions),
+      chromium.launch(launchOptions),
+    ]);
+    const contextOptions = {
       deviceScaleFactor: options.density,
-      reducedMotion: "reduce",
+      reducedMotion: captureMode === "temporal" ? "no-preference" : "reduce",
       viewport,
-    });
-    const source = await context.newPage();
-    const implementation = await context.newPage();
+    } as const;
+    const [sourceContext, implementationContext] = await Promise.all([
+      sourceBrowser.newContext(contextOptions),
+      implementationBrowser.newContext(contextOptions),
+    ]);
+    const [source, implementation] = await Promise.all([
+      sourceContext.newPage(),
+      implementationContext.newPage(),
+    ]);
+    if (options.routeId === "fashion-store-checkout") {
+      await implementation.route("**/api/**", fulfillFashionStoreCheckoutCaptureApi);
+    }
     await source.route("https://via.placeholder.com/**", (route) =>
       route.fulfill({ body: "", contentType: "image/png", status: 204 }),
     );
@@ -976,19 +1442,65 @@ export async function captureThemeRouteRegion(options: {
         }),
       ]);
       await hydrateSourcePlaceholderImages(source);
-      await Promise.all([stabilize(source), stabilize(implementation)]);
+      await Promise.all([stabilize(source, captureMode), stabilize(implementation, captureMode)]);
+      if (
+        options.routeId === "fashion-store-shop-left" ||
+        options.routeId === "fashion-store-shop-right"
+      )
+        await Promise.all([
+          stabilizeFashionStoreShopArrivals(source, true),
+          stabilizeFashionStoreShopArrivals(implementation, false),
+        ]);
       source.on("pageerror", (error) => runtimeErrors.push(`source page error: ${error.message}`));
       source.on("console", (message) => {
         if (message.type() === "error")
           runtimeErrors.push(`source console error: ${message.text()}`);
       });
-      if (options.routeId === "fashion-product")
+      if (options.routeId === "fashion-store-product")
         await Promise.all([
           stabilizeProductGallery(source, true),
           stabilizeProductGallery(implementation, false),
         ]);
       const decorHomeFullPage =
         options.routeId === "decor-home" && options.regionId === "full-page";
+      const fashionStoreHomeFullPage =
+        options.routeId === "fashion-store-home" && options.regionId === "full-page";
+      const fashionStoreAboutFullPage =
+        options.routeId === "fashion-store-about" && options.regionId === "full-page";
+      if (options.routeId === "fashion-store-about")
+        await Promise.all([source.waitForTimeout(1_600), implementation.waitForTimeout(1_600)]);
+      if (
+        options.routeId === "fashion-store-home" &&
+        (options.regionId === "hero" || fashionStoreHomeFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreHero(source, true),
+          stabilizeFashionStoreHero(implementation, false),
+        ]);
+      if (
+        options.routeId === "fashion-store-home" &&
+        (options.regionId === "marquee" || fashionStoreHomeFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreMarquee(source, true),
+          stabilizeFashionStoreMarquee(implementation, false),
+        ]);
+      if (
+        options.routeId === "fashion-store-about" &&
+        (options.regionId === "carousel" || fashionStoreAboutFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreAboutCarousel(source, true),
+          stabilizeFashionStoreAboutCarousel(implementation, false),
+        ]);
+      if (
+        options.routeId === "fashion-store-about" &&
+        (options.regionId === "mission" || fashionStoreAboutFullPage)
+      )
+        await Promise.all([
+          stabilizeFashionStoreAboutBrands(source, true),
+          stabilizeFashionStoreAboutBrands(implementation, false),
+        ]);
       if (options.routeId === "decor-home" && (options.regionId === "hero" || decorHomeFullPage))
         await Promise.all([
           stabilizeDecorHero(source, true),
@@ -1133,14 +1645,18 @@ export async function captureThemeRouteRegion(options: {
       if (!fullPage)
         await Promise.all([
           source.addStyleTag({
-            content: ".sticky-wrap, .scroll-progress { visibility: hidden !important; }",
+            content: `.sticky-wrap, .scroll-progress${region.id === "cookie" ? "" : ", .cookie-message"} { visibility: hidden !important; }${region.id === "header" ? "" : " header { display: none !important; }"}`,
           }),
           implementation.addStyleTag({
-            content:
-              ".decor-sticky-actions, .decor-scroll-progress { visibility: hidden !important; }",
+            content: `.sticky-wrap, .scroll-progress, .decor-sticky-actions, .decor-scroll-progress${region.id === "cookie" ? "" : ", .cookie-message"} { visibility: hidden !important; }${region.id === "header" ? "" : " header { display: none !important; }"}`,
           }),
         ]);
-      if (region.kind !== "full-page-smoke") {
+      const mutuallyHidden =
+        region.kind !== "full-page-smoke" &&
+        !(await source.locator(region.sourceSelector).first().isVisible()) &&
+        !(await implementation.locator(region.implementationSelector).first().isVisible());
+
+      if (region.kind !== "full-page-smoke" && !mutuallyHidden) {
         const [sourceOcclusion, implementationOcclusion] = await Promise.all([
           regionOcclusion(source, region.sourceSelector),
           regionOcclusion(implementation, region.implementationSelector),
@@ -1166,20 +1682,100 @@ export async function captureThemeRouteRegion(options: {
           ]);
       }
 
-      if (region.kind !== "full-page-smoke") {
+      if (region.kind !== "full-page-smoke" && !mutuallyHidden) {
         await Promise.all([
-          source.locator(region.sourceSelector).first().scrollIntoViewIfNeeded(),
-          implementation.locator(region.implementationSelector).first().scrollIntoViewIfNeeded(),
+          settleRegionInViewport(source, region.sourceSelector),
+          settleRegionInViewport(implementation, region.implementationSelector),
         ]);
+        const sourceSlideEffects = source.locator(
+          `${region.sourceSelector}[data-anime*='"effect": "slide"'], ${region.sourceSelector} [data-anime*='"effect": "slide"']`,
+        );
+        if ((await sourceSlideEffects.count()) > 0) {
+          await source.waitForTimeout(2_100);
+          await sourceSlideEffects.evaluateAll((elements) => {
+            for (const element of elements as HTMLElement[]) {
+              element.style.setProperty("background", "transparent", "important");
+              element
+                .querySelectorAll<HTMLElement>(":scope > div:not([class])")
+                .forEach((overlay) => overlay.remove());
+              element.querySelectorAll<HTMLElement>("img").forEach((image) => {
+                image.style.setProperty("clip-path", "none", "important");
+                image.style.setProperty("opacity", "1", "important");
+                image.style.setProperty("transform", "none", "important");
+                image.style.setProperty("visibility", "visible", "important");
+              });
+            }
+          });
+        }
+        await Promise.all(
+          [source, implementation].map((page) =>
+            page.locator(".animation-rotation").evaluateAll((elements) => {
+              for (const element of elements as HTMLElement[])
+                element.style.setProperty("display", "none", "important");
+            }),
+          ),
+        );
+        if (options.routeId === "fashion-store-about")
+          await Promise.all([
+            source
+              .locator("section:nth-of-type(6) .w-75.position-relative > [data-bottom-top]")
+              .evaluateAll((elements) => {
+                for (const element of elements as HTMLElement[])
+                  element.style.setProperty("display", "none", "important");
+              }),
+            implementation.locator(".fashion-about-mission-seal").evaluateAll((elements) => {
+              for (const element of elements as HTMLElement[])
+                element.style.setProperty("display", "none", "important");
+            }),
+          ]);
+        if (options.routeId === "fashion-store-contact" && region.id === "map")
+          await Promise.all([
+            source.locator(`${region.sourceSelector} .video-icon-box`).evaluateAll((elements) => {
+              for (const element of elements as HTMLElement[])
+                element.style.setProperty("visibility", "hidden", "important");
+            }),
+            implementation
+              .locator(`${region.implementationSelector} .fashion-contact-marker`)
+              .evaluateAll((elements) => {
+                for (const element of elements as HTMLElement[])
+                  element.style.setProperty("visibility", "hidden", "important");
+              }),
+          ]);
+        await Promise.all([
+          normalizeRegionFractionalOrigin(source, region.sourceSelector),
+          normalizeRegionFractionalOrigin(implementation, region.implementationSelector),
+        ]);
+        if (options.routeId === "fashion-store-home" && region.id === "collection")
+          await Promise.all(
+            [
+              [source, region.sourceSelector],
+              [implementation, region.implementationSelector],
+            ].map(([page, selector]) =>
+              (page as Page)
+                .locator(`${selector as string} .image-content .mt-auto`)
+                .evaluateAll((elements) => {
+                  for (const element of elements as HTMLElement[]) {
+                    const title = element.querySelector<HTMLElement>(".fs-22");
+                    if (!title) continue;
+                    const slide = element.closest<HTMLElement>(".swiper-slide");
+                    const track = element.closest<HTMLElement>(".swiper-wrapper");
+                    slide?.style.setProperty("transform", "none", "important");
+                    slide?.style.setProperty("will-change", "auto", "important");
+                    track?.style.setProperty("transform", "none", "important");
+                    track?.style.setProperty("will-change", "auto", "important");
+                    const rect = title.getBoundingClientRect();
+                    if (getComputedStyle(element).position === "static")
+                      element.style.position = "relative";
+                    element.style.top = `${Math.round(rect.top) - rect.top}px`;
+                  }
+                }),
+            ),
+          );
         if (region.normalizeFractionalCaptureHeight)
           await Promise.all([
             normalizeRegionCaptureHeight(source, region.sourceSelector),
             normalizeRegionCaptureHeight(implementation, region.implementationSelector),
           ]);
-        await Promise.all([
-          normalizeRegionCaptureOrigin(source, region.sourceSelector),
-          normalizeRegionCaptureOrigin(implementation, region.implementationSelector),
-        ]);
       }
 
       const captureBounds =
@@ -1223,16 +1819,29 @@ export async function captureThemeRouteRegion(options: {
           fullPage: true,
           path: implementationPath,
         });
+      } else if (mutuallyHidden) {
+        const transparentPixel = await sharp({
+          create: {
+            background: { alpha: 0, b: 0, g: 0, r: 0 },
+            channels: 4,
+            height: 1,
+            width: 1,
+          },
+        })
+          .png()
+          .toBuffer();
+        await Promise.all([
+          writeFile(referencePath, transparentPixel),
+          writeFile(implementationPath, transparentPixel),
+        ]);
       } else {
         if (!captureBounds) throw new Error("Regional capture bounds were not measured.");
-        await source.locator(region.sourceSelector).first().screenshot({
-          animations: "disabled",
-          path: referencePath,
-        });
-        await implementation.locator(region.implementationSelector).first().screenshot({
-          animations: "disabled",
-          path: implementationPath,
-        });
+        await captureRegionScreenshot(
+          implementation,
+          region.implementationSelector,
+          implementationPath,
+        );
+        await captureRegionScreenshot(source, region.sourceSelector, referencePath);
         await normalizeEquivalentRegionScreenshotDimensions(
           referencePath,
           implementationPath,
@@ -1271,8 +1880,10 @@ export async function captureThemeRouteRegion(options: {
         join(outputRoot, "report.json"),
         `${JSON.stringify(
           {
+            artifactDigest: options.artifactDigest,
             capturedAt: new Date().toISOString(),
             captureBounds,
+            captureMode,
             commit: options.commit,
             contract: { implementation: implementationContract, reference: referenceContract },
             density: options.density,
@@ -1292,10 +1903,10 @@ export async function captureThemeRouteRegion(options: {
       );
     } finally {
       await Promise.allSettled([source.close(), implementation.close()]);
-      await context.close();
+      await Promise.allSettled([sourceContext.close(), implementationContext.close()]);
     }
   } finally {
-    await browser?.close();
+    await Promise.allSettled([sourceBrowser?.close(), implementationBrowser?.close()]);
     await lease.release();
   }
   if (failures.length > 0)
@@ -1315,6 +1926,8 @@ if (import.meta.main) {
   const implementationOrigin = argumentValue(arguments_, "--implementation-origin");
   const outputRoot = argumentValue(arguments_, "--output");
   const commit = argumentValue(arguments_, "--commit");
+  const artifactDigest = argumentValue(arguments_, "--artifact-digest");
+  const captureMode = (argumentValue(arguments_, "--mode") ?? "static") as ThemeAcceptanceMode;
   if (
     !routeId ||
     !regionId ||
@@ -1322,13 +1935,16 @@ if (import.meta.main) {
     !sourceOrigin ||
     !implementationOrigin ||
     !outputRoot ||
-    !commit
+    !commit ||
+    !artifactDigest
   )
     throw new Error(
-      "Usage: bun tools/capture-theme-route-region.ts --route=<id> --region=<id> --viewport=<id> --dpr=<1|2> --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
+      "Usage: bun tools/capture-theme-route-region.ts --route=<id> --region=<id> --viewport=<id> --dpr=<1|2> --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<full-sha> --artifact-digest=<sha256>",
     );
   await captureThemeRouteRegion({
+    artifactDigest,
     commit,
+    captureMode,
     density,
     implementationOrigin,
     outputRoot,

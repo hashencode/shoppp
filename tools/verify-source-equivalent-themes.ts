@@ -1,9 +1,16 @@
-import { existsSync, readFileSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { lstat, readdir, readFile } from "node:fs/promises";
+import { relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
+import { pathToFileURL } from "node:url";
 import ts from "typescript";
 
+import type { StorefrontThemeSourceManifest } from "./import-storefront-theme";
+
+import { assertThemeBehaviorContractComplete } from "../apps/storefront/e2e/support/theme-behavior-contract";
+import type { ThemeBehaviorDescriptor } from "../apps/storefront/e2e/support/theme-behavior-descriptor";
+import { assertCustomBehaviorAdaptersRegistered } from "../apps/storefront/e2e/support/theme-behavior-runner";
 import {
   assertFidelityMatrixComplete,
   fidelityMatrixViewports,
@@ -11,13 +18,12 @@ import {
 } from "../apps/storefront/e2e/support/theme-fidelity-matrix";
 import {
   captureGeometryIssues,
+  captureModeForNamedState,
+  captureModeForRegion,
   type CaptureGeometryBox,
 } from "../apps/storefront/e2e/support/theme-capture-contract";
-import {
-  decorNamedStates,
-  fashionNamedStates,
-  namedStatePixelThreshold,
-} from "../apps/storefront/e2e/support/theme-named-state-contract";
+import { namedStatePixelThreshold } from "../apps/storefront/e2e/support/theme-named-state-contract";
+import { loadThemeBehaviorDescriptor } from "./load-theme-behavior-descriptor";
 
 export interface SourceEquivalencePolicy {
   schemaVersion: 1;
@@ -37,13 +43,7 @@ export interface SourceEquivalencePolicy {
     scriptFirst: boolean;
   };
   requiredEvidence: string[];
-  themes: {
-    equivalenceScope: string[];
-    id: string;
-    requiredContractFacets: string[];
-    sourceContractPath: string;
-    upstreamPath: string;
-  }[];
+  themes: SourceEquivalenceThemePolicy[];
   waivers: {
     approvedBy: string;
     expiresAt: string;
@@ -56,7 +56,45 @@ export interface SourceEquivalencePolicy {
   }[];
 }
 
+export interface SourceEquivalencePagePolicy {
+  acceptanceAdapterExport: string;
+  acceptanceAdapterPath: string;
+  applicableModes: string[];
+  behaviorContractExport: string;
+  behaviorContractPath: string;
+  focusedStates: { id: string; modes: string[] }[];
+  id: string;
+  implementationRoute: string;
+  implementationRuntimeReadySelector: string;
+  pageType: string;
+  requiredContractFacets: string[];
+  sourceContractPath: string;
+  sourceEntry: string;
+  sourceEntrySha256: string;
+  sourceFirstHero: string;
+  sourceRegionsExport: string;
+  sourceRuntimeReadySelector: string;
+}
+
+export interface SourceEquivalenceThemePolicy {
+  acceptance: {
+    browserConfig: string;
+    browserProject: string;
+    pageCommand: string[];
+    themeCommand: string[];
+  };
+  authorizedSourceRoot: string;
+  equivalenceScope: string[];
+  id: string;
+  manifestExport: string;
+  manifestPath: string;
+  pages: SourceEquivalencePagePolicy[];
+  upstreamPath: string;
+}
+
 interface EvidenceOptions {
+  artifactDigest: string;
+  behaviorDescriptors?: ReadonlyMap<string, ThemeBehaviorDescriptor>;
   commit: string;
   maxAgeHours?: number;
   now?: Date;
@@ -67,6 +105,8 @@ interface EvidenceOptions {
 }
 
 interface EvidenceRecord {
+  artifactDigest?: unknown;
+  captureMode?: unknown;
   capturedAt?: unknown;
   commit?: unknown;
   density?: unknown;
@@ -75,6 +115,7 @@ interface EvidenceRecord {
   implementationUrl?: unknown;
   region?: { id?: unknown; maxChangedPixelRatio?: unknown };
   results?: {
+    captureMode?: unknown;
     difference?: { changedPixelRatio?: unknown; dimensionsMatch?: unknown };
     geometry?: {
       implementation?: Partial<Record<keyof CaptureGeometryBox, unknown>>;
@@ -115,11 +156,6 @@ const REQUIRED_EVIDENCE = [
   "runtimeDiagnostics",
   "visibleCopy",
 ] as const;
-const NAMED_STATES_BY_THEME = {
-  decor: decorNamedStates,
-  fashion: fashionNamedStates,
-} as const;
-
 function assertNoErrors(errors: string[], label: string): void {
   if (errors.length > 0) throw new Error(`${label}:\n- ${errors.join("\n- ")}`);
 }
@@ -189,11 +225,116 @@ export async function loadSourceEquivalencePolicy(root = ROOT): Promise<SourceEq
   return JSON.parse(await readFile(path, "utf8")) as SourceEquivalencePolicy;
 }
 
-export function validateSourceEquivalencePolicy(
+async function treeFiles(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const paths = await Promise.all(
+    entries.map(async (entry) => {
+      const path = resolve(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Error(`Imported source symlink is prohibited: ${path}`);
+      if (entry.isDirectory()) return treeFiles(path);
+      if (!entry.isFile()) throw new Error(`Unsupported imported source entry: ${path}`);
+      return [path];
+    }),
+  );
+  return paths.flat();
+}
+
+export async function validateImportedSourceTree(root = ROOT): Promise<void> {
+  const manifestPath = resolve(root, "tools/storefront-theme-source-manifest.json");
+  const manifest = JSON.parse(
+    await readFile(manifestPath, "utf8"),
+  ) as StorefrontThemeSourceManifest;
+  const declaration = manifest.themes.find(({ themeId }) => themeId === "fashion-store");
+  if (!declaration) throw new Error("Fashion Store source declaration is missing.");
+  const errors: string[] = [];
+  if (!declaration.importedAt) errors.push("Fashion Store importedAt is missing");
+  if (declaration.importedFiles.length !== declaration.allowlist.length)
+    errors.push("Fashion Store imported file count does not match the allowlist");
+
+  const themeRoot = resolve(root, "apps/storefront/app/themes/fashion-store");
+  const upstreamRoot = resolve(themeRoot, "upstream");
+  const expectedPaths = new Set<string>();
+  for (const asset of declaration.allowlist) {
+    const destinationPath = asset.destinationPath;
+    if (!destinationPath.startsWith("upstream/") || destinationPath.includes("..")) {
+      errors.push(`${destinationPath}: unsafe Fashion Store destination path`);
+      continue;
+    }
+    expectedPaths.add(destinationPath);
+    const imported = declaration.importedFiles.find(
+      (candidate) => candidate.destinationPath === destinationPath,
+    );
+    if (
+      !imported ||
+      imported.sourcePath !== asset.sourcePath ||
+      imported.kind !== asset.kind ||
+      imported.sha256 !== asset.expectedSha256
+    ) {
+      errors.push(`${destinationPath}: imported metadata does not match the pinned declaration`);
+      continue;
+    }
+    const path = resolve(themeRoot, destinationPath);
+    if (relative(themeRoot, path).startsWith("..")) {
+      errors.push(`${destinationPath}: imported path escapes the theme root`);
+      continue;
+    }
+    try {
+      const entry = await lstat(path);
+      if (entry.isSymbolicLink() || !entry.isFile()) {
+        errors.push(`${destinationPath}: imported output is not a regular file`);
+        continue;
+      }
+      const contents = new Uint8Array(await readFile(path));
+      const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
+      if (digest !== asset.expectedSha256 || digest !== imported.sha256)
+        errors.push(`${destinationPath}: imported hash does not match`);
+      if (contents.byteLength !== imported.bytes)
+        errors.push(`${destinationPath}: imported byte count does not match`);
+    } catch (error) {
+      errors.push(
+        `${destinationPath}: imported output is missing (${error instanceof Error ? error.message : String(error)})`,
+      );
+    }
+  }
+
+  try {
+    const actualPaths = (await treeFiles(upstreamRoot)).map((path) =>
+      relative(themeRoot, path).split(sep).join("/"),
+    );
+    for (const path of actualPaths) {
+      if (!expectedPaths.has(path)) errors.push(`${path}: unlisted imported output`);
+    }
+    for (const path of expectedPaths) {
+      if (!actualPaths.includes(path))
+        errors.push(`${path}: allowlisted imported output is missing`);
+    }
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const provenance = await readFile(resolve(themeRoot, "UPSTREAM.md"), "utf8");
+    if (!provenance.includes(declaration.sourceIdentity ?? "(missing source identity)"))
+      errors.push("Fashion Store provenance source identity does not match");
+    if (!provenance.includes("js/main.js") || !/behavioral reference/i.test(provenance))
+      errors.push("Fashion Store provenance does not document the main.js execution boundary");
+    for (const { sha256 } of declaration.importedFiles) {
+      if (!provenance.includes(sha256))
+        errors.push(`Fashion Store provenance omits hash ${sha256}`);
+    }
+  } catch (error) {
+    errors.push(
+      `Fashion Store provenance is missing (${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+  assertNoErrors(errors, "Fashion Store imported source verification failed");
+}
+
+export async function validateSourceEquivalencePolicy(
   policy: SourceEquivalencePolicy,
   root = ROOT,
   now = new Date(),
-): void {
+): Promise<void> {
   const errors: string[] = [];
   if (policy.schemaVersion !== 1) errors.push("policy schemaVersion must be 1");
   if (
@@ -262,24 +403,157 @@ export function validateSourceEquivalencePolicy(
     errors.push("required evidence dimensions must not be removed or replaced");
 
   const themeIds = new Set<string>();
+  const policyBehaviorDescriptors: ThemeBehaviorDescriptor[] = [];
   for (const theme of policy.themes) {
     if (!SAFE_THEME_ID.test(theme.id)) errors.push(`${theme.id}: expected a lowercase theme ID`);
     if (themeIds.has(theme.id)) errors.push(`${theme.id}: duplicate theme policy`);
     themeIds.add(theme.id);
     if (theme.equivalenceScope.length === 0) errors.push(`${theme.id}: equivalence scope is empty`);
+    if (!Array.isArray(theme.pages) || theme.pages.length === 0)
+      errors.push(`${theme.id}: page collection is empty`);
+    if (
+      !theme.acceptance?.browserConfig ||
+      !existsSync(resolve(root, theme.acceptance.browserConfig))
+    )
+      errors.push(`${theme.id}: acceptance browser config is missing`);
+    if (!theme.acceptance?.browserProject?.trim())
+      errors.push(`${theme.id}: acceptance browser project is missing`);
+    if (
+      !Array.isArray(theme.acceptance?.pageCommand) ||
+      theme.acceptance.pageCommand.length === 0 ||
+      !theme.acceptance.pageCommand.some((argument) => argument.includes("{page}"))
+    )
+      errors.push(`${theme.id}: acceptance page command must contain a {page} placeholder`);
+    if (
+      !Array.isArray(theme.acceptance?.themeCommand) ||
+      theme.acceptance.themeCommand.length === 0
+    )
+      errors.push(`${theme.id}: acceptance theme command is missing`);
     const upstreamPath = resolve(root, theme.upstreamPath);
     if (!existsSync(upstreamPath))
       errors.push(`${theme.id}: missing required file ${theme.upstreamPath}`);
-    const contractPath = resolve(root, theme.sourceContractPath);
-    if (!existsSync(contractPath)) {
-      errors.push(`${theme.id}: missing required file ${theme.sourceContractPath}`);
-      continue;
+
+    let supportedPageTypes = new Set<string>();
+    const manifestPath = resolve(root, theme.manifestPath);
+    if (!theme.manifestPath || !existsSync(manifestPath)) {
+      errors.push(`${theme.id}: theme manifest module is missing`);
+    } else {
+      try {
+        const module = (await import(pathToFileURL(manifestPath).href)) as Record<string, unknown>;
+        const manifest = module[theme.manifestExport] as
+          { supportedPageTemplates?: unknown } | undefined;
+        if (!manifest || !Array.isArray(manifest.supportedPageTemplates))
+          errors.push(`${theme.id}: theme manifest export is invalid`);
+        else supportedPageTypes = new Set(manifest.supportedPageTemplates as string[]);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+      }
     }
-    const contract = readFileSync(contractPath, "utf8");
-    const contractFacets = sourceContractFacets(contract, contractPath);
-    for (const facet of theme.requiredContractFacets) {
-      if (!contractFacets.has(facet))
-        errors.push(`${theme.id}: missing required contract facet ${facet}`);
+
+    const authorizedSourceRoot = resolve(root, theme.authorizedSourceRoot);
+    const implementationThemeRoot = resolve(root, `apps/storefront/app/themes/${theme.id}`);
+    const sourceRelativeToImplementation = relative(implementationThemeRoot, authorizedSourceRoot);
+    if (
+      sourceRelativeToImplementation === "" ||
+      (!sourceRelativeToImplementation.startsWith(`..${sep}`) &&
+        sourceRelativeToImplementation !== "..")
+    )
+      errors.push(
+        `${theme.id}: authorized source root must be independent of implementation inputs`,
+      );
+
+    const pageIds = new Set<string>();
+    const implementationRoutes = new Set<string>();
+    const sourceEntries = new Map<string, string>();
+    for (const page of theme.pages ?? []) {
+      const label = `${theme.id}/${page.id || "unknown-page"}`;
+      if (!SAFE_THEME_ID.test(page.id)) errors.push(`${label}: expected a lowercase page ID`);
+      if (pageIds.has(page.id)) errors.push(`${label}: duplicate page ID`);
+      pageIds.add(page.id);
+      if (!page.implementationRoute?.startsWith("/"))
+        errors.push(`${label}: implementation route must be root-relative`);
+      if (implementationRoutes.has(page.implementationRoute))
+        errors.push(`${label}: duplicate implementation route`);
+      implementationRoutes.add(page.implementationRoute);
+      const priorDigest = sourceEntries.get(page.sourceEntry);
+      if (priorDigest && priorDigest !== page.sourceEntrySha256)
+        errors.push(`${label}: conflicting source digest for ${page.sourceEntry}`);
+      sourceEntries.set(page.sourceEntry, page.sourceEntrySha256);
+      if (!supportedPageTypes.has(page.pageType))
+        errors.push(`${label}: page type ${page.pageType} is absent from the theme manifest`);
+      if (!Array.isArray(page.applicableModes) || page.applicableModes.length === 0)
+        errors.push(`${label}: applicable acceptance modes are missing`);
+      if (!Array.isArray(page.focusedStates) || page.focusedStates.length === 0)
+        errors.push(`${label}: focused acceptance states are missing`);
+      for (const state of page.focusedStates ?? []) {
+        if (!state.id?.trim() || !Array.isArray(state.modes) || state.modes.length === 0)
+          errors.push(`${label}: focused state without an acceptance mode`);
+        for (const mode of state.modes ?? []) {
+          if (!page.applicableModes.includes(mode))
+            errors.push(`${label}/${state.id}: focused mode ${mode} is not applicable`);
+        }
+      }
+      if (!page.acceptanceAdapterPath || !existsSync(resolve(root, page.acceptanceAdapterPath)))
+        errors.push(`${label}: acceptance adapter module is missing`);
+      const contractPath = resolve(root, page.sourceContractPath);
+      if (!existsSync(contractPath)) {
+        errors.push(`${label}: missing required file ${page.sourceContractPath}`);
+      } else {
+        const contract = readFileSync(contractPath, "utf8");
+        const contractFacets = sourceContractFacets(contract, contractPath);
+        for (const facet of page.requiredContractFacets) {
+          if (!contractFacets.has(facet))
+            errors.push(`${label}: missing required contract facet ${facet}`);
+        }
+      }
+      const behaviorPath = resolve(root, page.behaviorContractPath);
+      if (!existsSync(behaviorPath))
+        errors.push(`${label}: missing required file ${page.behaviorContractPath}`);
+      try {
+        const descriptor = await loadThemeBehaviorDescriptor(page, root);
+        policyBehaviorDescriptors.push(descriptor);
+        if (descriptor.contract.themeId !== theme.id)
+          errors.push(`${label}: behavior contract theme identity does not match policy`);
+        if (descriptor.contract.routeId !== `${theme.id}-${page.id}`)
+          errors.push(`${label}: behavior contract route identity does not match policy`);
+        assertThemeBehaviorContractComplete(descriptor.contract, descriptor.structuralRegionIds);
+        assertCustomBehaviorAdaptersRegistered(descriptor.contract, descriptor.adapters);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+      }
+      const sourceEntryPath = resolve(authorizedSourceRoot, page.sourceEntry);
+      const sourceEntryRelative = relative(authorizedSourceRoot, sourceEntryPath);
+      let sourceEntrySafe =
+        sourceEntryRelative !== ".." &&
+        !sourceEntryRelative.startsWith(`..${sep}`) &&
+        existsSync(sourceEntryPath);
+      if (sourceEntrySafe) {
+        try {
+          const realSourceRoot = realpathSync(authorizedSourceRoot);
+          const realEntryPath = realpathSync(sourceEntryPath);
+          const realEntryRelative = relative(realSourceRoot, realEntryPath);
+          sourceEntrySafe =
+            !lstatSync(sourceEntryPath).isSymbolicLink() &&
+            realEntryRelative !== ".." &&
+            !realEntryRelative.startsWith(`..${sep}`);
+        } catch {
+          sourceEntrySafe = false;
+        }
+      }
+      if (!sourceEntrySafe) {
+        errors.push(`${label}: authorized source entry is missing or outside its root`);
+      } else {
+        const digest = createHash("sha256").update(readFileSync(sourceEntryPath)).digest("hex");
+        if (digest !== page.sourceEntrySha256)
+          errors.push(`${label}: authorized source entry digest does not match policy`);
+      }
+    }
+    for (const pageId of theme.equivalenceScope) {
+      if (!pageIds.has(pageId)) errors.push(`${theme.id}: scope references unknown page ${pageId}`);
+    }
+    for (const pageId of pageIds) {
+      if (!theme.equivalenceScope.includes(pageId))
+        errors.push(`${theme.id}/${pageId}: page is absent from the declared equivalence scope`);
     }
   }
 
@@ -297,17 +571,34 @@ export function validateSourceEquivalencePolicy(
   }
 
   try {
-    assertFidelityMatrixComplete();
+    assertFidelityMatrixComplete(themeFidelityMatrix, policyBehaviorDescriptors);
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
   }
+  const pagePoliciesByRoute = new Map<
+    string,
+    { page: SourceEquivalencePagePolicy; theme: SourceEquivalenceThemePolicy }
+  >(
+    policy.themes.flatMap((theme) =>
+      theme.pages.map((page) => [`${theme.id}-${page.id}`, { page, theme }] as const),
+    ),
+  );
+  for (const routeId of pagePoliciesByRoute.keys()) {
+    if (!themeFidelityMatrix.some(({ id }) => id === routeId))
+      errors.push(`${routeId}: registered page is absent from the fidelity matrix`);
+  }
   const usedWaivers = new Set<string>();
   for (const route of themeFidelityMatrix) {
-    const themeId = route.id.split("-")[0]!;
-    const policyTheme = policy.themes.find(({ id }) => id === themeId);
-    const pageType = route.id.slice(themeId.length + 1);
-    if (!policyTheme?.equivalenceScope.includes(pageType))
-      errors.push(`${route.id}: route is absent from the declared equivalence scope`);
+    const policyPage = pagePoliciesByRoute.get(route.id);
+    const themeId = policyPage?.theme.id ?? route.id.split("-")[0]!;
+    if (!policyPage) {
+      errors.push(`${route.id}: route is absent from the declared page collection`);
+    } else {
+      if (route.sourcePath !== `/${policyPage.page.sourceEntry}`)
+        errors.push(`${route.id}: source path does not match page policy`);
+      if (route.implementationPath !== policyPage.page.implementationRoute)
+        errors.push(`${route.id}: implementation path does not match page policy`);
+    }
     for (const region of route.regions) {
       if (!region.styleEquivalences) continue;
       if (!region.waiverId) {
@@ -345,7 +636,8 @@ export function validateFidelityEvidenceRecords(
   const namedStatePixelLimit =
     options.thresholds?.namedStateChangedPixelRatio ?? MAX_NAMED_STATE_CHANGED_PIXEL_RATIO;
   const identities = new Set<string>();
-  const regionalCaptureSets = new Set<string>();
+  if (!/^[a-f0-9]{64}$/.test(options.artifactDigest))
+    errors.push("a SHA-256 artifact digest is required");
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) errors.push("a real commit SHA is required");
   if (records.length === 0) errors.push("no fidelity report records found");
   for (const [index, record] of records.entries()) {
@@ -354,6 +646,8 @@ export function validateFidelityEvidenceRecords(
       ? `${String(record.themeId ?? "unknown-theme")}/${String(record.state ?? "unknown-state")}`
       : `${String(record.route ?? "unknown-route")}/${String(record.region?.id ?? "unknown-region")}`;
     if (record.commit !== options.commit) errors.push(`${label}: evidence commit does not match`);
+    if (record.artifactDigest !== options.artifactDigest)
+      errors.push(`${label}: evidence artifact digest does not match the frozen RC`);
     const capturedAt = typeof record.capturedAt === "string" ? new Date(record.capturedAt) : null;
     if (!capturedAt || Number.isNaN(capturedAt.valueOf()))
       errors.push(`${label}: invalid capturedAt`);
@@ -368,19 +662,15 @@ export function validateFidelityEvidenceRecords(
     else if (source.origin === implementation.origin)
       errors.push(`${label}: source and implementation must use distinct origins`);
     if (results) {
-      const namedStateContracts =
-        record.themeId === "decor" || record.themeId === "fashion"
-          ? NAMED_STATES_BY_THEME[record.themeId]
-          : null;
+      const descriptor = options.behaviorDescriptors?.get(String(record.themeId));
+      const namedStateContracts = descriptor?.namedStates ?? null;
       if (!namedStateContracts) errors.push(`${label}: invalid named-state theme identity`);
       if (record.state !== `${record.themeId}-named-states`)
         errors.push(`${label}: invalid named-state suite identity`);
-      const expectedSourcePath =
-        record.themeId === "decor"
-          ? "/demo-decor-store.html"
-          : record.themeId === "fashion"
-            ? "/demo-fashion-store.html"
-            : null;
+      const expectedSourcePath = descriptor
+        ? (themeFidelityMatrix.find(({ id }) => id === descriptor.contract.routeId)?.sourcePath ??
+          null)
+        : null;
       if (source && source.pathname !== expectedSourcePath)
         errors.push(`${label}: source URL does not match the named-state contract`);
       if (
@@ -410,6 +700,8 @@ export function validateFidelityEvidenceRecords(
         const stateContract = namedStateContracts?.find(({ id }) => id === stateId);
         if (stateId && !stateContract)
           errors.push(`${resultLabel}: state is absent from the named-state contract`);
+        if (stateContract && result.captureMode !== captureModeForNamedState(stateContract))
+          errors.push(`${resultLabel}: capture mode does not match the named-state contract`);
         if (stateContract && viewportId) {
           const resultIdentity = `${stateId}:${viewportId}`;
           if (resultIdentities.has(resultIdentity))
@@ -432,9 +724,10 @@ export function validateFidelityEvidenceRecords(
           errors.push(`${resultLabel}: named-state geometry evidence is missing`);
         } else {
           const geometrySpace =
-            stateContract?.capture === "viewport-top" || stateContract?.id === "cookie-overlay"
+            stateContract?.geometrySpace ??
+            (stateContract?.capture === "viewport-top" || stateContract?.id === "cookie-overlay"
               ? "viewport"
-              : "document";
+              : "document");
           errors.push(
             ...captureGeometryIssues(
               resultLabel,
@@ -468,6 +761,8 @@ export function validateFidelityEvidenceRecords(
         : undefined;
     if (!route) errors.push(`${label}: route is absent from the fidelity matrix`);
     if (!region) errors.push(`${label}: region is absent from the fidelity matrix`);
+    if (region && record.captureMode !== captureModeForRegion(region.id))
+      errors.push(`${label}: capture mode does not match the region contract`);
     if (source && route && source.pathname !== route.sourcePath)
       errors.push(`${label}: source URL does not match the fidelity matrix`);
     const viewportId =
@@ -503,20 +798,24 @@ export function validateFidelityEvidenceRecords(
     if (identities.has(identity))
       errors.push(`${label}: duplicate capture identity at record ${index}`);
     identities.add(identity);
-    if (route && region) regionalCaptureSets.add(`${route.id}:${region.id}`);
   }
-  for (const captureSet of regionalCaptureSets) {
-    const separator = captureSet.indexOf(":");
-    const routeId = captureSet.slice(0, separator);
-    const regionId = captureSet.slice(separator + 1);
-    const route = themeFidelityMatrix.find(({ id }) => id === routeId);
-    if (!route) continue;
-    for (const viewportId of route.viewports) {
-      for (const density of route.densities) {
-        if (!identities.has(`${routeId}:${regionId}:${viewportId}:${density}`))
-          errors.push(`${routeId}/${regionId}: regional capture set is incomplete`);
+  const requiredRouteIds = options.behaviorDescriptors
+    ? new Set([...options.behaviorDescriptors.values()].map(({ contract }) => contract.routeId))
+    : new Set(themeFidelityMatrix.map(({ id }) => id));
+  for (const route of themeFidelityMatrix) {
+    if (!requiredRouteIds.has(route.id)) continue;
+    for (const region of route.regions) {
+      for (const viewportId of route.viewports) {
+        for (const density of route.densities) {
+          if (!identities.has(`${route.id}:${region.id}:${viewportId}:${density}`))
+            errors.push(`${route.id}/${region.id}: regional capture set is incomplete`);
+        }
       }
     }
+  }
+  for (const [themeId, descriptor] of options.behaviorDescriptors ?? []) {
+    if (descriptor.namedStates.length > 0 && !identities.has(`${themeId}:${themeId}-named-states`))
+      errors.push(`${themeId}: named-state aggregate evidence is missing`);
   }
   assertNoErrors(errors, "fidelity evidence failed");
 }
@@ -539,20 +838,43 @@ async function main(): Promise<void> {
       commit: { type: "string" },
       evidence: { type: "string" },
       "max-age-hours": { type: "string" },
+      "rc-manifest": { type: "string" },
     },
     strict: true,
   });
   const policy = await loadSourceEquivalencePolicy();
-  validateSourceEquivalencePolicy(policy);
+  await validateImportedSourceTree();
+  const behaviorDescriptors = new Map(
+    await Promise.all(
+      policy.themes.flatMap((theme) =>
+        theme.pages.map(
+          async (page) =>
+            [
+              page.id === "home" ? theme.id : `${theme.id}/${page.id}`,
+              await loadThemeBehaviorDescriptor(page, ROOT),
+            ] as const,
+        ),
+      ),
+    ),
+  );
+  await validateSourceEquivalencePolicy(policy);
   if (values.evidence) {
     if (!values.commit) throw new Error("--commit is required with --evidence");
+    if (!values["rc-manifest"]) throw new Error("--rc-manifest is required with --evidence");
+    const rcManifest = JSON.parse(await readFile(resolve(ROOT, values["rc-manifest"]), "utf8")) as {
+      artifact?: { digest?: unknown };
+    };
+    if (typeof rcManifest.artifact?.digest !== "string")
+      throw new Error("RC manifest artifact digest is missing");
     const paths = await reportFiles(resolve(ROOT, values.evidence));
     const records = await Promise.all(
       paths.map(async (path) => JSON.parse(await readFile(path, "utf8")) as EvidenceRecord),
     );
     validateFidelityEvidenceRecords(records, {
+      artifactDigest: rcManifest.artifact.digest,
       commit: values.commit,
       ...(values["max-age-hours"] ? { maxAgeHours: Number(values["max-age-hours"]) } : {}),
+      behaviorDescriptors,
       thresholds: policy.thresholds,
     });
     console.log(`Verified ${records.length} commit-bound fidelity reports.`);

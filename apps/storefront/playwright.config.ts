@@ -7,9 +7,9 @@ export default defineConfig({
   testDir: "./e2e",
   testIgnore: [
     "a11y.spec.ts",
-    "decor-theme.spec.ts",
-    "fashion-theme.spec.ts",
+    "fashion-store-*.spec.ts",
     "performance.spec.ts",
+    "theme-behavior-contract.spec.ts",
   ],
   outputDir: "test-results",
   fullyParallel: true,

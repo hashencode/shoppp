@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { extname, join, normalize, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -9,8 +10,11 @@ export type ReferenceThemeId = "decor" | "fashion";
 export interface ReferenceCaptureConfig {
   entry: string;
   firstHero: string;
-  themeId: ReferenceThemeId;
+  themeId: string;
 }
+
+export const fashionReferenceEntrySha256 =
+  "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465";
 
 export const referenceCaptureConfigs = {
   decor: {
@@ -24,6 +28,20 @@ export const referenceCaptureConfigs = {
     themeId: "fashion",
   },
 } as const satisfies Record<ReferenceThemeId, ReferenceCaptureConfig>;
+
+export function resolveReferenceCaptureConfig(
+  themeId: string,
+): ReferenceCaptureConfig & { themeId: ReferenceThemeId } {
+  if (themeId === "fashion-store") {
+    throw new Error(
+      "fashion-store is an implementation identity; use the fashion source entry demo-fashion-store.html.",
+    );
+  }
+  if (themeId !== "fashion" && themeId !== "decor") {
+    throw new Error(`Unsupported reference theme: ${themeId}.`);
+  }
+  return referenceCaptureConfigs[themeId];
+}
 
 export const referenceCaptureViewports = [
   { height: 1_000, id: "desktop", width: 1_440 },
@@ -55,6 +73,36 @@ export async function validateReferenceSource(
     throw new Error(`HTML entry point does not reference expected first hero: ${config.firstHero}`);
   }
   return { entryPath, heroPath };
+}
+
+export async function validateIndependentReferenceSource(options: {
+  config: ReferenceCaptureConfig;
+  expectedEntrySha256: string;
+  implementationThemeRoot: string;
+  sourceRoot: string;
+}): Promise<{ entryPath: string; entrySha256: string; heroPath: string; sourceRoot: string }> {
+  const sourceRoot = resolve(options.sourceRoot);
+  const implementationThemeRoot = resolve(options.implementationThemeRoot);
+  const sourceWithinImplementation = relative(implementationThemeRoot, sourceRoot);
+  if (
+    sourceWithinImplementation === "" ||
+    (!sourceWithinImplementation.startsWith(`..${sep}`) && sourceWithinImplementation !== "..")
+  ) {
+    throw new Error("Reference source must not be served from the implementation theme directory.");
+  }
+  if (!/^[a-f0-9]{64}$/.test(options.expectedEntrySha256)) {
+    throw new Error("Expected reference entry digest must be a SHA-256 value.");
+  }
+  const validated = await validateReferenceSource(sourceRoot, options.config);
+  const entrySha256 = createHash("sha256")
+    .update(await readFile(validated.entryPath))
+    .digest("hex");
+  if (entrySha256 !== options.expectedEntrySha256) {
+    throw new Error(
+      `Reference entry digest mismatch: expected ${options.expectedEntrySha256}, received ${entrySha256}.`,
+    );
+  }
+  return { ...validated, entrySha256, sourceRoot };
 }
 
 function contentType(path: string): string {
@@ -186,8 +234,11 @@ export async function captureReference(options: {
   themeId: ReferenceThemeId;
 }): Promise<void> {
   const { chromium } = await import("@playwright/test");
-  const config = referenceCaptureConfigs[options.themeId];
-  await validateReferenceSource(options.sourceRoot, config);
+  const config = resolveReferenceCaptureConfig(options.themeId);
+  const validatedSource = await validateReferenceSource(options.sourceRoot, config);
+  const entrySha256 = createHash("sha256")
+    .update(await readFile(validatedSource.entryPath))
+    .digest("hex");
   const root = resolve(options.sourceRoot);
   const outputRoot = resolve(options.outputRoot, options.themeId);
   await mkdir(outputRoot, { recursive: true });
@@ -223,6 +274,7 @@ export async function captureReference(options: {
     browser = await chromium.launch();
     for (const viewport of referenceCaptureViewports) {
       const page = await browser.newPage({
+        deviceScaleFactor: 1,
         reducedMotion: "reduce",
         viewport: { height: viewport.height, width: viewport.width },
       });
@@ -244,12 +296,15 @@ export async function captureReference(options: {
       `${JSON.stringify(
         {
           capturedAt: new Date().toISOString(),
+          captureMode: "static",
           entry: config.entry,
           firstHero: config.firstHero,
+          sourceEntrySha256: entrySha256,
           sourceRoot: root,
+          sourceRevision: `sha256:${entrySha256}`,
           state: "initial-home",
           themeId: config.themeId,
-          viewports: captures,
+          viewports: captures.map((capture) => ({ ...capture, dpr: 1 })),
         },
         null,
         2,
@@ -272,12 +327,13 @@ async function main(): Promise<void> {
   const sourceRoot = argumentValue(arguments_, "--source");
   const outputRoot = argumentValue(arguments_, "--output");
   const themeId = argumentValue(arguments_, "--theme");
-  if (!sourceRoot || !outputRoot || (themeId !== "fashion" && themeId !== "decor")) {
+  if (!sourceRoot || !outputRoot || !themeId) {
     throw new Error(
       "Usage: bun tools/capture-storefront-theme-reference.ts --source=<html-root> --output=<artifact-root> --theme=<fashion|decor>",
     );
   }
-  await captureReference({ outputRoot, sourceRoot, themeId });
+  const config = resolveReferenceCaptureConfig(themeId);
+  await captureReference({ outputRoot, sourceRoot, themeId: config.themeId });
   console.log(`Captured deterministic ${themeId} references at 1440, 1024, 768, and 390px.`);
 }
 

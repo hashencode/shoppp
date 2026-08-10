@@ -1,0 +1,57 @@
+{
+  "approvedAt": "2026-08-06T00:00:00.000Z",
+  "approvedBy": "fixture-operator",
+  "bindings": [
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-binding",
+      "instanceId": "fashion-store-home",
+      "kind": "fixture",
+      "resource": "home",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-shop",
+      "id": "fashion-store-shop-binding",
+      "instanceId": "fashion-store-collection",
+      "kind": "fixture",
+      "resource": "shop",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-product",
+      "id": "fashion-store-product-binding",
+      "instanceId": "fashion-store-product",
+      "kind": "fixture",
+      "resource": "product",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-cart",
+      "id": "fashion-store-cart-binding",
+      "instanceId": "fashion-store-cart",
+      "kind": "fixture",
+      "resource": "cart",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-checkout",
+      "id": "fashion-store-checkout-binding",
+      "instanceId": "fashion-store-checkout",
+      "kind": "fixture",
+      "resource": "checkout",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-content",
+      "id": "fashion-store-content-binding",
+      "instanceId": "fashion-store-content",
+      "kind": "fixture",
+      "resource": "content",
+      "state": "populated"
+    }
+  ],
+  "experienceId": "experience-fashion-store-fixture",
+  "snapshotId": "snapshot-fashion-store-fixture-1",
+  "version": 1
+}

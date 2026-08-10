@@ -2,8 +2,13 @@ import { describe, expect, test } from "bun:test";
 
 import {
   captureGeometryIssues,
+  captureCssForMode,
+  captureModeForNamedState,
+  captureModePreservesTarget,
   deterministicCaptureCss,
+  fashionStoreComparisonDescriptor,
   initialCarouselSelectors,
+  resolveThemeComparison,
 } from "../e2e/support/theme-capture-contract";
 
 describe("theme capture contract", () => {
@@ -15,11 +20,58 @@ describe("theme capture contract", () => {
     expect(deterministicCaptureCss).toContain(".decor-sticky-actions");
   });
 
+  test("preserves the capability under acceptance in temporal and scroll/fixed modes", () => {
+    expect(captureCssForMode("temporal")).not.toContain("animation-duration: 0s !important");
+    expect(captureCssForMode("scroll-fixed")).not.toContain(
+      ".scroll-progress, .sticky-wrap, .decor-scroll-progress { display: none !important; }",
+    );
+    expect(captureCssForMode("static")).toContain("animation-duration: 0s !important");
+    expect(captureModePreservesTarget("static", ".scroll-progress")).toBe(false);
+    expect(captureModePreservesTarget("scroll-fixed", ".scroll-progress")).toBe(true);
+  });
+
+  test("captures shop controls as interaction states", () => {
+    expect(
+      captureModeForNamedState({
+        action: { group: "category", kind: "shop-filter", label: "Jeans" },
+        id: "shop-filter-category-jeans",
+        label: "Category filter: Jeans",
+        target: ".shop-filter a",
+      }),
+    ).toBe("interaction");
+    expect(
+      captureModeForNamedState({
+        action: { index: 1, kind: "shop-arrivals" },
+        id: "shop-arrivals-slide-2",
+        label: "New arrivals slide 2",
+        target: ".shop-sidebar .swiper",
+      }),
+    ).toBe("interaction");
+  });
+
   test("names every autoplay carousel that must return to its initial index", () => {
     expect(initialCarouselSelectors).toEqual({
-      decor: [".decor-hero", ".decor-collection"],
-      fashion: [".fashion-hero", ".fashion-collection-rail"],
+      "fashion-store": [".swiper.full-screen"],
     });
+  });
+
+  test("describes Fashion source and Fashion Store implementation as distinct evidence roots", () => {
+    expect(resolveThemeComparison("fashion", "fashion-store")).toBe(
+      fashionStoreComparisonDescriptor,
+    );
+    expect(fashionStoreComparisonDescriptor).toMatchObject({
+      artifactRoots: {
+        implementation: "implementation/fashion-store",
+        reference: "reference/fashion",
+      },
+      densities: [1, 2],
+      implementationThemeId: "fashion-store",
+      referenceEntry: "demo-fashion-store.html",
+      referenceThemeId: "fashion",
+    });
+    expect(() => resolveThemeComparison("fashion-store", "fashion-store")).toThrow(
+      "implementation-only",
+    );
   });
 
   test("checks every bounding-box edge in the correct coordinate space", () => {
@@ -43,5 +95,16 @@ describe("theme capture contract", () => {
         "document",
       ),
     ).toEqual([]);
+    expect(
+      captureGeometryIssues(
+        "over-threshold",
+        reference,
+        { ...reference, width: 202.01 },
+        "document",
+      ),
+    ).toEqual([
+      "over-threshold right: expected 240px, received 242.01px",
+      "over-threshold width: expected 200px, received 202.01px",
+    ]);
   });
 });

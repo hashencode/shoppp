@@ -8,21 +8,40 @@ const storefrontPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.config.ts",
 );
-const fashionPlaywrightPath = resolve(
+const storefrontPackagePath = resolve(import.meta.dir, "../apps/storefront/package.json");
+const fashionStorePlaywrightPath = resolve(
   import.meta.dir,
-  "../apps/storefront/playwright.fashion.config.ts",
-);
-const decorPlaywrightPath = resolve(
-  import.meta.dir,
-  "../apps/storefront/playwright.decor.config.ts",
+  "../apps/storefront/playwright.fashion-store.config.ts",
 );
 const architecturePath = resolve(
   import.meta.dir,
   "../docs/architecture/storefront-theme-platform.md",
 );
-const fidelityRunbookPath = resolve(import.meta.dir, "../docs/runbooks/storefront-preview.md");
+const sourcePortRunbookPath = resolve(
+  import.meta.dir,
+  "../docs/runbooks/source-equivalent-html-template-port.md",
+);
+const fidelityReferencePath = resolve(
+  import.meta.dir,
+  "../docs/reference/source-equivalence-acceptance-system.md",
+);
+const promotionRunbookPath = resolve(
+  import.meta.dir,
+  "../docs/runbooks/storefront-theme-promotion.md",
+);
 
 describe("production promotion workflow", () => {
+  test("does not forward Playwright worker flags into the Fashion Store evidence verifier", async () => {
+    const packageJson = JSON.parse(await readFile(storefrontPackagePath, "utf8")) as {
+      scripts: Record<string, string>;
+    };
+
+    const stages = packageJson.scripts["test:themes"]?.split("&&").map((stage) => stage.trim());
+    expect(stages).toContain("bun run test:fashion-store");
+    expect(stages).not.toContainEqual(expect.stringMatching(/test:fashion-store\s+--/));
+    expect(stages).toContain("bun run test:perf:fashion-store -- --workers=1");
+  });
+
   test("defaults to staging-only and requires explicit release confirmation", async () => {
     const workflow = await readFile(workflowPath, "utf8");
 
@@ -228,6 +247,20 @@ describe("production promotion workflow", () => {
   });
 });
 
+describe("source-equivalence documentation authority", () => {
+  test("keeps one normative runbook and one operational reference", async () => {
+    const [runbook, reference] = await Promise.all([
+      readFile(sourcePortRunbookPath, "utf8"),
+      readFile(fidelityReferencePath, "utf8"),
+    ]);
+
+    expect(runbook).toContain("single normative reconstruction workflow");
+    expect(reference).toMatch(/It is not a\s+second reconstruction workflow/);
+    expect(reference).not.toContain("## Human checkpoints");
+    expect(reference).not.toContain("## Post-port metrics");
+  });
+});
+
 describe("private storefront preview workflow", () => {
   test("uses exact build and snapshot identities with authenticated idempotent callbacks", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
@@ -259,31 +292,43 @@ describe("private storefront preview workflow", () => {
 
 describe("storefront theme browser matrix", () => {
   test("keeps theme-only assertions out of the production fallback suite", async () => {
-    const [production, fashion, decor] = await Promise.all([
+    const [production, fashionStore] = await Promise.all([
       readFile(storefrontPlaywrightPath, "utf8"),
-      readFile(fashionPlaywrightPath, "utf8"),
-      readFile(decorPlaywrightPath, "utf8"),
+      readFile(fashionStorePlaywrightPath, "utf8"),
     ]);
     const productionIgnore = production.match(/testIgnore:\s*\[([\s\S]*?)\],/)?.[1];
 
-    expect(productionIgnore).toContain('"decor-theme.spec.ts"');
-    expect(productionIgnore).toContain('"fashion-theme.spec.ts"');
-    expect(fashion).toContain('testMatch: "fashion-theme.spec.ts"');
-    expect(decor).toContain('testMatch: "decor-theme.spec.ts"');
+    expect(productionIgnore).toContain('"fashion-store-*.spec.ts"');
+    expect(productionIgnore).toContain('"theme-behavior-contract.spec.ts"');
+    expect(fashionStore).toContain('"fashion-store-*.spec.ts"');
+    expect(fashionStore).not.toContain('testMatch: ["*.spec.ts"');
+    expect(fashionStore).toContain("check-bundle-budget.ts");
   });
 
-  test("keeps fidelity evidence scoped to home and requires explicit review", async () => {
-    const [fashion, decor, architecture, runbook] = await Promise.all([
-      readFile(fashionPlaywrightPath, "utf8"),
-      readFile(decorPlaywrightPath, "utf8"),
+  test("keeps Fashion Store fidelity evidence scoped to home and requires explicit review", async () => {
+    const [fashionStore, architecture, reference] = await Promise.all([
+      readFile(fashionStorePlaywrightPath, "utf8"),
       readFile(architecturePath, "utf8"),
-      readFile(fidelityRunbookPath, "utf8"),
+      readFile(fidelityReferencePath, "utf8"),
     ]);
 
-    expect(fashion).toContain("themeViewports.tablet");
-    expect(decor).toContain("themeViewports.tablet");
+    expect(fashionStore).toContain("themeViewports.tablet");
     expect(architecture).toContain("reference-fidelity scope is the home template only");
-    expect(runbook).toMatch(/does not activate a\s+production theme/);
-    expect(runbook).toContain("Do not create `approval.json`");
+    expect(reference).toMatch(/does not activate a\s+production theme/);
+    expect(reference).toContain("Never create `approval.json`");
+  });
+
+  test("keeps Fashion Store promotion separate from parity evidence", async () => {
+    const [architecture, runbook] = await Promise.all([
+      readFile(architecturePath, "utf8"),
+      readFile(promotionRunbookPath, "utf8"),
+    ]);
+
+    expect(architecture).toContain("Fashion Store is an isolated experiment");
+    expect(runbook).toContain("A green fidelity report is not a promotion instruction");
+    expect(runbook).toContain("themeVersion: 2.0.0");
+    expect(runbook).toContain("snapshot migration");
+    expect(runbook).toContain("promotion-eligible");
+    expect(runbook).toContain("abandon");
   });
 });

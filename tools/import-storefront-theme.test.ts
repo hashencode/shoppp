@@ -10,7 +10,11 @@ import {
 
 const temporaryRoots: string[] = [];
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const safeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M0 0h20v20H0z"/></svg>\n`;
+const safeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><defs><clipPath id="card"><rect width="20" height="20"/></clipPath></defs><g clip-path="url(#card)"><path d="M0 0h20v20H0z"/></g></svg>\n`;
+
+function sha256(contents: string | Uint8Array): string {
+  return new Bun.CryptoHasher("sha256").update(contents).digest("hex");
+}
 
 afterEach(async () => {
   await Promise.all(
@@ -73,6 +77,66 @@ async function fixture(): Promise<{
       },
     ],
   } satisfies StorefrontThemeSourceManifest;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return { destinationRoot, manifest, manifestPath, root, source };
+}
+
+async function fashionStoreFixture(): Promise<{
+  destinationRoot: string;
+  manifest: StorefrontThemeSourceManifest;
+  manifestPath: string;
+  root: string;
+  source: string;
+}> {
+  const root = await mkdtemp(join(tmpdir(), "shoppp-fashion-store-import-"));
+  temporaryRoots.push(root);
+  const source = join(root, "source");
+  const destinationRoot = join(root, "themes");
+  const manifestPath = join(root, "storefront-theme-source-manifest.json");
+  const html =
+    '<!doctype html><link rel="stylesheet" href="css/theme.css"><img src="images/hero.png">\n';
+  const css =
+    '@font-face{font-family:Exact;src:url("../fonts/exact.woff2")} .hero{background:url("../images/hero.png")}\n';
+  const runtime = "window.CraftoVisual = {};\n";
+  const font = new Uint8Array([0x77, 0x4f, 0x46, 0x32]);
+  await Promise.all([
+    writeFixture(source, "demo-fashion-store.html", html),
+    writeFixture(source, "css/theme.css", css),
+    writeFixture(source, "demos/fashion-store/fashion-store.css", ".fashion{}\n"),
+    writeFixture(source, "fonts/exact.woff2", font),
+    writeFixture(source, "images/hero.png", png),
+    writeFixture(source, "js/vendors.min.js", runtime),
+  ]);
+  const license = "Authorized Fashion Store test source";
+  const allowlist = [
+    ["demo-fashion-store.html", "markup", html],
+    ["css/theme.css", "stylesheet", css],
+    ["demos/fashion-store/fashion-store.css", "stylesheet", ".fashion{}\n"],
+    ["fonts/exact.woff2", "font", font],
+    ["images/hero.png", "image", png],
+    ["js/vendors.min.js", "visual-runtime", runtime],
+  ].map(([sourcePath, kind, contents]) => ({
+    destinationPath: `upstream/${sourcePath}`,
+    expectedSha256: sha256(contents as string | Uint8Array),
+    kind,
+    license,
+    sourcePath,
+  }));
+  const manifest = {
+    schemaVersion: 1,
+    themes: [
+      {
+        allowlist,
+        closedSourceDirectories: ["demos/fashion-store"],
+        importedAt: null,
+        importedFiles: [],
+        ownershipApproval: "Fixture owner approved Fashion Store source reuse.",
+        sourceIdentity: "local://fixture/demo-fashion-store.html",
+        sourceRevision: "fixture-fashion-store-revision-1",
+        themeId: "fashion-store",
+      },
+    ],
+  } as StorefrontThemeSourceManifest;
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   return { destinationRoot, manifest, manifestPath, root, source };
 }
@@ -284,5 +348,183 @@ describe("importStorefrontTheme", () => {
     expect(await readFile(join(value.destinationRoot, "fashion/assets/existing.png"))).toEqual(
       Buffer.from(png),
     );
+  });
+});
+
+describe("Fashion Store source implementation import", () => {
+  test("verifies pinned hashes and preserves the source-relative tree", async () => {
+    const value = await fashionStoreFixture();
+
+    const imported = await importStorefrontTheme({
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-06",
+      manifest: value.manifest,
+      manifestPath: value.manifestPath,
+      source: value.source,
+      themeId: "fashion-store",
+    });
+
+    expect(imported.themes[0]?.importedFiles).toHaveLength(6);
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/upstream/css/theme.css"), "utf8"),
+    ).toContain("../fonts/exact.woff2");
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/UPSTREAM.md"), "utf8"),
+    ).toMatch(/hash-pinned|main\.js|visual runtime/i);
+  });
+
+  test("copies a hash-pinned local font supplement when the package references a remote font", async () => {
+    const value = await fashionStoreFixture();
+    const font = new Uint8Array([0x77, 0x4f, 0x46, 0x32, 0x01]);
+    await writeFixture(value.root, "repository/fonts/remote-source.woff2", font);
+    value.manifest.themes[0]!.allowlist.push({
+      destinationPath: "upstream/fonts/remote-source.woff2",
+      expectedSha256: sha256(font),
+      kind: "font",
+      license: "Authorized local copy of source-referenced remote font",
+      sourcePath: "fonts/remote-source.woff2",
+      supplementalSourcePath: "fonts/remote-source.woff2",
+    });
+
+    await importStorefrontTheme({
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-06",
+      manifest: value.manifest,
+      manifestPath: value.manifestPath,
+      repositoryRoot: join(value.root, "repository"),
+      source: value.source,
+      themeId: "fashion-store",
+    });
+
+    expect(
+      await readFile(
+        join(value.destinationRoot, "fashion-store/upstream/fonts/remote-source.woff2"),
+      ),
+    ).toEqual(Buffer.from(font));
+  });
+
+  test("appends newly pinned files without replacing or re-reading existing source assets", async () => {
+    const value = await fashionStoreFixture();
+    const first = await importStorefrontTheme({
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-06",
+      manifest: value.manifest,
+      manifestPath: value.manifestPath,
+      source: value.source,
+      themeId: "fashion-store",
+    });
+    await writeFixture(value.source, "css/theme.css", ".source-drift{}\n");
+    await writeFixture(value.source, "images/detail.png", png);
+    first.themes[0]!.allowlist.push({
+      destinationPath: "upstream/images/detail.png",
+      expectedSha256: sha256(png),
+      kind: "image",
+      license: "Authorized Fashion Store test source",
+      sourcePath: "images/detail.png",
+    });
+
+    const appended = await importStorefrontTheme({
+      appendOnly: true,
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-07",
+      manifest: first,
+      manifestPath: value.manifestPath,
+      source: value.source,
+      themeId: "fashion-store",
+    });
+
+    expect(appended.themes[0]?.importedFiles).toHaveLength(7);
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/upstream/css/theme.css"), "utf8"),
+    ).not.toContain("source-drift");
+    expect(
+      await readFile(join(value.destinationRoot, "fashion-store/upstream/images/detail.png")),
+    ).toEqual(Buffer.from(png));
+  });
+
+  test("fails before copying on a changed hash, missing dependency, or symlink", async () => {
+    const changed = await fashionStoreFixture();
+    await writeFixture(changed.source, "css/theme.css", ".changed{}\n");
+    await expect(
+      importStorefrontTheme({
+        destinationRoot: changed.destinationRoot,
+        importedAt: "2026-08-06",
+        manifest: changed.manifest,
+        manifestPath: changed.manifestPath,
+        source: changed.source,
+        themeId: "fashion-store",
+      }),
+    ).rejects.toThrow(/hash/i);
+
+    const missing = await fashionStoreFixture();
+    await rm(join(missing.source, "images/hero.png"));
+    await expect(
+      importStorefrontTheme({
+        destinationRoot: missing.destinationRoot,
+        importedAt: "2026-08-06",
+        manifest: missing.manifest,
+        manifestPath: missing.manifestPath,
+        source: missing.source,
+        themeId: "fashion-store",
+      }),
+    ).rejects.toThrow(/missing/i);
+
+    const linked = await fashionStoreFixture();
+    await rm(join(linked.source, "images/hero.png"));
+    await writeFixture(linked.root, "outside.png", png);
+    await symlink(join(linked.root, "outside.png"), join(linked.source, "images/hero.png"));
+    await expect(
+      importStorefrontTheme({
+        destinationRoot: linked.destinationRoot,
+        importedAt: "2026-08-06",
+        manifest: linked.manifest,
+        manifestPath: linked.manifestPath,
+        source: linked.source,
+        themeId: "fashion-store",
+      }),
+    ).rejects.toThrow(/symlink/i);
+  });
+
+  test("rejects unsafe declarations, unresolved CSS URLs, and closed-scope additions", async () => {
+    const unsafe = await fashionStoreFixture();
+    unsafe.manifest.themes[0]!.allowlist[0]!.sourcePath = "../escape.html";
+    await expect(
+      importStorefrontTheme({
+        destinationRoot: unsafe.destinationRoot,
+        importedAt: "2026-08-06",
+        manifest: unsafe.manifest,
+        manifestPath: unsafe.manifestPath,
+        source: unsafe.source,
+        themeId: "fashion-store",
+      }),
+    ).rejects.toThrow(/unsafe/i);
+
+    const unresolved = await fashionStoreFixture();
+    const css = '.hero{background:url("../images/missing.png")}\n';
+    await writeFixture(unresolved.source, "css/theme.css", css);
+    unresolved.manifest.themes[0]!.allowlist[1]!.expectedSha256 = sha256(css);
+    await expect(
+      importStorefrontTheme({
+        destinationRoot: unresolved.destinationRoot,
+        importedAt: "2026-08-06",
+        manifest: unresolved.manifest,
+        manifestPath: unresolved.manifestPath,
+        source: unresolved.source,
+        themeId: "fashion-store",
+      }),
+    ).rejects.toThrow(/CSS.*missing|missing.*CSS/i);
+
+    const addition = await fashionStoreFixture();
+    await writeFixture(addition.source, "demos/fashion-store/unlisted.js", "alert(1)\n");
+    await expect(
+      importStorefrontTheme({
+        destinationRoot: addition.destinationRoot,
+        importedAt: "2026-08-06",
+        manifest: addition.manifest,
+        manifestPath: addition.manifestPath,
+        source: addition.source,
+        themeId: "fashion-store",
+      }),
+    ).rejects.toThrow(/unlisted|executable/i);
   });
 });

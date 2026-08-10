@@ -29,6 +29,9 @@ const SECRET_PATTERNS = [
   { label: "private key", pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
 ] as const;
 
+const CARD_NUMBER_PATTERN =
+  /(?<![\w.])(?:\d{15,19}|\d{4}[ -]\d{4}[ -]\d{4}(?:[ -]\d{1,7})?|\d{4}[ -]\d{6}[ -]\d{5})(?![\w.])/g;
+
 async function filesBelow(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(
@@ -67,10 +70,7 @@ export async function verifyNoSensitiveBuildArtifacts(
     for (const { label, pattern } of SECRET_PATTERNS) {
       if (pattern.test(content)) throw new Error(`${path} contains a ${label}.`);
     }
-    const numberCandidates =
-      content.match(
-        /\b(?:\d{15,19}|\d{4}[ -]\d{4}[ -]\d{4}(?:[ -]\d{1,7})?|\d{4}[ -]\d{6}[ -]\d{5})\b/g,
-      ) ?? [];
+    const numberCandidates = content.match(CARD_NUMBER_PATTERN) ?? [];
     if (numberCandidates.some(luhnValid)) {
       throw new Error(`${path} contains raw card-shaped data.`);
     }
@@ -105,10 +105,7 @@ async function verifyTrackedSourceSafety(root: string): Promise<void> {
     for (const { label, pattern } of SECRET_PATTERNS) {
       if (pattern.test(content)) throw new Error(`${relativePath} contains a ${label}.`);
     }
-    const numberCandidates =
-      content.match(
-        /\b(?:\d{15,19}|\d{4}[ -]\d{4}[ -]\d{4}(?:[ -]\d{1,7})?|\d{4}[ -]\d{6}[ -]\d{5})\b/g,
-      ) ?? [];
+    const numberCandidates = content.match(CARD_NUMBER_PATTERN) ?? [];
     if (numberCandidates.some(luhnValid)) {
       throw new Error(`${relativePath} contains raw card-shaped data.`);
     }

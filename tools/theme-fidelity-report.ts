@@ -2,21 +2,28 @@ import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+  fashionStoreComparisonDescriptor,
+  resolveThemeComparison,
+  type ThemeComparisonDescriptor,
+} from "../apps/storefront/e2e/support/theme-capture-contract";
+import {
   assertThemeScreenshotDifference,
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
 
-export type FidelityThemeId = "decor" | "fashion";
+export type FidelityThemeId = "decor" | "fashion" | "fashion-store";
+export type SameIdentityFidelityThemeId = Exclude<FidelityThemeId, "fashion-store">;
 export type FidelityViewportId = "desktop" | "laptop" | "tablet" | "mobile";
 
 export const fidelityViewportIds: FidelityViewportId[] = ["desktop", "laptop", "tablet", "mobile"];
 
 interface CaptureMetadata {
+  captureMode?: "fallback" | "interaction" | "scroll-fixed" | "static" | "temporal";
   capturedAt: string;
   commit?: string;
   state?: string;
   themeId: FidelityThemeId;
-  viewports: { height: number; id: FidelityViewportId; width: number }[];
+  viewports: { dpr?: number; height: number; id: FidelityViewportId; width: number }[];
 }
 
 function pngDimensions(contents: Uint8Array): { height: number; width: number } {
@@ -45,30 +52,75 @@ async function metadata(root: string, themeId: FidelityThemeId): Promise<Capture
 export async function generateThemeFidelityReport(options: {
   approvalBy?: string;
   commit: string;
+  comparison?: ThemeComparisonDescriptor;
   implementationRoot: string;
   outputRoot: string;
   referenceRoot: string;
-  themes?: FidelityThemeId[];
+  themes?: SameIdentityFidelityThemeId[];
 }): Promise<string> {
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
-  const themes = options.themes ?? ["fashion", "decor"];
+  if ((options.themes as FidelityThemeId[] | undefined)?.includes("fashion-store"))
+    throw new Error(
+      "Fashion Store fidelity must use the Fashion-to-Fashion Store comparison descriptor.",
+    );
+  const themes = options.themes;
+  const comparison = options.comparison ?? (themes ? undefined : fashionStoreComparisonDescriptor);
+  const comparisonRequested = comparison !== undefined;
+  const comparisons = comparison
+    ? [
+        {
+          artifactId: comparison.id,
+          implementationThemeId: comparison.implementationThemeId,
+          referenceThemeId: comparison.referenceThemeId,
+        },
+      ]
+    : themes!.map((themeId) => ({
+        artifactId: themeId,
+        implementationThemeId: themeId,
+        referenceThemeId: themeId,
+      }));
   const outputRoot = resolve(options.outputRoot);
   await mkdir(outputRoot, { recursive: true });
   const cards: string[] = [];
   const failures: string[] = [];
-  for (const themeId of themes) {
-    const referenceMetadata = await metadata(resolve(options.referenceRoot), themeId);
-    const implementationMetadata = await metadata(resolve(options.implementationRoot), themeId);
+  for (const comparison of comparisons) {
+    const { artifactId, implementationThemeId, referenceThemeId } = comparison;
+    const referenceMetadata = await metadata(resolve(options.referenceRoot), referenceThemeId);
+    const implementationMetadata = await metadata(
+      resolve(options.implementationRoot),
+      implementationThemeId,
+    );
+    if (comparisonRequested) {
+      const maximumAgeMs = 30 * 24 * 60 * 60 * 1_000;
+      for (const [side, capturedAt] of [
+        ["reference", referenceMetadata.capturedAt],
+        ["implementation", implementationMetadata.capturedAt],
+      ] as const) {
+        const ageMs = Date.now() - Date.parse(capturedAt);
+        if (ageMs > maximumAgeMs || ageMs < -5 * 60 * 1_000) {
+          throw new Error(`${artifactId} ${side} capture is stale.`);
+        }
+      }
+      if (
+        referenceMetadata.captureMode !== "static" ||
+        implementationMetadata.captureMode !== "static"
+      )
+        throw new Error(`${artifactId} initial-home report requires static capture mode.`);
+    }
     if (implementationMetadata.commit !== options.commit) {
-      throw new Error(`${themeId} implementation capture does not match commit ${options.commit}.`);
+      throw new Error(
+        `${implementationThemeId} implementation capture does not match commit ${options.commit}.`,
+      );
     }
     if (implementationMetadata.state !== "initial-home") {
       throw new Error(
-        `${themeId} implementation capture does not represent the initial home state.`,
+        `${implementationThemeId} implementation capture does not represent the initial home state.`,
       );
     }
     if (referenceMetadata.state !== "initial-home") {
-      throw new Error(`${themeId} reference capture does not represent the initial home state.`);
+      throw new Error(
+        `${referenceThemeId} reference capture does not represent the initial home state.`,
+      );
     }
     for (const viewport of fidelityViewportIds) {
       const expected = referenceMetadata.viewports.find(({ id }) => id === viewport);
@@ -77,14 +129,26 @@ export async function generateThemeFidelityReport(options: {
         !expected ||
         !actual ||
         expected.width !== actual.width ||
-        expected.height !== actual.height
+        expected.height !== actual.height ||
+        (comparisonRequested &&
+          (typeof expected.dpr !== "number" ||
+            typeof actual.dpr !== "number" ||
+            expected.dpr !== actual.dpr))
       ) {
-        throw new Error(`${themeId} ${viewport} capture viewport dimensions do not match.`);
+        throw new Error(
+          comparisonRequested
+            ? `${artifactId} ${viewport} capture viewport or DPR does not match.`
+            : `${artifactId} ${viewport} capture viewport dimensions do not match.`,
+        );
       }
-      const referencePath = join(resolve(options.referenceRoot), themeId, `${viewport}.png`);
+      const referencePath = join(
+        resolve(options.referenceRoot),
+        referenceThemeId,
+        `${viewport}.png`,
+      );
       const implementationPath = join(
         resolve(options.implementationRoot),
-        themeId,
+        implementationThemeId,
         `${viewport}.png`,
       );
       for (const path of [referencePath, implementationPath]) {
@@ -99,12 +163,12 @@ export async function generateThemeFidelityReport(options: {
         referenceDimensions.width !== expected.width ||
         implementationDimensions.width !== actual.width
       ) {
-        throw new Error(`${themeId} ${viewport} PNG dimensions do not match capture metadata.`);
+        throw new Error(`${artifactId} ${viewport} PNG dimensions do not match capture metadata.`);
       }
-      const referenceName = `${themeId}-${viewport}-reference.png`;
-      const implementationName = `${themeId}-${viewport}-implementation.png`;
-      const differenceName = `${themeId}-${viewport}-diff.png`;
-      const resultName = `${themeId}-${viewport}-diff.json`;
+      const referenceName = `${artifactId}-${viewport}-reference.png`;
+      const implementationName = `${artifactId}-${viewport}-implementation.png`;
+      const differenceName = `${artifactId}-${viewport}-diff.png`;
+      const resultName = `${artifactId}-${viewport}-diff.json`;
       await Promise.all([
         copyFile(referencePath, join(outputRoot, referenceName)),
         copyFile(implementationPath, join(outputRoot, implementationName)),
@@ -118,15 +182,15 @@ export async function generateThemeFidelityReport(options: {
       try {
         assertThemeScreenshotDifference(difference, 0.01);
       } catch (error) {
-        failures.push(`${themeId} ${viewport}: ${(error as Error).message}`);
+        failures.push(`${artifactId} ${viewport}: ${(error as Error).message}`);
       }
       cards.push(`<section>
-  <h2>${themeId} · ${viewport}</h2>
+  <h2>${referenceThemeId} → ${implementationThemeId} · ${viewport}</h2>
   <p>${expected.width}px viewport · commit <code>${options.commit}</code> · changed pixels <strong>${(difference.changedPixelRatio * 100).toFixed(3)}%</strong> (limit 1.000%)</p>
   <div class="comparison">
-    <figure><figcaption>Reference</figcaption><img src="${referenceName}" alt="${themeId} ${viewport} reference"></figure>
-    <figure><figcaption>Implementation</figcaption><img src="${implementationName}" alt="${themeId} ${viewport} implementation"></figure>
-    <figure><figcaption>Difference</figcaption><img src="${differenceName}" alt="${themeId} ${viewport} difference"></figure>
+    <figure><figcaption>Reference</figcaption><img src="${referenceName}" alt="${referenceThemeId} ${viewport} reference"></figure>
+    <figure><figcaption>Implementation</figcaption><img src="${implementationName}" alt="${implementationThemeId} ${viewport} implementation"></figure>
+    <figure><figcaption>Difference</figcaption><img src="${differenceName}" alt="${artifactId} ${viewport} difference"></figure>
   </div>
 </section>`);
     }
@@ -134,7 +198,7 @@ export async function generateThemeFidelityReport(options: {
   const reportPath = join(outputRoot, "index.html");
   await writeFile(
     reportPath,
-    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Fashion and Decor fidelity review</title><style>body{margin:0;padding:32px;background:#eef1f3;color:#14202b;font:16px system-ui}main{max-width:1600px;margin:auto}section{margin:0 0 40px;padding:24px;background:#fff;border-radius:16px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}figure{margin:0}figcaption{font-weight:700;margin-bottom:8px}img{display:block;width:100%;height:auto;border:1px solid #d8dde2}@media(max-width:800px){.comparison{grid-template-columns:1fr}}</style><main><h1>Fashion and Decor fidelity review</h1><p>Reference evidence remains separate from implementation captures. This report does not imply approval.</p>${cards.join("")}</main></html>`,
+    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Source-equivalence fidelity review</title><style>body{margin:0;padding:32px;background:#eef1f3;color:#14202b;font:16px system-ui}main{max-width:1600px;margin:auto}section{margin:0 0 40px;padding:24px;background:#fff;border-radius:16px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}figure{margin:0}figcaption{font-weight:700;margin-bottom:8px}img{display:block;width:100%;height:auto;border:1px solid #d8dde2}@media(max-width:800px){.comparison{grid-template-columns:1fr}}</style><main><h1>Source-equivalence fidelity review</h1><p>Reference evidence remains separate from implementation captures. This report does not imply approval.</p>${cards.join("")}</main></html>`,
   );
   if (options.approvalBy?.trim()) {
     await writeFile(
@@ -145,7 +209,9 @@ export async function generateThemeFidelityReport(options: {
           approvedBy: options.approvalBy.trim(),
           commit: options.commit,
           report: basename(reportPath),
-          themes,
+          ...(comparisonRequested
+            ? { comparisons: comparisons.map(({ artifactId }) => artifactId) }
+            : { themes }),
         },
         null,
         2,
@@ -171,13 +237,21 @@ async function main(): Promise<void> {
   const implementationRoot = value(arguments_, "--implementation");
   const outputRoot = value(arguments_, "--output");
   const commit = value(arguments_, "--commit");
+  const referenceThemeId = value(arguments_, "--reference-theme") ?? "fashion";
+  const implementationThemeId = value(arguments_, "--implementation-theme") ?? "fashion-store";
   if (!referenceRoot || !implementationRoot || !outputRoot || !commit) {
     throw new Error(
-      "Usage: bun tools/theme-fidelity-report.ts --reference=<root> --implementation=<root> --output=<root> --commit=<sha>",
+      "Usage: bun tools/theme-fidelity-report.ts --reference=<root> --implementation=<root> --output=<root> --commit=<sha> [--reference-theme=fashion --implementation-theme=fashion-store]",
     );
   }
   console.log(
-    await generateThemeFidelityReport({ commit, implementationRoot, outputRoot, referenceRoot }),
+    await generateThemeFidelityReport({
+      commit,
+      implementationRoot,
+      outputRoot,
+      referenceRoot,
+      comparison: resolveThemeComparison(referenceThemeId, implementationThemeId),
+    }),
   );
 }
 

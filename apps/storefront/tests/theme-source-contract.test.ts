@@ -59,6 +59,30 @@ function snapshot(): SourceContractSnapshot {
 }
 
 describe("source-contract comparison", () => {
+  test("retains targeted evidence for controlled Fashion Store copy, count, icon, asset, and geometry defects", () => {
+    const reference = snapshot();
+    reference.probes[0]!.elements[0]!.pseudoStyles!.before.content = '"\\e8e1"';
+    const implementation = structuredClone(reference);
+    const element = implementation.probes[0]!.elements[0]!;
+    implementation.probes[0]!.count = 2;
+    element.text = "Approximate collection";
+    element.asset = "substitute.jpg";
+    element.rect.left += 2.1;
+    element.pseudoStyles!.before.content = '"?"';
+
+    expect(compareSourceContractSnapshots(reference, implementation)).toEqual([
+      "hero: expected 1 elements, received 2",
+    ]);
+
+    implementation.probes[0]!.count = 1;
+    expect(compareSourceContractSnapshots(reference, implementation)).toEqual([
+      'hero[0] text: expected "Women’s collection", received "Approximate collection"',
+      "hero[0] asset: expected hero.jpg, received substitute.jpg",
+      "hero[0] left: expected 20px, received 22.1px",
+      'hero[0] ::before content: expected ""\\e8e1"", received ""?""',
+    ]);
+  });
+
   test("accepts numeric style and geometry drift inside the fidelity threshold", () => {
     const reference = snapshot();
     const implementation = structuredClone(reference);
@@ -74,6 +98,15 @@ describe("source-contract comparison", () => {
     const implementation = structuredClone(reference);
     reference.probes[0]!.elements[0]!.styles.transform = "matrix(1, 0, 0, 1, 0, 0)";
     implementation.probes[0]!.elements[0]!.styles.transform = "none";
+
+    expect(compareSourceContractSnapshots(reference, implementation)).toEqual([]);
+  });
+
+  test("accepts identical non-identity transforms", () => {
+    const reference = snapshot();
+    const implementation = structuredClone(reference);
+    reference.probes[0]!.elements[0]!.styles.transform = "matrix(1, 0, 0, 1, 0, -58.2734)";
+    implementation.probes[0]!.elements[0]!.styles.transform = "matrix(1, 0, 0, 1, 0, -58.2734)";
 
     expect(compareSourceContractSnapshots(reference, implementation)).toEqual([]);
   });

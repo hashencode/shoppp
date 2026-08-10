@@ -3,12 +3,16 @@ import type { ShippingQuoteRequest } from "@shoppp/contracts";
 
 type Address = ShippingQuoteRequest["shippingAddress"];
 
+withDefaults(defineProps<{ disabled?: boolean; showLegend?: boolean }>(), {
+  disabled: false,
+  showLegend: true,
+});
 const model = defineModel<Address>({ required: true });
 </script>
 
 <template>
-  <fieldset class="address-fields">
-    <legend>Shipping address</legend>
+  <fieldset class="address-fields" :disabled="disabled">
+    <legend v-if="showLegend">Shipping address</legend>
     <label>Name <input v-model="model.name" required autocomplete="name" /></label>
     <label
       >Address <input v-model="model.line1" required autocomplete="shipping address-line1"

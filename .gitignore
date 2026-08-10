@@ -19,6 +19,7 @@ node_modules/
 playwright-report/
 test-results/
 artifacts/releases/
+artifacts/source-equivalence/
 artifacts/theme-fidelity/
 artifacts/live/
 *.local

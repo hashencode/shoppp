@@ -3,22 +3,40 @@ import { join, resolve } from "node:path";
 
 import { chromium, expect, test, type Page } from "@playwright/test";
 
+import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
+
 const manifest = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../app/generated/route-manifest.json"), "utf8"),
 ) as { routes: string[] };
 const theme = process.env.STOREFRONT_THEME ?? "production-fallback";
 const rootUrlOverride = process.env.STOREFRONT_PERF_ROOT_URL;
+const fashionStorePerformancePageIds = new Set([
+  "home",
+  "shop-left",
+  "product",
+  "cart",
+  "checkout",
+  "magazine",
+]);
+const fashionStoreRoutes = fashionStorePageContracts
+  .filter(({ id }) => fashionStorePerformancePageIds.has(id))
+  .map(({ path }) => path);
+if (fashionStoreRoutes.length !== fashionStorePerformancePageIds.size) {
+  throw new Error("Fashion Store performance routes are incomplete.");
+}
 const routes = rootUrlOverride
   ? ["/"]
-  : [
-      "/",
-      manifest.routes.find((route) => route.startsWith("/collections/")),
-      manifest.routes.find((route) => route.startsWith("/products/")),
-      "/cart",
-      "/checkout",
-      "/orders/fixture-order",
-      manifest.routes.find((route) => route.startsWith("/policies/")),
-    ].filter((route): route is string => Boolean(route));
+  : theme === "fashion-store"
+    ? fashionStoreRoutes
+    : [
+        "/",
+        manifest.routes.find((route) => route.startsWith("/collections/")),
+        manifest.routes.find((route) => route.startsWith("/products/")),
+        "/cart",
+        "/checkout",
+        "/orders/fixture-order",
+        manifest.routes.find((route) => route.startsWith("/policies/")),
+      ].filter((route): route is string => Boolean(route));
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,
@@ -27,10 +45,11 @@ const thresholds = {
 } as const;
 const routeThresholds = (route: string) => ({
   ...thresholds,
-  // The source Decor Revolution hero scores 0.54 on the same cold mobile profile.
-  // Preserve its source-timed layered entrance while requiring the Vue port to stay
-  // materially above that baseline. Secondary Decor routes retain a stricter 0.85 floor.
-  performance: theme === "decor" ? (route === "/" ? 0.75 : 0.85) : thresholds.performance,
+  // Fashion Store intentionally preserves the source package's audited low-contrast labels and
+  // secondary copy. Its dedicated Axe gate enforces every serious rule and a narrow list of
+  // source-exact contrast exceptions.
+  accessibility: theme === "fashion-store" ? 0.85 : thresholds.accessibility,
+  performance: thresholds.performance,
   // Private previews and production transaction shells are intentionally noindex, which
   // Lighthouse reports as an SEO deduction. verify-static.ts separately enforces their
   // canonical metadata, meaningful HTML, noindex tags, and sitemap exclusion.

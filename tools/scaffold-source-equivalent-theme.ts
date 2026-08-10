@@ -53,11 +53,73 @@ export function buildSourceEquivalentThemeScaffold(options: ScaffoldOptions): Ma
   const sourceEntry = required(options.sourceEntry, "source entry");
   const sourceIdentity = required(options.sourceIdentity, "source identity");
   const name = componentName(themeId);
-  const sourceContractName = `${themeId.replaceAll("-", "_")}SourceContract`;
+  const symbolPrefix = `${themeId.split("-")[0]}${themeId
+    .split("-")
+    .slice(1)
+    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
+    .join("")}`;
+  const sourceContractName = `${symbolPrefix}SourceContract`;
+  const sourceRegionsName = `${symbolPrefix}SourceRegions`;
+  const behaviorContractName = `${symbolPrefix}BehaviorContract`;
+  const acceptanceAdaptersName = `${symbolPrefix}AcceptanceAdapters`;
   const sourceEntryLiteral = JSON.stringify(sourceEntry);
   const sourceProvenanceLiteral = JSON.stringify(`local://${sourceIdentity}/${sourceEntry}`);
 
   return new Map([
+    [
+      "acceptance-adapter.ts",
+      `// Add selectors/actions here only when the shared behavior probes cannot express a source behavior.
+// Every custom adapter requires a reason in behavior-contract.ts.
+export const ${acceptanceAdaptersName} = {} as const;
+`,
+    ],
+    [
+      "source-equivalence-policy.fragment.json",
+      `${JSON.stringify(
+        {
+          acceptanceAdapterExport: acceptanceAdaptersName,
+          acceptanceAdapterPath: `apps/storefront/app/themes/${themeId}/acceptance-adapter.ts`,
+          behaviorContractExport: behaviorContractName,
+          behaviorContractPath: `apps/storefront/app/themes/${themeId}/behavior-contract.ts`,
+          id: themeId,
+          sourceContractPath: `apps/storefront/app/themes/${themeId}/source-contract.ts`,
+          sourceFirstHero: "SOURCE_INTAKE_REQUIRED",
+          sourceRegionsExport: sourceRegionsName,
+        },
+        null,
+        2,
+      )}\n`,
+    ],
+    [
+      "behavior-contract.ts",
+      `import type { ThemeBehaviorContract } from "../../../e2e/support/theme-behavior-contract";
+
+export const ${behaviorContractName} = {
+  behaviors: [],
+  customAdapters: [],
+  routeId: "${themeId}-home",
+  suppressions: [],
+  themeId: "${themeId}",
+} as const satisfies ThemeBehaviorContract;
+`,
+    ],
+    [
+      "behavior-contract.test.ts",
+      `import { describe, test } from "bun:test";
+import { assertThemeBehaviorContractComplete } from "../../../e2e/support/theme-behavior-contract";
+import { ${behaviorContractName} } from "./behavior-contract";
+import { ${sourceContractName} } from "./source-contract";
+
+describe("${themeId} behavior contract", () => {
+  test("covers every source-derived behavior before registration", () => {
+    assertThemeBehaviorContractComplete(
+      ${behaviorContractName},
+      ${sourceContractName}.regions.map((region) => region.id),
+    );
+  });
+});
+`,
+    ],
     [
       "UPSTREAM.md",
       `# ${label} source intake
@@ -151,7 +213,9 @@ export const themeAssets = validateThemeAssets("${themeId}", {});
     ],
     [
       "source-contract.ts",
-      `export const ${sourceContractName} = {
+      `export const ${sourceRegionsName}: { id: string; selector: string }[] = [];
+
+export const ${sourceContractName} = {
   sources: {
     demoCss: "SOURCE_INTAKE_REQUIRED",
     html: ${sourceEntryLiteral},
@@ -159,7 +223,7 @@ export const themeAssets = validateThemeAssets("${themeId}", {});
     sharedCss: "SOURCE_INTAKE_REQUIRED",
     runtimeInitialization: "SOURCE_INTAKE_REQUIRED",
   },
-  regions: [] as string[],
+  regions: ${sourceRegionsName},
   visibleCopy: [] as string[],
   links: [] as { label: string; target: string }[],
   assets: [] as { id: string; intrinsicHeight: number; intrinsicWidth: number; sourcePath: string }[],

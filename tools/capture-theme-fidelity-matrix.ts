@@ -6,6 +6,7 @@ import {
   type FidelityDensity,
   type FidelityMatrixViewportId,
 } from "../apps/storefront/e2e/support/theme-fidelity-matrix";
+import { captureModeForRegion } from "../apps/storefront/e2e/support/theme-capture-contract";
 
 function argumentValue(arguments_: string[], name: string): string | undefined {
   const prefix = `${name}=`;
@@ -25,10 +26,16 @@ const sourceOrigin = argumentValue(arguments_, "--source-origin");
 const implementationOrigin = argumentValue(arguments_, "--implementation-origin");
 const outputRoot = argumentValue(arguments_, "--output");
 const commit = argumentValue(arguments_, "--commit");
+const matchesTheme = (routeId: string): boolean =>
+  theme === "fashion-store"
+    ? routeId.startsWith("fashion-store-")
+    : theme === "fashion"
+      ? routeId.startsWith("fashion-") && !routeId.startsWith("fashion-store-")
+      : routeId.startsWith("decor-");
 
 if (
   !theme ||
-  !["fashion", "decor"].includes(theme) ||
+  !["fashion", "fashion-store", "decor"].includes(theme) ||
   !["regional", "full-page"].includes(phase) ||
   !sourceOrigin ||
   !implementationOrigin ||
@@ -37,12 +44,12 @@ if (
   densities.some((density) => density !== 1 && density !== 2)
 ) {
   throw new Error(
-    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
+    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion|fashion-store|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
   );
 }
 
 const tasks = themeFidelityMatrix
-  .filter((route) => route.id.startsWith(`${theme}-`) && (!routeFilter || route.id === routeFilter))
+  .filter((route) => matchesTheme(route.id) && (!routeFilter || route.id === routeFilter))
   .flatMap((route) =>
     route.viewports
       .filter((viewport) => !viewportFilter || viewport === viewportFilter)
@@ -55,9 +62,10 @@ const tasks = themeFidelityMatrix
                 phase === "full-page"
                   ? region.kind === "full-page-smoke"
                   : region.kind !== "full-page-smoke" &&
-                    !["bag", "header", "search"].includes(region.id),
+                    (regionFilter
+                      ? region.id === regionFilter
+                      : !["bag", "header", "search"].includes(region.id)),
               )
-              .filter((region) => !regionFilter || region.id === regionFilter)
               .map((region) => ({ density, region, route, viewport })),
           ),
       ),
@@ -88,6 +96,7 @@ for (const [index, task] of tasks.entries()) {
       "tools/capture-theme-route-region.ts",
       `--route=${task.route.id}`,
       `--region=${task.region.id}`,
+      `--mode=${captureModeForRegion(task.region.id)}`,
       `--viewport=${task.viewport}`,
       `--dpr=${task.density}`,
       `--source-origin=${sourceOrigin}`,
@@ -133,6 +142,9 @@ const summary = {
   results,
   startedAt,
   theme,
+  ...(theme === "fashion-store"
+    ? { implementationThemeId: "fashion-store", referenceThemeId: "fashion" }
+    : {}),
   total: results.length,
 };
 await mkdir(resolve(outputRoot), { recursive: true });

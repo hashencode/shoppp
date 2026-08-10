@@ -43,6 +43,19 @@ Theme assets remain inside their namespaced package until compilation. Matrix ve
 each output for inactive-theme namespaces and prohibited Crafto runtimes. The final production
 build verifies that it contains neither theme preview code nor preview credentials.
 
+Fashion Store is an isolated experiment under the `fashion-store` identity. It is the only selected build
+allowed to include its hash-pinned Crafto CSS and reviewed jQuery/vendor runtime; the upstream
+`main.js` entrypoint remains excluded. Its larger initial-JavaScript allowance is separate from the
+unchanged Fashion, Decor, and production-fallback budget. A passing experiment is only
+promotion-eligible: it does not change the current `fashion` package, snapshots, generated
+production fallback, or active storefront selection.
+
+The Fashion Store accessibility suite fixes semantic names, landmarks, and focus behavior without
+changing source geometry. Its dedicated contrast audit records narrowly selected source-exact
+secondary copy, labels, prices, and footer text; all other serious Axe violations fail the
+experiment. The separate Lighthouse accessibility floor reflects those retained source colors and
+the source-exact compact search target, and does not lower the current Fashion or Decor floor.
+
 The Fashion and Decor reference-fidelity scope is the home template only. Collection, product,
 cart, checkout, order, and policy templates remain complete platform-regression routes, but they
 are not represented as reproductions of the supplied reference pages. Reference imagery and
@@ -88,6 +101,8 @@ change the production active theme.
   binds implementation evidence to its theme, initial state, viewport, and commit, and creates no
   approval record until a user explicitly accepts the comparison.
 - `apps/storefront/scripts/check-bundle-budget.ts` enforces JavaScript and selected-theme output
-  isolation.
+  isolation, including the independent Fashion Store source-runtime allowance.
 - `tools/release-validate.ts` runs the full matrix before rebuilding the unchanged production
   fallback and excludes preview material from release reports.
+- `docs/runbooks/storefront-theme-promotion.md` defines the separate human promote/abandon
+  decision and the rollback boundary for experimental themes.
