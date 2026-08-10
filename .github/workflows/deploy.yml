@@ -52,6 +52,8 @@ jobs:
           bun-version: 1.3.5
       - name: Install browser runtime
         run: bunx playwright install --with-deps chromium
+      - name: Install font inspection runtime
+        run: sudo apt-get install --yes woff2
       - name: Validate locked staging candidate
         env:
           RELEASE_STRICT_ENVIRONMENT: "true"
@@ -227,6 +229,8 @@ jobs:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
+      - name: Install font inspection runtime
+        run: sudo apt-get install --yes woff2
       - name: Provision hashed staging service credential
         env:
           ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}

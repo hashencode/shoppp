@@ -24,6 +24,8 @@ jobs:
           bun-version: 1.3.5
       - name: Install browser runtime
         run: bunx playwright install --with-deps chromium
+      - name: Install font inspection runtime
+        run: sudo apt-get install --yes woff2
       - name: Validate release candidate
         run: bun run release:validate -- --release-id "ci-${GITHUB_SHA}"
       - name: Preserve release report
