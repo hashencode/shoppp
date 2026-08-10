@@ -4,7 +4,7 @@ import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";
 import "./upstream/demos/fashion-store/fashion-store.css";
 import "./integration.css";
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, hydrateOnInteraction, type HydrationStrategy } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
 import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
@@ -27,7 +27,37 @@ const FashionStoreCollectionPage = defineAsyncComponent(
 const FashionStoreContentPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreContentPage.vue"),
 );
-const FashionStoreHome = defineAsyncComponent(() => import("./components/FashionStoreHome.vue"));
+const hydrateFashionStoreHome: HydrationStrategy = (hydrate, forEachElement) => {
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    hydrate();
+    return;
+  }
+
+  let completed = false;
+  let removeInteractionListeners: (() => void) | undefined;
+  const complete = () => {
+    if (completed) return;
+    completed = true;
+    clearTimeout(fallbackTimer);
+    removeInteractionListeners?.();
+    hydrate();
+  };
+  const fallbackTimer = window.setTimeout(complete, 10_000);
+  const interactionCleanup = hydrateOnInteraction(["click", "focusin", "keydown", "pointerdown"])(
+    complete,
+    forEachElement,
+  );
+  if (interactionCleanup) removeInteractionListeners = interactionCleanup;
+
+  return () => {
+    clearTimeout(fallbackTimer);
+    removeInteractionListeners?.();
+  };
+};
+const FashionStoreHome = defineAsyncComponent({
+  hydrate: hydrateFashionStoreHome,
+  loader: () => import("./components/FashionStoreHome.vue"),
+});
 const FashionStoreProductPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreProductPage.vue"),
 );

@@ -319,6 +319,25 @@ test("Fashion Store home has no serious accessibility violations", async ({ page
   expect(contrast.violations).toEqual([]);
 });
 
+test("reduced motion defers home hydration without deferring readable content", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  const marker = page.locator("[data-fashion-store-source-parity]");
+  await expect(marker).toHaveAttribute("data-runtime-status", "loading");
+  await expect(page.locator("section:nth-of-type(4) .shop-footer").first()).toContainText(
+    "Textured sweater",
+  );
+
+  const searchTrigger = page.getByRole("link", { name: "Search" });
+  await searchTrigger.click();
+  await expect(marker).toHaveAttribute("data-runtime-status", "static");
+  await expect(page.locator(".search-form-wrapper")).toBeVisible();
+});
+
 test("visual capabilities initialize once and leave no runtime residue", async ({
   page,
 }, testInfo) => {

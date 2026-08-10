@@ -736,6 +736,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fashion-store-home [data-anime],
+  .fashion-store-home .grid-loading .grid-item {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+
+  .fashion-store-home .grid-loading::before,
+  .fashion-store-home .grid-loading::after {
+    display: none !important;
+  }
+
   .fashion-store-home .swiper-width-auto .marquee-slide {
     animation: none;
     transform: none !important;
