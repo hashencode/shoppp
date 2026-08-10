@@ -4,8 +4,9 @@ import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";
 import "./upstream/demos/fashion-store/fashion-store.css";
 import "./integration.css";
-import { defineAsyncComponent, hydrateOnInteraction, type HydrationStrategy } from "vue";
+import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
+import FashionStoreHome from "./components/FashionStoreHome.vue";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
 import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
 import { fashionStoreCheckoutFixtures } from "./fixtures/pages/checkout";
@@ -27,21 +28,6 @@ const FashionStoreCollectionPage = defineAsyncComponent(
 const FashionStoreContentPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreContentPage.vue"),
 );
-const hydrateFashionStoreHome: HydrationStrategy = (hydrate, forEachElement) => {
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    hydrate();
-    return;
-  }
-
-  return hydrateOnInteraction(["click", "focusin", "keydown", "pointerdown"])(
-    hydrate,
-    forEachElement,
-  );
-};
-const FashionStoreHome = defineAsyncComponent({
-  hydrate: hydrateFashionStoreHome,
-  loader: () => import("./components/FashionStoreHome.vue"),
-});
 const FashionStoreProductPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreProductPage.vue"),
 );
