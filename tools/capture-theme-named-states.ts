@@ -1048,7 +1048,9 @@ export async function captureFashionNamedStates(options: {
             `${viewportId}-${state.id}-implementation.png`,
           );
           if (
-            !["collection-card", "collection-hover", "product-hover"].includes(state.action.kind)
+            !["cart", "collection-card", "collection-hover", "product-hover"].includes(
+              state.action.kind,
+            )
           ) {
             await Promise.all([
               source.mouse.move(viewport.width - 1, 0),
