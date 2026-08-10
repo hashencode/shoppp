@@ -182,13 +182,12 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   );
   await productThumbnail(page, 4).click();
   await expect(gallery).toHaveAttribute("data-gallery-index", "4");
-  await page.waitForTimeout(350);
-  expect(await mainTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
-    mainTransformBefore,
-  );
-  expect(await thumbnailTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
-    thumbnailTransformBefore,
-  );
+  await expect
+    .poll(() => mainTrack.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe(mainTransformBefore);
+  await expect
+    .poll(() => thumbnailTrack.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe(thumbnailTransformBefore);
   await gallery.focus();
   await page.keyboard.press("ArrowRight");
   await expect(gallery).toHaveAttribute("data-gallery-index", "5");

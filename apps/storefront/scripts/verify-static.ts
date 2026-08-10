@@ -43,6 +43,13 @@ for (const route of pageRoutes) {
   if (previewBuild && !/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html)) {
     throw new Error(`${route} preview HTML must be non-indexable.`);
   }
+  if (
+    previewBuild &&
+    (!/<link[^>]+rel="stylesheet"[^>]+href="\/_nuxt\/[^"]+\.css"/.test(html) ||
+      /<style\b/i.test(html))
+  ) {
+    throw new Error(`${route} preview CSS must remain external and cacheable.`);
+  }
   if (!previewBuild && route.startsWith("/products/")) {
     const product = verificationCatalog.products.find(
       (item) => item.slug === route.slice("/products/".length),

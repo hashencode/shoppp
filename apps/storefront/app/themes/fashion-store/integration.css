@@ -429,7 +429,7 @@
   }
 
   .fashion-store-home .swiper.top-space-margin {
-    height: 100vh !important;
+    height: calc(100vh - 118px) !important;
     margin-top: 118px;
   }
 }
@@ -736,6 +736,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fashion-store-home [data-anime],
+  .fashion-store-home .grid-loading .grid-item {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+
+  .fashion-store-home .grid-loading::before,
+  .fashion-store-home .grid-loading::after {
+    display: none !important;
+  }
+
   .fashion-store-home .swiper-width-auto .marquee-slide {
     animation: none;
     transform: none !important;
@@ -1037,6 +1049,10 @@
 
 [data-fashion-store-cart] button {
   font: inherit;
+}
+
+[data-fashion-store-cart] .fashion-cart-loading-row {
+  visibility: hidden;
 }
 
 [data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.btn-small {

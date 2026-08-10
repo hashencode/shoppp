@@ -100,6 +100,10 @@ watch(
 
 onMounted(() => {
   documentReadyClass.value = "js";
+  nextTick(() => {
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  });
   document.addEventListener("click", handleInternalNavigation, true);
   document.addEventListener("keydown", handleDocumentKeydown);
 });

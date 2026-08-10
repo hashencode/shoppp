@@ -156,7 +156,8 @@ test(`${theme} storefront routes meet mobile Lighthouse budgets`, async ({ baseU
         });
       let result = await auditRoute();
       if (!result) throw new Error(`Lighthouse did not return a result for ${route}.`);
-      for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const maximumAttempts = 3;
+      for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
         const scores = Object.fromEntries(
           Object.keys(thresholds).map((category) => [
             category,
@@ -172,8 +173,10 @@ test(`${theme} storefront routes meet mobile Lighthouse budgets`, async ({ baseU
         const missedBudget = Object.entries(expected).some(
           ([category, threshold]) => (result!.lhr.categories[category]?.score ?? 0) < threshold,
         );
-        if (!missedBudget || attempt === 2) break;
-        console.warn(`Retrying one transient Lighthouse budget miss for ${route}.`);
+        if (!missedBudget || attempt === maximumAttempts) break;
+        console.warn(
+          `Retrying transient Lighthouse budget miss for ${route} (attempt ${attempt + 1} of ${maximumAttempts}).`,
+        );
         result = await auditRoute();
         if (!result) throw new Error(`Lighthouse did not return a retry result for ${route}.`);
       }

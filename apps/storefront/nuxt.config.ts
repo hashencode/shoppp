@@ -25,7 +25,7 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   devtools: { enabled: false },
   features: {
-    inlineStyles: previewBuild ? true : (id) => Boolean(id?.includes(".vue")),
+    inlineStyles: previewBuild ? false : (id) => Boolean(id?.includes(".vue")),
   },
   modules: ["@nuxt/image", "@pinia/nuxt"],
   vite: {
@@ -71,7 +71,6 @@ export default defineNuxtConfig({
           (asset) => !/\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(asset),
         );
         if (previewBuild) {
-          entry.css = [];
           entry.imports = [];
         }
       }

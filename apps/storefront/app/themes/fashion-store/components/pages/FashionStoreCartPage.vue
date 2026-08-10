@@ -27,6 +27,9 @@ const lines = ref<FashionStoreCartLine[]>([]);
 const totals = reactive({ subtotal: "$0.00", tax: "(Includes $0.00 tax)", total: "$0.00" });
 const cartStatus = ref<"loading" | "ready">("loading");
 const cartLoadError = ref("");
+const displayedLines = computed(() =>
+  cartStatus.value === "loading" ? data.value.lines : lines.value,
+);
 const selectedShipping = ref(data.value.shipping[0]?.id ?? "");
 const shippingOpen = ref(false);
 const countryCode = ref("");
@@ -255,8 +258,10 @@ onMounted(async () => {
                     </thead>
                     <tbody>
                       <tr
-                        v-for="line in lines"
+                        v-for="line in displayedLines"
                         :key="line.variantId"
+                        :aria-hidden="cartStatus === 'loading'"
+                        :class="{ 'fashion-cart-loading-row': cartStatus === 'loading' }"
                         :data-variant-id="line.variantId"
                       >
                         <td class="product-remove">

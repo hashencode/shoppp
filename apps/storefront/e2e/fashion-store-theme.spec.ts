@@ -54,7 +54,13 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
       ).swiper;
       swiper?.autoplay?.stop();
       swiper?.slideToLoop(0, 0);
-      const targetHeight = innerWidth >= 992 ? innerHeight : innerWidth >= 576 ? 600 : 500;
+      const headerHeight = [".header-top-bar", "header nav.navbar"].reduce(
+        (height, selector) =>
+          height + (document.querySelector(selector)?.getBoundingClientRect().height ?? 0),
+        0,
+      );
+      const targetHeight =
+        innerWidth >= 992 ? innerHeight - headerHeight : innerWidth >= 576 ? 600 : 500;
       element.style.setProperty("height", `${targetHeight}px`, "important");
       element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
         slide.style.setProperty("height", `${targetHeight}px`, "important");
@@ -311,6 +317,26 @@ test("Fashion Store home has no serious accessibility violations", async ({ page
     .exclude("footer .col-lg-5 > span")
     .analyze();
   expect(contrast.violations).toEqual([]);
+});
+
+test("reduced motion defers home hydration without deferring readable content", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  const marker = page.locator("[data-fashion-store-source-parity]");
+  await expect(marker).toHaveAttribute("data-runtime-status", "loading");
+  await expect(page.locator("section:nth-of-type(4) .shop-footer").first()).toContainText(
+    "Textured sweater",
+  );
+
+  const searchTrigger = page.getByRole("link", { name: "Search" });
+  await searchTrigger.click();
+  await expect(marker).toHaveAttribute("data-runtime-status", "static");
+  await expect(page.locator("html")).toHaveAttribute("class", "js");
+  await expect(page.locator(".search-form-wrapper")).toBeVisible();
 });
 
 test("visual capabilities initialize once and leave no runtime residue", async ({
