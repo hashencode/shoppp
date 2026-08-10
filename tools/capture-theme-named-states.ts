@@ -50,6 +50,12 @@ export function namedStateFractionalOriginOffset(value: number): number {
   return Math.floor(value) - value;
 }
 
+export function fashionNamedStatePreservesPointer(action: NamedStateAction): boolean {
+  return ["cart", "collection-card", "collection-hover", "product-focus", "product-hover"].includes(
+    action.kind,
+  );
+}
+
 const namedStateCss = (mode: ThemeAcceptanceMode) =>
   captureCssForMode(mode).replace(
     "#cookies-model, .cookie-message, .scroll-progress,",
@@ -1047,11 +1053,7 @@ export async function captureFashionNamedStates(options: {
             outputRoot,
             `${viewportId}-${state.id}-implementation.png`,
           );
-          if (
-            !["cart", "collection-card", "collection-hover", "product-hover"].includes(
-              state.action.kind,
-            )
-          ) {
+          if (!fashionNamedStatePreservesPointer(state.action)) {
             await Promise.all([
               source.mouse.move(viewport.width - 1, 0),
               implementation.mouse.move(viewport.width - 1, 0),

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   fashionCollectionNavigationKeys,
   fashionNamedStateHeroHeight,
+  fashionNamedStatePreservesPointer,
   fashionStoreNamedStateSelection,
   namedStateFractionalOriginOffset,
 } from "./capture-theme-named-states";
@@ -28,6 +29,12 @@ describe("Fashion named-state capture", () => {
   test("normalizes fractional element origins without changing integer origins", () => {
     expect(namedStateFractionalOriginOffset(337.40625)).toBe(-0.40625);
     expect(namedStateFractionalOriginOffset(337)).toBe(0);
+  });
+
+  test("preserves pointer state for hover-revealed keyboard controls", () => {
+    expect(fashionNamedStatePreservesPointer({ kind: "product-focus" })).toBe(true);
+    expect(fashionNamedStatePreservesPointer({ kind: "product-hover" })).toBe(true);
+    expect(fashionNamedStatePreservesPointer({ kind: "initial" })).toBe(false);
   });
 
   test("selects independent page contracts and evidence identities", () => {
