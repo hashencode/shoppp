@@ -621,6 +621,39 @@ describe("fidelity evidence freshness", () => {
     ).toThrow(/absent from the named-state contract|geometry evidence is missing/);
   });
 
+  test("honors an explicit viewport geometry space for reflowing named states", () => {
+    const descriptor = behaviorDescriptors.get("fashion-store");
+    expect(descriptor).toBeDefined();
+    const stateId = descriptor!.namedStates[0]!.id;
+    const viewportDescriptors = new Map([
+      [
+        "fashion-store",
+        {
+          ...descriptor!,
+          namedStates: descriptor!.namedStates.map((state) =>
+            state.id === stateId ? { ...state, geometrySpace: "viewport" as const } : state,
+          ),
+        },
+      ],
+    ]);
+    const reflowed = structuredClone(validNamedStateRecord);
+    for (const result of reflowed.results) {
+      if (result.state !== stateId) continue;
+      result.geometry = {
+        implementation: { ...result.geometry.implementation, pageY: 1_000 },
+        reference: { ...result.geometry.reference },
+      };
+    }
+
+    expect(() =>
+      validateFidelityEvidenceRecords([...validRegionalRecords, reflowed], {
+        behaviorDescriptors: viewportDescriptors,
+        commit: "abcdef1",
+        now: new Date("2026-08-05T12:00:00.000Z"),
+      }),
+    ).not.toThrow();
+  });
+
   test("rejects evidence captured in the wrong acceptance mode", () => {
     const invalid = structuredClone(validNamedStateRecord);
     const search = invalid.results.find(({ state }) => state === "search-open");

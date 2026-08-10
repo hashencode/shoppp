@@ -708,9 +708,10 @@ export function validateFidelityEvidenceRecords(
           errors.push(`${resultLabel}: named-state geometry evidence is missing`);
         } else {
           const geometrySpace =
-            stateContract?.capture === "viewport-top" || stateContract?.id === "cookie-overlay"
+            stateContract?.geometrySpace ??
+            (stateContract?.capture === "viewport-top" || stateContract?.id === "cookie-overlay"
               ? "viewport"
-              : "document";
+              : "document");
           errors.push(
             ...captureGeometryIssues(
               resultLabel,
