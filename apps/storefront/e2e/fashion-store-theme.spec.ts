@@ -54,7 +54,13 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
       ).swiper;
       swiper?.autoplay?.stop();
       swiper?.slideToLoop(0, 0);
-      const targetHeight = innerWidth >= 992 ? innerHeight : innerWidth >= 576 ? 600 : 500;
+      const headerHeight = [".header-top-bar", "header nav.navbar"].reduce(
+        (height, selector) =>
+          height + (document.querySelector(selector)?.getBoundingClientRect().height ?? 0),
+        0,
+      );
+      const targetHeight =
+        innerWidth >= 992 ? innerHeight - headerHeight : innerWidth >= 576 ? 600 : 500;
       element.style.setProperty("height", `${targetHeight}px`, "important");
       element.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide) => {
         slide.style.setProperty("height", `${targetHeight}px`, "important");

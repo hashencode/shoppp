@@ -429,7 +429,7 @@
   }
 
   .fashion-store-home .swiper.top-space-margin {
-    height: 100vh !important;
+    height: calc(100vh - 118px) !important;
     margin-top: 118px;
   }
 }
