@@ -114,6 +114,7 @@ describe("Fashion Store route readiness", () => {
     );
     expect(config).toContain('"fashion-store-*.spec.ts"');
     expect(config).toContain('"theme-behavior-contract.spec.ts"');
+    expect(config).toContain(">/dev/null 2>&1");
     expect(config).not.toContain('testMatch: ["*.spec.ts"');
   });
 

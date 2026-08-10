@@ -59,7 +59,7 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command: `python3 -m http.server ${sourcePort} --bind 127.0.0.1 --directory=${JSON.stringify(sourceRoot)}`,
+          command: `python3 -m http.server ${sourcePort} --bind 127.0.0.1 --directory=${JSON.stringify(sourceRoot)} >/dev/null 2>&1`,
           url: `http://127.0.0.1:${sourcePort}/demo-fashion-store.html`,
           reuseExistingServer: false,
           timeout: 30_000,
