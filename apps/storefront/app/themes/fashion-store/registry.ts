@@ -33,26 +33,10 @@ const hydrateFashionStoreHome: HydrationStrategy = (hydrate, forEachElement) => 
     return;
   }
 
-  let completed = false;
-  let removeInteractionListeners: (() => void) | undefined;
-  const complete = () => {
-    if (completed) return;
-    completed = true;
-    clearTimeout(fallbackTimer);
-    removeInteractionListeners?.();
-    hydrate();
-  };
-  const fallbackTimer = window.setTimeout(complete, 10_000);
-  const interactionCleanup = hydrateOnInteraction(["click", "focusin", "keydown", "pointerdown"])(
-    complete,
+  return hydrateOnInteraction(["click", "focusin", "keydown", "pointerdown"])(
+    hydrate,
     forEachElement,
   );
-  if (interactionCleanup) removeInteractionListeners = interactionCleanup;
-
-  return () => {
-    clearTimeout(fallbackTimer);
-    removeInteractionListeners?.();
-  };
 };
 const FashionStoreHome = defineAsyncComponent({
   hydrate: hydrateFashionStoreHome,
