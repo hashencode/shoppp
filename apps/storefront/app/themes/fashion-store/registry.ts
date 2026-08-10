@@ -6,9 +6,6 @@ import "./upstream/demos/fashion-store/fashion-store.css";
 import "./integration.css";
 import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import FashionStoreHome from "./components/FashionStoreHome.vue";
-import FashionStoreCartPage from "./components/pages/FashionStoreCartPage.vue";
-import FashionStoreProductPage from "./components/pages/FashionStoreProductPage.vue";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
 import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
 import { fashionStoreCheckoutFixtures } from "./fixtures/pages/checkout";
@@ -21,11 +18,18 @@ import { themeAssets } from "./resources";
 const FashionStoreCheckoutPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreCheckoutPage.vue"),
 );
+const FashionStoreCartPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreCartPage.vue"),
+);
 const FashionStoreCollectionPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreCollectionPage.vue"),
 );
 const FashionStoreContentPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreContentPage.vue"),
+);
+const FashionStoreHome = defineAsyncComponent(() => import("./components/FashionStoreHome.vue"));
+const FashionStoreProductPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreProductPage.vue"),
 );
 
 export const themeRegistry = {
