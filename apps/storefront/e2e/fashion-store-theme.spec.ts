@@ -335,6 +335,7 @@ test("reduced motion defers home hydration without deferring readable content", 
   const searchTrigger = page.getByRole("link", { name: "Search" });
   await searchTrigger.click();
   await expect(marker).toHaveAttribute("data-runtime-status", "static");
+  await expect(page.locator("html")).toHaveAttribute("class", "js");
   await expect(page.locator(".search-form-wrapper")).toBeVisible();
 });
 
