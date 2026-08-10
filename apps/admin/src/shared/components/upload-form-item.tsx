@@ -29,7 +29,7 @@ export type UploadFormItemProps = Omit<
   displayMode?: UploadFormItemDisplayMode
 }
 
-const DEFAULT_ACCEPT = '.pdf,.jpg,.jpeg,.png'
+const DEFAULT_ACCEPT = '.jpg,.jpeg,.png'
 const DEFAULT_FILE_SIZE_LIMIT_MB = 10
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp']
 const IMAGE_MIME_TYPE_PATTERN = /^image\/(?:\*|[a-z0-9.+-]+)$/i
@@ -141,6 +141,30 @@ const isImageOnlyAccept = (accept: UploadProps['accept']) => {
     )
 }
 
+const matchesAcceptedType = (file: File, accept: UploadProps['accept']) => {
+  const acceptTypes = readAcceptTypes(accept).map((item) => item.toLowerCase())
+  if (acceptTypes.length === 0) {
+    return true
+  }
+
+  const fileName = file.name.toLowerCase()
+  const fileType = file.type.toLowerCase()
+  return acceptTypes.some((item) => {
+    if (item === '*' || item === '*/*') {
+      return true
+    }
+    if (item.startsWith('.')) {
+      return fileName.endsWith(item)
+    }
+    if (item.endsWith('/*')) {
+      const mimePrefix = item.slice(0, -1)
+      return fileType.startsWith(mimePrefix) ||
+        (item === 'image/*' && IMAGE_EXTENSIONS.some((extension) => fileName.endsWith(extension)))
+    }
+    return fileType === item
+  })
+}
+
 const toUploadFile = (url: string, hideImageName: boolean, fallbackName: string): UploadFile => {
   const normalizedUrl = normalizeUploadUrl(url)
   return {
@@ -231,13 +255,16 @@ export const UploadFormItem = ({
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const multipleMode = Boolean(restProps.multiple) || maxCount > 1
+  const valueUrls = useMemo(() => normalizeValueToUrls(value, multipleMode), [multipleMode, value])
   const effectiveDisabled = readonly || disabled
   const resolvedDisplayMode: Exclude<UploadFormItemDisplayMode, 'auto'> =
     displayMode !== 'auto'
       ? displayMode
       : listType
         ? listType === 'picture-card' ? 'card' : 'button'
-        : isImageOnlyAccept(accept) ? 'card' : 'button'
+        : isImageOnlyAccept(accept) || valueUrls.some((url) => isImageAsset(normalizeUploadUrl(url)))
+          ? 'card'
+          : 'button'
   const resolvedListType =
     displayMode === 'auto' && listType
       ? listType
@@ -245,7 +272,7 @@ export const UploadFormItem = ({
         ? 'picture-card'
         : 'text'
   const [fileList, setFileList] = useState<UploadFile[]>(() =>
-    normalizeValueToUrls(value, multipleMode).map((url) =>
+    valueUrls.map((url) =>
       toUploadFile(url, resolvedDisplayMode === 'card', t('Uploaded file'))
     )
   )
@@ -275,7 +302,7 @@ export const UploadFormItem = ({
   }, [])
 
   useEffect(() => {
-    const valueFiles = normalizeValueToUrls(value, multipleMode).map((url) =>
+    const valueFiles = valueUrls.map((url) =>
       toUploadFile(url, resolvedDisplayMode === 'card', t('Uploaded file'))
     )
     const pendingFiles = isSameUploadValue(value, lastEmittedValueRef.current, multipleMode)
@@ -286,7 +313,7 @@ export const UploadFormItem = ({
       ...pendingFiles.filter((pendingFile) => !valueFiles.some((item) => item.uid === pendingFile.uid)),
     ].slice(0, maxCount)
     replaceFileList((current) => areUploadFileListsEqual(current, nextFileList) ? current : nextFileList)
-  }, [maxCount, multipleMode, replaceFileList, resolvedDisplayMode, t, value])
+  }, [maxCount, multipleMode, replaceFileList, resolvedDisplayMode, t, value, valueUrls])
 
   const emitChange = useCallback(
     (nextFileList: UploadFile[]) => {
@@ -492,15 +519,29 @@ export const UploadFormItem = ({
                 return externalResult
               }
               if (externalResult instanceof Blob) {
-                const transformedFile = new File([externalResult], file.name, {
-                  type: externalResult.type || file.type,
-                  lastModified: file.lastModified,
-                })
+                const transformedFile = new File(
+                  [externalResult],
+                  externalResult instanceof File ? externalResult.name : file.name,
+                  {
+                    type: externalResult.type || file.type,
+                    lastModified: externalResult instanceof File
+                      ? externalResult.lastModified
+                      : file.lastModified,
+                  }
+                )
                 candidateFile = Object.assign(transformedFile, { uid: file.uid }) as RcFile
               }
             } catch {
               return false
             }
+          }
+          if (!matchesAcceptedType(candidateFile, accept)) {
+            void message.error(
+              acceptedTypeText
+                ? t('Unsupported file format. Upload {types} files.', { types: acceptedTypeText })
+                : t('Unsupported file format.')
+            )
+            return Upload.LIST_IGNORE
           }
           try {
             const nextFile = await compressImage(candidateFile)

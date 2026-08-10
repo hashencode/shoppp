@@ -92,4 +92,47 @@ describe('UploadFormItem Browser Mode', () => {
     expect(uploadedFile?.name).toBe('large-image.jpg')
     expect(uploadedFile?.type).toBe('image/jpeg')
   })
+
+  it('uses actual values for mixed display mode and keeps rejected files out of the list', async () => {
+    let uploadCount = 0
+    const { container, rerender } = render(
+      <UploadFormItem
+        accept=".pdf,.jpg"
+        value="/uploads/manual.pdf"
+        uploadFile={async () => {
+          uploadCount += 1
+          return '/uploads/unexpected.jpg'
+        }}
+      />
+    )
+
+    expect(container.querySelector('.ax-upload-form-item--button')).toBeTruthy()
+    rerender(
+      <UploadFormItem
+        accept=".pdf,.jpg"
+        value={['/uploads/manual.pdf', '/uploads/photo.JPG?x=1#preview']}
+        uploadFile={async () => '/uploads/photo.jpg'}
+      />
+    )
+    expect(container.querySelector('.ax-upload-form-item--card')).toBeTruthy()
+
+    rerender(
+      <UploadFormItem
+        accept=".jpg"
+        uploadFile={async () => {
+          uploadCount += 1
+          return '/uploads/unexpected.jpg'
+        }}
+      />
+    )
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    const transfer = new DataTransfer()
+    transfer.items.add(new File(['image'], 'rejected.heic', { type: 'image/heic' }))
+    input.files = transfer.files
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await expect.element(page.getByText(/文件格式不支持/)).toBeVisible()
+    expect(uploadCount).toBe(0)
+    expect(container.textContent).not.toContain('rejected.heic')
+  })
 })
