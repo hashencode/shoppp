@@ -69,8 +69,8 @@ describe("Fashion Store runtime lifecycle", () => {
   });
 
   test("hydrates before visual state changes and removes every lifecycle listener", async () => {
-    let mounted: LifecycleCallback = () => undefined;
-    let beforeUnmount: LifecycleCallback = () => undefined;
+    const mountedCallbacks: LifecycleCallback[] = [];
+    const beforeUnmountCallbacks: LifecycleCallback[] = [];
     const visibilityListeners = new Set<Listener>();
     const directionQuery = new MediaQueryFixture(false);
     const reducedMotionQuery = new MediaQueryFixture(true);
@@ -97,10 +97,10 @@ describe("Fashion Store runtime lifecycle", () => {
       matchMedia: (query: string) =>
         query === "(prefers-reduced-motion: reduce)" ? reducedMotionQuery : directionQuery,
       onBeforeUnmount: (callback: LifecycleCallback) => {
-        beforeUnmount = callback;
+        beforeUnmountCallbacks.push(callback);
       },
       onMounted: (callback: LifecycleCallback) => {
-        mounted = callback;
+        mountedCallbacks.push(callback);
       },
       nextTick: () => Promise.resolve(),
       readonly: <T>(value: T) => value,
@@ -110,20 +110,23 @@ describe("Fashion Store runtime lifecycle", () => {
 
     const { useFashionStoreRuntime } =
       await import("../app/themes/fashion-store/composables/useFashionStoreRuntime");
+    const { useFashionStoreVisualRuntime } =
+      await import("../app/themes/fashion-store/composables/useFashionStoreVisualRuntime");
     const runtime = useFashionStoreRuntime({
       autoplayMs: 4_000,
       breakpointPx: 1_199,
       count: 3,
       speedMs: 1_000,
     });
+    const visualRuntime = useFashionStoreVisualRuntime();
 
     expect(runtime.hydrated.value).toBe(false);
-    expect(runtime.liveInstances.value).toBe(0);
-    await mounted();
+    expect(visualRuntime.liveInstances.value).toBe(0);
+    await Promise.all(mountedCallbacks.map((callback) => callback()));
     expect(runtime.hydrated.value).toBe(true);
-    expect(runtime.liveInstances.value).toBe(1);
+    expect(visualRuntime.liveInstances.value).toBe(1);
     expect(runtime.motion.value.pausedReasons).toEqual(["reduced-motion"]);
-    expect(runtime.status.value).toBe("static");
+    expect(visualRuntime.status.value).toBe("static");
     expect(runtime.direction.value).toBe("horizontal");
     expect(bodyAttributes.get("data-fashion-store-visual-runtime")).toBe("static");
 
@@ -133,8 +136,8 @@ describe("Fashion Store runtime lifecycle", () => {
     expect(reducedMotionQuery.listenerCount()).toBe(1);
     expect(visibilityListeners.size).toBe(1);
 
-    beforeUnmount();
-    expect(runtime.liveInstances.value).toBe(0);
+    for (const callback of beforeUnmountCallbacks) await callback();
+    expect(visualRuntime.liveInstances.value).toBe(0);
     expect(directionQuery.listenerCount()).toBe(0);
     expect(reducedMotionQuery.listenerCount()).toBe(0);
     expect(visibilityListeners.size).toBe(0);

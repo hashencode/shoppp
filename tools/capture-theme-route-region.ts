@@ -25,6 +25,7 @@ import {
   assertThemeScreenshotDifference,
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
+import { waitForSemanticReadiness } from "../apps/storefront/e2e/support/theme-acceptance-readiness";
 import { acquireCaptureLease } from "./theme-capture-resource-guard";
 
 const computedStyleProperties = [
@@ -175,10 +176,8 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
     content:
       ".skip-link, .decor-skip-link, .fashion-skip-link { visibility: hidden !important; } [data-parallax-background-ratio], .fashion-contact-parallax { background-attachment: scroll !important; background-position: center center !important; } [data-bottom-top], [data-top-bottom], .animation-rotation { animation: none !important; transform: none !important; }",
   });
-  await page.evaluate(async () => {
-    document.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
-      image.loading = "eager";
-    });
+  await waitForSemanticReadiness(page, { imageTimeoutMs: 2_000, timeoutMs: 15_000 });
+  await page.evaluate(() => {
     document.querySelectorAll<HTMLElement>("[data-shadow-animation]").forEach((element) => {
       element.classList.add("shadow-in");
       element.style.setProperty("transition", "none", "important");
@@ -187,11 +186,6 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
         image.style.setProperty("transition", "none", "important");
       });
     });
-    await document.fonts.ready;
-    await Promise.race([
-      Promise.all([...document.images].map((image) => image.decode().catch(() => undefined))),
-      new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 2_000)),
-    ]);
     document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
       const swiper = (
         element as HTMLElement & {
@@ -245,7 +239,7 @@ async function stabilize(page: Page, mode: ThemeAcceptanceMode): Promise<void> {
       });
     scrollTo(0, 0);
   }, mode === "temporal");
-  await page.waitForTimeout(100);
+  await waitForSemanticReadiness(page, { imageTimeoutMs: 1_000, timeoutMs: 5_000 });
 }
 
 async function stabilizeProductGallery(page: Page, source: boolean): Promise<void> {
@@ -1357,6 +1351,7 @@ function compareImageDiagnostics(
 }
 
 export async function captureThemeRouteRegion(options: {
+  artifactDigest: string;
   captureMode?: ThemeAcceptanceMode;
   commit: string;
   density: FidelityDensity;
@@ -1885,6 +1880,7 @@ export async function captureThemeRouteRegion(options: {
         join(outputRoot, "report.json"),
         `${JSON.stringify(
           {
+            artifactDigest: options.artifactDigest,
             capturedAt: new Date().toISOString(),
             captureBounds,
             captureMode,
@@ -1930,6 +1926,7 @@ if (import.meta.main) {
   const implementationOrigin = argumentValue(arguments_, "--implementation-origin");
   const outputRoot = argumentValue(arguments_, "--output");
   const commit = argumentValue(arguments_, "--commit");
+  const artifactDigest = argumentValue(arguments_, "--artifact-digest");
   const captureMode = (argumentValue(arguments_, "--mode") ?? "static") as ThemeAcceptanceMode;
   if (
     !routeId ||
@@ -1938,12 +1935,14 @@ if (import.meta.main) {
     !sourceOrigin ||
     !implementationOrigin ||
     !outputRoot ||
-    !commit
+    !commit ||
+    !artifactDigest
   )
     throw new Error(
-      "Usage: bun tools/capture-theme-route-region.ts --route=<id> --region=<id> --viewport=<id> --dpr=<1|2> --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
+      "Usage: bun tools/capture-theme-route-region.ts --route=<id> --region=<id> --viewport=<id> --dpr=<1|2> --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<full-sha> --artifact-digest=<sha256>",
     );
   await captureThemeRouteRegion({
+    artifactDigest,
     commit,
     captureMode,
     density,

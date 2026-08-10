@@ -1,10 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { buildAcceptancePlan } from "./run-source-equivalence-acceptance";
+import {
+  acceptanceFailureRecord,
+  buildAcceptancePlan,
+  classifyAcceptanceFailure,
+} from "./run-source-equivalence-acceptance";
 import { loadSourceEquivalencePolicy } from "./verify-source-equivalent-themes";
 
 describe("source-equivalence acceptance orchestration", () => {
+  const commit = "a".repeat(40);
+  const rcManifest = "artifacts/source-equivalence/rc/fashion-store-a.json";
   test("focuses one policy-declared state and reports incomplete final evidence", async () => {
     const plan = buildAcceptancePlan(await loadSourceEquivalencePolicy(), {
       mode: "interaction",
@@ -29,6 +35,7 @@ describe("source-equivalence acceptance orchestration", () => {
     });
     expect(page.pageIds).toEqual(["home"]);
     expect(page.steps[0]!.label).toBe("fashion-store/home/page");
+    expect(page.steps[0]!.command).toContain("--page=home");
 
     const theme = buildAcceptancePlan(policy, { scope: "theme", themeId: "fashion-store" });
     expect(theme.pageIds).toEqual([
@@ -49,21 +56,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "contact",
     ]);
     expect(theme.steps.map(({ label }) => label)).toEqual([
-      "fashion-store/home/page",
-      "fashion-store/shop-left/page",
-      "fashion-store/shop-none/page",
-      "fashion-store/shop-right/page",
-      "fashion-store/collection/page",
-      "fashion-store/product/page",
-      "fashion-store/cart/page",
-      "fashion-store/checkout/page",
-      "fashion-store/wishlist/page",
-      "fashion-store/account/page",
-      "fashion-store/magazine/page",
-      "fashion-store/article/page",
-      "fashion-store/about/page",
-      "fashion-store/faq/page",
-      "fashion-store/contact/page",
+      "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
     ]);
   });
 
@@ -75,7 +68,6 @@ describe("source-equivalence acceptance orchestration", () => {
       focusedStates: [{ id: "synthetic-open", modes: ["interaction"] }],
       id: "synthetic",
       implementationRoute: "/synthetic",
-      pageCommand: ["bun", "test", "synthetic-page.test.ts"],
     });
     theme.equivalenceScope.push("synthetic");
 
@@ -112,22 +104,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "synthetic",
     ]);
     expect(allPages.steps.map(({ label }) => label)).toEqual([
-      "fashion-store/home/page",
-      "fashion-store/shop-left/page",
-      "fashion-store/shop-none/page",
-      "fashion-store/shop-right/page",
-      "fashion-store/collection/page",
-      "fashion-store/product/page",
-      "fashion-store/cart/page",
-      "fashion-store/checkout/page",
-      "fashion-store/wishlist/page",
-      "fashion-store/account/page",
-      "fashion-store/magazine/page",
-      "fashion-store/article/page",
-      "fashion-store/about/page",
-      "fashion-store/faq/page",
-      "fashion-store/contact/page",
-      "fashion-store/synthetic/page",
+      "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact,synthetic]",
     ]);
   });
 
@@ -161,19 +138,85 @@ describe("source-equivalence acceptance orchestration", () => {
 
   test("builds the final repository path without duplicate per-page commands", async () => {
     const plan = buildAcceptancePlan(await loadSourceEquivalencePolicy(), {
-      commit: "abcdef1",
+      commit,
       evidencePath: "artifacts/source-equivalence",
+      rcManifest,
       scope: "repository",
     });
     expect(plan.fullEvidenceOutstanding).toBe(false);
     expect(plan.steps.map(({ label }) => label)).toEqual([
+      "rc-identity",
       "contracts",
       "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
       "fidelity-evidence",
     ]);
     expect(
-      plan.steps.filter(({ command }) => command.join(" ").includes("test:fashion-store")),
+      plan.steps.filter(({ command }) =>
+        command.join(" ").includes("run-fashion-store-acceptance.ts --scope=theme"),
+      ),
     ).toHaveLength(1);
+  });
+
+  test("runs a full shadow pass before creating commit-bound evidence", async () => {
+    const policy = await loadSourceEquivalencePolicy();
+    const plan = buildAcceptancePlan(policy, {
+      scope: "shadow",
+      themeId: "fashion-store",
+    });
+    expect(plan.fullEvidenceOutstanding).toBe(true);
+    expect(plan.steps.map(({ label }) => label)).toEqual([
+      "contracts",
+      "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
+    ]);
+    expect(() =>
+      buildAcceptancePlan(policy, {
+        commit: "abcdef1",
+        scope: "shadow",
+        themeId: "fashion-store",
+      }),
+    ).toThrow();
+  });
+
+  test("verifies the mandatory frozen RC before final repository acceptance", async () => {
+    const plan = buildAcceptancePlan(await loadSourceEquivalencePolicy(), {
+      commit,
+      evidencePath: "artifacts/source-equivalence/a-final",
+      rcManifest,
+      scope: "repository",
+    });
+    expect(plan.steps[0]).toEqual({
+      command: [
+        "bun",
+        "tools/source-equivalence-rc.ts",
+        "verify",
+        `--manifest=${rcManifest}`,
+        `--commit=${commit}`,
+      ],
+      label: "rc-identity",
+    });
+  });
+
+  test("classifies failures and emits the narrow rerun command", () => {
+    const state = {
+      command: ["bunx", "playwright", "test", "--grep", "search-open interaction"],
+      label: "fashion-store/home/search-open",
+    };
+    expect(classifyAcceptanceFailure(state)).toBe("STATE_OR_BEHAVIOR_FAILURE");
+    expect(acceptanceFailureRecord(state, 1)).toEqual({
+      classification: "STATE_OR_BEHAVIOR_FAILURE",
+      exitCode: 1,
+      failedStep: "fashion-store/home/search-open",
+      rerunCommand: "bunx playwright test --grep search-open interaction",
+    });
+    expect(classifyAcceptanceFailure({ command: [], label: "fidelity-evidence" })).toBe(
+      "EVIDENCE_MISMATCH",
+    );
+    expect(
+      classifyAcceptanceFailure(
+        { command: [], label: "fashion-store/pages[home]" },
+        "http://127.0.0.1:3426 is already used, make sure that nothing is running on the port",
+      ),
+    ).toBe("TRANSIENT_INFRASTRUCTURE_FAILURE");
   });
 
   test("rejects unknown selectors and excessive browser workers", async () => {
@@ -206,5 +249,20 @@ describe("source-equivalence acceptance orchestration", () => {
       /workers/,
     );
     expect(() => buildAcceptancePlan(policy, { scope: "repository" })).toThrow(/--commit/);
+    expect(() =>
+      buildAcceptancePlan(policy, {
+        commit,
+        evidencePath: "artifacts/source-equivalence/a-final",
+        scope: "repository",
+      }),
+    ).toThrow(/--rc-manifest/);
+    expect(() =>
+      buildAcceptancePlan(policy, {
+        commit: "abcdef1",
+        evidencePath: "artifacts/source-equivalence/a-final",
+        rcManifest,
+        scope: "repository",
+      }),
+    ).toThrow(/full-git-sha/);
   });
 });

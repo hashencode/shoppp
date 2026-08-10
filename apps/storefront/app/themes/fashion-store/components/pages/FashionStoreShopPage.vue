@@ -49,6 +49,9 @@ const gridColumnClass = computed(() =>
 );
 const hasSidebar = computed(() => layout.value !== "none");
 const arrivalGroups = computed(() => data.value.arrivals);
+const arrivalTrackStyle = computed(() => ({
+  transform: `translate3d(-${arrivalIndex.value * 100}%, 0, 0)`,
+}));
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -100,6 +103,8 @@ onBeforeUnmount(stopArrivalAutoplay);
       data-runtime-status="ready"
       :data-layout="layout"
       :data-preview-intent-count="actionCount"
+      :data-visible-product-count="visibleProducts.length"
+      :data-active-tag="activeFilters.tag || undefined"
     >
       <FashionStorePageTitle title="Shop" />
       <section class="pt-0 ps-6 pe-6 lg-ps-2 lg-pe-2 sm-ps-0 sm-pe-0">
@@ -224,7 +229,7 @@ onBeforeUnmount(stopArrivalAutoplay);
                   @keydown.left.prevent="showArrival(arrivalIndex - 1)"
                   @keydown.right.prevent="showArrival(arrivalIndex + 1)"
                 >
-                  <div class="swiper-wrapper">
+                  <div class="swiper-wrapper" :style="arrivalTrackStyle">
                     <div
                       v-for="(group, groupIndex) in arrivalGroups"
                       :key="groupIndex"

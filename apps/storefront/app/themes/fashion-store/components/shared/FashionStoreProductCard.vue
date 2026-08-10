@@ -38,7 +38,7 @@ function handleProductLink(event: MouseEvent): void {
 </script>
 
 <template>
-  <li class="grid-item" :data-product-id="product.id">
+  <li class="grid-item" data-fashion-store-product-card :data-product-id="product.id">
     <div
       class="shop-box mb-10px"
       :class="{ 'actions-open': touchActionsOpen }"

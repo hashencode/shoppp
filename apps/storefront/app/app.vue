@@ -64,7 +64,12 @@ const previewTemplate = computed(() =>
       )
     : undefined,
 );
-const rendersPlatformRoute = computed(() => currentRoute.value.path === "/checkout/complete");
+const rendersPlatformRoute = computed(() => {
+  const path = currentRoute.value.path;
+  return (
+    path === "/checkout/complete" || path.startsWith("/orders/") || path.startsWith("/policies/")
+  );
+});
 const previewTitle = computed(() =>
   pageContract.value
     ? {

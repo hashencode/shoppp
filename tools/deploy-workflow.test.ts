@@ -17,9 +17,13 @@ const architecturePath = resolve(
   import.meta.dir,
   "../docs/architecture/storefront-theme-platform.md",
 );
-const fidelityRunbookPath = resolve(
+const sourcePortRunbookPath = resolve(
   import.meta.dir,
-  "../docs/runbooks/source-equivalent-html-acceptance-evidence.md",
+  "../docs/runbooks/source-equivalent-html-template-port.md",
+);
+const fidelityReferencePath = resolve(
+  import.meta.dir,
+  "../docs/reference/source-equivalence-acceptance-system.md",
 );
 const promotionRunbookPath = resolve(
   import.meta.dir,
@@ -243,6 +247,20 @@ describe("production promotion workflow", () => {
   });
 });
 
+describe("source-equivalence documentation authority", () => {
+  test("keeps one normative runbook and one operational reference", async () => {
+    const [runbook, reference] = await Promise.all([
+      readFile(sourcePortRunbookPath, "utf8"),
+      readFile(fidelityReferencePath, "utf8"),
+    ]);
+
+    expect(runbook).toContain("single normative reconstruction workflow");
+    expect(reference).toMatch(/It is not a\s+second reconstruction workflow/);
+    expect(reference).not.toContain("## Human checkpoints");
+    expect(reference).not.toContain("## Post-port metrics");
+  });
+});
+
 describe("private storefront preview workflow", () => {
   test("uses exact build and snapshot identities with authenticated idempotent callbacks", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
@@ -288,16 +306,16 @@ describe("storefront theme browser matrix", () => {
   });
 
   test("keeps Fashion Store fidelity evidence scoped to home and requires explicit review", async () => {
-    const [fashionStore, architecture, runbook] = await Promise.all([
+    const [fashionStore, architecture, reference] = await Promise.all([
       readFile(fashionStorePlaywrightPath, "utf8"),
       readFile(architecturePath, "utf8"),
-      readFile(fidelityRunbookPath, "utf8"),
+      readFile(fidelityReferencePath, "utf8"),
     ]);
 
     expect(fashionStore).toContain("themeViewports.tablet");
     expect(architecture).toContain("reference-fidelity scope is the home template only");
-    expect(runbook).toMatch(/does not activate a\s+production theme/);
-    expect(runbook).toContain("Do not create `approval.json`");
+    expect(reference).toMatch(/does not activate a\s+production theme/);
+    expect(reference).toContain("Never create `approval.json`");
   });
 
   test("keeps Fashion Store promotion separate from parity evidence", async () => {

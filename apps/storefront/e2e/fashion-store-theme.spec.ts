@@ -330,7 +330,7 @@ test("visual capabilities initialize once and leave no runtime residue", async (
     await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
   ).toEqual({ jquery: true, swiper: true });
 
-  await page.goto("/cart");
+  await page.goto("/checkout/complete");
   await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
   expect(await page.locator("body").getAttribute("data-fashion-store-visual-runtime")).toBeNull();
   expect(
@@ -581,6 +581,31 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/api/cart", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      json: {
+        data: {
+          adjustments: [],
+          canCheckout: false,
+          currency: "USD",
+          expiresAt: "2026-08-08T00:00:00.000Z",
+          id: "cart_01J00000000000000000000000",
+          lines: [],
+          selectedShippingMethodId: null,
+          shippingAddress: null,
+          shippingMethods: [],
+          totals: {
+            discountTotal: 0,
+            grandTotal: 0,
+            shippingTotal: 0,
+            subtotal: 0,
+            taxTotal: 0,
+          },
+        },
+      },
+    }),
+  );
   await ready(page, "/");
   const cookiesBefore = await page.context().cookies();
   const originalURL = page.url();
@@ -626,7 +651,7 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
     .locator('.header-cart a[href="/cart"][data-fashion-store-route]')
     .dispatchEvent("click");
   await expect(page).toHaveURL(/\/cart$/);
-  await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(0);
+  await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(1);
   expect((await page.locator("body").getAttribute("class")) ?? "").toBe("");
   await page.goBack({ waitUntil: "networkidle" });
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(1);

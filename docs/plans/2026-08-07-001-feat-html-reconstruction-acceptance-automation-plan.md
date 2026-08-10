@@ -820,7 +820,7 @@ and measurable.
 
 - Modify: `docs/runbooks/source-equivalent-html-template-port.md`
 - Modify: `docs/solutions/workflow-issues/html-source-parity-reconstruction-workflow-2026-08-06.md`
-- Create: `docs/runbooks/source-equivalent-html-acceptance-evidence.md`
+- Create: `docs/reference/source-equivalence-acceptance-system.md`
 
 **Approach:**
 

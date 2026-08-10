@@ -5,6 +5,8 @@ import {
   storefrontThemeDescriptorSchema,
   type StorefrontThemeDescriptor,
 } from "../packages/contracts/src/storefront-experience";
+import { decorThemeDescriptor } from "../apps/storefront/app/themes/decor/manifest";
+import { fashionThemeDescriptor } from "../apps/storefront/app/themes/fashion/manifest";
 import { fashionStoreThemeDescriptor } from "../apps/storefront/app/themes/fashion-store/manifest";
 
 export interface StorefrontThemeCatalogOptions {
@@ -13,10 +15,14 @@ export interface StorefrontThemeCatalogOptions {
 }
 
 export const STOREFRONT_THEME_MANIFEST_ALLOWLIST = [
+  "apps/storefront/app/themes/decor/manifest.ts",
+  "apps/storefront/app/themes/fashion/manifest.ts",
   "apps/storefront/app/themes/fashion-store/manifest.ts",
 ] as const;
 
 export const storefrontThemeDescriptors: readonly StorefrontThemeDescriptor[] = [
+  decorThemeDescriptor,
+  fashionThemeDescriptor,
   fashionStoreThemeDescriptor,
 ];
 

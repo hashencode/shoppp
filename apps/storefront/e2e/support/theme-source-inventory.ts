@@ -25,6 +25,60 @@ export interface ThemeSourceInventorySnapshot {
   visibleCopy: ThemeVisibleCopyEntry[];
 }
 
+export interface ThemeBehaviorCandidateParity {
+  changed: {
+    fingerprint: string;
+    implementation: ThemeBehaviorCandidate;
+    source: ThemeBehaviorCandidate;
+  }[];
+  implementationOnly: ThemeBehaviorCandidate[];
+  sourceOnly: ThemeBehaviorCandidate[];
+}
+
+function candidateSignature(candidate: ThemeBehaviorCandidate): string {
+  return JSON.stringify({
+    behaviorIds: [...candidate.behaviorIds].sort(),
+    region: candidate.region,
+    signals: [...candidate.signals].sort(),
+    suppressionCandidates: [...candidate.suppressionCandidates].sort(),
+    tag: candidate.tag,
+    text: candidate.text,
+  });
+}
+
+export function compareThemeBehaviorCandidates(
+  source: readonly ThemeBehaviorCandidate[],
+  implementation: readonly ThemeBehaviorCandidate[],
+): ThemeBehaviorCandidateParity {
+  const sourceByFingerprint = new Map(
+    source.map((candidate) => [candidate.fingerprint, candidate]),
+  );
+  const implementationByFingerprint = new Map(
+    implementation.map((candidate) => [candidate.fingerprint, candidate]),
+  );
+  return {
+    changed: source.flatMap((sourceCandidate) => {
+      const implementationCandidate = implementationByFingerprint.get(sourceCandidate.fingerprint);
+      return implementationCandidate &&
+        candidateSignature(sourceCandidate) !== candidateSignature(implementationCandidate)
+        ? [
+            {
+              fingerprint: sourceCandidate.fingerprint,
+              implementation: implementationCandidate,
+              source: sourceCandidate,
+            },
+          ]
+        : [];
+    }),
+    implementationOnly: implementation.filter(
+      (candidate) => !sourceByFingerprint.has(candidate.fingerprint),
+    ),
+    sourceOnly: source.filter(
+      (candidate) => !implementationByFingerprint.has(candidate.fingerprint),
+    ),
+  };
+}
+
 export function assertThemeSourceInventoryCovered(
   snapshot: ThemeSourceInventorySnapshot,
   contract: ThemeBehaviorContract,

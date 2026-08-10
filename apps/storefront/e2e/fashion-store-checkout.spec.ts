@@ -99,6 +99,7 @@ async function fulfillCheckoutApi(
   options: {
     canCheckout?: boolean;
     configurationFailure?: boolean;
+    emptyCart?: boolean;
     onCheckout?: (body: unknown) => void;
     onShipping?: (body: unknown) => void;
     turnstile?: { required: boolean; siteKey: string | null };
@@ -118,9 +119,23 @@ async function fulfillCheckoutApi(
     return;
   }
   if (path === "/cart" && request.method() === "GET") {
+    const cart = checkoutCart({ canCheckout: options.canCheckout });
+    if (options.emptyCart) {
+      cart.canCheckout = false;
+      cart.lines = [];
+      cart.shippingMethods = [];
+      cart.selectedShippingMethodId = null;
+      cart.totals = {
+        discountTotal: 0,
+        grandTotal: 0,
+        shippingTotal: 0,
+        subtotal: 0,
+        taxTotal: 0,
+      };
+    }
     await route.fulfill({
       contentType: "application/json",
-      json: { data: checkoutCart({ canCheckout: options.canCheckout }) },
+      json: { data: cart },
     });
     return;
   }
@@ -366,4 +381,14 @@ test("Checkout challenge failure, unavailable cart, reduced motion, and remount 
     { actionOutcome: true, behaviorId: "checkout-payment-accordion", mode: "fallback" },
     { actionOutcome: true, behaviorId: "checkout-session-progression", mode: "fallback" },
   );
+});
+
+test("Checkout preserves an empty owner cart instead of rendering source fixtures", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-store-desktop", "Commerce evidence runs once.");
+  await prepareCheckout(page, { emptyCart: true });
+  await expect(page.locator(".your-order-table tr.product")).toHaveCount(0);
+  await expect(page.locator(".your-order-table")).toContainText("$0.00");
+  await expect(page.getByRole("button", { name: "Place order" })).toBeDisabled();
 });

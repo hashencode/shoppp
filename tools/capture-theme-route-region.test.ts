@@ -46,6 +46,7 @@ describe("capture acceptance modes", () => {
   test("rejects static capture when its stylesheet hides the target control", async () => {
     await expect(
       captureThemeRouteRegion({
+        artifactDigest: "d".repeat(64),
         captureMode: "static",
         commit: "abcdef1",
         density: 1,

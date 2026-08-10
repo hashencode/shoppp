@@ -58,7 +58,8 @@ export const fashionStoreProductBehaviorContract = {
       id: "product-gallery",
       initialState: "first product image active",
       modes: ["temporal", "interaction", "fallback"],
-      outcome: "The product gallery advances and opens a keyboard-operable image view.",
+      outcome:
+        "The product gallery and thumbnail track animate for 300ms, autoplay every 2000ms, expose no source-absent arrows, and open the source-composed keyboard-operable image view.",
       owner: "framework-adapter",
       region: "gallery",
       role: "carousel",

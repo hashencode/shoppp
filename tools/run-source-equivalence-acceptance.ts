@@ -5,13 +5,28 @@ import {
   type SourceEquivalencePolicy,
 } from "./verify-source-equivalent-themes";
 
-export type AcceptanceScope = "focused" | "page" | "repository" | "theme";
+export type AcceptanceScope = "focused" | "page" | "repository" | "shadow" | "theme";
+
+export type AcceptanceFailureClassification =
+  | "CONTRACT_MISMATCH"
+  | "EVIDENCE_MISMATCH"
+  | "PAGE_ACCEPTANCE_FAILURE"
+  | "RC_IDENTITY_MISMATCH"
+  | "STATE_OR_BEHAVIOR_FAILURE"
+  | "TRANSIENT_INFRASTRUCTURE_FAILURE"
+  | "UNKNOWN_ACCEPTANCE_FAILURE";
+
+export interface AcceptanceStep {
+  command: string[];
+  label: string;
+}
 
 export interface AcceptanceRunOptions {
   commit?: string;
   evidencePath?: string;
   mode?: "fallback" | "interaction" | "scroll-fixed" | "static" | "temporal";
   pageId?: string;
+  rcManifest?: string;
   scope: AcceptanceScope;
   state?: string;
   themeId?: string;
@@ -23,29 +38,32 @@ export interface AcceptancePlan {
   fullEvidenceOutstanding: boolean;
   pageIds: string[];
   scope: AcceptanceScope;
-  steps: { command: string[]; label: string }[];
+  steps: AcceptanceStep[];
   themeIds: string[];
 }
 
-function uniquePageCommandSteps(
-  themes: SourceEquivalencePolicy["themes"],
-): { command: string[]; label: string }[] {
+function resolvedCommand(command: string[], values: { page?: string; theme: string }): string[] {
+  return command.map((argument) =>
+    argument.replaceAll("{theme}", values.theme).replaceAll("{page}", values.page ?? ""),
+  );
+}
+
+function uniqueThemeCommandSteps(themes: SourceEquivalencePolicy["themes"]): AcceptanceStep[] {
   const groups = new Map<
     string,
     { command: string[]; pageLabels: string[]; themeIds: Set<string> }
   >();
   for (const theme of themes) {
-    for (const page of theme.pages) {
-      const key = JSON.stringify(page.pageCommand);
-      const group = groups.get(key) ?? {
-        command: page.pageCommand,
-        pageLabels: [],
-        themeIds: new Set<string>(),
-      };
-      group.pageLabels.push(page.id);
-      group.themeIds.add(theme.id);
-      groups.set(key, group);
-    }
+    const command = resolvedCommand(theme.acceptance.themeCommand, { theme: theme.id });
+    const key = JSON.stringify(command);
+    const group = groups.get(key) ?? {
+      command,
+      pageLabels: [],
+      themeIds: new Set<string>(),
+    };
+    group.pageLabels.push(...theme.pages.map(({ id }) => id));
+    group.themeIds.add(theme.id);
+    groups.set(key, group);
   }
   return [...groups.values()].map(({ command, pageLabels, themeIds }) => ({
     command,
@@ -75,7 +93,7 @@ export function buildAcceptancePlan(
     ? policy.themes.filter(({ id }) => id === options.themeId)
     : policy.themes;
   if (themes.length === 0) throw new Error(`unknown source-equivalence theme: ${options.themeId}`);
-  if (options.scope !== "repository" && themes.length !== 1)
+  if (options.scope !== "repository" && options.scope !== "shadow" && themes.length !== 1)
     throw new Error(`${options.scope} acceptance requires --theme`);
 
   const selectedTheme = themes[0];
@@ -134,7 +152,15 @@ export function buildAcceptancePlan(
       fullEvidenceOutstanding: true,
       pageIds: [page.id],
       scope: options.scope,
-      steps: [{ command: page.pageCommand, label: `${theme.id}/${page.id}/page` }],
+      steps: [
+        {
+          command: resolvedCommand(theme.acceptance.pageCommand, {
+            page: page.id,
+            theme: theme.id,
+          }),
+          label: `${theme.id}/${page.id}/page`,
+        },
+      ],
       themeIds: [theme.id],
     };
   }
@@ -146,26 +172,51 @@ export function buildAcceptancePlan(
       fullEvidenceOutstanding: true,
       pageIds: theme.pages.map(({ id }) => id),
       scope: options.scope,
-      steps: theme.pages.map((page) => ({
-        command: page.pageCommand,
-        label: `${theme.id}/${page.id}/page`,
-      })),
+      steps: uniqueThemeCommandSteps([theme]),
       themeIds: [theme.id],
     };
   }
 
-  if (!options.commit || !/^[a-f0-9]{7,40}$/.test(options.commit))
-    throw new Error("repository acceptance requires --commit=<git-sha>");
+  if (options.scope === "shadow") {
+    if (options.commit || options.evidencePath || options.rcManifest)
+      throw new Error("shadow acceptance runs before commit-bound RC evidence");
+    return {
+      filteredModes: [],
+      fullEvidenceOutstanding: true,
+      pageIds: themes.flatMap((theme) => theme.pages.map(({ id }) => id)),
+      scope: options.scope,
+      steps: [
+        { command: ["bun", "run", "verify:source-equivalence"], label: "contracts" },
+        ...uniqueThemeCommandSteps(themes),
+      ],
+      themeIds: themes.map(({ id }) => id),
+    };
+  }
+
+  if (!options.commit || !/^[a-f0-9]{40}$/.test(options.commit))
+    throw new Error("repository acceptance requires --commit=<full-git-sha>");
   if (!options.evidencePath)
     throw new Error("repository acceptance requires --evidence=<report-directory>");
+  if (!options.rcManifest)
+    throw new Error("repository acceptance requires --rc-manifest=<frozen-manifest>");
   return {
     filteredModes: [],
     fullEvidenceOutstanding: false,
     pageIds: themes.flatMap((theme) => theme.pages.map(({ id }) => id)),
     scope: options.scope,
     steps: [
+      {
+        command: [
+          "bun",
+          "tools/source-equivalence-rc.ts",
+          "verify",
+          `--manifest=${options.rcManifest}`,
+          `--commit=${options.commit}`,
+        ],
+        label: "rc-identity",
+      },
       { command: ["bun", "run", "verify:source-equivalence"], label: "contracts" },
-      ...uniquePageCommandSteps(themes),
+      ...uniqueThemeCommandSteps(themes),
       {
         command: [
           "bun",
@@ -174,6 +225,8 @@ export function buildAcceptancePlan(
           options.evidencePath,
           "--commit",
           options.commit,
+          "--rc-manifest",
+          options.rcManifest,
         ],
         label: "fidelity-evidence",
       },
@@ -182,17 +235,89 @@ export function buildAcceptancePlan(
   };
 }
 
-export async function runAcceptancePlan(plan: AcceptancePlan): Promise<void> {
+const TRANSIENT_INFRASTRUCTURE_PATTERNS = [
+  /EADDRINUSE/i,
+  /is already used, make sure that nothing is running on the port/i,
+  /net::ERR_CONNECTION_(?:REFUSED|RESET)/i,
+  /ECONNRESET/i,
+  /Target page, context or browser has been closed/i,
+] as const;
+
+export function classifyAcceptanceFailure(
+  step: AcceptanceStep,
+  output = "",
+): AcceptanceFailureClassification {
+  if (TRANSIENT_INFRASTRUCTURE_PATTERNS.some((pattern) => pattern.test(output)))
+    return "TRANSIENT_INFRASTRUCTURE_FAILURE";
+  if (step.label === "rc-identity") return "RC_IDENTITY_MISMATCH";
+  if (step.label === "contracts") return "CONTRACT_MISMATCH";
+  if (step.label === "fidelity-evidence") return "EVIDENCE_MISMATCH";
+  if (step.label.endsWith("/page") || step.label.includes("/pages["))
+    return "PAGE_ACCEPTANCE_FAILURE";
+  if (step.label.split("/").length >= 3) return "STATE_OR_BEHAVIOR_FAILURE";
+  return "UNKNOWN_ACCEPTANCE_FAILURE";
+}
+
+export function acceptanceFailureRecord(step: AcceptanceStep, exitCode: number, output = "") {
+  return {
+    classification: classifyAcceptanceFailure(step, output),
+    exitCode,
+    failedStep: step.label,
+    rerunCommand: step.command.join(" "),
+  } as const;
+}
+
+async function forwardAndCapture(
+  stream: ReadableStream<Uint8Array>,
+  destination: { write(chunk: Uint8Array): unknown },
+): Promise<string> {
+  const decoder = new TextDecoder();
+  const reader = stream.getReader();
+  let tail = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    destination.write(value);
+    tail = `${tail}${decoder.decode(value, { stream: true })}`.slice(-32_768);
+  }
+  return `${tail}${decoder.decode()}`.slice(-32_768);
+}
+
+export async function runAcceptancePlan(
+  plan: AcceptancePlan,
+  options: { transientRetries?: number } = {},
+): Promise<void> {
   for (const step of plan.steps) {
-    console.log(`[source-equivalence] ${step.label}: ${step.command.join(" ")}`);
-    const child = Bun.spawn(step.command, {
-      cwd: ROOT,
-      env: process.env,
-      stderr: "inherit",
-      stdout: "inherit",
-    });
-    const exitCode = await child.exited;
-    if (exitCode !== 0) throw new Error(`${step.label} failed with exit code ${exitCode}`);
+    const allowedRetries = Math.min(1, Math.max(0, options.transientRetries ?? 0));
+    for (let attempt = 0; ; attempt += 1) {
+      console.log(`[source-equivalence] ${step.label}: ${step.command.join(" ")}`);
+      const child = Bun.spawn(step.command, {
+        cwd: ROOT,
+        env: process.env,
+        stderr: "pipe",
+        stdout: "pipe",
+      });
+      const [stdout, stderr, exitCode] = await Promise.all([
+        forwardAndCapture(child.stdout, process.stdout),
+        forwardAndCapture(child.stderr, process.stderr),
+        child.exited,
+      ]);
+      if (exitCode === 0) break;
+      const failure = acceptanceFailureRecord(step, exitCode, `${stdout}\n${stderr}`);
+      console.error(JSON.stringify(failure));
+      if (
+        failure.classification === "TRANSIENT_INFRASTRUCTURE_FAILURE" &&
+        attempt < allowedRetries
+      ) {
+        console.error(
+          `[source-equivalence] clean transient retry ${attempt + 1}/${allowedRetries}: ${failure.rerunCommand}`,
+        );
+        continue;
+      }
+      throw new Error(
+        `${step.label} failed with exit code ${exitCode}; rerun: ${failure.rerunCommand}`,
+      );
+    }
   }
   console.log(
     JSON.stringify({
@@ -213,14 +338,16 @@ async function main(): Promise<void> {
       evidence: { type: "string" },
       mode: { type: "string" },
       page: { type: "string" },
+      "rc-manifest": { type: "string" },
       scope: { default: "page", type: "string" },
       state: { type: "string" },
       theme: { type: "string" },
+      "retry-transient": { type: "string" },
       workers: { type: "string" },
     },
     strict: true,
   });
-  if (!["focused", "page", "repository", "theme"].includes(values.scope))
+  if (!["focused", "page", "repository", "shadow", "theme"].includes(values.scope))
     throw new Error(`unknown acceptance scope: ${values.scope}`);
   const plan = buildAcceptancePlan(await loadSourceEquivalencePolicy(), {
     scope: values.scope as AcceptanceScope,
@@ -228,12 +355,16 @@ async function main(): Promise<void> {
     ...(values.evidence ? { evidencePath: values.evidence } : {}),
     ...(values.mode ? { mode: values.mode as NonNullable<AcceptanceRunOptions["mode"]> } : {}),
     ...(values.page ? { pageId: values.page } : {}),
+    ...(values["rc-manifest"] ? { rcManifest: values["rc-manifest"] } : {}),
     ...(values.state ? { state: values.state } : {}),
     ...(values.theme ? { themeId: values.theme } : {}),
     ...(values.workers ? { workers: Number(values.workers) } : {}),
   });
+  const transientRetries = values["retry-transient"] ? Number(values["retry-transient"]) : 0;
+  if (!Number.isInteger(transientRetries) || transientRetries < 0 || transientRetries > 1)
+    throw new Error("--retry-transient must be 0 or 1");
   if (values["dry-run"]) console.log(JSON.stringify(plan, null, 2));
-  else await runAcceptancePlan(plan);
+  else await runAcceptancePlan(plan, { transientRetries });
 }
 
 if (import.meta.main) await main();

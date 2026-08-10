@@ -12,6 +12,13 @@
       "name": "Atlas Carry-on",
       "slug": "atlas-carry-on",
       "width": 1200
+    },
+    {
+      "collectionName": "Travel essentials",
+      "height": 765,
+      "name": "Relaxed corduroy shirt",
+      "slug": "relaxed-corduroy-shirt",
+      "width": 600
     }
   ]
 }

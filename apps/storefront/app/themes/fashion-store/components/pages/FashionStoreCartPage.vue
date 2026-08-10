@@ -3,6 +3,7 @@ import type { Cart } from "@shoppp/contracts";
 
 import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { previewCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreCartData, FashionStoreCartLine } from "../../fixtures/pages/cart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
@@ -21,8 +22,11 @@ const data = computed<FashionStoreCartData>(() => {
   return properties.viewModel.data as unknown as FashionStoreCartData;
 });
 const actionAdapter = inject(previewActionAdapterKey);
-const lines = ref<FashionStoreCartLine[]>(data.value.lines.map((line) => ({ ...line })));
-const totals = reactive({ ...data.value.totals });
+const checkoutAdapter = inject(previewCheckoutAdapterKey);
+const lines = ref<FashionStoreCartLine[]>([]);
+const totals = reactive({ subtotal: "$0.00", tax: "(Includes $0.00 tax)", total: "$0.00" });
+const cartStatus = ref<"loading" | "ready">("loading");
+const cartLoadError = ref("");
 const selectedShipping = ref(data.value.shipping[0]?.id ?? "");
 const shippingOpen = ref(false);
 const countryCode = ref("");
@@ -45,7 +49,7 @@ function money(amount: number, currency: string): string {
 }
 
 function applyOwnerCart(cart: Cart): void {
-  const sourceByVariant = new Map(lines.value.map((line) => [line.variantId, line]));
+  const sourceByVariant = new Map(data.value.lines.map((line) => [line.variantId, line]));
   lines.value = cart.lines.map((line) => {
     const source = sourceByVariant.get(line.variantId) ?? data.value.lines[0]!;
     return {
@@ -62,6 +66,12 @@ function applyOwnerCart(cart: Cart): void {
   totals.total = money(cart.totals.grandTotal, cart.currency);
   totals.tax = `(Includes ${money(cart.totals.taxTotal, cart.currency)} tax)`;
   if (cart.selectedShippingMethodId) selectedShipping.value = cart.selectedShippingMethodId;
+}
+
+function applyFixtureCart(): void {
+  lines.value = data.value.lines.map((line) => ({ ...line }));
+  Object.assign(totals, data.value.totals);
+  cartStatus.value = "ready";
 }
 
 async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number): Promise<void> {
@@ -170,6 +180,21 @@ async function updateShipping(): Promise<void> {
     busy.value = false;
   }
 }
+
+onMounted(async () => {
+  if (!checkoutAdapter) {
+    cartLoadError.value = "Cart is unavailable.";
+    applyFixtureCart();
+    return;
+  }
+  try {
+    applyOwnerCart(await checkoutAdapter.ensure());
+    cartStatus.value = "ready";
+  } catch {
+    cartLoadError.value = "Cart is unavailable. Please try again.";
+    applyFixtureCart();
+  }
+});
 </script>
 
 <template>
@@ -182,7 +207,7 @@ async function updateShipping(): Promise<void> {
     <main
       id="fashion-store-main"
       data-fashion-store-cart
-      data-runtime-status="ready"
+      :data-runtime-status="cartStatus"
       :data-local-action-count="localActionCount"
       :data-mutation-count="mutationCount"
     >
@@ -216,6 +241,7 @@ async function updateShipping(): Promise<void> {
             <div class="col-lg-8 pe-50px md-pe-15px md-mb-50px xs-mb-35px">
               <div class="row align-items-center">
                 <div class="col-12">
+                  <p v-if="cartLoadError" class="form-error" role="alert">{{ cartLoadError }}</p>
                   <table class="table cart-products">
                     <thead>
                       <tr>

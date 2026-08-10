@@ -216,12 +216,37 @@ export function clampFashionStoreProductQuantity(quantity: number): number {
   return Math.min(20, Math.max(1, Math.floor(Number.isFinite(quantity) ? quantity : 1)));
 }
 
-export function buildFashionStoreProductCartRequest(quantity: number): AddCartLineRequest {
+const fashionStoreProductVariants = {
+  "blue:l": "var_01JFSHIRTBLUEL00000000001",
+  "blue:m": "var_01JFSHIRTBLUEM00000000001",
+  "blue:s": "var_01JFSHIRTBLUES00000000001",
+  "blue:xl": "var_01JFSHIRTBLUEXL0000000001",
+  "gold:l": "var_01JFSHIRTGOLDL00000000001",
+  "gold:m": "var_01JFSHIRTGOLDM00000000001",
+  "gold:s": "var_01JFSHIRTGOLDS00000000001",
+  "gold:xl": "var_01JFSHIRTGOLDXL0000000001",
+  "green:l": "var_01JFSHIRTGREENL0000000001",
+  "green:m": "var_01JFSHIRTGREENM0000000001",
+  "green:s": "var_01JFSHIRTGREENS0000000001",
+  "green:xl": "var_01JFSHIRTGREENXL000000001",
+} as const;
+
+export function buildFashionStoreProductCartRequest(
+  quantity: number,
+  selectedColor = "blue",
+  selectedSize = "m",
+): AddCartLineRequest {
+  const variantId =
+    fashionStoreProductVariants[
+      `${selectedColor}:${selectedSize}` as keyof typeof fashionStoreProductVariants
+    ];
+  if (!variantId)
+    throw new Error(`Unavailable Fashion Store option: ${selectedColor}/${selectedSize}`);
   return {
     expectedUnitPrice: { amount: 6_500, currency: "USD" },
     quantity: clampFashionStoreProductQuantity(quantity),
     releaseId: "representative-release-2026-07-30",
-    variantId: "var_01J00000000000000000000000",
+    variantId,
   };
 }
 

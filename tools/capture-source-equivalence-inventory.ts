@@ -5,6 +5,7 @@ import { chromium, type Page } from "@playwright/test";
 import {
   assertThemeSourceInventoryCovered,
   captureThemeSourceInventory,
+  compareThemeBehaviorCandidates,
 } from "../apps/storefront/e2e/support/theme-source-inventory";
 import { compareThemeVisibleCopy } from "../apps/storefront/e2e/support/theme-source-contract";
 import { validateIndependentReferenceSource } from "./capture-storefront-theme-reference";
@@ -182,6 +183,10 @@ export async function captureSourceEquivalenceInventory(options: {
       }),
     ]);
     assertThemeSourceInventoryCovered(sourceInventory, descriptor.contract);
+    const behaviorCandidates = compareThemeBehaviorCandidates(
+      sourceInventory.candidates,
+      implementationInventory.candidates,
+    );
     const visibleCopy = compareThemeVisibleCopy(
       sourceInventory.visibleCopy,
       implementationInventory.visibleCopy,
@@ -210,6 +215,7 @@ export async function captureSourceEquivalenceInventory(options: {
     });
     const report = {
       capturedAt: new Date().toISOString(),
+      behaviorCandidates,
       identity,
       implementation: implementationInventory,
       source: sourceInventory,
@@ -219,11 +225,14 @@ export async function captureSourceEquivalenceInventory(options: {
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
     if (
+      behaviorCandidates.changed.length > 0 ||
+      behaviorCandidates.implementationOnly.length > 0 ||
+      behaviorCandidates.sourceOnly.length > 0 ||
       visibleCopy.changed.length > 0 ||
       visibleCopy.implementationOnly.length > 0 ||
       visibleCopy.sourceOnly.length > 0
     )
-      throw new Error("Visible-copy parity failed; inspect the generated inventory report.");
+      throw new Error("Source inventory parity failed; inspect the generated inventory report.");
     await context.close();
   } finally {
     await browser.close();

@@ -47,12 +47,13 @@ describe("Fashion Store product detail", () => {
     expect(clampFashionStoreProductQuantity(0)).toBe(1);
     expect(clampFashionStoreProductQuantity(21)).toBe(20);
     expect(clampFashionStoreProductQuantity(3.8)).toBe(3);
-    expect(buildFashionStoreProductCartRequest(2)).toEqual({
+    expect(buildFashionStoreProductCartRequest(2, "blue", "m")).toEqual({
       expectedUnitPrice: { amount: 6500, currency: "USD" },
       quantity: 2,
       releaseId: "representative-release-2026-07-30",
-      variantId: "var_01J00000000000000000000000",
+      variantId: "var_01JFSHIRTBLUEM00000000001",
     });
+    expect(() => buildFashionStoreProductCartRequest(1, "missing", "xl")).toThrow(/Unavailable/);
   });
 
   test("keeps a meaningful product heading in prerendered preview HTML", async () => {

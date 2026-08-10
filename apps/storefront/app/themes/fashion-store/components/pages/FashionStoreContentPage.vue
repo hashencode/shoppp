@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { normalizeThemeRoutePath } from "../../../../theme-engine/routes";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import FashionStoreAccountPage from "./FashionStoreAccountPage.vue";
 import FashionStoreAboutPage from "./FashionStoreAboutPage.vue";
@@ -24,11 +25,12 @@ const contentPages = {
   "/magazine/marketing-tips-and-tricks": FashionStoreArticlePage,
   "/wishlist": FashionStoreWishlistPage,
 } as const;
-const page = computed(
-  () =>
-    contentPages[router.currentRoute.value.path as keyof typeof contentPages] ??
-    FashionStoreWishlistPage,
-);
+const page = computed(() => {
+  const path = normalizeThemeRoutePath(router.currentRoute.value.path);
+  const resolved = contentPages[path as keyof typeof contentPages];
+  if (!resolved) throw new Error(`Unknown Fashion Store content route: ${path}`);
+  return resolved;
+});
 </script>
 
 <template>

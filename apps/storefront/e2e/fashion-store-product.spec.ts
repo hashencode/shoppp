@@ -27,8 +27,8 @@ const cart = (quantity: number) => ({
       productName: "Relaxed corduroy shirt",
       quantity,
       unitPrice: { amount: 6_500, currency: "USD" },
-      variantId: "var_01J00000000000000000000000",
-      variantName: "Gold / S",
+      variantId: "var_01JFSHIRTGREENXL000000001",
+      variantName: "Green / XL",
     },
   ],
   selectedShippingMethodId: null,
@@ -50,11 +50,28 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   const product = page.locator("[data-fashion-store-product]");
   await expect(product.locator("h1")).toHaveText("Relaxed corduroy shirt");
   await expect(product.locator(".product-image-thumb button")).toHaveCount(6);
+  await expect(product.locator(".slider-product-prev, .slider-product-next")).toHaveCount(0);
   await expect(product.locator(".product-info")).toContainText("$85.00$65.00");
   await expect(product.locator("[role='tab']")).toHaveCount(4);
   await expect(
     product.locator(".fashion-product-related > .container > ul > .grid-item"),
   ).toHaveCount(4);
+  const relatedCardActions = product.locator(
+    "[data-fashion-store-product-card] .shop-hover button",
+  );
+  await expect(relatedCardActions).toHaveCount(8);
+  expect(
+    await relatedCardActions.evaluateAll((controls) =>
+      controls.every((control) => {
+        const style = getComputedStyle(control);
+        return (
+          style.appearance === "none" &&
+          style.borderTopWidth === "0px" &&
+          style.paddingTop === "0px"
+        );
+      }),
+    ),
+  ).toBe(true);
   await expect(page.locator("#cookies-model")).toBeVisible();
   await page.getByRole("button", { name: "Allow cookies" }).click();
   expect(
@@ -134,6 +151,7 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
     !["fashion-store-desktop", "fashion-store-mobile"].includes(testInfo.project.name),
     "Boundary viewports cover the interaction branches.",
   );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepareProduct(page);
   const gallery = page.locator(".product-image-slider");
   if (testInfo.project.name === "fashion-store-mobile") {
@@ -152,13 +170,44 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
     });
     return;
   }
-  await productThumbnail(page, 1).click();
-  await expect(gallery).toHaveAttribute("data-gallery-index", "1");
+  const mainTrack = gallery.locator(".swiper-wrapper");
+  const thumbnailTrack = page.locator(".product-image-thumb .swiper-wrapper");
+  await expect(mainTrack).toHaveCSS("transition-duration", "0.3s");
+  await expect(thumbnailTrack).toHaveCSS("transition-duration", "0.3s");
+  const mainTransformBefore = await mainTrack.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  const thumbnailTransformBefore = await thumbnailTrack.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  await productThumbnail(page, 4).click();
+  await expect(gallery).toHaveAttribute("data-gallery-index", "4");
+  await page.waitForTimeout(350);
+  expect(await mainTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
+    mainTransformBefore,
+  );
+  expect(await thumbnailTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
+    thumbnailTransformBefore,
+  );
   await gallery.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(gallery).toHaveAttribute("data-gallery-index", "2");
+  await expect(gallery).toHaveAttribute("data-gallery-index", "5");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("dialog", { name: "Product image preview" })).toBeVisible();
+  const lightbox = page.getByRole("dialog", { name: "Product image preview" });
+  await expect(lightbox).toBeVisible();
+  await expect(lightbox.locator("figcaption")).toContainText("Relaxed corduroy shirt");
+  await expect(lightbox.locator("figcaption")).toContainText("6 of 6");
+  await page.getByRole("button", { name: "Previous preview image" }).click();
+  await expect(lightbox.locator("figcaption")).toContainText("5 of 6");
+  await page.getByRole("button", { name: "Next preview image" }).click();
+  await expect(lightbox.locator("figcaption")).toContainText("6 of 6");
+  await expect(page.getByRole("button", { name: "Close product image preview" })).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  const lightboxBox = await lightbox.boundingBox();
+  expect(Math.abs(lightboxBox!.width - page.viewportSize()!.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(lightboxBox!.height - page.viewportSize()!.height)).toBeLessThanOrEqual(1);
   await page.keyboard.press("Escape");
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
@@ -229,7 +278,7 @@ test("Product add-to-cart reaches the typed guest-cart owner once", async ({ pag
     expectedUnitPrice: { amount: 6500, currency: "USD" },
     quantity: 2,
     releaseId: "representative-release-2026-07-30",
-    variantId: "var_01J00000000000000000000000",
+    variantId: "var_01JFSHIRTGREENXL000000001",
   });
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,

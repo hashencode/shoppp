@@ -158,18 +158,11 @@ onBeforeUnmount(() => {
   <FashionStoreShell
     :announcement="data.announcement"
     :preload-image="properties.resolveAsset('fashion-store.slider-01')"
+    :preview-intent-count="actionIntentCount"
     :resolve-asset="properties.resolveAsset"
   >
     <template #prelude>
       <h1 class="sr-only">Fashion store</h1>
-      <span
-        class="sr-only"
-        data-fashion-store-source-parity="true"
-        :data-preview-intent-count="actionIntentCount"
-        :data-runtime-instance-count="runtime.liveInstances.value"
-        :data-runtime-error="runtime.failure.value || undefined"
-        :data-runtime-status="runtime.status.value"
-      />
       <button
         v-for="(_, index) in data.slider.slides"
         :key="'slide-control-' + index"

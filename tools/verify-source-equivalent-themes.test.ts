@@ -307,6 +307,15 @@ describe("source-equivalent theme policy", () => {
     );
   });
 
+  test("requires distinct page and theme acceptance commands", async () => {
+    const policy = structuredClone(await loadSourceEquivalencePolicy(root));
+    policy.themes[0]!.acceptance.pageCommand = ["bun", "page-without-placeholder.ts"];
+    policy.themes[0]!.acceptance.themeCommand = [];
+    await expect(validateSourceEquivalencePolicy(policy, root)).rejects.toThrow(
+      /page command must contain a \{page\} placeholder|theme command is missing/,
+    );
+  });
+
   test("rejects permissive thresholds, excess workers, and unapproved waivers", async () => {
     const policy = await loadSourceEquivalencePolicy(root);
     const permissive = structuredClone(policy);
@@ -458,7 +467,9 @@ describe("Fashion Store imported source tree", () => {
 });
 
 describe("fidelity evidence freshness", () => {
+  const artifactDigest = "d".repeat(64);
   const validRecord = {
+    artifactDigest,
     captureMode: "static",
     capturedAt: "2026-08-05T00:00:00.000Z",
     commit: "abcdef1",
@@ -492,6 +503,7 @@ describe("fidelity evidence freshness", () => {
     reference: { height: 100, pageX: 0, pageY: 0, width: 100, x: 0, y: 0 },
   };
   const validNamedStateRecord = {
+    artifactDigest,
     capturedAt: "2026-08-05T00:00:00.000Z",
     commit: "abcdef1",
     failures: [],
@@ -519,6 +531,7 @@ describe("fidelity evidence freshness", () => {
   test("accepts fresh, commit-bound evidence with distinct source and implementation origins", () => {
     expect(() =>
       validateFidelityEvidenceRecords(validRegionalRecords, {
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -536,14 +549,14 @@ describe("fidelity evidence freshness", () => {
             implementationUrl: validRecord.sourceUrl,
           },
         ],
-        { commit: "abcdef1", now: new Date("2026-08-08T00:00:00.000Z") },
+        { artifactDigest, commit: "abcdef1", now: new Date("2026-08-08T00:00:00.000Z") },
       ),
     ).toThrow(/commit|stale|failures|distinct origins/);
 
     expect(() =>
       validateFidelityEvidenceRecords(
         validRegionalRecords.map((record) => ({ ...record, commit: "not-a-sha" })),
-        { commit: "not-a-sha", now: new Date("2026-08-05T12:00:00.000Z") },
+        { artifactDigest, commit: "not-a-sha", now: new Date("2026-08-05T12:00:00.000Z") },
       ),
     ).toThrow(/real commit SHA/);
   });
@@ -555,6 +568,7 @@ describe("fidelity evidence freshness", () => {
 
     expect(() =>
       validateFidelityEvidenceRecords(tampered, {
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -566,7 +580,7 @@ describe("fidelity evidence freshness", () => {
           ...record,
           sourceUrl: "http://127.0.0.1:4321/wrong-demo.html",
         })),
-        { commit: "abcdef1", now: new Date("2026-08-05T12:00:00.000Z") },
+        { artifactDigest, commit: "abcdef1", now: new Date("2026-08-05T12:00:00.000Z") },
       ),
     ).toThrow(/source URL does not match/);
   });
@@ -575,6 +589,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([validNamedStateRecord], {
         behaviorDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -583,6 +598,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([...validRegionalRecords, validNamedStateRecord], {
         behaviorDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -600,6 +616,7 @@ describe("fidelity evidence freshness", () => {
         ],
         {
           behaviorDescriptors,
+          artifactDigest,
           commit: "abcdef1",
           now: new Date("2026-08-05T12:00:00.000Z"),
         },
@@ -615,6 +632,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([invalid], {
         behaviorDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -648,6 +666,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([...validRegionalRecords, reflowed], {
         behaviorDescriptors: viewportDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -663,6 +682,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([invalid], {
         behaviorDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
       }),
@@ -681,6 +701,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([record], {
         behaviorDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         now: new Date("2026-08-05T12:00:00.000Z"),
         thresholds: { geometryEdgePx: 1, namedStateChangedPixelRatio: 0.003 },
@@ -689,6 +710,7 @@ describe("fidelity evidence freshness", () => {
     expect(() =>
       validateFidelityEvidenceRecords([record], {
         behaviorDescriptors,
+        artifactDigest,
         commit: "abcdef1",
         maxAgeHours: Number.NaN,
         now: new Date("2026-08-04T12:00:00.000Z"),

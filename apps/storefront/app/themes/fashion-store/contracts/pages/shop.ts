@@ -140,6 +140,16 @@ const filterBehavior = {
         sourceSelector: ".category-filter",
       },
     },
+    {
+      namedState: {
+        action: { group: "tag", kind: "shop-filter", label: "Cotton" },
+        capture: "element",
+        geometrySpace: "viewport",
+        id: "shop-filter-tag-cotton",
+        implementationSelector: ".tag-cloud",
+        sourceSelector: ".tag-cloud",
+      },
+    },
   ],
   fallback: {
     outcome: "All products and filter labels remain readable.",
@@ -186,7 +196,8 @@ const arrivalBehavior = {
   id: "shop-new-arrivals",
   initialState: "first arrival group active",
   modes: ["temporal", "interaction", "fallback"],
-  outcome: "The sidebar arrival carousel advances, pauses, and tears down with the page.",
+  outcome:
+    "The sidebar arrival track animates for 300ms, autoplays every 5000ms, pauses, and tears down with the page.",
   owner: "framework-adapter",
   region: "sidebar",
   role: "carousel",

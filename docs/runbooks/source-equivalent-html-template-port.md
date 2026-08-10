@@ -6,6 +6,11 @@ Use this workflow when an existing HTML template must become an actual Shoppp th
 its visible content, responsive behavior, interaction states, typography, or original assets.
 This is a source-equivalent port, not a screenshot-inspired redesign.
 
+This file is the single normative reconstruction workflow. Operational command syntax, evidence
+schemas, and runner troubleshooting live in the non-normative
+[Source-equivalence acceptance system reference](../reference/source-equivalence-acceptance-system.md).
+If the reference and this runbook disagree, this runbook wins.
+
 The authority order is fixed:
 
 1. Original HTML for structure, order, copy, semantics, and link intent.
@@ -112,6 +117,25 @@ For every visible region record:
 - pointer, keyboard, touch, focus, dismissal, disabled, and reduced-motion behavior;
 - motion direction, easing, duration, delay, loop, autoplay, pause, midpoint, exit, and interruption.
 
+Before implementing the first page, build a cross-page surface census across every declared source
+entry. Record each repeated surface in one ownership map:
+
+| Field                 | Required value                                                                |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Surface ID            | Stable header, card, overlay, filter, carousel, or footer identity            |
+| Source signatures     | DOM/class, data/action ownership, behavior, style, and responsive signatures  |
+| Consumer routes       | Every source and implementation route that renders the surface                |
+| Variants              | Only source-proven differences and the field that selects each difference     |
+| Implementation owner  | The one component or module allowed to render the surface                     |
+| Consumer verification | Cross-route style/geometry/behavior signature and one visual per real variant |
+
+Two current source consumers with the same DOM, data/action ownership, and behavior signature make
+a shared component mandatory. Similar-looking surfaces with different ownership or behavior remain
+separate until their common contract is proven; do not create a configurable abstraction for a
+hypothetical future variant. This census is a bounded identity/ownership pass, not full visual
+acceptance for every page. Page contracts may compose an owned shared surface but must not copy its
+markup, control reset, or interaction logic.
+
 For every actionable or stateful element, add a behavior-ledger row:
 
 | Field              | Required value                                                                              |
@@ -132,11 +156,24 @@ when that makes completeness easier to verify. Fixtures, preset order, named sta
 tests must derive from these contracts, not from an older implementation or the implementation
 under test.
 
+Use capability-specific evidence instead of reducing every interaction to “the state changed”:
+
+- **Carousel:** source-visible control set, active item, thumbnail/track coupling, direction,
+  duration, easing, in-flight displacement, settled transform, autoplay, pause, interruption, and
+  loop-boundary behavior.
+- **Filter:** selected value, active presentation, result IDs and count before/after, combination
+  behavior, focus retention, and reset/toggle outcome.
+- **Overlay:** trigger identity, displayed item/index, geometry/crop, backdrop, source-visible
+  controls, caption/counter, scroll lock, focus, all dismissal paths, and mobile composition.
+- **Shared surface:** owner, consumer routes, source variants, semantic substitutions, computed
+  control signature, and at least one non-home interaction state.
+
 Exit evidence:
 
 - every visible region and state is named;
 - every string, link, asset, font role, and breakpoint is represented;
 - every source behavior has an owner, fallback, and outcome-based test;
+- every repeated surface has one owner, an explicit consumer matrix, and no page-local duplicate;
 - the behavior ledger and fidelity matrix contain the same declared states;
 - source-only, implementation-only, and changed visible text all fail without a current waiver;
 - source-contract tests fail against an incomplete implementation.
@@ -166,6 +203,15 @@ Also prove that the harness rejects:
 - a control present in the DOM but hidden by missing runtime state;
 - an initialized carousel whose visible card count or width is wrong;
 - a timer-driven surface whose index or transform does not change; and
+- a source-animated carousel whose index changes but whose track has zero transition duration,
+  teleports between final transforms, or replaces slides with `display` toggles;
+- an implementation-only navigation button, overlay control, caption, or counter that is absent
+  from the equivalent source state;
+- a filter whose control becomes active but whose result IDs/count do not change or reset;
+- an image overlay that opens the wrong source item, reports the wrong counter, omits scroll lock,
+  or uses source-incompatible control/backdrop geometry;
+- a shared semantic control that passes on the first route but regains user-agent appearance,
+  background, border, padding, or font on another registered consumer; and
 - a state declared in the behavior ledger but absent from the fidelity matrix.
 
 The harness must capture structured DOM inventory, visible copy, links, image properties,
@@ -219,6 +265,18 @@ item count, or generated class is diagnostic evidence only; completion requires 
 visible result. Use capability-specific ready/failure states instead of one global runtime-ready
 flag that can mask partial initialization.
 
+Treat a shared component as a cross-route contract, not only shared markup. Presentation rules for
+the shared surface must be owned by a component-root selector or a documented theme-global token;
+they must not depend on the body class of the first page where the component was implemented. When
+source anchors, inputs, or plugin-generated controls become semantic framework buttons, explicitly
+compare and reset the browser defaults that changed (`appearance`, background, border, padding,
+font, and color) before applying source styles. Render each shared component in every consumer
+context and fail on a computed-style, geometry, or overflow signature that differs without a
+source-backed reason.
+The ownership map from Gate 2 must be resolved before the first consumer is implemented. Add a
+contract or static check that rejects a page-local duplicate of an owned surface; visual similarity
+alone is not permission to create a second renderer.
+
 Do not add source-absent visible success, failure, loading, empty-state, or accessibility copy.
 Prefer semantic markup and non-visual ARIA where it preserves the source. Register and approve any
 necessary visible deviation before implementing it.
@@ -227,6 +285,9 @@ Exit evidence:
 
 - regional contract and visual gates pass at each viewport and DPR;
 - no missing section, inert control, substitute asset, or accidental text wrap remains.
+- no component-owned control falls back to a user-agent border, background, padding, or font in any
+  registered consumer route;
+- at least one named interaction state for every shared overlay is captured from a non-home route.
 
 ### Gate 7: Route and data integration
 
@@ -245,8 +306,10 @@ Exit evidence:
 Run acceptance in five modes:
 
 1. **Static visual:** freeze motion only for geometry, typography, and pixel comparison.
-2. **Temporal:** run real autoplay and continuous motion; sample visible index/transform/position
-   before and after elapsed time and across the loop boundary.
+2. **Temporal:** run real autoplay and continuous motion; sample visible index/transform/position,
+   transition duration/easing, and at least one in-flight frame before and after elapsed time and
+   across the loop boundary. An index-only change or instantaneous final transform is not motion
+   parity.
 3. **Interaction:** exercise hover, focus, click, Escape, outside click, keyboard, and touch.
 4. **Scroll/fixed:** keep sticky rails and progress controls visible; verify thresholds, progress,
    fixed geometry, and back-to-top without route changes.
@@ -255,17 +318,32 @@ Run acceptance in five modes:
 Static visual stabilization must not count as evidence that motion exists. Test-only CSS must not
 hide a component in the only mode responsible for validating that component.
 
-Within each mode, run validation at three levels:
+Allocate evidence by risk so rigor does not become indiscriminate runtime cost:
+
+1. **Tier A — dynamic/shared:** carousels, filters, overlays, commerce controls, and shared shell
+   surfaces require their full capability schema, temporal/interaction evidence, and all distinct
+   source variants. Shared control signatures run on every consumer route.
+2. **Tier B — repeated static:** one structural/visual proof per distinct source variant plus the
+   cross-route ownership/signature matrix; identical consumers do not repeat full-page captures.
+3. **Tier C — unique static:** source contract, regional geometry/copy/assets, responsive cells,
+   and one regional visual comparison; no synthetic interaction matrix is created.
+
+Within each mode, run validation at four levels:
 
 1. Failed region/state only: source contract, focused browser assertion, computed style, geometry,
    and diagnostic crop.
 2. Current page: all regions, states, viewports, DPR 1/2, no-JS, reduced motion, keyboard, touch,
    accessibility, and runtime diagnostics.
-3. Final repository: one full-page matrix, theme E2E, static build, selected-theme isolation,
+3. Shadow repository: all contracts and deduplicated page behavior, without generating final
+   evidence. Use this once after all page-level failures pass and before freezing the candidate.
+4. Final repository: verify the frozen commit/tree/build/policy identity, then run one full-page
+   matrix, theme E2E, static build, selected-theme isolation,
    bundle budget, Lighthouse, lint, typecheck, unit tests, and non-mechanical review.
 
-Do not rerun an already passing full matrix for every local correction. Re-run it once after all
-failed regions pass.
+Do not rerun an already passing full matrix for every local correction. Run the shadow pass once
+after all failed regions pass, freeze the exact release-candidate build, and generate commit-bound
+final evidence once. Any tracked-code, policy, fixture, or build-artifact change invalidates the
+freeze and returns the work to the page/shadow loop.
 
 Before accepting the matrix, automatically compare it with the behavior ledger. Missing tests,
 captures, selectors, or states fail; “not represented in the matrix” is not a valid pass condition.
@@ -290,6 +368,10 @@ Do checklist-driven side-by-side review during implementation, not only at hando
 3. the full desktop page, including edge rails and scroll controls; and
 4. mobile plus hover/focus/scroll/timer/remount states.
 
+For shared surfaces, visually review every distinct source variant, not every identical consumer.
+Use the automated consumer-route signature matrix to cover identical routes and open at least one
+shared transient state outside the home page.
+
 Any issue found by human review must first add or correct a contract row and regression test, then
 receive the implementation fix. This prevents the same category from reappearing elsewhere.
 
@@ -298,6 +380,30 @@ visible-content exceptions, and time spent maintaining the ledger. Review these 
 next port; reduce or automate ledger detail if a smaller source-derived capability inventory proves
 equally effective. The ledger is a selected countermeasure whose value must be measured, not a
 ceremonial document.
+
+Record this block at handoff so workflow cost and escaped-defect classes remain visible:
+
+```yaml
+theme: THEME_ID
+source_revision: SHA256_OR_REVISION
+elapsed_hours: 0
+behaviors_at_intake: 0
+behaviors_added_after_intake: 0
+automation_escapes: 0
+shared_surface_escapes: 0
+state_contract_escapes: 0
+duplicate_implementations_removed: 0
+approved_visible_differences: 0
+ledger_maintenance_minutes: 0
+custom_adapter_count: 0
+longest_gate:
+  name: ""
+  seconds: 0
+```
+
+Growth in post-intake behaviors, shared-surface escapes, or state-contract escapes means Gate 2 is
+still incomplete. High ledger effort without prevented defects means simplify the selected Tier B/C
+evidence rather than weakening Tier A outcome checks.
 
 ## Standard acceptance policy
 
@@ -375,13 +481,16 @@ bun run accept:source-equivalence -- \
 bun run accept:source-equivalence -- --scope page --theme fashion-store
 
 bun run accept:source-equivalence -- \
-  --scope repository --evidence=<report-directory> --commit=<exact-commit-sha>
+  --scope repository --evidence=<report-directory> --commit=<full-commit-sha> \
+  --rc-manifest=<frozen-rc-manifest>
 ```
 
 `focused` runs one policy-declared browser state, `page` runs the current page contract, and
 `repository` runs deterministic source-equivalence checks, the existing theme matrix, and
 commit-bound fidelity evidence validation. It refuses to report completion without both
-`--evidence` and `--commit`.
+`--evidence`, a full `--commit`, and `--rc-manifest`. Regional and named-state capture commands
+must record the frozen manifest's artifact SHA-256 with `--artifact-digest` so the verifier rejects
+evidence produced by a different build.
 Use `--dry-run` to inspect commands and outstanding evidence without launching a browser. The
 machine-readable page routing lives in `tools/storefront-source-equivalence-policy.json`; do not
 add theme conditionals to the orchestration script.
@@ -398,14 +507,17 @@ bun tools/verify-source-equivalent-themes.ts \
 Then run the standard theme and repository gates described in
 `docs/runbooks/storefront-theme-onboarding.md`.
 
-Evidence modes, artifact identity, failure triage, model routing, and the post-port metrics template
-are defined in [Source-equivalence acceptance evidence](source-equivalent-html-acceptance-evidence.md).
+Evidence artifact fields, command details, failure triage, and runner routing are documented in the
+non-normative
+[Source-equivalence acceptance system reference](../reference/source-equivalence-acceptance-system.md).
 
 ## Handoff checklist
 
 - Equivalence scope and source revision are explicit.
 - Source contract covers every visible region, state, breakpoint, link, asset, and motion branch.
 - Behavior ledger covers every actionable/stateful source element and matches the acceptance matrix.
+- Cross-page surface census assigns one owner and a consumer/variant matrix to every repeated surface.
+- Carousel, filter, overlay, and shared-surface states satisfy their capability-specific evidence.
 - Asset provenance and local font inspection pass.
 - Controlled harness mismatches fail as expected.
 - Static, temporal, interaction, scroll/fixed, and fallback modes pass at focused, page, and final levels.

@@ -113,7 +113,7 @@ test("wishlist-first-product-actions interaction: cart and removal stay host-own
     expectedUnitPrice: { amount: 6500, currency: "USD" },
     quantity: 1,
     releaseId: "representative-release-2026-07-30",
-    variantId: "var_01J00000000000000000000000",
+    variantId: "var_01JFSHIRTBLUEM00000000001",
   });
 
   const remove = firstCard.getByRole("button", { name: /Remove Textured sweater/ });

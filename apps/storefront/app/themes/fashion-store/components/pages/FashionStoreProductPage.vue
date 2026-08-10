@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ThemeProductLightbox from "../../../../theme-engine/components/ThemeProductLightbox.vue";
 import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
@@ -10,6 +9,7 @@ import {
 } from "../../fixtures/pages/product";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
+import FashionStoreProductLightbox from "../shared/FashionStoreProductLightbox.vue";
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
@@ -39,10 +39,28 @@ const cartBusy = ref(false);
 const optionUpdateCount = ref(0);
 const reviewAttemptCount = ref(0);
 const previewIntentCount = ref(0);
-const lightbox = ref<InstanceType<typeof ThemeProductLightbox>>();
+const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
+const thumbnailTrack = ref<HTMLElement | null>(null);
+const thumbnailStep = ref(0);
+const thumbnailHorizontal = ref(false);
 const actionAdapter = inject(previewActionAdapterKey);
 let galleryTimer: ReturnType<typeof setInterval> | undefined;
 let touchStartX = 0;
+
+const thumbnailTrackStyle = computed(() => {
+  const visibleThumbnails = thumbnailHorizontal.value ? 4 : 3;
+  const maximumStart = Math.max(0, gallery.value.length - visibleThumbnails);
+  const startIndex = Math.min(
+    Math.max(0, galleryIndex.value - visibleThumbnails + 1),
+    maximumStart,
+  );
+  const offset = startIndex * thumbnailStep.value;
+  return {
+    transform: thumbnailHorizontal.value
+      ? `translate3d(${-offset}px, 0, 0)`
+      : `translate3d(0, ${-offset}px, 0)`,
+  };
+});
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -62,7 +80,19 @@ function startGalleryAutoplay(): void {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   galleryTimer = setInterval(() => {
     if (!galleryPaused.value) showGallery(galleryIndex.value + 1);
-  }, 5_000);
+  }, 2_000);
+}
+
+function updateThumbnailTrack(): void {
+  const track = thumbnailTrack.value;
+  const slide = track?.querySelector<HTMLElement>(".swiper-slide");
+  if (!track || !slide) return;
+  thumbnailHorizontal.value = matchMedia("(max-width: 991px)").matches;
+  const slideStyle = getComputedStyle(slide);
+  const trackStyle = getComputedStyle(track);
+  thumbnailStep.value = thumbnailHorizontal.value
+    ? slide.getBoundingClientRect().width + Number.parseFloat(slideStyle.marginRight || "0")
+    : slide.getBoundingClientRect().height + Number.parseFloat(trackStyle.rowGap || "0");
 }
 
 function handleGalleryKey(event: KeyboardEvent): void {
@@ -122,7 +152,11 @@ async function addToCart(): Promise<void> {
       action: data.value.actions.cart,
       context: "fashion-store.product.cart",
       currency: "USD",
-      input: buildFashionStoreProductCartRequest(quantity.value),
+      input: buildFashionStoreProductCartRequest(
+        quantity.value,
+        selectedColor.value,
+        selectedSize.value,
+      ),
       kind: "cart.add",
     });
     cartAddCount.value += 1;
@@ -171,8 +205,15 @@ function recordRelatedIntent(kind: "cart" | "quickView" | "wishlist"): void {
   previewIntentCount.value += 1;
 }
 
-onMounted(startGalleryAutoplay);
-onBeforeUnmount(stopGalleryAutoplay);
+onMounted(() => {
+  startGalleryAutoplay();
+  void nextTick(updateThumbnailTrack);
+  window.addEventListener("resize", updateThumbnailTrack);
+});
+onBeforeUnmount(() => {
+  stopGalleryAutoplay();
+  window.removeEventListener("resize", updateThumbnailTrack);
+});
 </script>
 
 <template>
@@ -262,26 +303,10 @@ onBeforeUnmount(stopGalleryAutoplay);
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    class="slider-product-prev"
-                    aria-label="Previous product image"
-                    @click="showGallery(galleryIndex - 1)"
-                  >
-                    <i class="feather icon-feather-chevron-left"></i>
-                  </button>
-                  <button
-                    type="button"
-                    class="slider-product-next"
-                    aria-label="Next product image"
-                    @click="showGallery(galleryIndex + 1)"
-                  >
-                    <i class="feather icon-feather-chevron-right"></i>
-                  </button>
                 </div>
                 <div class="col-12 col-lg-2 order-lg-1 position-relative single-product-thumb">
                   <div class="swiper-container product-image-thumb slider-vertical">
-                    <div class="swiper-wrapper">
+                    <div ref="thumbnailTrack" class="swiper-wrapper" :style="thumbnailTrackStyle">
                       <div
                         v-for="(image, index) in gallery"
                         :key="image"
@@ -930,10 +955,12 @@ onBeforeUnmount(stopGalleryAutoplay);
         </div>
       </section>
 
-      <ThemeProductLightbox
+      <FashionStoreProductLightbox
         ref="lightbox"
         :src="sourceAsset(gallery[galleryIndex]!)"
         :alt="data.product.name"
+        :current="galleryIndex + 1"
+        :total="gallery.length"
         @previous="showGallery(galleryIndex - 1)"
         @next="showGallery(galleryIndex + 1)"
         @opened="galleryPaused = true"

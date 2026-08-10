@@ -37,6 +37,133 @@
           "height": 1200
         }
       ]
+    },
+    {
+      "slug": "relaxed-corduroy-shirt",
+      "name": "Relaxed corduroy shirt",
+      "description": "A relaxed organic-cotton corduroy shirt with source-matched color and size options.",
+      "seoTitle": "Relaxed corduroy shirt | Shoppp",
+      "seoDescription": "Shop the relaxed corduroy shirt in Gold, Blue, or Green and sizes S through XL.",
+      "status": "published",
+      "collectionSlugs": ["travel-essentials"],
+      "variants": [
+        {
+          "id": "var_01JFSHIRTGOLDS00000000001",
+          "sku": "M492300-GOLD-S",
+          "title": "Gold / S",
+          "status": "active",
+          "optionValues": { "color": "Gold", "size": "S" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGOLDM00000000001",
+          "sku": "M492300-GOLD-M",
+          "title": "Gold / M",
+          "status": "active",
+          "optionValues": { "color": "Gold", "size": "M" },
+          "weightGrams": 420,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGOLDL00000000001",
+          "sku": "M492300-GOLD-L",
+          "title": "Gold / L",
+          "status": "active",
+          "optionValues": { "color": "Gold", "size": "L" },
+          "weightGrams": 440,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGOLDXL0000000001",
+          "sku": "M492300-GOLD-XL",
+          "title": "Gold / XL",
+          "status": "active",
+          "optionValues": { "color": "Gold", "size": "XL" },
+          "weightGrams": 460,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTBLUES00000000001",
+          "sku": "M492300-BLUE-S",
+          "title": "Blue / S",
+          "status": "active",
+          "optionValues": { "color": "Blue", "size": "S" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTBLUEM00000000001",
+          "sku": "M492300-BLUE-M",
+          "title": "Blue / M",
+          "status": "active",
+          "optionValues": { "color": "Blue", "size": "M" },
+          "weightGrams": 420,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTBLUEL00000000001",
+          "sku": "M492300-BLUE-L",
+          "title": "Blue / L",
+          "status": "active",
+          "optionValues": { "color": "Blue", "size": "L" },
+          "weightGrams": 440,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTBLUEXL0000000001",
+          "sku": "M492300-BLUE-XL",
+          "title": "Blue / XL",
+          "status": "active",
+          "optionValues": { "color": "Blue", "size": "XL" },
+          "weightGrams": 460,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGREENS0000000001",
+          "sku": "M492300-GREEN-S",
+          "title": "Green / S",
+          "status": "active",
+          "optionValues": { "color": "Green", "size": "S" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGREENM0000000001",
+          "sku": "M492300-GREEN-M",
+          "title": "Green / M",
+          "status": "active",
+          "optionValues": { "color": "Green", "size": "M" },
+          "weightGrams": 420,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGREENL0000000001",
+          "sku": "M492300-GREEN-L",
+          "title": "Green / L",
+          "status": "active",
+          "optionValues": { "color": "Green", "size": "L" },
+          "weightGrams": 440,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        },
+        {
+          "id": "var_01JFSHIRTGREENXL000000001",
+          "sku": "M492300-GREEN-XL",
+          "title": "Green / XL",
+          "status": "active",
+          "optionValues": { "color": "Green", "size": "XL" },
+          "weightGrams": 460,
+          "prices": [{ "currency": "USD", "amount": 6500 }]
+        }
+      ],
+      "media": [
+        {
+          "src": "/media/relaxed-corduroy-shirt.jpg",
+          "alt": "Relaxed corduroy shirt in green",
+          "width": 600,
+          "height": 765
+        }
+      ]
     }
   ],
   "collections": [
@@ -47,7 +174,7 @@
       "seoTitle": "Travel essentials | Shoppp",
       "seoDescription": "Browse durable travel essentials for international journeys.",
       "status": "published",
-      "productSlugs": ["atlas-carry-on"]
+      "productSlugs": ["atlas-carry-on", "relaxed-corduroy-shirt"]
     }
   ],
   "policies": [

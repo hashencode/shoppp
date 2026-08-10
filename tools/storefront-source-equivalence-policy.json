@@ -1,10 +1,26 @@
 {
   "schemaVersion": 1,
   "canonicalViewports": [
-    { "id": "desktop", "width": 1440, "height": 1000 },
-    { "id": "laptop", "width": 1024, "height": 900 },
-    { "id": "tablet", "width": 768, "height": 1024 },
-    { "id": "mobile", "width": 390, "height": 844 }
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "laptop",
+      "width": 1024,
+      "height": 900
+    },
+    {
+      "id": "tablet",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
   ],
   "thresholds": {
     "channelTolerance": 16,
@@ -38,7 +54,14 @@
       "id": "fashion-store",
       "acceptance": {
         "browserConfig": "apps/storefront/playwright.fashion-store.config.ts",
-        "browserProject": "fashion-store-desktop"
+        "browserProject": "fashion-store-desktop",
+        "pageCommand": [
+          "bun",
+          "tools/run-fashion-store-acceptance.ts",
+          "--scope=page",
+          "--page={page}"
+        ],
+        "themeCommand": ["bun", "tools/run-fashion-store-acceptance.ts", "--scope=theme"]
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
       "equivalenceScope": [
@@ -68,16 +91,30 @@
           "behaviorContractExport": "fashionStoreBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/behavior-contract.ts",
           "focusedStates": [
-            { "id": "search-open", "modes": ["interaction"] },
-            { "id": "collection-slide-1", "modes": ["temporal", "interaction"] },
-            { "id": "cart-open", "modes": ["interaction"] },
-            { "id": "marquee-paused", "modes": ["temporal"] },
-            { "id": "scroll-progress-visible", "modes": ["scroll-fixed"] }
+            {
+              "id": "search-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "collection-slide-1",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "cart-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "marquee-paused",
+              "modes": ["temporal"]
+            },
+            {
+              "id": "scroll-progress-visible",
+              "modes": ["scroll-fixed"]
+            }
           ],
           "id": "home",
           "implementationRoute": "/",
           "implementationRuntimeReadySelector": "[data-fashion-store-source-parity][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "home",
           "requiredContractFacets": [
             "behaviorContractPath",
@@ -98,11 +135,15 @@
           "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
           "behaviorContractExport": "fashionStoreShopLeftBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
-          "focusedStates": [{ "id": "shop-product-hover", "modes": ["interaction"] }],
+          "focusedStates": [
+            {
+              "id": "shop-product-hover",
+              "modes": ["interaction"]
+            }
+          ],
           "id": "shop-left",
           "implementationRoute": "/shop",
           "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='left'][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "collection",
           "requiredContractFacets": [
             "behaviorContractPath",
@@ -123,11 +164,15 @@
           "applicableModes": ["fallback", "interaction", "scroll-fixed", "static"],
           "behaviorContractExport": "fashionStoreShopNoneBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
-          "focusedStates": [{ "id": "shop-product-hover", "modes": ["interaction"] }],
+          "focusedStates": [
+            {
+              "id": "shop-product-hover",
+              "modes": ["interaction"]
+            }
+          ],
           "id": "shop-none",
           "implementationRoute": "/shop/no-sidebar",
           "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='none'][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "collection",
           "requiredContractFacets": [
             "behaviorContractPath",
@@ -148,11 +193,15 @@
           "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
           "behaviorContractExport": "fashionStoreShopRightBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/shop.ts",
-          "focusedStates": [{ "id": "shop-product-hover", "modes": ["interaction"] }],
+          "focusedStates": [
+            {
+              "id": "shop-product-hover",
+              "modes": ["interaction"]
+            }
+          ],
           "id": "shop-right",
           "implementationRoute": "/shop/right-sidebar",
           "implementationRuntimeReadySelector": "[data-fashion-store-shop][data-layout='right'][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "collection",
           "requiredContractFacets": [
             "behaviorContractPath",
@@ -173,11 +222,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreCollectionBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/collection.ts",
-          "focusedStates": [{ "id": "collection-card-focus", "modes": ["interaction"] }],
+          "focusedStates": [
+            {
+              "id": "collection-card-focus",
+              "modes": ["interaction"]
+            }
+          ],
           "id": "collection",
           "implementationRoute": "/collections",
           "implementationRuntimeReadySelector": "[data-fashion-store-collection][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "collection",
           "requiredContractFacets": ["cardCount", "regionOrder", "source"],
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/collection.ts",
@@ -193,14 +246,22 @@
           "behaviorContractExport": "fashionStoreProductBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/product.ts",
           "focusedStates": [
-            { "id": "product-gallery-slide-2", "modes": ["temporal", "interaction"] },
-            { "id": "product-size-m", "modes": ["interaction"] },
-            { "id": "product-reviews-tab", "modes": ["interaction"] }
+            {
+              "id": "product-gallery-slide-2",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "product-size-m",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-reviews-tab",
+              "modes": ["interaction"]
+            }
           ],
           "id": "product",
           "implementationRoute": "/products/relaxed-corduroy-shirt",
           "implementationRuntimeReadySelector": "[data-fashion-store-product][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "product",
           "requiredContractFacets": [
             "behaviorContractPath",
@@ -222,13 +283,18 @@
           "behaviorContractExport": "fashionStoreCartBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/cart.ts",
           "focusedStates": [
-            { "id": "cart-first-line-quantity-2", "modes": ["interaction"] },
-            { "id": "cart-shipping-open", "modes": ["interaction"] }
+            {
+              "id": "cart-first-line-quantity-2",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cart-shipping-open",
+              "modes": ["interaction"]
+            }
           ],
           "id": "cart",
           "implementationRoute": "/cart",
           "implementationRuntimeReadySelector": "[data-fashion-store-cart][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "cart",
           "requiredContractFacets": ["lineCount", "regionOrder", "source"],
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/cart.ts",
@@ -244,13 +310,18 @@
           "behaviorContractExport": "fashionStoreCheckoutBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/checkout.ts",
           "focusedStates": [
-            { "id": "checkout-account-open", "modes": ["interaction"] },
-            { "id": "checkout-payment-paypal", "modes": ["interaction"] }
+            {
+              "id": "checkout-account-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "checkout-payment-paypal",
+              "modes": ["interaction"]
+            }
           ],
           "id": "checkout",
           "implementationRoute": "/checkout",
           "implementationRuntimeReadySelector": "[data-fashion-store-checkout][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "checkout",
           "requiredContractFacets": ["lineCount", "paymentCount", "regionOrder", "source"],
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/checkout.ts",
@@ -265,11 +336,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreWishlistBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/wishlist.ts",
-          "focusedStates": [{ "id": "wishlist-first-product-actions", "modes": ["interaction"] }],
+          "focusedStates": [
+            {
+              "id": "wishlist-first-product-actions",
+              "modes": ["interaction"]
+            }
+          ],
           "id": "wishlist",
           "implementationRoute": "/wishlist",
           "implementationRuntimeReadySelector": "[data-fashion-store-wishlist][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": ["productCount", "regionOrder", "source"],
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/wishlist.ts",
@@ -284,11 +359,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreAccountBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/account.ts",
-          "focusedStates": [{ "id": "account-forms-ready", "modes": ["static"] }],
+          "focusedStates": [
+            {
+              "id": "account-forms-ready",
+              "modes": ["static"]
+            }
+          ],
           "id": "account",
           "implementationRoute": "/account",
           "implementationRuntimeReadySelector": "[data-fashion-store-account][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": ["formCount", "regionOrder", "source"],
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/account.ts",
@@ -303,11 +382,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreMagazineBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/magazine.ts",
-          "focusedStates": [{ "id": "magazine-grid-ready", "modes": ["static"] }],
+          "focusedStates": [
+            {
+              "id": "magazine-grid-ready",
+              "modes": ["static"]
+            }
+          ],
           "id": "magazine",
           "implementationRoute": "/magazine",
           "implementationRuntimeReadySelector": "[data-fashion-store-magazine][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": ["cardCount", "paginationActive", "regionOrder", "source"],
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/magazine.ts",
@@ -322,11 +405,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreArticleBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/article.ts",
-          "focusedStates": [{ "id": "article-body-ready", "modes": ["static"] }],
+          "focusedStates": [
+            {
+              "id": "article-body-ready",
+              "modes": ["static"]
+            }
+          ],
           "id": "article",
           "implementationRoute": "/magazine/marketing-tips-and-tricks",
           "implementationRuntimeReadySelector": "[data-fashion-store-article][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": [
             "commentCount",
@@ -347,11 +434,15 @@
           "applicableModes": ["fallback", "interaction", "static", "temporal"],
           "behaviorContractExport": "fashionStoreAboutBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/about.ts",
-          "focusedStates": [{ "id": "about-carousel-ready", "modes": ["temporal", "interaction"] }],
+          "focusedStates": [
+            {
+              "id": "about-carousel-ready",
+              "modes": ["temporal", "interaction"]
+            }
+          ],
           "id": "about",
           "implementationRoute": "/about",
           "implementationRuntimeReadySelector": "[data-fashion-store-about][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": [
             "accordionCount",
@@ -372,11 +463,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreFaqBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/faq.ts",
-          "focusedStates": [{ "id": "faq-secondary-tab", "modes": ["interaction"] }],
+          "focusedStates": [
+            {
+              "id": "faq-secondary-tab",
+              "modes": ["interaction"]
+            }
+          ],
           "id": "faq",
           "implementationRoute": "/faq",
           "implementationRuntimeReadySelector": "[data-fashion-store-faq][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": [
             "categoryCount",
@@ -396,11 +491,15 @@
           "applicableModes": ["fallback", "interaction", "static"],
           "behaviorContractExport": "fashionStoreContactBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/fashion-store/contracts/pages/contact.ts",
-          "focusedStates": [{ "id": "contact-map-ready", "modes": ["static"] }],
+          "focusedStates": [
+            {
+              "id": "contact-map-ready",
+              "modes": ["static"]
+            }
+          ],
           "id": "contact",
           "implementationRoute": "/contact",
           "implementationRuntimeReadySelector": "[data-fashion-store-contact][data-runtime-status='ready']",
-          "pageCommand": ["bun", "run", "--cwd", "apps/storefront", "test:fashion-store"],
           "pageType": "content",
           "requiredContractFacets": [
             "locationCount",

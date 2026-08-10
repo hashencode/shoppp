@@ -19,8 +19,14 @@ import {
 } from "@shoppp/domain";
 import type { Context } from "hono";
 
+import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
+import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
+import { fashionManifest } from "../../../storefront/app/themes/fashion/manifest";
+import { fashionPreset } from "../../../storefront/app/themes/fashion/presets/editorial";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
+import decorFixture from "../../../storefront/fixtures/experience/decor.json";
+import fashionFixture from "../../../storefront/fixtures/experience/fashion.json";
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
@@ -111,9 +117,13 @@ interface SnapshotRow {
 
 const PLATFORM_CONTRACT_VERSION = "1.0.0";
 const defaultPackages = [
+  themePackageSchema.parse({ manifest: decorManifest, presets: [decorPreset] }),
+  themePackageSchema.parse({ manifest: fashionManifest, presets: [fashionPreset] }),
   themePackageSchema.parse({ manifest: fashionStoreManifest, presets: [fashionStorePreset] }),
 ] as const;
 const fixtureBindingsByThemeId = {
+  decor: decorFixture.bindings,
+  fashion: fashionFixture.bindings,
   "fashion-store": fashionStoreFixture.bindings,
 } as const;
 

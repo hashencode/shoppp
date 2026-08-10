@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { useFashionStoreVisualRuntime } from "../../composables/useFashionStoreVisualRuntime";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreFooter from "./FashionStoreFooter.vue";
 import FashionStoreHeader from "./FashionStoreHeader.vue";
@@ -15,11 +16,13 @@ const properties = withDefaults(
     announcement: string;
     bodyClass?: string;
     preloadImage?: string;
+    previewIntentCount?: number;
     resolveAsset: ThemeAssetResolver;
     showStickySocials?: boolean;
   }>(),
   {
     bodyClass: "fashion-store-home",
+    previewIntentCount: 0,
     showStickySocials: true,
   },
 );
@@ -30,6 +33,7 @@ const documentReadyClass = ref<"js" | "no-js">("no-js");
 const header = ref<HeaderHandle>();
 const searchOpen = ref(false);
 const sourceInlineGap = " ";
+const visualRuntime = useFashionStoreVisualRuntime();
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -108,6 +112,14 @@ onBeforeUnmount(() => {
 
 <template>
   <a class="skip-link" href="#fashion-store-main">Skip to content</a>
+  <span
+    class="sr-only"
+    data-fashion-store-source-parity="true"
+    :data-preview-intent-count="previewIntentCount"
+    :data-runtime-instance-count="visualRuntime.liveInstances.value"
+    :data-runtime-error="visualRuntime.failure.value || undefined"
+    :data-runtime-status="visualRuntime.status.value"
+  />
   <slot name="prelude" />
   <FashionStoreHeader
     ref="header"

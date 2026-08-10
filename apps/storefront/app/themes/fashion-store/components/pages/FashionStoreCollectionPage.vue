@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { normalizeThemeRoutePath } from "../../../../theme-engine/routes";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreShopData } from "../../fixtures/pages/shop";
 import { fashionStoreRoutePaths } from "../../page-contracts";
@@ -21,7 +22,8 @@ const data = computed(() => {
   return (properties.viewModel.data as unknown as FashionStoreShopData).collection;
 });
 const isLanding = computed(
-  () => router.currentRoute.value.path === fashionStoreRoutePaths.collection,
+  () =>
+    normalizeThemeRoutePath(router.currentRoute.value.path) === fashionStoreRoutePaths.collection,
 );
 
 function sourceAsset(sourcePath: string): string {

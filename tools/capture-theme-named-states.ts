@@ -21,6 +21,10 @@ import {
   assertThemeScreenshotDifference,
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
+import {
+  resetTransientAcceptanceState,
+  waitForSemanticReadiness,
+} from "../apps/storefront/e2e/support/theme-acceptance-readiness";
 import { acquireCaptureLease } from "./theme-capture-resource-guard";
 
 interface Box {
@@ -124,12 +128,8 @@ async function fashionStoreSourceFontCss(): Promise<string> {
 
 async function stabilize(page: Page): Promise<void> {
   await page.addStyleTag({ content: namedStateCss("temporal") });
-  await page.evaluate(async () => {
-    document.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
-      image.loading = "eager";
-    });
-    if ("fonts" in document) await document.fonts.ready;
-    await Promise.all([...document.images].map((image) => image.decode().catch(() => undefined)));
+  await waitForSemanticReadiness(page, { imageTimeoutMs: 5_000, timeoutMs: 15_000 });
+  await page.evaluate(() => {
     document.querySelectorAll<HTMLElement>(".swiper").forEach((element) => {
       const swiper = (
         element as HTMLElement & {
@@ -144,7 +144,7 @@ async function stabilize(page: Page): Promise<void> {
     });
     scrollTo(0, 0);
   });
-  await page.waitForTimeout(250);
+  await waitForSemanticReadiness(page, { imageTimeoutMs: 1_000, timeoutMs: 5_000 });
 }
 
 async function hydrateFashionSourceImages(page: Page): Promise<void> {
@@ -239,8 +239,7 @@ export function fashionStoreNamedStateSelection(pageId = "home"): {
 }
 
 async function resetFashion(page: Page, side: "implementation" | "source"): Promise<void> {
-  await page.mouse.move(0, 0);
-  await page.keyboard.press("Escape").catch(() => undefined);
+  await resetTransientAcceptanceState(page);
   if (side === "implementation") {
     const openMenu = page.locator(".fashion-mobile-menu[open]");
     if (await openMenu.count()) await openMenu.locator(":scope > summary").click();
@@ -410,8 +409,7 @@ async function applyFashionStoreAction(
     await page.waitForTimeout(100);
     return;
   }
-  await page.mouse.move(0, 0);
-  await page.keyboard.press("Escape").catch(() => undefined);
+  await resetTransientAcceptanceState(page);
   await page.evaluate(() => {
     document.documentElement.classList.remove("show-search-popup");
     document.body.classList.remove("show-search-popup");
@@ -867,6 +865,7 @@ async function elementDiagnostics(page: Page, selector: string) {
 }
 
 export async function captureFashionNamedStates(options: {
+  artifactDigest: string;
   commit: string;
   implementationUrl: string;
   outputRoot: string;
@@ -875,7 +874,9 @@ export async function captureFashionNamedStates(options: {
   stateFilter?: string;
   viewportFilter?: string;
 }): Promise<void> {
-  if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
+  if (!/^[a-f0-9]{40}$/.test(options.commit)) throw new Error("A full commit SHA is required.");
+  if (!/^[a-f0-9]{64}$/.test(options.artifactDigest))
+    throw new Error("A SHA-256 artifact digest is required.");
   const implementationThemeId = "fashion-store";
   const selection = fashionStoreNamedStateSelection(options.pageId);
   const contracts = selection.contracts;
@@ -1171,6 +1172,7 @@ export async function captureFashionNamedStates(options: {
     join(outputRoot, "report.json"),
     `${JSON.stringify(
       {
+        artifactDigest: options.artifactDigest,
         capturedAt: new Date().toISOString(),
         commit: options.commit,
         failures,
@@ -1210,16 +1212,18 @@ if (import.meta.main) {
   const implementationUrl = value(arguments_, "--implementation-url");
   const outputRoot = value(arguments_, "--output");
   const commit = value(arguments_, "--commit");
+  const artifactDigest = value(arguments_, "--artifact-digest");
   const theme = value(arguments_, "--theme") ?? "fashion-store";
   const pageId = value(arguments_, "--page");
   const stateFilter = value(arguments_, "--state");
   const viewportFilter = value(arguments_, "--viewport");
-  if (!sourceUrl || !implementationUrl || !outputRoot || !commit)
+  if (!sourceUrl || !implementationUrl || !outputRoot || !commit || !artifactDigest)
     throw new Error(
-      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<sha> [--theme=fashion-store] [--page=<id>] [--state=<id>] [--viewport=<id>]",
+      "Usage: bun tools/capture-theme-named-states.ts --source-url=<url> --implementation-url=<url> --output=<root> --commit=<full-sha> --artifact-digest=<sha256> [--theme=fashion-store] [--page=<id>] [--state=<id>] [--viewport=<id>]",
     );
   if (theme === "fashion-store")
     await captureFashionStoreNamedStates({
+      artifactDigest,
       commit,
       implementationUrl,
       outputRoot,

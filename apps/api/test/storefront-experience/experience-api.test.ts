@@ -120,6 +120,18 @@ describe("storefront experience API", () => {
       data: [
         {
           fixtureBindings: expect.any(Array),
+          id: "decor",
+          presetDefinitions: expect.any(Array),
+          themeVersion: "1.0.0",
+        },
+        {
+          fixtureBindings: expect.any(Array),
+          id: "fashion",
+          presetDefinitions: expect.any(Array),
+          themeVersion: "1.0.0",
+        },
+        {
+          fixtureBindings: expect.any(Array),
           id: "fashion-store",
           presetDefinitions: expect.any(Array),
           themeVersion: "1.0.0",

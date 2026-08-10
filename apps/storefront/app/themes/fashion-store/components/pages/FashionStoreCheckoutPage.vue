@@ -54,6 +54,7 @@ const turnstileToken = ref("");
 const turnstileRenderKey = ref(0);
 const localActionCount = ref(0);
 const sessionCount = ref(0);
+let disposed = false;
 
 const billingAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   city: "",
@@ -77,7 +78,7 @@ const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
 });
 
 const displayedLines = computed(() => {
-  if (!cart.value?.lines.length) return data.value.lines;
+  if (cart.value === null) return data.value.lines;
   return cart.value.lines.map((line) => ({
     color:
       data.value.lines.find(({ variantId }) => variantId === line.variantId)?.color ??
@@ -98,16 +99,16 @@ const displayedTotals = computed(() =>
     : data.value.totals,
 );
 const shippingMethods = computed<ShippingMethodQuote[]>(() =>
-  cart.value?.shippingMethods.length
-    ? cart.value.shippingMethods
-    : data.value.shipping.map((method) => ({
+  cart.value === null
+    ? data.value.shipping.map((method) => ({
         amount: method.id === data.value.shipping[1]?.id ? 1200 : 0,
         currency: "USD",
         estimatedDaysMax: 5,
         estimatedDaysMin: 3,
         id: method.id,
         name: method.label,
-      })),
+      }))
+    : cart.value.shippingMethods,
 );
 
 function money(amount: number, currency: string): string {
@@ -217,6 +218,7 @@ async function continueCheckout(): Promise<void> {
       },
       turnstileToken.value || undefined,
     );
+    if (disposed) return;
     sessionCount.value += 1;
     checkoutAdapter.complete(session);
   } catch {
@@ -253,6 +255,10 @@ onMounted(async () => {
       "Checkout security could not be verified. Refresh the page before continuing.";
   }
   securityConfigurationLoading.value = false;
+});
+
+onBeforeUnmount(() => {
+  disposed = true;
 });
 </script>
 

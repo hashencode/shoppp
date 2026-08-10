@@ -66,7 +66,6 @@ export interface SourceEquivalencePagePolicy {
   id: string;
   implementationRoute: string;
   implementationRuntimeReadySelector: string;
-  pageCommand: string[];
   pageType: string;
   requiredContractFacets: string[];
   sourceContractPath: string;
@@ -81,6 +80,8 @@ export interface SourceEquivalenceThemePolicy {
   acceptance: {
     browserConfig: string;
     browserProject: string;
+    pageCommand: string[];
+    themeCommand: string[];
   };
   authorizedSourceRoot: string;
   equivalenceScope: string[];
@@ -92,6 +93,7 @@ export interface SourceEquivalenceThemePolicy {
 }
 
 interface EvidenceOptions {
+  artifactDigest: string;
   behaviorDescriptors?: ReadonlyMap<string, ThemeBehaviorDescriptor>;
   commit: string;
   maxAgeHours?: number;
@@ -103,6 +105,7 @@ interface EvidenceOptions {
 }
 
 interface EvidenceRecord {
+  artifactDigest?: unknown;
   captureMode?: unknown;
   capturedAt?: unknown;
   commit?: unknown;
@@ -415,6 +418,17 @@ export async function validateSourceEquivalencePolicy(
       errors.push(`${theme.id}: acceptance browser config is missing`);
     if (!theme.acceptance?.browserProject?.trim())
       errors.push(`${theme.id}: acceptance browser project is missing`);
+    if (
+      !Array.isArray(theme.acceptance?.pageCommand) ||
+      theme.acceptance.pageCommand.length === 0 ||
+      !theme.acceptance.pageCommand.some((argument) => argument.includes("{page}"))
+    )
+      errors.push(`${theme.id}: acceptance page command must contain a {page} placeholder`);
+    if (
+      !Array.isArray(theme.acceptance?.themeCommand) ||
+      theme.acceptance.themeCommand.length === 0
+    )
+      errors.push(`${theme.id}: acceptance theme command is missing`);
     const upstreamPath = resolve(root, theme.upstreamPath);
     if (!existsSync(upstreamPath))
       errors.push(`${theme.id}: missing required file ${theme.upstreamPath}`);
@@ -479,8 +493,6 @@ export async function validateSourceEquivalencePolicy(
             errors.push(`${label}/${state.id}: focused mode ${mode} is not applicable`);
         }
       }
-      if (!Array.isArray(page.pageCommand) || page.pageCommand.length === 0)
-        errors.push(`${label}: page acceptance command is missing`);
       if (!page.acceptanceAdapterPath || !existsSync(resolve(root, page.acceptanceAdapterPath)))
         errors.push(`${label}: acceptance adapter module is missing`);
       const contractPath = resolve(root, page.sourceContractPath);
@@ -624,6 +636,8 @@ export function validateFidelityEvidenceRecords(
   const namedStatePixelLimit =
     options.thresholds?.namedStateChangedPixelRatio ?? MAX_NAMED_STATE_CHANGED_PIXEL_RATIO;
   const identities = new Set<string>();
+  if (!/^[a-f0-9]{64}$/.test(options.artifactDigest))
+    errors.push("a SHA-256 artifact digest is required");
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) errors.push("a real commit SHA is required");
   if (records.length === 0) errors.push("no fidelity report records found");
   for (const [index, record] of records.entries()) {
@@ -632,6 +646,8 @@ export function validateFidelityEvidenceRecords(
       ? `${String(record.themeId ?? "unknown-theme")}/${String(record.state ?? "unknown-state")}`
       : `${String(record.route ?? "unknown-route")}/${String(record.region?.id ?? "unknown-region")}`;
     if (record.commit !== options.commit) errors.push(`${label}: evidence commit does not match`);
+    if (record.artifactDigest !== options.artifactDigest)
+      errors.push(`${label}: evidence artifact digest does not match the frozen RC`);
     const capturedAt = typeof record.capturedAt === "string" ? new Date(record.capturedAt) : null;
     if (!capturedAt || Number.isNaN(capturedAt.valueOf()))
       errors.push(`${label}: invalid capturedAt`);
@@ -822,6 +838,7 @@ async function main(): Promise<void> {
       commit: { type: "string" },
       evidence: { type: "string" },
       "max-age-hours": { type: "string" },
+      "rc-manifest": { type: "string" },
     },
     strict: true,
   });
@@ -843,11 +860,18 @@ async function main(): Promise<void> {
   await validateSourceEquivalencePolicy(policy);
   if (values.evidence) {
     if (!values.commit) throw new Error("--commit is required with --evidence");
+    if (!values["rc-manifest"]) throw new Error("--rc-manifest is required with --evidence");
+    const rcManifest = JSON.parse(await readFile(resolve(ROOT, values["rc-manifest"]), "utf8")) as {
+      artifact?: { digest?: unknown };
+    };
+    if (typeof rcManifest.artifact?.digest !== "string")
+      throw new Error("RC manifest artifact digest is missing");
     const paths = await reportFiles(resolve(ROOT, values.evidence));
     const records = await Promise.all(
       paths.map(async (path) => JSON.parse(await readFile(path, "utf8")) as EvidenceRecord),
     );
     validateFidelityEvidenceRecords(records, {
+      artifactDigest: rcManifest.artifact.digest,
       commit: values.commit,
       ...(values["max-age-hours"] ? { maxAgeHours: Number(values["max-age-hours"]) } : {}),
       behaviorDescriptors,

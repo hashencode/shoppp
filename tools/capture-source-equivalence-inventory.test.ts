@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { ThemeBehaviorContract } from "../apps/storefront/e2e/support/theme-behavior-contract";
 import {
   assertThemeSourceInventoryCovered,
+  compareThemeBehaviorCandidates,
   type ThemeSourceInventorySnapshot,
 } from "../apps/storefront/e2e/support/theme-source-inventory";
 import {
@@ -97,6 +98,29 @@ describe("source equivalence inventory", () => {
     expect(() => assertThemeVisibleCopyEquivalent(source, implementation)).toThrow(
       /source-only.*implementation-only.*changed/s,
     );
+  });
+
+  test("separates removed, added, and changed behavior candidates", () => {
+    const source = snapshot().candidates;
+    const changed = structuredClone(source[0]!);
+    changed.signals = ["actionable", "sticky"];
+    const added = {
+      ...structuredClone(source[0]!),
+      fingerprint: "footer:button:subscribe",
+      region: "footer",
+      text: "Subscribe",
+    };
+    expect(compareThemeBehaviorCandidates(source, [changed, added])).toEqual({
+      changed: [
+        {
+          fingerprint: source[0]!.fingerprint,
+          implementation: changed,
+          source: source[0]!,
+        },
+      ],
+      implementationOnly: [added],
+      sourceOnly: [source[1]!],
+    });
   });
 
   test("rejects evidence with the wrong source or implementation identity", () => {

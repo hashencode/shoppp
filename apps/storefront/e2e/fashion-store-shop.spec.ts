@@ -193,6 +193,14 @@ test("Shop filters combine source controls without implementation-only result co
   await prepareImplementation(page, "/shop");
   const shop = page.locator("[data-fashion-store-shop]");
   const jeans = shop.locator(".category-filter button", { hasText: "Jeans" });
+  const cotton = shop.locator(".tag-cloud a", { hasText: "Cotton" });
+  await cotton.click();
+  await expect(shop).toHaveAttribute("data-active-tag", "Cotton");
+  await expect(shop).toHaveAttribute("data-visible-product-count", "3");
+  await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(3);
+  await cotton.click();
+  await expect(shop).not.toHaveAttribute("data-active-tag", "Cotton");
+  await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(12);
   await jeans.click();
   await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(2);
   await jeans.press("Enter");
@@ -233,11 +241,20 @@ test("Shop arrivals advance, pause, respond to keys, and remount cleanly", async
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepareImplementation(page, "/shop");
   const carousel = page.locator(".slider-one-slide");
+  const arrivalTrack = carousel.locator(".swiper-wrapper");
+  await expect(arrivalTrack).toHaveCSS("transition-duration", "0.3s");
+  const initialTransform = await arrivalTrack.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
   const before = Number(await carousel.getAttribute("data-arrival-index"));
   await expect
     .poll(() => carousel.getAttribute("data-arrival-index"), { timeout: 6_500 })
     .not.toBe(String(before));
   const after = Number(await carousel.getAttribute("data-arrival-index"));
+  await page.waitForTimeout(350);
+  expect(await arrivalTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
+    initialTransform,
+  );
 
   await carousel.focus();
   await page.keyboard.press("ArrowRight");

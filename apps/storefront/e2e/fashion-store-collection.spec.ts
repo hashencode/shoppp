@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { fashionStorePreviewRoutes } from "../app/themes/fashion-store/page-contracts";
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 
 const sourceOrigin = `http://127.0.0.1:${Number(
@@ -132,6 +133,41 @@ test("collection-card-focus interaction: cards expose pointer and keyboard state
       mode: "interaction",
     },
   );
+});
+
+test("Shared header controls keep source styling on every consumer route", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "fashion-store-desktop",
+    "The shared shell matrix runs once.",
+  );
+  for (const route of fashionStorePreviewRoutes) {
+    await page.goto(route, { waitUntil: "networkidle" });
+    const cartTrigger = page.getByRole("button", { name: "Open preview cart" });
+    await expect(cartTrigger, `${route} cart trigger`).toHaveCSS("appearance", "none");
+    await expect(cartTrigger, `${route} cart trigger`).toHaveCSS(
+      "background-color",
+      "rgba(0, 0, 0, 0)",
+    );
+    await expect(cartTrigger, `${route} cart trigger`).toHaveCSS("border-top-width", "0px");
+
+    const closeControls = page.locator(".cart-item-list .close");
+    await expect(closeControls).toHaveCount(2);
+    expect(
+      await closeControls.evaluateAll((controls) =>
+        controls.every((control) => {
+          const style = getComputedStyle(control);
+          return (
+            style.appearance === "none" &&
+            style.backgroundColor === "rgba(0, 0, 0, 0)" &&
+            style.borderTopWidth === "0px"
+          );
+        }),
+      ),
+      `${route} mini-cart close controls`,
+    ).toBe(true);
+  }
 });
 
 test("Collection reduced-motion, fallback content, teardown, and remount stay deterministic", async ({
