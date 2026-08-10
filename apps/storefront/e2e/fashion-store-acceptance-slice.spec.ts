@@ -59,7 +59,10 @@ async function prepareImplementation(page: Page, allowStatic = false): Promise<v
     const status = document
       .querySelector("[data-fashion-store-source-parity]")
       ?.getAttribute("data-runtime-status");
-    return status === "ready" || (staticAllowed && status === "static");
+    return (
+      status === "ready" ||
+      (staticAllowed && (status === "loading" || status === "static"))
+    );
   }, allowStatic);
   await page
     .getByRole("button", { name: "Allow cookies" })
