@@ -1039,6 +1039,10 @@
   font: inherit;
 }
 
+[data-fashion-store-cart] .fashion-cart-loading-row {
+  visibility: hidden;
+}
+
 [data-fashion-store-cart] .fashion-cart-body .row.mt-20px button.btn-small {
   appearance: none;
   font-family: "Outfit", sans-serif;
