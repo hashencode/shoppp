@@ -20,8 +20,49 @@ const routePattern = /href="demo-decor-store(?:-[^"]+)?\.html"/g;
 const assetPattern = /(src|data-at2x|data-lazyload)="(images\/[^"]+)"/g;
 const backgroundAssetPattern = /url\(['"]?(images\/[^)'"]+)['"]?\)/g;
 
+function accessibleImageLinkLabel(sourcePath: string): string {
+  if (/logo/i.test(sourcePath)) return "Decor Store home";
+  if (/payment-icon/i.test(sourcePath)) return "Payment method";
+  if (/client-/i.test(sourcePath)) return "Client brand";
+  if (/blog-/i.test(sourcePath)) return "Read journal article";
+  if (/product-slider/i.test(sourcePath)) return "View collection product";
+  if (/product-/i.test(sourcePath)) return "View product";
+  if (/icon-/i.test(sourcePath)) return "View category";
+  return "Open linked image";
+}
+
+function addAccessibleLinkNames(markup: string): string {
+  return markup.replaceAll(
+    /<a\b([^>]*)>([\s\S]*?)<\/a>/g,
+    (anchor, attributes: string, content: string) => {
+      if (/\baria-label=/.test(attributes)) return anchor;
+      const visibleText = content
+        .replaceAll(/<[^>]+>/g, "")
+        .replaceAll(/&(?:[a-z]+|#\d+);/gi, "")
+        .trim();
+      if (visibleText) return anchor;
+      const sourcePath = content.match(/\bsrc="(images\/[^"]+)"/)?.[1];
+      const className = attributes.match(/\bclass="([^"]+)"/)?.[1] || "";
+      const label = sourcePath
+        ? accessibleImageLinkLabel(sourcePath)
+        : /facebook/i.test(className)
+          ? "Facebook"
+          : /dribbble/i.test(className)
+            ? "Dribbble"
+            : /twitter/i.test(className)
+              ? "Twitter"
+              : /instagram/i.test(className)
+                ? "Instagram"
+                : /\bbi-info\b/.test(content)
+                  ? "Product information"
+                  : "Open link";
+      return `<a${attributes} aria-label="${label}">${content}</a>`;
+    },
+  );
+}
+
 export function prepareDecorStoreMarkup(markup: string, resolveAsset: ThemeAssetResolver): string {
-  return markup
+  return addAccessibleLinkNames(markup)
     .replaceAll(assetPattern, (_match, attribute: string, sourcePath: string) => {
       return `${attribute}="${resolveAsset(decorStoreAssetId(sourcePath))}"`;
     })
@@ -56,6 +97,18 @@ export function prepareDecorStoreMarkup(markup: string, resolveAsset: ThemeAsset
       '<a data-bs-toggle="tab" href="#tab_five1" id="decor-products-tab-best" class="nav-link active" role="tab" aria-controls="tab_five1" aria-selected="true">',
     )
     .replace(
+      '<ul class="nav nav-tabs border-0 justify-content-center text-uppercase fw-600 mb-50px sm-mb-20px alt-font fs-32 ls-minus-05px text-transform-none">',
+      '<ul class="nav nav-tabs border-0 justify-content-center text-uppercase fw-600 mb-50px sm-mb-20px alt-font fs-32 ls-minus-05px text-transform-none" role="tablist" aria-label="Product collections">',
+    )
+    .replace(
+      '<li class="nav-item"><a data-bs-toggle="tab"',
+      '<li class="nav-item" role="presentation"><a data-bs-toggle="tab"',
+    )
+    .replace(
+      '<li class="nav-item"><a class="nav-link" data-bs-toggle="tab"',
+      '<li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab"',
+    )
+    .replace(
       '<a class="nav-link" data-bs-toggle="tab" href="#tab_five2">',
       '<a class="nav-link" data-bs-toggle="tab" href="#tab_five2" id="decor-products-tab-new" role="tab" aria-controls="tab_five2" aria-selected="false" tabindex="-1">',
     )
@@ -82,5 +135,7 @@ export function prepareDecorStoreMarkup(markup: string, resolveAsset: ThemeAsset
     .replace(
       '<a href="javascript:void(0);"><i class="feather icon-feather-shopping-bag"></i>',
       '<a href="#" role="button" aria-label="Open cart" aria-expanded="false"><i class="feather icon-feather-shopping-bag"></i>',
-    );
+    )
+    .replaceAll('href="#"', 'href="/" data-decor-route-intent="navigation"')
+    .replaceAll(/href="javascript:void\(0\);?"/g, 'href="/" data-decor-local-control=""');
 }

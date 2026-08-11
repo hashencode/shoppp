@@ -168,6 +168,10 @@ function handleClick(event: MouseEvent): void {
     event.preventDefault();
     return;
   }
+  if (target.closest("[data-decor-local-control]")) {
+    event.preventDefault();
+    return;
+  }
   const route = target.closest<HTMLAnchorElement>("[data-decor-route-intent]");
   if (route) {
     event.preventDefault();

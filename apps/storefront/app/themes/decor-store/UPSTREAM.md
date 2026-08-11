@@ -11,6 +11,19 @@
 
 The exact declared jQuery and Revolution chain is eligible for the Decor Hero only; `js/main.js` remains a behavioral reference and is prohibited from application execution. The inactive particles add-on, PHP handlers, analytics, tracking, and remote resources are excluded.
 
+The preserved executable chain is:
+
+1. `js/jquery.js`
+2. `revolution/js/jquery.themepunch.tools.min.js`
+3. `revolution/js/jquery.themepunch.revolution.min.js`
+4. `revolution/js/extensions/revolution.extension.actions.min.js`
+5. `revolution/js/extensions/revolution.extension.layeranimation.min.js`
+6. `revolution/js/extensions/revolution.extension.navigation.min.js`
+7. `revolution/js/extensions/revolution.extension.slideanims.min.js`
+8. the source `#decor-store-slider` initializer, transcribed as `decorStoreRevolutionOptions`
+
+The initializer remains `standard`/`fullscreen`, with a `9000ms` delay, `stopLoop: on`, `stopAfterLoops: 0`, `stopAtSlide: 1`, keyboard and horizontal touch navigation, smart lazy loading, responsive levels `[1240, 1024, 778, 480]`, grid widths `[1220, 1024, 778, 480]`, grid heights `[900, 1000, 960, 720]`, visibility levels `[1240, 1024, 1024, 480]`, and the source simplify/focus fallbacks. The source particles add-on is omitted because the Hero markup and initializer do not activate it. `revkill()` plus theme-owned listener, observer, timer, and generated-state cleanup is the route-exit boundary.
+
 ## Preserved source order
 
 Styles load as Revolution settings, layers, and navigation, followed by vendors, icons, shared style, responsive style, and Decor Store style. The audited Hero chain loads jQuery, vendors, Revolution tools/core, actions, layer-animation, navigation, and slide-animation before the source inline initializer. The initializer retains the source delay, stop behavior, responsive levels, grid geometry, keyboard/touch behavior, fallback, and destroy/remount obligations.
@@ -20,6 +33,30 @@ Google Fonts imports and preconnects are production-prohibited. Plus Jakarta San
 Evidence uses static, temporal, interaction, scroll/fixed, and fallback modes at 1440x1000, 1024x900, 768x1024, and 390x844. Required checkpoints are header + Hero + one card, first timed body behavior, complete desktop, and mobile/fallback completion.
 
 - `js/main.js:1-3721` — adapter-reference-only: Behavioral specification for navigation, overlays, Swiper tracks, sticky controls, scroll progress, cookie dismissal, animation readiness, and teardown; prohibited from application execution.
+
+## Theme-local adaptations
+
+- The source DOM, class names, section order, Revolution markup, and source stylesheet order remain Decor-owned. Nuxt supplies only the route shell, selected-theme registry, and typed storefront intent boundary.
+- Google Fonts and preconnects are replaced by the inspected local Plus Jakarta Sans WOFF2. All source images and icon fonts are served from the hash-pinned Decor namespace.
+- Source `#` and `javascript:void(0)` action placeholders are represented as truthful local controls or the existing `/` route. Icon/image-only controls receive nonvisual accessible names, product tabs expose native tab semantics, and no unsupported action sends a request or invents success state.
+- Newsletter submission, locale persistence, cookie persistence, PHP handlers, analytics, tracking, `js/main.js`, and the inactive particles add-on remain intentionally absent.
+- Reduced motion, no JavaScript, dependency-load failure, initializer failure, and body-capability failure retain readable static content without blanking sibling regions.
+
+## Acceptance evidence and measurements
+
+The durable contract and command ledger is the Decor Store handoff section in `docs/progress/fashion-decor-source-equivalent-progress.md`. Generated browser evidence is written under `apps/storefront/test-results/decor-store/`; the four viewport source-equivalence cases contain independent `reference.png`, `implementation.png`, `diff.png`, and report attachments. The reference page and implementation run on independent origins.
+
+Final four-viewport changed-pixel ratios at tolerance 16 are `0.0036479167` (1440x1000), `0.0011914063` (1024x900), `0.0000127157` (768x1024), and `0.0004496294` (390x844), all below the `0.01` source-equivalence budget. Manual side-by-side review found no unresolved P0/P1 discrepancy and uses zero visual waivers.
+
+The motion-enabled cold profile records 104 requests, 618,468 raw bytes of initial application JavaScript, 382,482 raw bytes of Decor vendor JavaScript, 1,360,713 raw bytes of CSS, 304,540 raw bytes of fonts, and 2,180,523 raw bytes of images. Hero ready was approximately 3.60s on cold navigation and 3.51s after reload; both samples recorded zero long tasks. After the source layers settled, a hidden 750ms window produced no DOM mutation. The first and second 750ms post-unmount windows in the final acceptance sample contained 55 and 43 raw callbacks respectively, both within the explicit ceiling of 64 callbacks per window, plus zero Decor-owned `requestAnimationFrame` handles, zero Decor-owned interval handles, and zero DOM mutations. Timeout residue decreased from two to one: the first window contained one Nuxt timeout and one Revolution/GSAP tools timeout; the second contained only the Nuxt timeout. This is bounded, non-accumulating document-lifetime residue, not a claim of zero callbacks; exact raw counts remain attached for every run because document scheduling can vary.
+
+The selected Decor preview emits 77,653 gzip bytes of initial JavaScript against the existing 204,800-byte budget and passes selected-theme isolation. Two consecutive reduced-motion Lighthouse commands passed without lowering thresholds. Their final performance samples were `0.96` with LCP `2577.33ms`/TBT `111.5ms`, and `0.96` with LCP `2606.52ms`/TBT `78ms`; accessibility was `0.92`, best practices `0.96`, and SEO `0.69`. The cold first attempt in each command was also retained: performance `0.52`, LCP `16228.06ms`/TBT `84ms`, then performance `0.52`, LCP `16334.74ms`/TBT `91.5ms`; the existing retry gate subsequently passed. The dedicated Axe gate reports zero critical or serious violations.
+
+## Waivers, bounded residue, and deferred candidates
+
+- Approved waivers: zero. The bounded raw callback residue above is recorded explicitly and does not grow after remount.
+- There is no dormant framework Hero, partial Revolution/framework hybrid, or shared theme runtime/kernel in the Decor delivery.
+- Post-acceptance candidates only: compare duplicated lifecycle loading/disposal seams, behavior-ledger adapters, selected-theme registration declarations, and source-equivalence capture utilities across accepted themes. They remain candidates for a separate decision; this delivery intentionally performs no shared extraction or Fashion runtime migration.
 
 ## Upstream optional references
 

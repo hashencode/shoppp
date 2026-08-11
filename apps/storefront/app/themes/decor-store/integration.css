@@ -21,6 +21,14 @@
   display: contents;
 }
 
+[data-decor-store-source-parity] .header-search-form {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 24px;
+  min-width: 24px;
+}
+
 [data-decor-store-source-parity] .header-language.is-open .language-dropdown,
 [data-decor-store-source-parity] .header-cart.is-open .cart-item-list,
 [data-decor-store-source-parity] header .dropdown.is-open > .dropdown-menu {

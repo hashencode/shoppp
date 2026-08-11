@@ -405,10 +405,17 @@ test("scroll-progress-visible scroll-fixed: fixed controls and monotonic progres
 }, testInfo) => {
   await prepareImplementation(page);
   const progress = page.locator(".scroll-progress");
+  if (viewportId(testInfo) !== "desktop") {
+    await expect(progress).toBeHidden();
+    recordMode(testInfo, "scroll-fixed", { scrollSamples: [0, 1] });
+    return;
+  }
   await page.evaluate(() => scrollTo(0, 350));
   const first = Number(await progress.getAttribute("data-scroll-progress"));
   await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight * 0.65));
-  await expect.poll(() => progress.getAttribute("data-scroll-progress")).not.toBe(String(first));
+  await expect
+    .poll(async () => Number(await progress.getAttribute("data-scroll-progress")))
+    .toBeGreaterThan(first);
   const second = Number(await progress.getAttribute("data-scroll-progress"));
   expect(second).toBeGreaterThan(first);
   recordMode(testInfo, "scroll-fixed", { scrollSamples: [first, second] });

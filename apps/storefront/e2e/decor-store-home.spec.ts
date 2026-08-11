@@ -141,6 +141,15 @@ test("fast unmount leaves no Decor DOM or acceptance globals", async ({ page }) 
     await route.continue();
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const appRoot = document.querySelector("#__nuxt") as
+      (HTMLElement & { __vue_app__?: unknown }) | null;
+    return Boolean(appRoot?.__vue_app__);
+  });
+  await expect(page.locator("[data-decor-store-source-parity]")).toHaveAttribute(
+    "data-decor-body-ready",
+    "true",
+  );
   await page.evaluate(() => {
     const appRoot = document.querySelector("#__nuxt") as
       (HTMLElement & { __vue_app__?: { unmount(): void } }) | null;

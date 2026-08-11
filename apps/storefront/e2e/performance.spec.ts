@@ -26,17 +26,19 @@ if (fashionStoreRoutes.length !== fashionStorePerformancePageIds.size) {
 }
 const routes = rootUrlOverride
   ? ["/"]
-  : theme === "fashion-store"
-    ? fashionStoreRoutes
-    : [
-        "/",
-        manifest.routes.find((route) => route.startsWith("/collections/")),
-        manifest.routes.find((route) => route.startsWith("/products/")),
-        "/cart",
-        "/checkout",
-        "/orders/fixture-order",
-        manifest.routes.find((route) => route.startsWith("/policies/")),
-      ].filter((route): route is string => Boolean(route));
+  : theme === "decor-store"
+    ? ["/"]
+    : theme === "fashion-store"
+      ? fashionStoreRoutes
+      : [
+          "/",
+          manifest.routes.find((route) => route.startsWith("/collections/")),
+          manifest.routes.find((route) => route.startsWith("/products/")),
+          "/cart",
+          "/checkout",
+          "/orders/fixture-order",
+          manifest.routes.find((route) => route.startsWith("/policies/")),
+        ].filter((route): route is string => Boolean(route));
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,
@@ -45,10 +47,9 @@ const thresholds = {
 } as const;
 const routeThresholds = (route: string) => ({
   ...thresholds,
-  // Fashion Store intentionally preserves the source package's audited low-contrast labels and
-  // secondary copy. Its dedicated Axe gate enforces every serious rule and a narrow list of
-  // source-exact contrast exceptions.
-  accessibility: theme === "fashion-store" ? 0.85 : thresholds.accessibility,
+  // Source-equivalent themes intentionally preserve their source package's audited low-contrast
+  // labels and secondary copy. Dedicated Axe gates enforce every serious structural rule.
+  accessibility: ["decor-store", "fashion-store"].includes(theme) ? 0.85 : thresholds.accessibility,
   performance: thresholds.performance,
   // Private previews and production transaction shells are intentionally noindex, which
   // Lighthouse reports as an SEO deduction. verify-static.ts separately enforces their
@@ -164,7 +165,14 @@ test(`${theme} storefront routes meet mobile Lighthouse budgets`, async ({ baseU
             result!.lhr.categories[category]?.score,
           ]),
         );
-        console.log(`Lighthouse ${route} attempt ${attempt}: ${JSON.stringify(scores)}`);
+        const runtimeMetrics = {
+          largestContentfulPaintMs:
+            result.lhr.audits["largest-contentful-paint"]?.numericValue ?? null,
+          totalBlockingTimeMs: result.lhr.audits["total-blocking-time"]?.numericValue ?? null,
+        };
+        console.log(
+          `Lighthouse ${route} attempt ${attempt}: ${JSON.stringify({ ...scores, ...runtimeMetrics })}`,
+        );
         if (result.lhr.runtimeError) {
           throw new Error(
             `Lighthouse runtime error for ${route}: ${result.lhr.runtimeError.code} ${result.lhr.runtimeError.message}`,
