@@ -608,6 +608,73 @@
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"
+    },
+    {
+      "id": "decor-store",
+      "acceptance": {
+        "browserConfig": "apps/storefront/playwright.decor-store.config.ts",
+        "browserProject": "decor-store-desktop",
+        "pageCommand": [
+          "bun",
+          "tools/run-decor-store-acceptance.ts",
+          "--scope=page",
+          "--page={page}"
+        ],
+        "themeCommand": ["bun", "tools/run-decor-store-acceptance.ts", "--scope=theme"]
+      },
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "equivalenceScope": ["home"],
+      "manifestExport": "decorStoreManifest",
+      "manifestPath": "apps/storefront/app/themes/decor-store/manifest.ts",
+      "pages": [
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "decorStoreBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "source-inventory",
+              "modes": ["static"]
+            },
+            {
+              "id": "hero-slide-2",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "header-search-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress-visible",
+              "modes": ["scroll-fixed"]
+            },
+            {
+              "id": "fallback-static",
+              "modes": ["fallback"]
+            }
+          ],
+          "id": "home",
+          "implementationRoute": "/",
+          "implementationRuntimeReadySelector": "[data-decor-store-source-parity][data-runtime-status='ready']",
+          "pageType": "home",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "homeSectionCount",
+            "regionOrder",
+            "scriptOrder",
+            "stylesheetOrder"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store.html",
+          "sourceEntrySha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+          "sourceFirstHero": "images/demo-decor-store-slider-01-img-01.png",
+          "sourceRegionsExport": "decorStoreSourceRegions",
+          "sourceRuntimeReadySelector": "#decor-store-slider.revslider-initialised"
+        }
+      ],
+      "upstreamPath": "apps/storefront/app/themes/decor-store/UPSTREAM.md"
     }
   ],
   "waivers": []

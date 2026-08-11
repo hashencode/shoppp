@@ -11,6 +11,7 @@ async function prepare(page: Page): Promise<Locator> {
 test("reduced motion is stable when requested before the first navigation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   const root = await prepare(page);
+  await expect(root).toHaveAttribute("data-storefront-hydration", "eager");
   await expect(root).toHaveAttribute("data-runtime-status", "ready");
   await expect(page.locator("#decor-store-slider")).toHaveAttribute(
     "data-decor-hero-reduced-motion",

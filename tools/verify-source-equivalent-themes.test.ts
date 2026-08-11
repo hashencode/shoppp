@@ -44,7 +44,7 @@ describe("source-equivalent theme policy", () => {
   test("accepts the repository policy and its explicit intentional-difference waivers", async () => {
     const policy = await loadSourceEquivalencePolicy(root);
     await expect(validateSourceEquivalencePolicy(policy, root)).resolves.toBeUndefined();
-    expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
+    expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store", "decor-store"]);
     expect(policy.sourceIntakes).toMatchObject([
       {
         acceptanceModes: ["static", "temporal", "interaction", "scroll-fixed", "fallback"],
@@ -162,6 +162,18 @@ describe("source-equivalent theme policy", () => {
           implementationRoute: "/contact",
           pageType: "content",
           sourceEntry: "demo-fashion-store-contact.html",
+        },
+      ],
+    });
+    expect(policy.themes[1]).toMatchObject({
+      equivalenceScope: ["home"],
+      id: "decor-store",
+      pages: [
+        {
+          id: "home",
+          implementationRoute: "/",
+          pageType: "home",
+          sourceEntry: "demo-decor-store.html",
         },
       ],
     });

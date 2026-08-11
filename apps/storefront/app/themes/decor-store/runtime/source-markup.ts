@@ -1,98 +1,20 @@
-import decorStoreSource from "../upstream/demo-decor-store.html?raw";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import { decorStoreAssetId } from "../resources";
+import {
+  decorStoreBodySourceMarkup,
+  decorStoreHeaderSourceMarkup,
+  decorStoreHeroSourceMarkup,
+  decorStoreProductCardSourceMarkup,
+  decorStoreTailSourceMarkup,
+} from "./source-fragments.generated";
 
-function between(start: string, end: string, from = 0): string {
-  const startIndex = decorStoreSource.indexOf(start, from);
-  if (startIndex < 0) throw new Error(`Decor source marker is missing: ${start}`);
-  const endIndex = decorStoreSource.indexOf(end, startIndex);
-  if (endIndex < 0) throw new Error(`Decor source marker is missing: ${end}`);
-  return decorStoreSource.slice(startIndex, endIndex + end.length);
-}
-
-export const decorStoreHeaderSourceMarkup = between(
-  '<header class="header-with-topbar">',
-  "</header>",
-);
-
-export const decorStoreHeroSourceMarkup = between('<section class="p-0">', "</section>").replaceAll(
-  /\sdata-thumb="https?:\/\/[^"]*"/g,
-  "",
-);
-
-const sourceSectionPattern =
-  /<!-- start section -->\s*(<section[\s\S]*?<\/section>)\s*<!-- end section -->/g;
-const sourceSections = [...decorStoreSource.matchAll(sourceSectionPattern)].map(
-  (match) => match[1],
-);
-const bodyRegionKeys = [
-  "featured-categories",
-  "products",
-  "promotional-marquee",
-  "collection-carousel",
-  "client-marquee",
-  "journal",
-  "services",
-] as const;
-
-if (sourceSections.length !== bodyRegionKeys.length + 1) {
-  throw new Error(`Expected eight Decor source sections, received ${sourceSections.length}.`);
-}
-
-export const decorStoreBodySourceMarkup = bodyRegionKeys
-  .map((key, index) => {
-    const section = sourceSections[index + 1];
-    if (!section) throw new Error(`The ${key} Decor source section is missing.`);
-    return section
-      .replace("<section", `<section data-decor-region="${key}"`)
-      .replaceAll(/\sdata-anime='[^']*'/g, "")
-      .replaceAll("grid-loading ", "");
-  })
-  .join("\n");
-
-const footerStart = decorStoreSource.indexOf("<!-- start footer -->");
-const scrollProgressEnd = decorStoreSource.indexOf("<!-- end scroll progress -->", footerStart);
-if (footerStart < 0 || scrollProgressEnd < 0) {
-  throw new Error("The Decor source footer and fixed-control tail is missing.");
-}
-export const decorStoreTailSourceMarkup = decorStoreSource
-  .slice(footerStart, scrollProgressEnd + "<!-- end scroll progress -->".length)
-  .replace(
-    'action="email-templates/subscribe-newsletter.php" method="post"',
-    'action="" data-decor-newsletter-form="" aria-label="Newsletter presentation"',
-  )
-  .replace(
-    '<button class="btn pe-20px submit" aria-label="submit">',
-    '<button type="button" class="btn pe-20px submit" aria-label="Newsletter unavailable in preview" aria-disabled="true">',
-  )
-  .replace(
-    'class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px" aria-label="btn"',
-    'class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px" data-cookie-choice="reject" aria-label="Reject cookies"',
-  )
-  .replace(
-    'class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100" data-accept-btn aria-label="text"',
-    'class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100" data-accept-btn data-cookie-choice="accept" aria-label="Allow cookies"',
-  )
-  .replace(
-    'class="scroll-top" aria-label="scroll"',
-    'class="scroll-top" role="button" aria-label="Back to top"',
-  )
-  .replaceAll('href="#"', 'href="/" data-decor-route-intent="navigation"');
-
-const productGridIndex = decorStoreSource.indexOf(">Best sellers<");
-const tableClockIndex = decorStoreSource.indexOf(
-  'src="images/demo-decor-store-product-01.jpg"',
-  productGridIndex,
-);
-const tableClockStart = decorStoreSource.lastIndexOf('<li class="grid-item">', tableClockIndex);
-const tableClockEnd = decorStoreSource.indexOf("</li>", tableClockIndex);
-if (tableClockIndex < 0 || tableClockStart < 0 || tableClockEnd < 0) {
-  throw new Error("The representative Table clock card is missing from the Decor source.");
-}
-export const decorStoreProductCardSourceMarkup = decorStoreSource.slice(
-  tableClockStart,
-  tableClockEnd + "</li>".length,
-);
+export {
+  decorStoreBodySourceMarkup,
+  decorStoreHeaderSourceMarkup,
+  decorStoreHeroSourceMarkup,
+  decorStoreProductCardSourceMarkup,
+  decorStoreTailSourceMarkup,
+};
 
 const routePattern = /href="demo-decor-store(?:-[^"]+)?\.html"/g;
 const assetPattern = /(src|data-at2x|data-lazyload)="(images\/[^"]+)"/g;

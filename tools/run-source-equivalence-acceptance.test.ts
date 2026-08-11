@@ -123,6 +123,7 @@ describe("source-equivalence acceptance orchestration", () => {
         "fashion-store-content.spec.ts",
         "fashion-store-magazine.spec.ts",
         "fashion-store-information-pages.spec.ts",
+        "decor-store-source-equivalence.spec.ts",
         "theme-behavior-contract.spec.ts",
       ].map((file) => readFile(resolve(import.meta.dir, "../apps/storefront/e2e", file), "utf8")),
     );
@@ -148,6 +149,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "rc-identity",
       "contracts",
       "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
+      "decor-store/pages[home]",
       "fidelity-evidence",
     ]);
     expect(

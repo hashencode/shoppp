@@ -47,7 +47,7 @@ describe("static generation manifest", () => {
   test("prerenders the platform checkout completion shell alongside theme preview routes", async () => {
     const nuxtConfig = await readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8");
     expect(nuxtConfig).toContain('const previewPlatformRoutes = ["/checkout/complete"]');
-    expect(nuxtConfig).toContain("[...fashionStorePreviewRoutes, ...previewPlatformRoutes]");
+    expect(nuxtConfig).toContain("[...selectedPreviewRoutes, ...previewPlatformRoutes]");
   });
 
   test("contains every published route exactly once in isolated modules", async () => {
