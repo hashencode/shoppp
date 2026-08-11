@@ -117,17 +117,27 @@ describe("production promotion workflow", () => {
     expect(workflow).not.toContain("shoppp-development");
   });
 
-  test("requires independent human password-login evidence after machine proof", async () => {
+  test("requires independent human password-login evidence only for production promotion", async () => {
     const workflow = await readFile(workflowPath, "utf8");
     const machineProof = workflow.indexOf("Prove service-principal admin access");
     const humanApproval = workflow.indexOf("Record real-human password-login proof");
     const productionApproval = workflow.indexOf("Record explicit production approval");
+    const humanApprovalJob = workflow.slice(
+      workflow.indexOf("  approve-human-access:"),
+      workflow.indexOf("  approve-production:"),
+    );
+    const humanEvidenceInput = workflow.slice(
+      workflow.indexOf("      human_access_evidence_id:"),
+      workflow.indexOf("\n\nconcurrency:"),
+    );
 
     expect(machineProof).toBeGreaterThan(0);
     expect(humanApproval).toBeGreaterThan(machineProof);
     expect(productionApproval).toBeGreaterThan(humanApproval);
     expect(workflow).toContain("environment: staging-human-access");
     expect(workflow).toContain("human_access_evidence_id:");
+    expect(humanEvidenceInput).toContain("required: false");
+    expect(humanApprovalJob).toContain("if: ${{ inputs.promote_production }}");
     expect(workflow).toContain('evidence_source="environment-review"');
     expect(workflow).toContain('evidence_source="workflow-dispatch-actor"');
     expect(workflow).toContain("WORKFLOW_ACTOR: ${{ github.actor }}");

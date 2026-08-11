@@ -86,9 +86,11 @@ Dispatch `Deploy immutable commerce release` with the approved immutable catalog
 strict staging build fetches that exact manifest from the staging API; absence, an ID mismatch, a
 cross-origin source, or a short/missing token stops the release before any upload.
 
-Allocate an external evidence ID for the human password-login proof and pass it as
-`human_access_evidence_id`. The record may be created before dispatch, but it is not complete until
-the reviewer appends the results described in `admin-access.md`. The workflow:
+For a staging-only proof, leave `promote_production` false and omit
+`human_access_evidence_id`. For production promotion, allocate an external evidence ID for the
+human password-login proof and pass it as `human_access_evidence_id`. The record may be created
+before dispatch, but it is not complete until the reviewer appends the results described in
+`admin-access.md`. The workflow:
 
 1. fetches the approved catalog manifest, builds and hashes one clean candidate including each
    prebundled Worker;
@@ -101,10 +103,11 @@ the reviewer appends the results described in `admin-access.md`. The workflow:
    storefront, password-authenticated admin/API, Stripe test mode, queues, and representative catalog;
 5. reports the catalog release as `deployed` through the authenticated, idempotent build callback
    only after the staging journeys, latency gate, and saved rollback-artifact availability check;
-6. enters the `staging-human-access` environment. A real named test account must complete password
-   login without exporting credentials, cookies, or browser storage. The job records an environment
-   reviewer when GitHub supplies one; otherwise it records the named workflow-dispatch actor. The
-   evidence source and external evidence ID are preserved in a separate artifact;
+6. when production promotion is explicitly requested, enters the `staging-human-access`
+   environment. A real named test account must complete password login without exporting
+   credentials, cookies, or browser storage. The job records an environment reviewer when GitHub
+   supplies one; otherwise it records the named workflow-dispatch actor. The evidence source and
+   external evidence ID are preserved in a separate artifact;
 7. reports candidate validation, staging deployment, or staging proof failure as `failed`, which
    preserves the previous live storefront and raises the catalog health signal;
 8. ends after test proof by default; production cannot run unless a named human dispatches the

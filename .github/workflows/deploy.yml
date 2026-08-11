@@ -22,7 +22,7 @@ on:
         type: string
       human_access_evidence_id:
         description: External evidence ID for the real-human password-login proof
-        required: true
+        required: false
         type: string
 
 concurrency:
@@ -365,6 +365,7 @@ jobs:
 
   approve-human-access:
     needs: prove-staging
+    if: ${{ inputs.promote_production }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging-human-access
