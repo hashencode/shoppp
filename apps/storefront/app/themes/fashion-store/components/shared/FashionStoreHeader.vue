@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
+import { fashionStoreLiveCapabilities } from "../../capability-matrix";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreMiniCart from "./FashionStoreMiniCart.vue";
@@ -24,6 +26,10 @@ const miniCart = ref<MiniCartHandle>();
 const searchOpen = ref(false);
 const searchOverlay = ref<SearchOverlayHandle>();
 const highDensity = ref(false);
+const liveMode = inject(liveCommerceModeKey, false);
+const accountVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.account);
+const searchVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.catalogSearch);
+const wishlistVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.wishlist);
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -488,10 +494,10 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                     <a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About</a>
                   </li>
                   <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>Faq</a></li>
-                  <li>
+                  <li v-if="wishlistVisible">
                     <a :href="fashionStoreRoutePaths.wishlist" data-fashion-store-route>Wishlist</a>
                   </li>
-                  <li>
+                  <li v-if="accountVisible">
                     <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>Account</a>
                   </li>
                   <li><a :href="fashionStoreRoutePaths.cart" data-fashion-store-route>Cart</a></li>
@@ -510,8 +516,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
         </div>
         <div class="col-auto col-xxl-3 col-lg-2 text-end">
           <div class="header-icon">
-            <FashionStoreSearchOverlay ref="searchOverlay" v-model="searchOpen" />
-            <div class="widget-text icon alt-font">
+            <FashionStoreSearchOverlay
+              v-if="searchVisible"
+              ref="searchOverlay"
+              v-model="searchOpen"
+            />
+            <div v-if="accountVisible" class="widget-text icon alt-font">
               <a
                 :href="fashionStoreRoutePaths.account"
                 data-fashion-store-route

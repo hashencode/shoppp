@@ -505,6 +505,61 @@ describe("theme-neutral storefront composer", () => {
     }
   });
 
+  test("composes truthful content states from Experience settings without catalog or fixture bindings", () => {
+    const contentExperience = {
+      ...liveSnapshot,
+      bindings: [],
+      resolvedTemplates: [
+        {
+          id: "content-template",
+          pageType: "content",
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "content",
+              settings: {
+                "magazine.heading": "Journal",
+                "magazine.message": "Stories selected by the merchant.",
+              },
+              type: "fashion.content",
+              visible: true,
+            },
+          ],
+        },
+      ],
+    } satisfies ExperienceSnapshot;
+
+    const unavailable = composeExperienceRoute({
+      experience: contentExperience,
+      locale: "en-US",
+      path: "/account",
+      release: canonicalRelease,
+    });
+    expect(unavailable.ok).toBe(true);
+    expect(unavailable.viewModels.content).toMatchObject({
+      action: { label: "Continue shopping", target: "/shop" },
+      heading: "Account unavailable",
+      kind: "state",
+      state: "unavailable",
+    });
+
+    const configured = composeExperienceRoute({
+      experience: contentExperience,
+      locale: "en-US",
+      path: "/magazine",
+      release: canonicalRelease,
+    });
+    expect(configured.ok).toBe(true);
+    expect(configured.viewModels.content).toMatchObject({
+      heading: "Journal",
+      kind: "state",
+      message: "Stories selected by the merchant.",
+      state: "populated",
+    });
+  });
+
   test("returns actionable diagnostics for missing, wrong-type, unpublished, and empty bindings", () => {
     const cases = [
       {

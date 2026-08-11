@@ -50,7 +50,7 @@ const heading = computed(() =>
             <FashionStoreProductCard
               v-for="product in viewModel.products"
               :key="product.id"
-              :commerce-enabled="false"
+              commerce-disabled
               :product="product"
               :resolve-asset="resolveAsset"
             />

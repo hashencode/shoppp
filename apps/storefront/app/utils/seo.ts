@@ -26,7 +26,6 @@ export const productStructuredData = (product: SeoProduct, origin: string) => {
     offers: price
       ? {
           "@type": "Offer",
-          availability: "https://schema.org/InStock",
           price: (price.amount / 100).toFixed(2),
           priceCurrency: price.currency,
           url: canonicalUrl(origin, `/products/${product.slug}`),

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { fashionStoreRoutePaths } from "../../page-contracts";
+import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
+import { fashionStoreLiveCapabilities } from "../../capability-matrix";
 
 const properties = defineProps<{
   sourceAsset: (sourcePath: string) => string;
@@ -8,6 +10,9 @@ const properties = defineProps<{
 const sourceInlineGap = " ";
 const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
 const highDensity = ref(false);
+const liveMode = inject(liveCommerceModeKey, false);
+const accountVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.account);
+const newsletterVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.newsletter);
 
 onMounted(() => {
   highDensity.value = window.devicePixelRatio > 1;
@@ -111,16 +116,18 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
             <li>
               <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route>Contact us</a>
             </li>
-            <li><a href="/" data-fashion-store-route>Terms &amp; conditions</a></li>
-            <li><a href="/" data-fashion-store-route>Shipping &amp; delivery</a></li>
-            <li><a href="/" data-fashion-store-route>Privacy policy</a></li>
+            <li><a href="/policies/terms" data-fashion-store-route>Terms &amp; conditions</a></li>
+            <li>
+              <a href="/policies/shipping" data-fashion-store-route>Shipping &amp; delivery</a>
+            </li>
+            <li><a href="/policies/privacy" data-fashion-store-route>Privacy policy</a></li>
           </ul>
         </div>
 
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Quick links</span>
           <ul>
-            <li>
+            <li v-if="accountVisible">
               <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>My account</a>
             </li>
             <li><a href="/" data-fashion-store-route>Orders tracking</a></li>
@@ -197,6 +204,7 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
         </div>
 
         <div
+          v-if="newsletterVisible"
           class="col-lg-3 col-md-6 col-sm-7 ps-20px sm-ps-15px md-mb-50px xs-mb-0 order-sm-1 order-lg-5"
         >
           <span class="fw-500 d-block text-white mb-5px fs-17">Become a member</span>

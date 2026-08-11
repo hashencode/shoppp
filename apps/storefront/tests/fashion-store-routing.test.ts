@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import {
   fashionStoreEnabledPageContracts,
+  fashionStoreLiveRouteContracts,
   fashionStorePageContracts,
   fashionStorePreviewRoutes,
   resolveFashionStorePage,
@@ -105,6 +106,102 @@ describe("Fashion Store route readiness", () => {
     expect(
       resolveFashionStorePage("/magazine/marketing-tips-and-tricks", { includeDisabled: true })?.id,
     ).toBe("article");
+  });
+
+  test("declares canonical and indexing policy without exposing fixture catalog paths to live data", () => {
+    expect(
+      fashionStorePageContracts.map(({ canonicalPath, id, indexing, modes }) => ({
+        canonicalPath,
+        id,
+        indexing,
+        modes,
+      })),
+    ).toEqual([
+      { canonicalPath: "/", id: "home", indexing: "index", modes: ["fixture-preview", "live"] },
+      {
+        canonicalPath: "/shop",
+        id: "shop-left",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/shop",
+        id: "shop-none",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/shop",
+        id: "shop-right",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/collections",
+        id: "collection",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/products/relaxed-corduroy-shirt",
+        id: "product",
+        indexing: "index",
+        modes: ["fixture-preview"],
+      },
+      {
+        canonicalPath: "/cart",
+        id: "cart",
+        indexing: "noindex",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/checkout",
+        id: "checkout",
+        indexing: "noindex",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/wishlist",
+        id: "wishlist",
+        indexing: "noindex",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/account",
+        id: "account",
+        indexing: "noindex",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/magazine",
+        id: "magazine",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/magazine/marketing-tips-and-tricks",
+        id: "article",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      {
+        canonicalPath: "/about",
+        id: "about",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+      { canonicalPath: "/faq", id: "faq", indexing: "index", modes: ["fixture-preview", "live"] },
+      {
+        canonicalPath: "/contact",
+        id: "contact",
+        indexing: "index",
+        modes: ["fixture-preview", "live"],
+      },
+    ]);
+    expect(fashionStoreLiveRouteContracts.map(({ path }) => path)).toEqual([
+      "/products/:slug",
+      "/collections/:slug",
+    ]);
   });
 
   test("discovers bounded Fashion Store page specs without pulling in unrelated E2E files", async () => {

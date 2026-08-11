@@ -28,10 +28,12 @@ import {
   toRuntimeProductState,
   type RuntimeCommercePort,
 } from "./theme-engine/runtime-commerce";
+import { canonicalUrl, productStructuredData } from "./utils/seo";
 
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
+const routeMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
 const fixturePresentationProvider = createFixturePresentationProvider({
   bindings:
     activeExperienceSnapshot?.bindings.filter((binding) => binding.kind === "fixture") ?? [],
@@ -116,6 +118,7 @@ const pageContract = computed(() =>
     activeExperienceProviderInput.mode === "live"
       ? activeExperienceProviderInput.release
       : undefined,
+    routeMode,
   ),
 );
 const previewTemplate = computed(() =>
@@ -131,31 +134,82 @@ const rendersPlatformRoute = computed(() => {
     path === "/checkout/complete" || path.startsWith("/orders/") || path.startsWith("/policies/")
   );
 });
-const previewTitle = computed(() =>
-  pageContract.value
-    ? {
-        cart: "Preview bag",
-        checkout: "Checkout presentation",
-        collection: "Fixture collection",
-        content: "Fashion page",
-        home: `${activeThemeId[0]?.toUpperCase()}${activeThemeId.slice(1)} storefront`,
-        order: "Order status presentation",
-        policy: "Fixture policy",
-        product: "Fixture product",
-      }[pageContract.value.pageType]
-    : "Page unavailable",
-);
-
+const liveRelease =
+  activeExperienceProviderInput.mode === "live" ? activeExperienceProviderInput.release : undefined;
+const routeSeo = computed(() => {
+  const contract = pageContract.value;
+  const normalizedPath = currentRoute.value.path.replace(/\/+$/, "") || "/";
+  const product = contract?.parameters?.productId
+    ? liveRelease?.products.find(({ id }) => id === contract.parameters?.productId)
+    : undefined;
+  const collection = contract?.parameters?.collectionId
+    ? liveRelease?.collections.find(({ id }) => id === contract.parameters?.collectionId)
+    : undefined;
+  const title =
+    product?.seoTitle ??
+    collection?.seoTitle ??
+    (contract
+      ? {
+          cart: "Shopping cart",
+          checkout: "Checkout",
+          collection: "Shop",
+          content: contract.id.replaceAll("-", " "),
+          home: liveRelease?.site.name ?? "Fashion Store",
+          order: "Order",
+          policy: "Policy",
+          product: "Product",
+        }[contract.pageType]
+      : "Page not found");
+  return {
+    canonicalPath: contract?.canonicalPath ?? normalizedPath,
+    description:
+      product?.seoDescription ??
+      collection?.seoDescription ??
+      "Browse the published Fashion Store Experience.",
+    product,
+    title,
+  };
+});
 const previewOrigin = activePreviewOrigin;
 if (activeExperienceSnapshot && previewOrigin) {
+  const seoOrigin = liveRelease?.site.origin ?? previewOrigin;
   useSeoMeta({
-    description: "A private fixture-backed storefront theme preview.",
+    description: () => routeSeo.value.description,
     robots: "noindex, nofollow",
+    title: () => `${routeSeo.value.title} · Private preview`,
   });
   useHead(() => ({
-    link: [{ rel: "canonical", href: new URL(currentRoute.value.path, previewOrigin).href }],
-    title: `${previewTitle.value} · Private fixture preview`,
+    link: [
+      {
+        rel: "canonical",
+        href: canonicalUrl(seoOrigin, routeSeo.value.canonicalPath),
+      },
+    ],
+    script: routeSeo.value.product
+      ? [
+          {
+            type: "application/ld+json",
+            innerHTML: JSON.stringify(productStructuredData(routeSeo.value.product, seoOrigin)),
+          },
+        ]
+      : [],
   }));
+}
+
+const routeUnavailable = computed(() =>
+  Boolean(activeExperienceSnapshot && !pageContract.value && !rendersPlatformRoute.value),
+);
+if (import.meta.server && routeUnavailable.value) {
+  throw createError({ statusCode: 404, statusMessage: "Page not found" });
+}
+if (import.meta.client) {
+  watch(
+    routeUnavailable,
+    (unavailable) => {
+      if (unavailable) showError({ statusCode: 404, statusMessage: "Page not found" });
+    },
+    { immediate: true },
+  );
 }
 </script>
 

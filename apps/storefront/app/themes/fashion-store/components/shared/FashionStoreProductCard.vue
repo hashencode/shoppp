@@ -2,6 +2,7 @@
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreShopProduct } from "../../fixtures/pages/shop";
+import { fashionStoreLiveCapabilities } from "../../capability-matrix";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 
@@ -11,7 +12,7 @@ type LiveProductCard = Extract<
 >["products"][number];
 
 const properties = defineProps<{
-  commerceEnabled?: boolean;
+  commerceDisabled?: boolean;
   product: FashionStoreShopProduct | LiveProductCard;
   resolveAsset: ThemeAssetResolver;
 }>();
@@ -44,6 +45,7 @@ const card = computed(() => {
     price: properties.product.price,
   };
 });
+const liveProduct = computed(() => "href" in properties.product);
 const touchActionsOpen = ref(false);
 const productLinkEnabled = ref(true);
 let suppressNextProductLink = false;
@@ -87,7 +89,7 @@ function handleProductLink(event: MouseEvent): void {
         </a>
         <div class="shop-buttons-wrap">
           <button
-            v-if="commerceEnabled !== false"
+            v-if="!commerceDisabled"
             type="button"
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
             aria-label="Add to cart"
@@ -105,9 +107,16 @@ function handleProductLink(event: MouseEvent): void {
             <span class="quick-view-text button-text">Choose options</span>
           </a>
         </div>
-        <div class="shop-hover d-flex justify-content-center">
+        <div
+          v-if="
+            !liveProduct ||
+            fashionStoreLiveCapabilities.wishlist ||
+            fashionStoreLiveCapabilities.productQuickView
+          "
+          class="shop-hover d-flex justify-content-center"
+        >
           <ul>
-            <li>
+            <li v-if="!liveProduct || fashionStoreLiveCapabilities.wishlist">
               <button
                 type="button"
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
@@ -118,8 +127,19 @@ function handleProductLink(event: MouseEvent): void {
                 <i class="feather icon-feather-heart fs-16"></i>
               </button>
             </li>
-            <li>
+            <li v-if="!liveProduct || fashionStoreLiveCapabilities.productQuickView">
+              <a
+                v-if="liveProduct"
+                :href="card.href"
+                data-fashion-store-route
+                class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
+                aria-label="View product details"
+                title="View product details"
+              >
+                <i class="feather icon-feather-eye fs-16"></i>
+              </a>
               <button
+                v-else
                 type="button"
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 aria-label="Quick shop"

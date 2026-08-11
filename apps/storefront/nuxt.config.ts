@@ -1,6 +1,13 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
-import { fashionStorePreviewRoutes } from "./app/themes/fashion-store/page-contracts";
+import { themeRoutePaths } from "./app/theme-engine/routes";
+import { fashionStoreThemeRoutes } from "./app/themes/fashion-store/page-contracts";
+import {
+  experienceBuildInputSchema,
+  type ExperienceBuildInput,
+} from "./scripts/prepare-experience";
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
 const fashionStoreFontImports = [
@@ -16,8 +23,25 @@ const redirectRules = Object.fromEntries(
   ]),
 );
 const previewPlatformRoutes = ["/checkout/complete"] as const;
+const previewExperienceFile = process.env.STOREFRONT_EXPERIENCE_FILE;
+const previewExperienceInput = previewExperienceFile
+  ? experienceBuildInputSchema.parse(
+      JSON.parse(readFileSync(resolve(previewExperienceFile), "utf8")),
+    )
+  : undefined;
+type LivePreviewInput = Extract<ExperienceBuildInput, { presentationMode: "live" }>;
+function isLivePreviewInput(input?: ExperienceBuildInput): input is LivePreviewInput {
+  return (input as { presentationMode?: unknown } | undefined)?.presentationMode === "live";
+}
+const livePreviewInput = isLivePreviewInput(previewExperienceInput)
+  ? previewExperienceInput
+  : undefined;
+const previewThemeRoutes =
+  livePreviewInput?.presentationMode === "live"
+    ? themeRoutePaths(fashionStoreThemeRoutes, "live", livePreviewInput.catalogRelease)
+    : themeRoutePaths(fashionStoreThemeRoutes, "fixture-preview");
 const prerenderRoutes = previewBuild
-  ? [...fashionStorePreviewRoutes, ...previewPlatformRoutes]
+  ? [...previewThemeRoutes, ...previewPlatformRoutes]
   : [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"];
 
 export default defineNuxtConfig({
@@ -97,6 +121,8 @@ export default defineNuxtConfig({
     "/cart": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
     "/checkout": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
     "/checkout/complete": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
+    "/account": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
+    "/wishlist": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
     "/orders/**": { headers: { "X-Robots-Tag": "noindex, nofollow" } },
   },
   runtimeConfig: {

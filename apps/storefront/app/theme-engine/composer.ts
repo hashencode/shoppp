@@ -255,6 +255,59 @@ function transactionViewModel(pageType: "cart" | "checkout"): PresentationViewMo
   });
 }
 
+const unavailableContent = {
+  account: {
+    heading: "Account unavailable",
+    message:
+      "Customer accounts are not available yet. You can continue shopping without signing in.",
+  },
+  contact: {
+    heading: "Contact information unavailable",
+    message: "Merchant contact details have not been published for this Experience.",
+  },
+  wishlist: {
+    heading: "Wishlist unavailable",
+    message: "Saved wishlists are not available yet. No products have been stored for this visit.",
+  },
+} as const;
+
+function contentSettingKey(path: string): string {
+  return path.slice(1).replaceAll("/", ".") || "home";
+}
+
+function contentViewModel(
+  path: string,
+  settings: Readonly<Record<string, unknown>>,
+): PresentationViewModel {
+  const key = contentSettingKey(path);
+  const configuredHeading = settings[`${key}.heading`];
+  const configuredMessage = settings[`${key}.message`];
+  const configured =
+    typeof configuredHeading === "string" &&
+    configuredHeading.trim().length > 0 &&
+    typeof configuredMessage === "string" &&
+    configuredMessage.trim().length > 0;
+  const unavailable = unavailableContent[key as keyof typeof unavailableContent];
+  const fallbackHeading = key
+    .split(/[.-]/)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+  return presentationViewModelSchema.parse({
+    action: {
+      id: "continue-shopping",
+      intent: "navigation",
+      label: "Continue shopping",
+      target: "/shop",
+    },
+    heading: configured ? configuredHeading : (unavailable?.heading ?? fallbackHeading),
+    kind: "state",
+    message: configured
+      ? configuredMessage
+      : (unavailable?.message ?? "This Experience page has not been published yet."),
+    state: configured ? "populated" : "unavailable",
+  });
+}
+
 export function composeExperienceRoute(
   input: ComposeExperienceRouteInput,
 ): ComposedExperienceRoute {
@@ -318,6 +371,10 @@ export function composeExperienceRoute(
   for (const instance of instances.filter(({ visible }) => visible)) {
     if (template.pageType === "cart" || template.pageType === "checkout") {
       viewModels[instance.id] = transactionViewModel(template.pageType);
+      continue;
+    }
+    if (template.pageType === "content") {
+      viewModels[instance.id] = contentViewModel(path, instance.settings);
       continue;
     }
     const matches = catalogBindingsByInstance.get(instance.id) ?? [];

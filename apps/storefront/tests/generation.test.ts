@@ -10,7 +10,11 @@ import {
   fashionStoreThemeRoutes,
   fashionStorePreviewRoutes,
 } from "../app/themes/fashion-store/page-contracts";
-import { resolveThemeRoute, staticThemeRoutePaths } from "../app/theme-engine/routes";
+import {
+  resolveThemeRoute,
+  staticThemeRoutePaths,
+  themeRoutePaths,
+} from "../app/theme-engine/routes";
 
 describe("static generation manifest", () => {
   test("derives private preview routes only from readiness-enabled page contracts", () => {
@@ -44,16 +48,15 @@ describe("static generation manifest", () => {
       ),
     );
     expect(scripts.every((source) => source.includes("activeThemeRoutes"))).toBe(true);
-    expect(
-      scripts.every((source) => source.includes("staticThemeRoutePaths(activeThemeRoutes)")),
-    ).toBe(true);
+    expect(scripts.every((source) => source.includes("themeRoutePaths"))).toBe(true);
     expect(staticThemeRoutePaths(fashionStoreThemeRoutes)).toEqual(fashionStorePreviewRoutes);
   });
 
   test("prerenders the platform checkout completion shell alongside theme preview routes", async () => {
     const nuxtConfig = await readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8");
     expect(nuxtConfig).toContain('const previewPlatformRoutes = ["/checkout/complete"]');
-    expect(nuxtConfig).toContain("[...fashionStorePreviewRoutes, ...previewPlatformRoutes]");
+    expect(nuxtConfig).toContain("themeRoutePaths(fashionStoreThemeRoutes");
+    expect(nuxtConfig).toContain("livePreviewInput.catalogRelease");
   });
 
   test("contains every published route exactly once in isolated modules", async () => {
@@ -152,6 +155,41 @@ describe("static generation manifest", () => {
     ).toMatchObject({ id: "catalog-collection" });
     expect(fashionStorePreviewRoutes).not.toContain("/products/:slug");
     expect(fashionStorePreviewRoutes).not.toContain("/collections/:slug");
+
+    expect(
+      resolveThemeRoute(
+        "/products/relaxed-corduroy-shirt",
+        fashionStoreThemeRoutes,
+        release,
+        "live",
+      ),
+    ).toBeUndefined();
+    expect(
+      resolveThemeRoute(
+        "/products/relaxed-corduroy-shirt",
+        fashionStoreThemeRoutes,
+        undefined,
+        "fixture-preview",
+      )?.id,
+    ).toBe("product");
+    expect(themeRoutePaths(fashionStoreThemeRoutes, "live", release)).toEqual([
+      "/",
+      "/shop",
+      "/shop/no-sidebar",
+      "/shop/right-sidebar",
+      "/collections",
+      "/cart",
+      "/checkout",
+      "/wishlist",
+      "/account",
+      "/magazine",
+      "/magazine/marketing-tips-and-tricks",
+      "/about",
+      "/faq",
+      "/contact",
+      "/products/release-only-product",
+      "/collections/release-only-collection",
+    ]);
 
     const registry = await readFile(
       resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"),

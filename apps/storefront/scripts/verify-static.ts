@@ -5,7 +5,8 @@ import {
   activeThemeId,
   activeThemeRoutes,
 } from "../app/generated/active-theme";
-import { staticThemeRoutePaths } from "../app/theme-engine/routes";
+import { activeExperienceProviderInput } from "../app/generated/active-experience";
+import { themeRoutePaths } from "../app/theme-engine/routes";
 import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
 import manifest from "../app/generated/route-manifest.json";
 import verificationCatalog from "../app/generated/verification-catalog.json";
@@ -35,7 +36,16 @@ if (previewBuild) {
 const outputPath = (route: string) =>
   route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
 
-const pageRoutes = previewBuild ? staticThemeRoutePaths(activeThemeRoutes) : manifest.routes;
+const previewMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
+const pageRoutes = previewBuild
+  ? themeRoutePaths(
+      activeThemeRoutes,
+      previewMode,
+      activeExperienceProviderInput.mode === "live"
+        ? activeExperienceProviderInput.release
+        : undefined,
+    )
+  : manifest.routes;
 for (const route of pageRoutes) {
   const html = await readFile(outputPath(route), "utf8");
   if (!html.includes('<link rel="canonical"') || !html.includes("<h1")) {
@@ -78,7 +88,7 @@ if (!previewBuild) {
 }
 
 if (previewBuild && activeThemeId === "fashion-store") {
-  const enabledPaths = new Set(staticThemeRoutePaths(activeThemeRoutes));
+  const enabledPaths = new Set(pageRoutes);
   for (const { path } of fashionStorePageContracts) {
     if (enabledPaths.has(path)) continue;
     try {
