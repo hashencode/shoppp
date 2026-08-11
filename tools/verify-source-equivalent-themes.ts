@@ -43,6 +43,7 @@ export interface SourceEquivalencePolicy {
     scriptFirst: boolean;
   };
   requiredEvidence: string[];
+  sourceIntakes: SourceEquivalenceSourceIntakePolicy[];
   themes: SourceEquivalenceThemePolicy[];
   waivers: {
     approvedBy: string;
@@ -54,6 +55,27 @@ export interface SourceEquivalencePolicy {
     routeId: string;
     themeId: string;
   }[];
+}
+
+export interface SourceEquivalenceSourceIntakePolicy {
+  acceptanceModes: string[];
+  authorizedSourceRoot: string;
+  canonicalViewports: { height: number; id: string; width: number }[];
+  checkpoints: string[];
+  contracts: {
+    acceptanceAdapter: string;
+    behavior: string;
+    source: string;
+  };
+  excludedSourceResources: { path: string; reason: string }[];
+  id: string;
+  requiredHeroDependencies: string[];
+  scriptOrder: string[];
+  sourceEntry: string;
+  sourceEntrySha256: string;
+  sourceManifestThemeId: string;
+  status: "contracts-frozen";
+  stylesheetOrder: string[];
 }
 
 export interface SourceEquivalencePagePolicy {
@@ -401,6 +423,74 @@ export async function validateSourceEquivalencePolicy(
     REQUIRED_EVIDENCE.some((facet) => !policy.requiredEvidence.includes(facet))
   )
     errors.push("required evidence dimensions must not be removed or replaced");
+
+  const sourceManifest = JSON.parse(
+    readFileSync(resolve(root, "tools/storefront-theme-source-manifest.json"), "utf8"),
+  ) as StorefrontThemeSourceManifest;
+  const intakeIds = new Set<string>();
+  if (!Array.isArray(policy.sourceIntakes) || policy.sourceIntakes.length === 0)
+    errors.push("at least one frozen source intake is required");
+  for (const intake of policy.sourceIntakes ?? []) {
+    const label = intake.id || "unknown-source-intake";
+    if (!SAFE_THEME_ID.test(intake.id)) errors.push(`${label}: invalid source intake ID`);
+    if (intakeIds.has(intake.id)) errors.push(`${label}: duplicate source intake`);
+    intakeIds.add(intake.id);
+    if (intake.status !== "contracts-frozen")
+      errors.push(`${label}: source intake status must be contracts-frozen`);
+    if (
+      intake.canonicalViewports.length !== REQUIRED_VIEWPORTS.length ||
+      REQUIRED_VIEWPORTS.some((viewport, index) =>
+        Object.entries(viewport).some(
+          ([key, value]) =>
+            intake.canonicalViewports[index]?.[key as keyof typeof viewport] !== value,
+        ),
+      )
+    )
+      errors.push(`${label}: source intake canonical viewports are incomplete`);
+    if (intake.acceptanceModes.join(",") !== "static,temporal,interaction,scroll-fixed,fallback")
+      errors.push(`${label}: source intake acceptance modes are incomplete or reordered`);
+    if (intake.checkpoints.length !== 4)
+      errors.push(`${label}: source intake must declare four review checkpoints`);
+    for (const contractPath of Object.values(intake.contracts ?? {})) {
+      if (!contractPath || !existsSync(resolve(root, contractPath)))
+        errors.push(`${label}: source intake contract is missing (${contractPath || "unknown"})`);
+    }
+    const sourceRoot = resolve(root, intake.authorizedSourceRoot);
+    const entryPath = resolve(sourceRoot, intake.sourceEntry);
+    const entryRelative = relative(sourceRoot, entryPath);
+    if (entryRelative === ".." || entryRelative.startsWith(`..${sep}`) || !existsSync(entryPath)) {
+      errors.push(`${label}: source intake entry is missing or outside its root`);
+    } else {
+      const digest = createHash("sha256").update(readFileSync(entryPath)).digest("hex");
+      if (digest !== intake.sourceEntrySha256)
+        errors.push(`${label}: source intake entry digest does not match`);
+    }
+    const declaration = sourceManifest.themes.find(
+      ({ themeId }) => themeId === intake.sourceManifestThemeId,
+    );
+    if (!declaration) {
+      errors.push(`${label}: source manifest declaration is missing`);
+    } else {
+      const declaredPaths = new Set(declaration.allowlist.map(({ sourcePath }) => sourcePath));
+      for (const dependency of intake.requiredHeroDependencies) {
+        if (!declaredPaths.has(dependency))
+          errors.push(
+            `${label}: Hero dependency is absent from the source manifest (${dependency})`,
+          );
+      }
+      if (declaration.sourceRevision !== `sha256:${intake.sourceEntrySha256}`)
+        errors.push(`${label}: source manifest revision does not match policy`);
+    }
+    if (
+      intake.scriptOrder.some((path) => /(?:main\.js|particles|https?:|\.php)/i.test(path)) ||
+      intake.stylesheetOrder.some((path) => /(?:https?:|\.php)/i.test(path))
+    )
+      errors.push(`${label}: source intake executable order contains a forbidden resource`);
+    for (const exclusion of intake.excludedSourceResources ?? []) {
+      if (!exclusion.path?.trim() || !exclusion.reason?.trim())
+        errors.push(`${label}: excluded source resource requires a path and reason`);
+    }
+  }
 
   const themeIds = new Set<string>();
   const policyBehaviorDescriptors: ThemeBehaviorDescriptor[] = [];

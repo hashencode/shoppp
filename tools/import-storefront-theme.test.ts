@@ -528,3 +528,33 @@ describe("Fashion Store source implementation import", () => {
     ).rejects.toThrow(/unlisted|executable/i);
   });
 });
+
+describe("Decor Store source implementation import", () => {
+  test("verifies pinned hashes and preserves source-relative paths without weakening legacy imports", async () => {
+    const value = await fashionStoreFixture();
+    value.manifest.themes[0]!.themeId = "decor-store";
+    value.manifest.themes[0]!.sourceIdentity = "local://fixture/demo-decor-store.html";
+
+    const imported = await importStorefrontTheme({
+      destinationRoot: value.destinationRoot,
+      importedAt: "2026-08-11",
+      manifest: value.manifest,
+      manifestPath: value.manifestPath,
+      source: value.source,
+      themeId: "decor-store",
+    });
+
+    expect(imported.themes[0]?.importedFiles).toHaveLength(6);
+    expect(
+      await readFile(join(value.destinationRoot, "decor-store/upstream/css/theme.css"), "utf8"),
+    ).toContain("../fonts/exact.woff2");
+    const provenance = await readFile(
+      join(value.destinationRoot, "decor-store/UPSTREAM.md"),
+      "utf8",
+    );
+    expect(provenance).toMatch(/hash-pinned|Decor Store|source-relative/i);
+    expect(provenance).toMatch(/Revolution tools\/core.*slide-animation/s);
+    expect(provenance).toContain("Plus Jakarta Sans");
+    expect(provenance).not.toContain("Outfit and Figtree");
+  });
+});

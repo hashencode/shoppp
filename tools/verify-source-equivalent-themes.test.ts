@@ -45,6 +45,14 @@ describe("source-equivalent theme policy", () => {
     const policy = await loadSourceEquivalencePolicy(root);
     await expect(validateSourceEquivalencePolicy(policy, root)).resolves.toBeUndefined();
     expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
+    expect(policy.sourceIntakes).toMatchObject([
+      {
+        acceptanceModes: ["static", "temporal", "interaction", "scroll-fixed", "fallback"],
+        id: "decor-store",
+        sourceEntry: "demo-decor-store.html",
+        status: "contracts-frozen",
+      },
+    ]);
     expect(policy.themes[0]).toMatchObject({
       authorizedSourceRoot: "templates/Crafto - The Multipurpose HTML5 Template/html",
       equivalenceScope: [
@@ -158,6 +166,22 @@ describe("source-equivalent theme policy", () => {
       ],
     });
     expect(policy.waivers).toEqual([]);
+  });
+
+  test("rejects a frozen source intake with a missing Hero dependency or digest drift", async () => {
+    const missingDependency = await loadSourceEquivalencePolicy(root);
+    missingDependency.sourceIntakes[0]!.requiredHeroDependencies.push(
+      "revolution/js/extensions/missing.js",
+    );
+    await expect(validateSourceEquivalencePolicy(missingDependency, root)).rejects.toThrow(
+      /Hero dependency.*missing\.js/,
+    );
+
+    const digestDrift = await loadSourceEquivalencePolicy(root);
+    digestDrift.sourceIntakes[0]!.sourceEntrySha256 = "0".repeat(64);
+    await expect(validateSourceEquivalencePolicy(digestDrift, root)).rejects.toThrow(
+      /source intake entry digest.*source manifest revision/s,
+    );
   });
 
   test("rejects duplicate page identities, routes, and conflicting source digests", async () => {

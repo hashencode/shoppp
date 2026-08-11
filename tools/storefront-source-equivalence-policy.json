@@ -36,6 +36,98 @@
     "modelInspection": "ranked-ambiguous-crops-only",
     "scriptFirst": true
   },
+  "sourceIntakes": [
+    {
+      "id": "decor-store",
+      "status": "contracts-frozen",
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "sourceEntry": "demo-decor-store.html",
+      "sourceEntrySha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+      "sourceManifestThemeId": "decor-store",
+      "stylesheetOrder": [
+        "revolution/css/settings.css",
+        "revolution/css/layers.css",
+        "revolution/css/navigation.css",
+        "css/vendors.min.css",
+        "css/icon.min.css",
+        "css/style.css",
+        "css/responsive.css",
+        "demos/decor-store/decor-store.css"
+      ],
+      "scriptOrder": [
+        "js/jquery.js",
+        "js/vendors.min.js",
+        "revolution/js/jquery.themepunch.tools.min.js",
+        "revolution/js/jquery.themepunch.revolution.min.js",
+        "revolution/js/extensions/revolution.extension.actions.min.js",
+        "revolution/js/extensions/revolution.extension.layeranimation.min.js",
+        "revolution/js/extensions/revolution.extension.navigation.min.js",
+        "revolution/js/extensions/revolution.extension.slideanims.min.js",
+        "inline:#decor-store-slider"
+      ],
+      "requiredHeroDependencies": [
+        "revolution/css/settings.css",
+        "revolution/css/layers.css",
+        "revolution/css/navigation.css",
+        "js/jquery.js",
+        "js/vendors.min.js",
+        "revolution/js/jquery.themepunch.tools.min.js",
+        "revolution/js/jquery.themepunch.revolution.min.js",
+        "revolution/js/extensions/revolution.extension.actions.min.js",
+        "revolution/js/extensions/revolution.extension.layeranimation.min.js",
+        "revolution/js/extensions/revolution.extension.navigation.min.js",
+        "revolution/js/extensions/revolution.extension.slideanims.min.js",
+        "images/demo-decor-store-slider-01-img-01.png",
+        "images/demo-decor-store-slider-01-img-02.jpg",
+        "images/demo-decor-store-slider-01-img-03.jpg",
+        "images/demo-decor-store-slider-01-thumb.jpg",
+        "images/demo-decor-store-slider-02-img-04.png",
+        "images/demo-decor-store-slider-02-img-05.jpg",
+        "images/demo-decor-store-slider-02-img-06.jpg",
+        "images/demo-decor-store-slider-02-thumb.jpg",
+        "images/demo-decor-store-slider-03-img-07.png",
+        "images/demo-decor-store-slider-03-img-08.jpg",
+        "images/demo-decor-store-slider-03-img-09.jpg",
+        "images/demo-decor-store-slider-03-thumb.jpg"
+      ],
+      "excludedSourceResources": [
+        {
+          "path": "revolution/revolution-addons/particles/js/revolution.addon.particles.min.js",
+          "reason": "The source includes the script tag but no Hero markup or initializer activates the add-on."
+        },
+        {
+          "path": "js/main.js",
+          "reason": "Behavioral reference only; production execution is prohibited."
+        },
+        {
+          "path": "https://fonts.googleapis.com",
+          "reason": "Remote font resources are replaced by an inspected, hash-pinned local WOFF2."
+        },
+        {
+          "path": "**/*.php",
+          "reason": "Backend/demo handlers are outside the frontend-only source-equivalence boundary."
+        }
+      ],
+      "acceptanceModes": ["static", "temporal", "interaction", "scroll-fixed", "fallback"],
+      "canonicalViewports": [
+        { "height": 1000, "id": "desktop", "width": 1440 },
+        { "height": 900, "id": "laptop", "width": 1024 },
+        { "height": 1024, "id": "tablet", "width": 768 },
+        { "height": 844, "id": "mobile", "width": 390 }
+      ],
+      "checkpoints": [
+        "header-hero-card",
+        "first-timed-body-behavior",
+        "desktop-complete",
+        "mobile-fallback-complete"
+      ],
+      "contracts": {
+        "source": "apps/storefront/app/themes/decor-store/source-contract.ts",
+        "behavior": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+        "acceptanceAdapter": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts"
+      }
+    }
+  ],
   "requiredEvidence": [
     "assets",
     "computedStyles",
