@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  assetReferenceSchema,
   catalogResourceBindingSchema,
   catalogResourceReferenceSchema,
   experienceSnapshotSchema,
   linkTargetSchema,
   presentationProductSchema,
+  settingDefinitionSchema,
   storefrontIntentActionSchema,
   themePackageSchema,
   type PresentationProduct,
@@ -174,6 +176,41 @@ describe("storefront experience contracts", () => {
       catalogResourceReferenceSchema.safeParse({
         id: "prd_01J00000000000000000000000",
         kind: "fixture",
+      }).success,
+    ).toBe(false);
+  });
+
+  test("declares catalog reference controls and keeps catalog media keys bounded", () => {
+    expect(
+      settingDefinitionSchema.parse({
+        id: "featured-product",
+        kind: "product-reference",
+        required: true,
+      }),
+    ).toEqual({ id: "featured-product", kind: "product-reference", required: true });
+    expect(
+      settingDefinitionSchema.parse({
+        id: "featured-collection",
+        kind: "collection-reference",
+        required: false,
+      }),
+    ).toEqual({ id: "featured-collection", kind: "collection-reference", required: false });
+    expect(
+      assetReferenceSchema.safeParse({
+        alt: "Approved media",
+        height: 600,
+        key: "catalog/products/hero.webp",
+        kind: "catalog",
+        width: 800,
+      }).success,
+    ).toBe(true);
+    expect(
+      assetReferenceSchema.safeParse({
+        alt: "Traversal",
+        height: 600,
+        key: "catalog/../secret.webp",
+        kind: "catalog",
+        width: 800,
       }).success,
     ).toBe(false);
   });

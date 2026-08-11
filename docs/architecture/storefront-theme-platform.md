@@ -4,14 +4,15 @@
 
 The platform is a constrained presentation system. A theme package owns versioned tokens,
 namespaced Vue components, schemas, presets, and provenance. The core renderer owns the bounded
-Template → Section → Block composition model. Fixtures own preview data. None of those layers owns
-catalog, price, inventory, cart, checkout, order, payment, analytics, authorization, or compliance
-behavior.
+Template → Section → Block composition model. Deterministic fixtures own design-QA preview data;
+an immutable Catalog Release owns live build-time catalog content and an Experience Snapshot owns
+merchant-authored composition. None of those presentation layers owns mutable price, inventory,
+cart, checkout, order, payment, analytics, authorization, or compliance behavior.
 
 The current Nuxt storefront remains the production default. An approved experience snapshot is a
-reproducible presentation release, not a production activation. Connecting one to live commerce
-requires a separate activation plan that proves adapters and compatibility with the catalog release
-protocol.
+reproducible presentation release, not a production activation. Fashion Store can compose immutable
+Catalog and Experience inputs in private preview and isolated test builds. Production activation
+remains a separate plan.
 
 ## Version and compatibility model
 
@@ -34,10 +35,11 @@ API descriptor and does not keep a separate theme or field list.
 
 ## Build isolation
 
-`prepare-experience.ts` accepts either the production fallback or one validated immutable preview
-snapshot. It generates a fixed static import from an internal theme allowlist before Nuxt
-compilation. Caller-supplied file paths, package names, remote modules, and executable source are
-not inputs.
+`prepare-experience.ts` accepts either the production fallback, a deterministic fixture-preview
+input, or one validated private live-preview tuple. A live tuple binds the Catalog Release,
+Experience snapshot and version, theme version, and platform contract version. It generates a fixed
+static import from an internal theme allowlist before Nuxt compilation. Caller-supplied file paths,
+package names, remote modules, and executable source are not inputs.
 
 Theme assets remain inside their namespaced package until compilation. Matrix verification scans
 each output for inactive-theme namespaces and prohibited Crafto runtimes. The final production
@@ -67,7 +69,7 @@ verifies every imported binary is allowlisted and recorded in that theme's prove
 A preview build is a private, content-addressed artifact under:
 
 ```text
-snapshots/<snapshot-id>/<sha256>
+snapshots/<snapshot-id>/<catalog-release-id>/<sha256>
 ```
 
 The build machine fetches an exact snapshot with its dedicated bearer credential and reports the
@@ -79,12 +81,20 @@ the credential is never put in a URL. The Worker exchanges it for a host-only `S
 `HttpOnly`, `SameSite=Strict` cookie. Preview responses are private/no-store, non-indexable,
 referrer-suppressed, analytics-free, and isolated from production origins and caches.
 
-## Future commerce adapter seam
+## Composition and commerce authority
 
-Theme components consume fixture-backed ViewModels and emit intent-level Actions. Future adapters
-may translate stable business DTOs into those ViewModels and Actions, but must live outside theme
-packages. They must preserve server authority for price, inventory, tax, checkout, payment, order,
-analytics, permissions, and legal rules.
+The theme-neutral Composer resolves stable product and collection references against one canonical
+ID-bearing Catalog Release and emits typed Presentation ViewModels. The fixture provider remains a
+separate deterministic path and live rendering never falls back to it. Theme components consume
+only ViewModels and emit identifier-only intents; runtime Commerce adapters revalidate mutable
+availability, price, cart, checkout, and order facts before mutation.
+
+Admin derives controls from the same manifest used for validation. It may persist bounded text,
+enum, approved media, safe links, section presentation, and stable catalog references. It cannot
+persist SKU, price, currency, inventory, tax, promotion, shipping, checkout, order, or Catalog-owned
+policy content. Catalog Release discovery requires both `themes.preview` and `catalog.read`, is
+environment-isolated, and exposes only deployed canonical releases. Approved Experience snapshots
+remain immutable.
 
 Production activation must compose an immutable experience snapshot with an immutable catalog
 release, retain the current rollback guarantees, and prove the existing static, accessibility,

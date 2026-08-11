@@ -86,6 +86,10 @@ import {
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
+import {
+  listStorefrontCatalogMedia,
+  listStorefrontCatalogReleases,
+} from "../storefront-experience/catalog-resources";
 import { adminAuthentication, type TestIdentityVerifier } from "../middleware/auth";
 import { adminOriginProtection, isAllowedAdminBrowserOrigin } from "../middleware/admin-origin";
 import { idempotency } from "../middleware/idempotency";
@@ -836,6 +840,24 @@ export function createApp(options: CreateAppOptions = {}) {
     await requirePermission(context, "themes.read", { type: "storefront_theme" });
     return context.json({
       data: listStorefrontThemes(),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/catalog-releases", async (context) => {
+    await requirePermission(context, "themes.preview", { type: "storefront_catalog_release" });
+    await requirePermission(context, "catalog.read", { type: "catalog_release" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await listStorefrontCatalogReleases(context.env),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/media", async (context) => {
+    await requirePermission(context, "themes.write", { type: "storefront_media" });
+    await requirePermission(context, "catalog.read", { type: "media" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await listStorefrontCatalogMedia(context.env, context.req.query("query") ?? ""),
       meta: { requestId: context.get("requestId") },
     });
   });

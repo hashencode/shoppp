@@ -9,7 +9,7 @@ import {
 import { guestOrderLineSchema, shippingAddressSchema } from "./checkout";
 import {
   blockDefinitionSchema,
-  fixtureBindingSchema,
+  experienceResourceBindingSchema,
   sectionDefinitionSchema,
   storefrontIdentifierSchema,
   storefrontSemverSchema,
@@ -661,14 +661,14 @@ export const adminStorefrontThemeSchema = z
         sections: z.array(sectionDefinitionSchema).max(60),
       })
       .strict(),
-    fixtureBindings: z.array(fixtureBindingSchema).max(100),
+    fixtureBindings: z.array(experienceResourceBindingSchema).max(100),
     presetDefinitions: z.array(themePresetSchema).min(1).max(20),
   })
   .strict();
 
 export const storefrontExperienceDraftInputSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     experienceId: storefrontIdentifierSchema,
     overrides: z.array(themeOverrideSchema).max(10),
     presetId: storefrontIdentifierSchema,
@@ -686,7 +686,7 @@ export const createStorefrontExperienceDraftRequestSchema = z
 
 export const updateStorefrontExperienceDraftRequestSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     expectedVersion: z.int().positive(),
     overrides: z.array(themeOverrideSchema).max(10),
     reason: experienceReasonSchema,

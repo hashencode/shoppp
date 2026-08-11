@@ -83,9 +83,23 @@ export const remoteAssetReferenceSchema = z
   })
   .strict();
 
+export const catalogAssetReferenceSchema = z
+  .object({
+    alt: z.string().trim().min(1).max(300),
+    height: z.int().positive().max(16_384),
+    key: z
+      .string()
+      .regex(/^catalog\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/)
+      .refine((key) => !key.includes("..") && !key.includes("//"), "Unsafe catalog asset key."),
+    kind: z.literal("catalog"),
+    width: z.int().positive().max(16_384),
+  })
+  .strict();
+
 export const assetReferenceSchema = z.discriminatedUnion("kind", [
   themeAssetReferenceSchema,
   remoteAssetReferenceSchema,
+  catalogAssetReferenceSchema,
 ]);
 
 export const linkTargetSchema = z.discriminatedUnion("kind", [
@@ -215,6 +229,23 @@ const linkSettingDefinitionSchema = z
   })
   .strict();
 
+const catalogReferenceSettingDefinitionSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      id: storefrontIdentifierSchema,
+      kind: z.literal("product-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      id: storefrontIdentifierSchema,
+      kind: z.literal("collection-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+]);
+
 export const settingDefinitionSchema = z.discriminatedUnion("kind", [
   textSettingDefinitionSchema,
   numberSettingDefinitionSchema,
@@ -222,6 +253,7 @@ export const settingDefinitionSchema = z.discriminatedUnion("kind", [
   selectSettingDefinitionSchema,
   assetSettingDefinitionSchema,
   linkSettingDefinitionSchema,
+  ...catalogReferenceSettingDefinitionSchema.options,
 ]);
 
 export const settingValueSchema = z.union([
@@ -653,7 +685,7 @@ function settingMatchesDefinition(
         typeof value === "object" &&
         value !== null &&
         "kind" in value &&
-        (value.kind === "theme" || value.kind === "remote")
+        (value.kind === "theme" || value.kind === "remote" || value.kind === "catalog")
       );
     case "boolean":
       return typeof value === "boolean";
@@ -673,6 +705,9 @@ function settingMatchesDefinition(
       );
     case "text":
       return typeof value === "string" && value.length <= definition.maxLength;
+    case "collection-reference":
+    case "product-reference":
+      return false;
   }
 }
 
@@ -701,6 +736,9 @@ function validateInstanceSettings(
     }
   }
   for (const definition of definitions) {
+    if (definition.kind === "collection-reference" || definition.kind === "product-reference") {
+      continue;
+    }
     if (definition.required && !(definition.id in settings)) {
       addIssue(
         context,

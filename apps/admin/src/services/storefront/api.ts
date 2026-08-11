@@ -1,6 +1,6 @@
 import type {
   AdminStorefrontTheme,
-  FixtureBinding,
+  ExperienceResourceBinding,
   ThemeOverride,
 } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
@@ -15,7 +15,7 @@ export type StorefrontExperienceValidation = {
 }
 
 export type StorefrontExperienceDraft = {
-  bindings: FixtureBinding[]
+  bindings: ExperienceResourceBinding[]
   configurationSchemaVersion: number
   createdAt: string
   createdBy: string
@@ -59,8 +59,36 @@ export type StorefrontPreviewBuild = {
   failureCode: string | null
   id: string
   snapshotId: string
+  inputIdentity?: {
+    catalogReleaseId: string
+    experienceSnapshotId: string
+    experienceVersion: number
+    platformContractVersion: string
+    themeId: string
+    themeVersion: string
+  } | null
   status: 'building' | 'deployed' | 'expired' | 'failed' | 'pending'
   updatedAt: string
+}
+
+export type StorefrontCatalogRelease = {
+  approvedAt: string
+  collections: Array<{ id: string; kind: 'collection'; name: string; slug: string }>
+  deployedAt: string | null
+  environment: 'development' | 'staging' | 'production'
+  id: string
+  products: Array<{ id: string; kind: 'product'; name: string; slug: string }>
+  status: 'deployed'
+}
+
+export type StorefrontCatalogMedia = {
+  alt: string
+  height: number
+  key: string
+  kind: 'catalog'
+  productName: string
+  src: string
+  width: number
 }
 
 export type StorefrontPreviewResolution = {
@@ -101,6 +129,23 @@ export const storefrontPreviewOrigin = (): string | null => {
 export const fetchStorefrontThemes = async (): Promise<AdminStorefrontTheme[]> => {
   const response = await apiClient.get<{ data: AdminStorefrontTheme[] }>(
     '/admin/storefront-experiences/themes'
+  )
+  return response.data.data
+}
+
+export const fetchStorefrontCatalogReleases = async (): Promise<StorefrontCatalogRelease[]> => {
+  const response = await apiClient.get<{ data: StorefrontCatalogRelease[] }>(
+    '/admin/storefront-experiences/catalog-releases'
+  )
+  return response.data.data
+}
+
+export const fetchStorefrontCatalogMedia = async (
+  query = ''
+): Promise<StorefrontCatalogMedia[]> => {
+  const response = await apiClient.get<{ data: StorefrontCatalogMedia[] }>(
+    '/admin/storefront-experiences/media',
+    { params: { query } }
   )
   return response.data.data
 }
@@ -149,12 +194,13 @@ export const createStorefrontExperienceDraft = async (
 export const updateStorefrontExperienceDraft = async (
   draft: StorefrontExperienceDraft,
   overrides: ThemeOverride[],
-  reason: string
+  reason: string,
+  bindings: ExperienceResourceBinding[] = draft.bindings
 ): Promise<StorefrontExperienceDraft> => {
   const response = await apiClient.put<{ data: StorefrontExperienceDraft }>(
     `/admin/storefront-experiences/drafts/${draft.id}`,
     {
-      bindings: draft.bindings,
+      bindings,
       expectedVersion: draft.version,
       overrides,
       reason,
@@ -180,11 +226,12 @@ export const validateStorefrontExperienceDraft = async (
 export const previewStorefrontExperienceDraft = async (
   draftId: string,
   expectedVersion: number,
-  reason: string
+  reason: string,
+  catalogReleaseId?: string
 ): Promise<StorefrontPreviewResolution> => {
   const response = await apiClient.post<{ data: StorefrontPreviewResolution }>(
     `/admin/storefront-experiences/drafts/${draftId}/preview`,
-    { expectedVersion, reason },
+    { catalogReleaseId, expectedVersion, reason },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-preview-create') } }
   )
   return response.data.data
@@ -233,10 +280,15 @@ export const dryRunStorefrontExperienceMigration = async (
 export const createStorefrontPreviewGrant = async (
   snapshotId: string,
   origin: string,
-  reason: string
+  reason: string,
+  catalogReleaseId?: string
 ): Promise<{ expiresAt: string; grant: string; redeemUrl: string; snapshotId: string }> => {
   const response = await apiClient.post<{
     data: { expiresAt: string; grant: string; redeemUrl: string; snapshotId: string }
-  }>(`/admin/storefront-experiences/snapshots/${snapshotId}/grants`, { origin, reason })
+  }>(`/admin/storefront-experiences/snapshots/${snapshotId}/grants`, {
+    catalogReleaseId,
+    origin,
+    reason,
+  })
   return response.data.data
 }

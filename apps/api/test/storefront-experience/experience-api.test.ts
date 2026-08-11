@@ -202,6 +202,128 @@ describe("storefront experience API", () => {
     });
   });
 
+  test("discovers only deployed canonical catalog inputs and approved media", async () => {
+    const releaseId = "release-editor-canonical";
+    await seedPreviewCatalogRelease(releaseId);
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET status = 'deployed', deployed_at = ? WHERE id = ?",
+    )
+      .bind("2026-08-11T01:00:00.000Z", releaseId)
+      .run();
+    await seedLegacyPreviewCatalogRelease("release-editor-legacy");
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO products
+           (id, slug, name, description, status, seo_title, seo_description,
+            published_at, created_at, updated_at)
+         VALUES ('product-editor-media', 'editor-media', 'Editor media', '', 'published', '', '',
+                 '2026-08-11T00:00:00.000Z', '2026-08-11T00:00:00.000Z',
+                 '2026-08-11T00:00:00.000Z')
+         ON CONFLICT(id) DO NOTHING`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO product_media
+           (id, product_id, variant_id, r2_key, alt_text, width, height, position, created_at)
+         VALUES ('media-editor', 'product-editor-media', NULL, 'catalog/editor.webp',
+                 'Editor approved image', 800, 600, 0, '2026-08-11T00:00:00.000Z')
+         ON CONFLICT(id) DO NOTHING`,
+      ),
+    ]);
+
+    const app = appFor();
+    const releases = await app.fetch(
+      request("/admin/storefront-experiences/catalog-releases"),
+      env,
+    );
+    expect(releases.status).toBe(200);
+    expect(await releases.json()).toMatchObject({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          environment: "staging",
+          id: releaseId,
+          products: expect.arrayContaining([
+            expect.objectContaining({ id: expect.stringMatching(/^prod_/) }),
+          ]),
+          status: "deployed",
+        }),
+      ]),
+    });
+
+    const media = await app.fetch(
+      request("/admin/storefront-experiences/media?query=approved"),
+      env,
+    );
+    expect(media.status).toBe(200);
+    expect(await media.json()).toMatchObject({
+      data: [
+        {
+          alt: "Editor approved image",
+          height: 600,
+          key: "catalog/editor.webp",
+          kind: "catalog",
+          productName: "Editor media",
+          width: 800,
+        },
+      ],
+    });
+  });
+
+  test("persists catalog references as stable identifiers and validates declared fields", async () => {
+    const collectionId = previewCatalogRelease.collections[0]!.id;
+    const productId = previewCatalogRelease.products[0]!.id;
+    const bindings = [
+      ...fashionStoreFixture.bindings,
+      {
+        id: "catalog-fashion-store-home-featured-collection",
+        instanceId: "fashion-store-home",
+        kind: "catalog" as const,
+        reference: { id: collectionId, kind: "collection" as const },
+        settingId: "featured-collection",
+      },
+      {
+        id: "catalog-fashion-store-collection-featured-collection",
+        instanceId: "fashion-store-collection",
+        kind: "catalog" as const,
+        reference: { id: collectionId, kind: "collection" as const },
+        settingId: "featured-collection",
+      },
+      {
+        id: "catalog-fashion-store-product-featured-product",
+        instanceId: "fashion-store-product",
+        kind: "catalog" as const,
+        reference: { id: productId, kind: "product" as const },
+        settingId: "featured-product",
+      },
+    ];
+    const app = appFor();
+    const created = await createDraft(app, "theme-catalog-reference-create-0001", {
+      ...draftInput,
+      bindings,
+    });
+    expect(created.response.status).toBe(201);
+    const validation = await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "theme-catalog-reference-validate-0001",
+    );
+    expect(await validation.json()).toMatchObject({
+      data: { issues: [], status: "valid" },
+    });
+    const persisted = await (
+      await app.fetch(request(`/admin/storefront-experiences/drafts/${created.body.data.id}`), env)
+    ).json<{ data: { bindings: unknown[] } }>();
+    expect(persisted.data.bindings).toContainEqual({
+      id: "catalog-fashion-store-product-featured-product",
+      instanceId: "fashion-store-product",
+      kind: "catalog",
+      reference: { id: productId, kind: "product" },
+      settingId: "featured-product",
+    });
+    expect(JSON.stringify(persisted.data.bindings)).not.toContain("price");
+    expect(JSON.stringify(persisted.data.bindings)).not.toContain("sku");
+  });
+
   test("creates, reads, updates, validates, and idempotently replays an optimistic draft", async () => {
     const app = appFor();
     const created = await createDraft(app, "theme-draft-create-0001");

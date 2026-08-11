@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 import type {
   AdminStorefrontTheme,
+  ExperienceResourceBinding,
   PageTemplate,
   SectionDefinition,
   SectionInstance,
@@ -43,6 +44,8 @@ import {
   createStorefrontPreviewGrant,
   dryRunStorefrontExperienceMigration,
   fetchStorefrontExperienceDraft,
+  fetchStorefrontCatalogMedia,
+  fetchStorefrontCatalogReleases,
   fetchStorefrontPreviewBuild,
   fetchStorefrontThemes,
   previewStorefrontExperienceDraft,
@@ -53,6 +56,8 @@ import {
   type StorefrontExperienceMigration,
   type StorefrontExperienceSnapshot,
   type StorefrontPreviewBuild,
+  type StorefrontCatalogMedia,
+  type StorefrontCatalogRelease,
 } from '../../services/storefront/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
 import { useI18n } from '../../shared/contexts/i18n-context'
@@ -259,12 +264,20 @@ export const ThemeEditorPage = ({
   const { permissions, role } = useAuth()
   const canWrite = hasPermission(role, 'themes.write', permissions)
   const canPreview = hasPermission(role, 'themes.preview', permissions)
+  const canReadCatalog = hasPermission(role, 'catalog.read', permissions)
   const canApprove = hasPermission(role, 'themes.approve', permissions)
   const [draft, setDraft] = useState<StorefrontExperienceDraft | null>(null)
   const [theme, setTheme] = useState<AdminStorefrontTheme | null>(null)
   const [availableThemes, setAvailableThemes] = useState<AdminStorefrontTheme[]>([])
   const [templates, setTemplates] = useState<PageTemplate[]>([])
   const [savedTemplates, setSavedTemplates] = useState<PageTemplate[]>([])
+  const [bindings, setBindings] = useState<ExperienceResourceBinding[]>([])
+  const [savedBindings, setSavedBindings] = useState<ExperienceResourceBinding[]>([])
+  const [catalogReleases, setCatalogReleases] = useState<StorefrontCatalogRelease[]>([])
+  const [catalogMedia, setCatalogMedia] = useState<StorefrontCatalogMedia[]>([])
+  const [selectedReleaseId, setSelectedReleaseId] = useState(
+    () => window.sessionStorage.getItem('storefront-editor-catalog-release') ?? ''
+  )
   const [activeTemplateId, setActiveTemplateId] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -280,7 +293,7 @@ export const ThemeEditorPage = ({
   const [migration, setMigration] = useState<StorefrontExperienceMigration | null>(null)
   const [upgradeThemeKey, setUpgradeThemeKey] = useState('')
   const loadRequest = useRef(0)
-  const dirty = !equalValue(templates, savedTemplates)
+  const dirty = !equalValue(templates, savedTemplates) || !equalValue(bindings, savedBindings)
   const blocker = useBlocker(dirty)
 
   const load = useCallback(async () => {
@@ -309,6 +322,8 @@ export const ThemeEditorPage = ({
       setAvailableThemes(themes)
       setTemplates(nextTemplates)
       setSavedTemplates(cloneTemplates(nextTemplates))
+      setBindings(structuredClone(nextDraft.bindings))
+      setSavedBindings(structuredClone(nextDraft.bindings))
       setActiveTemplateId((current) => current || nextTemplates[0]?.id || '')
       setBuild(null)
       setPreviewSnapshot(null)
@@ -334,6 +349,29 @@ export const ThemeEditorPage = ({
       loadRequest.current += 1
     }
   }, [load])
+
+  useEffect(() => {
+    if (!canPreview || !canReadCatalog || draft?.themeId !== 'fashion-store') return
+    let cancelled = false
+    void Promise.all([
+      fetchStorefrontCatalogReleases(),
+      canWrite ? fetchStorefrontCatalogMedia() : Promise.resolve([]),
+    ])
+      .then(([releases, media]) => {
+        if (cancelled) return
+        setCatalogReleases(releases)
+        setCatalogMedia(media)
+        setSelectedReleaseId((current) =>
+          releases.some(({ id }) => id === current) ? current : (releases[0]?.id ?? '')
+        )
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(normalizeApiError(cause).message)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [canPreview, canReadCatalog, canWrite, draft?.themeId])
 
   useEffect(() => {
     if (!dirty) return
@@ -366,6 +404,8 @@ export const ThemeEditorPage = ({
   }, [build, pollIntervalMs])
 
   const activeTemplate = templates.find(({ id }) => id === activeTemplateId) ?? templates[0]
+  const requiresCatalogRelease = draft?.themeId === 'fashion-store'
+  const selectedRelease = catalogReleases.find(({ id }) => id === selectedReleaseId)
   const status = previewBuildStatus(build)
   const upgradeCandidates = availableThemes.filter(
     ({ id, themeVersion }) => id === draft?.themeId && themeVersion !== draft?.themeVersion
@@ -432,10 +472,13 @@ export const ThemeEditorPage = ({
     const updated = await updateStorefrontExperienceDraft(
       draft,
       createThemeOverrides(theme, draft, templates),
-      reason
+      reason,
+      bindings
     )
     setDraft(updated)
     setSavedTemplates(cloneTemplates(templates))
+    setBindings(structuredClone(updated.bindings))
+    setSavedBindings(structuredClone(updated.bindings))
     return updated
   }
 
@@ -461,11 +504,51 @@ export const ThemeEditorPage = ({
   const reasonReady = changeReason.trim().length >= 3
   const validationCurrent =
     draft?.validation?.status === 'valid' && draft.validation.draftVersion === draft.version
+  const previewContextCurrent =
+    !requiresCatalogRelease ||
+    (build?.status === 'deployed' &&
+      build.inputIdentity?.catalogReleaseId === selectedReleaseId &&
+      build.inputIdentity.experienceVersion === draft?.version)
 
   const startPreview = async (target: StorefrontExperienceDraft, reason: string) => {
-    const resolution = await previewStorefrontExperienceDraft(target.id, target.version, reason)
+    if (requiresCatalogRelease && !selectedReleaseId) {
+      throw new Error(t('Select a deployed Catalog Release before previewing.'))
+    }
+    const resolution = await previewStorefrontExperienceDraft(
+      target.id,
+      target.version,
+      reason,
+      selectedReleaseId || undefined
+    )
     setPreviewSnapshot(resolution.snapshot)
     setBuild(resolution.build)
+  }
+
+  const setCatalogBinding = (
+    instanceId: string,
+    settingId: string,
+    kind: 'collection' | 'product',
+    referenceId?: string
+  ) => {
+    setBindings((current) => {
+      const rest = current.filter(
+        (binding) =>
+          binding.kind !== 'catalog' ||
+          binding.instanceId !== instanceId ||
+          binding.settingId !== settingId
+      )
+      if (!referenceId) return rest
+      return [
+        ...rest,
+        {
+          id: `catalog-${instanceId}-${settingId}`,
+          instanceId,
+          kind: 'catalog',
+          reference: { id: referenceId, kind },
+          settingId,
+        },
+      ]
+    })
   }
 
   const reloadSavedDraft = () => {
@@ -558,7 +641,9 @@ export const ThemeEditorPage = ({
             <Button
               type="primary"
               icon={<EyeOutlined aria-hidden />}
-              disabled={!reasonReady}
+              disabled={
+                !reasonReady || (requiresCatalogRelease && (!selectedReleaseId || !canReadCatalog))
+              }
               loading={busy}
               onClick={() =>
                 void runAction(async () => {
@@ -623,9 +708,53 @@ export const ThemeEditorPage = ({
         <Descriptions.Item label={t('Preset')}>{draft.presetId}</Descriptions.Item>
         <Descriptions.Item label={t('Schema')}>{draft.configurationSchemaVersion}</Descriptions.Item>
         <Descriptions.Item label={t('Last saved')}>{draft.updatedAt}</Descriptions.Item>
-        <Descriptions.Item label={t('Fixture bindings')}>{draft.bindings.length}</Descriptions.Item>
+        <Descriptions.Item label={t('Resource bindings')}>{bindings.length}</Descriptions.Item>
         <Descriptions.Item label={t('Production theme')}>{t('Unchanged')}</Descriptions.Item>
       </Descriptions>
+
+      {requiresCatalogRelease ? (
+        <Card title={t('Live preview context')}>
+        {!canReadCatalog ? (
+          <Alert
+            type="warning"
+            showIcon
+            title={t('Catalog access is required')}
+            description={t('Live preview requires both themes.preview and catalog.read permissions.')}
+          />
+        ) : catalogReleases.length === 0 ? (
+          <Alert
+            type="info"
+            showIcon
+            title={t('No deployed canonical Catalog Release is available in this environment.')}
+          />
+        ) : (
+          <Space orientation="vertical" className="w-full">
+            <Select
+              aria-label={t('Catalog Release')}
+              className="w-full"
+              value={selectedReleaseId || undefined}
+              options={catalogReleases.map((release) => ({
+                label: `${release.id} · ${release.environment} · ${release.deployedAt ?? release.approvedAt}`,
+                value: release.id,
+              }))}
+              onChange={(value) => {
+                setSelectedReleaseId(value)
+                window.sessionStorage.setItem('storefront-editor-catalog-release', value)
+                setBuild(null)
+                setPreviewSnapshot(null)
+                setAnnouncement(t('Catalog Release changed. Draft edits were preserved; preview validation is required again.'))
+              }}
+            />
+            {selectedRelease ? (
+              <Typography.Text type="secondary">
+                {selectedRelease.environment} · {selectedRelease.status} · {selectedRelease.products.length}{' '}
+                {t('products')} · {selectedRelease.collections.length} {t('collections')}
+              </Typography.Text>
+            ) : null}
+          </Space>
+        )}
+        </Card>
+      ) : null}
 
       <Card
         title={t('Change context')}
@@ -818,16 +947,132 @@ export const ThemeEditorPage = ({
                                       </label>
                                     )
                                   }
-                                  return (
-                                    <Alert
-                                      key={definition.id}
-                                      type="info"
-                                      title={t('{id} is managed as a validated {kind} reference.', {
-                                        id: definition.id,
-                                        kind: definition.kind,
-                                      })}
-                                    />
-                                  )
+                                  if (
+                                    definition.kind === 'product-reference' ||
+                                    definition.kind === 'collection-reference'
+                                  ) {
+                                    const referenceKind =
+                                      definition.kind === 'product-reference'
+                                        ? 'product'
+                                        : 'collection'
+                                    const selected = bindings.find(
+                                      (binding) =>
+                                        binding.kind === 'catalog' &&
+                                        binding.instanceId === section.id &&
+                                        binding.settingId === definition.id
+                                    )
+                                    const resources =
+                                      referenceKind === 'product'
+                                        ? (selectedRelease?.products ?? [])
+                                        : (selectedRelease?.collections ?? [])
+                                    return (
+                                      <label key={definition.id}>
+                                        <Typography.Text>{definition.id}</Typography.Text>
+                                        <Select
+                                          aria-label={label}
+                                          allowClear={!definition.required}
+                                          showSearch
+                                          optionFilterProp="label"
+                                          className="w-full"
+                                          disabled={!canWrite || !selectedRelease}
+                                          value={
+                                            selected?.kind === 'catalog'
+                                              ? selected.reference.id
+                                              : undefined
+                                          }
+                                          options={resources.map((resource) => ({
+                                            label: `${resource.name} · ${resource.slug}`,
+                                            value: resource.id,
+                                          }))}
+                                          onChange={(next) =>
+                                            setCatalogBinding(
+                                              section.id,
+                                              definition.id,
+                                              referenceKind,
+                                              next
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    )
+                                  }
+                                  if (definition.kind === 'asset') {
+                                    return (
+                                      <label key={definition.id}>
+                                        <Typography.Text>{definition.id}</Typography.Text>
+                                        <Select
+                                          aria-label={label}
+                                          allowClear={!definition.required}
+                                          showSearch
+                                          optionFilterProp="label"
+                                          className="w-full"
+                                          disabled={!canWrite || !canReadCatalog}
+                                          value={
+                                            typeof value === 'object' &&
+                                            value !== null &&
+                                            'kind' in value &&
+                                            value.kind === 'catalog'
+                                              ? value.key
+                                              : undefined
+                                          }
+                                          placeholder={t('Choose approved Catalog media')}
+                                          options={catalogMedia.map((media) => ({
+                                            label: `${media.alt} · ${media.productName}`,
+                                            value: media.key,
+                                          }))}
+                                          onChange={(key) =>
+                                            updateSection(template.id, section.id, (current) => {
+                                              const media = catalogMedia.find(
+                                                (candidate) => candidate.key === key
+                                              )
+                                              if (media) {
+                                                current.settings[definition.id] = {
+                                                  alt: media.alt,
+                                                  height: media.height,
+                                                  key: media.key,
+                                                  kind: 'catalog',
+                                                  width: media.width,
+                                                }
+                                              } else {
+                                                current.settings[definition.id] = definition.default
+                                              }
+                                            })
+                                          }
+                                        />
+                                      </label>
+                                    )
+                                  }
+                                  if (definition.kind === 'link') {
+                                    const target =
+                                      typeof value === 'object' &&
+                                      value !== null &&
+                                      'kind' in value &&
+                                      (value.kind === 'route' || value.kind === 'external')
+                                        ? value
+                                        : definition.default
+                                    const targetValue =
+                                      target.kind === 'route' ? target.path : target.url
+                                    return (
+                                      <label key={definition.id}>
+                                        <Typography.Text>{definition.id}</Typography.Text>
+                                        <Input
+                                          aria-label={label}
+                                          disabled={!canWrite}
+                                          value={targetValue}
+                                          placeholder="/internal-route or https://example.com"
+                                          onChange={(event) => {
+                                            const next = event.target.value.trim()
+                                            updateSection(template.id, section.id, (current) => {
+                                              current.settings[definition.id] = next.startsWith('/')
+                                                ? { kind: 'route', path: next }
+                                                : { kind: 'external', url: next }
+                                            })
+                                          }}
+                                        />
+                                      </label>
+                                    )
+                                  }
+                                  return null
                                 })}
                               </div>
                             </>
@@ -955,6 +1200,15 @@ export const ThemeEditorPage = ({
               <Descriptions.Item label={t('Build')}>{build.id}</Descriptions.Item>
               <Descriptions.Item label={t('Attempt')}>{build.attempt}</Descriptions.Item>
               <Descriptions.Item label={t('Snapshot')}>{build.snapshotId}</Descriptions.Item>
+              <Descriptions.Item label={t('Catalog Release')}>
+                {build.inputIdentity?.catalogReleaseId ?? t('None')}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Experience version')}>
+                {build.inputIdentity?.experienceVersion ?? t('Unknown')}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Theme version')}>
+                {build.inputIdentity?.themeVersion ?? draft.themeVersion}
+              </Descriptions.Item>
               {build.failureCode ? (
                 <Descriptions.Item label={t('Failure')}>{build.failureCode}</Descriptions.Item>
               ) : null}
@@ -978,7 +1232,8 @@ export const ThemeEditorPage = ({
                   const grant = await createStorefrontPreviewGrant(
                     previewSnapshot.id,
                     previewOrigin,
-                    changeReason
+                    changeReason,
+                    selectedReleaseId || undefined
                   )
                   submitPreviewGrant(grant)
                 })
@@ -998,7 +1253,12 @@ export const ThemeEditorPage = ({
           {build && ['failed', 'expired'].includes(build.status) ? (
             <Button
               icon={<ReloadOutlined aria-hidden />}
-              disabled={dirty || !validationCurrent || !reasonReady}
+              disabled={
+                dirty ||
+                !validationCurrent ||
+                !reasonReady ||
+                (requiresCatalogRelease && !selectedReleaseId)
+              }
               onClick={() =>
                 void runAction(async () => {
                   await startPreview(draft, changeReason)
@@ -1037,7 +1297,13 @@ export const ThemeEditorPage = ({
             <Button
               type="primary"
               icon={<CheckCircleOutlined aria-hidden />}
-              disabled={dirty || !validationCurrent || approvalReason.trim().length < 3 || busy}
+              disabled={
+                dirty ||
+                !validationCurrent ||
+                !previewContextCurrent ||
+                approvalReason.trim().length < 3 ||
+                busy
+              }
               onClick={() =>
                 void runAction(async () => {
                   const snapshot = await approveStorefrontExperienceDraft(

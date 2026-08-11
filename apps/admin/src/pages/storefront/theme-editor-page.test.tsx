@@ -341,7 +341,7 @@ const authValue = (role: Role) => ({
   logout: () => undefined,
   permissions:
     role === 'admin'
-      ? (['themes.read', 'themes.write', 'themes.preview', 'themes.approve'] as const)
+      ? (['themes.read', 'themes.write', 'themes.preview', 'themes.approve', 'catalog.read'] as const)
       : (['themes.read'] as const),
   principalKind: 'human' as const,
   refreshSession: async () => undefined,
@@ -404,9 +404,13 @@ afterEach(() => {
   migrationBody = null
   createDraftBody = null
   buildStatus = 'building'
+  window.sessionStorage.clear()
   server.resetHandlers()
 })
-afterAll(() => server.close())
+afterAll(async () => {
+  await new Promise((resolve) => window.setTimeout(resolve, 20))
+  server.close()
+})
 
 describe('ThemesPage', () => {
   it('lists API-approved packages and creates the selected preset draft', async () => {
@@ -447,6 +451,116 @@ describe('ThemesPage', () => {
 })
 
 describe('ThemeEditorPage', () => {
+  it('derives live text, enum, asset, link, and stable reference controls from the manifest', async () => {
+    const catalogTheme: AdminStorefrontTheme = {
+      ...theme,
+      componentRegistry: {
+        ...theme.componentRegistry,
+        sections: theme.componentRegistry.sections.map((section) =>
+          section.type === 'fashion.hero'
+            ? {
+                ...section,
+                settings: [
+                  ...section.settings,
+                  { id: 'featured-product', kind: 'product-reference', required: true },
+                  {
+                    default: {
+                      alt: 'Hero',
+                      height: 600,
+                      kind: 'theme',
+                      path: 'assets/hero.webp',
+                      width: 800,
+                    },
+                    id: 'image',
+                    kind: 'asset',
+                    required: false,
+                  },
+                  {
+                    default: { kind: 'route', path: '/shop' },
+                    id: 'cta',
+                    kind: 'link',
+                    required: false,
+                  },
+                ],
+              }
+            : section
+        ),
+      },
+      id: 'fashion-store',
+      presetDefinitions: theme.presetDefinitions.map((preset) => ({
+        ...preset,
+        templates: preset.templates.map((template) => ({
+          ...template,
+          sections: template.sections.map((section) =>
+            section.id === 'home-hero'
+              ? {
+                  ...section,
+                  settings: {
+                    ...section.settings,
+                    cta: { kind: 'route', path: '/shop' },
+                    image: {
+                      alt: 'Hero',
+                      height: 600,
+                      kind: 'theme',
+                      path: 'assets/hero.webp',
+                      width: 800,
+                    },
+                  },
+                }
+              : section
+          ),
+        })),
+      })),
+    }
+    currentDraft = { ...structuredClone(baseDraft), themeId: 'fashion-store' }
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [catalogTheme] })
+      ),
+      http.get('*/admin/storefront-experiences/catalog-releases', () =>
+        HttpResponse.json({
+          data: [
+            {
+              approvedAt: '2026-08-11T00:00:00.000Z',
+              collections: [],
+              deployedAt: '2026-08-11T01:00:00.000Z',
+              environment: 'staging',
+              id: 'release-editor-1',
+              products: [
+                { id: 'product-stable-1', kind: 'product', name: 'Stable product', slug: 'stable' },
+              ],
+              status: 'deployed',
+            },
+          ],
+        })
+      ),
+      http.get('*/admin/storefront-experiences/media', () =>
+        HttpResponse.json({
+          data: [
+            {
+              alt: 'Approved hero',
+              height: 600,
+              key: 'catalog/hero.webp',
+              kind: 'catalog',
+              productName: 'Stable product',
+              src: 'https://media.example.test/catalog/hero.webp',
+              width: 800,
+            },
+          ],
+        })
+      )
+    )
+
+    const view = renderEditor()
+    expect(await screen.findByRole('combobox', { name: 'Catalog Release' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'home-hero heading' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'home-hero alignment' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'home-hero featured-product' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'home-hero image' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'home-hero cta' })).toBeTruthy()
+    view.unmount()
+  })
+
   it('resolves overrides, preserves stable IDs, and emits minimal resettable operations', () => {
     const resolved = resolveDraftTemplates(theme, baseDraft)
     expect(resolved[0]?.sections.map(({ id }) => id)).toEqual([

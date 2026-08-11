@@ -1,6 +1,46 @@
 import type { ThemePreset } from "@shoppp/contracts";
 import { fashionStoreTemplatePageTypes } from "../page-contracts";
 
+const editableDefaults = {
+  cart: { "help-copy": "Need help with your cart?" },
+  checkout: { "help-copy": "Secure checkout" },
+  collection: {
+    "intro-copy": "Discover the latest edit.",
+    "intro-title": "Shop the collection",
+  },
+  content: {
+    "about.heading": "About us",
+    "about.message": "Learn more about this store.",
+    "account.heading": "Account unavailable",
+    "account.message": "Customer accounts are not available yet.",
+    "brand-logo": {
+      alt: "Fashion Store logo",
+      height: 56,
+      kind: "theme" as const,
+      path: "assets/images/fashion-store-logo.svg",
+      width: 180,
+    },
+    "contact.heading": "Contact information",
+    "contact.message": "Merchant contact details will appear here.",
+    "content-style": "standard",
+    "faq.heading": "Frequently asked questions",
+    "faq.message": "Helpful answers from our team.",
+    "legal-link": { kind: "route" as const, path: "/policies/privacy" },
+    "magazine.heading": "Magazine",
+    "magazine.marketing-tips-and-tricks.heading": "Marketing tips and tricks",
+    "magazine.marketing-tips-and-tricks.message": "Editorial story.",
+    "magazine.message": "Stories from the latest collection.",
+    "wishlist.heading": "Wishlist",
+    "wishlist.message": "Saved wishlists are not available yet.",
+  },
+  home: {
+    "hero-body": "Explore the latest edit.",
+    "hero-eyebrow": "New collection",
+    "hero-title": "Fashion for every day",
+  },
+  product: { "presentation-copy": "Designed for everyday wear." },
+} as const;
+
 export const fashionStorePreset = {
   id: "source-parity",
   label: "Source parity",
@@ -14,7 +54,7 @@ export const fashionStorePreset = {
         capabilities: [],
         id: `fashion-store-${pageType}`,
         required: true,
-        settings: {},
+        settings: editableDefaults[pageType],
         type: `fashion-store.${pageType}`,
         visible: true,
       },

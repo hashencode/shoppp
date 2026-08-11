@@ -1,11 +1,11 @@
 import {
   adminStorefrontThemeSchema,
+  experienceResourceBindingSchema,
   experienceDraftSchema,
   experienceSnapshotSchema,
-  fixtureBindingSchema,
   themePackageSchema,
   type CreateStorefrontExperienceDraftRequest,
-  type FixtureBinding,
+  type ExperienceResourceBinding,
   type StorefrontExperienceMigrationDryRunRequest,
   type ThemeOverride,
   type ThemePackage,
@@ -189,8 +189,8 @@ function packageFor(
   return parsed.data;
 }
 
-function parseBindings(value: string): FixtureBinding[] {
-  return JSON.parse(value) as FixtureBinding[];
+function parseBindings(value: string): ExperienceResourceBinding[] {
+  return experienceResourceBindingSchema.array().parse(JSON.parse(value));
 }
 
 function parseOverrides(value: string): ThemeOverride[] {
@@ -414,35 +414,95 @@ function resolveDraft(
   );
   const bindings = parseBindings(row.bindings_json);
   const bindingIds = bindings.map(({ id }) => id);
-  const boundInstanceIds = bindings.map(({ instanceId }) => instanceId);
   if (new Set(bindingIds).size !== bindingIds.length) {
     issues.push({
       code: "duplicate_binding_id",
       message: "Fixture binding IDs must be unique.",
     });
   }
-  if (new Set(boundInstanceIds).size !== boundInstanceIds.length) {
+  const fixtureBindings = bindings.filter((binding) => binding.kind === "fixture");
+  const fixtureInstanceIds = fixtureBindings.map(({ instanceId }) => instanceId);
+  if (new Set(fixtureInstanceIds).size !== fixtureInstanceIds.length) {
+    issues.push({ code: "duplicate_fixture_binding", message: "Fixture bindings must be unique." });
+  }
+  const catalogBindings = bindings.filter((binding) => binding.kind === "catalog");
+  const catalogBindingKeys = catalogBindings.map(
+    ({ instanceId, settingId }) => `${instanceId}:${settingId}`,
+  );
+  if (new Set(catalogBindingKeys).size !== catalogBindingKeys.length) {
     issues.push({
-      code: "duplicate_instance_binding",
-      message: "Each visible instance may have only one fixture binding.",
+      code: "duplicate_catalog_binding",
+      message: "Each catalog reference field may have only one binding.",
     });
   }
-  for (const instanceId of visibleInstanceIds) {
-    if (!boundInstanceIds.includes(instanceId)) {
+  for (const instanceId of bindings.map(({ instanceId }) => instanceId)) {
+    if (!declaredInstanceIds.has(instanceId)) {
       issues.push({
-        code: "fixture_binding_missing",
-        message: `Visible instance ${instanceId} has no fixture binding.`,
+        code: "resource_binding_unknown",
+        message: `Resource binding references unknown instance ${instanceId}.`,
         path: instanceId,
       });
     }
   }
-  for (const instanceId of boundInstanceIds) {
-    if (!declaredInstanceIds.has(instanceId)) {
-      issues.push({
-        code: "fixture_binding_unknown",
-        message: `Fixture binding references unknown instance ${instanceId}.`,
-        path: instanceId,
-      });
+  if (catalogBindings.length === 0) {
+    for (const instanceId of visibleInstanceIds) {
+      if (!fixtureInstanceIds.includes(instanceId)) {
+        issues.push({
+          code: "fixture_binding_missing",
+          message: `Visible instance ${instanceId} has no fixture binding.`,
+          path: instanceId,
+        });
+      }
+    }
+  } else {
+    const definitionsByInstance = new Map(
+      resolvedTemplates.flatMap(({ sections }) =>
+        sections.flatMap((section) => {
+          const instances = [section, ...section.blocks];
+          return instances.map((instance) => {
+            const definition =
+              selectedPackage.manifest.componentRegistry.sections.find(
+                ({ type }) => type === instance.type,
+              ) ??
+              selectedPackage.manifest.componentRegistry.blocks.find(
+                ({ type }) => type === instance.type,
+              );
+            return [instance.id, definition?.settings ?? []] as const;
+          });
+        }),
+      ),
+    );
+    for (const binding of catalogBindings) {
+      const definition = definitionsByInstance
+        .get(binding.instanceId)
+        ?.find(({ id }) => id === binding.settingId);
+      const expectedKind =
+        binding.reference.kind === "product" ? "product-reference" : "collection-reference";
+      if (!definition || definition.kind !== expectedKind) {
+        issues.push({
+          code: "catalog_binding_setting_invalid",
+          message: `Catalog binding ${binding.id} does not match a declared ${expectedKind} field.`,
+          path: `${binding.instanceId}.${binding.settingId}`,
+        });
+      }
+    }
+    for (const [instanceId, definitions] of definitionsByInstance) {
+      if (!visibleInstanceIds.has(instanceId)) continue;
+      for (const definition of definitions) {
+        if (
+          definition.required &&
+          (definition.kind === "product-reference" || definition.kind === "collection-reference") &&
+          !catalogBindings.some(
+            (binding) => binding.instanceId === instanceId && binding.settingId === definition.id,
+          )
+        ) {
+          issues.push({
+            code: "catalog_binding_missing",
+            message: `Required catalog reference ${definition.id} is missing.`,
+            path: `${instanceId}.${definition.id}`,
+          });
+        }
+      }
     }
   }
   return { issues, package: selectedPackage, resolvedTemplates };
@@ -503,7 +563,9 @@ export function listStorefrontThemes() {
     return adminStorefrontThemeSchema.parse({
       ...descriptor,
       componentRegistry: themePackage.manifest.componentRegistry,
-      fixtureBindings: fixtureBindingSchema.array().parse(fixtureBindingsByThemeId[descriptor.id]),
+      fixtureBindings: experienceResourceBindingSchema
+        .array()
+        .parse(fixtureBindingsByThemeId[descriptor.id]),
       presetDefinitions: themePackage.presets,
     });
   });
