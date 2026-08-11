@@ -4,7 +4,6 @@ import {
   decorStoreBodySourceMarkup,
   decorStoreHeaderSourceMarkup,
   decorStoreHeroSourceMarkup,
-  decorStoreProductCardSourceMarkup,
   decorStoreTailSourceMarkup,
 } from "./source-fragments.generated";
 
@@ -12,7 +11,6 @@ export {
   decorStoreBodySourceMarkup,
   decorStoreHeaderSourceMarkup,
   decorStoreHeroSourceMarkup,
-  decorStoreProductCardSourceMarkup,
   decorStoreTailSourceMarkup,
 };
 
@@ -43,19 +41,13 @@ function addAccessibleLinkNames(markup: string): string {
       if (visibleText) return anchor;
       const sourcePath = content.match(/\bsrc="(images\/[^"]+)"/)?.[1];
       const className = attributes.match(/\bclass="([^"]+)"/)?.[1] || "";
-      const label = sourcePath
-        ? accessibleImageLinkLabel(sourcePath)
-        : /facebook/i.test(className)
-          ? "Facebook"
-          : /dribbble/i.test(className)
-            ? "Dribbble"
-            : /twitter/i.test(className)
-              ? "Twitter"
-              : /instagram/i.test(className)
-                ? "Instagram"
-                : /\bbi-info\b/.test(content)
-                  ? "Product information"
-                  : "Open link";
+      let label = "Open link";
+      if (sourcePath) label = accessibleImageLinkLabel(sourcePath);
+      else if (/facebook/i.test(className)) label = "Facebook";
+      else if (/dribbble/i.test(className)) label = "Dribbble";
+      else if (/twitter/i.test(className)) label = "Twitter";
+      else if (/instagram/i.test(className)) label = "Instagram";
+      else if (/\bbi-info\b/.test(content)) label = "Product information";
       return `<a${attributes} aria-label="${label}">${content}</a>`;
     },
   );

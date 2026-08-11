@@ -6,7 +6,6 @@ export interface DecorStoreSourceFragments {
   body: string;
   header: string;
   hero: string;
-  productCard: string;
   tail: string;
 }
 
@@ -51,9 +50,7 @@ export function extractDecorStoreSourceFragments(source: string): DecorStoreSour
     'src="images/demo-decor-store-product-01.jpg"',
     productGridIndex,
   );
-  const tableClockStart = source.lastIndexOf('<li class="grid-item">', tableClockIndex);
-  const tableClockEnd = source.indexOf("</li>", tableClockIndex);
-  if (tableClockIndex < 0 || tableClockStart < 0 || tableClockEnd < 0)
+  if (tableClockIndex < 0)
     throw new Error("The representative Table clock card is missing from the Decor source.");
 
   return {
@@ -72,7 +69,6 @@ export function extractDecorStoreSourceFragments(source: string): DecorStoreSour
       /\sdata-thumb="https?:\/\/[^"]*"/g,
       "",
     ),
-    productCard: source.slice(tableClockStart, tableClockEnd + "</li>".length),
     tail: source
       .slice(footerStart, scrollProgressEnd + "<!-- end scroll progress -->".length)
       .replace(
@@ -108,7 +104,6 @@ export async function renderDecorStoreSourceFragments(
     `export const decorStoreHeroSourceMarkup = ${JSON.stringify(fragments.hero)} as const;`,
     `export const decorStoreBodySourceMarkup = ${JSON.stringify(fragments.body)} as const;`,
     `export const decorStoreTailSourceMarkup = ${JSON.stringify(fragments.tail)} as const;`,
-    `export const decorStoreProductCardSourceMarkup = ${JSON.stringify(fragments.productCard)} as const;`,
     "",
   ].join("\n");
   return format(source, { parser: "typescript" });

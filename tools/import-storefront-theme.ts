@@ -368,14 +368,13 @@ function sha256(contents: Uint8Array): string {
 }
 
 function upstreamMarkdown(source: StorefrontThemeSource): string {
-  const title =
-    source.themeId === "fashion-store"
-      ? "Fashion Store"
-      : source.themeId === "decor-store"
-        ? "Decor Store"
-        : source.themeId === "fashion"
-          ? "Fashion"
-          : "Decor";
+  const titles: Record<StorefrontThemeId, string> = {
+    decor: "Decor",
+    "decor-store": "Decor Store",
+    fashion: "Fashion",
+    "fashion-store": "Fashion Store",
+  };
+  const title = titles[source.themeId];
   if (source.themeId === "fashion-store" || source.themeId === "decor-store") {
     const runtimeBoundary =
       source.themeId === "decor-store"

@@ -24,6 +24,7 @@ export function useDecorStoreRuntime(
   let disposed = false;
   let bodyAbort: AbortController | undefined;
   let bodyMotionQuery: MediaQueryList | undefined;
+  let bodyMotionRegions: HTMLElement[] = [];
   let carouselTimer: ReturnType<typeof setInterval> | undefined;
   let carouselRegion: HTMLElement | undefined;
   let carouselSlides: HTMLElement[] = [];
@@ -56,13 +57,10 @@ export function useDecorStoreRuntime(
   }
 
   function publishBodyPauseState(): void {
-    root.value
-      ?.querySelectorAll<HTMLElement>(
-        "[data-decor-region='promotional-marquee'], [data-decor-region='collection-carousel'], [data-decor-region='client-marquee']",
-      )
-      .forEach((region) => {
-        region.dataset.motionPaused = String(bodyMotionIsPaused(region));
-      });
+    bodyMotionRegions.forEach((region) => {
+      const paused = String(bodyMotionIsPaused(region));
+      if (region.dataset.motionPaused !== paused) region.dataset.motionPaused = paused;
+    });
   }
 
   function renderCarousel(): void {
@@ -107,6 +105,11 @@ export function useDecorStoreRuntime(
     bodyAbort = new AbortController();
     const signal = bodyAbort.signal;
     bodyMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+    bodyMotionRegions = [
+      ...host.querySelectorAll<HTMLElement>(
+        "[data-decor-region='promotional-marquee'], [data-decor-region='collection-carousel'], [data-decor-region='client-marquee']",
+      ),
+    ];
     const failedCapability = bodyCapabilityFailure();
 
     for (const key of ["promotional-marquee", "client-marquee"] as const) {
@@ -176,14 +179,13 @@ export function useDecorStoreRuntime(
               .querySelectorAll<HTMLElement>("[role='tab']"),
           ];
           const current = tabs.indexOf(tab);
-          const next =
-            event.key === "Home"
-              ? tabs[0]
-              : event.key === "End"
-                ? tabs.at(-1)
-                : tabs[
-                    (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length
-                  ];
+          let next: HTMLElement | undefined;
+          if (event.key === "Home") next = tabs[0];
+          else if (event.key === "End") next = tabs.at(-1);
+          else {
+            const delta = event.key === "ArrowRight" ? 1 : -1;
+            next = tabs[(current + delta + tabs.length) % tabs.length];
+          }
           if (next) activateProductTab(next, true);
           return;
         }
@@ -434,7 +436,10 @@ export function useDecorStoreRuntime(
         throw new Error("Decor Revolution initializer returned without an initialized instance.");
       }
       observer = new MutationObserver(updateActiveSlide);
-      observer.observe(sliderElement, { attributes: true, subtree: true });
+      observer.observe(sliderElement, {
+        attributeFilter: ["data-slideactive"],
+        attributes: true,
+      });
       updateActiveSlide();
       await waitForVisibleSourceLayers(sliderElement);
       if (disposed) return;
@@ -462,6 +467,7 @@ export function useDecorStoreRuntime(
     bodyAbort = undefined;
     bodyMotionQuery?.removeEventListener("change", publishBodyPauseState);
     bodyMotionQuery = undefined;
+    bodyMotionRegions = [];
     carouselSlides.forEach((slide) => {
       slide.hidden = false;
       slide.removeAttribute("aria-hidden");

@@ -253,12 +253,17 @@ function handleResize(): void {
 watchEffect(() => {
   const slider = root.value?.querySelector<HTMLElement>("#decor-store-slider");
   if (!slider) return;
-  slider.dataset.decorHeroReady = String(runtime.status.value === "ready");
-  slider.dataset.decorHeroActiveSlide = runtime.activeSlide.value;
-  slider.dataset.decorHeroTransition = runtime.transition.value;
-  slider.dataset.decorHeroFallback = runtime.failure.value;
-  slider.dataset.decorHeroReducedMotion = String(runtime.reducedMotion.value);
-  slider.dataset.decorHeroPageHidden = String(runtime.pageHidden.value);
+  const state = {
+    decorHeroActiveSlide: runtime.activeSlide.value,
+    decorHeroFallback: runtime.failure.value,
+    decorHeroPageHidden: String(runtime.pageHidden.value),
+    decorHeroReady: String(runtime.status.value === "ready"),
+    decorHeroReducedMotion: String(runtime.reducedMotion.value),
+    decorHeroTransition: runtime.transition.value,
+  };
+  for (const [key, value] of Object.entries(state)) {
+    if (slider.dataset[key] !== value) slider.dataset[key] = value;
+  }
 });
 
 onMounted(() => {

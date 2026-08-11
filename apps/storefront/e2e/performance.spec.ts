@@ -24,21 +24,21 @@ const fashionStoreRoutes = fashionStorePageContracts
 if (fashionStoreRoutes.length !== fashionStorePerformancePageIds.size) {
   throw new Error("Fashion Store performance routes are incomplete.");
 }
-const routes = rootUrlOverride
-  ? ["/"]
-  : theme === "decor-store"
-    ? ["/"]
-    : theme === "fashion-store"
-      ? fashionStoreRoutes
-      : [
-          "/",
-          manifest.routes.find((route) => route.startsWith("/collections/")),
-          manifest.routes.find((route) => route.startsWith("/products/")),
-          "/cart",
-          "/checkout",
-          "/orders/fixture-order",
-          manifest.routes.find((route) => route.startsWith("/policies/")),
-        ].filter((route): route is string => Boolean(route));
+function performanceRoutes(): string[] {
+  if (rootUrlOverride || theme === "decor-store") return ["/"];
+  if (theme === "fashion-store") return fashionStoreRoutes;
+  return [
+    "/",
+    manifest.routes.find((route) => route.startsWith("/collections/")),
+    manifest.routes.find((route) => route.startsWith("/products/")),
+    "/cart",
+    "/checkout",
+    "/orders/fixture-order",
+    manifest.routes.find((route) => route.startsWith("/policies/")),
+  ].filter((route): route is string => Boolean(route));
+}
+
+const routes = performanceRoutes();
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,
