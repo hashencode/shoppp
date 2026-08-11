@@ -50,6 +50,35 @@ export const decorStoreBodySourceMarkup = bodyRegionKeys
   })
   .join("\n");
 
+const footerStart = decorStoreSource.indexOf("<!-- start footer -->");
+const scrollProgressEnd = decorStoreSource.indexOf("<!-- end scroll progress -->", footerStart);
+if (footerStart < 0 || scrollProgressEnd < 0) {
+  throw new Error("The Decor source footer and fixed-control tail is missing.");
+}
+export const decorStoreTailSourceMarkup = decorStoreSource
+  .slice(footerStart, scrollProgressEnd + "<!-- end scroll progress -->".length)
+  .replace(
+    'action="email-templates/subscribe-newsletter.php" method="post"',
+    'action="" data-decor-newsletter-form="" aria-label="Newsletter presentation"',
+  )
+  .replace(
+    '<button class="btn pe-20px submit" aria-label="submit">',
+    '<button type="button" class="btn pe-20px submit" aria-label="Newsletter unavailable in preview" aria-disabled="true">',
+  )
+  .replace(
+    'class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px" aria-label="btn"',
+    'class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px" data-cookie-choice="reject" aria-label="Reject cookies"',
+  )
+  .replace(
+    'class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100" data-accept-btn aria-label="text"',
+    'class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100" data-accept-btn data-cookie-choice="accept" aria-label="Allow cookies"',
+  )
+  .replace(
+    'class="scroll-top" aria-label="scroll"',
+    'class="scroll-top" role="button" aria-label="Back to top"',
+  )
+  .replaceAll('href="#"', 'href="/" data-decor-route-intent="navigation"');
+
 const productGridIndex = decorStoreSource.indexOf(">Best sellers<");
 const tableClockIndex = decorStoreSource.indexOf(
   'src="images/demo-decor-store-product-01.jpg"',

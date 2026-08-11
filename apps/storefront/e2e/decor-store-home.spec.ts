@@ -8,6 +8,163 @@ async function prepare(page: Page): Promise<Locator> {
   return root;
 }
 
+test("reduced motion is stable when requested before the first navigation", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const root = await prepare(page);
+  await expect(root).toHaveAttribute("data-runtime-status", "ready");
+  await expect(page.locator("#decor-store-slider")).toHaveAttribute(
+    "data-decor-hero-reduced-motion",
+    "true",
+  );
+  const title = page.locator("#decor-store-slider > ul > li.active-revslide [id$='-layer-07']");
+  await expect(title).toBeVisible();
+  await expect(title).toHaveCSS("filter", "none");
+  await expect(
+    page.locator("[data-decor-region='products'] #tab_five1 .grid-item").first(),
+  ).toBeVisible();
+});
+
+test("source footer routes are typed while newsletter remains presentation-only", async ({
+  page,
+}) => {
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(request.url()));
+  const root = await prepare(page);
+  await expect(root).toHaveAttribute("data-decor-tail-ready", "true");
+  const footer = page.locator("footer.footer-dark");
+  await expect(footer).toContainText("Categories");
+  await expect(footer).toContainText("Newsletter");
+  await expect(footer.locator("img")).toHaveCount(5);
+  await footer.getByRole("link", { name: "Bed room" }).click();
+  await expect(root).toHaveAttribute("data-preview-intent-count", "1");
+
+  const newsletter = footer.locator("[data-decor-newsletter-form]");
+  await expect(newsletter).toHaveAttribute("data-newsletter-supported", "false");
+  await newsletter.getByRole("textbox").fill("reader@example.com");
+  await expect(
+    newsletter.getByRole("button", { name: "Newsletter unavailable in preview" }),
+  ).toHaveAttribute("aria-disabled", "true");
+  await newsletter.evaluate((form: HTMLFormElement) => form.requestSubmit());
+  await expect(newsletter.locator(".form-results")).toBeHidden();
+  expect(requests.filter((url) => url.includes("subscribe-newsletter.php"))).toEqual([]);
+});
+
+test("cookie choices dismiss locally without persistence or network requests", async ({ page }) => {
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(request.url()));
+  const root = await prepare(page);
+  const cookie = page.locator(".cookie-message");
+  await expect(cookie).toBeVisible();
+  await cookie.getByRole("link", { name: "Allow cookies" }).click();
+  await expect(cookie).toBeHidden();
+  await expect(root).toHaveAttribute("data-decor-cookie-choice", "accept");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator(".cookie-message")).toBeVisible();
+  await page.locator(".cookie-message").getByRole("link", { name: "Reject cookies" }).click();
+  await expect(page.locator(".cookie-message")).toBeHidden();
+  await expect(page.locator("[data-decor-store-source-parity]")).toHaveAttribute(
+    "data-decor-cookie-choice",
+    "reject",
+  );
+  expect(
+    requests.filter((url) => /cookie|consent/i.test(url) && !url.includes("127.0.0.1")),
+  ).toEqual([]);
+});
+
+test("fixed controls follow source breakpoints, thresholds, progress, and back-to-top", async ({
+  page,
+}) => {
+  await prepare(page);
+  const sticky = page.locator(".sticky-wrap");
+  const progress = page.locator(".scroll-progress");
+  await expect(sticky).toHaveAttribute("data-sticky-visible", "true");
+  await expect(sticky).toHaveClass(/shadow-in/);
+  await expect(progress).toHaveAttribute("data-scroll-visible", "false");
+  await page.evaluate(() => window.scrollTo(0, 350));
+  await expect(progress).toHaveAttribute("data-scroll-visible", "true");
+  const first = Number(await progress.getAttribute("data-scroll-progress"));
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight * 0.55));
+  await expect
+    .poll(async () => Number(await progress.getAttribute("data-scroll-progress")))
+    .toBeGreaterThan(first);
+  const pointHeight = Number.parseFloat(
+    await progress.locator(".scroll-point").evaluate((node) => getComputedStyle(node).height),
+  );
+  expect(pointHeight).toBeGreaterThan(0);
+  await progress.getByRole("button", { name: "Back to top" }).click();
+  await expect.poll(() => page.evaluate(() => scrollY), { timeout: 2_000 }).toBeLessThan(5);
+  await expect(progress).toHaveAttribute("data-scroll-visible", "false");
+});
+
+test("mobile keeps source fixed controls hidden without horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await prepare(page);
+  await expect(page.locator(".sticky-wrap")).toBeHidden();
+  await expect(page.locator(".scroll-progress")).toBeHidden();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(1);
+});
+
+test("page visibility pauses Hero and every timed body capability", async ({ page }) => {
+  await prepare(page);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator("#decor-store-slider")).toHaveAttribute(
+    "data-decor-hero-page-hidden",
+    "true",
+  );
+  for (const key of ["promotional-marquee", "collection-carousel", "client-marquee"]) {
+    await expect(page.locator(`[data-decor-region='${key}']`)).toHaveAttribute(
+      "data-motion-paused",
+      "true",
+    );
+  }
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator("#decor-store-slider")).toHaveAttribute(
+    "data-decor-hero-page-hidden",
+    "false",
+  );
+});
+
+test("fast unmount leaves no Decor DOM or acceptance globals", async ({ page }) => {
+  await page.route("**/jquery.js", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.continue();
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => {
+    const appRoot = document.querySelector("#__nuxt") as
+      (HTMLElement & { __vue_app__?: { unmount(): void } }) | null;
+    appRoot?.__vue_app__?.unmount();
+  });
+  await page.waitForTimeout(800);
+  await expect(
+    page.locator(
+      "[data-decor-store-source-parity], .revslider-initialised, .sticky-wrap, .scroll-progress",
+    ),
+  ).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as typeof window & {
+            __decorStoreBodyFailure?: string;
+            __decorStoreForceInitError?: boolean;
+            __decorStoreHeroTestState?: unknown;
+          }
+        ).__decorStoreHeroTestState,
+    ),
+  ).toBeUndefined();
+});
+
 test("body renders every source region in order with frozen inventory counts", async ({ page }) => {
   await prepare(page);
   const regions = page.locator("[data-decor-region]");
@@ -254,6 +411,8 @@ test("no JavaScript keeps the default panel and every timed region readable", as
   });
   const page = await context.newPage();
   await page.goto("/");
+  await expect(page.locator("#decor-store-slider > ul > li").first()).toBeVisible();
+  await expect(page.locator("#decor-store-slider > ul > li").first()).toContainText("Corby sofas");
   await expect(
     page.locator("[data-decor-region='products'] #tab_five1 .shop-box.pb-25px"),
   ).toHaveCount(8);
@@ -268,6 +427,12 @@ test("no JavaScript keeps the default panel and every timed region readable", as
     3,
   );
   await expect(page.locator("[data-decor-region='client-marquee'] .swiper-slide")).toHaveCount(8);
+  await expect(page.locator("footer.footer-dark")).toContainText("Newsletter");
+  await expect(page.locator(".cookie-message")).toBeVisible();
+  await expect(page.locator("[data-decor-newsletter-form]")).not.toHaveAttribute(
+    "action",
+    /subscribe-newsletter\.php/,
+  );
   await context.close();
 });
 

@@ -15,6 +15,7 @@ export function useDecorStoreRuntime(
   const transition = ref<"moving" | "settled">("settled");
   const failure = ref("");
   const reducedMotion = ref(false);
+  const pageHidden = ref(false);
   const bodyReady = ref(false);
   let slider: DecorRevolutionCollection | undefined;
   let observer: MutationObserver | undefined;
@@ -28,6 +29,11 @@ export function useDecorStoreRuntime(
   let carouselSlides: HTMLElement[] = [];
   let carouselIndex = 0;
   let carouselPointerStart: number | undefined;
+  let tailAbort: AbortController | undefined;
+  let tailFrame = 0;
+  let stickyRegion: HTMLElement | undefined;
+  let scrollProgressRegion: HTMLElement | undefined;
+  let footerRegion: HTMLElement | undefined;
 
   function bodyCapabilityFailure(): string {
     if (typeof window === "undefined") return "";
@@ -226,6 +232,68 @@ export function useDecorStoreRuntime(
     bodyReady.value = true;
   }
 
+  function renderFixedControls(): void {
+    tailFrame = 0;
+    const scrollTop = Math.max(document.documentElement.scrollTop, window.scrollY);
+    const maxScrollTop = Math.max(
+      0,
+      document.documentElement.scrollHeight - document.documentElement.clientHeight,
+    );
+    if (scrollProgressRegion) {
+      const visible = scrollTop > 200;
+      const progress = Math.max(
+        0,
+        Math.min(100, (scrollTop / Math.max(1, maxScrollTop - 200)) * 100),
+      );
+      scrollProgressRegion.classList.toggle("visible", visible);
+      scrollProgressRegion.dataset.scrollVisible = String(visible);
+      scrollProgressRegion.dataset.scrollProgress = progress.toFixed(2);
+      scrollProgressRegion
+        .querySelector<HTMLElement>(".scroll-point")
+        ?.style.setProperty("height", `${progress}%`);
+    }
+    if (stickyRegion) {
+      const desktop = matchMedia("(min-width: 1200px)").matches;
+      const footerVisible = Boolean(
+        footerRegion &&
+        footerRegion.getBoundingClientRect().top < innerHeight &&
+        footerRegion.getBoundingClientRect().bottom > 0,
+      );
+      stickyRegion.classList.toggle("shadow-in", desktop);
+      stickyRegion.classList.toggle("sticky-hidden", footerVisible);
+      stickyRegion.classList.toggle(
+        "sticky-highlight",
+        Boolean(footerRegion && footerRegion.getBoundingClientRect().top < innerHeight * 0.9),
+      );
+      stickyRegion.dataset.stickyVisible = String(desktop && !footerVisible);
+    }
+  }
+
+  function scheduleFixedControls(): void {
+    if (tailFrame || disposed) return;
+    tailFrame = requestAnimationFrame(renderFixedControls);
+  }
+
+  function initializeTail(): void {
+    const host = root.value;
+    if (!host) return;
+    tailAbort = new AbortController();
+    const signal = tailAbort.signal;
+    stickyRegion = host.querySelector<HTMLElement>(".sticky-wrap") || undefined;
+    scrollProgressRegion = host.querySelector<HTMLElement>(".scroll-progress") || undefined;
+    footerRegion = host.querySelector<HTMLElement>("footer.footer-dark") || undefined;
+    host
+      .querySelector<HTMLElement>(".cookie-message")
+      ?.setAttribute("data-cookie-state", "visible");
+    host
+      .querySelector<HTMLFormElement>("[data-decor-newsletter-form]")
+      ?.setAttribute("data-newsletter-supported", "false");
+    window.addEventListener("scroll", scheduleFixedControls, { passive: true, signal });
+    window.addEventListener("resize", scheduleFixedControls, { passive: true, signal });
+    renderFixedControls();
+    host.dataset.decorTailReady = "true";
+  }
+
   function publishTestState(instances?: number): void {
     if (typeof window === "undefined") return;
     const target = window as typeof window & {
@@ -270,9 +338,15 @@ export function useDecorStoreRuntime(
 
   function updateReducedMotion(): void {
     reducedMotion.value = Boolean(reducedMotionQuery?.matches);
-    if (reducedMotion.value) slider?.revpause();
+    if (reducedMotion.value || document.hidden) slider?.revpause();
     else slider?.revresume();
     publishTestState();
+  }
+
+  function updatePageVisibility(): void {
+    pageHidden.value = document.hidden;
+    updateReducedMotion();
+    publishBodyPauseState();
   }
 
   function isVisiblyRendered(element: HTMLElement): boolean {
@@ -322,7 +396,13 @@ export function useDecorStoreRuntime(
 
   onMounted(async () => {
     await nextTick();
+    if (disposed) return;
     try {
+      reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+      reducedMotionQuery.addEventListener("change", updateReducedMotion);
+      document.addEventListener("visibilitychange", updatePageVisibility);
+      pageHidden.value = document.hidden;
+      updateReducedMotion();
       const jquery = await loadDecorStoreRevolutionChain(resolveRuntimeSource);
       if (disposed || !root.value?.querySelector("#decor-store-slider")) return;
       slider = jquery("#decor-store-slider");
@@ -343,6 +423,7 @@ export function useDecorStoreRuntime(
           publishTestState();
         });
       slider.show().revolution({ ...decorStoreRevolutionOptions });
+      if (reducedMotion.value || document.hidden) slider.revpause();
       if (disposed) {
         slider.revkill();
         slider = undefined;
@@ -357,8 +438,6 @@ export function useDecorStoreRuntime(
       updateActiveSlide();
       await waitForVisibleSourceLayers(sliderElement);
       if (disposed) return;
-      reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
-      reducedMotionQuery.addEventListener("change", updateReducedMotion);
       updateReducedMotion();
       status.value = "ready";
       publishTestState(1);
@@ -369,7 +448,10 @@ export function useDecorStoreRuntime(
 
   onMounted(async () => {
     await nextTick();
-    if (!disposed) initializeBody();
+    if (!disposed) {
+      initializeBody();
+      initializeTail();
+    }
   });
 
   onBeforeUnmount(() => {
@@ -387,12 +469,21 @@ export function useDecorStoreRuntime(
     carouselSlides = [];
     carouselRegion = undefined;
     root.value?.removeAttribute("data-decor-body-ready");
+    root.value?.removeAttribute("data-decor-tail-ready");
     bodyReady.value = false;
+    tailAbort?.abort();
+    tailAbort = undefined;
+    if (tailFrame) cancelAnimationFrame(tailFrame);
+    tailFrame = 0;
+    stickyRegion = undefined;
+    scrollProgressRegion = undefined;
+    footerRegion = undefined;
     if (readinessFrame) cancelAnimationFrame(readinessFrame);
     readinessFrame = 0;
     observer?.disconnect();
     observer = undefined;
     reducedMotionQuery?.removeEventListener("change", updateReducedMotion);
+    document.removeEventListener("visibilitychange", updatePageVisibility);
     reducedMotionQuery = undefined;
     try {
       slider?.off(".decorStore");
@@ -400,9 +491,18 @@ export function useDecorStoreRuntime(
     } finally {
       slider = undefined;
       status.value = "destroyed";
-      publishTestState(0);
+      if (typeof window !== "undefined") {
+        const target = window as typeof window & {
+          __decorStoreBodyFailure?: string;
+          __decorStoreForceInitError?: boolean;
+          __decorStoreHeroTestState?: unknown;
+        };
+        delete target.__decorStoreBodyFailure;
+        delete target.__decorStoreForceInitError;
+        delete target.__decorStoreHeroTestState;
+      }
     }
   });
 
-  return { activeSlide, bodyReady, failure, reducedMotion, status, transition };
+  return { activeSlide, bodyReady, failure, pageHidden, reducedMotion, status, transition };
 }

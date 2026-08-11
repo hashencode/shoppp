@@ -318,6 +318,8 @@ test("blocked Revolution extension keeps header, stable Hero, and product usable
   await expect(
     page.locator("[data-decor-region='products'] #tab_five1 .grid-item").first(),
   ).toBeVisible();
+  await expect(page.locator("footer.footer-dark")).toContainText("Newsletter");
+  await expect(page.locator(".cookie-message")).toBeVisible();
 });
 
 test("initializer exception is isolated to the stable Hero fallback", async ({ page }) => {
@@ -332,6 +334,7 @@ test("initializer exception is isolated to the stable Hero fallback", async ({ p
     /initializer failure/,
   );
   await expect(page.locator("#decor-store-slider > ul > li").first()).toBeVisible();
+  await expect(page.locator("footer.footer-dark")).toContainText("Newsletter");
 });
 
 test("responsive Hero geometry and reduced motion retain the source runtime", async ({ page }) => {
@@ -357,7 +360,7 @@ test("responsive Hero geometry and reduced motion retain the source runtime", as
   }
 });
 
-test("route teardown publishes destroyed state and reload remounts one instance", async ({
+test("route teardown clears owned state and reload remounts one bounded instance", async ({
   page,
 }) => {
   await prepareImplementation(page);
@@ -377,7 +380,10 @@ test("route teardown publishes destroyed state and reload remounts one instance"
           ).__decorStoreHeroTestState,
       ),
     )
-    .toMatchObject({ destroyed: true, instances: 0 });
+    .toBeUndefined();
+  await expect(
+    page.locator("[data-decor-store-source-parity], .revslider-initialised"),
+  ).toHaveCount(0);
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect
     .poll(() =>
@@ -392,6 +398,8 @@ test("route teardown publishes destroyed state and reload remounts one instance"
     )
     .toMatchObject({ destroyed: false, instances: 1 });
   await expect(page.locator(".revslider-initialised")).toHaveCount(1);
+  await expect(page.locator("[data-decor-region][data-body-status='ready']")).toHaveCount(3);
+  await expect(page.locator("script[data-decor-store-runtime]")).toHaveCount(7);
 });
 
 test("representative product actions are pointer, keyboard, and touch operable typed intents", async ({

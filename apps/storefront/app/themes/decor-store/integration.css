@@ -35,15 +35,40 @@
   visibility: visible;
 }
 
+[data-runtime-status="loading"] #decor-store-slider,
 [data-runtime-status="fallback"] #decor-store-slider {
   display: block !important;
   min-height: min(900px, calc(100vh - 118px));
 }
 
+[data-runtime-status="loading"] #decor-store-slider > ul > li:first-child,
 [data-runtime-status="fallback"] #decor-store-slider > ul > li:first-child {
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+[data-decor-hero-reduced-motion="true"]
+  > ul
+  > li.active-revslide
+  :is(.tp-parallax-wrap, .tp-loop-wrap, .tp-mask-wrap, .tp-caption) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+[data-decor-store-source-parity] .cookie-message {
+  display: block !important;
+}
+
+[data-decor-store-source-parity] .cookie-message[hidden] {
+  display: none !important;
+}
+
+[data-decor-newsletter-form] .form-results {
+  display: none !important;
 }
 
 [data-decor-region="products"] .shop-box:hover .shop-hover,

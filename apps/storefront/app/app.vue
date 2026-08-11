@@ -2,7 +2,14 @@
 import { defineAsyncComponent, hydrateOnInteraction, type HydrationStrategy } from "vue";
 
 const hydrateStorefrontExperience: HydrationStrategy = (hydrate, forEachElement) => {
-  if (location.pathname !== "/" || !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const decorStoreSourceParity = Boolean(
+    document.querySelector("[data-decor-store-source-parity]"),
+  );
+  if (
+    decorStoreSourceParity ||
+    location.pathname !== "/" ||
+    !matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
     hydrate();
     return;
   }

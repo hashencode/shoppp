@@ -8,6 +8,7 @@ import {
   decorStoreHeaderSourceMarkup,
   decorStoreBodySourceMarkup,
   decorStoreHeroSourceMarkup,
+  decorStoreTailSourceMarkup,
   prepareDecorStoreMarkup,
 } from "../runtime/source-markup";
 
@@ -31,6 +32,9 @@ const heroMarkup = computed(() =>
 );
 const bodyMarkup = computed(() =>
   prepareDecorStoreMarkup(decorStoreBodySourceMarkup, properties.resolveAsset),
+);
+const tailMarkup = computed(() =>
+  prepareDecorStoreMarkup(decorStoreTailSourceMarkup, properties.resolveAsset),
 );
 const runtime = useDecorStoreRuntime(root, (sourcePath) =>
   properties.resolveAsset(decorStoreAssetId(sourcePath)),
@@ -142,6 +146,28 @@ function handleClick(event: MouseEvent): void {
     );
     return;
   }
+  const cookieChoice = target.closest<HTMLElement>("[data-cookie-choice]");
+  if (cookieChoice) {
+    event.preventDefault();
+    const notice = cookieChoice.closest<HTMLElement>(".cookie-message");
+    const choice = cookieChoice.dataset.cookieChoice || "dismissed";
+    notice?.setAttribute("hidden", "");
+    notice?.setAttribute("aria-hidden", "true");
+    if (root.value) root.value.dataset.decorCookieChoice = choice;
+    return;
+  }
+  if (target.closest(".scroll-progress .scroll-top")) {
+    event.preventDefault();
+    window.scrollTo({
+      behavior: runtime.reducedMotion.value ? "auto" : "smooth",
+      top: 0,
+    });
+    return;
+  }
+  if (target.closest("[data-decor-newsletter-form] button")) {
+    event.preventDefault();
+    return;
+  }
   const route = target.closest<HTMLAnchorElement>("[data-decor-route-intent]");
   if (route) {
     event.preventDefault();
@@ -160,6 +186,10 @@ function handleClick(event: MouseEvent): void {
 
 function handleSubmit(event: SubmitEvent): void {
   const form = event.target as HTMLFormElement;
+  if (form.matches("[data-decor-newsletter-form]")) {
+    event.preventDefault();
+    return;
+  }
   if (!form.matches("[data-decor-search-form]")) return;
   event.preventDefault();
   const query = new FormData(form).get("s")?.toString().trim() || "";
@@ -224,6 +254,7 @@ watchEffect(() => {
   slider.dataset.decorHeroTransition = runtime.transition.value;
   slider.dataset.decorHeroFallback = runtime.failure.value;
   slider.dataset.decorHeroReducedMotion = String(runtime.reducedMotion.value);
+  slider.dataset.decorHeroPageHidden = String(runtime.pageHidden.value);
 });
 
 onMounted(() => {
@@ -257,5 +288,6 @@ onBeforeUnmount(() => {
     <div class="decor-store-source-fragment" v-html="headerMarkup"></div>
     <div class="decor-store-source-fragment" v-html="heroMarkup"></div>
     <div class="decor-store-source-fragment" v-html="bodyMarkup"></div>
+    <div class="decor-store-source-fragment" v-html="tailMarkup"></div>
   </main>
 </template>
