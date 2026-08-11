@@ -7,7 +7,21 @@ export const decorStoreHomeFixtures = {
     pageTypes: ["home"],
     viewModels: {
       home: {
-        data: { implementationUnit: "U2", sourcePage: "demo-decor-store.html" },
+        data: {
+          hero: {
+            gridHeight: [900, 1000, 960, 720],
+            gridWidth: [1220, 1024, 778, 480],
+            runtime: "revolution-5.4.5",
+            slides: ["rs-73", "rs-72", "rs-74"],
+          },
+          implementationUnit: "U3",
+          representativeProduct: {
+            name: "Table clock",
+            price: "$23.00",
+            sourceImage: "images/demo-decor-store-product-01.jpg",
+          },
+          sourcePage: "demo-decor-store.html",
+        },
         kind: "theme-section",
         state: "populated",
       },

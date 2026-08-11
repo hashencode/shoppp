@@ -10,6 +10,87 @@
   min-height: 1px;
 }
 
+[data-decor-store-source-parity] {
+  min-height: 100vh;
+  overflow-x: clip;
+  color: #828282;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.decor-store-source-fragment {
+  display: contents;
+}
+
+[data-decor-store-source-parity] .header-language.is-open .language-dropdown,
+[data-decor-store-source-parity] .header-cart.is-open .cart-item-list,
+[data-decor-store-source-parity] header .dropdown.is-open > .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+[data-decor-store-source-parity].show-search-popup .search-form-wrapper {
+  opacity: 1;
+  visibility: visible;
+}
+
+[data-runtime-status="fallback"] #decor-store-slider {
+  display: block !important;
+  min-height: min(900px, calc(100vh - 118px));
+}
+
+[data-runtime-status="fallback"] #decor-store-slider > ul > li:first-child {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.decor-store-u3-product-proof {
+  padding-top: 90px !important;
+  padding-bottom: 90px !important;
+}
+
+.decor-store-u3-product-proof .grid.grid-4col > .grid-item {
+  width: 25%;
+}
+
+.decor-store-u3-product-proof .shop-box:hover .shop-hover,
+.decor-store-u3-product-proof .shop-box:focus-within .shop-hover {
+  opacity: 1;
+  visibility: visible;
+}
+
+.decor-store-u3-product-proof .shop-box:hover .shop-hover a,
+.decor-store-u3-product-proof .shop-box:focus-within .shop-hover a {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: none) {
+  .decor-store-u3-product-proof .shop-hover {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .decor-store-u3-product-proof .shop-hover a {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 991px) {
+  .decor-store-u3-product-proof .grid.grid-4col > .grid-item {
+    width: 50%;
+  }
+}
+
+@media (max-width: 575px) {
+  .decor-store-u3-product-proof .grid.grid-4col > .grid-item {
+    width: 100%;
+  }
+}
+
 .decor-store-preview-shell__title {
   position: absolute;
   width: 1px;

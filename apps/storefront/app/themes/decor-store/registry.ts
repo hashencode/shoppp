@@ -7,24 +7,15 @@ import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";
 import "./upstream/demos/decor-store/decor-store.css";
 import "./integration.css";
-import { defineComponent, h } from "vue";
-
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import type { ThemeRouteContract } from "../../theme-engine/routes";
+import DecorStoreHome from "./components/DecorStoreHome.vue";
 import { decorStoreHomeFixtures } from "./fixtures/home";
 import { themeAssets } from "./resources";
 
-const DecorStoreHomeShell = defineComponent({
-  name: "DecorStoreHomeShell",
-  setup: () => () =>
-    h("main", { "data-decor-store-preview-shell": "" }, [
-      h("h1", { class: "decor-store-preview-shell__title" }, "Decor Store preview shell"),
-    ]),
-});
-
 export const themeRegistry = {
   blocks: {},
-  sections: { "decor-store.home": DecorStoreHomeShell },
+  sections: { "decor-store.home": DecorStoreHome },
 } as const satisfies ThemeRegistry;
 
 export { themeAssets };

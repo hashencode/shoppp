@@ -238,7 +238,7 @@ const sourceAssets = new Map<string, string>([
   ],
 ]);
 
-function assetId(sourcePath: string): string {
+export function decorStoreAssetId(sourcePath: string): string {
   return `decor-store.${sourcePath
     .replace(/\.[^.]+$/, "")
     .replace(/@/g, "-")
@@ -259,6 +259,9 @@ export const decorStoreRuntimeSourceOrder = [
 
 export const themeAssets = Object.freeze(
   Object.fromEntries(
-    [...sourceAssets].map(([sourcePath, resolvedPath]) => [assetId(sourcePath), resolvedPath]),
+    [...sourceAssets].map(([sourcePath, resolvedPath]) => [
+      decorStoreAssetId(sourcePath),
+      resolvedPath,
+    ]),
   ),
 );
