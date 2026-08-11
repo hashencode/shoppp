@@ -7,7 +7,7 @@ const baseURL = externalBaseURL || `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["decor-store-acceptance-slice.spec.ts"],
+  testMatch: ["decor-store-acceptance-slice.spec.ts", "decor-store-home.spec.ts"],
   outputDir: "test-results/decor-store",
   fullyParallel: false,
   reporter: "list",

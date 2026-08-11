@@ -14,7 +14,16 @@ export const decorStoreHomeFixtures = {
             runtime: "revolution-5.4.5",
             slides: ["rs-73", "rs-72", "rs-74"],
           },
-          implementationUnit: "U3",
+          bodyRegions: [
+            "featured-categories",
+            "products",
+            "promotional-marquee",
+            "collection-carousel",
+            "client-marquee",
+            "journal",
+            "services",
+          ],
+          implementationUnit: "U5",
           representativeProduct: {
             name: "Table clock",
             price: "$23.00",

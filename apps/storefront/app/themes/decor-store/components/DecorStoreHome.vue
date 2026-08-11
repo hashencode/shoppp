@@ -6,8 +6,8 @@ import { useDecorStoreRuntime } from "../composables/useDecorStoreRuntime";
 import { decorStoreAssetId } from "../resources";
 import {
   decorStoreHeaderSourceMarkup,
+  decorStoreBodySourceMarkup,
   decorStoreHeroSourceMarkup,
-  decorStoreProductCardSourceMarkup,
   prepareDecorStoreMarkup,
 } from "../runtime/source-markup";
 
@@ -29,8 +29,8 @@ const headerMarkup = computed(() =>
 const heroMarkup = computed(() =>
   prepareDecorStoreMarkup(decorStoreHeroSourceMarkup, properties.resolveAsset),
 );
-const productCardMarkup = computed(() =>
-  prepareDecorStoreMarkup(decorStoreProductCardSourceMarkup, properties.resolveAsset),
+const bodyMarkup = computed(() =>
+  prepareDecorStoreMarkup(decorStoreBodySourceMarkup, properties.resolveAsset),
 );
 const runtime = useDecorStoreRuntime(root, (sourcePath) =>
   properties.resolveAsset(decorStoreAssetId(sourcePath)),
@@ -39,21 +39,18 @@ let searchFocusTimer: ReturnType<typeof setTimeout> | undefined;
 
 const productActions = {
   "Add to cart": {
-    id: "add-table-clock-to-cart",
     intent: "cart.add-preview",
-    label: "Add Table clock to cart",
+    verb: "Add to cart",
   },
   "Add to wishlist": {
-    id: "toggle-table-clock-wishlist",
     intent: "wishlist.toggle-preview",
-    label: "Add Table clock to wishlist",
+    verb: "Add to wishlist",
   },
   "Quick shop": {
-    id: "quick-view-table-clock",
     intent: "product.quick-view-preview",
-    label: "Quick shop Table clock",
+    verb: "Quick shop",
   },
-} as const satisfies Record<string, PreviewAction>;
+} as const;
 
 function record(action: PreviewAction, context: string): void {
   recordPreviewIntent(action, context);
@@ -129,8 +126,18 @@ function handleClick(event: MouseEvent): void {
   const productActionTitle = productAction?.title;
   if (productAction && productActionTitle && productActionTitle in productActions) {
     event.preventDefault();
+    const definition = productActions[productActionTitle as keyof typeof productActions];
+    const productName =
+      productAction
+        .closest(".shop-box")
+        ?.querySelector<HTMLElement>(".shop-footer > a")
+        ?.textContent?.trim() || "product";
     record(
-      productActions[productActionTitle as keyof typeof productActions],
+      {
+        id: `${definition.intent.replaceAll(/[^a-z0-9]+/g, "-")}-${productName.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`,
+        intent: definition.intent,
+        label: `${definition.verb} ${productName}`,
+      },
       "decor-store.home.product",
     );
     return;
@@ -243,18 +250,12 @@ onBeforeUnmount(() => {
     data-decor-store-source-parity
     data-mobile-nav-style="classic"
     :data-runtime-status="runtime.status.value"
+    :data-decor-body-ready="runtime.bodyReady.value"
     :data-preview-intent-count="actionIntentCount"
   >
     <h1 class="decor-store-preview-shell__title">Decor Store</h1>
     <div class="decor-store-source-fragment" v-html="headerMarkup"></div>
     <div class="decor-store-source-fragment" v-html="heroMarkup"></div>
-    <section class="pt-0 pb-0 decor-store-u3-product-proof" aria-label="Featured product">
-      <div class="container">
-        <ul
-          class="shop-boxed shop-wrapper grid grid-4col text-center"
-          v-html="productCardMarkup"
-        ></ul>
-      </div>
-    </section>
+    <div class="decor-store-source-fragment" v-html="bodyMarkup"></div>
   </main>
 </template>

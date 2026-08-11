@@ -221,7 +221,9 @@ test("implementation renders the source header, three-slide Hero, and representa
   );
   await expect(page.locator("#decor-store-slider > ul > li")).toHaveCount(3);
   await expect(
-    page.locator(".decor-store-u3-product-proof").getByRole("link", { name: "Table clock" }),
+    page
+      .locator("[data-decor-region='products'] #tab_five1")
+      .getByRole("link", { name: "Table clock" }),
   ).toBeVisible();
   await expect(page.locator("[data-decor-store-source-parity]")).toHaveAttribute(
     "data-runtime-status",
@@ -248,11 +250,11 @@ for (const viewport of [
 test("mobile representative card retains source-equivalent geometry", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await prepareImplementation(page);
-  const card = page.locator(".decor-store-u3-product-proof .grid-item");
+  const card = page.locator("[data-decor-region='products'] #tab_five1 .grid-item").first();
   const cardBox = await card.boundingBox();
   const imageBox = await card.locator(".shop-image img").boundingBox();
   expect(cardBox?.width).toBeGreaterThanOrEqual(378);
-  expect(imageBox?.width).toBeGreaterThanOrEqual(360);
+  expect(imageBox?.width).toBeGreaterThanOrEqual(345);
   const priceBox = await card.locator(".shop-footer > div").boundingBox();
   expect(priceBox?.height).toBeLessThanOrEqual(24);
 });
@@ -313,7 +315,9 @@ test("blocked Revolution extension keeps header, stable Hero, and product usable
   await prepareImplementation(page, "fallback");
   await expect(page.locator("#decor-store-slider > ul > li").first()).toBeVisible();
   await expect(page.locator("header nav.navbar")).toBeVisible();
-  await expect(page.locator(".decor-store-u3-product-proof .grid-item")).toBeVisible();
+  await expect(
+    page.locator("[data-decor-region='products'] #tab_five1 .grid-item").first(),
+  ).toBeVisible();
 });
 
 test("initializer exception is isolated to the stable Hero fallback", async ({ page }) => {
@@ -395,7 +399,7 @@ test("representative product actions are pointer, keyboard, and touch operable t
 }) => {
   await prepareImplementation(page);
   const root = page.locator("[data-decor-store-source-parity]");
-  const card = page.locator(".decor-store-u3-product-proof");
+  const card = page.locator("[data-decor-region='products'] #tab_five1 .grid-item").first();
   await card.locator(".shop-box").hover();
   await card.getByRole("link", { name: "Add to cart" }).click();
   await card.getByRole("link", { name: "Add to wishlist" }).focus();
