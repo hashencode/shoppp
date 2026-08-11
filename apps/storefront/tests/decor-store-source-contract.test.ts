@@ -204,8 +204,17 @@ describe("Decor Store source contracts", () => {
     const intake = policy.sourceIntakes.find(({ id }: { id: string }) => id === "decor-store");
 
     expect(declaration.sourceRevision).toBe(`sha256:${decorStoreSourceContract.sourceEntrySha256}`);
-    expect(declaration.importedAt).toBeNull();
-    expect(declaration.importedFiles).toEqual([]);
+    expect(declaration.importedAt).toBe("2026-08-11");
+    expect(declaration.importedFiles).toHaveLength(122);
+    expect(
+      declaration.importedFiles.every(
+        ({ destinationPath, sha256 }: { destinationPath: string; sha256: string }) =>
+          declaration.allowlist.some(
+            (asset: { destinationPath: string; expectedSha256: string }) =>
+              asset.destinationPath === destinationPath && asset.expectedSha256 === sha256,
+          ),
+      ),
+    ).toBe(true);
     expect(intake.sourceEntrySha256).toBe(decorStoreSourceContract.sourceEntrySha256);
     expect(intake.stylesheetOrder).toEqual(decorStoreSourceContract.stylesheetOrder);
     expect(intake.scriptOrder).toEqual(decorStoreSourceContract.scriptOrder);

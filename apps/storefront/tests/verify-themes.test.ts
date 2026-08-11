@@ -72,6 +72,18 @@ describe("storefront theme matrix", () => {
     ]);
   });
 
+  test("registers Decor Store as a source-equivalent home-only package", () => {
+    const decorStore = storefrontThemeMatrix.find(
+      ({ descriptor }) => descriptor.id === "decor-store",
+    );
+    expect(decorStore?.assetPolicy).toBe("source-equivalent");
+    expect(decorStore?.requiredPageTypes).toEqual(["home"]);
+    expect(decorStore?.package.manifest.supportedPageTemplates).toEqual(["home"]);
+    expect(decorStore?.package.presets[0]?.templates.map(({ pageType }) => pageType)).toEqual([
+      "home",
+    ]);
+  });
+
   test("rejects duplicate IDs, incomplete provenance, incompatibility, schema drift, and page gaps", () => {
     const duplicate = copyEntry(storefrontThemeMatrix[0]!);
     expect(() =>

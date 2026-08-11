@@ -126,6 +126,17 @@ describe("storefront experience API", () => {
         },
         {
           fixtureBindings: expect.any(Array),
+          id: "decor-store",
+          presetDefinitions: [
+            expect.objectContaining({
+              templates: [expect.objectContaining({ pageType: "home" })],
+            }),
+          ],
+          supportedPageTemplates: ["home"],
+          themeVersion: "1.0.0",
+        },
+        {
+          fixtureBindings: expect.any(Array),
           id: "fashion",
           presetDefinitions: expect.any(Array),
           themeVersion: "1.0.0",

@@ -9,6 +9,11 @@ const fashionStoreFontImports = [
   '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");',
   '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap");',
 ] as const;
+const decorStoreFontImports = [
+  "@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap');",
+  '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");',
+  '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap");',
+] as const;
 const redirectRules = Object.fromEntries(
   manifest.redirects.map((redirect) => [
     redirect.from,
@@ -16,8 +21,13 @@ const redirectRules = Object.fromEntries(
   ]),
 );
 const previewPlatformRoutes = ["/checkout/complete"] as const;
+const selectedPreviewRoutes = process.env.STOREFRONT_EXPERIENCE_FILE?.includes(
+  "/decor-store-preview-input.json",
+)
+  ? ["/"]
+  : fashionStorePreviewRoutes;
 const prerenderRoutes = previewBuild
-  ? [...fashionStorePreviewRoutes, ...previewPlatformRoutes]
+  ? [...selectedPreviewRoutes, ...previewPlatformRoutes]
   : [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"];
 
 export default defineNuxtConfig({
@@ -41,6 +51,22 @@ export default defineNuxtConfig({
             (css, remoteImport) => css.replace(remoteImport, ""),
             source,
           );
+          return adapted === source ? undefined : { code: adapted, map: null };
+        },
+      },
+      {
+        name: "decor-store-local-font-adaptation",
+        enforce: "pre",
+        transform(source, id) {
+          const cleanId = id.split("?", 1)[0]!;
+          if (!cleanId.includes("/themes/decor-store/upstream/") || !cleanId.endsWith(".css"))
+            return;
+          const adapted = decorStoreFontImports
+            .reduce((css, remoteImport) => css.replace(remoteImport, ""), source)
+            .replace(
+              /font-family:"Roboto Slab"\r?\n\s+margin-bottom:5px;/g,
+              'font-family:"Roboto Slab";\n    margin-bottom:5px;',
+            );
           return adapted === source ? undefined : { code: adapted, map: null };
         },
       },

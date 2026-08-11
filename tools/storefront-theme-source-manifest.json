@@ -886,8 +886,1108 @@
         ],
         "css/vendors.min.css": ["mCSB_buttons.png"]
       },
-      "importedAt": null,
-      "importedFiles": [],
+      "importedAt": "2026-08-11",
+      "importedFiles": [
+        {
+          "destinationPath": "upstream/css/icon.min.css",
+          "expectedSha256": "022b07b389369593bd81c52b42f4bf82023ff132e2bfeb333aaf81b5c43c04d4",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "css/icon.min.css",
+          "bytes": 309413,
+          "sha256": "022b07b389369593bd81c52b42f4bf82023ff132e2bfeb333aaf81b5c43c04d4"
+        },
+        {
+          "destinationPath": "upstream/css/responsive.css",
+          "expectedSha256": "7138e274b93c8ead4d8f38d6c2d78bb3d312c5075be933d8b2c42d7ec17f979b",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "css/responsive.css",
+          "bytes": 415066,
+          "sha256": "7138e274b93c8ead4d8f38d6c2d78bb3d312c5075be933d8b2c42d7ec17f979b"
+        },
+        {
+          "destinationPath": "upstream/css/style.css",
+          "expectedSha256": "cd76dac4ef81d64578ab373b9f17ff6cd3520e9f5a32d842de9eff87a0f03de5",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "css/style.css",
+          "bytes": 448425,
+          "sha256": "cd76dac4ef81d64578ab373b9f17ff6cd3520e9f5a32d842de9eff87a0f03de5"
+        },
+        {
+          "destinationPath": "upstream/css/vendors.min.css",
+          "expectedSha256": "311b7d8d26702239f15af05598f43e3fdeca39528ee31d5ac4f9cfbcbf059e5b",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "css/vendors.min.css",
+          "bytes": 302968,
+          "sha256": "311b7d8d26702239f15af05598f43e3fdeca39528ee31d5ac4f9cfbcbf059e5b"
+        },
+        {
+          "destinationPath": "upstream/demo-decor-store.html",
+          "expectedSha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+          "kind": "markup",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "demo-decor-store.html",
+          "bytes": 225147,
+          "sha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271"
+        },
+        {
+          "destinationPath": "upstream/demos/decor-store/decor-store.css",
+          "expectedSha256": "1a14c16330d32dcc4f8f5aa8941ebe2ce85c85efb81d9b3c82fbe826fadc22e5",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "demos/decor-store/decor-store.css",
+          "bytes": 9871,
+          "sha256": "1a14c16330d32dcc4f8f5aa8941ebe2ce85c85efb81d9b3c82fbe826fadc22e5"
+        },
+        {
+          "destinationPath": "upstream/fonts/bootstrap-icons.woff",
+          "expectedSha256": "bb1de989b83970f6f4e54de1cd974c5cba55b73582da5e1b225a6d0edf029483",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/bootstrap-icons.woff",
+          "bytes": 176032,
+          "sha256": "bb1de989b83970f6f4e54de1cd974c5cba55b73582da5e1b225a6d0edf029483"
+        },
+        {
+          "destinationPath": "upstream/fonts/bootstrap-icons.woff2",
+          "expectedSha256": "476adf42b40325098fcfa8b36ab3e769186bb4f6ce6a249753e2e1a9c22bf99e",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/bootstrap-icons.woff2",
+          "bytes": 130396,
+          "sha256": "476adf42b40325098fcfa8b36ab3e769186bb4f6ce6a249753e2e1a9c22bf99e"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-brands-400.ttf",
+          "expectedSha256": "5656d596bc597165a42182f67b2b9f17d2ae47a9e3ef1b042b9a729739730705",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-brands-400.ttf",
+          "bytes": 207972,
+          "sha256": "5656d596bc597165a42182f67b2b9f17d2ae47a9e3ef1b042b9a729739730705"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-brands-400.woff2",
+          "expectedSha256": "3a8924cd5203a28628716aedb5cef0943da4c3b44e3ffcee90ab06387b41c490",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-brands-400.woff2",
+          "bytes": 117372,
+          "sha256": "3a8924cd5203a28628716aedb5cef0943da4c3b44e3ffcee90ab06387b41c490"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-regular-400.ttf",
+          "expectedSha256": "5d02dc9b858e3c85a794f87e379857f4fedc4e26cf15001714a9a0e0b1d2294d",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-regular-400.ttf",
+          "bytes": 68004,
+          "sha256": "5d02dc9b858e3c85a794f87e379857f4fedc4e26cf15001714a9a0e0b1d2294d"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-regular-400.woff2",
+          "expectedSha256": "2bccecf0bc7e96cd5ce4003abeb3ae9ee4a3d19158c4e6edfd2df32d2f0d5721",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-regular-400.woff2",
+          "bytes": 25452,
+          "sha256": "2bccecf0bc7e96cd5ce4003abeb3ae9ee4a3d19158c4e6edfd2df32d2f0d5721"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-solid-900.ttf",
+          "expectedSha256": "fbbf06d7437aa30f3cd44c968380193545a8fc3eadfb7ad897bbb101eefec5a2",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-solid-900.ttf",
+          "bytes": 419720,
+          "sha256": "fbbf06d7437aa30f3cd44c968380193545a8fc3eadfb7ad897bbb101eefec5a2"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-solid-900.woff2",
+          "expectedSha256": "9fc85f3a4544ab0d570c7f8f9bbb88db8d92c359b2707580ea8b07c75673eae2",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-solid-900.woff2",
+          "bytes": 156496,
+          "sha256": "9fc85f3a4544ab0d570c7f8f9bbb88db8d92c359b2707580ea8b07c75673eae2"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-v4compatibility.ttf",
+          "expectedSha256": "09663a36fc05e7190af8324b855105c5bb511ad94f94b81b34afee503279eca2",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-v4compatibility.ttf",
+          "bytes": 10832,
+          "sha256": "09663a36fc05e7190af8324b855105c5bb511ad94f94b81b34afee503279eca2"
+        },
+        {
+          "destinationPath": "upstream/fonts/fa-v4compatibility.woff2",
+          "expectedSha256": "4d4a2d7fd1c6684845cb174fdd7fc073bd64cb741286fb247f8b76c2b7b852c4",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/fa-v4compatibility.woff2",
+          "bytes": 4792,
+          "sha256": "4d4a2d7fd1c6684845cb174fdd7fc073bd64cb741286fb247f8b76c2b7b852c4"
+        },
+        {
+          "destinationPath": "upstream/fonts/feather.eot",
+          "expectedSha256": "93ae23284f34cdd155271e0b593aee42b58062bf0c72244abc7279ead3b43818",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/feather.eot",
+          "bytes": 62084,
+          "sha256": "93ae23284f34cdd155271e0b593aee42b58062bf0c72244abc7279ead3b43818"
+        },
+        {
+          "destinationPath": "upstream/fonts/feather.svg",
+          "expectedSha256": "7f0825fa0a9f3cddcce1311dd90840ed7d3e22328856c866cd2b6e38f95acd26",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/feather.svg",
+          "bytes": 214775,
+          "sha256": "7f0825fa0a9f3cddcce1311dd90840ed7d3e22328856c866cd2b6e38f95acd26"
+        },
+        {
+          "destinationPath": "upstream/fonts/feather.ttf",
+          "expectedSha256": "6920da0983cb1c5365e75edc4eddc224590967d6421ddf7958ed4f4d351377e9",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/feather.ttf",
+          "bytes": 61920,
+          "sha256": "6920da0983cb1c5365e75edc4eddc224590967d6421ddf7958ed4f4d351377e9"
+        },
+        {
+          "destinationPath": "upstream/fonts/feather.woff",
+          "expectedSha256": "ef3c47cb702e040372a3a4bce66d5e0ecc46c56325ec40f8c00b91da0d1d3f46",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/feather.woff",
+          "bytes": 29500,
+          "sha256": "ef3c47cb702e040372a3a4bce66d5e0ecc46c56325ec40f8c00b91da0d1d3f46"
+        },
+        {
+          "destinationPath": "upstream/fonts/icomoon.eot",
+          "expectedSha256": "3a835f8d7d4a1dda5ffdef26ddff48f7aa7a032071da0a8ce6225009409c3da1",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/icomoon.eot",
+          "bytes": 1177572,
+          "sha256": "3a835f8d7d4a1dda5ffdef26ddff48f7aa7a032071da0a8ce6225009409c3da1"
+        },
+        {
+          "destinationPath": "upstream/fonts/icomoon.svg",
+          "expectedSha256": "36d8cef6154b092edd384889ac5b01da6c7c7d048508efb55c681b061701b72f",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/icomoon.svg",
+          "bytes": 3691407,
+          "sha256": "36d8cef6154b092edd384889ac5b01da6c7c7d048508efb55c681b061701b72f"
+        },
+        {
+          "destinationPath": "upstream/fonts/icomoon.ttf",
+          "expectedSha256": "043ce6450843f8aa38fcbb2aeef2da40928c9f0853dd8342aafbda8be9be8748",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/icomoon.ttf",
+          "bytes": 1177408,
+          "sha256": "043ce6450843f8aa38fcbb2aeef2da40928c9f0853dd8342aafbda8be9be8748"
+        },
+        {
+          "destinationPath": "upstream/fonts/icomoon.woff",
+          "expectedSha256": "55167ff2dba40b2eb3734d4653b6a3b25a33094cfce64ffb09a23205f33777f7",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/icomoon.woff",
+          "bytes": 1177484,
+          "sha256": "55167ff2dba40b2eb3734d4653b6a3b25a33094cfce64ffb09a23205f33777f7"
+        },
+        {
+          "destinationPath": "upstream/fonts/plus-jakarta-sans-latin.woff2",
+          "expectedSha256": "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215",
+          "kind": "font",
+          "license": "Authorized inspected local Plus Jakarta Sans WOFF2",
+          "sourcePath": "fonts/plus-jakarta-sans-latin.woff2",
+          "supplementalSourcePath": "apps/storefront/app/themes/decor/assets/fonts/plus-jakarta-sans-latin.woff2",
+          "bytes": 27272,
+          "sha256": "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215"
+        },
+        {
+          "destinationPath": "upstream/fonts/themify.eot",
+          "expectedSha256": "dff415daec911b65dca5be02071a1825b75508ff158de5b8d85976957db931cb",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/themify.eot",
+          "bytes": 78748,
+          "sha256": "dff415daec911b65dca5be02071a1825b75508ff158de5b8d85976957db931cb"
+        },
+        {
+          "destinationPath": "upstream/fonts/themify.svg",
+          "expectedSha256": "2e2421027bbae2dddf9dd7f0374ad7eb9c3d75fbfa12eb64d32100d377eecf8c",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/themify.svg",
+          "bytes": 234630,
+          "sha256": "2e2421027bbae2dddf9dd7f0374ad7eb9c3d75fbfa12eb64d32100d377eecf8c"
+        },
+        {
+          "destinationPath": "upstream/fonts/themify.ttf",
+          "expectedSha256": "350663a4665e00072c68a87ad3fa0be47b8a91424127f5f3e09f664197295f01",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/themify.ttf",
+          "bytes": 78584,
+          "sha256": "350663a4665e00072c68a87ad3fa0be47b8a91424127f5f3e09f664197295f01"
+        },
+        {
+          "destinationPath": "upstream/fonts/themify.woff",
+          "expectedSha256": "0db5c5a1475eb7a3e5028983ea1e642d1b2c00faff6a250a37502b0f3832a4a7",
+          "kind": "font",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "fonts/themify.woff",
+          "bytes": 56108,
+          "sha256": "0db5c5a1475eb7a3e5028983ea1e642d1b2c00faff6a250a37502b0f3832a4a7"
+        },
+        {
+          "destinationPath": "upstream/images/apple-touch-icon-114x114.png",
+          "expectedSha256": "341708303f20e97b9630dfcdf2e8758d555942a81e626829d715b8391d3a7339",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/apple-touch-icon-114x114.png",
+          "bytes": 22211,
+          "sha256": "341708303f20e97b9630dfcdf2e8758d555942a81e626829d715b8391d3a7339"
+        },
+        {
+          "destinationPath": "upstream/images/apple-touch-icon-57x57.png",
+          "expectedSha256": "5a6e7e8fbfb1219fceb10359d5a637b016250f2204b16ab8815cd4ad4b5cef56",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/apple-touch-icon-57x57.png",
+          "bytes": 5907,
+          "sha256": "5a6e7e8fbfb1219fceb10359d5a637b016250f2204b16ab8815cd4ad4b5cef56"
+        },
+        {
+          "destinationPath": "upstream/images/apple-touch-icon-72x72.png",
+          "expectedSha256": "2cb19c650c864f48eeabcf59d9270db366fb53a175b880df4e31d70a23667f1b",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/apple-touch-icon-72x72.png",
+          "bytes": 8200,
+          "sha256": "2cb19c650c864f48eeabcf59d9270db366fb53a175b880df4e31d70a23667f1b"
+        },
+        {
+          "destinationPath": "upstream/images/contact-form-arrow-white.png",
+          "expectedSha256": "0329cc8d0b59fcbcc25e9f1b9705142cd1e8847f96beb59abdff010e34ead193",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/contact-form-arrow-white.png",
+          "bytes": 178,
+          "sha256": "0329cc8d0b59fcbcc25e9f1b9705142cd1e8847f96beb59abdff010e34ead193"
+        },
+        {
+          "destinationPath": "upstream/images/contact-form-down-arrow.jpg",
+          "expectedSha256": "5189ea1a530348bb8965218949064d170927199f9d5b74d3a6a98d7077e147b0",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/contact-form-down-arrow.jpg",
+          "bytes": 1592,
+          "sha256": "5189ea1a530348bb8965218949064d170927199f9d5b74d3a6a98d7077e147b0"
+        },
+        {
+          "destinationPath": "upstream/images/country-flag-16X16/france.png",
+          "expectedSha256": "2629de759dd340f44743175bb4510aa6d438a37e3d94e079d2aa4e6032f71de9",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/country-flag-16X16/france.png",
+          "bytes": 446,
+          "sha256": "2629de759dd340f44743175bb4510aa6d438a37e3d94e079d2aa4e6032f71de9"
+        },
+        {
+          "destinationPath": "upstream/images/country-flag-16X16/russian.png",
+          "expectedSha256": "bc6c51350976a6cbe7cc8d0d08bd8b4c264070dad00cb61c0d28355ca28fae9b",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/country-flag-16X16/russian.png",
+          "bytes": 350,
+          "sha256": "bc6c51350976a6cbe7cc8d0d08bd8b4c264070dad00cb61c0d28355ca28fae9b"
+        },
+        {
+          "destinationPath": "upstream/images/country-flag-16X16/spain.png",
+          "expectedSha256": "efbf0cf75d4b00bd5a0891a4de84ee10bd4dc6bdc7e2d33841d37fdf51263f8c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/country-flag-16X16/spain.png",
+          "bytes": 493,
+          "sha256": "efbf0cf75d4b00bd5a0891a4de84ee10bd4dc6bdc7e2d33841d37fdf51263f8c"
+        },
+        {
+          "destinationPath": "upstream/images/country-flag-16X16/usa.png",
+          "expectedSha256": "4ac836d19ba59b13f74176339bbb73a752844e528a338bd9340c945d2f2895c5",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/country-flag-16X16/usa.png",
+          "bytes": 488,
+          "sha256": "4ac836d19ba59b13f74176339bbb73a752844e528a338bd9340c945d2f2895c5"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-banner-04.jpg",
+          "expectedSha256": "66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-banner-04.jpg",
+          "bytes": 38958,
+          "sha256": "66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-blog-03.jpg",
+          "expectedSha256": "2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-blog-03.jpg",
+          "bytes": 81136,
+          "sha256": "2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-blog-04.jpg",
+          "expectedSha256": "3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-blog-04.jpg",
+          "bytes": 60952,
+          "sha256": "3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-blog-07.jpg",
+          "expectedSha256": "d8b50dc900e773d22ceec74b7e22d135c5977c5be7336126592d9870fb159201",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-blog-07.jpg",
+          "bytes": 74307,
+          "sha256": "d8b50dc900e773d22ceec74b7e22d135c5977c5be7336126592d9870fb159201"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-blog-08.jpg",
+          "expectedSha256": "72d5fb42009c6b87366ce970d3d1b94d63628ed5af418de888076baabb000b3c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-blog-08.jpg",
+          "bytes": 92588,
+          "sha256": "72d5fb42009c6b87366ce970d3d1b94d63628ed5af418de888076baabb000b3c"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-client-01.png",
+          "expectedSha256": "8afe51f61a3ac538a02100806701fa42b6859cea86aade4f8ab2b291823438c2",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-client-01.png",
+          "bytes": 1184,
+          "sha256": "8afe51f61a3ac538a02100806701fa42b6859cea86aade4f8ab2b291823438c2"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-client-02.png",
+          "expectedSha256": "72acf1c388d1bf3bbf6cb7625d74c77a520557656299385d1b7d1c7ed33c1605",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-client-02.png",
+          "bytes": 1362,
+          "sha256": "72acf1c388d1bf3bbf6cb7625d74c77a520557656299385d1b7d1c7ed33c1605"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-client-03.png",
+          "expectedSha256": "9b7162520bfc801de37b564544881f8fa3660eab5b23ade402447ade0e9d9dd3",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-client-03.png",
+          "bytes": 1530,
+          "sha256": "9b7162520bfc801de37b564544881f8fa3660eab5b23ade402447ade0e9d9dd3"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-client-04.png",
+          "expectedSha256": "f89ec329ce508494d030288064e3c66d558ae3915683027903b5ac7b4c8d78ee",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-client-04.png",
+          "bytes": 1165,
+          "sha256": "f89ec329ce508494d030288064e3c66d558ae3915683027903b5ac7b4c8d78ee"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-client-05.png",
+          "expectedSha256": "549242dd7871041c7dd21b784d2a8996c4600697b78cc75cd6cc7061e46bfa49",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-client-05.png",
+          "bytes": 1777,
+          "sha256": "549242dd7871041c7dd21b784d2a8996c4600697b78cc75cd6cc7061e46bfa49"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-footer-bg.jpg",
+          "expectedSha256": "fbda9ff90ad63374565c5e9d7f043131ebc753d4468449100f4c762fc54421ac",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-footer-bg.jpg",
+          "bytes": 103345,
+          "sha256": "fbda9ff90ad63374565c5e9d7f043131ebc753d4468449100f4c762fc54421ac"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-01.png",
+          "expectedSha256": "1e88b606ad380b33347b426e4b2c18d15ba2ff16ebb8bfc6fd79e6abf7ac1e88",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-01.png",
+          "bytes": 771,
+          "sha256": "1e88b606ad380b33347b426e4b2c18d15ba2ff16ebb8bfc6fd79e6abf7ac1e88"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-02.png",
+          "expectedSha256": "f0b3f3f195abf4df9e90c55fa0fac98b1c61f48088a17f68534d888d83406a21",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-02.png",
+          "bytes": 1004,
+          "sha256": "f0b3f3f195abf4df9e90c55fa0fac98b1c61f48088a17f68534d888d83406a21"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-03.png",
+          "expectedSha256": "36690cf010c6186567803fbd679a1a1c2da1807368a7b82caa74d9bb80a8cdb4",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-03.png",
+          "bytes": 587,
+          "sha256": "36690cf010c6186567803fbd679a1a1c2da1807368a7b82caa74d9bb80a8cdb4"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-04.png",
+          "expectedSha256": "4e69b6fd34a250206cc79fb81fbe6de12f415b0c348d53408cf7be6b2ed228b2",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-04.png",
+          "bytes": 1045,
+          "sha256": "4e69b6fd34a250206cc79fb81fbe6de12f415b0c348d53408cf7be6b2ed228b2"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-05.png",
+          "expectedSha256": "976204602bbffccce8fa6e627052143a14c39561b858943d8a26bb857e3b16d0",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-05.png",
+          "bytes": 1025,
+          "sha256": "976204602bbffccce8fa6e627052143a14c39561b858943d8a26bb857e3b16d0"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-06.png",
+          "expectedSha256": "2388c1af1eb90062847124bbdb9f6add7b766bda4914385263efa1408e4a86fb",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-06.png",
+          "bytes": 840,
+          "sha256": "2388c1af1eb90062847124bbdb9f6add7b766bda4914385263efa1408e4a86fb"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-07.png",
+          "expectedSha256": "91c6b093e916549dfa92cb2c3d31369a20179da4c5cab06d57c70c057322e24e",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-07.png",
+          "bytes": 951,
+          "sha256": "91c6b093e916549dfa92cb2c3d31369a20179da4c5cab06d57c70c057322e24e"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-08.png",
+          "expectedSha256": "a4607c544042891bd0f79a281f0378f9c360bf0e37177bb4b2d9435485f10018",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-08.png",
+          "bytes": 686,
+          "sha256": "a4607c544042891bd0f79a281f0378f9c360bf0e37177bb4b2d9435485f10018"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-09.png",
+          "expectedSha256": "276855245df061ac56175dcde73c07b19cfa729459b8f6e2d9f05ec5a9790533",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-09.png",
+          "bytes": 805,
+          "sha256": "276855245df061ac56175dcde73c07b19cfa729459b8f6e2d9f05ec5a9790533"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-icon-10.png",
+          "expectedSha256": "5c8f8e6aee635452d9763a525dac168faa994355e56a75bd7b81052ab606e21b",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-icon-10.png",
+          "bytes": 1005,
+          "sha256": "5c8f8e6aee635452d9763a525dac168faa994355e56a75bd7b81052ab606e21b"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-logo-black.png",
+          "expectedSha256": "667d763440051f4275c39499fa3ab0f6dd2ee3c267f4537993c63ade5c04211c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-logo-black.png",
+          "bytes": 858,
+          "sha256": "667d763440051f4275c39499fa3ab0f6dd2ee3c267f4537993c63ade5c04211c"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-logo-black@2x.png",
+          "expectedSha256": "4043b614c16e96f3615b81bb1639cd1dfe0aabb8f9222b4ee53efbab61ff7018",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-logo-black@2x.png",
+          "bytes": 1669,
+          "sha256": "4043b614c16e96f3615b81bb1639cd1dfe0aabb8f9222b4ee53efbab61ff7018"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-logo-white.png",
+          "expectedSha256": "f17ea7965ba4fd09c7887fd4c019aa0443c638f36d0289f6705344b8e83b1bda",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-logo-white.png",
+          "bytes": 858,
+          "sha256": "f17ea7965ba4fd09c7887fd4c019aa0443c638f36d0289f6705344b8e83b1bda"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-logo-white@2x.png",
+          "expectedSha256": "b8681eb4fa0df2958b249147731db0f62edeec7930d10f04829c8a4460a4bfe8",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-logo-white@2x.png",
+          "bytes": 1669,
+          "sha256": "b8681eb4fa0df2958b249147731db0f62edeec7930d10f04829c8a4460a4bfe8"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-main-banner-01.jpg",
+          "expectedSha256": "0369707b74459e63e93524405f1b1b2f0a2fbf96f81549f2f61d16640b450425",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-main-banner-01.jpg",
+          "bytes": 26031,
+          "sha256": "0369707b74459e63e93524405f1b1b2f0a2fbf96f81549f2f61d16640b450425"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-main-banner-02.jpg",
+          "expectedSha256": "1edf394126b5134f74c9a84a669e9eeef7f6fe8102a1a9651a6f4b81bdcb27d6",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-main-banner-02.jpg",
+          "bytes": 22572,
+          "sha256": "1edf394126b5134f74c9a84a669e9eeef7f6fe8102a1a9651a6f4b81bdcb27d6"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-main-banner-03.jpg",
+          "expectedSha256": "56fe556e846fdf9c53eb64c6f7eca496310d96d0a7470dbe822fd106e006e81a",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-main-banner-03.jpg",
+          "bytes": 33600,
+          "sha256": "56fe556e846fdf9c53eb64c6f7eca496310d96d0a7470dbe822fd106e006e81a"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-banner-01.jpg",
+          "expectedSha256": "88ff698a65da24b32a8978d926c2d8d5ae275bd48b4d4eff9a605784c4c83f5d",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-banner-01.jpg",
+          "bytes": 28848,
+          "sha256": "88ff698a65da24b32a8978d926c2d8d5ae275bd48b4d4eff9a605784c4c83f5d"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-banner-02.jpg",
+          "expectedSha256": "00a3d46a750f6fda5744849f1d14932103466fd8e0127588ac706656467fa713",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-banner-02.jpg",
+          "bytes": 35719,
+          "sha256": "00a3d46a750f6fda5744849f1d14932103466fd8e0127588ac706656467fa713"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-banner-03.jpg",
+          "expectedSha256": "27c47c12dbbc9563bcef4d761fe5526800d119c192f78a8f2db95ea3b2cbb1ef",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-banner-03.jpg",
+          "bytes": 28060,
+          "sha256": "27c47c12dbbc9563bcef4d761fe5526800d119c192f78a8f2db95ea3b2cbb1ef"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-banner-04.jpg",
+          "expectedSha256": "433b9b853ae2b1998d2a365453550f3129cecde5faa56f7890c778920b094af0",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-banner-04.jpg",
+          "bytes": 26553,
+          "sha256": "433b9b853ae2b1998d2a365453550f3129cecde5faa56f7890c778920b094af0"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-category-01.jpg",
+          "expectedSha256": "bf6ada8dc0a74ba11eac00b4ebf707f170542df6a43779dc1bc3f54836a8243e",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-category-01.jpg",
+          "bytes": 4160,
+          "sha256": "bf6ada8dc0a74ba11eac00b4ebf707f170542df6a43779dc1bc3f54836a8243e"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-category-02.jpg",
+          "expectedSha256": "c3c1f8119511677a77cabe6e4baf28da7f278969b45008391e1962610f40ba4c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-category-02.jpg",
+          "bytes": 6038,
+          "sha256": "c3c1f8119511677a77cabe6e4baf28da7f278969b45008391e1962610f40ba4c"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-category-03.jpg",
+          "expectedSha256": "d42cfcf11584f03213e53951e57d83f1155e27a8beec691c58b7995f8c8ae24c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-category-03.jpg",
+          "bytes": 3633,
+          "sha256": "d42cfcf11584f03213e53951e57d83f1155e27a8beec691c58b7995f8c8ae24c"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-category-04.jpg",
+          "expectedSha256": "f9aaa59c6c33cd1f619a53eaf83a4414fd29934d07d29bb1a38efad7d375696e",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-category-04.jpg",
+          "bytes": 4996,
+          "sha256": "f9aaa59c6c33cd1f619a53eaf83a4414fd29934d07d29bb1a38efad7d375696e"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-category-05.jpg",
+          "expectedSha256": "0d325fbb63d41b2f62660826cc82cd3ab8387ba945d7a03195871cdb0f5296e3",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-category-05.jpg",
+          "bytes": 3814,
+          "sha256": "0d325fbb63d41b2f62660826cc82cd3ab8387ba945d7a03195871cdb0f5296e3"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-menu-category-06.jpg",
+          "expectedSha256": "a23509844e0645a91ca8da161d0cb264bd5f8b0b545af710c7a1cf89b1075412",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-menu-category-06.jpg",
+          "bytes": 5300,
+          "sha256": "a23509844e0645a91ca8da161d0cb264bd5f8b0b545af710c7a1cf89b1075412"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-payment-icon-01.png",
+          "expectedSha256": "12c7960a716d81a9d5003e7d473ced3f8ea30f7c0e583b71b8c3e73849d19b90",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-payment-icon-01.png",
+          "bytes": 469,
+          "sha256": "12c7960a716d81a9d5003e7d473ced3f8ea30f7c0e583b71b8c3e73849d19b90"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-payment-icon-02.png",
+          "expectedSha256": "cce62a78cf97cc728a08f13c25f2b80377d48c1d2af0f98c058db05568a0d321",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-payment-icon-02.png",
+          "bytes": 531,
+          "sha256": "cce62a78cf97cc728a08f13c25f2b80377d48c1d2af0f98c058db05568a0d321"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-payment-icon-03.png",
+          "expectedSha256": "7479722e0b7901e9c5c0a806531a1ee7aad4ec2e09bb1c213f78836bac95c9e2",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-payment-icon-03.png",
+          "bytes": 439,
+          "sha256": "7479722e0b7901e9c5c0a806531a1ee7aad4ec2e09bb1c213f78836bac95c9e2"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-payment-icon-04.png",
+          "expectedSha256": "00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-payment-icon-04.png",
+          "bytes": 581,
+          "sha256": "00da36a2c7805e5f044f5b0bc48170240a52a9768de151f676318f427b413fb7"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-01.jpg",
+          "expectedSha256": "c47c9b9d227ee6f5b08a38b5f80012b93cc1cc5bc5c70bb5cf083d357d85be0a",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-01.jpg",
+          "bytes": 17906,
+          "sha256": "c47c9b9d227ee6f5b08a38b5f80012b93cc1cc5bc5c70bb5cf083d357d85be0a"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-03.jpg",
+          "expectedSha256": "7fd8289da9b8816fbae6273ae4f98a8d7fb9ea4d14ad768b4d11b0a7d6dcbc1e",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-03.jpg",
+          "bytes": 37354,
+          "sha256": "7fd8289da9b8816fbae6273ae4f98a8d7fb9ea4d14ad768b4d11b0a7d6dcbc1e"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-05.jpg",
+          "expectedSha256": "5d51f4516c085789e00ef2d773fdfe2704c5036f7b637f36adeff2336b76a065",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-05.jpg",
+          "bytes": 39121,
+          "sha256": "5d51f4516c085789e00ef2d773fdfe2704c5036f7b637f36adeff2336b76a065"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-06.jpg",
+          "expectedSha256": "5847aad8d80250743b613aec41bc4eb46fcea33671a4c3d4289446019797d236",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-06.jpg",
+          "bytes": 14796,
+          "sha256": "5847aad8d80250743b613aec41bc4eb46fcea33671a4c3d4289446019797d236"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-09.jpg",
+          "expectedSha256": "57513bb832d4442bd9a698703cf3792eb3f85ae0aa0efd5a56973c1f15d42ca1",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-09.jpg",
+          "bytes": 22342,
+          "sha256": "57513bb832d4442bd9a698703cf3792eb3f85ae0aa0efd5a56973c1f15d42ca1"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-10.jpg",
+          "expectedSha256": "d488fa7c791e9ef202cfbc42a6a0d279a23eb045c6fc05a64537e8c60687c1bc",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-10.jpg",
+          "bytes": 28157,
+          "sha256": "d488fa7c791e9ef202cfbc42a6a0d279a23eb045c6fc05a64537e8c60687c1bc"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-12.jpg",
+          "expectedSha256": "bfb9aab685cf17a58605d6e9b8a1437311c8e41ee69a57cdf13270b0b247f1cf",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-12.jpg",
+          "bytes": 33938,
+          "sha256": "bfb9aab685cf17a58605d6e9b8a1437311c8e41ee69a57cdf13270b0b247f1cf"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-13.jpg",
+          "expectedSha256": "1fbfbdf8a8c670e9f45873137fcd190befd444b941f1385470fc1b9c08a71ffd",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-13.jpg",
+          "bytes": 32687,
+          "sha256": "1fbfbdf8a8c670e9f45873137fcd190befd444b941f1385470fc1b9c08a71ffd"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-14.jpg",
+          "expectedSha256": "e17d64346f789f5d2a57686f7ce83a2e2c2f114ebc0c13ad371dd4b51314d2db",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-14.jpg",
+          "bytes": 19685,
+          "sha256": "e17d64346f789f5d2a57686f7ce83a2e2c2f114ebc0c13ad371dd4b51314d2db"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-15.jpg",
+          "expectedSha256": "e0a66c152c0c0dcedfb222bcd5f7421c883236f57f1df2e07905d687bfa37088",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-15.jpg",
+          "bytes": 31942,
+          "sha256": "e0a66c152c0c0dcedfb222bcd5f7421c883236f57f1df2e07905d687bfa37088"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-slider-01.png",
+          "expectedSha256": "481d69751c4bde76fa9c821c255a2b6482aed365fe887ee17c87a1485174ef44",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-slider-01.png",
+          "bytes": 33686,
+          "sha256": "481d69751c4bde76fa9c821c255a2b6482aed365fe887ee17c87a1485174ef44"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-slider-02.png",
+          "expectedSha256": "858a87aebdfcd33ccddbe4863bf01ee7323884e2ad13fc9f885b77787c2b83d0",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-slider-02.png",
+          "bytes": 25210,
+          "sha256": "858a87aebdfcd33ccddbe4863bf01ee7323884e2ad13fc9f885b77787c2b83d0"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-slider-03.png",
+          "expectedSha256": "866393557185cc79d11e6ecf38a8a5f55fa20500ea2078f40ee1b60e321b5e0c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-slider-03.png",
+          "bytes": 29039,
+          "sha256": "866393557185cc79d11e6ecf38a8a5f55fa20500ea2078f40ee1b60e321b5e0c"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-product-slider-bg-img.jpg",
+          "expectedSha256": "c8eaee3addc081649d4bf7209dcbfd89c152d020266056cfbf6beee8e6ceeb61",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-product-slider-bg-img.jpg",
+          "bytes": 22042,
+          "sha256": "c8eaee3addc081649d4bf7209dcbfd89c152d020266056cfbf6beee8e6ceeb61"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-01-img-01.png",
+          "expectedSha256": "54594788dc41dc6506827c9545797222c230a27bdf4632f7abe5f1a9056ac0b4",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-01-img-01.png",
+          "bytes": 377355,
+          "sha256": "54594788dc41dc6506827c9545797222c230a27bdf4632f7abe5f1a9056ac0b4"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-01-img-02.jpg",
+          "expectedSha256": "cf827b426ba54048799b35929bfc51ac92f07fb857392593964f26e4d9b1be72",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-01-img-02.jpg",
+          "bytes": 41934,
+          "sha256": "cf827b426ba54048799b35929bfc51ac92f07fb857392593964f26e4d9b1be72"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-01-img-03.jpg",
+          "expectedSha256": "74addabd7ebed5e18d4f14655adc468053d42ea2ed1392cecc618778ba1211fc",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-01-img-03.jpg",
+          "bytes": 41962,
+          "sha256": "74addabd7ebed5e18d4f14655adc468053d42ea2ed1392cecc618778ba1211fc"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-01-thumb.jpg",
+          "expectedSha256": "fda36e97ee8eec86980ad1097bdd79370a8ad89c8a79fcb41fb60dddf6b8df73",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-01-thumb.jpg",
+          "bytes": 7861,
+          "sha256": "fda36e97ee8eec86980ad1097bdd79370a8ad89c8a79fcb41fb60dddf6b8df73"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-02-img-04.png",
+          "expectedSha256": "611ac9ed11e9a2e6bacfd283107b48bdd4c686436aebd1f18f2752cfca9d1c5c",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-02-img-04.png",
+          "bytes": 189626,
+          "sha256": "611ac9ed11e9a2e6bacfd283107b48bdd4c686436aebd1f18f2752cfca9d1c5c"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-02-img-05.jpg",
+          "expectedSha256": "599c5088c5d92f04f218d3916cc7cb3b5633ba7dfefe791b1ed833e09d319612",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-02-img-05.jpg",
+          "bytes": 28081,
+          "sha256": "599c5088c5d92f04f218d3916cc7cb3b5633ba7dfefe791b1ed833e09d319612"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-02-img-06.jpg",
+          "expectedSha256": "e59189a7f35b592efe9f1f4cc5dff16a767d168e50de577314e2dd8e0644b60b",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-02-img-06.jpg",
+          "bytes": 27627,
+          "sha256": "e59189a7f35b592efe9f1f4cc5dff16a767d168e50de577314e2dd8e0644b60b"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-02-thumb.jpg",
+          "expectedSha256": "9bb15c7bd916e01f69ce7c5d7cc1b57737c4032e4d4f61877f163deb24001678",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-02-thumb.jpg",
+          "bytes": 7683,
+          "sha256": "9bb15c7bd916e01f69ce7c5d7cc1b57737c4032e4d4f61877f163deb24001678"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-03-img-07.png",
+          "expectedSha256": "e10535e74004c9108d9baeedac01bf84e9bf559203c4bcc4ad16b23a18bf916f",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-03-img-07.png",
+          "bytes": 199147,
+          "sha256": "e10535e74004c9108d9baeedac01bf84e9bf559203c4bcc4ad16b23a18bf916f"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-03-img-08.jpg",
+          "expectedSha256": "6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-03-img-08.jpg",
+          "bytes": 94049,
+          "sha256": "6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-03-img-09.jpg",
+          "expectedSha256": "7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-03-img-09.jpg",
+          "bytes": 67987,
+          "sha256": "7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011"
+        },
+        {
+          "destinationPath": "upstream/images/demo-decor-store-slider-03-thumb.jpg",
+          "expectedSha256": "2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/demo-decor-store-slider-03-thumb.jpg",
+          "bytes": 7351,
+          "sha256": "2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96"
+        },
+        {
+          "destinationPath": "upstream/images/favicon.png",
+          "expectedSha256": "d9990aa0314c5918bc0bfde3a65d19e0f616baea95e236f247e41cb467c4fb84",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/favicon.png",
+          "bytes": 3045,
+          "sha256": "d9990aa0314c5918bc0bfde3a65d19e0f616baea95e236f247e41cb467c4fb84"
+        },
+        {
+          "destinationPath": "upstream/images/marker02.png",
+          "expectedSha256": "b5ee9172bae02ab88a4dbffcbe5f6889e4932e53e73c023b5cb2389a9d42887d",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/marker02.png",
+          "bytes": 1312,
+          "sha256": "b5ee9172bae02ab88a4dbffcbe5f6889e4932e53e73c023b5cb2389a9d42887d"
+        },
+        {
+          "destinationPath": "upstream/images/mfg-close.png",
+          "expectedSha256": "8972efa9737fa05affa933cd8a203fb11545e2ce83ad303e7da930ccd23bcf3f",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/mfg-close.png",
+          "bytes": 610,
+          "sha256": "8972efa9737fa05affa933cd8a203fb11545e2ce83ad303e7da930ccd23bcf3f"
+        },
+        {
+          "destinationPath": "upstream/images/rev-trans-tile.png",
+          "expectedSha256": "3eb10792d1f0c7e07e7248273540f1952d9a5a2996f4b5df70ab026cd9f05517",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "images/rev-trans-tile.png",
+          "bytes": 95,
+          "sha256": "3eb10792d1f0c7e07e7248273540f1952d9a5a2996f4b5df70ab026cd9f05517"
+        },
+        {
+          "destinationPath": "upstream/js/jquery.js",
+          "expectedSha256": "c30b56bf74c6057c8b9104b92d33b4ade752667fe4dcc1a5d121fc4336fffdf1",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "js/jquery.js",
+          "bytes": 87604,
+          "sha256": "c30b56bf74c6057c8b9104b92d33b4ade752667fe4dcc1a5d121fc4336fffdf1"
+        },
+        {
+          "destinationPath": "upstream/js/vendors.min.js",
+          "expectedSha256": "33ce0c0ce7512617c8b0222f7d53f41541324edcdea2e79c5eec17402132d00e",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "js/vendors.min.js",
+          "bytes": 521141,
+          "sha256": "33ce0c0ce7512617c8b0222f7d53f41541324edcdea2e79c5eec17402132d00e"
+        },
+        {
+          "destinationPath": "upstream/revolution/assets/loader.gif",
+          "expectedSha256": "9034d5d34015e4b05d2c1d1a8dc9f6ec9d59bd96d305eb9e24e24e65c591a645",
+          "kind": "image",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/assets/loader.gif",
+          "bytes": 2545,
+          "sha256": "9034d5d34015e4b05d2c1d1a8dc9f6ec9d59bd96d305eb9e24e24e65c591a645"
+        },
+        {
+          "destinationPath": "upstream/revolution/css/layers.css",
+          "expectedSha256": "cc830234af8b0e2ac01ad515ff209c43b29ba78d5145505a1088b18beefd2ac9",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/css/layers.css",
+          "bytes": 146597,
+          "sha256": "cc830234af8b0e2ac01ad515ff209c43b29ba78d5145505a1088b18beefd2ac9"
+        },
+        {
+          "destinationPath": "upstream/revolution/css/navigation.css",
+          "expectedSha256": "1038275e66032987e6c39ffae357df2c861b140a97768fb16ac30e7f8be97173",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/css/navigation.css",
+          "bytes": 62218,
+          "sha256": "1038275e66032987e6c39ffae357df2c861b140a97768fb16ac30e7f8be97173"
+        },
+        {
+          "destinationPath": "upstream/revolution/css/settings.css",
+          "expectedSha256": "b0b1b6ccfa5a09e69e2e1e89777043a637e23f5b9aecc0a3a86e04495804b239",
+          "kind": "stylesheet",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/css/settings.css",
+          "bytes": 30072,
+          "sha256": "b0b1b6ccfa5a09e69e2e1e89777043a637e23f5b9aecc0a3a86e04495804b239"
+        },
+        {
+          "destinationPath": "upstream/revolution/js/extensions/revolution.extension.actions.min.js",
+          "expectedSha256": "748f3e447f2f7475a4ba75f6f2e2e9f468a3ac443eae879e2104ec562b2158bc",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/js/extensions/revolution.extension.actions.min.js",
+          "bytes": 8331,
+          "sha256": "748f3e447f2f7475a4ba75f6f2e2e9f468a3ac443eae879e2104ec562b2158bc"
+        },
+        {
+          "destinationPath": "upstream/revolution/js/extensions/revolution.extension.layeranimation.min.js",
+          "expectedSha256": "3327922dbad940348d79019ec680c730d71649132fa727675303bea91c6c4010",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/js/extensions/revolution.extension.layeranimation.min.js",
+          "bytes": 55811,
+          "sha256": "3327922dbad940348d79019ec680c730d71649132fa727675303bea91c6c4010"
+        },
+        {
+          "destinationPath": "upstream/revolution/js/extensions/revolution.extension.navigation.min.js",
+          "expectedSha256": "1c94040e2186822caf034fc3758f74f8372a5e8fbe42d5549061f27dd67d4142",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/js/extensions/revolution.extension.navigation.min.js",
+          "bytes": 26105,
+          "sha256": "1c94040e2186822caf034fc3758f74f8372a5e8fbe42d5549061f27dd67d4142"
+        },
+        {
+          "destinationPath": "upstream/revolution/js/extensions/revolution.extension.slideanims.min.js",
+          "expectedSha256": "9dcf557a9e9a7d3641fddaf711b224610496a92cdaeef962ff85b1813f358cca",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/js/extensions/revolution.extension.slideanims.min.js",
+          "bytes": 29072,
+          "sha256": "9dcf557a9e9a7d3641fddaf711b224610496a92cdaeef962ff85b1813f358cca"
+        },
+        {
+          "destinationPath": "upstream/revolution/js/jquery.themepunch.revolution.min.js",
+          "expectedSha256": "4313fa5bb5c7788ced1058ecc60b11f4e384716bf51b64c3595a712a17e80ee8",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/js/jquery.themepunch.revolution.min.js",
+          "bytes": 64995,
+          "sha256": "4313fa5bb5c7788ced1058ecc60b11f4e384716bf51b64c3595a712a17e80ee8"
+        },
+        {
+          "destinationPath": "upstream/revolution/js/jquery.themepunch.tools.min.js",
+          "expectedSha256": "a1dff8b0c66227748951c4ff891f146f49c5a382ac8e3d6e3c2e9cf8aa560dc8",
+          "kind": "visual-runtime",
+          "license": "Authorized supplied Crafto Decor Store source",
+          "sourcePath": "revolution/js/jquery.themepunch.tools.min.js",
+          "bytes": 110564,
+          "sha256": "a1dff8b0c66227748951c4ff891f146f49c5a382ac8e3d6e3c2e9cf8aa560dc8"
+        }
+      ],
       "ownershipApproval": "Supplied Crafto package approved for repository-local Decor Store reconstruction.",
       "sourceIdentity": "templates/Crafto - The Multipurpose HTML5 Template/html/demo-decor-store.html",
       "sourceRevision": "sha256:90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
@@ -2042,9 +3142,7 @@
         }
       ],
       "closedSourceDirectories": ["demos/fashion-store"],
-      "ignoredCssReferences": {
-        "css/vendors.min.css": ["mCSB_buttons.png"]
-      },
+      "ignoredCssReferences": { "css/vendors.min.css": ["mCSB_buttons.png"] },
       "importedAt": "2026-08-07",
       "importedFiles": [
         {

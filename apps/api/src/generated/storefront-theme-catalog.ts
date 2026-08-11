@@ -28,6 +28,22 @@ export const storefrontThemeCatalog = [
   },
   {
     "configurationSchemaVersion": 1,
+    "id": "decor-store",
+    "platformCompatibility": {
+      "maxExclusive": "2.0.0",
+      "min": "1.0.0"
+    },
+    "platformContractVersion": "1.0.0",
+    "presets": [
+      "source-parity"
+    ],
+    "supportedPageTemplates": [
+      "home"
+    ],
+    "themeVersion": "1.0.0"
+  },
+  {
+    "configurationSchemaVersion": 1,
     "id": "fashion",
     "platformCompatibility": {
       "maxExclusive": "2.0.0",

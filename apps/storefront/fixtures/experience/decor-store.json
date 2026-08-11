@@ -1,0 +1,17 @@
+{
+  "approvedAt": "2026-08-10T00:00:00.000Z",
+  "approvedBy": "fixture-operator",
+  "bindings": [
+    {
+      "fixtureId": "decor-store-home",
+      "id": "decor-store-home-binding",
+      "instanceId": "decor-store-home",
+      "kind": "fixture",
+      "resource": "home",
+      "state": "populated"
+    }
+  ],
+  "experienceId": "experience-decor-store-fixture",
+  "snapshotId": "snapshot-decor-store-fixture-1",
+  "version": 1
+}
