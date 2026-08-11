@@ -21,6 +21,12 @@ export function normalizeThemeRoutePath(path: string): string {
   return normalized || "/";
 }
 
+export function staticThemeRoutePaths(routes: readonly ThemeRouteContract[]): string[] {
+  return routes
+    .filter(({ family }) => family === undefined || family === "exact")
+    .map(({ path }) => path);
+}
+
 export function resolveThemeRoute(
   path: string,
   routes: readonly ThemeRouteContract[],

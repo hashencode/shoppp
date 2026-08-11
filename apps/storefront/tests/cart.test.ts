@@ -1,7 +1,28 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { cartSchema } from "@shoppp/contracts";
 
 import { acknowledgementKeys, authoritativeTotalLabel } from "../app/features/cart/presentation";
+import {
+  GuestCartCurrencyMismatchError,
+  assertGuestCartCurrency,
+  guestCartErrorMessage,
+  useGuestCart,
+} from "../app/features/cart/use-guest-cart";
+
+const originalUseState = Object.getOwnPropertyDescriptor(globalThis, "useState");
+const originalUseCommerceApi = Object.getOwnPropertyDescriptor(globalThis, "useCommerceApi");
+const originalLocalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+
+function restoreGlobal(name: string, descriptor?: PropertyDescriptor): void {
+  if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+  else Reflect.deleteProperty(globalThis, name);
+}
+
+afterEach(() => {
+  restoreGlobal("useState", originalUseState);
+  restoreGlobal("useCommerceApi", originalUseCommerceApi);
+  restoreGlobal("localStorage", originalLocalStorage);
+});
 
 const serverCart = cartSchema.parse({
   adjustments: [
@@ -39,5 +60,70 @@ describe("cart presentation", () => {
     expect(acknowledgementKeys(serverCart)).toEqual([
       "price_changed:var_01J00000000000000000000000",
     ]);
+  });
+
+  test("preserves an existing cart when the requested storefront currency changes", () => {
+    expect(() => assertGuestCartCurrency(serverCart, "EUR")).toThrow(
+      GuestCartCurrencyMismatchError,
+    );
+    expect(serverCart.currency).toBe("USD");
+  });
+
+  test("returns recoverable guidance for checkout validation and runtime timeouts", () => {
+    expect(
+      guestCartErrorMessage({
+        data: { error: { message: "Review cart price changes before checkout." } },
+        statusCode: 422,
+      }),
+    ).toBe("Review cart price changes before checkout.");
+    expect(guestCartErrorMessage({ name: "TimeoutError" })).toBe(
+      "Commerce is taking too long to respond. Your cart is unchanged; try again.",
+    );
+  });
+
+  test("shares one cart creation across concurrent mounted cart consumers", async () => {
+    const state = new Map<string, { value: unknown }>();
+    const storage = new Map<string, string>();
+    let createCount = 0;
+    let releaseCreate!: () => void;
+    const createGate = new Promise<void>((resolve) => {
+      releaseCreate = resolve;
+    });
+    Object.defineProperty(globalThis, "useState", {
+      configurable: true,
+      value: (key: string, initial: () => unknown) => {
+        const existing = state.get(key);
+        if (existing) return existing;
+        const value = { value: initial() };
+        state.set(key, value);
+        return value;
+      },
+    });
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        removeItem: (key: string) => storage.delete(key),
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+    });
+    Object.defineProperty(globalThis, "useCommerceApi", {
+      configurable: true,
+      value: () => ({
+        async createCart() {
+          createCount += 1;
+          await createGate;
+          return { data: { cart: serverCart, token: "guest-cart-token" } };
+        },
+      }),
+    });
+
+    const guestCart = useGuestCart();
+    const first = guestCart.ensure("USD");
+    const second = guestCart.ensure("USD");
+    expect(second).toBe(first);
+    releaseCreate();
+    await Promise.all([first, second]);
+    expect(createCount).toBe(1);
   });
 });

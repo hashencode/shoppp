@@ -2,23 +2,23 @@
 import type { PageTemplate } from "@shoppp/contracts";
 
 import type { ThemeAssetResolver } from "./assets";
-import { previewActionAdapterKey, type PreviewActionAdapter } from "./actions";
-import { previewCheckoutAdapterKey, type PreviewCheckoutAdapter } from "./checkout";
+import { storefrontActionAdapterKey, type StorefrontActionAdapter } from "./actions";
+import { storefrontCheckoutAdapterKey, type StorefrontCheckoutAdapter } from "./checkout";
 import { coreThemeRegistry } from "./core-registry";
 import type { PresentationProvider } from "./providers";
 import { composeThemeRegistries, renderTemplatePlan, type ThemeRegistry } from "./registry";
 
 const properties = defineProps<{
-  actionAdapter: PreviewActionAdapter;
+  actionAdapter: StorefrontActionAdapter;
   provider: PresentationProvider;
   registry: ThemeRegistry;
   resolveAsset: ThemeAssetResolver;
   template: PageTemplate;
-  checkoutAdapter: PreviewCheckoutAdapter;
+  checkoutAdapter: StorefrontCheckoutAdapter;
 }>();
 
-provide(previewActionAdapterKey, properties.actionAdapter);
-provide(previewCheckoutAdapterKey, properties.checkoutAdapter);
+provide(storefrontActionAdapterKey, properties.actionAdapter);
+provide(storefrontCheckoutAdapterKey, properties.checkoutAdapter);
 
 const plan = computed(() =>
   renderTemplatePlan(

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
+import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreContentData } from "../../fixtures/pages/content";
@@ -20,7 +20,7 @@ const data = computed(() => {
   return (properties.viewModel.data as unknown as FashionStoreContentData).wishlist;
 });
 const products = ref([...data.value.products]);
-const actionAdapter = inject(previewActionAdapterKey);
+const actionAdapter = inject(storefrontActionAdapterKey);
 const cartAddCount = ref(0);
 const removeCount = ref(0);
 const busyProductId = ref("");
@@ -35,7 +35,6 @@ async function addToCart(productId: string): Promise<void> {
   recordPreviewIntent(data.value.actions.cart, "fashion-store.wishlist.cart");
   try {
     await actionAdapter({
-      action: data.value.actions.cart,
       context: "fashion-store.wishlist.cart",
       currency: "USD",
       input: buildFashionStoreProductCartRequest(1),

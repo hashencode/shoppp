@@ -10,7 +10,7 @@ import {
   fashionStoreThemeRoutes,
   fashionStorePreviewRoutes,
 } from "../app/themes/fashion-store/page-contracts";
-import { resolveThemeRoute } from "../app/theme-engine/routes";
+import { resolveThemeRoute, staticThemeRoutePaths } from "../app/theme-engine/routes";
 
 describe("static generation manifest", () => {
   test("derives private preview routes only from readiness-enabled page contracts", () => {
@@ -44,6 +44,10 @@ describe("static generation manifest", () => {
       ),
     );
     expect(scripts.every((source) => source.includes("activeThemeRoutes"))).toBe(true);
+    expect(
+      scripts.every((source) => source.includes("staticThemeRoutePaths(activeThemeRoutes)")),
+    ).toBe(true);
+    expect(staticThemeRoutePaths(fashionStoreThemeRoutes)).toEqual(fashionStorePreviewRoutes);
   });
 
   test("prerenders the platform checkout completion shell alongside theme preview routes", async () => {

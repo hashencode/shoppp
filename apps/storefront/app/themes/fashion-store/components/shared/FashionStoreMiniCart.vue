@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
+import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import {
+  formatCommerceMoney,
+  liveCommerceModeKey,
+} from "../../../../theme-engine/runtime-commerce";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 
 const properties = defineProps<{
@@ -6,6 +12,19 @@ const properties = defineProps<{
 }>();
 
 const cartOpen = ref(false);
+const actionAdapter = inject(storefrontActionAdapterKey);
+const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
+const liveCommerceMode = inject(liveCommerceModeKey, false);
+const liveCart = ref<{
+  canCheckout: boolean;
+  count: number;
+  currency: string;
+  lines: { name: string; quantity: number; unitPrice: number; variantId: string }[];
+  subtotal: number;
+} | null>(null);
+const liveCartError = ref("");
+const liveCartNotice = ref("");
+const liveCartBusy = ref(false);
 let cartActivationPrepared = false;
 let cartOpenBeforeActivation = false;
 let touchActivation = false;
@@ -41,6 +60,66 @@ function closeCart(): void {
   touchActivation = false;
 }
 
+function applyLiveCart(cart: {
+  canCheckout: boolean;
+  currency: string;
+  lines: {
+    productName: string;
+    quantity: number;
+    unitPrice: { amount: number };
+    variantId: string;
+  }[];
+  totals: { subtotal: number };
+}): void {
+  liveCart.value = {
+    canCheckout: cart.canCheckout,
+    count: cart.lines.reduce((total, line) => total + line.quantity, 0),
+    currency: cart.currency,
+    lines: cart.lines.map((line) => ({
+      name: line.productName,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice.amount,
+      variantId: line.variantId,
+    })),
+    subtotal: cart.totals.subtotal,
+  };
+}
+
+function money(amount: number, currency: string): string {
+  return formatCommerceMoney(amount, currency);
+}
+
+async function removeLiveLine(variantId: string): Promise<void> {
+  if (!actionAdapter || liveCartBusy.value) return;
+  liveCartBusy.value = true;
+  liveCartError.value = "";
+  try {
+    applyLiveCart(
+      await actionAdapter({
+        context: "fashion-store.live-mini-cart.remove",
+        kind: "cart.remove",
+        variantId,
+      }),
+    );
+  } catch {
+    liveCartError.value =
+      checkoutAdapter?.status().error ?? "The cart could not be updated. Try again.";
+  } finally {
+    liveCartBusy.value = false;
+  }
+}
+
+onMounted(async () => {
+  if (!liveCommerceMode || !checkoutAdapter) return;
+  try {
+    applyLiveCart(await checkoutAdapter.ensure());
+    liveCartNotice.value = checkoutAdapter.status().notice ?? "";
+  } catch {
+    liveCartError.value =
+      checkoutAdapter.status().error ?? "Your current cart is unavailable. Try again.";
+  }
+});
+
 const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
 
 defineExpose({ closeCart });
@@ -65,9 +144,63 @@ defineExpose({ closeCart });
         @pointerdown="prepareCartToggle"
       >
         <i class="feather icon-feather-shopping-bag"></i
-        ><span class="cart-count alt-font text-white bg-dark-gray">2</span>
+        ><span class="cart-count alt-font text-white bg-dark-gray">{{
+          liveCommerceMode ? (liveCart?.count ?? 0) : 2
+        }}</span>
       </button>
-      <ul class="cart-item-list">
+      <ul v-if="liveCommerceMode" class="cart-item-list" aria-live="polite">
+        <li v-if="liveCartError" class="cart-item" role="alert">{{ liveCartError }}</li>
+        <li v-else-if="liveCartNotice" class="cart-item" role="status">
+          {{ liveCartNotice }}
+        </li>
+        <li v-else-if="!liveCart" class="cart-item" role="status">Loading cart…</li>
+        <li v-else-if="liveCart.lines.length === 0" class="cart-item" role="status">
+          Your cart is empty.
+        </li>
+        <li
+          v-for="line in liveCart?.lines ?? []"
+          :key="line.variantId"
+          class="cart-item align-items-center"
+        >
+          <button
+            type="button"
+            class="alt-font close fashion-store-source-action"
+            :aria-label="`Remove ${line.name} from cart`"
+            :disabled="liveCartBusy"
+            @click="removeLiveLine(line.variantId)"
+          >
+            ×
+          </button>
+          <div class="product-detail fw-600">
+            <span>{{ line.name }}</span>
+            <span class="item-ammount fw-400">
+              {{ line.quantity }} × {{ money(line.unitPrice, liveCart!.currency) }}
+            </span>
+          </div>
+        </li>
+        <li v-if="liveCart" class="cart-total">
+          <div class="fs-18 alt-font mb-15px">
+            <span class="w-50 fw-500 text-start">Subtotal:</span>
+            <span class="w-50 text-end fw-700">{{
+              money(liveCart.subtotal, liveCart.currency)
+            }}</span>
+          </div>
+          <a
+            :href="fashionStoreRoutePaths.cart"
+            data-fashion-store-route
+            class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
+            >View cart</a
+          >
+          <a
+            v-if="liveCart.canCheckout"
+            :href="fashionStoreRoutePaths.checkout"
+            data-fashion-store-route
+            class="btn btn-large btn-dark-gray btn-box-shadow"
+            >Checkout</a
+          >
+        </li>
+      </ul>
+      <ul v-else class="cart-item-list">
         <li class="cart-item align-items-center">
           <button
             type="button"

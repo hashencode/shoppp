@@ -11,6 +11,7 @@ import {
 } from "@shoppp/contracts";
 
 import { normalizeThemeRoutePath } from "./routes";
+import { formatCommerceMoney } from "./runtime-commerce";
 import { presentationViewModelSchema, type PresentationViewModel } from "./view-models";
 
 type CatalogProduct = CanonicalCatalogRelease["products"][number];
@@ -164,10 +165,7 @@ function productViewModel(
     heading: product.name,
     kind: "product",
     media: product.media,
-    priceLabel: new Intl.NumberFormat(locale, {
-      currency: money.currency,
-      style: "currency",
-    }).format(money.amount / 100),
+    priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
     resource,
     state: "populated",
     variants: variants.map((variant, index) => ({
@@ -178,7 +176,12 @@ function productViewModel(
   });
 }
 
-function collectionViewModel(collection: CatalogCollection): PresentationViewModel {
+function collectionViewModel(
+  collection: CatalogCollection,
+  productsById: ReadonlyMap<string, CatalogProduct>,
+  defaultCurrency: string,
+  locale: string,
+): PresentationViewModel {
   const resource = presentationCollectionSchema.parse({
     id: collection.id,
     kind: "collection",
@@ -201,8 +204,54 @@ function collectionViewModel(collection: CatalogCollection): PresentationViewMod
     ],
     heading: collection.name,
     kind: "collection-grid",
+    products: collection.productIds.flatMap((productId) => {
+      const product = productsById.get(productId);
+      const activeVariant = product?.variants.find(({ status }) => status === "active");
+      const money =
+        activeVariant?.prices.find(({ currency }) => currency === defaultCurrency) ??
+        activeVariant?.prices[0];
+      if (!product || product.status !== "published" || !activeVariant || !money) return [];
+      return [
+        {
+          href: `/products/${product.slug}`,
+          id: product.id,
+          media: product.media[0],
+          name: product.name,
+          priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
+        },
+      ];
+    }),
     resource,
     state: "populated",
+  });
+}
+
+function transactionViewModel(pageType: "cart" | "checkout"): PresentationViewModel {
+  if (pageType === "cart") {
+    return presentationViewModelSchema.parse({
+      checkoutAction: {
+        id: "start-checkout",
+        intent: "checkout.start-preview",
+        label: "Continue to checkout",
+      },
+      heading: "Shopping cart",
+      kind: "cart",
+      lines: [],
+      state: "populated",
+      subtotalLabel: "Calculated by Commerce",
+    });
+  }
+  return presentationViewModelSchema.parse({
+    action: {
+      id: "continue-checkout",
+      intent: "checkout.start-preview",
+      label: "Continue to secure payment",
+    },
+    heading: "Checkout",
+    kind: "checkout",
+    state: "populated",
+    steps: ["Address", "Delivery", "Payment"],
+    summaryLines: ["Your current cart will be verified before payment."],
   });
 }
 
@@ -267,6 +316,10 @@ export function composeExperienceRoute(
   }
   const instances = template.sections.flatMap((section) => [section, ...section.blocks]);
   for (const instance of instances.filter(({ visible }) => visible)) {
+    if (template.pageType === "cart" || template.pageType === "checkout") {
+      viewModels[instance.id] = transactionViewModel(template.pageType);
+      continue;
+    }
     const matches = catalogBindingsByInstance.get(instance.id) ?? [];
     if (matches.length !== 1) {
       diagnostics.push({
@@ -302,7 +355,12 @@ export function composeExperienceRoute(
         input.locale,
       );
     } else {
-      viewModels[instance.id] = collectionViewModel(collectionsById.get(binding.reference.id)!);
+      viewModels[instance.id] = collectionViewModel(
+        collectionsById.get(binding.reference.id)!,
+        productsById,
+        release.site.defaultCurrency,
+        input.locale,
+      );
     }
   }
   return {

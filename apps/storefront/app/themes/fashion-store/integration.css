@@ -1666,3 +1666,10 @@
     transition: none !important;
   }
 }
+.fashion-store-product-placeholder,
+.product-media-placeholder {
+  display: block;
+  min-height: 12rem;
+  background: #f3f3f3;
+  border: 1px solid #d8d8d8;
+}

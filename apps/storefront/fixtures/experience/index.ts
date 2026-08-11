@@ -76,6 +76,7 @@ export const experienceFixtureRegistry = {
         ],
         heading: "Curated collections",
         kind: "collection-grid",
+        products: [],
         state: "populated",
       },
       products: {

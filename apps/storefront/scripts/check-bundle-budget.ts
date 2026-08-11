@@ -2,12 +2,13 @@ import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { gzipSync } from "node:zlib";
 import { activeThemeId, activeThemeRoutes } from "../app/generated/active-theme";
+import { staticThemeRoutePaths } from "../app/theme-engine/routes";
 import manifest from "../app/generated/route-manifest.json";
 
 const output = resolve(import.meta.dir, "../.output/public");
 const representativeRoutes =
   activeThemeId === "fashion-store"
-    ? activeThemeRoutes.map(({ path }) => path)
+    ? staticThemeRoutePaths(activeThemeRoutes)
     : [
         "/",
         manifest.routes.find((route) => route.startsWith("/collections/")),

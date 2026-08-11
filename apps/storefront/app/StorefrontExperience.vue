@@ -20,8 +20,14 @@ import { resolveThemeRoute } from "./theme-engine/routes";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 import { useGuestCart } from "./features/cart/use-guest-cart";
 import { storeOrderAccess } from "./features/checkout/session";
-import type { PreviewActionAdapter } from "./theme-engine/actions";
-import type { PreviewCheckoutAdapter } from "./theme-engine/checkout";
+import type { StorefrontActionAdapter } from "./theme-engine/actions";
+import type { StorefrontCheckoutAdapter } from "./theme-engine/checkout";
+import {
+  runtimeCommercePortKey,
+  liveCommerceModeKey,
+  toRuntimeProductState,
+  type RuntimeCommercePort,
+} from "./theme-engine/runtime-commerce";
 
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
 const router = useRouter();
@@ -44,21 +50,44 @@ const presentationProvider = computed(() =>
 const {
   add: addGuestCartLine,
   beginCheckout,
+  error: guestCartError,
   ensure: ensureGuestCart,
+  notice: guestCartNotice,
   remove: removeGuestCartLine,
   shipping: quoteGuestCartShipping,
   update: updateGuestCartLine,
 } = useGuestCart();
 const commerceApi = useCommerceApi();
-const previewActionAdapter: PreviewActionAdapter = async (dispatch) => {
+const runtimeCommercePort: RuntimeCommercePort = {
+  async revalidateProduct(input) {
+    const product = (await commerceApi.getLiveProduct(input.slug, input.currency)).data;
+    if (product.id !== input.productId || product.slug !== input.slug) {
+      throw new Error("Commerce returned a different product than the selected Catalog Release.");
+    }
+    return toRuntimeProductState(product, input.currency);
+  },
+};
+if (activeExperienceProviderInput.mode === "live") {
+  provide(runtimeCommercePortKey, runtimeCommercePort);
+  provide(liveCommerceModeKey, true);
+}
+const storefrontActionAdapter: StorefrontActionAdapter = async (dispatch) => {
   if (dispatch.kind === "cart.add") {
-    return addGuestCartLine(dispatch.input, dispatch.currency);
+    return addGuestCartLine(
+      activeExperienceProviderInput.mode === "live"
+        ? {
+            ...dispatch.input,
+            releaseId: activeExperienceProviderInput.identity.catalogReleaseId,
+          }
+        : dispatch.input,
+      dispatch.currency,
+    );
   }
   if (dispatch.kind === "cart.remove") return removeGuestCartLine(dispatch.variantId);
   if (dispatch.kind === "cart.shipping") return quoteGuestCartShipping(dispatch.input);
   return updateGuestCartLine(dispatch.variantId, dispatch.input);
 };
-const previewCheckoutAdapter: PreviewCheckoutAdapter = {
+const storefrontCheckoutAdapter: StorefrontCheckoutAdapter = {
   begin: beginCheckout,
   complete(session) {
     storeOrderAccess({ attemptId: session.attemptId, token: session.orderAccessToken });
@@ -68,9 +97,16 @@ const previewCheckoutAdapter: PreviewCheckoutAdapter = {
     return (await commerceApi.getPublicRuntimeConfiguration()).data;
   },
   async ensure() {
-    return ensureGuestCart();
+    return ensureGuestCart(
+      activeExperienceProviderInput.mode === "live"
+        ? activeExperienceProviderInput.release.site.defaultCurrency
+        : "USD",
+    );
   },
   shipping: quoteGuestCartShipping,
+  status() {
+    return { error: guestCartError.value, notice: guestCartNotice.value };
+  },
 };
 
 const pageContract = computed(() =>
@@ -140,8 +176,8 @@ if (activeExperienceSnapshot && previewOrigin) {
     </aside>
     <ThemeRenderer
       v-if="previewTemplate"
-      :action-adapter="previewActionAdapter"
-      :checkout-adapter="previewCheckoutAdapter"
+      :action-adapter="storefrontActionAdapter"
+      :checkout-adapter="storefrontCheckoutAdapter"
       :provider="presentationProvider"
       :registry="activeThemeRegistry"
       :resolve-asset="resolveThemeAsset"

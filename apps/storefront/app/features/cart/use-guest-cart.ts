@@ -8,7 +8,26 @@ import type {
 
 const TOKEN_KEY = "shoppp.guest-cart-token";
 
-function errorMessage(error: unknown): string {
+export class GuestCartCurrencyMismatchError extends Error {
+  constructor(currentCurrency: string, requestedCurrency: string) {
+    super(
+      `Your cart uses ${currentCurrency}, but this storefront is using ${requestedCurrency}. Complete or clear the current cart before changing currency.`,
+    );
+    this.name = "GuestCartCurrencyMismatchError";
+  }
+}
+
+export function assertGuestCartCurrency(cart: Cart, requestedCurrency: string): void {
+  if (cart.currency !== requestedCurrency) {
+    throw new GuestCartCurrencyMismatchError(cart.currency, requestedCurrency);
+  }
+}
+
+export function guestCartErrorMessage(error: unknown): string {
+  if (error instanceof GuestCartCurrencyMismatchError) return error.message;
+  if (typeof error === "object" && error && "name" in error && error.name === "TimeoutError") {
+    return "Commerce is taking too long to respond. Your cart is unchanged; try again.";
+  }
   if (typeof error === "object" && error && "data" in error) {
     const data = (error as { data?: { error?: { message?: string } } }).data;
     if (data?.error?.message) return data.error.message;
@@ -35,7 +54,9 @@ export function useGuestCart() {
   const cart = useState<Cart | null>("guest-cart", () => null);
   const busy = useState("guest-cart-busy", () => false);
   const error = useState<string | null>("guest-cart-error", () => null);
+  const notice = useState<string | null>("guest-cart-notice", () => null);
   const api = useCommerceApi();
+  let ensureFlight: { currency: string; promise: Promise<Cart> } | undefined;
 
   const token = () => (import.meta.client ? localStorage.getItem(TOKEN_KEY) : null);
   const withCart = async (operation: (cartToken: string) => Promise<{ data: Cart }>) => {
@@ -48,20 +69,27 @@ export function useGuestCart() {
       cart.value = response.data;
       return response.data;
     } catch (cause) {
-      error.value = errorMessage(cause);
+      error.value = guestCartErrorMessage(cause);
       throw cause;
     } finally {
       busy.value = false;
     }
   };
-  const ensure = async (currency = "USD") => {
+  const runEnsure = async (currency: string) => {
     const existingToken = token();
+    let recoveredExpiredCart = false;
     if (existingToken) {
       try {
-        return await withCart((value) => api.getCart(value));
+        const currentCart = await withCart((value) => api.getCart(value));
+        assertGuestCartCurrency(currentCart, currency);
+        return currentCart;
       } catch (cause) {
-        if (!isTerminalCartError(cause)) throw cause;
+        if (!isTerminalCartError(cause)) {
+          error.value = guestCartErrorMessage(cause);
+          throw cause;
+        }
         localStorage.removeItem(TOKEN_KEY);
+        recoveredExpiredCart = true;
       }
     }
     busy.value = true;
@@ -70,13 +98,24 @@ export function useGuestCart() {
       const response = await api.createCart({ currency });
       localStorage.setItem(TOKEN_KEY, response.data.token);
       cart.value = response.data.cart;
+      notice.value = recoveredExpiredCart
+        ? "Your previous cart expired. A new cart has been started."
+        : null;
       return response.data.cart;
     } catch (cause) {
-      error.value = errorMessage(cause);
+      error.value = guestCartErrorMessage(cause);
       throw cause;
     } finally {
       busy.value = false;
     }
+  };
+  const ensure = (currency = "USD"): Promise<Cart> => {
+    if (ensureFlight?.currency === currency) return ensureFlight.promise;
+    const promise = runEnsure(currency).finally(() => {
+      if (ensureFlight?.promise === promise) ensureFlight = undefined;
+    });
+    ensureFlight = { currency, promise };
+    return promise;
   };
   const add = async (input: AddCartLineRequest, currency: string) => {
     await ensure(currency);
@@ -97,12 +136,24 @@ export function useGuestCart() {
       if (!cartToken) throw new Error("Cart token unavailable");
       return (await api.createCheckoutSession(cartToken, input, turnstileToken)).data;
     } catch (cause) {
-      error.value = errorMessage(cause);
+      error.value = guestCartErrorMessage(cause);
       throw cause;
     } finally {
       busy.value = false;
     }
   };
 
-  return { acknowledge, add, beginCheckout, busy, cart, ensure, error, remove, shipping, update };
+  return {
+    acknowledge,
+    add,
+    beginCheckout,
+    busy,
+    cart,
+    ensure,
+    error,
+    notice,
+    remove,
+    shipping,
+    update,
+  };
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
+import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import {
@@ -43,7 +43,7 @@ const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
 const thumbnailTrack = ref<HTMLElement | null>(null);
 const thumbnailStep = ref(0);
 const thumbnailHorizontal = ref(false);
-const actionAdapter = inject(previewActionAdapterKey);
+const actionAdapter = inject(storefrontActionAdapterKey);
 let galleryTimer: ReturnType<typeof setInterval> | undefined;
 let touchStartX = 0;
 
@@ -149,7 +149,6 @@ async function addToCart(): Promise<void> {
   try {
     if (!actionAdapter) throw new Error("Preview action adapter unavailable");
     await actionAdapter({
-      action: data.value.actions.cart,
       context: "fashion-store.product.cart",
       currency: "USD",
       input: buildFashionStoreProductCartRequest(

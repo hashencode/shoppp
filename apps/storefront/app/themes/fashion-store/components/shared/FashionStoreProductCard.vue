@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreShopProduct } from "../../fixtures/pages/shop";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 
+type LiveProductCard = Extract<
+  PresentationViewModel,
+  { kind: "collection-grid" }
+>["products"][number];
+
 const properties = defineProps<{
-  product: FashionStoreShopProduct;
+  commerceEnabled?: boolean;
+  product: FashionStoreShopProduct | LiveProductCard;
   resolveAsset: ThemeAssetResolver;
 }>();
 
@@ -13,9 +20,30 @@ defineEmits<{
   intent: [kind: "cart" | "quickView" | "wishlist"];
 }>();
 
-const productImage = computed(() =>
-  properties.resolveAsset(fashionStoreAssetId(properties.product.sourceImage)),
-);
+const card = computed(() => {
+  if ("href" in properties.product) {
+    return {
+      alt: properties.product.media?.alt ?? properties.product.name,
+      badge: undefined,
+      href: properties.product.href,
+      id: properties.product.id,
+      image: properties.product.media?.src,
+      name: properties.product.name,
+      originalPrice: "",
+      price: properties.product.priceLabel,
+    };
+  }
+  return {
+    alt: properties.product.name,
+    badge: properties.product.badge,
+    href: fashionStoreRoutePaths.product,
+    id: properties.product.id,
+    image: properties.resolveAsset(fashionStoreAssetId(properties.product.sourceImage)),
+    name: properties.product.name,
+    originalPrice: properties.product.originalPrice,
+    price: properties.product.price,
+  };
+});
 const touchActionsOpen = ref(false);
 const productLinkEnabled = ref(true);
 let suppressNextProductLink = false;
@@ -38,7 +66,7 @@ function handleProductLink(event: MouseEvent): void {
 </script>
 
 <template>
-  <li class="grid-item" data-fashion-store-product-card :data-product-id="product.id">
+  <li class="grid-item" data-fashion-store-product-card :data-product-id="card.id">
     <div
       class="shop-box mb-10px"
       :class="{ 'actions-open': touchActionsOpen }"
@@ -46,18 +74,20 @@ function handleProductLink(event: MouseEvent): void {
     >
       <div class="shop-image mb-20px">
         <a
-          :href="fashionStoreRoutePaths.product"
+          :href="card.href"
           :data-fashion-store-route="productLinkEnabled ? '' : undefined"
           @click="handleProductLink"
         >
-          <img :src="productImage" :alt="product.name" width="600" height="765" />
-          <span v-if="product.badge" class="lable" :class="product.badge.toLowerCase()">{{
-            product.badge
+          <img v-if="card.image" :src="card.image" :alt="card.alt" width="600" height="765" />
+          <span v-else class="fashion-store-product-placeholder" aria-hidden="true"></span>
+          <span v-if="card.badge" class="lable" :class="card.badge.toLowerCase()">{{
+            card.badge
           }}</span>
           <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
         </a>
         <div class="shop-buttons-wrap">
           <button
+            v-if="commerceEnabled !== false"
             type="button"
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
             aria-label="Add to cart"
@@ -66,6 +96,14 @@ function handleProductLink(event: MouseEvent): void {
             <i class="feather icon-feather-shopping-bag"></i
             ><span class="quick-view-text button-text">Add to cart</span>
           </button>
+          <a
+            v-else
+            :href="card.href"
+            data-fashion-store-route
+            class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
+          >
+            <span class="quick-view-text button-text">Choose options</span>
+          </a>
         </div>
         <div class="shop-hover d-flex justify-content-center">
           <ul>
@@ -96,14 +134,14 @@ function handleProductLink(event: MouseEvent): void {
       </div>
       <div class="shop-footer text-center">
         <a
-          :href="fashionStoreRoutePaths.product"
+          :href="card.href"
           data-fashion-store-route
           class="alt-font text-dark-gray fs-19 fw-500"
-          >{{ product.name }}</a
+          >{{ card.name }}</a
         >
         <div class="price lh-22 fs-16">
-          <del>{{ product.originalPrice }}</del
-          >{{ product.price }}
+          <del>{{ card.originalPrice }}</del
+          >{{ card.price }}
         </div>
       </div>
     </div>

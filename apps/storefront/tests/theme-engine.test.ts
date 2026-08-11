@@ -419,6 +419,92 @@ describe("theme-neutral storefront composer", () => {
     });
   });
 
+  test("projects selected-release products into collection browse view models", () => {
+    const result = composeExperienceRoute({
+      experience: {
+        ...liveSnapshot,
+        bindings: [
+          {
+            id: "selected-collection-binding",
+            instanceId: "collection",
+            kind: "catalog",
+            reference: { id: canonicalRelease.collections[0].id, kind: "collection" },
+            settingId: "selected-collection-setting",
+          },
+        ],
+        resolvedTemplates: [
+          {
+            id: "collection-template",
+            pageType: "collection",
+            requiredCapabilities: [],
+            sections: [
+              {
+                blocks: [],
+                capabilities: [],
+                id: "collection",
+                settings: {},
+                type: "fashion.collection",
+                visible: true,
+              },
+            ],
+          },
+        ],
+      },
+      locale: "en-US",
+      path: "/collections/selected-collection",
+      release: canonicalRelease,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.viewModels.collection).toMatchObject({
+      kind: "collection-grid",
+      products: [
+        {
+          href: "/products/selected-product",
+          id: canonicalRelease.products[0].id,
+          name: "Selected product",
+          priceLabel: "$65.00",
+        },
+      ],
+      resource: { id: canonicalRelease.collections[0].id, kind: "collection" },
+    });
+  });
+
+  test("composes cart and checkout shells without inventing catalog bindings", () => {
+    for (const pageType of ["cart", "checkout"] as const) {
+      const result = composeExperienceRoute({
+        experience: {
+          ...liveSnapshot,
+          bindings: [],
+          resolvedTemplates: [
+            {
+              id: `${pageType}-template`,
+              pageType,
+              requiredCapabilities: [],
+              sections: [
+                {
+                  blocks: [],
+                  capabilities: [],
+                  id: pageType,
+                  settings: {},
+                  type: `fashion.${pageType}`,
+                  visible: true,
+                },
+              ],
+            },
+          ],
+        },
+        locale: "en-US",
+        path: `/${pageType}`,
+        release: canonicalRelease,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.diagnostics).toEqual([]);
+      expect(result.viewModels[pageType]).toMatchObject({ kind: pageType, state: "populated" });
+    }
+  });
+
   test("returns actionable diagnostics for missing, wrong-type, unpublished, and empty bindings", () => {
     const cases = [
       {

@@ -5,8 +5,9 @@ import CheckoutAddress from "~/features/checkout/address.vue";
 import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import { previewCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
+import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
 import type { FashionStoreCheckoutData } from "../../fixtures/pages/checkout";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
@@ -17,13 +18,15 @@ const properties = defineProps<{
   viewModel: PresentationViewModel;
 }>();
 
-const data = computed<FashionStoreCheckoutData>(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Checkout requires a theme-section fixture.");
-  }
-  return properties.viewModel.data as unknown as FashionStoreCheckoutData;
-});
-const checkoutAdapter = inject(previewCheckoutAdapterKey);
+const isLive = computed(() => properties.viewModel.kind === "checkout");
+const initialFixtureData =
+  properties.viewModel.kind === "theme-section"
+    ? (properties.viewModel.data as unknown as FashionStoreCheckoutData)
+    : undefined;
+const fixtureLinesByVariant = new Map(
+  (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
+);
+const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const form = ref<HTMLFormElement>();
 const cart = ref<Cart | null>(null);
 const firstName = ref("");
@@ -38,12 +41,25 @@ const orderNotes = ref("");
 const helperPanel = ref<"coupon" | "login" | null>(null);
 const helperValue = ref("");
 const helperInvalid = ref(false);
-const selectedMethod = ref(data.value.shipping[0]?.id);
-const selectedPayment = ref(data.value.payment[0]?.id ?? "bank");
+const selectedMethod = ref(initialFixtureData?.shipping[0]?.id);
+const paymentOptions: FashionStoreCheckoutData["payment"] = initialFixtureData?.payment ?? [
+  {
+    detail: "You will continue to the platform's secure hosted payment page.",
+    id: "hosted-payment",
+    label: "Secure payment",
+  },
+];
+const selectedPayment = ref(paymentOptions[0]?.id ?? "hosted-payment");
+const countryOptions = initialFixtureData?.countries ?? [
+  { code: "US", label: "United States" },
+  { code: "CA", label: "Canada" },
+  { code: "GB", label: "United Kingdom" },
+];
 const termsAccepted = ref(false);
 const submitting = ref(false);
 const shippingBusy = ref(false);
 const loadError = ref("");
+const loadNotice = ref("");
 const submitError = ref("");
 const shippingError = ref("");
 const securityConfigurationLoading = ref(true);
@@ -78,11 +94,9 @@ const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
 });
 
 const displayedLines = computed(() => {
-  if (cart.value === null) return data.value.lines;
+  if (cart.value === null) return initialFixtureData?.lines ?? [];
   return cart.value.lines.map((line) => ({
-    color:
-      data.value.lines.find(({ variantId }) => variantId === line.variantId)?.color ??
-      line.variantName,
+    color: fixtureLinesByVariant.get(line.variantId)?.color ?? line.variantName,
     name: line.productName,
     quantity: line.quantity,
     total: money(line.lineTotal.amount, line.lineTotal.currency),
@@ -96,12 +110,16 @@ const displayedTotals = computed(() =>
         tax: `(Includes ${money(cart.value.totals.taxTotal, cart.value.currency)} tax)`,
         total: money(cart.value.totals.grandTotal, cart.value.currency),
       }
-    : data.value.totals,
+    : (initialFixtureData?.totals ?? {
+        subtotal: "$0.00",
+        tax: "(Includes $0.00 tax)",
+        total: "$0.00",
+      }),
 );
 const shippingMethods = computed<ShippingMethodQuote[]>(() =>
   cart.value === null
-    ? data.value.shipping.map((method) => ({
-        amount: method.id === data.value.shipping[1]?.id ? 1200 : 0,
+    ? (initialFixtureData?.shipping ?? []).map((method) => ({
+        amount: method.id === initialFixtureData?.shipping[1]?.id ? 1200 : 0,
         currency: "USD",
         estimatedDaysMax: 5,
         estimatedDaysMin: 3,
@@ -112,7 +130,7 @@ const shippingMethods = computed<ShippingMethodQuote[]>(() =>
 );
 
 function money(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { currency, style: "currency" }).format(amount / 100);
+  return formatCommerceMoney(amount, currency);
 }
 
 function sourceAsset(sourcePath: string): string {
@@ -175,7 +193,8 @@ async function updateShipping(): Promise<void> {
       }),
     );
   } catch {
-    shippingError.value = "Delivery options are unavailable. Please try again.";
+    shippingError.value =
+      checkoutAdapter.status().error ?? "Delivery options are unavailable. Please try again.";
   } finally {
     shippingBusy.value = false;
   }
@@ -199,7 +218,9 @@ async function continueCheckout(): Promise<void> {
 
   const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
   billingAddress.name = `${firstName.value} ${lastName.value}`.trim();
-  recordPreviewIntent(data.value.action, "fashion-store.checkout.session");
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.action, "fashion-store.checkout.session");
+  }
   submitting.value = true;
   try {
     const session = await checkoutAdapter.begin(
@@ -222,7 +243,8 @@ async function continueCheckout(): Promise<void> {
     sessionCount.value += 1;
     checkoutAdapter.complete(session);
   } catch {
-    submitError.value = "Checkout could not continue. Please try again.";
+    submitError.value =
+      checkoutAdapter.status().error ?? "Checkout could not continue. Please try again.";
     turnstileToken.value = "";
     turnstileRenderKey.value += 1;
   } finally {
@@ -240,8 +262,12 @@ onMounted(async () => {
     checkoutAdapter.ensure(),
     checkoutAdapter.configuration(),
   ]);
-  if (cartResult.status === "fulfilled") applyCart(cartResult.value);
-  else loadError.value = "Checkout is unavailable for this cart.";
+  if (cartResult.status === "fulfilled") {
+    applyCart(cartResult.value);
+    loadNotice.value = checkoutAdapter.status().notice ?? "";
+  } else {
+    loadError.value = checkoutAdapter.status().error ?? "Checkout is unavailable for this cart.";
+  }
 
   if (configurationResult.status === "fulfilled") {
     turnstileRequired.value = configurationResult.value.turnstile.required;
@@ -264,7 +290,7 @@ onBeforeUnmount(() => {
 
 <template>
   <FashionStoreShell
-    :announcement="data.announcement"
+    :announcement="initialFixtureData?.announcement ?? 'Checkout totals are verified by Commerce.'"
     body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
@@ -272,7 +298,7 @@ onBeforeUnmount(() => {
     <main
       id="fashion-store-main"
       data-fashion-store-checkout
-      data-runtime-status="ready"
+      :data-runtime-status="loadError ? 'error' : cart ? 'ready' : 'loading'"
       :data-local-action-count="localActionCount"
       :data-session-count="sessionCount"
     >
@@ -426,7 +452,7 @@ onBeforeUnmount(() => {
                   >
                     <option value="">Select a country</option>
                     <option
-                      v-for="country in data.countries"
+                      v-for="country in countryOptions"
                       :key="country.code"
                       :value="country.code"
                     >
@@ -525,7 +551,7 @@ onBeforeUnmount(() => {
                   />
                 </div>
 
-                <div class="col-md-12 mb-5px checkout-accordion">
+                <div v-if="!isLive" class="col-md-12 mb-5px checkout-accordion">
                   <div
                     class="position-relative terms-condition-box text-start d-flex align-items-center"
                   >
@@ -695,7 +721,7 @@ onBeforeUnmount(() => {
                 >
                   <div id="fashion-payment-accordion" class="w-100">
                     <div
-                      v-for="payment in data.payment"
+                      v-for="payment in paymentOptions"
                       :key="payment.id"
                       class="fashion-payment-option"
                     >
@@ -786,6 +812,9 @@ onBeforeUnmount(() => {
                 </button>
                 <p v-if="loadError || submitError" class="form-error mt-15px" role="alert">
                   {{ loadError || submitError }}
+                </p>
+                <p v-if="loadNotice" class="mt-15px" role="status" aria-live="polite">
+                  {{ loadNotice }}
                 </p>
               </div>
             </div>

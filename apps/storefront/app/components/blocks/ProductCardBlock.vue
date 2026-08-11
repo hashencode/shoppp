@@ -16,12 +16,14 @@ const products = computed(() =>
   >
     <NuxtLink :to="product.href">
       <img
+        v-if="product.media"
         :src="product.media.src"
         :alt="product.media.alt"
         :width="product.media.width"
         :height="product.media.height"
         loading="lazy"
       />
+      <span v-else class="product-media-placeholder" aria-hidden="true"></span>
       <div>
         <h3>{{ product.name }}</h3>
         <span>{{ product.priceLabel }}</span>

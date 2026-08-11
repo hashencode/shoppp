@@ -15,6 +15,8 @@ interface ApiData<T> {
   data: T;
 }
 
+export const COMMERCE_REQUEST_TIMEOUT_MS = 8_000;
+
 function mutationKey(scope: string): string {
   return `${scope}-${crypto.randomUUID()}`;
 }
@@ -22,7 +24,11 @@ function mutationKey(scope: string): string {
 export const useCommerceApi = () => {
   const config = useRuntimeConfig();
   const api = <T>(path: string, options: Parameters<typeof $fetch<T>>[1] = {}) =>
-    $fetch<T>(path, { baseURL: config.public.apiBase, ...options });
+    $fetch<T>(path, {
+      baseURL: config.public.apiBase,
+      timeout: COMMERCE_REQUEST_TIMEOUT_MS,
+      ...options,
+    });
   const cartHeaders = (token: string, scope?: string) => ({
     Authorization: `CartToken ${token}`,
     ...(scope ? { "Idempotency-Key": mutationKey(scope) } : {}),

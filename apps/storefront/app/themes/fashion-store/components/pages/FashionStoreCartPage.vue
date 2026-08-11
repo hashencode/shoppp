@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Cart } from "@shoppp/contracts";
 
-import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
+import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import { previewCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
+import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
 import type { FashionStoreCartData, FashionStoreCartLine } from "../../fixtures/pages/cart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
@@ -15,22 +16,37 @@ const properties = defineProps<{
   viewModel: PresentationViewModel;
 }>();
 
+const isLive = computed(() => properties.viewModel.kind === "cart");
+const initialFixtureData =
+  properties.viewModel.kind === "theme-section"
+    ? (properties.viewModel.data as unknown as FashionStoreCartData)
+    : undefined;
 const data = computed<FashionStoreCartData>(() => {
   if (properties.viewModel.kind !== "theme-section") {
     throw new Error("Fashion Store Cart requires a theme-section fixture.");
   }
   return properties.viewModel.data as unknown as FashionStoreCartData;
 });
-const actionAdapter = inject(previewActionAdapterKey);
-const checkoutAdapter = inject(previewCheckoutAdapterKey);
+const actionAdapter = inject(storefrontActionAdapterKey);
+const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const lines = ref<FashionStoreCartLine[]>([]);
 const totals = reactive({ subtotal: "$0.00", tax: "(Includes $0.00 tax)", total: "$0.00" });
-const cartStatus = ref<"loading" | "ready">("loading");
+const cartStatus = ref<"error" | "loading" | "ready">("loading");
 const cartLoadError = ref("");
 const displayedLines = computed(() =>
-  cartStatus.value === "loading" ? data.value.lines : lines.value,
+  cartStatus.value === "loading" && initialFixtureData ? initialFixtureData.lines : lines.value,
 );
-const selectedShipping = ref(data.value.shipping[0]?.id ?? "");
+const selectedShipping = ref(initialFixtureData?.shipping[0]?.id ?? "");
+const shippingOptions = ref<{ id: string; label: string }[]>(
+  initialFixtureData?.shipping.map(({ id, label }) => ({ id, label })) ?? [],
+);
+const countryOptions = initialFixtureData?.countries ?? [
+  { code: "US", label: "United States" },
+  { code: "CA", label: "Canada" },
+  { code: "GB", label: "United Kingdom" },
+];
+const canCheckout = ref(false);
+const cartAnnouncements = ref<string[]>([]);
 const shippingOpen = ref(false);
 const countryCode = ref("");
 const region = ref("");
@@ -48,19 +64,21 @@ function sourceAsset(sourcePath: string): string {
 }
 
 function money(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { currency, style: "currency" }).format(amount / 100);
+  return formatCommerceMoney(amount, currency);
 }
 
 function applyOwnerCart(cart: Cart): void {
-  const sourceByVariant = new Map(data.value.lines.map((line) => [line.variantId, line]));
+  const sourceByVariant = new Map(
+    (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
+  );
   lines.value = cart.lines.map((line) => {
-    const source = sourceByVariant.get(line.variantId) ?? data.value.lines[0]!;
+    const source = sourceByVariant.get(line.variantId);
     return {
-      color: source.color,
+      color: source?.color ?? line.variantName,
       name: line.productName,
       price: money(line.unitPrice.amount, line.unitPrice.currency),
       quantity: line.quantity,
-      sourceImage: source.sourceImage,
+      sourceImage: source?.sourceImage ?? "",
       total: money(line.lineTotal.amount, line.lineTotal.currency),
       variantId: line.variantId,
     };
@@ -68,10 +86,17 @@ function applyOwnerCart(cart: Cart): void {
   totals.subtotal = money(cart.totals.subtotal, cart.currency);
   totals.total = money(cart.totals.grandTotal, cart.currency);
   totals.tax = `(Includes ${money(cart.totals.taxTotal, cart.currency)} tax)`;
+  shippingOptions.value = cart.shippingMethods.map((method) => ({
+    id: method.id,
+    label: `${method.name} — ${money(method.amount, method.currency)}`,
+  }));
+  canCheckout.value = cart.canCheckout;
+  cartAnnouncements.value = cart.adjustments.map(({ message }) => message);
   if (cart.selectedShippingMethodId) selectedShipping.value = cart.selectedShippingMethodId;
 }
 
 function applyFixtureCart(): void {
+  if (!initialFixtureData) return;
   lines.value = data.value.lines.map((line) => ({ ...line }));
   Object.assign(totals, data.value.totals);
   cartStatus.value = "ready";
@@ -81,12 +106,14 @@ async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number):
   if (busy.value || !actionAdapter) return;
   const quantity = Math.min(20, Math.max(1, Math.floor(nextQuantity || 1)));
   if (quantity === line.quantity) return;
-  recordPreviewIntent(data.value.actions.update, "fashion-store.cart.quantity");
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.actions.update, "fashion-store.cart.quantity");
+  }
   busy.value = true;
+  cartLoadError.value = "";
   try {
     applyOwnerCart(
       await actionAdapter({
-        action: data.value.actions.update,
         context: "fashion-store.cart.quantity",
         input: { quantity },
         kind: "cart.update",
@@ -95,7 +122,8 @@ async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number):
     );
     mutationCount.value += 1;
   } catch {
-    // Existing guest-cart state owns errors; the source baseline has no visible error copy.
+    cartLoadError.value =
+      checkoutAdapter?.status().error ?? "The cart quantity could not be updated. Try again.";
   } finally {
     busy.value = false;
   }
@@ -104,13 +132,15 @@ async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number):
 async function removeLine(line: FashionStoreCartLine): Promise<void> {
   if (busy.value || !actionAdapter) return;
   const removedIndex = lines.value.findIndex(({ variantId }) => variantId === line.variantId);
-  recordPreviewIntent(data.value.actions.remove, "fashion-store.cart.remove");
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.actions.remove, "fashion-store.cart.remove");
+  }
   busy.value = true;
+  cartLoadError.value = "";
   let restoreFocus = false;
   try {
     applyOwnerCart(
       await actionAdapter({
-        action: data.value.actions.remove,
         context: "fashion-store.cart.remove",
         kind: "cart.remove",
         variantId: line.variantId,
@@ -119,7 +149,8 @@ async function removeLine(line: FashionStoreCartLine): Promise<void> {
     mutationCount.value += 1;
     restoreFocus = true;
   } catch {
-    // Existing guest-cart state owns errors; the source baseline has no visible error copy.
+    cartLoadError.value =
+      checkoutAdapter?.status().error ?? "The cart item could not be removed. Try again.";
   } finally {
     busy.value = false;
   }
@@ -139,13 +170,17 @@ async function emptyCart(): Promise<void> {
 }
 
 function updateCartPresentation(): void {
-  recordPreviewIntent(data.value.actions.update, "fashion-store.cart.update");
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.actions.update, "fashion-store.cart.update");
+  }
   localActionCount.value += 1;
 }
 
 function validateCoupon(): void {
   couponInvalid.value = coupon.value.trim().length === 0;
-  recordPreviewIntent(data.value.actions.coupon, "fashion-store.cart.coupon");
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.actions.coupon, "fashion-store.cart.coupon");
+  }
   localActionCount.value += 1;
   if (couponInvalid.value) {
     void nextTick(() => document.querySelector<HTMLInputElement>("#fashion-cart-coupon")?.focus());
@@ -155,12 +190,14 @@ function validateCoupon(): void {
 async function updateShipping(): Promise<void> {
   shippingInvalid.value = !countryCode.value || !city.value.trim() || !postalCode.value.trim();
   if (shippingInvalid.value || busy.value || !actionAdapter) return;
-  recordPreviewIntent(data.value.actions.shipping, "fashion-store.cart.shipping");
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.actions.shipping, "fashion-store.cart.shipping");
+  }
   busy.value = true;
+  cartLoadError.value = "";
   try {
     applyOwnerCart(
       await actionAdapter({
-        action: data.value.actions.shipping,
         context: "fashion-store.cart.shipping",
         input: {
           shippingAddress: {
@@ -178,7 +215,8 @@ async function updateShipping(): Promise<void> {
     );
     mutationCount.value += 1;
   } catch {
-    // Existing guest-cart state owns errors; no unsupported delivery claim is rendered.
+    cartLoadError.value =
+      checkoutAdapter?.status().error ?? "Delivery options are unavailable. Try again.";
   } finally {
     busy.value = false;
   }
@@ -187,22 +225,27 @@ async function updateShipping(): Promise<void> {
 onMounted(async () => {
   if (!checkoutAdapter) {
     cartLoadError.value = "Cart is unavailable.";
-    applyFixtureCart();
+    if (isLive.value) cartStatus.value = "error";
+    else applyFixtureCart();
     return;
   }
   try {
     applyOwnerCart(await checkoutAdapter.ensure());
+    const { notice } = checkoutAdapter.status();
+    if (notice) cartAnnouncements.value.unshift(notice);
     cartStatus.value = "ready";
   } catch {
-    cartLoadError.value = "Cart is unavailable. Please try again.";
-    applyFixtureCart();
+    cartLoadError.value =
+      checkoutAdapter.status().error ?? "Cart is unavailable. Please try again.";
+    if (isLive.value) cartStatus.value = "error";
+    else applyFixtureCart();
   }
 });
 </script>
 
 <template>
   <FashionStoreShell
-    :announcement="data.announcement"
+    :announcement="initialFixtureData?.announcement ?? 'Cart totals are verified by Commerce.'"
     body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
@@ -245,6 +288,14 @@ onMounted(async () => {
               <div class="row align-items-center">
                 <div class="col-12">
                   <p v-if="cartLoadError" class="form-error" role="alert">{{ cartLoadError }}</p>
+                  <ul
+                    v-if="cartAnnouncements.length"
+                    class="form-error"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <li v-for="message in cartAnnouncements" :key="message">{{ message }}</li>
+                  </ul>
                   <table class="table cart-products">
                     <thead>
                       <tr>
@@ -276,21 +327,34 @@ onMounted(async () => {
                           </button>
                         </td>
                         <td class="product-thumbnail">
-                          <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
+                          <a
+                            v-if="line.sourceImage"
+                            :href="fashionStoreRoutePaths.product"
+                            data-fashion-store-route
+                          >
                             <img
                               class="cart-product-image"
                               :src="sourceAsset(line.sourceImage)"
                               alt=""
                             />
                           </a>
+                          <span
+                            v-else
+                            class="fashion-store-product-placeholder"
+                            aria-hidden="true"
+                          ></span>
                         </td>
                         <td class="product-name">
                           <a
+                            v-if="line.sourceImage"
                             :href="fashionStoreRoutePaths.product"
                             data-fashion-store-route
                             class="text-dark-gray fw-500 d-block lh-initial"
                             >{{ line.name }}</a
                           >
+                          <span v-else class="text-dark-gray fw-500 d-block lh-initial">{{
+                            line.name
+                          }}</span>
                           <span class="fs-14">Color: {{ line.color }}</span>
                         </td>
                         <td class="product-price" data-title="Price">{{ line.price }}</td>
@@ -393,7 +457,7 @@ onMounted(async () => {
                       <td data-title="Shipping">
                         <ul class="p-0 m-0">
                           <li
-                            v-for="option in data.shipping"
+                            v-for="option in shippingOptions"
                             :key="option.id"
                             class="d-flex align-items-center"
                           >
@@ -439,7 +503,7 @@ onMounted(async () => {
                             >
                               <option value="">Select a country</option>
                               <option
-                                v-for="country in data.countries"
+                                v-for="country in countryOptions"
                                 :key="country.code"
                                 :value="country.code"
                               >
@@ -489,6 +553,7 @@ onMounted(async () => {
                   </tbody>
                 </table>
                 <a
+                  v-if="canCheckout || !isLive"
                   :href="fashionStoreRoutePaths.checkout"
                   data-fashion-store-route
                   class="btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-25px"
@@ -499,6 +564,9 @@ onMounted(async () => {
                     ></span
                   >
                 </a>
+                <span v-else class="d-block mt-20px" role="status">
+                  Checkout is unavailable until cart changes are resolved.
+                </span>
               </div>
             </div>
           </div>

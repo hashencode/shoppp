@@ -32,8 +32,8 @@ const mediaSchema = z
 const productSummarySchema = z
   .object({
     href: z.string().regex(/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
-    id: storefrontIdentifierSchema,
-    media: mediaSchema,
+    id: z.union([storefrontIdentifierSchema, publicIdSchema]),
+    media: mediaSchema.optional(),
     name: headingSchema,
     priceLabel: z.string().trim().min(1).max(80),
   })
@@ -73,7 +73,7 @@ const collectionGridViewModelSchema = z
         z
           .object({
             action: previewActionSchema,
-            id: storefrontIdentifierSchema,
+            id: z.union([storefrontIdentifierSchema, publicIdSchema]),
             name: headingSchema,
           })
           .strict(),
@@ -81,6 +81,7 @@ const collectionGridViewModelSchema = z
       .max(12),
     heading: headingSchema,
     kind: z.literal("collection-grid"),
+    products: z.array(productSummarySchema).max(24).default([]),
     resource: presentationCollectionSchema.optional(),
   })
   .strict();
@@ -133,7 +134,7 @@ const productViewModelSchema = z
     description: copySchema,
     heading: headingSchema,
     kind: z.literal("product"),
-    media: z.array(mediaSchema).min(1).max(12),
+    media: z.array(mediaSchema).max(12),
     priceLabel: z.string().trim().min(1).max(80),
     resource: presentationProductSchema.optional(),
     variants: z

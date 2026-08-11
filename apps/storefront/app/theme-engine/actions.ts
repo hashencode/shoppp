@@ -68,45 +68,41 @@ export type PreviewActionIntent = z.infer<typeof previewActionIntentSchema>;
 export { storefrontIntentActionSchema as liveStorefrontIntentActionSchema };
 export type LiveStorefrontIntentAction = StorefrontIntentAction;
 
-export interface PreviewCartAddDispatch {
-  action: PreviewAction;
+export interface StorefrontCartAddDispatch {
   context: string;
   currency: string;
   input: AddCartLineRequest;
   kind: "cart.add";
 }
 
-export interface PreviewCartUpdateDispatch {
-  action: PreviewAction;
+export interface StorefrontCartUpdateDispatch {
   context: string;
   input: UpdateCartLineRequest;
   kind: "cart.update";
   variantId: string;
 }
 
-export interface PreviewCartRemoveDispatch {
-  action: PreviewAction;
+export interface StorefrontCartRemoveDispatch {
   context: string;
   kind: "cart.remove";
   variantId: string;
 }
 
-export interface PreviewCartShippingDispatch {
-  action: PreviewAction;
+export interface StorefrontCartShippingDispatch {
   context: string;
   input: ShippingQuoteRequest;
   kind: "cart.shipping";
 }
 
-export type PreviewActionDispatch =
-  | PreviewCartAddDispatch
-  | PreviewCartRemoveDispatch
-  | PreviewCartShippingDispatch
-  | PreviewCartUpdateDispatch;
-export type PreviewActionAdapter = (dispatch: PreviewActionDispatch) => Promise<Cart>;
-export const previewActionAdapterKey = Symbol(
-  "preview-action-adapter",
-) as InjectionKey<PreviewActionAdapter>;
+export type StorefrontActionDispatch =
+  | StorefrontCartAddDispatch
+  | StorefrontCartRemoveDispatch
+  | StorefrontCartShippingDispatch
+  | StorefrontCartUpdateDispatch;
+export type StorefrontActionAdapter = (dispatch: StorefrontActionDispatch) => Promise<Cart>;
+export const storefrontActionAdapterKey = Symbol(
+  "storefront-action-adapter",
+) as InjectionKey<StorefrontActionAdapter>;
 
 export interface RecordedPreviewIntent extends PreviewAction {
   context: string;
