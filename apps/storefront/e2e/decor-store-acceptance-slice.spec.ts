@@ -268,6 +268,9 @@ test("header states interlock, dismiss, resize, search, and restore focus", asyn
   await expect(page.locator(".search-input")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(search).toBeFocused();
+  await page.waitForTimeout(200);
+  await expect(search).toBeFocused();
+  await expect(page.locator(".search-input")).not.toBeFocused();
 
   const language = page.getByRole("button", { name: "Choose language" });
   await language.click();
@@ -322,6 +325,20 @@ test("blocked Revolution extension keeps header, stable Hero, and product usable
   await expect(page.locator(".cookie-message")).toBeVisible();
 });
 
+test("a stalled Revolution dependency times out into the stable Hero fallback", async ({
+  page,
+}) => {
+  await page.route("**/revolution.extension.navigation.min.js", async () => {
+    await new Promise(() => undefined);
+  });
+  await prepareImplementation(page, "fallback");
+  await expect(page.locator("#decor-store-slider")).toHaveAttribute(
+    "data-decor-hero-fallback",
+    /timed out/,
+  );
+  await expect(page.locator("#decor-store-slider > ul > li").first()).toBeVisible();
+});
+
 test("initializer exception is isolated to the stable Hero fallback", async ({ page }) => {
   await page.addInitScript(() => {
     (
@@ -335,6 +352,25 @@ test("initializer exception is isolated to the stable Hero fallback", async ({ p
   );
   await expect(page.locator("#decor-store-slider > ul > li").first()).toBeVisible();
   await expect(page.locator("footer.footer-dark")).toContainText("Newsletter");
+});
+
+test("post-initialization readiness failure destroys Revolution before restoring fallback", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (
+      window as typeof window & { __decorStoreForceReadinessError?: boolean }
+    ).__decorStoreForceReadinessError = true;
+  });
+  await prepareImplementation(page, "fallback");
+  await expect(page.locator("#decor-store-slider")).toHaveAttribute(
+    "data-decor-hero-fallback",
+    /post-initialization readiness failure/,
+  );
+  await expect(page.locator(".revslider-initialised")).toHaveCount(0);
+  await expect(page.locator("#decor-store-slider_wrapper")).toHaveCount(1);
+  await expect(page.locator("#decor-store-slider > ul > li")).toHaveCount(3);
+  await expect(page.locator("#decor-store-slider > ul > li").first()).toBeVisible();
 });
 
 test("responsive Hero geometry and reduced motion retain the source runtime", async ({ page }) => {

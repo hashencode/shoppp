@@ -83,26 +83,26 @@ All 13 behavioral ledger rows have an explicit runtime owner and named evidence:
 
 The 11 absence rows are jointly owned by the source-equivalence runner, Decor lifecycle tests, and selected-theme build scans:
 
-| Absence row                      | Passing evidence                                                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| source-only visible copy         | Complete normalized visible-text inventory by region/state                                                          |
-| implementation-only visible copy | Complete normalized visible-text inventory by region/state                                                          |
-| changed visible copy             | Source/implementation copy comparison with zero waiver                                                              |
-| missing or reordered region      | Exact 13-region order and eight-section count                                                                       |
-| remote or broken resource        | Request, manifest, font, image-decode, and static-build scans                                                       |
-| analytics or tracking request    | Network and forbidden-resource scans                                                                                |
-| PHP request                      | Network scan plus truthful newsletter/action tests                                                                  |
-| console error                    | Page/failure/remount console gates                                                                                  |
-| duplicate runtime instance       | Hero and timed-body route/remount stress                                                                            |
-| post-unmount owned residue       | Two teardown windows: owned rAF/interval and DOM mutation remain zero; final raw callback sample decreases 55 to 43 |
-| cross-theme import               | Decor, Fashion, and fallback selected-theme output scans                                                            |
+| Absence row                      | Passing evidence                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| source-only visible copy         | Complete normalized visible-text inventory by region/state                                                       |
+| implementation-only visible copy | Complete normalized visible-text inventory by region/state                                                       |
+| changed visible copy             | Source/implementation copy comparison with zero waiver                                                           |
+| missing or reordered region      | Exact 13-region order and eight-section count                                                                    |
+| remote or broken resource        | Request, manifest, font, image-decode, and static-build scans                                                    |
+| analytics or tracking request    | Network and forbidden-resource scans                                                                             |
+| PHP request                      | Network scan plus truthful newsletter/action tests                                                               |
+| console error                    | Page/failure/remount console gates                                                                               |
+| duplicate runtime instance       | Hero and timed-body route/remount stress                                                                         |
+| post-unmount owned residue       | Two teardown windows: owned rAF/interval and DOM mutation remain zero; raw document callbacks stay within budget |
+| cross-theme import               | Decor, Fashion, and fallback selected-theme output scans                                                         |
 
 ### Visual, accessibility, and performance evidence
 
-- Independent four-viewport full-page comparison changed-pixel ratios: desktop `0.0036479167`, laptop `0.0011914063`, tablet `0.0000127157`, mobile `0.0004496294`, all within the `0.01` budget. Manual side-by-side review of all four pairs found no P0/P1 discrepancy. Waivers: zero.
-- Motion-enabled cold profile: 104 requests; app JS 618,468 raw bytes; Decor vendor JS 382,482; CSS 1,360,713; fonts 304,540; images 2,180,523; Hero ready approximately 3.60s cold and 3.51s repeat; zero long tasks. Hidden-page DOM mutation is zero. The final acceptance sample has first/second post-unmount raw callbacks 55/43 within the explicit 64-callback/750ms ceiling, Decor-owned rAF 0/0, Decor-owned intervals 0/0, DOM mutations 0/0, and timeouts 2/1. Exact raw counts stay attached per run because document scheduling varies; the bounded Nuxt/Revolution-tools residue does not accumulate.
-- Reduced-motion Lighthouse passed twice consecutively without threshold changes. Final samples: performance `0.96`, LCP `2577.33ms`, TBT `111.5ms`; then `0.96`, LCP `2606.52ms`, TBT `78ms`. Both commands retain their cold first attempts (`0.52`, LCP `16228.06ms`, TBT `84ms`; `0.52`, LCP `16334.74ms`, TBT `91.5ms`) before the existing retry gate passed. Accessibility `0.92`, best practices `0.96`, SEO `0.69`; dedicated Axe critical/serious violations: zero.
-- Decor preview static and selected-theme isolation pass. Initial JavaScript is 77,653 gzip bytes against the existing 204,800-byte budget.
+- Independent four-viewport full-page comparison changed-pixel ratios: desktop `0.0014924283`, laptop `0.0009200516`, tablet `0.0010980655`, mobile `0.0009467491`, all within the `0.01` budget. Manual side-by-side review of all four pairs found no P0/P1 discrepancy. Waivers: zero.
+- Motion-enabled cold profile: 105 requests; app JS 620,206 raw bytes; Decor vendor JS 382,482; CSS 1,360,713; fonts 464,436; images 2,148,581; Hero ready approximately 3.58s cold and 3.52s repeat; zero long tasks. Hidden-page DOM mutation is zero. The final acceptance sample has first/second post-unmount raw document callbacks 26/59 within the explicit 80-callback/750ms ceiling, Decor-owned rAF 0/0, Decor-owned intervals 0/0, DOM mutations 0/0, and timeouts 2/1. Exact raw counts stay attached per run because document scheduling varies independently between documents; the bounded Nuxt/Revolution-tools owned residue does not accumulate.
+- Reduced-motion Lighthouse now gates both the first cold sample and the existing stable-state threshold. Cold bounds are CLS at most `0.50`, LCP at most `17000ms`, and TBT at most `200ms`; the final cold sample was performance `0.49`, CLS `0.35721`, LCP `13756.39ms`, and TBT `95ms`. The reduced audit hides the uninitialized source slide list until Revolution reports ready; the same command passed the unchanged stable-state threshold at performance `0.98`, CLS `0.00087`, LCP `2240.93ms`, and TBT `69.5ms`. Accessibility `0.92`, best practices `0.96`, SEO `0.69`; dedicated Axe critical/serious violations: zero.
+- Decor preview static and selected-theme isolation pass. The complete transitive initial JavaScript closure is 116,947 gzip bytes against the existing 204,800-byte budget.
 
 ### Delivery boundary
 

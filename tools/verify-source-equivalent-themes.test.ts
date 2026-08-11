@@ -24,6 +24,7 @@ import { fashionStoreBehaviorContract } from "../apps/storefront/app/themes/fash
 import { fashionStoreAcceptanceAdapters } from "../apps/storefront/app/themes/fashion-store/acceptance-adapter";
 import { fashionStoreSourceRegions } from "../apps/storefront/app/themes/fashion-store/source-contract";
 import { loadThemeBehaviorDescriptors } from "./load-theme-behavior-descriptor";
+import type { StorefrontThemeSourceManifest } from "./import-storefront-theme";
 
 const root = resolve(import.meta.dir, "..");
 const behaviorDescriptors = new Map([
@@ -431,70 +432,72 @@ describe("source-equivalent theme policy", () => {
   });
 });
 
-describe("Fashion Store imported source tree", () => {
-  test("accepts exact manifest-bound files and rejects later drift", async () => {
+describe("source-equivalent imported trees", () => {
+  test("accepts exact Fashion and Decor files and rejects drift in either tree", async () => {
     const temporaryRoot = await mkdtemp(resolve(tmpdir(), "shoppp-fashion-store-source-"));
-    const contents = ".fashion{}\n";
-    const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
-    const sourcePath = resolve(
-      temporaryRoot,
-      "apps/storefront/app/themes/fashion-store/upstream/demos/fashion-store/fashion-store.css",
-    );
-    const provenancePath = resolve(
-      temporaryRoot,
-      "apps/storefront/app/themes/fashion-store/UPSTREAM.md",
-    );
+    const fixtures = [
+      { id: "fashion-store", sourceIdentity: "local://fixture/demo-fashion-store.html" },
+      { id: "decor-store", sourceIdentity: "local://fixture/demo-decor-store.html" },
+    ] as const;
+    const declarations: StorefrontThemeSourceManifest["themes"] = [];
     const manifestPath = resolve(temporaryRoot, "tools/storefront-theme-source-manifest.json");
-    await mkdir(resolve(sourcePath, ".."), { recursive: true });
     await mkdir(resolve(manifestPath, ".."), { recursive: true });
-    await writeFile(sourcePath, contents);
-    await writeFile(
-      provenancePath,
-      `# Fashion Store\n\nlocal://fixture/demo-fashion-store.html\n${digest}\njs/main.js is a behavioral reference.\n`,
-    );
+    for (const fixture of fixtures) {
+      const contents = `.${fixture.id}{}\n`;
+      const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
+      const destinationPath = `upstream/demos/${fixture.id}/${fixture.id}.css`;
+      const sourcePath = resolve(
+        temporaryRoot,
+        `apps/storefront/app/themes/${fixture.id}/${destinationPath}`,
+      );
+      await mkdir(resolve(sourcePath, ".."), { recursive: true });
+      await writeFile(sourcePath, contents);
+      await writeFile(
+        resolve(temporaryRoot, `apps/storefront/app/themes/${fixture.id}/UPSTREAM.md`),
+        `# Source\n\n${fixture.sourceIdentity}\n${digest}\njs/main.js is a behavioral reference.\n`,
+      );
+      declarations.push({
+        allowlist: [
+          {
+            destinationPath,
+            expectedSha256: digest,
+            kind: "stylesheet",
+            license: "Authorized fixture",
+            sourcePath: `demos/${fixture.id}/${fixture.id}.css`,
+          },
+        ],
+        importedAt: "2026-08-06",
+        importedFiles: [
+          {
+            bytes: Buffer.byteLength(contents),
+            destinationPath,
+            expectedSha256: digest,
+            kind: "stylesheet",
+            license: "Authorized fixture",
+            sha256: digest,
+            sourcePath: `demos/${fixture.id}/${fixture.id}.css`,
+          },
+        ],
+        ownershipApproval: "Fixture owner approved source reuse.",
+        sourceIdentity: fixture.sourceIdentity,
+        sourceRevision: "fixture-1",
+        themeId: fixture.id,
+      });
+    }
     await writeFile(
       manifestPath,
-      `${JSON.stringify(
-        {
-          schemaVersion: 1,
-          themes: [
-            {
-              allowlist: [
-                {
-                  destinationPath: "upstream/demos/fashion-store/fashion-store.css",
-                  expectedSha256: digest,
-                  kind: "stylesheet",
-                  license: "Authorized fixture",
-                  sourcePath: "demos/fashion-store/fashion-store.css",
-                },
-              ],
-              importedAt: "2026-08-06",
-              importedFiles: [
-                {
-                  bytes: Buffer.byteLength(contents),
-                  destinationPath: "upstream/demos/fashion-store/fashion-store.css",
-                  expectedSha256: digest,
-                  kind: "stylesheet",
-                  license: "Authorized fixture",
-                  sha256: digest,
-                  sourcePath: "demos/fashion-store/fashion-store.css",
-                },
-              ],
-              ownershipApproval: "Fixture owner approved source reuse.",
-              sourceIdentity: "local://fixture/demo-fashion-store.html",
-              sourceRevision: "fixture-1",
-              themeId: "fashion-store",
-            },
-          ],
-        },
-        null,
-        2,
-      )}\n`,
+      `${JSON.stringify({ schemaVersion: 1, themes: declarations }, null, 2)}\n`,
     );
 
     try {
       await expect(validateImportedSourceTree(temporaryRoot)).resolves.toBeUndefined();
-      await writeFile(sourcePath, ".drift{}\n");
+      await writeFile(
+        resolve(
+          temporaryRoot,
+          "apps/storefront/app/themes/decor-store/upstream/demos/decor-store/decor-store.css",
+        ),
+        ".drift{}\n",
+      );
       await expect(validateImportedSourceTree(temporaryRoot)).rejects.toThrow(/hash|bytes/i);
     } finally {
       await rm(temporaryRoot, { force: true, recursive: true });

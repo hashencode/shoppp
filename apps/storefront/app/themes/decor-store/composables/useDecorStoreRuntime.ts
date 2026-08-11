@@ -19,6 +19,8 @@ export function useDecorStoreRuntime(
   const bodyReady = ref(false);
   let slider: DecorRevolutionCollection | undefined;
   let observer: MutationObserver | undefined;
+  let heroSection: HTMLElement | undefined;
+  let frozenHeroMarkup = "";
   let reducedMotionQuery: MediaQueryList | undefined;
   let readinessFrame = 0;
   let disposed = false;
@@ -338,6 +340,24 @@ export function useDecorStoreRuntime(
     publishTestState(0);
   }
 
+  function destroyHeroRuntime(restoreFrozenMarkup = false): void {
+    if (readinessFrame) cancelAnimationFrame(readinessFrame);
+    readinessFrame = 0;
+    observer?.disconnect();
+    observer = undefined;
+    try {
+      slider?.off(".decorStore");
+      slider?.revkill();
+    } catch {
+      // A partially initialized source instance may not expose a complete revkill state.
+    } finally {
+      slider = undefined;
+      if (restoreFrozenMarkup && heroSection?.isConnected && frozenHeroMarkup) {
+        heroSection.innerHTML = frozenHeroMarkup;
+      }
+    }
+  }
+
   function updateReducedMotion(): void {
     reducedMotion.value = Boolean(reducedMotionQuery?.matches);
     if (reducedMotion.value || document.hidden) slider?.revpause();
@@ -399,6 +419,10 @@ export function useDecorStoreRuntime(
   onMounted(async () => {
     await nextTick();
     if (disposed) return;
+    heroSection =
+      root.value?.querySelector<HTMLElement>("#decor-store-slider")?.closest("section") ||
+      undefined;
+    frozenHeroMarkup = heroSection?.innerHTML || "";
     try {
       reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
       reducedMotionQuery.addEventListener("change", updateReducedMotion);
@@ -441,13 +465,22 @@ export function useDecorStoreRuntime(
         attributes: true,
       });
       updateActiveSlide();
+      if (
+        (window as typeof window & { __decorStoreForceReadinessError?: boolean })
+          .__decorStoreForceReadinessError
+      ) {
+        throw new Error("Decor Revolution post-initialization readiness failure requested.");
+      }
       await waitForVisibleSourceLayers(sliderElement);
       if (disposed) return;
       updateReducedMotion();
       status.value = "ready";
       publishTestState(1);
     } catch (error) {
-      if (!disposed) stableFallback(error);
+      if (!disposed) {
+        destroyHeroRuntime(true);
+        stableFallback(error);
+      }
     }
   });
 
@@ -484,29 +517,22 @@ export function useDecorStoreRuntime(
     stickyRegion = undefined;
     scrollProgressRegion = undefined;
     footerRegion = undefined;
-    if (readinessFrame) cancelAnimationFrame(readinessFrame);
-    readinessFrame = 0;
-    observer?.disconnect();
-    observer = undefined;
+    destroyHeroRuntime();
     reducedMotionQuery?.removeEventListener("change", updateReducedMotion);
     document.removeEventListener("visibilitychange", updatePageVisibility);
     reducedMotionQuery = undefined;
-    try {
-      slider?.off(".decorStore");
-      slider?.revkill();
-    } finally {
-      slider = undefined;
-      status.value = "destroyed";
-      if (typeof window !== "undefined") {
-        const target = window as typeof window & {
-          __decorStoreBodyFailure?: string;
-          __decorStoreForceInitError?: boolean;
-          __decorStoreHeroTestState?: unknown;
-        };
-        delete target.__decorStoreBodyFailure;
-        delete target.__decorStoreForceInitError;
-        delete target.__decorStoreHeroTestState;
-      }
+    status.value = "destroyed";
+    if (typeof window !== "undefined") {
+      const target = window as typeof window & {
+        __decorStoreBodyFailure?: string;
+        __decorStoreForceInitError?: boolean;
+        __decorStoreForceReadinessError?: boolean;
+        __decorStoreHeroTestState?: unknown;
+      };
+      delete target.__decorStoreBodyFailure;
+      delete target.__decorStoreForceInitError;
+      delete target.__decorStoreForceReadinessError;
+      delete target.__decorStoreHeroTestState;
     }
   });
 

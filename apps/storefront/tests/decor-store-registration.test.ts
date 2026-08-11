@@ -5,7 +5,10 @@ import { resolve } from "node:path";
 import { decorStoreManifest, decorStoreThemeDescriptor } from "../app/themes/decor-store/manifest";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import { decorStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
-import { assertSourceRuntimePolicy } from "../scripts/check-bundle-budget";
+import {
+  assertSourceRuntimePolicy,
+  collectInitialJavaScriptAssets,
+} from "../scripts/check-bundle-budget";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 
 describe("Decor Store U2 registration", () => {
@@ -129,5 +132,19 @@ describe("Decor Store U2 registration", () => {
         file: "_nuxt/main.js",
       }),
     ).toThrow("main entrypoint");
+  });
+
+  test("counts transitive static chunks in the initial JavaScript closure", async () => {
+    const modules = new Map([
+      ["/_nuxt/entry.js", 'import "./shared.js"; import("./lazy.js");'],
+      ["/_nuxt/shared.js", 'export { value } from "./nested.js";'],
+      ["/_nuxt/nested.js", "export const value = 1;"],
+    ]);
+    const assets = await collectInitialJavaScriptAssets(["/_nuxt/entry.js"], async (asset) => {
+      const source = modules.get(asset);
+      if (!source) throw new Error(`Unexpected module: ${asset}`);
+      return source;
+    });
+    expect([...assets].sort()).toEqual(["/_nuxt/entry.js", "/_nuxt/nested.js", "/_nuxt/shared.js"]);
   });
 });

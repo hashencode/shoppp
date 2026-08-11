@@ -72,13 +72,22 @@ function branchEvidence(behaviorId: string, currentViewport: ThemeEvidenceViewpo
     .map(({ id }) => ({ id, outcome: true, viewportId: currentViewport }));
 }
 
-function recordMode(
+function recordBehaviors(
   testInfo: TestInfo,
+  behaviorIds: readonly string[],
   mode: ThemeAcceptanceMode,
   options: { elapsedMs?: number; scrollSamples?: readonly number[] } = {},
 ) {
-  for (const behavior of decorStoreBehaviorContract.behaviors) {
-    if (!behavior.modes.includes(mode)) continue;
+  for (const behaviorId of behaviorIds) {
+    const behavior = decorStoreBehaviorContract.behaviors.find(({ id }) => id === behaviorId);
+    if (!behavior?.modes.includes(mode))
+      throw new Error(`Decor behavior ${behaviorId} does not declare ${mode} evidence.`);
+    const branches =
+      mode === "interaction" ||
+      mode === "scroll-fixed" ||
+      (mode === "static" && behavior.id === "hero-revolution")
+        ? branchEvidence(behavior.id, viewportId(testInfo))
+        : [];
     const evidence: ThemeBehaviorModeEvidence = {
       behaviorId: behavior.id,
       mode,
@@ -87,9 +96,7 @@ function recordMode(
         : mode === "scroll-fixed"
           ? { scrollSamples: options.scrollSamples ?? [0, 1] }
           : { actionOutcome: true }),
-      ...(branchEvidence(behavior.id, viewportId(testInfo)).length
-        ? { branches: branchEvidence(behavior.id, viewportId(testInfo)) }
-        : {}),
+      ...(branches.length ? { branches } : {}),
     };
     assertThemeBehaviorModeEvidenceRecord(decorStoreBehaviorContract, evidence);
     recordThemeBehaviorEvidence(testInfo, evidence);
@@ -127,21 +134,27 @@ async function prepareSource(page: Page): Promise<string[]> {
   return blocked;
 }
 
-async function prepareImplementation(page: Page, expected: "fallback" | "ready" = "ready") {
+async function prepareImplementation(
+  page: Page,
+  expected: "fallback" | "ready" = "ready",
+  dismissCookie = true,
+) {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const root = page.locator("[data-decor-store-source-parity]");
   await expect(root).toHaveAttribute("data-runtime-status", expected, { timeout: 15_000 });
   await expect(root).toHaveAttribute("data-decor-body-ready", "true");
-  await page
-    .getByRole("link", { name: "Allow cookies" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
+  if (dismissCookie) {
+    await page
+      .getByRole("link", { name: "Allow cookies" })
+      .click({ timeout: 2_000 })
+      .catch(() => undefined);
+  }
   return root;
 }
 
 async function acceptanceRegions(page: Page, side: "implementation" | "source") {
   await page.evaluate(
-    ({ regionCount, sourceSide }) => {
+    ({ regionCount, regionKeys, sourceSide }) => {
       const selectors = sourceSide
         ? [
             "header.header-with-topbar",
@@ -169,13 +182,18 @@ async function acceptanceRegions(page: Page, side: "implementation" | "source") 
             ".scroll-progress",
           ];
       if (selectors.length !== regionCount) throw new Error("Decor region seam count drifted.");
-      selectors.forEach((selector, index) =>
-        document
-          .querySelector(selector)
-          ?.setAttribute("data-decor-acceptance-region", String(index)),
-      );
+      selectors.forEach((selector, index) => {
+        const element = document.querySelector(selector);
+        element?.setAttribute("data-decor-acceptance-region", String(index));
+        if (sourceSide && index >= 2 && index <= 8)
+          element?.setAttribute("data-decor-region", regionKeys[index]!);
+      });
     },
-    { regionCount: decorStoreSourceRegions.length, sourceSide: side === "source" },
+    {
+      regionCount: decorStoreSourceRegions.length,
+      regionKeys: decorStoreSourceRegions.map(({ key }) => key),
+      sourceSide: side === "source",
+    },
   );
   return decorStoreSourceRegions.map((region, index) => ({
     id: region.key,
@@ -201,6 +219,48 @@ async function revealAndFreeze(page: Page, side: "implementation" | "source") {
       .cookie-message, .scroll-progress { display: none !important; }
       .decor-store-preview-shell__title { display: none !important; }
       .sticky-wrap { opacity: 1 !important; visibility: visible !important; }
+      [data-decor-region="featured-categories"] .shop-grid,
+      [data-decor-region="products"] .shop-wrapper,
+      [data-decor-region="journal"] .blog-wrapper {
+        display: grid;
+        padding: 0;
+        opacity: 1 !important;
+      }
+      [data-decor-region="featured-categories"] .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      [data-decor-region="featured-categories"] .shop-grid > .grid-sizer + .grid-item { grid-row: span 2; }
+      [data-decor-region="products"] .shop-wrapper,
+      [data-decor-region="journal"] .blog-wrapper { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 30px; }
+      [data-decor-region] .grid > .grid-sizer { display: none; }
+      [data-decor-region="featured-categories"] .shop-grid > .grid-item,
+      [data-decor-region="products"] .shop-wrapper > .grid-item,
+      [data-decor-region="journal"] .blog-wrapper > .grid-item { width: auto !important; }
+      [data-decor-region="promotional-marquee"] .swiper-wrapper,
+      [data-decor-region="client-marquee"] .swiper-wrapper {
+        animation: none !important;
+        transform: none !important;
+        width: 100% !important;
+      }
+      [data-decor-region="client-marquee"] .swiper-slide {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+      }
+      [data-decor-region="collection-carousel"] .swiper-slide:not(:first-child) {
+        display: none !important;
+      }
+      @media (max-width: 1199px) {
+        [data-decor-region="products"] .shop-wrapper,
+        [data-decor-region="journal"] .blog-wrapper { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      @media (max-width: 991px) {
+        [data-decor-region="featured-categories"] .shop-grid { grid-template-columns: 1fr; }
+        [data-decor-region="featured-categories"] .shop-grid > .grid-sizer + .grid-item { grid-row: auto; }
+        [data-decor-region="products"] .shop-wrapper,
+        [data-decor-region="journal"] .blog-wrapper { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 575px) {
+        [data-decor-region="products"] .shop-wrapper,
+        [data-decor-region="journal"] .blog-wrapper { grid-template-columns: 1fr; }
+      }
       #decor-store-slider .active-revslide :is(.product-image-layer, .right-image-layer, [id$='-layer-07'], [id$='-layer-08'], .shop-button, .navigation-arrow) {
         filter: none !important;
         opacity: 1 !important;
@@ -209,8 +269,14 @@ async function revealAndFreeze(page: Page, side: "implementation" | "source") {
       #decor-store-slider .active-revslide .tooltip-arrow { visibility: hidden !important; }
     `,
   });
-  await page.evaluate((sourceSide) => {
+  await page.evaluate(async (sourceSide) => {
     scrollTo(0, 0);
+    await Promise.all(
+      [...document.images].map(async (image) => {
+        image.loading = "eager";
+        await image.decode().catch(() => undefined);
+      }),
+    );
     const jquery = (
       window as typeof window & {
         jQuery?: (selector: string) => { revpause?(): void; revshowslide?(index: number): void };
@@ -218,11 +284,21 @@ async function revealAndFreeze(page: Page, side: "implementation" | "source") {
     ).jQuery;
     jquery?.("#decor-store-slider").revshowslide?.(1);
     jquery?.("#decor-store-slider").revpause?.();
+    const collection = document.querySelector<HTMLElement>(
+      "[data-decor-region='collection-carousel']",
+    );
+    collection?.querySelectorAll<HTMLElement>(".swiper-slide").forEach((slide, index) => {
+      slide.hidden = index !== 0;
+      slide.classList.toggle("decor-body-carousel-slide-active", index === 0);
+      slide.setAttribute("aria-hidden", String(index !== 0));
+    });
+    if (collection) collection.dataset.carouselIndex = "0";
     if (!sourceSide) {
       for (const key of ["promotional-marquee", "collection-carousel", "client-marquee"])
         document
           .querySelector(`[data-decor-region='${key}']`)
-          ?.dispatchEvent(new MouseEvent("mouseenter"));
+          ?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      collection?.querySelector<HTMLElement>("[role='button']")?.focus({ preventScroll: true });
     }
   }, side === "source");
   await page.evaluate(() => document.fonts.ready);
@@ -238,8 +314,8 @@ async function captureEvidence(
   const implementationPath = testInfo.outputPath("implementation.png");
   const differencePath = testInfo.outputPath("diff.png");
   await Promise.all([
-    source.screenshot({ path: referencePath }),
-    implementation.screenshot({ path: implementationPath }),
+    source.screenshot({ fullPage: true, path: referencePath }),
+    implementation.screenshot({ fullPage: true, path: implementationPath }),
   ]);
   const difference = await compareThemeScreenshots(
     referencePath,
@@ -336,7 +412,18 @@ test("source-inventory static: independent source, implementation, and diff evid
     const difference = await captureEvidence(source, page, testInfo);
     expect(difference.dimensionsMatch).toBe(true);
     expect(difference.changedPixelRatio).toBeLessThanOrEqual(0.01);
-    recordMode(testInfo, "static");
+    recordBehaviors(
+      testInfo,
+      [
+        "hero-revolution",
+        "product-tabs",
+        "product-card-actions",
+        "promotional-marquee",
+        "collection-carousel",
+        "client-marquee",
+      ],
+      "static",
+    );
   } finally {
     await source.close();
   }
@@ -349,17 +436,35 @@ test("hero-slide-2 temporal: Revolution and every body motion expose distinct ti
   const source = await browser.newPage({ viewport: page.viewportSize()! });
   try {
     await Promise.all([prepareSource(source), prepareImplementation(page)]);
-    const region = page.locator("[data-decor-region='promotional-marquee'] .swiper-wrapper");
-    const before = await region.evaluate((node) => getComputedStyle(node).transform);
+    const promotional = page.locator("[data-decor-region='promotional-marquee'] .swiper-wrapper");
+    const client = page.locator("[data-decor-region='client-marquee'] .swiper-wrapper");
+    const before = await Promise.all([
+      promotional.evaluate((node) => getComputedStyle(node).transform),
+      client.evaluate((node) => getComputedStyle(node).transform),
+    ]);
     await page.waitForTimeout(350);
-    const after = await region.evaluate((node) => getComputedStyle(node).transform);
-    expect(after).not.toBe(before);
+    const after = await Promise.all([
+      promotional.evaluate((node) => getComputedStyle(node).transform),
+      client.evaluate((node) => getComputedStyle(node).transform),
+    ]);
+    expect(after[0]).not.toBe(before[0]);
+    expect(after[1]).not.toBe(before[1]);
+    const collection = page.locator("[data-decor-region='collection-carousel']");
+    const collectionBefore = await collection.getAttribute("data-carousel-index");
+    await expect(collection).not.toHaveAttribute("data-carousel-index", collectionBefore!, {
+      timeout: 3_500,
+    });
     await page.locator("#decor-store-slider").press("ArrowRight");
     await expect(page.locator("#decor-store-slider > ul > li.active-revslide")).toHaveAttribute(
       "data-index",
       "rs-72",
     );
-    recordMode(testInfo, "temporal", { elapsedMs: 350 });
+    recordBehaviors(
+      testInfo,
+      ["hero-revolution", "promotional-marquee", "collection-carousel", "client-marquee"],
+      "temporal",
+      { elapsedMs: 3_500 },
+    );
   } finally {
     await source.close();
   }
@@ -368,7 +473,7 @@ test("hero-slide-2 temporal: Revolution and every body motion expose distinct ti
 test("hero-slide-2 interaction: contract controls remain observable", async ({
   page,
 }, testInfo) => {
-  const root = await prepareImplementation(page);
+  const root = await prepareImplementation(page, "ready", false);
   await page.locator("#decor-store-slider").press("ArrowRight");
   await expect(page.locator("#decor-store-slider > ul > li.active-revslide")).toHaveAttribute(
     "data-index",
@@ -383,13 +488,70 @@ test("hero-slide-2 interaction: contract controls remain observable", async ({
     "aria-selected",
     "true",
   );
-  recordMode(testInfo, "interaction");
+  const language = page.locator(".header-language");
+  if (viewportId(testInfo) === "mobile") {
+    await expect(language).toBeHidden();
+  } else {
+    await language.locator(":scope > a").dispatchEvent("click");
+    await expect(language).toHaveClass(/is-open/);
+  }
+  const navigationTrigger = ["desktop", "laptop"].includes(viewportId(testInfo))
+    ? page.locator("header .dropdown-toggle").first()
+    : page.getByRole("button", { name: "Toggle navigation" });
+  await navigationTrigger.dispatchEvent("click");
+  await expect(
+    ["desktop", "laptop"].includes(viewportId(testInfo))
+      ? page.locator("header .nav-item.dropdown").first()
+      : page.locator("#navbarNav"),
+  ).toHaveClass(/is-open|show/);
+  const search = page.locator(".header-search-form").first();
+  await search.dispatchEvent("click");
+  await expect(page.locator(".search-input")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(search).toBeFocused();
+  await page.locator(".header-cart > a").dispatchEvent("click");
+  await expect(page.locator(".header-cart")).toHaveClass(/is-open/);
+  for (const key of ["promotional-marquee", "client-marquee"]) {
+    const motionRegion = page.locator(`[data-decor-region='${key}']`);
+    await motionRegion.hover();
+    await expect(motionRegion).toHaveAttribute("data-motion-paused", "true");
+  }
+  const collection = page.locator("[data-decor-region='collection-carousel']");
+  const collectionIndex = Number(await collection.getAttribute("data-carousel-index"));
+  await collection.getByRole("button", { name: "Next product" }).click();
+  await expect(collection).toHaveAttribute(
+    "data-carousel-index",
+    String((collectionIndex + 1) % 3),
+  );
+  await page.locator(".cookie-message").getByRole("link", { name: "Allow cookies" }).click();
+  await expect(page.locator(".cookie-message")).toBeHidden();
+  await page.evaluate(() => scrollTo(0, 400));
+  await page.locator(".scroll-top").dispatchEvent("click");
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(5);
+  recordBehaviors(
+    testInfo,
+    [
+      "header-language",
+      "header-navigation",
+      "header-search",
+      "header-commerce",
+      "hero-revolution",
+      "product-tabs",
+      "product-card-actions",
+      "promotional-marquee",
+      "collection-carousel",
+      "client-marquee",
+      "cookie-notice",
+      "scroll-progress",
+    ],
+    "interaction",
+  );
 });
 
 test("header-search-open interaction: focus opens and dismisses the source-shaped overlay", async ({
   page,
 }) => {
-  await prepareImplementation(page);
+  await prepareImplementation(page, "ready", false);
   const trigger = page.locator(".header-search-form").first();
   await trigger.focus();
   await page.keyboard.press("Enter");
@@ -403,11 +565,20 @@ test("header-search-open interaction: focus opens and dismisses the source-shape
 test("scroll-progress-visible scroll-fixed: fixed controls and monotonic progress follow source breakpoints", async ({
   page,
 }, testInfo) => {
-  await prepareImplementation(page);
+  await prepareImplementation(page, "ready", false);
   const progress = page.locator(".scroll-progress");
   if (viewportId(testInfo) !== "desktop") {
     await expect(progress).toBeHidden();
-    recordMode(testInfo, "scroll-fixed", { scrollSamples: [0, 1] });
+    await expect(page.locator(".sticky-wrap")).toBeHidden();
+    await expect(page.locator(".cookie-message")).toBeVisible();
+    recordBehaviors(
+      testInfo,
+      ["cookie-notice", "sticky-social", "scroll-progress"],
+      "scroll-fixed",
+      {
+        scrollSamples: [0, 1],
+      },
+    );
     return;
   }
   await page.evaluate(() => scrollTo(0, 350));
@@ -418,10 +589,15 @@ test("scroll-progress-visible scroll-fixed: fixed controls and monotonic progres
     .toBeGreaterThan(first);
   const second = Number(await progress.getAttribute("data-scroll-progress"));
   expect(second).toBeGreaterThan(first);
-  recordMode(testInfo, "scroll-fixed", { scrollSamples: [first, second] });
+  await expect(page.locator(".sticky-wrap")).toHaveAttribute("data-sticky-visible", "true");
+  await expect(page.locator(".cookie-message")).toBeVisible();
+  recordBehaviors(testInfo, ["cookie-notice", "sticky-social", "scroll-progress"], "scroll-fixed", {
+    scrollSamples: [first, second],
+  });
 });
 
-test("fallback-static fallback: blocked Revolution remains readable and leaves no runtime marker", async ({
+test("fallback-static fallback: blocked Revolution and no-JS surfaces remain readable", async ({
+  browser,
   page,
 }, testInfo) => {
   await page.addInitScript(() => {
@@ -433,5 +609,35 @@ test("fallback-static fallback: blocked Revolution remains readable and leaves n
   await expect(page.locator("#decor-store-slider")).toBeVisible();
   await expect(page.locator("#decor-store-slider")).not.toHaveClass(/revslider-initialised/);
   await expect(page.locator("[data-decor-region='products'] .grid-item").first()).toBeVisible();
-  recordMode(testInfo, "fallback");
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: page.viewportSize()!,
+  });
+  const noJavaScript = await context.newPage();
+  try {
+    await noJavaScript.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(
+      noJavaScript.getByRole("link", { name: "Decor Store home" }).first(),
+    ).toBeVisible();
+    await expect(noJavaScript.locator("#decor-store-slider > ul > li").first()).toBeVisible();
+    await expect(noJavaScript.locator("#decor-store-slider")).toContainText("Corby sofas");
+    await expect(noJavaScript.locator("[data-decor-region='products'] #tab_five1")).toBeVisible();
+    await expect(noJavaScript.locator("[data-decor-region='products'] #tab_five2")).toBeHidden();
+    await expect(
+      noJavaScript.locator("[data-decor-region='products'] .shop-box").first(),
+    ).toBeVisible();
+    for (const key of ["promotional-marquee", "collection-carousel", "client-marquee"])
+      await expect(
+        noJavaScript.locator(`[data-decor-region='${key}'] .swiper-slide`).first(),
+      ).toBeVisible();
+    await expect(noJavaScript.locator(".cookie-message")).toBeVisible();
+    await expect(noJavaScript.locator("footer.footer-dark")).toBeVisible();
+  } finally {
+    await context.close();
+  }
+  recordBehaviors(
+    testInfo,
+    decorStoreBehaviorContract.behaviors.map(({ id }) => id),
+    "fallback",
+  );
 });

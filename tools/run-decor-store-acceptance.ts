@@ -56,6 +56,10 @@ export function buildDecorStoreAcceptancePlan(options: {
         ],
         label: "home/behavior-evidence",
       },
+      {
+        command: ["bun", "run", "test:perf:decor-store", "--", "--workers=1"],
+        label: "home/performance",
+      },
     ],
   };
 }

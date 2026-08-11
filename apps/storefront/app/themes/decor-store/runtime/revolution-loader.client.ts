@@ -8,6 +8,8 @@ export const decorStoreRevolutionPaths = [
   "revolution/js/extensions/revolution.extension.slideanims.min.js",
 ] as const;
 
+export const decorStoreScriptLoadTimeoutMs = 2_000;
+
 const loadedScripts = new Map<string, Promise<void>>();
 
 function loadScript(source: string): Promise<void> {
@@ -15,17 +17,28 @@ function loadScript(source: string): Promise<void> {
   if (existing) return existing;
   const promise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) {
+        script.remove();
+        loadedScripts.delete(source);
+        reject(error);
+      } else resolve();
+    };
+    const timeout = setTimeout(
+      () => finish(new Error(`Decor Revolution dependency timed out: ${source}`)),
+      decorStoreScriptLoadTimeoutMs,
+    );
     script.src = source;
     script.async = false;
     script.dataset.decorStoreRuntime = "";
-    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("load", () => finish(), { once: true });
     script.addEventListener(
       "error",
-      () => {
-        script.remove();
-        loadedScripts.delete(source);
-        reject(new Error(`Decor Revolution dependency failed to load: ${source}`));
-      },
+      () => finish(new Error(`Decor Revolution dependency failed to load: ${source}`)),
       { once: true },
     );
     document.head.append(script);

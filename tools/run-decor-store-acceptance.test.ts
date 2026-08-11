@@ -9,6 +9,7 @@ describe("Decor Store acceptance runner", () => {
       "home/unit",
       "home/browser",
       "home/behavior-evidence",
+      "home/performance",
     ]);
   });
 

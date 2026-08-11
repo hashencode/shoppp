@@ -14,6 +14,8 @@ export {
   decorStoreTailSourceMarkup,
 };
 
+export type DecorStoreMarkupImagePriority = "default" | "deferred" | "hero";
+
 const routePattern = /href="demo-decor-store(?:-[^"]+)?\.html"/g;
 const assetPattern = /(src|data-at2x|data-lazyload)="(images\/[^"]+)"/g;
 const backgroundAssetPattern = /url\(['"]?(images\/[^)'"]+)['"]?\)/g;
@@ -53,8 +55,24 @@ function addAccessibleLinkNames(markup: string): string {
   );
 }
 
-export function prepareDecorStoreMarkup(markup: string, resolveAsset: ThemeAssetResolver): string {
-  return addAccessibleLinkNames(markup)
+function applyImagePriority(markup: string, priority: DecorStoreMarkupImagePriority): string {
+  if (priority === "default") return markup;
+  if (priority === "deferred")
+    return markup.replaceAll(/<img\b/g, '<img loading="lazy" decoding="async"');
+  const firstSlideEnd = markup.indexOf("</li>");
+  if (firstSlideEnd < 0) throw new Error("Decor Hero first slide boundary is missing.");
+  return (
+    markup.slice(0, firstSlideEnd).replaceAll(/<img\b/g, '<img decoding="async"') +
+    markup.slice(firstSlideEnd).replaceAll(/<img\b/g, '<img loading="lazy" decoding="async"')
+  );
+}
+
+export function prepareDecorStoreMarkup(
+  markup: string,
+  resolveAsset: ThemeAssetResolver,
+  imagePriority: DecorStoreMarkupImagePriority = "default",
+): string {
+  return addAccessibleLinkNames(applyImagePriority(markup, imagePriority))
     .replaceAll(assetPattern, (_match, attribute: string, sourcePath: string) => {
       return `${attribute}="${resolveAsset(decorStoreAssetId(sourcePath))}"`;
     })

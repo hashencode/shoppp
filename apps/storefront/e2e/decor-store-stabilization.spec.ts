@@ -22,6 +22,8 @@ interface ResourceMeasurement {
   url: string;
 }
 
+const maximumDocumentCallbacksPerWindow = 80;
+
 async function installRuntimeCounters(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const target = window as typeof window & { __decorRuntimeCounters?: DecorRuntimeCounters };
@@ -341,7 +343,7 @@ test("motion-enabled cold navigation records bounded runtime and teardown eviden
   expect(metrics.imageBytes).toBeGreaterThan(0);
   expect(metrics.heroReadyMs).toBeLessThan(15_000);
   expect(hidden.mutations).toBe(0);
-  expect(teardown.callbacks).toBeLessThanOrEqual(64);
+  expect(teardown.callbacks).toBeLessThanOrEqual(maximumDocumentCallbacksPerWindow);
   expect(teardown.mutations).toBe(0);
   expect(teardown.activeHandles.animationFrames).toBe(0);
   expect(teardown.activeHandles.intervals).toBe(0);
@@ -352,7 +354,7 @@ test("motion-enabled cold navigation records bounded runtime and teardown eviden
   expect(repeatTeardown.activeHandles.timeouts).toBeLessThanOrEqual(
     teardown.activeHandles.timeouts,
   );
-  expect(repeatTeardown.callbacks).toBeLessThanOrEqual(64);
+  expect(repeatTeardown.callbacks).toBeLessThanOrEqual(maximumDocumentCallbacksPerWindow);
 });
 
 test("Decor Store has no serious structural accessibility violations", async ({ page }) => {

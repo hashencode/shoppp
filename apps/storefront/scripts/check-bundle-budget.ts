@@ -25,6 +25,28 @@ export interface SourceRuntimePolicyInput {
   file: string;
 }
 
+export async function collectInitialJavaScriptAssets(
+  entryAssets: Iterable<string>,
+  readAsset: (asset: string) => Promise<string>,
+): Promise<Set<string>> {
+  const assets = new Set<string>();
+  const visit = async (asset: string): Promise<void> => {
+    if (assets.has(asset)) return;
+    assets.add(asset);
+    const source = await readAsset(asset);
+    for (const match of source.matchAll(
+      /\b(?:import|export)\s*(?:[^"'();]*?\sfrom\s*)?["']([^"']+\.js)["']/g,
+    )) {
+      const specifier = match[1]!;
+      if (!specifier.startsWith(".") && !specifier.startsWith("/")) continue;
+      const dependency = new URL(specifier, `https://bundle.invalid${asset}`).pathname;
+      if (dependency.startsWith("/_nuxt/")) await visit(dependency);
+    }
+  };
+  for (const asset of entryAssets) await visit(asset);
+  return assets;
+}
+
 function sha256(contents: Uint8Array): string {
   return new Bun.CryptoHasher("sha256").update(contents).digest("hex");
 }
@@ -135,11 +157,14 @@ async function main(): Promise<void> {
 
   for (const route of representativeRoutes) {
     const html = await readFile(outputPath(route), "utf8");
-    const assets = new Set(
+    const entryAssets = new Set(
       [...html.matchAll(/(?:href|src)="(\/_nuxt\/[^"]+\.js)"/g)].map((match) => match[1]!),
     );
-    if (assets.size === 0)
+    if (entryAssets.size === 0)
       throw new Error(`${route} did not reference an initial JavaScript bundle.`);
+    const assets = await collectInitialJavaScriptAssets(entryAssets, (asset) =>
+      readFile(resolve(output, asset.slice(1)), "utf8"),
+    );
     let totalGzip = 0;
     for (const asset of assets) {
       totalGzip += gzipSync(await readFile(resolve(output, asset.slice(1)))).byteLength;

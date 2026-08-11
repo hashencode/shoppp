@@ -4,6 +4,7 @@ import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import { useDecorStoreRuntime } from "../composables/useDecorStoreRuntime";
 import { decorStoreAssetId } from "../resources";
+import { decorStoreRevolutionPaths } from "../runtime/revolution-loader.client";
 import {
   decorStoreHeaderSourceMarkup,
   decorStoreBodySourceMarkup,
@@ -28,14 +29,58 @@ const headerMarkup = computed(() =>
   prepareDecorStoreMarkup(decorStoreHeaderSourceMarkup, properties.resolveAsset),
 );
 const heroMarkup = computed(() =>
-  prepareDecorStoreMarkup(decorStoreHeroSourceMarkup, properties.resolveAsset),
+  prepareDecorStoreMarkup(decorStoreHeroSourceMarkup, properties.resolveAsset, "hero"),
 );
 const bodyMarkup = computed(() =>
-  prepareDecorStoreMarkup(decorStoreBodySourceMarkup, properties.resolveAsset),
+  prepareDecorStoreMarkup(decorStoreBodySourceMarkup, properties.resolveAsset, "deferred"),
 );
 const tailMarkup = computed(() =>
-  prepareDecorStoreMarkup(decorStoreTailSourceMarkup, properties.resolveAsset),
+  prepareDecorStoreMarkup(decorStoreTailSourceMarkup, properties.resolveAsset, "deferred"),
 );
+useHead({
+  link: [
+    {
+      as: "image" as const,
+      href: properties.resolveAsset(
+        decorStoreAssetId("images/demo-decor-store-slider-01-img-01.png"),
+      ),
+      rel: "preload" as const,
+    },
+    {
+      as: "font" as const,
+      crossorigin: "anonymous",
+      href: properties.resolveAsset(decorStoreAssetId("fonts/plus-jakarta-sans-latin.woff2")),
+      rel: "preload" as const,
+      type: "font/woff2",
+    },
+    {
+      as: "font" as const,
+      crossorigin: "anonymous",
+      href: properties.resolveAsset(decorStoreAssetId("fonts/bootstrap-icons.woff2")),
+      rel: "preload" as const,
+      type: "font/woff2",
+    },
+    {
+      as: "font" as const,
+      crossorigin: "anonymous",
+      href: properties.resolveAsset(decorStoreAssetId("fonts/fa-brands-400.woff2")),
+      rel: "preload" as const,
+      type: "font/woff2",
+    },
+    {
+      as: "font" as const,
+      crossorigin: "anonymous",
+      href: properties.resolveAsset(decorStoreAssetId("fonts/feather.woff")),
+      rel: "preload" as const,
+      type: "font/woff",
+    },
+    ...decorStoreRevolutionPaths.map((sourcePath) => ({
+      as: "script" as const,
+      href: properties.resolveAsset(decorStoreAssetId(sourcePath)),
+      rel: "preload" as const,
+    })),
+  ],
+});
 const runtime = useDecorStoreRuntime(root, (sourcePath) =>
   properties.resolveAsset(decorStoreAssetId(sourcePath)),
 );
@@ -62,6 +107,8 @@ function record(action: PreviewAction, context: string): void {
 }
 
 function closeHeaderStates(returnFocus = false): void {
+  if (searchFocusTimer) clearTimeout(searchFocusTimer);
+  searchFocusTimer = undefined;
   root.value
     ?.querySelectorAll(".is-open, .search-form-wrapper.active, #navbarNav.show")
     .forEach((element) => element.classList.remove("is-open", "open", "active", "show"));
@@ -93,7 +140,10 @@ function handleClick(event: MouseEvent): void {
     root.value?.querySelector(".search-form-wrapper")?.classList.add("active");
     root.value?.classList.add("show-search-popup");
     searchTrigger.setAttribute("aria-expanded", "true");
-    const focusSearch = () => root.value?.querySelector<HTMLInputElement>(".search-input")?.focus();
+    const focusSearch = () => {
+      searchFocusTimer = undefined;
+      root.value?.querySelector<HTMLInputElement>(".search-input")?.focus();
+    };
     focusSearch();
     searchFocusTimer = setTimeout(focusSearch, 150);
     return;

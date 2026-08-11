@@ -17,6 +17,7 @@ import {
   decorStoreNamedStateContracts,
 } from "../app/themes/decor-store/behavior-contract";
 import { decorStoreAcceptanceAdapters } from "../app/themes/decor-store/acceptance-adapter";
+import { prepareDecorStoreMarkup } from "../app/themes/decor-store/runtime/source-markup";
 import { assertThemeBehaviorContractComplete } from "../e2e/support/theme-behavior-contract";
 import { assertCustomBehaviorAdaptersRegistered } from "../e2e/support/theme-behavior-runner";
 import {
@@ -31,6 +32,23 @@ const sourcePath = resolve(
 const repositoryRoot = resolve(import.meta.dir, "../../..");
 
 describe("Decor Store source contracts", () => {
+  test("prioritizes only the first Hero slide and defers below-the-fold source images", () => {
+    const resolveAsset = (id: string) => `/assets/${id}`;
+    const hero = prepareDecorStoreMarkup(
+      '<ul><li><img src="images/first.png"></li><li><img src="images/second.png"></li></ul>',
+      resolveAsset,
+      "hero",
+    );
+    const body = prepareDecorStoreMarkup('<img src="images/body.png">', resolveAsset, "deferred");
+    expect(hero).toContain('<img decoding="async" src="/assets/decor-store.images-first">');
+    expect(hero).toContain(
+      '<img loading="lazy" decoding="async" src="/assets/decor-store.images-second">',
+    );
+    expect(body).toContain(
+      '<img loading="lazy" decoding="async" src="/assets/decor-store.images-body">',
+    );
+  });
+
   test("inventories every visible region and actionable element in source order", async () => {
     const markup = await readFile(sourcePath, "utf8");
 
