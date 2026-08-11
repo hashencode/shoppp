@@ -4,7 +4,9 @@ import type {
   Cart,
   ShippingQuoteRequest,
   UpdateCartLineRequest,
+  StorefrontIntentAction,
 } from "@shoppp/contracts";
+import { storefrontIntentActionSchema } from "@shoppp/contracts";
 import type { InjectionKey } from "vue";
 
 export const previewActionIntentSchema = z.enum([
@@ -63,6 +65,8 @@ export const previewActionSchema = z
 
 export type PreviewAction = z.infer<typeof previewActionSchema>;
 export type PreviewActionIntent = z.infer<typeof previewActionIntentSchema>;
+export { storefrontIntentActionSchema as liveStorefrontIntentActionSchema };
+export type LiveStorefrontIntentAction = StorefrontIntentAction;
 
 export interface PreviewCartAddDispatch {
   action: PreviewAction;

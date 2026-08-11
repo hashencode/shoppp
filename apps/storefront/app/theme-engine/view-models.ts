@@ -1,8 +1,12 @@
 import {
   fixtureStateSchema,
   pageTypeSchema,
+  presentationCollectionSchema,
+  presentationProductSchema,
   storefrontIdentifierSchema,
   type FixtureBinding,
+  type PresentationCollection,
+  type PresentationProduct,
 } from "@shoppp/contracts";
 import * as z from "zod";
 
@@ -244,6 +248,12 @@ export const experienceFixtureSchema = z
 export type PresentationViewModel = z.infer<typeof presentationViewModelSchema>;
 export type ExperienceFixture = z.infer<typeof experienceFixtureSchema>;
 export type ExperienceFixtureRegistry = Readonly<Record<string, ExperienceFixture>>;
+export {
+  presentationCollectionSchema as livePresentationCollectionSchema,
+  presentationProductSchema as livePresentationProductSchema,
+};
+export type LivePresentationCollection = PresentationCollection;
+export type LivePresentationProduct = PresentationProduct;
 
 export function resolveFixtureBinding(
   instanceId: string,

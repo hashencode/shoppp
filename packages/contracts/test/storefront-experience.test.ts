@@ -1,9 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  catalogResourceBindingSchema,
+  catalogResourceReferenceSchema,
   experienceSnapshotSchema,
   linkTargetSchema,
+  presentationProductSchema,
+  storefrontIntentActionSchema,
   themePackageSchema,
+  type PresentationProduct,
   type ThemePackage,
 } from "../src/storefront-experience";
 
@@ -145,6 +150,82 @@ const heroSection = homeTemplate.sections[0]!;
 const legalFooterSection = homeTemplate.sections[1]!;
 
 describe("storefront experience contracts", () => {
+  test("accepts stable catalog bindings independently from fixture bindings", () => {
+    expect(
+      catalogResourceBindingSchema.parse({
+        id: "featured-product-binding",
+        instanceId: "featured-product",
+        kind: "catalog",
+        reference: {
+          id: "prd_01J00000000000000000000000",
+          kind: "product",
+        },
+      }),
+    ).toMatchObject({ reference: { kind: "product" } });
+    expect(
+      catalogResourceReferenceSchema.safeParse({
+        collectionId: "col_01J00000000000000000000000",
+        id: "prd_01J00000000000000000000000",
+        kind: "product",
+      }).success,
+    ).toBe(false);
+    expect(
+      catalogResourceReferenceSchema.safeParse({
+        id: "prd_01J00000000000000000000000",
+        kind: "fixture",
+      }).success,
+    ).toBe(false);
+  });
+
+  test("validates structured presentation money and explicit availability", () => {
+    const product = {
+      availability: "in-stock",
+      id: "prd_01J00000000000000000000000",
+      kind: "product",
+      media: [],
+      money: { amount: 12_900, currency: "USD" },
+      name: "Carry-on",
+      slug: "carry-on",
+      variantIds: ["var_01J00000000000000000000000"],
+    } satisfies PresentationProduct;
+
+    expect(presentationProductSchema.parse(product)).toEqual(product);
+    expect(
+      presentationProductSchema.safeParse({
+        ...product,
+        money: { amount: "129.00", currency: "USD" },
+      }).success,
+    ).toBe(false);
+    expect(presentationProductSchema.safeParse({ ...product, availability: true }).success).toBe(
+      false,
+    );
+  });
+
+  test("keeps commerce intent payloads identifier-only", () => {
+    const action = {
+      id: "add-to-cart",
+      intent: {
+        kind: "cart.add",
+        productId: "prd_01J00000000000000000000000",
+        quantity: 1,
+        variantId: "var_01J00000000000000000000000",
+      },
+      label: "Add to bag",
+    } as const;
+
+    expect(storefrontIntentActionSchema.parse(action)).toEqual(action);
+    expect(
+      storefrontIntentActionSchema.safeParse({
+        ...action,
+        intent: {
+          ...action.intent,
+          expectedUnitPrice: { amount: 12_900, currency: "USD" },
+          inventoryAvailable: true,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   test("accepts a compatible bounded package with declared components and settings", () => {
     const parsed = themePackageSchema.parse(validThemePackage);
 

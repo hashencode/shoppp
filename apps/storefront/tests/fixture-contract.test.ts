@@ -179,4 +179,16 @@ describe("storefront experience fixtures", () => {
     expect(source).not.toMatch(/\.php(?:["'?]|\b)/i);
     expect(source).not.toContain("@shoppp/db");
   });
+
+  test("keeps the live theme-engine boundary independent from fixtures and Commerce DTOs", async () => {
+    const roots = [
+      resolve(import.meta.dir, "../app/theme-engine/view-models.ts"),
+      resolve(import.meta.dir, "../app/theme-engine/actions.ts"),
+    ];
+    const source = (await Promise.all(roots.map((root) => readFile(root, "utf8")))).join("\n");
+
+    expect(source).not.toMatch(/from\s+["'][^"']*fixtures(?:\/|["'])/);
+    expect(source).not.toMatch(/useCommerceApi|useGuestCart/);
+    expect(source).not.toMatch(/import\s+type\s+\{[^}]*\b(?:Product|InventoryItem)\b[^}]*\}/s);
+  });
 });

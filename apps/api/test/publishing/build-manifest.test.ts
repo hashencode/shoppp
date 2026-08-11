@@ -8,8 +8,14 @@ describe("storefront build manifest", () => {
       collections: [
         {
           description: "Travel essentials",
+          id: "col_01J00000000000000000000000",
           name: "Travel",
-          productSlugs: ["carry-on"],
+          productIds: [
+            "prd_01J00000000000000000000009",
+            "prd_01J00000000000000000000000",
+            "prd_01J00000000000000000000001",
+          ],
+          productSlugs: ["carry-on", "draft"],
           seoDescription: "Travel essentials",
           seoTitle: "Travel",
           slug: "travel",
@@ -25,8 +31,10 @@ describe("storefront build manifest", () => {
       })),
       products: [
         {
+          collectionIds: ["col_01J00000000000000000000009", "col_01J00000000000000000000000"],
           description: "Published product",
           collectionSlugs: ["travel"],
+          id: "prd_01J00000000000000000000000",
           media: [],
           name: "Carry-on",
           seoDescription: "Carry-on SEO",
@@ -55,8 +63,10 @@ describe("storefront build manifest", () => {
           ],
         },
         {
+          collectionIds: [],
           description: "Draft product",
           collectionSlugs: [],
+          id: "prd_01J00000000000000000000001",
           media: [],
           name: "Draft",
           seoDescription: "Draft SEO",
@@ -102,5 +112,15 @@ describe("storefront build manifest", () => {
       { from: "/products/old-carry-on", status: 301, to: "/products/carry-on" },
     ]);
     expect(manifest.products[0]?.variants.map((variant) => variant.sku)).toEqual(["ACTIVE"]);
+    expect(manifest.schemaVersion).toBe(2);
+    expect(manifest.products[0]).toMatchObject({
+      collectionIds: ["col_01J00000000000000000000000"],
+      id: "prd_01J00000000000000000000000",
+    });
+    expect(manifest.collections[0]).toMatchObject({
+      id: "col_01J00000000000000000000000",
+      productIds: ["prd_01J00000000000000000000000"],
+      productSlugs: ["carry-on"],
+    });
   });
 });

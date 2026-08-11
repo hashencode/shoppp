@@ -1,5 +1,8 @@
 import * as z from "zod";
 
+import { stableCatalogReferenceSchema } from "./catalog";
+import { moneySchema, publicIdSchema } from "./common";
+
 const MAX_SECTIONS = 40;
 const MAX_BLOCKS_PER_SECTION = 20;
 const MAX_SETTINGS_PER_COMPONENT = 32;
@@ -425,6 +428,110 @@ export const fixtureBindingSchema = z
   })
   .strict();
 
+export const catalogResourceReferenceSchema = stableCatalogReferenceSchema;
+
+export const catalogResourceBindingSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    instanceId: storefrontIdentifierSchema,
+    kind: z.literal("catalog"),
+    reference: catalogResourceReferenceSchema,
+  })
+  .strict();
+
+export const experienceResourceBindingSchema = z.discriminatedUnion("kind", [
+  fixtureBindingSchema,
+  catalogResourceBindingSchema,
+]);
+
+export const presentationAvailabilitySchema = z.enum([
+  "in-stock",
+  "out-of-stock",
+  "unavailable",
+  "unknown",
+]);
+
+export const presentationMediaSchema = z
+  .object({
+    alt: z.string().trim().min(1).max(300),
+    height: z.int().positive().max(16_384),
+    src: z.string().min(1).max(2_000),
+    width: z.int().positive().max(16_384),
+  })
+  .strict();
+
+export const presentationProductSchema = z
+  .object({
+    availability: presentationAvailabilitySchema,
+    id: publicIdSchema,
+    kind: z.literal("product"),
+    media: z.array(presentationMediaSchema).max(50),
+    money: moneySchema,
+    name: z.string().trim().min(1).max(300),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    variantIds: z.array(publicIdSchema).min(1).max(500),
+  })
+  .strict();
+
+export const presentationCollectionSchema = z
+  .object({
+    id: publicIdSchema,
+    kind: z.literal("collection"),
+    name: z.string().trim().min(1).max(300),
+    productIds: z.array(publicIdSchema).max(5_000),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  })
+  .strict();
+
+const productOpenIntentSchema = z
+  .object({ kind: z.literal("product.open"), productId: publicIdSchema })
+  .strict();
+const collectionOpenIntentSchema = z
+  .object({ collectionId: publicIdSchema, kind: z.literal("collection.open") })
+  .strict();
+const variantSelectIntentSchema = z
+  .object({
+    kind: z.literal("variant.select"),
+    productId: publicIdSchema,
+    variantId: publicIdSchema,
+  })
+  .strict();
+const cartAddIntentSchema = z
+  .object({
+    kind: z.literal("cart.add"),
+    productId: publicIdSchema,
+    quantity: z.int().positive().max(20),
+    variantId: publicIdSchema,
+  })
+  .strict();
+const cartRemoveIntentSchema = z
+  .object({ kind: z.literal("cart.remove"), variantId: publicIdSchema })
+  .strict();
+const cartQuantityIntentSchema = z
+  .object({
+    kind: z.literal("cart.quantity"),
+    quantity: z.int().nonnegative().max(20),
+    variantId: publicIdSchema,
+  })
+  .strict();
+
+export const storefrontIntentSchema = z.discriminatedUnion("kind", [
+  productOpenIntentSchema,
+  collectionOpenIntentSchema,
+  variantSelectIntentSchema,
+  cartAddIntentSchema,
+  cartRemoveIntentSchema,
+  cartQuantityIntentSchema,
+]);
+
+export const storefrontIntentActionSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    intent: storefrontIntentSchema,
+    label: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
 const reorderSectionsOperationSchema = z
   .object({
     instanceIds: z.array(storefrontIdentifierSchema).min(1).max(MAX_SECTIONS),
@@ -471,7 +578,7 @@ export const themeOverrideSchema = z
 
 export const experienceDraftSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     experienceId: storefrontIdentifierSchema,
     id: storefrontIdentifierSchema,
     overrides: z.array(themeOverrideSchema).max(10),
@@ -483,7 +590,7 @@ export const experienceDraftSchema = z
 
 const experienceSnapshotBaseSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     configurationSchemaVersion: z.int().positive(),
     experienceId: storefrontIdentifierSchema,
     id: storefrontIdentifierSchema,
@@ -799,6 +906,14 @@ export type BlockInstance = z.infer<typeof blockInstanceSchema>;
 export type ExperienceDraft = z.infer<typeof experienceDraftSchema>;
 export type ExperienceSnapshot = z.infer<typeof experienceSnapshotSchema>;
 export type FixtureBinding = z.infer<typeof fixtureBindingSchema>;
+export type CatalogResourceBinding = z.infer<typeof catalogResourceBindingSchema>;
+export type CatalogResourceReference = z.infer<typeof catalogResourceReferenceSchema>;
+export type ExperienceResourceBinding = z.infer<typeof experienceResourceBindingSchema>;
+export type PresentationAvailability = z.infer<typeof presentationAvailabilitySchema>;
+export type PresentationCollection = z.infer<typeof presentationCollectionSchema>;
+export type PresentationProduct = z.infer<typeof presentationProductSchema>;
+export type StorefrontIntent = z.infer<typeof storefrontIntentSchema>;
+export type StorefrontIntentAction = z.infer<typeof storefrontIntentActionSchema>;
 export type PageTemplate = z.infer<typeof pageTemplateSchema>;
 export type SectionInstance = z.infer<typeof sectionInstanceSchema>;
 export type SectionDefinition = z.infer<typeof sectionDefinitionSchema>;
