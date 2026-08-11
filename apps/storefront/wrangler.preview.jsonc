@@ -3,7 +3,7 @@
   "name": "shoppp-storefront-preview",
   "main": "./worker/preview-access.ts",
   "compatibility_date": "2026-07-30",
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
   "r2_buckets": [
     {
@@ -18,7 +18,7 @@
     },
   ],
   "vars": {
-    "PREVIEW_HANDOFF_ORIGIN": "https://admin-staging.example.invalid",
-    "PREVIEW_ORIGIN": "https://preview-staging.example.invalid",
+    "PREVIEW_HANDOFF_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
+    "PREVIEW_ORIGIN": "https://shoppp-storefront-preview.hashencode.workers.dev",
   },
 }
