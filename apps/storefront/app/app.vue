@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { defineAsyncComponent, hydrateOnInteraction, type HydrationStrategy } from "vue";
+import { defineAsyncComponent, type HydrationStrategy } from "vue";
+import { hydrateOnStorefrontInteraction } from "./hydration";
 
 const hydrateStorefrontExperience: HydrationStrategy = (hydrate, forEachElement) => {
   if (location.pathname !== "/" || !matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -7,10 +8,7 @@ const hydrateStorefrontExperience: HydrationStrategy = (hydrate, forEachElement)
     return;
   }
 
-  return hydrateOnInteraction(["click", "focusin", "keydown", "pointerdown"])(
-    hydrate,
-    forEachElement,
-  );
+  return hydrateOnStorefrontInteraction(hydrate, forEachElement);
 };
 
 const StorefrontExperience = defineAsyncComponent({

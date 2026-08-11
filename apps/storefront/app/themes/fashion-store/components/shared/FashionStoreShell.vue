@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { storefrontExperienceHydratedEvent } from "../../../../hydration";
 import { useFashionStoreVisualRuntime } from "../../composables/useFashionStoreVisualRuntime";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreFooter from "./FashionStoreFooter.vue";
@@ -106,6 +107,7 @@ onMounted(() => {
   });
   document.addEventListener("click", handleInternalNavigation, true);
   document.addEventListener("keydown", handleDocumentKeydown);
+  window.dispatchEvent(new Event(storefrontExperienceHydratedEvent));
 });
 
 onBeforeUnmount(() => {
