@@ -272,7 +272,7 @@ describe("storefront experience API", () => {
     const collectionId = previewCatalogRelease.collections[0]!.id;
     const productId = previewCatalogRelease.products[0]!.id;
     const bindings = [
-      ...fashionStoreFixture.bindings,
+      ...draftInput.bindings,
       {
         id: "catalog-fashion-store-home-featured-collection",
         instanceId: "fashion-store-home",

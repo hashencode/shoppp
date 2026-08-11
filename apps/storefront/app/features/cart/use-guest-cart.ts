@@ -7,6 +7,7 @@ import type {
 } from "@shoppp/contracts";
 
 const TOKEN_KEY = "shoppp.guest-cart-token";
+const clientEnsureFlights = new Map<string, Promise<Cart>>();
 
 export class GuestCartCurrencyMismatchError extends Error {
   constructor(currentCurrency: string, requestedCurrency: string) {
@@ -56,7 +57,6 @@ export function useGuestCart() {
   const error = useState<string | null>("guest-cart-error", () => null);
   const notice = useState<string | null>("guest-cart-notice", () => null);
   const api = useCommerceApi();
-  let ensureFlight: { currency: string; promise: Promise<Cart> } | undefined;
 
   const token = () => (import.meta.client ? localStorage.getItem(TOKEN_KEY) : null);
   const withCart = async (operation: (cartToken: string) => Promise<{ data: Cart }>) => {
@@ -110,11 +110,13 @@ export function useGuestCart() {
     }
   };
   const ensure = (currency = "USD"): Promise<Cart> => {
-    if (ensureFlight?.currency === currency) return ensureFlight.promise;
+    if (!import.meta.client && typeof localStorage === "undefined") return runEnsure(currency);
+    const inFlight = clientEnsureFlights.get(currency);
+    if (inFlight) return inFlight;
     const promise = runEnsure(currency).finally(() => {
-      if (ensureFlight?.promise === promise) ensureFlight = undefined;
+      if (clientEnsureFlights.get(currency) === promise) clientEnsureFlights.delete(currency);
     });
-    ensureFlight = { currency, promise };
+    clientEnsureFlights.set(currency, promise);
     return promise;
   };
   const add = async (input: AddCartLineRequest, currency: string) => {

@@ -85,7 +85,11 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home",
           "required": true,
-          "settings": {},
+          "settings": {
+            "hero-body": "Explore the latest edit.",
+            "hero-eyebrow": "New collection",
+            "hero-title": "Fashion for every day"
+          },
           "type": "fashion-store.home",
           "visible": true
         }
@@ -101,7 +105,10 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-collection",
           "required": true,
-          "settings": {},
+          "settings": {
+            "intro-copy": "Discover the latest edit.",
+            "intro-title": "Shop the collection"
+          },
           "type": "fashion-store.collection",
           "visible": true
         }
@@ -117,7 +124,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-product",
           "required": true,
-          "settings": {},
+          "settings": {
+            "presentation-copy": "Designed for everyday wear."
+          },
           "type": "fashion-store.product",
           "visible": true
         }
@@ -133,7 +142,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-cart",
           "required": true,
-          "settings": {},
+          "settings": {
+            "help-copy": "Need help with your cart?"
+          },
           "type": "fashion-store.cart",
           "visible": true
         }
@@ -149,7 +160,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-checkout",
           "required": true,
-          "settings": {},
+          "settings": {
+            "help-copy": "Secure checkout"
+          },
           "type": "fashion-store.checkout",
           "visible": true
         }
@@ -165,7 +178,34 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-content",
           "required": true,
-          "settings": {},
+          "settings": {
+            "about.heading": "About us",
+            "about.message": "Learn more about this store.",
+            "account.heading": "Account unavailable",
+            "account.message": "Customer accounts are not available yet.",
+            "brand-logo": {
+              "alt": "Fashion Store logo",
+              "height": 56,
+              "kind": "theme",
+              "path": "assets/images/fashion-store-logo.svg",
+              "width": 180
+            },
+            "contact.heading": "Contact information",
+            "contact.message": "Merchant contact details will appear here.",
+            "content-style": "standard",
+            "faq.heading": "Frequently asked questions",
+            "faq.message": "Helpful answers from our team.",
+            "legal-link": {
+              "kind": "route",
+              "path": "/policies/privacy"
+            },
+            "magazine.heading": "Magazine",
+            "magazine.marketing-tips-and-tricks.heading": "Marketing tips and tricks",
+            "magazine.marketing-tips-and-tricks.message": "Editorial story.",
+            "magazine.message": "Stories from the latest collection.",
+            "wishlist.heading": "Wishlist",
+            "wishlist.message": "Saved wishlists are not available yet."
+          },
           "type": "fashion-store.content",
           "visible": true
         }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Cart } from "@shoppp/contracts";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import {
@@ -15,13 +16,10 @@ const cartOpen = ref(false);
 const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const liveCommerceMode = inject(liveCommerceModeKey, false);
-const liveCart = ref<{
-  canCheckout: boolean;
-  count: number;
-  currency: string;
-  lines: { name: string; quantity: number; unitPrice: number; variantId: string }[];
-  subtotal: number;
-} | null>(null);
+const liveCart = ref<Cart | null>(null);
+const liveCartCount = computed(
+  () => liveCart.value?.lines.reduce((total, line) => total + line.quantity, 0) ?? 0,
+);
 const liveCartError = ref("");
 const liveCartNotice = ref("");
 const liveCartBusy = ref(false);
@@ -60,29 +58,8 @@ function closeCart(): void {
   touchActivation = false;
 }
 
-function applyLiveCart(cart: {
-  canCheckout: boolean;
-  currency: string;
-  lines: {
-    productName: string;
-    quantity: number;
-    unitPrice: { amount: number };
-    variantId: string;
-  }[];
-  totals: { subtotal: number };
-}): void {
-  liveCart.value = {
-    canCheckout: cart.canCheckout,
-    count: cart.lines.reduce((total, line) => total + line.quantity, 0),
-    currency: cart.currency,
-    lines: cart.lines.map((line) => ({
-      name: line.productName,
-      quantity: line.quantity,
-      unitPrice: line.unitPrice.amount,
-      variantId: line.variantId,
-    })),
-    subtotal: cart.totals.subtotal,
-  };
+function applyLiveCart(cart: Cart): void {
+  liveCart.value = cart;
 }
 
 function money(amount: number, currency: string): string {
@@ -145,7 +122,7 @@ defineExpose({ closeCart });
       >
         <i class="feather icon-feather-shopping-bag"></i
         ><span class="cart-count alt-font text-white bg-dark-gray">{{
-          liveCommerceMode ? (liveCart?.count ?? 0) : 2
+          liveCommerceMode ? liveCartCount : 2
         }}</span>
       </button>
       <ul v-if="liveCommerceMode" class="cart-item-list" aria-live="polite">
@@ -165,16 +142,16 @@ defineExpose({ closeCart });
           <button
             type="button"
             class="alt-font close fashion-store-source-action"
-            :aria-label="`Remove ${line.name} from cart`"
+            :aria-label="`Remove ${line.productName} from cart`"
             :disabled="liveCartBusy"
             @click="removeLiveLine(line.variantId)"
           >
             ×
           </button>
           <div class="product-detail fw-600">
-            <span>{{ line.name }}</span>
+            <span>{{ line.productName }}</span>
             <span class="item-ammount fw-400">
-              {{ line.quantity }} × {{ money(line.unitPrice, liveCart!.currency) }}
+              {{ line.quantity }} × {{ money(line.unitPrice.amount, liveCart!.currency) }}
             </span>
           </div>
         </li>
@@ -182,7 +159,7 @@ defineExpose({ closeCart });
           <div class="fs-18 alt-font mb-15px">
             <span class="w-50 fw-500 text-start">Subtotal:</span>
             <span class="w-50 text-end fw-700">{{
-              money(liveCart.subtotal, liveCart.currency)
+              money(liveCart.totals.subtotal, liveCart.currency)
             }}</span>
           </div>
           <a
