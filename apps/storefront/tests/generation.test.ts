@@ -7,8 +7,10 @@ import manifest from "../app/generated/route-manifest.json";
 import verificationCatalog from "../app/generated/verification-catalog.json";
 import {
   fashionStoreEnabledPageContracts,
+  fashionStoreThemeRoutes,
   fashionStorePreviewRoutes,
 } from "../app/themes/fashion-store/page-contracts";
+import { resolveThemeRoute } from "../app/theme-engine/routes";
 
 describe("static generation manifest", () => {
   test("derives private preview routes only from readiness-enabled page contracts", () => {
@@ -73,5 +75,84 @@ describe("static generation manifest", () => {
       expect(redirect.status).toBe(301);
       expect(manifest.routes).not.toContain(redirect.from);
     }
+  });
+
+  test("exports live catalog families without changing exact fixture preview routes", async () => {
+    const release = {
+      collections: [
+        {
+          description: "Live collection",
+          id: "col_01JGENERATIONCOLLECTION001",
+          name: "Live collection",
+          productIds: ["prod_01JGENERATIONPRODUCT00001"],
+          productSlugs: ["release-only-product"],
+          seoDescription: "Live collection",
+          seoTitle: "Live collection",
+          slug: "release-only-collection",
+          status: "published",
+        },
+      ],
+      generatedAt: "2026-08-11T00:00:00.000Z",
+      policies: [
+        {
+          description: "Policy",
+          effectiveDate: "2026-08-11",
+          sections: [{ body: "Policy", heading: "Policy" }],
+          slug: "privacy",
+          title: "Privacy",
+        },
+      ],
+      products: [
+        {
+          collectionIds: ["col_01JGENERATIONCOLLECTION001"],
+          collectionSlugs: ["release-only-collection"],
+          description: "Live product",
+          id: "prod_01JGENERATIONPRODUCT00001",
+          media: [],
+          name: "Live product",
+          seoDescription: "Live product",
+          seoTitle: "Live product",
+          slug: "release-only-product",
+          status: "published",
+          variants: [
+            {
+              id: "var_01JGENERATIONVARIANT000001",
+              optionValues: { size: "M" },
+              prices: [{ amount: 1000, currency: "USD" }],
+              sku: "LIVE-M",
+              status: "active",
+              title: "Medium",
+              weightGrams: 100,
+            },
+          ],
+        },
+      ],
+      redirects: [],
+      releaseId: "release-generation-live",
+      routes: ["/", "/collections/release-only-collection", "/products/release-only-product"],
+      schemaVersion: 2,
+      site: {
+        defaultCurrency: "USD",
+        freshnessHours: 24,
+        name: "Generation",
+        origin: "https://shop.example.test",
+      },
+    } as const;
+
+    expect(resolveThemeRoute("/", fashionStoreThemeRoutes)).toMatchObject({ id: "home" });
+    expect(
+      resolveThemeRoute("/products/release-only-product", fashionStoreThemeRoutes, release),
+    ).toMatchObject({ id: "catalog-product" });
+    expect(
+      resolveThemeRoute("/collections/release-only-collection", fashionStoreThemeRoutes, release),
+    ).toMatchObject({ id: "catalog-collection" });
+    expect(fashionStorePreviewRoutes).not.toContain("/products/:slug");
+    expect(fashionStorePreviewRoutes).not.toContain("/collections/:slug");
+
+    const registry = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"),
+      "utf8",
+    );
+    expect(registry).toContain("export const themeRoutes = fashionStoreThemeRoutes");
   });
 });

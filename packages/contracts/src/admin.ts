@@ -701,7 +701,9 @@ export const validateStorefrontExperienceDraftRequestSchema = z
   .strict();
 
 export const resolveStorefrontExperienceDraftRequestSchema =
-  validateStorefrontExperienceDraftRequestSchema;
+  validateStorefrontExperienceDraftRequestSchema.extend({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
+  });
 
 export const approveStorefrontExperienceDraftRequestSchema = z
   .object({
@@ -733,7 +735,9 @@ export const storefrontExperienceBuildResultSchema = z.discriminatedUnion("statu
   z
     .object({
       artifactDigest: z.string().regex(/^[a-f0-9]{64}$/),
-      artifactPrefix: z.string().regex(/^snapshots\/[a-z][a-z0-9-]{2,99}\/[a-f0-9]{64}$/),
+      artifactPrefix: z
+        .string()
+        .regex(/^snapshots\/[a-z][a-z0-9-]{2,99}\/(?:[A-Za-z0-9_-]{1,160}\/)?[a-f0-9]{64}$/),
       expiresAt: isoDateTimeSchema,
       status: z.literal("deployed"),
     })
@@ -748,6 +752,7 @@ export const storefrontExperienceBuildResultSchema = z.discriminatedUnion("statu
 
 export const createStorefrontPreviewGrantRequestSchema = z
   .object({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     origin: z.url().refine((value) => new URL(value).protocol === "https:"),
     reason: experienceReasonSchema,
   })

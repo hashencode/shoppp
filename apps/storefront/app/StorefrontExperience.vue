@@ -3,25 +3,44 @@ import {
   activeExperienceSnapshot,
   activePreviewOrigin,
   activeThemeAssets,
-  activeThemeFixtures,
   activeThemeId,
   activeThemeRegistry,
   activeThemeRoutes,
 } from "./generated/active-theme";
-import { createThemeAssetResolver, mergeExperienceFixtureRegistries } from "./theme-engine/assets";
+import {
+  activeExperienceProviderInput,
+  activeFixtureRegistry,
+} from "./generated/active-experience";
+import { createThemeAssetResolver } from "./theme-engine/assets";
+import {
+  createFixturePresentationProvider,
+  createLivePresentationProvider,
+} from "./theme-engine/providers";
 import { resolveThemeRoute } from "./theme-engine/routes";
-import { experienceFixtureRegistry } from "../fixtures/experience";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 import { useGuestCart } from "./features/cart/use-guest-cart";
 import { storeOrderAccess } from "./features/checkout/session";
 import type { PreviewActionAdapter } from "./theme-engine/actions";
 import type { PreviewCheckoutAdapter } from "./theme-engine/checkout";
 
-const selectedFixtures = mergeExperienceFixtureRegistries(
-  experienceFixtureRegistry,
-  activeThemeFixtures,
-);
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
+const router = useRouter();
+const currentRoute = computed(() => router.currentRoute.value);
+const fixturePresentationProvider = createFixturePresentationProvider({
+  bindings:
+    activeExperienceSnapshot?.bindings.filter((binding) => binding.kind === "fixture") ?? [],
+  fixtures: activeFixtureRegistry,
+});
+const presentationProvider = computed(() =>
+  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot
+    ? createLivePresentationProvider({
+        experience: activeExperienceSnapshot,
+        locale: "en-US",
+        path: currentRoute.value.path,
+        release: activeExperienceProviderInput.release,
+      })
+    : fixturePresentationProvider,
+);
 const {
   add: addGuestCartLine,
   beginCheckout,
@@ -54,9 +73,15 @@ const previewCheckoutAdapter: PreviewCheckoutAdapter = {
   shipping: quoteGuestCartShipping,
 };
 
-const router = useRouter();
-const currentRoute = computed(() => router.currentRoute.value);
-const pageContract = computed(() => resolveThemeRoute(currentRoute.value.path, activeThemeRoutes));
+const pageContract = computed(() =>
+  resolveThemeRoute(
+    currentRoute.value.path,
+    activeThemeRoutes,
+    activeExperienceProviderInput.mode === "live"
+      ? activeExperienceProviderInput.release
+      : undefined,
+  ),
+);
 const previewTemplate = computed(() =>
   pageContract.value
     ? activeExperienceSnapshot?.resolvedTemplates.find(
@@ -100,12 +125,24 @@ if (activeExperienceSnapshot && previewOrigin) {
 
 <template>
   <div class="app-shell">
+    <aside
+      v-if="activeExperienceProviderInput.mode === 'live'"
+      class="preview-context"
+      aria-label="Private preview context"
+    >
+      Catalog {{ activeExperienceProviderInput.identity.catalogReleaseId }} · Experience
+      {{ activeExperienceProviderInput.identity.experienceSnapshotId }} v{{
+        activeExperienceProviderInput.identity.experienceVersion
+      }}
+      · Theme {{ activeExperienceProviderInput.identity.themeId }}
+      {{ activeExperienceProviderInput.identity.themeVersion }} · Platform
+      {{ activeExperienceProviderInput.identity.platformContractVersion }}
+    </aside>
     <ThemeRenderer
       v-if="previewTemplate"
       :action-adapter="previewActionAdapter"
       :checkout-adapter="previewCheckoutAdapter"
-      :bindings="activeExperienceSnapshot?.bindings ?? []"
-      :fixtures="selectedFixtures"
+      :provider="presentationProvider"
       :registry="activeThemeRegistry"
       :resolve-asset="resolveThemeAsset"
       :template="previewTemplate"

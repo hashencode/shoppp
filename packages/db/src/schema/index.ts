@@ -957,6 +957,13 @@ export const storefrontPreviewBuilds = sqliteTable(
     snapshotId: text("snapshot_id")
       .notNull()
       .references(() => storefrontExperienceSnapshots.id, { onDelete: "restrict" }),
+    catalogReleaseId: text("catalog_release_id").references(() => catalogReleases.id, {
+      onDelete: "restrict",
+    }),
+    experienceVersion: integer("experience_version"),
+    themeId: text("theme_id"),
+    themeVersion: text("theme_version"),
+    platformContractVersion: text("platform_contract_version"),
     attempt: integer("attempt").notNull(),
     status: text("status", {
       enum: ["pending", "building", "deployed", "failed", "expired"],
@@ -976,6 +983,14 @@ export const storefrontPreviewBuilds = sqliteTable(
       table.attempt,
     ),
     index("storefront_preview_builds_cleanup_idx").on(table.status, table.expiresAt),
+    index("storefront_preview_builds_input_identity_idx").on(
+      table.snapshotId,
+      table.catalogReleaseId,
+      table.experienceVersion,
+      table.themeId,
+      table.themeVersion,
+      table.platformContractVersion,
+    ),
   ],
 );
 

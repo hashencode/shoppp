@@ -4,10 +4,10 @@
 import type { ExperienceSnapshot } from "@shoppp/contracts";
 import {
   themeAssets as selectedThemeAssets,
-  themeFixtures as selectedThemeFixtures,
   themeRegistry as selectedThemeRegistry,
   themeRoutes as selectedThemeRoutes,
 } from "../themes/fashion-store/registry";
+import { themeFixtures as selectedThemeFixtures } from "../themes/fashion-store/fixture-registry";
 
 export const activeThemeId = "fashion-store";
 // Preserve deterministic JSON serialization for the signed snapshot payload.

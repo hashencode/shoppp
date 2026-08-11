@@ -133,6 +133,7 @@ import {
   defaultExperienceBuildTrigger,
   getStorefrontExperienceBuild,
   getStorefrontExperienceBuildManifest,
+  getStorefrontExperienceBuildManifestByBuild,
   recordStorefrontExperienceBuildResult,
   triggerStorefrontExperienceBuild,
   type ExperienceBuildTrigger,
@@ -596,6 +597,17 @@ export function createApp(options: CreateAppOptions = {}) {
       await getStorefrontExperienceBuildManifest(context, context.req.param("id")),
     );
   });
+  app.get("/build/storefront-experiences/builds/:id", async (context) => {
+    requireBuildCredential(
+      context,
+      options.buildManifestToken ?? context.env.PREVIEW_BUILD_CALLBACK_TOKEN,
+    );
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    return context.json(
+      await getStorefrontExperienceBuildManifestByBuild(context, context.req.param("id")),
+    );
+  });
   app.post(
     "/build/storefront-experiences/builds/:id/status",
     async (context, next) => {
@@ -935,6 +947,7 @@ export function createApp(options: CreateAppOptions = {}) {
         context,
         snapshot.id,
         options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env),
+        input.catalogReleaseId,
       );
       return context.json(
         {
@@ -1050,6 +1063,7 @@ export function createApp(options: CreateAppOptions = {}) {
           context.req.param("id"),
           input.origin,
           input.reason,
+          input.catalogReleaseId,
         ),
         meta: { requestId: context.get("requestId") },
       },

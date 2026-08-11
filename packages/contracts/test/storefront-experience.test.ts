@@ -160,6 +160,7 @@ describe("storefront experience contracts", () => {
           id: "prd_01J00000000000000000000000",
           kind: "product",
         },
+        settingId: "featured-product",
       }),
     ).toMatchObject({ reference: { kind: "product" } });
     expect(

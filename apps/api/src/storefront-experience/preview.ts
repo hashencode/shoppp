@@ -3,6 +3,8 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { opaqueAccessToken, sha256Hex } from "../orders/tokens";
+import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { getStorefrontExperienceSnapshot } from "./service";
 
 interface GrantRow {
@@ -15,29 +17,21 @@ interface GrantRow {
   snapshot_id: string;
 }
 
-interface SessionRow {
+interface SessionRow extends PreviewInputIdentityRow {
   artifact_prefix: string;
   build_expires_at: string;
+  catalog_release_id: string | null;
+  experience_version: number | null;
   expires_at: string;
   origin: string;
+  platform_contract_version: string | null;
   snapshot_id: string;
+  theme_id: string | null;
+  theme_version: string | null;
 }
 
 const GRANT_TTL_MS = 10 * 60 * 1_000;
 const SESSION_TTL_MS = 30 * 60 * 1_000;
-
-function opaqueCredential(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return btoa(String.fromCharCode(...bytes))
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replaceAll("=", "");
-}
-
-async function sha256(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 function requireConfiguredPreviewOrigin(
   environment: ApiEnvironment["Bindings"],
@@ -91,22 +85,32 @@ export async function createStorefrontPreviewGrant(
   snapshotId: string,
   origin: string,
   reason: string,
+  catalogReleaseId?: string,
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
   await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
   const build = await context.env.DB.prepare(
-    `SELECT id, artifact_digest, artifact_prefix, expires_at
+    `SELECT id, snapshot_id, artifact_digest, artifact_prefix, expires_at,
+            catalog_release_id, experience_version, theme_id, theme_version,
+            platform_contract_version
        FROM storefront_preview_builds
-      WHERE snapshot_id = ? AND status = 'deployed' AND expires_at > ?
+      WHERE snapshot_id = ? AND catalog_release_id IS ?
+        AND status = 'deployed' AND expires_at > ?
       ORDER BY attempt DESC
       LIMIT 1`,
   )
-    .bind(snapshotId, new Date().toISOString())
+    .bind(snapshotId, catalogReleaseId ?? null, new Date().toISOString())
     .first<{
       artifact_digest: string;
       artifact_prefix: string;
+      catalog_release_id: string | null;
+      experience_version: number | null;
       expires_at: string;
       id: string;
+      platform_contract_version: string | null;
+      snapshot_id: string;
+      theme_id: string | null;
+      theme_version: string | null;
     }>();
   if (!build) {
     throw new ApiError(
@@ -115,8 +119,8 @@ export async function createStorefrontPreviewGrant(
       "A current immutable preview artifact is required before issuing access.",
     );
   }
-  const grant = opaqueCredential();
-  const grantDigest = await sha256(grant);
+  const grant = opaqueAccessToken();
+  const grantDigest = await sha256Hex(grant);
   const id = `preview-grant-${crypto.randomUUID()}`;
   const principal = context.get("principal");
   const now = new Date();
@@ -135,7 +139,12 @@ export async function createStorefrontPreviewGrant(
     actorId: principal.id,
     actorType: "admin",
     id: crypto.randomUUID(),
-    metadata: { artifactDigest: build.artifact_digest, expiresAt, snapshotId },
+    metadata: {
+      artifactDigest: build.artifact_digest,
+      ...(catalogReleaseId ? { catalogReleaseId } : {}),
+      expiresAt,
+      snapshotId,
+    },
     reason,
     requestId: context.get("requestId"),
     result: "succeeded",
@@ -145,6 +154,7 @@ export async function createStorefrontPreviewGrant(
   return {
     expiresAt,
     grant,
+    inputIdentity: toPreviewInputIdentity(build),
     redeemUrl: `${origin}/__preview/session`,
     snapshotId,
   };
@@ -156,7 +166,7 @@ export async function redeemStorefrontPreviewGrant(
   origin: string,
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
-  const digest = await sha256(grant);
+  const digest = await sha256Hex(grant);
   const now = new Date();
   const row = await context.env.DB.prepare(
     `SELECT id, snapshot_id, build_id, origin, expires_at, redeemed_at, created_by
@@ -191,15 +201,16 @@ export async function redeemStorefrontPreviewGrant(
       "The private preview grant is invalid, expired, or already used.",
     );
   }
-  const session = opaqueCredential();
-  const sessionDigest = await sha256(session);
+  const session = opaqueAccessToken();
+  const sessionDigest = await sha256Hex(session);
   const build = await context.env.DB.prepare(
-    `SELECT expires_at
+    `SELECT snapshot_id, expires_at, catalog_release_id, experience_version,
+            theme_id, theme_version, platform_contract_version
        FROM storefront_preview_builds
       WHERE id = ? AND snapshot_id = ? AND status = 'deployed' AND expires_at > ?`,
   )
     .bind(row.build_id, row.snapshot_id, now.toISOString())
-    .first<{ expires_at: string }>();
+    .first<PreviewInputIdentityRow & { expires_at: string }>();
   if (!build) {
     throw new ApiError(
       403,
@@ -241,7 +252,7 @@ export async function redeemStorefrontPreviewGrant(
       now.toISOString(),
     )
     .run();
-  return { expiresAt, session };
+  return { expiresAt, inputIdentity: toPreviewInputIdentity(build), session };
 }
 
 export async function authorizeStorefrontPreviewSession(
@@ -250,10 +261,12 @@ export async function authorizeStorefrontPreviewSession(
   origin: string,
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
-  const digest = await sha256(session);
+  const digest = await sha256Hex(session);
   const row = await context.env.DB.prepare(
     `SELECT s.snapshot_id, s.origin, s.expires_at,
-            b.artifact_prefix, b.expires_at AS build_expires_at
+            b.artifact_prefix, b.expires_at AS build_expires_at,
+            b.catalog_release_id, b.experience_version, b.theme_id, b.theme_version,
+            b.platform_contract_version
        FROM storefront_preview_sessions s
        JOIN storefront_preview_builds b ON b.id = s.build_id
       WHERE s.session_digest = ? AND b.status = 'deployed'`,
@@ -280,6 +293,7 @@ export async function authorizeStorefrontPreviewSession(
       Date.parse(row.expires_at) < Date.parse(row.build_expires_at)
         ? row.expires_at
         : row.build_expires_at,
+    inputIdentity: toPreviewInputIdentity(row),
     origin: row.origin,
     snapshotId: row.snapshot_id,
   };

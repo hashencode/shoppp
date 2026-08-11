@@ -3,6 +3,7 @@ import {
   pageTypeSchema,
   presentationCollectionSchema,
   presentationProductSchema,
+  publicIdSchema,
   storefrontIdentifierSchema,
   type FixtureBinding,
   type PresentationCollection,
@@ -80,6 +81,7 @@ const collectionGridViewModelSchema = z
       .max(12),
     heading: headingSchema,
     kind: z.literal("collection-grid"),
+    resource: presentationCollectionSchema.optional(),
   })
   .strict();
 const productGridViewModelSchema = z
@@ -133,11 +135,12 @@ const productViewModelSchema = z
     kind: z.literal("product"),
     media: z.array(mediaSchema).min(1).max(12),
     priceLabel: z.string().trim().min(1).max(80),
+    resource: presentationProductSchema.optional(),
     variants: z
       .array(
         z
           .object({
-            id: storefrontIdentifierSchema,
+            id: z.union([storefrontIdentifierSchema, publicIdSchema]),
             label: z.string().trim().min(1).max(100),
             selected: z.boolean(),
           })

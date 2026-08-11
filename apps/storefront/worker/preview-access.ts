@@ -54,7 +54,9 @@ interface PreviewAuthorization {
 
 const digestPattern = /^[a-f0-9]{64}$/;
 const snapshotPattern = /^[a-z][a-z0-9-]{2,99}$/;
-const artifactPrefixPattern = /^snapshots\/[a-z][a-z0-9-]{2,99}\/[a-f0-9]{64}$/;
+const catalogReleasePattern = /^[A-Za-z0-9_-]{1,160}$/;
+const artifactPrefixPattern =
+  /^snapshots\/[a-z][a-z0-9-]{2,99}\/(?:[A-Za-z0-9_-]{1,160}\/)?[a-f0-9]{64}$/;
 
 function hexadecimal(bytes: ArrayBuffer): string {
   return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -116,8 +118,12 @@ export async function describePreviewArtifact(
   snapshotId: string,
   rawFiles: readonly PreviewArtifactFile[],
   expectedDigest?: string,
+  catalogReleaseId?: string,
 ): Promise<PreviewArtifactDescriptor> {
   if (!snapshotPattern.test(snapshotId)) throw new Error("Preview snapshot identifier is invalid.");
+  if (catalogReleaseId && !catalogReleasePattern.test(catalogReleaseId)) {
+    throw new Error("Preview Catalog Release identifier is invalid.");
+  }
   if (rawFiles.length === 0) throw new Error("Preview output must contain at least one file.");
   const files = rawFiles
     .map(normalizeArtifactFile)
@@ -145,7 +151,9 @@ export async function describePreviewArtifact(
       `Preview artifact digest mismatch: expected ${expectedDigest}, received ${digest}.`,
     );
   }
-  const prefix = `snapshots/${snapshotId}/${digest}`;
+  const prefix = catalogReleaseId
+    ? `snapshots/${snapshotId}/${catalogReleaseId}/${digest}`
+    : `snapshots/${snapshotId}/${digest}`;
   return { digest, files, manifestBody, prefix };
 }
 
@@ -154,8 +162,14 @@ export async function uploadPreviewArtifact(
   snapshotId: string,
   rawFiles: readonly PreviewArtifactFile[],
   expectedDigest?: string,
+  catalogReleaseId?: string,
 ): Promise<PreviewArtifactResult> {
-  const descriptor = await describePreviewArtifact(snapshotId, rawFiles, expectedDigest);
+  const descriptor = await describePreviewArtifact(
+    snapshotId,
+    rawFiles,
+    expectedDigest,
+    catalogReleaseId,
+  );
   const uploads = [
     ...descriptor.files,
     {
@@ -175,7 +189,12 @@ export async function uploadPreviewArtifact(
       continue;
     }
     await bucket.put(key, file.body, {
-      customMetadata: { artifactDigest: descriptor.digest, sha256: fileDigest, snapshotId },
+      customMetadata: {
+        artifactDigest: descriptor.digest,
+        ...(catalogReleaseId ? { catalogReleaseId } : {}),
+        sha256: fileDigest,
+        snapshotId,
+      },
       httpMetadata: { contentType: file.contentType },
     });
   }

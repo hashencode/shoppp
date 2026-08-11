@@ -7,13 +7,7 @@ import "./integration.css";
 import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import FashionStoreHome from "./components/FashionStoreHome.vue";
-import { fashionStoreHomeFixtures } from "./fixtures/home";
-import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
-import { fashionStoreCheckoutFixtures } from "./fixtures/pages/checkout";
-import { fashionStoreContentFixtures } from "./fixtures/pages/content";
-import { fashionStoreShopFixtures } from "./fixtures/pages/shop";
-import { fashionStoreProductFixtures } from "./fixtures/pages/product";
-import { fashionStoreEnabledPageContracts } from "./page-contracts";
+import { fashionStoreThemeRoutes } from "./page-contracts";
 import { themeAssets } from "./resources";
 
 const FashionStoreCheckoutPage = defineAsyncComponent(
@@ -45,12 +39,4 @@ export const themeRegistry = {
 } as const satisfies ThemeRegistry;
 
 export { themeAssets };
-export const themeFixtures = {
-  ...fashionStoreCartFixtures,
-  ...fashionStoreCheckoutFixtures,
-  ...fashionStoreContentFixtures,
-  ...fashionStoreHomeFixtures,
-  ...fashionStoreProductFixtures,
-  ...fashionStoreShopFixtures,
-};
-export const themeRoutes = fashionStoreEnabledPageContracts;
+export const themeRoutes = fashionStoreThemeRoutes;

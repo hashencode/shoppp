@@ -436,6 +436,7 @@ export const catalogResourceBindingSchema = z
     instanceId: storefrontIdentifierSchema,
     kind: z.literal("catalog"),
     reference: catalogResourceReferenceSchema,
+    settingId: storefrontIdentifierSchema,
   })
   .strict();
 

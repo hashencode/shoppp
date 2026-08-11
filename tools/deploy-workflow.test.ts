@@ -262,14 +262,19 @@ describe("source-equivalence documentation authority", () => {
 });
 
 describe("private storefront preview workflow", () => {
-  test("uses exact build and snapshot identities with authenticated idempotent callbacks", async () => {
+  test("uses the authoritative build manifest and preserves its exact Catalog identity", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
 
     expect(workflow).toContain("build_id:");
     expect(workflow).toContain("snapshot_id:");
+    expect(workflow).toContain("$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID");
+    expect(workflow).toContain(".snapshot.id == $snapshot");
     expect(workflow).toContain(
-      "$PREVIEW_API_URL/build/storefront-experiences/snapshots/$SNAPSHOT_ID",
+      ".inputIdentity == null or .catalogRelease.releaseId == .inputIdentity.catalogReleaseId",
     );
+    expect(workflow).toContain("CATALOG_RELEASE_ID=");
+    expect(workflow).toContain('PACKAGE_ARGS+=("--catalog-release-id=$CATALOG_RELEASE_ID")');
+    expect(workflow).toContain('if [[ -n "$CATALOG_RELEASE_ID" ]]');
     expect(workflow).toContain(
       "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status",
     );

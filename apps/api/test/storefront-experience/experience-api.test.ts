@@ -1,9 +1,14 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { storefrontExperienceDraftInputSchema, themePackageSchema } from "@shoppp/contracts";
+import {
+  canonicalCatalogReleaseSchema,
+  storefrontExperienceDraftInputSchema,
+  themePackageSchema,
+} from "@shoppp/contracts";
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
+import releaseFixture from "../../../storefront/fixtures/release.json";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
 import { createApp } from "../../src/http/app";
@@ -65,6 +70,63 @@ const draftInput = storefrontExperienceDraftInputSchema.parse({
   themeId: "fashion-store",
   themeVersion: "1.0.0",
 });
+
+const productIds = new Map(
+  releaseFixture.products.map((product, index) => [
+    product.slug,
+    `prod_01JPREVIEWPRODUCT${String(index + 1).padStart(8, "0")}`,
+  ]),
+);
+const collectionIds = new Map(
+  releaseFixture.collections.map((collection, index) => [
+    collection.slug,
+    `col_01JPREVIEWCOLLECT${String(index + 1).padStart(8, "0")}`,
+  ]),
+);
+const previewCatalogRelease = canonicalCatalogReleaseSchema.parse({
+  ...releaseFixture,
+  collections: releaseFixture.collections.map((collection) => ({
+    ...collection,
+    id: collectionIds.get(collection.slug),
+    productIds: collection.productSlugs.map((slug) => productIds.get(slug)),
+  })),
+  generatedAt: "2026-08-11T00:00:00.000Z",
+  products: releaseFixture.products.map((product) => ({
+    ...product,
+    collectionIds: product.collectionSlugs.map((slug) => collectionIds.get(slug)),
+    id: productIds.get(product.slug),
+  })),
+  redirects: releaseFixture.redirects.map((redirect) => ({ ...redirect, status: 301 })),
+  routes: [
+    "/",
+    ...releaseFixture.collections.map(({ slug }) => `/collections/${slug}`),
+    ...releaseFixture.policies.map(({ slug }) => `/policies/${slug}`),
+    ...releaseFixture.products.map(({ slug }) => `/products/${slug}`),
+  ],
+  schemaVersion: 2,
+});
+
+async function seedPreviewCatalogRelease(id = previewCatalogRelease.releaseId): Promise<void> {
+  const now = "2026-08-11T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+       (id, status, manifest_json, approved_at, created_at, updated_at)
+     VALUES (?, 'approved', ?, ?, ?, ?)`,
+  )
+    .bind(id, JSON.stringify({ ...previewCatalogRelease, releaseId: id }), now, now, now)
+    .run();
+}
+
+async function seedLegacyPreviewCatalogRelease(id: string): Promise<void> {
+  const now = "2026-08-11T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+       (id, status, manifest_json, approved_at, created_at, updated_at)
+     VALUES (?, 'approved', ?, ?, ?, ?)`,
+  )
+    .bind(id, JSON.stringify({ ...releaseFixture, releaseId: id }), now, now, now)
+    .run();
+}
 
 async function createDraft(
   app: ReturnType<typeof appFor>,
@@ -827,6 +889,261 @@ describe("storefront experience API", () => {
           WHERE action = 'themes.preview.build.start' AND result = 'succeeded'`,
       ).first(),
     ).toEqual({ count: 2 });
+  });
+
+  test("rejects a legacy Catalog Release before creating a live preview build", async () => {
+    const legacyReleaseId = "release-preview-legacy-v1";
+    await seedLegacyPreviewCatalogRelease(legacyReleaseId);
+    const app = appFor();
+    const created = await createDraft(app, "theme-legacy-preview-create-0001");
+    await validateDraft(app, created.body.data.id, 1, "theme-legacy-preview-validate-0001");
+
+    const preview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+        {
+          catalogReleaseId: legacyReleaseId,
+          expectedVersion: 1,
+          reason: "Reject an ID-less legacy Catalog Release",
+        },
+        "theme-legacy-preview-build-0001",
+      ),
+      env,
+    );
+
+    expect(preview.status).toBe(422);
+    expect(await preview.json()).toMatchObject({
+      error: { code: "storefront_preview_catalog_release_invalid" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_preview_builds WHERE catalog_release_id = ?",
+      )
+        .bind(legacyReleaseId)
+        .first(),
+    ).toEqual({ count: 0 });
+  });
+
+  test("binds a live preview build and manifest to the exact Catalog and Experience inputs", async () => {
+    await seedPreviewCatalogRelease();
+    const triggerCalls: Array<Record<string, string>> = [];
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async (input) => {
+        triggerCalls.push(input);
+        return { correlationId: "live-preview-correlation" };
+      },
+    });
+    const created = await createDraft(app, "theme-live-preview-create-0001");
+    await validateDraft(app, created.body.data.id, 1, "theme-live-preview-validate-0001");
+    const preview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+        {
+          catalogReleaseId: previewCatalogRelease.releaseId,
+          expectedVersion: 1,
+          reason: "Compose the exact live preview tuple",
+        },
+        "theme-live-preview-build-0001",
+      ),
+      env,
+    );
+    expect(preview.status).toBe(202);
+    const value = await preview.json<{
+      data: {
+        build: { id: string; inputIdentity: Record<string, unknown> };
+        snapshot: { id: string };
+      };
+    }>();
+    expect(value.data.build.inputIdentity).toMatchObject({
+      catalogReleaseId: previewCatalogRelease.releaseId,
+      experienceSnapshotId: value.data.snapshot.id,
+      experienceVersion: 1,
+      platformContractVersion: "1.0.0",
+      themeId: "fashion-store",
+      themeVersion: "1.0.0",
+    });
+    expect(triggerCalls).toEqual([
+      expect.objectContaining({
+        catalogReleaseId: previewCatalogRelease.releaseId,
+        manifestUrl: expect.stringContaining(`/build/storefront-experiences/builds/`),
+        snapshotId: value.data.snapshot.id,
+      }),
+    ]);
+
+    const manifest = await app.fetch(
+      request(`/build/storefront-experiences/builds/${value.data.build.id}`, {
+        headers: { Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}` },
+      }),
+      env,
+    );
+    expect(manifest.status).toBe(200);
+    expect(await manifest.json()).toMatchObject({
+      catalogRelease: { releaseId: previewCatalogRelease.releaseId, schemaVersion: 2 },
+      inputIdentity: value.data.build.inputIdentity,
+      snapshot: { id: value.data.snapshot.id, version: 1 },
+    });
+
+    await env.DB.prepare("UPDATE catalog_releases SET manifest_json = ? WHERE id = ?")
+      .bind('{"schemaVersion":2}', previewCatalogRelease.releaseId)
+      .run();
+    const corruptManifest = await app.fetch(
+      request(`/build/storefront-experiences/builds/${value.data.build.id}`, {
+        headers: { Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}` },
+      }),
+      env,
+    );
+    expect(corruptManifest.status).toBe(409);
+    expect(await corruptManifest.json()).toMatchObject({
+      error: {
+        code: "storefront_preview_catalog_release_unavailable",
+        message: "The Catalog Release selected for this preview is unavailable.",
+      },
+    });
+    await env.DB.prepare("UPDATE catalog_releases SET manifest_json = ? WHERE id = ?")
+      .bind(JSON.stringify(previewCatalogRelease), previewCatalogRelease.releaseId)
+      .run();
+
+    const digest = "d".repeat(64);
+    const substituted = await app.fetch(
+      request(`/build/storefront-experiences/builds/${value.data.build.id}/status`, {
+        body: JSON.stringify({
+          artifactDigest: digest,
+          artifactPrefix: `snapshots/${value.data.snapshot.id}/different-release/${digest}`,
+          expiresAt: "2099-08-11T00:00:00.000Z",
+          status: "deployed",
+        }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": "theme-live-preview-substitute-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(substituted.status).toBe(422);
+
+    const deployed = await app.fetch(
+      request(`/build/storefront-experiences/builds/${value.data.build.id}/status`, {
+        body: JSON.stringify({
+          artifactDigest: digest,
+          artifactPrefix: `snapshots/${value.data.snapshot.id}/${previewCatalogRelease.releaseId}/${digest}`,
+          expiresAt: "2099-08-11T00:00:00.000Z",
+          status: "deployed",
+        }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": "theme-live-preview-deploy-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(deployed.status).toBe(200);
+
+    const omittedCatalogGrant = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${value.data.snapshot.id}/grants`,
+        { origin: env.PREVIEW_ORIGIN, reason: "Omit the live Catalog identity" },
+        "theme-live-preview-grant-omit-0001",
+      ),
+      env,
+    );
+    expect(omittedCatalogGrant.status).toBe(409);
+
+    const substitutedGrant = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${value.data.snapshot.id}/grants`,
+        {
+          catalogReleaseId: "different-release",
+          origin: env.PREVIEW_ORIGIN,
+          reason: "Attempt to substitute the bound release",
+        },
+        "theme-live-preview-grant-substitute-0001",
+      ),
+      env,
+    );
+    expect(substitutedGrant.status).toBe(409);
+
+    const grantResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${value.data.snapshot.id}/grants`,
+        {
+          catalogReleaseId: previewCatalogRelease.releaseId,
+          origin: env.PREVIEW_ORIGIN,
+          reason: "Open the exact live preview",
+        },
+        "theme-live-preview-grant-0001",
+      ),
+      env,
+    );
+    const grantValue = await grantResponse.json<{
+      data: { grant: string; inputIdentity: Record<string, unknown> };
+    }>();
+    expect(grantValue.data.inputIdentity).toEqual(value.data.build.inputIdentity);
+    const grantAudit = await env.DB.prepare(
+      `SELECT metadata_json
+         FROM audit_events
+        WHERE action = 'themes.preview.grant.create'
+        ORDER BY created_at DESC
+        LIMIT 1`,
+    ).first<{ metadata_json: string }>();
+    expect(JSON.parse(grantAudit!.metadata_json)).toMatchObject({
+      catalogReleaseId: previewCatalogRelease.releaseId,
+      snapshotId: value.data.snapshot.id,
+    });
+    const redeem = await app.fetch(
+      request("/internal/preview/redeem", {
+        body: JSON.stringify({ grant: grantValue.data.grant, origin: env.PREVIEW_ORIGIN }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    const sessionValue = await redeem.json<{
+      data: { inputIdentity: Record<string, unknown>; session: string };
+    }>();
+    expect(sessionValue.data.inputIdentity).toEqual(value.data.build.inputIdentity);
+    expect(
+      (
+        await app.fetch(
+          request("/internal/preview/redeem", {
+            body: JSON.stringify({ grant: grantValue.data.grant, origin: env.PREVIEW_ORIGIN }),
+            headers: {
+              Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(403);
+    const authorization = await app.fetch(
+      request("/internal/preview/authorize", {
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          Cookie: `__Host-shoppp-preview=${sessionValue.data.session}`,
+          "X-Preview-Origin": env.PREVIEW_ORIGIN,
+          "X-Preview-Catalog-Release": "different-release",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(await authorization.json()).toMatchObject({
+      artifactPrefix: `snapshots/${value.data.snapshot.id}/${previewCatalogRelease.releaseId}/${digest}`,
+      inputIdentity: value.data.build.inputIdentity,
+    });
   });
 
   test("stores only grant and session digests, rejects replay and wrong origin, and cleans expired artifacts", async () => {

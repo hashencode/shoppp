@@ -1,21 +1,16 @@
 <script setup lang="ts">
-import type { FixtureBinding, PageTemplate } from "@shoppp/contracts";
+import type { PageTemplate } from "@shoppp/contracts";
 
 import type { ThemeAssetResolver } from "./assets";
 import { previewActionAdapterKey, type PreviewActionAdapter } from "./actions";
 import { previewCheckoutAdapterKey, type PreviewCheckoutAdapter } from "./checkout";
 import { coreThemeRegistry } from "./core-registry";
+import type { PresentationProvider } from "./providers";
 import { composeThemeRegistries, renderTemplatePlan, type ThemeRegistry } from "./registry";
-import {
-  resolveFixtureBinding,
-  resolveFixtureViewModel,
-  type ExperienceFixtureRegistry,
-} from "./view-models";
 
 const properties = defineProps<{
   actionAdapter: PreviewActionAdapter;
-  bindings: readonly FixtureBinding[];
-  fixtures: ExperienceFixtureRegistry;
+  provider: PresentationProvider;
   registry: ThemeRegistry;
   resolveAsset: ThemeAssetResolver;
   template: PageTemplate;
@@ -33,15 +28,9 @@ const plan = computed(() =>
     ...section,
     blocks: section.blocks.map((block) => ({
       ...block,
-      viewModel: resolveFixtureViewModel(
-        resolveFixtureBinding(block.instance.id, properties.bindings),
-        properties.fixtures,
-      ),
+      viewModel: properties.provider.resolve({ instanceId: block.instance.id }),
     })),
-    viewModel: resolveFixtureViewModel(
-      resolveFixtureBinding(section.instance.id, properties.bindings),
-      properties.fixtures,
-    ),
+    viewModel: properties.provider.resolve({ instanceId: section.instance.id }),
   })),
 );
 </script>

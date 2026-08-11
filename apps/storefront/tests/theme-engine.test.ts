@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type {
+  CanonicalCatalogRelease,
   ExperienceSnapshot,
   PageTemplate,
   StorefrontThemeDescriptor,
@@ -12,6 +13,7 @@ import type { Component } from "vue";
 import {
   experienceBuildInputSchema,
   prepareExperience,
+  renderActiveExperienceModule,
   renderActiveThemeModule,
 } from "../scripts/prepare-experience";
 import { packagePreviewArtifact } from "../scripts/package-preview-artifact";
@@ -20,6 +22,13 @@ import {
   renderTemplatePlan,
   type ThemeRegistry,
 } from "../app/theme-engine/registry";
+import { composeExperienceRoute } from "../app/theme-engine/composer";
+import {
+  createFixturePresentationProvider,
+  createLivePresentationProvider,
+} from "../app/theme-engine/providers";
+import { resolveFixtureBinding } from "../app/theme-engine/view-models";
+import { resolveThemeRoute } from "../app/theme-engine/routes";
 import {
   createPreviewAccessHandler,
   normalizePreviewAssetPath,
@@ -109,6 +118,104 @@ const previewInput = {
   themeId: "fashion",
 } as const;
 
+const canonicalRelease = {
+  collections: [
+    {
+      description: "Selected release collection",
+      id: "col_01JTHEMEENGINE000000000001",
+      name: "Selected collection",
+      productIds: ["prod_01JTHEMEENGINE00000000001"],
+      productSlugs: ["selected-product"],
+      seoDescription: "Selected collection description",
+      seoTitle: "Selected collection",
+      slug: "selected-collection",
+      status: "published",
+    },
+  ],
+  generatedAt: "2026-08-11T00:00:00.000Z",
+  policies: [
+    {
+      description: "Privacy policy",
+      effectiveDate: "2026-08-11",
+      sections: [{ body: "Policy body", heading: "Privacy" }],
+      slug: "privacy",
+      title: "Privacy",
+    },
+  ],
+  products: [
+    {
+      collectionIds: ["col_01JTHEMEENGINE000000000001"],
+      collectionSlugs: ["selected-collection"],
+      description: "Selected release product",
+      id: "prod_01JTHEMEENGINE00000000001",
+      media: [
+        {
+          alt: "Selected product",
+          height: 800,
+          src: "/media/selected-product.jpg",
+          width: 600,
+        },
+      ],
+      name: "Selected product",
+      seoDescription: "Selected product description",
+      seoTitle: "Selected product",
+      slug: "selected-product",
+      status: "published",
+      variants: [
+        {
+          id: "var_01JTHEMEENGINE000000000001",
+          optionValues: { size: "M" },
+          prices: [{ amount: 6500, currency: "USD" }],
+          sku: "SELECTED-M",
+          status: "active",
+          title: "Medium",
+          weightGrams: 400,
+        },
+      ],
+    },
+  ],
+  redirects: [],
+  releaseId: "release-theme-engine-a",
+  routes: ["/", "/collections/selected-collection", "/products/selected-product"],
+  schemaVersion: 2,
+  site: {
+    defaultCurrency: "USD",
+    freshnessHours: 24,
+    name: "Theme Engine",
+    origin: "https://shop.example.test",
+  },
+} satisfies CanonicalCatalogRelease;
+
+const liveSnapshot = {
+  ...snapshot,
+  bindings: [
+    {
+      id: "featured-product",
+      instanceId: "hero",
+      kind: "catalog",
+      reference: { id: canonicalRelease.products[0].id, kind: "product" },
+      settingId: "featured-product-setting",
+    },
+  ],
+  resolvedTemplates: [
+    {
+      id: "home",
+      pageType: "home",
+      requiredCapabilities: [],
+      sections: [
+        {
+          blocks: [],
+          capabilities: [],
+          id: "hero",
+          settings: {},
+          type: "fashion.product",
+          visible: true,
+        },
+      ],
+    },
+  ],
+} satisfies ExperienceSnapshot;
+
 describe("selected storefront theme generation", () => {
   test("generates an unchanged fallback without importing a theme", () => {
     const source = renderActiveThemeModule({
@@ -138,6 +245,45 @@ describe("selected storefront theme generation", () => {
     expect(first).toContain('from "../themes/fashion/registry"');
     expect(first).not.toContain("../themes/decor/registry");
     expect(first).toContain('"snapshot-fashion-1"');
+  });
+
+  test("drives live provider selection from generated private input without importing fixtures", async () => {
+    const liveInput = {
+      catalogRelease: canonicalRelease,
+      environment: "preview",
+      expectedOrigin: "https://preview.example.test",
+      inputIdentity: {
+        catalogReleaseId: canonicalRelease.releaseId,
+        experienceSnapshotId: liveSnapshot.id,
+        experienceVersion: liveSnapshot.version,
+        platformContractVersion: liveSnapshot.platformContractVersion,
+        themeId: liveSnapshot.themeId,
+        themeVersion: liveSnapshot.themeVersion,
+      },
+      presentationMode: "live",
+      snapshot: liveSnapshot,
+      themeId: "fashion",
+    } as const;
+    const liveThemeSource = renderActiveThemeModule({
+      catalog: [descriptor],
+      input: liveInput,
+      moduleAllowlist: { fashion: "../themes/fashion/registry" },
+    });
+    const providerSource = renderActiveExperienceModule(liveInput);
+    const productionProviderSource = renderActiveExperienceModule({ environment: "production" });
+    const storefrontExperienceSource = await readFile(
+      resolve(import.meta.dir, "../app/StorefrontExperience.vue"),
+      "utf8",
+    );
+
+    expect(liveThemeSource).not.toContain("selectedThemeFixtures");
+    expect(providerSource).toContain('mode: "live"');
+    expect(providerSource).toContain(canonicalRelease.releaseId);
+    expect(providerSource).toContain(liveSnapshot.id);
+    expect(productionProviderSource).not.toContain("/themes/");
+    expect(productionProviderSource).not.toContain(canonicalRelease.releaseId);
+    expect(storefrontExperienceSource).toContain("activeExperienceProviderInput.mode");
+    expect(storefrontExperienceSource).toContain("preview-context");
   });
 
   test("rejects unknown, incompatible, unapproved, or caller-supplied module paths", () => {
@@ -201,6 +347,188 @@ describe("selected storefront theme generation", () => {
     } finally {
       await rm(directory, { force: true, recursive: true });
     }
+  });
+});
+
+describe("theme-neutral storefront composer", () => {
+  test("resolves catalog route families only from the selected release manifest", () => {
+    const routes = [
+      {
+        family: "catalog-product",
+        id: "product",
+        pageType: "product",
+        path: "/products/:slug",
+        variant: "product",
+      },
+      {
+        family: "catalog-collection",
+        id: "collection",
+        pageType: "collection",
+        path: "/collections/:slug",
+        variant: "collection",
+      },
+    ] as const;
+
+    expect(resolveThemeRoute("/products/selected-product", routes, canonicalRelease)).toMatchObject(
+      {
+        id: "product",
+        parameters: { productId: canonicalRelease.products[0].id, slug: "selected-product" },
+      },
+    );
+    expect(resolveThemeRoute("/products/missing", routes, canonicalRelease)).toBeUndefined();
+    expect(
+      resolveThemeRoute("/collections/selected-collection", routes, canonicalRelease),
+    ).toMatchObject({
+      id: "collection",
+      parameters: {
+        collectionId: canonicalRelease.collections[0].id,
+        slug: "selected-collection",
+      },
+    });
+  });
+
+  test("resolves one Experience against the explicitly selected Catalog Release", () => {
+    const secondRelease = structuredClone(canonicalRelease);
+    secondRelease.releaseId = "release-theme-engine-b";
+    secondRelease.products[0]!.name = "Product from release B";
+
+    const first = composeExperienceRoute({
+      experience: liveSnapshot,
+      locale: "en-US",
+      path: "/",
+      release: canonicalRelease,
+    });
+    const second = composeExperienceRoute({
+      experience: liveSnapshot,
+      locale: "en-US",
+      path: "/",
+      release: secondRelease,
+    });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(first.viewModels.hero).toMatchObject({
+      heading: "Selected product",
+      kind: "product",
+      resource: { id: canonicalRelease.products[0].id, kind: "product" },
+    });
+    expect(second.viewModels.hero).toMatchObject({
+      heading: "Product from release B",
+      kind: "product",
+      resource: { id: canonicalRelease.products[0].id, kind: "product" },
+    });
+  });
+
+  test("returns actionable diagnostics for missing, wrong-type, unpublished, and empty bindings", () => {
+    const cases = [
+      {
+        code: "catalog-reference-missing",
+        reference: { id: "prod_01JTHEMEENGINEMISSING00001", kind: "product" } as const,
+        release: canonicalRelease,
+      },
+      {
+        code: "catalog-reference-wrong-kind",
+        reference: { id: canonicalRelease.collections[0].id, kind: "product" } as const,
+        release: canonicalRelease,
+      },
+      {
+        code: "catalog-reference-unpublished",
+        reference: { id: canonicalRelease.products[0].id, kind: "product" } as const,
+        release: {
+          ...canonicalRelease,
+          products: [{ ...canonicalRelease.products[0], status: "draft" }],
+        } satisfies CanonicalCatalogRelease,
+      },
+    ];
+
+    for (const entry of cases) {
+      const result = composeExperienceRoute({
+        experience: {
+          ...liveSnapshot,
+          bindings: [
+            {
+              id: "featured-product",
+              instanceId: "hero",
+              kind: "catalog",
+              reference: entry.reference,
+              settingId: "featured-product-setting",
+            },
+          ],
+        },
+        locale: "en-US",
+        path: "/",
+        release: entry.release,
+      });
+      expect(result.ok).toBe(false);
+      expect(result.diagnostics[0]).toMatchObject({
+        code: entry.code,
+        pageId: "home",
+        referenceId: entry.reference.id,
+        referenceKind: "product",
+        sectionId: "hero",
+        settingId: "featured-product-setting",
+      });
+    }
+
+    const empty = composeExperienceRoute({
+      experience: { ...liveSnapshot, bindings: [] },
+      locale: "en-US",
+      path: "/",
+      release: canonicalRelease,
+    });
+    expect(empty.diagnostics[0]).toMatchObject({
+      code: "catalog-binding-missing",
+      pageId: "home",
+      sectionId: "hero",
+    });
+  });
+
+  test("keeps fixture and live providers isolated with no fallback or Commerce request", () => {
+    const fixtureProvider = createFixturePresentationProvider({
+      bindings: [
+        {
+          fixtureId: "fixture-home",
+          id: "fixture-home-binding",
+          instanceId: "hero",
+          kind: "fixture",
+          resource: "hero",
+          state: "populated",
+        },
+      ],
+      fixtures: {
+        "fixture-home": {
+          id: "fixture-home",
+          label: "Fixture home",
+          pageTypes: ["home"],
+          viewModels: {
+            hero: {
+              body: "Fixture body",
+              eyebrow: "Fixture",
+              heading: "Fixture heading",
+              kind: "hero",
+              state: "populated",
+            },
+          },
+        },
+      },
+    });
+    const first = fixtureProvider.resolve({ instanceId: "hero" });
+    const second = fixtureProvider.resolve({ instanceId: "hero" });
+    expect(second).toEqual(first);
+
+    const liveProvider = createLivePresentationProvider({
+      experience: { ...liveSnapshot, bindings: [] },
+      locale: "en-US",
+      path: "/",
+      release: canonicalRelease,
+    });
+    expect(() => liveProvider.resolve({ instanceId: "hero" })).toThrow("catalog-binding-missing");
+    expect(() =>
+      resolveFixtureBinding(
+        "hero",
+        liveSnapshot.bindings.filter((binding) => binding.kind === "fixture"),
+      ),
+    ).toThrow("missing a fixture binding");
   });
 });
 
@@ -320,6 +648,25 @@ describe("private preview artifacts", () => {
     await expect(
       uploadPreviewArtifact(bucket, "snapshot-fashion-1", previewFiles, "0".repeat(64)),
     ).rejects.toThrow("digest");
+  });
+
+  test("binds live artifact storage to the selected Catalog Release", async () => {
+    const bucket = new MemoryBucket();
+    const artifact = await uploadPreviewArtifact(
+      bucket,
+      "snapshot-fashion-1",
+      previewFiles,
+      undefined,
+      "release-theme-engine-a",
+    );
+
+    expect(artifact.prefix).toBe(
+      `snapshots/snapshot-fashion-1/release-theme-engine-a/${artifact.digest}`,
+    );
+    expect(bucket.objects.get(`${artifact.prefix}/index.html`)?.customMetadata).toMatchObject({
+      catalogReleaseId: "release-theme-engine-a",
+      snapshotId: "snapshot-fashion-1",
+    });
   });
 
   test("normalizes assets and rejects traversal including encoded traversal", () => {

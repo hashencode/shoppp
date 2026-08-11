@@ -167,6 +167,28 @@ export const fashionStoreEnabledPageContracts = fashionStorePageContracts.filter
 
 export const fashionStorePreviewRoutes = fashionStoreEnabledPageContracts.map(({ path }) => path);
 
+export const fashionStoreLiveRouteContracts = [
+  {
+    family: "catalog-product",
+    id: "catalog-product",
+    pageType: "product",
+    path: "/products/:slug",
+    variant: "product",
+  },
+  {
+    family: "catalog-collection",
+    id: "catalog-collection",
+    pageType: "collection",
+    path: "/collections/:slug",
+    variant: "collection",
+  },
+] as const satisfies readonly ThemeRouteContract[];
+
+export const fashionStoreThemeRoutes = [
+  ...fashionStoreEnabledPageContracts,
+  ...fashionStoreLiveRouteContracts,
+] as const satisfies readonly ThemeRouteContract[];
+
 export const fashionStoreRoutePaths = Object.freeze(
   Object.fromEntries(fashionStorePageContracts.map(({ id, path }) => [id, path])) as Record<
     FashionStorePageId,

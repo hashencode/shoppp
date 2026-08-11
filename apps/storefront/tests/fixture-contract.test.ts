@@ -180,6 +180,36 @@ describe("storefront experience fixtures", () => {
     expect(source).not.toContain("@shoppp/db");
   });
 
+  test("keeps renderer provider-neutral and the live provider free of fixture fallback", async () => {
+    const [renderer, liveProvider] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/theme-engine/renderer.vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/theme-engine/providers/live.ts"), "utf8"),
+    ]);
+
+    expect(renderer).toContain("provider.resolve");
+    expect(renderer).not.toContain("resolveFixtureBinding");
+    expect(renderer).not.toContain("resolveFixtureViewModel");
+    expect(liveProvider).not.toMatch(/fixture-preview|resolveFixture|fixtures\/experience/);
+  });
+
+  test("wires live route composition reactively and keeps the live registry fixture-free", async () => {
+    const [experience, liveRegistry, fixtureRegistry] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/StorefrontExperience.vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/fixture-registry.ts"), "utf8"),
+    ]);
+
+    expect(experience).toContain("const presentationProvider = computed");
+    expect(experience).toMatch(
+      /resolveThemeRoute\([\s\S]*activeThemeRoutes,[\s\S]*activeExperienceProviderInput\.release/,
+    );
+    expect(experience).toContain("path: currentRoute.value.path");
+    expect(liveRegistry).not.toMatch(/\.\/fixtures\//);
+    expect(liveRegistry).not.toContain("themeFixtures");
+    expect(fixtureRegistry).toMatch(/\.\/fixtures\//);
+    expect(fixtureRegistry).toContain("themeFixtures");
+  });
+
   test("keeps the live theme-engine boundary independent from fixtures and Commerce DTOs", async () => {
     const roots = [
       resolve(import.meta.dir, "../app/theme-engine/view-models.ts"),
