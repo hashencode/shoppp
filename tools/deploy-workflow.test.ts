@@ -309,12 +309,35 @@ describe("private storefront preview workflow", () => {
     const deployed = workflow.indexOf("Report the exact preview artifact to the authority");
     const u13 = workflow.indexOf("Run deployed Fashion U13 acceptance");
     const accepted = workflow.indexOf("Report Fashion preview accepted");
+    const secretReference = "FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}";
+    const u13StepEnd = workflow.indexOf("\n      - name:", u13);
+    const u13Step = workflow.slice(u13, u13StepEnd === -1 ? undefined : u13StepEnd);
+
+    const namedStep = (name: string) => {
+      const start = workflow.indexOf(`      - name: ${name}`);
+      expect(start).toBeGreaterThan(0);
+      const end = workflow.indexOf("\n      - name:", start);
+      return workflow.slice(start, end === -1 ? undefined : end);
+    };
+    const installStart = workflow.indexOf("      - run: bun install --frozen-lockfile");
+    expect(installStart).toBeGreaterThan(0);
+    const install = workflow.slice(
+      installStart,
+      workflow.indexOf("\n      - name:", installStart),
+    );
 
     expect(workflow).toContain("group: fashion-staging-preview");
     expect(workflow).toContain("environment: fashion-staging");
-    expect(workflow).toContain(
-      "FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}",
-    );
+    expect(workflow.split(secretReference)).toHaveLength(2);
+    expect(u13Step).toContain(secretReference);
+    expect(install).not.toContain(secretReference);
+    for (const step of [
+      "Build and verify isolated static preview",
+      "Upload immutable files to the private preview bucket",
+      "Deploy the isolated preview access Worker",
+    ]) {
+      expect(namedStep(step)).not.toContain(secretReference);
+    }
     expect(workflow).toContain("FASHION_U13_PRODUCT_ID: ${{ vars.FASHION_U13_PRODUCT_ID }}");
     expect(workflow).toContain("FASHION_U13_VARIANT_ID: ${{ vars.FASHION_U13_VARIANT_ID }}");
     expect(deployed).toBeGreaterThan(0);

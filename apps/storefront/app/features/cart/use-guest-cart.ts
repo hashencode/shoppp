@@ -47,6 +47,7 @@ function isTerminalCartError(error: unknown): boolean {
     response.status === 401 ||
     response.statusCode === 401 ||
     response.data?.error?.code === "cart_expired" ||
+    response.data?.error?.code === "cart_release_conflict" ||
     response.data?.error?.code === "cart_token_invalid"
   );
 }
@@ -56,28 +57,41 @@ export function useGuestCart() {
   const busy = useState("guest-cart-busy", () => false);
   const error = useState<string | null>("guest-cart-error", () => null);
   const notice = useState<string | null>("guest-cart-notice", () => null);
+  const shippingRequestVersion = useState("guest-cart-shipping-request-version", () => 0);
   const api = useCommerceApi();
 
-  const token = () => (import.meta.client ? localStorage.getItem(TOKEN_KEY) : null);
-  const withCart = async (operation: (cartToken: string) => Promise<{ data: Cart }>) => {
-    busy.value = true;
-    error.value = null;
+  const token = () =>
+    typeof localStorage === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
+  const withCart = async (
+    operation: (cartToken: string) => Promise<{ data: Cart }>,
+    canPublish: () => boolean = () => true,
+  ) => {
+    if (canPublish()) {
+      busy.value = true;
+      error.value = null;
+    }
     try {
       const cartToken = token();
       if (!cartToken) throw new Error("Cart token unavailable");
       const response = await operation(cartToken);
-      cart.value = response.data;
+      if (canPublish()) cart.value = response.data;
       return response.data;
     } catch (cause) {
-      error.value = guestCartErrorMessage(cause);
+      if (canPublish()) {
+        if (isTerminalCartError(cause)) {
+          localStorage.removeItem(TOKEN_KEY);
+          cart.value = null;
+        }
+        error.value = guestCartErrorMessage(cause);
+      }
       throw cause;
     } finally {
-      busy.value = false;
+      if (canPublish()) busy.value = false;
     }
   };
   const runEnsure = async (currency: string) => {
     const existingToken = token();
-    let recoveredExpiredCart = false;
+    let recoveredTerminalCart = false;
     if (existingToken) {
       try {
         const currentCart = await withCart((value) => api.getCart(value));
@@ -89,7 +103,7 @@ export function useGuestCart() {
           throw cause;
         }
         localStorage.removeItem(TOKEN_KEY);
-        recoveredExpiredCart = true;
+        recoveredTerminalCart = true;
       }
     }
     busy.value = true;
@@ -98,8 +112,8 @@ export function useGuestCart() {
       const response = await api.createCart({ currency });
       localStorage.setItem(TOKEN_KEY, response.data.token);
       cart.value = response.data.cart;
-      notice.value = recoveredExpiredCart
-        ? "Your previous cart expired. A new cart has been started."
+      notice.value = recoveredTerminalCart
+        ? "Your previous cart is no longer available. A new cart has been started."
         : null;
       return response.data.cart;
     } catch (cause) {
@@ -128,8 +142,14 @@ export function useGuestCart() {
   const remove = (variantId: string) => withCart((value) => api.removeCartLine(value, variantId));
   const acknowledge = (codes: string[]) =>
     withCart((value) => api.acknowledgeCartAdjustments(value, codes));
-  const shipping = (input: ShippingQuoteRequest) =>
-    withCart((value) => api.quoteShipping(value, input));
+  const shipping = (input: ShippingQuoteRequest) => {
+    const requestVersion = shippingRequestVersion.value + 1;
+    shippingRequestVersion.value = requestVersion;
+    return withCart(
+      (value) => api.quoteShipping(value, input),
+      () => shippingRequestVersion.value === requestVersion,
+    );
+  };
   const beginCheckout = async (input: CheckoutRequest, turnstileToken?: string) => {
     busy.value = true;
     error.value = null;

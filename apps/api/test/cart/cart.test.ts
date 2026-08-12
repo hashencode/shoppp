@@ -330,6 +330,60 @@ describe("guest cart authority", () => {
     expect(conflict.status).toBe(409);
     expect(await conflict.json()).toMatchObject({ error: { code: "cart_release_conflict" } });
 
+    const switchedSessionRequests = [
+      cartRequest("/cart", data.token, {
+        headers: { "X-Preview-Catalog-Release": "release-cart-b" },
+      }),
+      cartRequest(`/cart/lines/${ids.variant}`, data.token, {
+        body: JSON.stringify({ quantity: 2 }),
+        headers: {
+          "Idempotency-Key": "cart-release-switch-update-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "PATCH",
+      }),
+      cartRequest(`/cart/lines/${ids.variant}`, data.token, {
+        headers: {
+          "Idempotency-Key": "cart-release-switch-delete-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "DELETE",
+      }),
+      cartRequest("/cart/shipping", data.token, {
+        body: JSON.stringify({
+          shippingAddress: {
+            city: "Portland",
+            countryCode: "US",
+            line1: "100 Market Street",
+            name: "Example Shopper",
+            postalCode: "97205",
+            region: "OR",
+          },
+        }),
+        headers: {
+          "Idempotency-Key": "cart-release-switch-shipping-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "PUT",
+      }),
+    ];
+    for (const request of switchedSessionRequests) {
+      const response = await app.fetch(request, env);
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        error: { code: "cart_release_conflict" },
+      });
+    }
+    const retained = await app.fetch(
+      cartRequest("/cart", data.token, {
+        headers: { "X-Preview-Catalog-Release": "release-cart-a" },
+      }),
+      env,
+    );
+    expect(await retained.json()).toMatchObject({
+      data: { lines: [{ quantity: 1 }], shippingAddress: null },
+    });
+
     const foreign = await app.fetch(
       cartRequest("/cart", undefined, {
         body: JSON.stringify({ currency: "USD" }),

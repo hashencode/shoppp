@@ -38,7 +38,6 @@ jobs:
       FASHION_U13_PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
       FASHION_U13_PRODUCT_ID: ${{ vars.FASHION_U13_PRODUCT_ID }}
       FASHION_U13_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-      FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
       FASHION_U13_VARIANT_ID: ${{ vars.FASHION_U13_VARIANT_ID }}
       BUILD_ID: ${{ inputs.build_id }}
       SNAPSHOT_ID: ${{ inputs.snapshot_id }}
@@ -149,6 +148,7 @@ jobs:
           FASHION_U13_EXPERIENCE_VERSION: ${{ steps.build-input.outputs.experience_version }}
           FASHION_U13_PLATFORM_CONTRACT_VERSION: ${{ steps.build-input.outputs.platform_contract_version }}
           FASHION_U13_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+          FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
           FASHION_U13_THEME_ID: ${{ steps.build-input.outputs.theme_id }}
           FASHION_U13_THEME_VERSION: ${{ steps.build-input.outputs.theme_version }}
         run: bun tools/run-fashion-staging-u13.ts > artifacts/preview/u13-report.json

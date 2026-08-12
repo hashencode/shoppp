@@ -138,6 +138,15 @@ async function assertUsableCart(context: CartContext, cart: CartRow | null): Pro
     }
     throw new ApiError(409, "cart_expired", "This cart has expired. Start a new cart to continue.");
   }
+  const authorizedReleaseId = context.req.header("x-preview-catalog-release");
+  const cartReleaseId = parsePricingContext(cart.pricing_context_json).releaseId;
+  if (authorizedReleaseId && cartReleaseId && authorizedReleaseId !== cartReleaseId) {
+    throw new ApiError(
+      409,
+      "cart_release_conflict",
+      "This cart is already bound to another Catalog Release.",
+    );
+  }
   return cart;
 }
 
