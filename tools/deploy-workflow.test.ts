@@ -280,11 +280,11 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain("$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID");
     expect(workflow).toContain(".snapshot.id == $snapshot");
     expect(workflow).toContain(
-      ".inputIdentity == null or .catalogRelease.releaseId == .inputIdentity.catalogReleaseId",
+      '(.inputIdentity | type == "object") and .catalogRelease.releaseId == .inputIdentity.catalogReleaseId',
     );
-    expect(workflow).toContain("CATALOG_RELEASE_ID=");
-    expect(workflow).toContain('PACKAGE_ARGS+=("--catalog-release-id=$CATALOG_RELEASE_ID")');
-    expect(workflow).toContain('if [[ -n "$CATALOG_RELEASE_ID" ]]');
+    expect(workflow).toContain("CATALOG_RELEASE_ID=\"$(jq -er '.catalogRelease.releaseId'");
+    expect(workflow).toContain('"--catalog-release-id=$CATALOG_RELEASE_ID"');
+    expect(workflow).not.toContain('if [[ -n "$CATALOG_RELEASE_ID" ]]');
     expect(workflow).toContain(
       "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status",
     );
@@ -302,6 +302,25 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain('url.protocol !== "https:" || url.origin !== value');
     expect(workflow).toContain('--var "PREVIEW_HANDOFF_ORIGIN:$PREVIEW_HANDOFF_ORIGIN"');
     expect(workflow).not.toMatch(/grant_[A-Za-z0-9_-]{16,}/);
+  });
+
+  test("serializes Fashion acceptance and gates accepted reporting on deployed U13", async () => {
+    const workflow = await readFile(previewWorkflowPath, "utf8");
+    const deployed = workflow.indexOf("Report the exact preview artifact to the authority");
+    const u13 = workflow.indexOf("Run deployed Fashion U13 acceptance");
+    const accepted = workflow.indexOf("Report Fashion preview accepted");
+
+    expect(workflow).toContain("group: fashion-staging-preview");
+    expect(workflow).toContain("environment: fashion-staging");
+    expect(workflow).toContain(
+      "FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}",
+    );
+    expect(workflow).toContain("FASHION_U13_PRODUCT_ID: ${{ vars.FASHION_U13_PRODUCT_ID }}");
+    expect(workflow).toContain("FASHION_U13_VARIANT_ID: ${{ vars.FASHION_U13_VARIANT_ID }}");
+    expect(deployed).toBeGreaterThan(0);
+    expect(u13).toBeGreaterThan(deployed);
+    expect(accepted).toBeGreaterThan(u13);
+    expect(workflow).toContain("bun tools/run-fashion-staging-u13.ts");
   });
 });
 
