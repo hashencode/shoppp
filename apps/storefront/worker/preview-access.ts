@@ -2,6 +2,10 @@ interface PreviewAuthorizationService {
   fetch(request: Request): Promise<Response>;
 }
 
+interface CommerceService {
+  fetch(request: Request): Promise<Response>;
+}
+
 export interface PreviewArtifactObject {
   body: BodyInit;
   customMetadata?: Record<string, string>;
@@ -22,6 +26,7 @@ export interface PreviewArtifactBucket {
 }
 
 export interface PreviewAccessEnvironment {
+  COMMERCE_API?: CommerceService;
   PREVIEW_ARTIFACTS: PreviewArtifactBucket;
   PREVIEW_AUTH: PreviewAuthorizationService;
   PREVIEW_AUTH_TOKEN: string;
@@ -49,6 +54,14 @@ interface PreviewAuthorization {
   artifactPrefix: string;
   authorized: true;
   expiresAt: string;
+  inputIdentity?: {
+    catalogReleaseId: string;
+    experienceSnapshotId: string;
+    experienceVersion: number;
+    platformContractVersion: string;
+    themeId: string;
+    themeVersion: string;
+  };
   origin: string;
 }
 
@@ -210,7 +223,7 @@ function securityHeaders(origin: string): Headers {
       `style-src ${origin} 'unsafe-inline'`,
       `img-src ${origin}`,
       `font-src ${origin}`,
-      "connect-src 'none'",
+      "connect-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'none'",
       "form-action 'none'",
@@ -275,6 +288,126 @@ async function authorize(
     return null;
   }
   return value as PreviewAuthorization;
+}
+
+const commerceRoutes = [
+  { methods: new Set(["GET"]), pattern: /^\/platform\/config$/ },
+  {
+    methods: new Set(["GET"]),
+    pattern: /^\/catalog\/products\/by-id\/[A-Za-z0-9_-]{1,160}\/live$/,
+  },
+  { methods: new Set(["GET", "POST"]), pattern: /^\/cart$/ },
+  { methods: new Set(["POST"]), pattern: /^\/cart\/lines$/ },
+  {
+    methods: new Set(["DELETE", "PATCH"]),
+    pattern: /^\/cart\/lines\/[A-Za-z0-9_-]{1,160}$/,
+  },
+  { methods: new Set(["PUT"]), pattern: /^\/cart\/shipping$/ },
+] as const;
+
+function commercePath(pathname: string): string {
+  const decoded = decodedPath(pathname);
+  if (decoded !== pathname || !decoded.startsWith("/api/") || decoded.includes("\\")) {
+    throw new Error("Commerce path is invalid.");
+  }
+  const segments = decoded.split("/");
+  if (segments.some((segment) => segment === "." || segment === "..")) {
+    throw new Error("Commerce path is invalid.");
+  }
+  return decoded.slice("/api".length);
+}
+
+function commerceRoute(pathname: string, method: string): boolean {
+  const matchingPath = commerceRoutes.find(({ pattern }) => pattern.test(pathname));
+  return Boolean(matchingPath?.methods.has(method as never));
+}
+
+function commerceRequestHeaders(
+  request: Request,
+  origin: string,
+  catalogReleaseId: string,
+): Headers {
+  const headers = new Headers({
+    Accept: "application/json",
+    Origin: origin,
+    "X-Preview-Catalog-Release": catalogReleaseId,
+  });
+  const authorization = request.headers.get("Authorization");
+  if (authorization && /^CartToken [A-Za-z0-9_-]{32,160}$/.test(authorization)) {
+    headers.set("Authorization", authorization);
+  }
+  const contentType = request.headers.get("Content-Type")?.split(";", 1)[0]?.trim();
+  if (contentType === "application/json") headers.set("Content-Type", "application/json");
+  for (const name of ["Idempotency-Key", "X-Request-Id"] as const) {
+    const value = request.headers.get(name);
+    if (value && value.length <= 200 && !/[\r\n]/.test(value)) headers.set(name, value);
+  }
+  return headers;
+}
+
+function commerceResponse(upstream: Response): Response {
+  const headers = new Headers({ "Cache-Control": "private, no-store" });
+  for (const name of ["Content-Type", "Retry-After", "X-Request-Id"] as const) {
+    const value = upstream.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  return new Response(upstream.body, { headers, status: upstream.status });
+}
+
+async function forwardCommerce(
+  request: Request,
+  environment: PreviewAccessEnvironment,
+  authorization: PreviewAuthorization,
+  origin: string,
+): Promise<Response> {
+  const catalogReleaseId = authorization.inputIdentity?.catalogReleaseId;
+  if (!catalogReleaseId || !catalogReleasePattern.test(catalogReleaseId)) {
+    return responseWithSecurity("Preview Catalog identity is unavailable.", origin, 403);
+  }
+  const requestUrl = new URL(request.url);
+  let pathname: string;
+  try {
+    pathname = commercePath(requestUrl.pathname);
+  } catch {
+    return responseWithSecurity("Commerce path is invalid.", origin, 400);
+  }
+  if (!commerceRoute(pathname, request.method)) {
+    return responseWithSecurity("Method not allowed.", origin, 405);
+  }
+  if (
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    request.headers.get("Origin") !== origin
+  ) {
+    return responseWithSecurity("Commerce origin is not authorized.", origin, 403);
+  }
+  const body = request.method === "GET" || request.method === "HEAD"
+    ? undefined
+    : await request.arrayBuffer();
+  const upstreamRequest = new Request(
+    `https://commerce.internal${pathname}${requestUrl.search}`,
+    {
+      body,
+      headers: commerceRequestHeaders(
+        request,
+        origin,
+        catalogReleaseId,
+      ),
+      method: request.method,
+      redirect: "manual",
+    },
+  );
+  let upstream: Response;
+  try {
+    if (!environment.COMMERCE_API) throw new Error("Commerce binding is missing.");
+    upstream = await environment.COMMERCE_API.fetch(upstreamRequest);
+  } catch {
+    return responseWithSecurity("Commerce is unavailable.", origin, 503);
+  }
+  if (upstream.status >= 300 && upstream.status < 400) {
+    return responseWithSecurity("Commerce returned an unexpected redirect.", origin, 502);
+  }
+  return commerceResponse(upstream);
 }
 
 async function redeemGrant(
@@ -377,19 +510,31 @@ export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
     if (requestUrl.pathname === "/__preview/session") {
       return redeemGrant(request, environment, configuredOrigin.origin);
     }
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      return responseWithSecurity("Method not allowed.", configuredOrigin.origin, 405);
-    }
     if (!previewSession(request)) {
       return responseWithSecurity("Preview session required.", configuredOrigin.origin, 401);
     }
-    const authorization = await authorize(request, environment, now());
+    let authorization: PreviewAuthorization | null;
+    try {
+      authorization = await authorize(request, environment, now());
+    } catch {
+      return responseWithSecurity(
+        "Preview authorization is unavailable.",
+        configuredOrigin.origin,
+        503,
+      );
+    }
     if (!authorization) {
       return responseWithSecurity(
         "Preview session is invalid or expired.",
         configuredOrigin.origin,
         403,
       );
+    }
+    if (requestUrl.pathname === "/api" || requestUrl.pathname.startsWith("/api/")) {
+      return forwardCommerce(request, environment, authorization, configuredOrigin.origin);
+    }
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return responseWithSecurity("Method not allowed.", configuredOrigin.origin, 405);
     }
     let assetPath: string;
     try {

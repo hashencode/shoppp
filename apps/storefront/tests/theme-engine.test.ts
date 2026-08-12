@@ -883,7 +883,7 @@ describe("private preview artifacts", () => {
     expect(response.headers.get("Content-Security-Policy")).toContain(
       "https://preview.example.test",
     );
-    expect(response.headers.get("Content-Security-Policy")).toContain("connect-src 'none'");
+    expect(response.headers.get("Content-Security-Policy")).toContain("connect-src 'self'");
   });
 
   test("redeems a grant only through POST and sets a strict host-only session cookie", async () => {
