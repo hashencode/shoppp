@@ -28,7 +28,7 @@ import {
   createLivePresentationProvider,
 } from "../app/theme-engine/providers";
 import { resolveFixtureBinding } from "../app/theme-engine/view-models";
-import { resolveThemeRoute } from "../app/theme-engine/routes";
+import { resolveThemeRoute, type ResolvedThemeRouteContract } from "../app/theme-engine/routes";
 import {
   createPreviewAccessHandler,
   normalizePreviewAssetPath,
@@ -46,6 +46,20 @@ const descriptor = {
   supportedPageTemplates: ["home"],
   themeVersion: "1.0.0",
 } satisfies StorefrontThemeDescriptor;
+
+function testRoute(
+  pageType: PageTemplate["pageType"],
+  path: string,
+  parameters?: ResolvedThemeRouteContract["parameters"],
+): ResolvedThemeRouteContract {
+  return {
+    id: path === "/" ? "home" : path.slice(1).replaceAll("/", "-"),
+    pageType,
+    path,
+    ...(parameters ? { parameters } : {}),
+    variant: "test",
+  };
+}
 
 const template = {
   id: "home",
@@ -397,12 +411,14 @@ describe("theme-neutral storefront composer", () => {
       locale: "en-US",
       path: "/",
       release: canonicalRelease,
+      route: testRoute("home", "/"),
     });
     const second = composeExperienceRoute({
       experience: liveSnapshot,
       locale: "en-US",
       path: "/",
       release: secondRelease,
+      route: testRoute("home", "/"),
     });
 
     expect(first.ok).toBe(true);
@@ -453,6 +469,10 @@ describe("theme-neutral storefront composer", () => {
       locale: "en-US",
       path: "/collections/selected-collection",
       release: canonicalRelease,
+      route: testRoute("collection", "/collections/selected-collection", {
+        collectionId: canonicalRelease.collections[0].id,
+        slug: "selected-collection",
+      }),
     });
 
     expect(result.ok).toBe(true);
@@ -468,6 +488,52 @@ describe("theme-neutral storefront composer", () => {
       ],
       resource: { id: canonicalRelease.collections[0].id, kind: "collection" },
     });
+  });
+
+  test("composes collection aliases from the route registry contract", () => {
+    const result = composeExperienceRoute({
+      experience: {
+        ...liveSnapshot,
+        bindings: [
+          {
+            id: "selected-collection-binding",
+            instanceId: "collection",
+            kind: "catalog",
+            reference: { id: canonicalRelease.collections[0].id, kind: "collection" },
+            settingId: "selected-collection-setting",
+          },
+        ],
+        resolvedTemplates: [
+          {
+            id: "collection-template",
+            pageType: "collection",
+            requiredCapabilities: [],
+            sections: [
+              {
+                blocks: [],
+                capabilities: [],
+                id: "collection",
+                settings: {},
+                type: "fashion.collection",
+                visible: true,
+              },
+            ],
+          },
+        ],
+      },
+      locale: "en-US",
+      path: "/shop/no-sidebar",
+      release: canonicalRelease,
+      route: {
+        id: "shop-no-sidebar",
+        pageType: "collection",
+        path: "/shop/no-sidebar",
+        variant: "no-sidebar",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.template?.pageType).toBe("collection");
   });
 
   test("composes cart and checkout shells without inventing catalog bindings", () => {
@@ -497,6 +563,7 @@ describe("theme-neutral storefront composer", () => {
         locale: "en-US",
         path: `/${pageType}`,
         release: canonicalRelease,
+        route: testRoute(pageType, `/${pageType}`),
       });
 
       expect(result.ok).toBe(true);
@@ -536,6 +603,7 @@ describe("theme-neutral storefront composer", () => {
       locale: "en-US",
       path: "/account",
       release: canonicalRelease,
+      route: testRoute("content", "/account"),
     });
     expect(unavailable.ok).toBe(true);
     expect(unavailable.viewModels.content).toMatchObject({
@@ -550,6 +618,7 @@ describe("theme-neutral storefront composer", () => {
       locale: "en-US",
       path: "/magazine",
       release: canonicalRelease,
+      route: testRoute("content", "/magazine"),
     });
     expect(configured.ok).toBe(true);
     expect(configured.viewModels.content).toMatchObject({
@@ -599,6 +668,7 @@ describe("theme-neutral storefront composer", () => {
         locale: "en-US",
         path: "/",
         release: entry.release,
+        route: testRoute("home", "/"),
       });
       expect(result.ok).toBe(false);
       expect(result.diagnostics[0]).toMatchObject({
@@ -616,6 +686,7 @@ describe("theme-neutral storefront composer", () => {
       locale: "en-US",
       path: "/",
       release: canonicalRelease,
+      route: testRoute("home", "/"),
     });
     expect(empty.diagnostics[0]).toMatchObject({
       code: "catalog-binding-missing",
@@ -662,6 +733,7 @@ describe("theme-neutral storefront composer", () => {
       locale: "en-US",
       path: "/",
       release: canonicalRelease,
+      route: testRoute("home", "/"),
     });
     expect(() => liveProvider.resolve({ instanceId: "hero" })).toThrow("catalog-binding-missing");
     expect(() =>

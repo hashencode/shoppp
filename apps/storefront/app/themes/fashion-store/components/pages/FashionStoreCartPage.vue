@@ -4,6 +4,7 @@ import type { Cart } from "@shoppp/contracts";
 import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
 import type { FashionStoreCartData, FashionStoreCartLine } from "../../fixtures/pages/cart";
@@ -29,16 +30,60 @@ const data = computed<FashionStoreCartData>(() => {
 });
 const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
+const ownerCart = inject(storefrontCartStateKey);
 const lines = ref<FashionStoreCartLine[]>([]);
 const totals = reactive({ subtotal: "$0.00", tax: "(Includes $0.00 tax)", total: "$0.00" });
 const cartStatus = ref<"error" | "loading" | "ready">("loading");
 const cartLoadError = ref("");
+const sourceByVariant = new Map(
+  (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
+);
+function presentLine(line: Cart["lines"][number]): FashionStoreCartLine {
+  const source = sourceByVariant.get(line.variantId);
+  return {
+    color: source?.color ?? line.variantName,
+    name: line.productName,
+    price: money(line.unitPrice.amount, line.unitPrice.currency),
+    quantity: line.quantity,
+    sourceImage: source?.sourceImage ?? "",
+    total: money(line.lineTotal.amount, line.lineTotal.currency),
+    variantId: line.variantId,
+  };
+}
 const displayedLines = computed(() =>
-  cartStatus.value === "loading" && initialFixtureData ? initialFixtureData.lines : lines.value,
+  ownerCart?.value
+    ? ownerCart.value.lines.map(presentLine)
+    : cartStatus.value === "loading" && initialFixtureData
+      ? initialFixtureData.lines
+      : lines.value,
+);
+const displayedTotals = computed(() =>
+  ownerCart?.value
+    ? {
+        subtotal: money(ownerCart.value.totals.subtotal, ownerCart.value.currency),
+        tax: `(Includes ${money(ownerCart.value.totals.taxTotal, ownerCart.value.currency)} tax)`,
+        total: money(ownerCart.value.totals.grandTotal, ownerCart.value.currency),
+      }
+    : totals,
 );
 const selectedShipping = ref(initialFixtureData?.shipping[0]?.id ?? "");
+watch(
+  () => ownerCart?.value?.selectedShippingMethodId,
+  (methodId) => {
+    if (methodId !== undefined) selectedShipping.value = methodId ?? "";
+  },
+  { immediate: true },
+);
 const shippingOptions = ref<{ id: string; label: string }[]>(
   initialFixtureData?.shipping.map(({ id, label }) => ({ id, label })) ?? [],
+);
+const displayedShippingOptions = computed(() =>
+  ownerCart?.value
+    ? ownerCart.value.shippingMethods.map((method) => ({
+        id: method.id,
+        label: `${method.name} — ${money(method.amount, method.currency)}`,
+      }))
+    : shippingOptions.value,
 );
 const countryOptions = initialFixtureData?.countries ?? [
   { code: "US", label: "United States" },
@@ -46,6 +91,7 @@ const countryOptions = initialFixtureData?.countries ?? [
   { code: "GB", label: "United Kingdom" },
 ];
 const canCheckout = ref(false);
+const displayedCanCheckout = computed(() => ownerCart?.value?.canCheckout ?? canCheckout.value);
 const cartAnnouncements = ref<string[]>([]);
 const shippingOpen = ref(false);
 const countryCode = ref("");
@@ -68,29 +114,17 @@ function money(amount: number, currency: string): string {
 }
 
 function applyOwnerCart(cart: Cart): void {
-  const sourceByVariant = new Map(
-    (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
-  );
-  lines.value = cart.lines.map((line) => {
-    const source = sourceByVariant.get(line.variantId);
-    return {
-      color: source?.color ?? line.variantName,
-      name: line.productName,
-      price: money(line.unitPrice.amount, line.unitPrice.currency),
-      quantity: line.quantity,
-      sourceImage: source?.sourceImage ?? "",
-      total: money(line.lineTotal.amount, line.lineTotal.currency),
-      variantId: line.variantId,
-    };
-  });
-  totals.subtotal = money(cart.totals.subtotal, cart.currency);
-  totals.total = money(cart.totals.grandTotal, cart.currency);
-  totals.tax = `(Includes ${money(cart.totals.taxTotal, cart.currency)} tax)`;
-  shippingOptions.value = cart.shippingMethods.map((method) => ({
-    id: method.id,
-    label: `${method.name} — ${money(method.amount, method.currency)}`,
-  }));
-  canCheckout.value = cart.canCheckout;
+  if (!ownerCart) {
+    lines.value = cart.lines.map(presentLine);
+    totals.subtotal = money(cart.totals.subtotal, cart.currency);
+    totals.total = money(cart.totals.grandTotal, cart.currency);
+    totals.tax = `(Includes ${money(cart.totals.taxTotal, cart.currency)} tax)`;
+    shippingOptions.value = cart.shippingMethods.map((method) => ({
+      id: method.id,
+      label: `${method.name} — ${money(method.amount, method.currency)}`,
+    }));
+    canCheckout.value = cart.canCheckout;
+  }
   cartAnnouncements.value = cart.adjustments.map(({ message }) => message);
   if (cart.selectedShippingMethodId) selectedShipping.value = cart.selectedShippingMethodId;
 }
@@ -131,7 +165,9 @@ async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number):
 
 async function removeLine(line: FashionStoreCartLine): Promise<void> {
   if (busy.value || !actionAdapter) return;
-  const removedIndex = lines.value.findIndex(({ variantId }) => variantId === line.variantId);
+  const removedIndex = displayedLines.value.findIndex(
+    ({ variantId }) => variantId === line.variantId,
+  );
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.remove, "fashion-store.cart.remove");
   }
@@ -158,13 +194,13 @@ async function removeLine(line: FashionStoreCartLine): Promise<void> {
     await nextTick();
     const nextRemove = document.querySelectorAll<HTMLButtonElement>(
       ".cart-products .product-remove button",
-    )[Math.min(removedIndex, lines.value.length - 1)];
+    )[Math.min(removedIndex, displayedLines.value.length - 1)];
     (nextRemove ?? document.querySelector<HTMLButtonElement>("[data-empty-cart]"))?.focus();
   }
 }
 
 async function emptyCart(): Promise<void> {
-  for (const line of [...lines.value]) {
+  for (const line of [...displayedLines.value]) {
     await removeLine(line);
   }
 }
@@ -450,14 +486,14 @@ onMounted(async () => {
                   <tbody>
                     <tr>
                       <th class="w-45 fw-600 text-dark-gray alt-font">Subtotal</th>
-                      <td class="text-dark-gray fw-600">{{ totals.subtotal }}</td>
+                      <td class="text-dark-gray fw-600">{{ displayedTotals.subtotal }}</td>
                     </tr>
                     <tr class="shipping">
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
                         <ul class="p-0 m-0">
                           <li
-                            v-for="option in shippingOptions"
+                            v-for="option in displayedShippingOptions"
                             :key="option.id"
                             class="d-flex align-items-center"
                           >
@@ -545,15 +581,15 @@ onMounted(async () => {
                       <th class="fw-600 text-dark-gray alt-font pb-0">Total</th>
                       <td class="pb-0" data-title="Total">
                         <h6 class="d-block fw-700 mb-0 text-dark-gray alt-font">
-                          {{ totals.total }}
+                          {{ displayedTotals.total }}
                         </h6>
-                        <span class="fs-14">{{ totals.tax }}</span>
+                        <span class="fs-14">{{ displayedTotals.tax }}</span>
                       </td>
                     </tr>
                   </tbody>
                 </table>
                 <a
-                  v-if="canCheckout || !isLive"
+                  v-if="displayedCanCheckout || !isLive"
                   :href="fashionStoreRoutePaths.checkout"
                   data-fashion-store-route
                   class="btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-25px"

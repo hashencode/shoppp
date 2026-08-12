@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Cart } from "@shoppp/contracts";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
+import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import {
   formatCommerceMoney,
@@ -16,7 +17,7 @@ const cartOpen = ref(false);
 const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const liveCommerceMode = inject(liveCommerceModeKey, false);
-const liveCart = ref<Cart | null>(null);
+const liveCart = inject(storefrontCartStateKey, readonly(ref<Cart | null>(null)));
 const liveCartCount = computed(
   () => liveCart.value?.lines.reduce((total, line) => total + line.quantity, 0) ?? 0,
 );
@@ -58,10 +59,6 @@ function closeCart(): void {
   touchActivation = false;
 }
 
-function applyLiveCart(cart: Cart): void {
-  liveCart.value = cart;
-}
-
 function money(amount: number, currency: string): string {
   return formatCommerceMoney(amount, currency);
 }
@@ -71,13 +68,11 @@ async function removeLiveLine(variantId: string): Promise<void> {
   liveCartBusy.value = true;
   liveCartError.value = "";
   try {
-    applyLiveCart(
-      await actionAdapter({
-        context: "fashion-store.live-mini-cart.remove",
-        kind: "cart.remove",
-        variantId,
-      }),
-    );
+    await actionAdapter({
+      context: "fashion-store.live-mini-cart.remove",
+      kind: "cart.remove",
+      variantId,
+    });
   } catch {
     liveCartError.value =
       checkoutAdapter?.status().error ?? "The cart could not be updated. Try again.";
@@ -89,7 +84,7 @@ async function removeLiveLine(variantId: string): Promise<void> {
 onMounted(async () => {
   if (!liveCommerceMode || !checkoutAdapter) return;
   try {
-    applyLiveCart(await checkoutAdapter.ensure());
+    await checkoutAdapter.ensure();
     liveCartNotice.value = checkoutAdapter.status().notice ?? "";
   } catch {
     liveCartError.value =

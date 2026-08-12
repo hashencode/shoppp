@@ -10,7 +10,7 @@ import {
   type PageTemplate,
 } from "@shoppp/contracts";
 
-import { normalizeThemeRoutePath } from "./routes";
+import { normalizeThemeRoutePath, type ResolvedThemeRouteContract } from "./routes";
 import { formatCommerceMoney } from "./runtime-commerce";
 import { presentationViewModelSchema, type PresentationViewModel } from "./view-models";
 
@@ -53,45 +53,17 @@ export interface ComposeExperienceRouteInput {
   locale: string;
   path: string;
   release: CanonicalCatalogRelease;
+  route: ResolvedThemeRouteContract;
 }
 
 function matchingTemplate(
   experience: ExperienceSnapshot,
-  release: CanonicalCatalogRelease,
-  path: string,
+  route: ResolvedThemeRouteContract,
 ): { pageId: string; template?: PageTemplate } {
-  if (path === "/") {
-    const template = experience.resolvedTemplates.find(({ pageType }) => pageType === "home");
-    return { pageId: template?.id ?? "home", template };
-  }
-  if (path.startsWith("/products/")) {
-    const slug = path.slice("/products/".length);
-    const product = release.products.find(
-      (entry) => entry.slug === slug && entry.status === "published",
-    );
-    if (!product) return { pageId: `product:${slug}` };
-    return {
-      pageId: `product:${product.id}`,
-      template: experience.resolvedTemplates.find(({ pageType }) => pageType === "product"),
-    };
-  }
-  if (path.startsWith("/collections/")) {
-    const slug = path.slice("/collections/".length);
-    const collection = release.collections.find(
-      (entry) => entry.slug === slug && entry.status === "published",
-    );
-    if (!collection) return { pageId: `collection:${slug}` };
-    return {
-      pageId: `collection:${collection.id}`,
-      template: experience.resolvedTemplates.find(({ pageType }) => pageType === "collection"),
-    };
-  }
-  const pageType = path === "/cart" ? "cart" : path === "/checkout" ? "checkout" : "content";
+  const stableId = route.parameters?.productId ?? route.parameters?.collectionId;
   return {
-    pageId: path.slice(1) || "home",
-    template: experience.resolvedTemplates.find(
-      ({ pageType: candidate }) => candidate === pageType,
-    ),
+    pageId: stableId ? `${route.pageType}:${stableId}` : route.id,
+    template: experience.resolvedTemplates.find(({ pageType }) => pageType === route.pageType),
   };
 }
 
@@ -337,7 +309,7 @@ export function composeExperienceRoute(
   const collectionsById = new Map(
     release.collections.map((collection) => [collection.id, collection]),
   );
-  const { pageId, template } = matchingTemplate(experience, release, path);
+  const { pageId, template } = matchingTemplate(experience, input.route);
   if (!template) {
     return {
       diagnostics: [

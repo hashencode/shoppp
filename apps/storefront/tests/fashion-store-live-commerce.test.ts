@@ -56,4 +56,20 @@ describe("Fashion Store live commerce boundary", () => {
     expect(liveContent).toContain("viewModel.action.label");
     expect(liveContent).toContain("Return home");
   });
+
+  test("shares the readonly guest cart with every mounted live cart surface", async () => {
+    const [host, miniCart, cartPage, checkoutPage] = await Promise.all([
+      source("StorefrontExperience.vue"),
+      source("themes/fashion-store/components/shared/FashionStoreMiniCart.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreCartPage.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreCheckoutPage.vue"),
+    ]);
+
+    expect(host).toContain("provide(storefrontCartStateKey, readonly(guestCart))");
+    for (const surface of [miniCart, cartPage, checkoutPage]) {
+      expect(surface).toContain("inject(storefrontCartStateKey");
+      expect(surface).not.toContain("useGuestCart(");
+    }
+    expect(miniCart).not.toContain("const liveCart = ref<Cart | null>");
+  });
 });

@@ -22,6 +22,7 @@ import { useGuestCart } from "./features/cart/use-guest-cart";
 import { storeOrderAccess } from "./features/checkout/session";
 import type { StorefrontActionAdapter } from "./theme-engine/actions";
 import type { StorefrontCheckoutAdapter } from "./theme-engine/checkout";
+import { storefrontCartStateKey } from "./theme-engine/cart-state";
 import {
   runtimeCommercePortKey,
   liveCommerceModeKey,
@@ -39,19 +40,31 @@ const fixturePresentationProvider = createFixturePresentationProvider({
     activeExperienceSnapshot?.bindings.filter((binding) => binding.kind === "fixture") ?? [],
   fixtures: activeFixtureRegistry,
 });
+const pageContract = computed(() =>
+  resolveThemeRoute(
+    currentRoute.value.path,
+    activeThemeRoutes,
+    activeExperienceProviderInput.mode === "live"
+      ? activeExperienceProviderInput.release
+      : undefined,
+    routeMode,
+  ),
+);
 const presentationProvider = computed(() =>
-  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot
+  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && pageContract.value
     ? createLivePresentationProvider({
         experience: activeExperienceSnapshot,
         locale: "en-US",
         path: currentRoute.value.path,
         release: activeExperienceProviderInput.release,
+        route: pageContract.value,
       })
     : fixturePresentationProvider,
 );
 const {
   add: addGuestCartLine,
   beginCheckout,
+  cart: guestCart,
   error: guestCartError,
   ensure: ensureGuestCart,
   notice: guestCartNotice,
@@ -72,6 +85,7 @@ const runtimeCommercePort: RuntimeCommercePort = {
 if (activeExperienceProviderInput.mode === "live") {
   provide(runtimeCommercePortKey, runtimeCommercePort);
   provide(liveCommerceModeKey, true);
+  provide(storefrontCartStateKey, readonly(guestCart));
 }
 const storefrontActionAdapter: StorefrontActionAdapter = async (dispatch) => {
   if (dispatch.kind === "cart.add") {
@@ -111,16 +125,6 @@ const storefrontCheckoutAdapter: StorefrontCheckoutAdapter = {
   },
 };
 
-const pageContract = computed(() =>
-  resolveThemeRoute(
-    currentRoute.value.path,
-    activeThemeRoutes,
-    activeExperienceProviderInput.mode === "live"
-      ? activeExperienceProviderInput.release
-      : undefined,
-    routeMode,
-  ),
-);
 const previewTemplate = computed(() =>
   pageContract.value
     ? activeExperienceSnapshot?.resolvedTemplates.find(

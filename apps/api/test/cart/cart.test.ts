@@ -21,6 +21,7 @@ async function resetAndSeed(): Promise<void> {
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM cart_lines"),
     env.DB.prepare("DELETE FROM carts"),
+    env.DB.prepare("DELETE FROM settings WHERE key = 'launch_configuration'"),
     env.DB.prepare("DELETE FROM shipping_methods"),
     env.DB.prepare("DELETE FROM shipping_zone_countries"),
     env.DB.prepare("DELETE FROM shipping_zones"),
@@ -580,6 +581,90 @@ describe("guest cart authority", () => {
     expect(unsupported.status).toBe(422);
     expect(await unsupported.json()).toMatchObject({
       error: { code: "shipping_destination_unavailable" },
+    });
+  });
+
+  test("selects and persists the first eligible configured method for an optionless quote", async () => {
+    await env.DB.prepare(
+      `INSERT INTO settings (key, value_json, updated_at)
+       VALUES ('launch_configuration', ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
+    )
+      .bind(
+        JSON.stringify({
+          defaultCurrency: "USD",
+          legalApproved: true,
+          orderNumberPrefix: "SHOP",
+          oversellPolicy: "deny",
+          paymentMode: "test",
+          paymentProvider: "stripe",
+          policies: {
+            contact: "https://shop.example.test/contact",
+            cookies: "https://shop.example.test/cookies",
+            privacy: "https://shop.example.test/privacy",
+            returns: "https://shop.example.test/returns",
+            shipping: "https://shop.example.test/shipping",
+            terms: "https://shop.example.test/terms",
+          },
+          privacyContactEmail: "privacy@example.test",
+          providerConfigured: true,
+          reservationTtlMinutes: 15,
+          sellableCurrencies: ["USD"],
+          shippingCountries: ["US"],
+          shippingMethodIds: [ids.free, ids.weight, ids.flat],
+          supportEmail: "support@example.test",
+          taxMode: "zero",
+          webhookConfigured: true,
+        }),
+        now,
+      )
+      .run();
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-default-ship-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: { "Idempotency-Key": "cart-default-ship-line-1" },
+        method: "POST",
+      }),
+      env,
+    );
+
+    const response = await app.fetch(
+      cartRequest("/cart/shipping", data.token, {
+        body: JSON.stringify({
+          shippingAddress: {
+            city: "Portland",
+            countryCode: "US",
+            line1: "100 Market Street",
+            name: "Example Shopper",
+            postalCode: "97205",
+          },
+        }),
+        headers: { "Idempotency-Key": "cart-default-ship-quote-1" },
+        method: "PUT",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: {
+        selectedShippingMethodId: ids.free,
+        shippingMethods: [{ id: ids.free }, { id: ids.weight }, { id: ids.flat }],
+        totals: { grandTotal: 12_900, shippingTotal: 0 },
+      },
+    });
+    expect(await env.DB.prepare("SELECT shipping_method_id FROM carts LIMIT 1").first()).toEqual({
+      shipping_method_id: ids.free,
     });
   });
 

@@ -6,6 +6,7 @@ import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
 import type { FashionStoreCheckoutData } from "../../fixtures/pages/checkout";
@@ -28,7 +29,9 @@ const fixtureLinesByVariant = new Map(
 );
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const form = ref<HTMLFormElement>();
-const cart = ref<Cart | null>(null);
+const ownerCart = inject(storefrontCartStateKey);
+const localCart = ref<Cart | null>(null);
+const cart = computed(() => ownerCart?.value ?? localCart.value);
 const firstName = ref("");
 const lastName = ref("");
 const company = ref("");
@@ -71,6 +74,8 @@ const turnstileRenderKey = ref(0);
 const localActionCount = ref(0);
 const sessionCount = ref(0);
 let disposed = false;
+let shippingTimer: ReturnType<typeof setTimeout> | undefined;
+let shippingSequence = 0;
 
 const billingAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   city: "",
@@ -92,6 +97,36 @@ const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   postalCode: "",
   region: "",
 });
+
+const activeShippingAddress = computed<ShippingQuoteRequest["shippingAddress"]>(() => {
+  const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
+  return {
+    ...address,
+    name: alternateShippingOpen.value
+      ? address.name.trim()
+      : `${firstName.value} ${lastName.value}`.trim(),
+  };
+});
+const shippingAddressComplete = computed(() => {
+  const address = activeShippingAddress.value;
+  return Boolean(
+    address.name.trim() &&
+    address.line1.trim() &&
+    address.city.trim() &&
+    address.countryCode &&
+    address.postalCode.trim(),
+  );
+});
+const shippingAddressFingerprint = computed(() => JSON.stringify(activeShippingAddress.value));
+const cartContentsFingerprint = computed(() =>
+  JSON.stringify(
+    cart.value?.lines.map(({ quantity, unitPrice, variantId }) => ({
+      quantity,
+      unitPrice,
+      variantId,
+    })) ?? [],
+  ),
+);
 
 const displayedLines = computed(() => {
   if (cart.value === null) return initialFixtureData?.lines ?? [];
@@ -126,7 +161,14 @@ const shippingMethods = computed<ShippingMethodQuote[]>(() =>
         id: method.id,
         name: method.label,
       }))
-    : cart.value.shippingMethods,
+    : [...cart.value.shippingMethods],
+);
+watch(
+  () => cart.value?.selectedShippingMethodId,
+  (methodId) => {
+    if (isLive.value) selectedMethod.value = methodId ?? undefined;
+  },
+  { immediate: true },
 );
 
 function money(amount: number, currency: string): string {
@@ -137,16 +179,15 @@ function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function applyCart(nextCart: Cart): void {
-  cart.value = nextCart;
-  if (nextCart.shippingAddress) {
+function applyCart(nextCart: Cart, hydrateAddress = false): void {
+  if (!ownerCart) localCart.value = nextCart;
+  if (hydrateAddress && nextCart.shippingAddress) {
     Object.assign(billingAddress, nextCart.shippingAddress);
     const nameParts = nextCart.shippingAddress.name.trim().split(/\s+/);
     firstName.value = nameParts.shift() ?? "";
     lastName.value = nameParts.join(" ");
   }
-  selectedMethod.value =
-    nextCart.selectedShippingMethodId ?? nextCart.shippingMethods[0]?.id ?? selectedMethod.value;
+  selectedMethod.value = nextCart.selectedShippingMethodId ?? undefined;
 }
 
 function toggleHelper(panel: "coupon" | "login"): void {
@@ -180,25 +221,53 @@ function selectPayment(id: string): void {
   localActionCount.value += 1;
 }
 
-async function updateShipping(): Promise<void> {
-  const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
-  if (!checkoutAdapter || !selectedMethod.value || shippingBusy.value) return;
+async function requestShipping(shippingMethodId?: string): Promise<void> {
+  if (!isLive.value || !checkoutAdapter || !shippingAddressComplete.value) return;
+  const sequence = ++shippingSequence;
   shippingBusy.value = true;
   shippingError.value = "";
   try {
-    applyCart(
-      await checkoutAdapter.shipping({
-        shippingAddress: { ...address },
-        shippingMethodId: selectedMethod.value,
-      }),
-    );
+    const nextCart = await checkoutAdapter.shipping({
+      shippingAddress: { ...activeShippingAddress.value },
+      ...(shippingMethodId ? { shippingMethodId } : {}),
+    });
+    if (sequence === shippingSequence) applyCart(nextCart);
   } catch {
-    shippingError.value =
-      checkoutAdapter.status().error ?? "Delivery options are unavailable. Please try again.";
+    if (sequence === shippingSequence) {
+      shippingError.value =
+        checkoutAdapter.status().error ?? "Delivery options are unavailable. Please try again.";
+    }
   } finally {
-    shippingBusy.value = false;
+    if (sequence === shippingSequence) shippingBusy.value = false;
   }
 }
+
+function updateShipping(): void {
+  if (shippingTimer) {
+    clearTimeout(shippingTimer);
+    shippingTimer = undefined;
+  }
+  shippingSequence += 1;
+  void requestShipping(selectedMethod.value);
+}
+
+watch([shippingAddressFingerprint, cartContentsFingerprint], () => {
+  if (!isLive.value) return;
+  if (shippingTimer) {
+    clearTimeout(shippingTimer);
+    shippingTimer = undefined;
+  }
+  shippingSequence += 1;
+  if (!shippingAddressComplete.value) {
+    selectedMethod.value = undefined;
+    shippingBusy.value = false;
+    return;
+  }
+  shippingTimer = setTimeout(() => {
+    shippingTimer = undefined;
+    void requestShipping();
+  }, 300);
+});
 
 async function continueCheckout(): Promise<void> {
   submitError.value = "";
@@ -263,7 +332,7 @@ onMounted(async () => {
     checkoutAdapter.configuration(),
   ]);
   if (cartResult.status === "fulfilled") {
-    applyCart(cartResult.value);
+    applyCart(cartResult.value, true);
     loadNotice.value = checkoutAdapter.status().notice ?? "";
   } else {
     loadError.value = checkoutAdapter.status().error ?? "Checkout is unavailable for this cart.";
@@ -285,6 +354,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   disposed = true;
+  if (shippingTimer) clearTimeout(shippingTimer);
+  shippingSequence += 1;
 });
 </script>
 
@@ -677,8 +748,16 @@ onBeforeUnmount(() => {
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
                         <ul class="shipping-methods fashion-checkout-shipping-methods p-0">
+                          <li v-if="isLive && !shippingAddressComplete" role="status">
+                            Complete the shipping address to calculate delivery automatically.
+                          </li>
+                          <li v-else-if="isLive && shippingBusy" role="status">
+                            Calculating delivery options…
+                          </li>
                           <li
-                            v-for="method in shippingMethods"
+                            v-for="method in isLive && !shippingAddressComplete
+                              ? []
+                              : shippingMethods"
                             :key="method.id"
                             class="d-flex align-items-center"
                           >

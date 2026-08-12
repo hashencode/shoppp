@@ -316,10 +316,18 @@ function shippingQuotes(
   rows: ShippingMethodRow[],
   configuration: LaunchConfiguration | null,
 ): ShippingMethodQuote[] {
+  const configuredOrder = new Map(
+    configuration?.shippingMethodIds.map((id, index) => [id, index]) ?? [],
+  );
   return quoteShippingMethods({
     currency: cart.currency,
     methods: rows
-      .filter((row) => !configuration || configuration.shippingMethodIds.includes(row.id))
+      .filter((row) => !configuration || configuredOrder.has(row.id))
+      .sort(
+        (left, right) =>
+          (configuredOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+          (configuredOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+      )
       .map((row) => ({
         calculationType: row.calculation_type,
         currency: row.currency,
@@ -335,6 +343,20 @@ function shippingQuotes(
   });
 }
 
+function deriveShippingQuoteInputs(
+  cart: CartRow,
+  rows: LineRow[],
+  shippingMethodRows: ShippingMethodRow[],
+  configuration: LaunchConfiguration | null,
+) {
+  const subtotal = rows.reduce((sum, row) => sum + (row.unit_price ?? 0) * row.quantity, 0);
+  const totalWeight = rows.reduce((sum, row) => sum + row.weight_grams * row.quantity, 0);
+  return {
+    methods: shippingQuotes(cart, subtotal, totalWeight, shippingMethodRows, configuration),
+    subtotal,
+  };
+}
+
 async function buildCartQuote(
   db: D1Database,
   cart: CartRow,
@@ -342,6 +364,7 @@ async function buildCartQuote(
   rows: LineRow[],
   shippingMethodRows: ShippingMethodRow[],
   configuration: LaunchConfiguration | null,
+  derivedShippingQuote?: ReturnType<typeof deriveShippingQuoteInputs>,
 ): Promise<Cart> {
   const context = parsePricingContext(cart.pricing_context_json);
   let pending = [...context.pendingAdjustments];
@@ -384,9 +407,9 @@ async function buildCartQuote(
       .bind(JSON.stringify(context), new Date().toISOString(), cart.id)
       .run();
   }
-  const subtotal = rows.reduce((sum, row) => sum + (row.unit_price ?? 0) * row.quantity, 0);
-  const totalWeight = rows.reduce((sum, row) => sum + row.weight_grams * row.quantity, 0);
-  const methods = shippingQuotes(cart, subtotal, totalWeight, shippingMethodRows, configuration);
+  const { methods, subtotal } =
+    derivedShippingQuote ??
+    deriveShippingQuoteInputs(cart, rows, shippingMethodRows, configuration);
   const selected = methods.find((method) => method.id === cart.shipping_method_id) ?? null;
   if (cart.shipping_method_id && !selected) {
     dynamic.push({
@@ -688,12 +711,6 @@ export async function setCartShipping(
     context,
     (cartResult.results as unknown as CartRow[])[0] ?? null,
   );
-  const updated = {
-    ...cart,
-    shipping_address_json: JSON.stringify(input.shippingAddress),
-    shipping_country: input.shippingAddress.countryCode,
-    shipping_method_id: input.shippingMethodId ?? null,
-  };
   const configuration = parseLaunchConfiguration(
     (configurationResult.results as unknown as LaunchConfigurationRow[])[0] ?? null,
   );
@@ -717,17 +734,13 @@ export async function setCartShipping(
       [{ path: ["shippingAddress", "countryCode"] }],
     );
   }
-  const quote = await buildCartQuote(
-    context.env.DB,
-    updated,
-    context.env.TAX_MODE,
-    lineResult.results as unknown as LineRow[],
-    shippingMethodResult.results as unknown as ShippingMethodRow[],
-    configuration,
-  );
+  const lines = lineResult.results as unknown as LineRow[];
+  const methodRows = shippingMethodResult.results as unknown as ShippingMethodRow[];
+  const derivedShippingQuote = deriveShippingQuoteInputs(cart, lines, methodRows, configuration);
+  const eligibleMethods = derivedShippingQuote.methods;
   if (
     input.shippingMethodId &&
-    !quote.shippingMethods.some((method) => method.id === input.shippingMethodId)
+    !eligibleMethods.some((method) => method.id === input.shippingMethodId)
   ) {
     throw new ApiError(
       422,
@@ -736,6 +749,29 @@ export async function setCartShipping(
       [{ path: ["shippingMethodId"] }],
     );
   }
+  const selectedMethodId = input.shippingMethodId ?? eligibleMethods[0]?.id;
+  if (!selectedMethodId) {
+    throw new ApiError(
+      422,
+      "shipping_method_unavailable",
+      "No shipping method is available for this cart.",
+    );
+  }
+  const updated = {
+    ...cart,
+    shipping_address_json: JSON.stringify(input.shippingAddress),
+    shipping_country: input.shippingAddress.countryCode,
+    shipping_method_id: selectedMethodId,
+  };
+  const quote = await buildCartQuote(
+    context.env.DB,
+    updated,
+    context.env.TAX_MODE,
+    lines,
+    methodRows,
+    configuration,
+    derivedShippingQuote,
+  );
   await context.env.DB.prepare(
     `UPDATE carts
         SET shipping_country = ?, shipping_address_json = ?, shipping_method_id = ?, updated_at = ?
@@ -744,7 +780,7 @@ export async function setCartShipping(
     .bind(
       input.shippingAddress.countryCode,
       JSON.stringify(input.shippingAddress),
-      input.shippingMethodId ?? null,
+      selectedMethodId,
       new Date().toISOString(),
       cart.id,
     )
