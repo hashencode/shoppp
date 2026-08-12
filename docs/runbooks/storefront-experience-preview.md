@@ -60,6 +60,56 @@ credentials once through the explicit provisioning procedure. Ordinary build and
 verify and reuse them; missing configuration fails before U13 performs a network mutation. Replace
 a long-lived credential only for an explicit operator rotation or a security event.
 
+### Fashion staging provisioning
+
+The persistent non-production profile is:
+
+- API Worker `shoppp-api-fashion-staging`;
+- private Preview Worker `shoppp-storefront-fashion-preview`;
+- D1 `shoppp-fashion-staging`;
+- R2 buckets `shoppp-fashion-staging-media` and
+  `shoppp-fashion-staging-preview-artifacts`;
+- Preview bindings `PREVIEW_AUTH` and `COMMERCE_API`, both targeting the dedicated Fashion API.
+
+These names are configuration, not resources that a build creates. Before first deployment, list the
+account's Workers, D1 databases, and R2 buckets and refuse any same-name resource whose identity does
+not match the reviewed Wrangler configuration. Create only a missing named resource, apply the API
+migrations once, install the API/Preview shared service token on both Workers, and install the
+separate build callback and U13 service credentials. Seed the least-privilege U13 principal with only
+`themes.preview` and `catalog.read`, then create an approved live snapshot whose visible home,
+collection, and product instances use stable-ID Catalog bindings. Create a fresh immutable build for
+that snapshot; never rewrite an earlier snapshot or build.
+
+The GitHub `fashion-staging` environment is also persistent. GitHub does not expose or copy a secret
+from another protected environment: even when `CLOUDFLARE_API_TOKEN` already exists under `staging`,
+an operator must enter it separately under `fashion-staging`. Do not extract Wrangler's local OAuth
+credential or substitute it as a CI token.
+
+Verify the profile without printing values:
+
+```sh
+bun test tools/verify-environment-isolation.test.ts tools/deploy-workflow.test.ts
+bunx wrangler deploy --config apps/api/wrangler.jsonc --env fashion-staging --dry-run
+bunx wrangler deploy --config apps/storefront/wrangler.preview.jsonc --env fashion-staging --dry-run
+bunx wrangler secret list --config apps/api/wrangler.jsonc --env fashion-staging
+bunx wrangler secret list --config apps/storefront/wrangler.preview.jsonc --env fashion-staging
+gh secret list --repo hashencode/shoppp --env fashion-staging
+gh variable list --repo hashencode/shoppp --env fashion-staging
+```
+
+Ordinary preview builds do not run `wrangler d1 create`, `wrangler r2 bucket create`, service
+credential provisioning, or secret rotation. A missing resource or secret is a failed verification,
+not permission to recreate it during every run.
+
+### Current deployed evidence
+
+On 2026-08-12, build `preview-build-fashion-staging-live-1` deployed the exact tuple Catalog Release
+`representative-release-2026-07-30`, Experience snapshot `snapshot-fashion-store-live-1` version 1,
+theme `fashion-store` version `1.0.0`, and platform contract `1.0.0`. The real private-origin U13 run
+`local-20260812-1` passed and created cart `cart_DD31857B249445F8B89B16FA25E8A3F9` containing one
+`var_01J00000000000000000000000`. This report intentionally contains no grant, session, CartToken,
+service token, or raw response body.
+
 ## Failure and recovery
 
 - A validation or build failure leaves production unchanged. Inspect the build correlation ID and

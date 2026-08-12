@@ -114,13 +114,13 @@ jobs:
             SOURCE_VALUE="$(jq -r '.sourcePath' <<<"$ITEM")"
             CONTENT_TYPE="$(jq -r '.contentType' <<<"$ITEM")"
             bunx wrangler r2 object put \
-              "shoppp-storefront-preview-artifacts/${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
+              "shoppp-fashion-staging-preview-artifacts/${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
               --file "$SOURCE_VALUE" \
               --content-type "$CONTENT_TYPE" \
               --remote
           done < <(jq -c '.files[]' artifacts/preview/deployment.json)
           bunx wrangler r2 object put \
-            "shoppp-storefront-preview-artifacts/${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
+            "shoppp-fashion-staging-preview-artifacts/${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
             --file artifacts/preview/artifact-manifest.json \
             --content-type "application/json; charset=utf-8" \
             --remote
@@ -129,6 +129,7 @@ jobs:
         run: |
           bunx wrangler deploy \
             --config wrangler.preview.jsonc \
+            --env fashion-staging \
             --var "PREVIEW_HANDOFF_ORIGIN:$PREVIEW_HANDOFF_ORIGIN" \
             --var "PREVIEW_ORIGIN:$PREVIEW_ORIGIN"
       - name: Report the exact preview artifact to the authority

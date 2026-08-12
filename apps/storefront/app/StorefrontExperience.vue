@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ExperienceSnapshot } from "@shoppp/contracts";
+
 import {
   activeExperienceSnapshot,
   activePreviewOrigin,
@@ -35,9 +37,9 @@ const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAss
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
 const routeMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
+const experienceSnapshot: ExperienceSnapshot | null = activeExperienceSnapshot;
 const fixturePresentationProvider = createFixturePresentationProvider({
-  bindings:
-    activeExperienceSnapshot?.bindings.filter((binding) => binding.kind === "fixture") ?? [],
+  bindings: experienceSnapshot?.bindings.filter((binding) => binding.kind === "fixture") ?? [],
   fixtures: activeFixtureRegistry,
 });
 const pageContract = computed(() =>

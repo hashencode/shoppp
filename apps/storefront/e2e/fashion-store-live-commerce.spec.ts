@@ -115,10 +115,13 @@ test("live checkout waits for a complete address, then applies one optionless sh
   await page.getByLabel("Last name *").fill("Buyer");
   await page.getByLabel("Street address *").fill(shippingAddress.line1);
   await page.getByLabel("Town / City *").fill(shippingAddress.city);
+  await page.getByLabel("State *").selectOption(shippingAddress.region);
   await page.getByLabel("ZIP *").fill(shippingAddress.postalCode);
 
   await expect.poll(() => shippingRequests).toHaveLength(1);
-  expect(shippingRequests[0]).toEqual({ shippingAddress });
+  expect(shippingRequests[0]).toEqual({
+    shippingAddress: { ...shippingAddress, line2: "", phone: "" },
+  });
   await expect(shipping).toBeChecked();
   await expect(page.locator(".your-order-box")).toContainText("$77.00");
 });
@@ -157,7 +160,7 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
     page.getByRole("spinbutton", { name: "Relaxed corduroy shirt quantity" }),
   ).toHaveValue("2");
 
-  await page.getByRole("button", { name: "Open preview cart" }).click();
+  await headerCart.hover();
   await expect(headerCart.locator(".cart-count")).toHaveText("2");
   await expect(headerCart.locator(".cart-item-list")).toContainText("Relaxed corduroy shirt");
   await expect(headerCart.locator(".cart-item-list")).toContainText("2 × $65.00");

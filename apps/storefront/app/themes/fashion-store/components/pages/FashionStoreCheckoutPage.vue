@@ -114,6 +114,7 @@ const shippingAddressComplete = computed(() => {
     address.line1.trim() &&
     address.city.trim() &&
     address.countryCode &&
+    address.region?.trim() &&
     address.postalCode.trim(),
   );
 });
@@ -755,9 +756,7 @@ onBeforeUnmount(() => {
                             Calculating delivery options…
                           </li>
                           <li
-                            v-for="method in isLive && !shippingAddressComplete
-                              ? []
-                              : shippingMethods"
+                            v-for="method in shippingMethods"
                             :key="method.id"
                             class="d-flex align-items-center"
                           >

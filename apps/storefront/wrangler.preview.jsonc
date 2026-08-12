@@ -21,4 +21,29 @@
     "PREVIEW_HANDOFF_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
     "PREVIEW_ORIGIN": "https://shoppp-storefront-preview.hashencode.workers.dev",
   },
+  "env": {
+    "fashion-staging": {
+      "name": "shoppp-storefront-fashion-preview",
+      "r2_buckets": [
+        {
+          "binding": "PREVIEW_ARTIFACTS",
+          "bucket_name": "shoppp-fashion-staging-preview-artifacts",
+        },
+      ],
+      "services": [
+        {
+          "binding": "PREVIEW_AUTH",
+          "service": "shoppp-api-fashion-staging",
+        },
+        {
+          "binding": "COMMERCE_API",
+          "service": "shoppp-api-fashion-staging",
+        },
+      ],
+      "vars": {
+        "PREVIEW_HANDOFF_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
+        "PREVIEW_ORIGIN": "https://shoppp-storefront-fashion-preview.hashencode.workers.dev",
+      },
+    },
+  },
 }

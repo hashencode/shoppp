@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { composeExperienceRoute } from "../app/theme-engine/composer";
+import { resolveThemeRoute } from "../app/theme-engine/routes";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
+import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 
 const appRoot = resolve(import.meta.dir, "../app");
 
@@ -10,6 +13,46 @@ async function source(path: string): Promise<string> {
 }
 
 describe("Fashion Store live commerce boundary", () => {
+  test("generates Catalog bindings that compose the deployed U13 routes", async () => {
+    const script = await import("../scripts/prepare-fashion-store-live-e2e");
+    expect(typeof script.fashionStoreLiveBuildInput).toBe("function");
+
+    const [fixtureInput, releaseFixture] = await Promise.all([
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../fixtures/experience/.generated/fashion-store-preview-input.json",
+        ),
+        "utf8",
+      ).then(JSON.parse),
+      readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8").then(JSON.parse),
+    ]);
+    const input = script.fashionStoreLiveBuildInput(
+      fixtureInput,
+      releaseFixture,
+      "https://shoppp-storefront-fashion-preview.example.test",
+    );
+
+    expect(input.snapshot.bindings).toEqual([
+      expect.objectContaining({ instanceId: "fashion-store-home", kind: "catalog" }),
+      expect.objectContaining({ instanceId: "fashion-store-collection", kind: "catalog" }),
+      expect.objectContaining({ instanceId: "fashion-store-product", kind: "catalog" }),
+    ]);
+    for (const path of ["/", "/collections/travel-essentials", "/products/atlas-carry-on"]) {
+      const route = resolveThemeRoute(path, fashionStoreThemeRoutes, input.catalogRelease, "live");
+      expect(route).toBeDefined();
+      expect(
+        composeExperienceRoute({
+          experience: input.snapshot,
+          locale: "en-US",
+          path,
+          release: input.catalogRelease,
+          route: route!,
+        }).ok,
+      ).toBe(true);
+    }
+  });
+
   test("keeps live theme surfaces on presentation view models and injected intent ports", async () => {
     const liveSources = await Promise.all([
       source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),

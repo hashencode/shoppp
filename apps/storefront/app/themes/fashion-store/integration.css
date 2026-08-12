@@ -43,6 +43,12 @@
   font-size: 17px;
 }
 
+[data-fashion-store-header] .cart-item .fashion-store-source-action.close {
+  min-width: 32px;
+  min-height: 32px;
+  line-height: 32px;
+}
+
 [data-fashion-store-product-card] .shop-hover button {
   appearance: none;
   border: 0;
