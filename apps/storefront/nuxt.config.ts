@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
 import { themeRoutePaths } from "./app/theme-engine/routes";
+import { decorThemeRoutes } from "./app/themes/decor/page-contracts";
 import { fashionStoreThemeRoutes } from "./app/themes/fashion-store/page-contracts";
 import {
   experienceBuildInputSchema,
@@ -36,10 +37,14 @@ function isLivePreviewInput(input?: ExperienceBuildInput): input is LivePreviewI
 const livePreviewInput = isLivePreviewInput(previewExperienceInput)
   ? previewExperienceInput
   : undefined;
+const selectedPreviewThemeRoutes =
+  previewExperienceInput?.environment === "preview" && previewExperienceInput.themeId === "decor"
+    ? decorThemeRoutes
+    : fashionStoreThemeRoutes;
 const previewThemeRoutes =
   livePreviewInput?.presentationMode === "live"
-    ? themeRoutePaths(fashionStoreThemeRoutes, "live", livePreviewInput.catalogRelease)
-    : themeRoutePaths(fashionStoreThemeRoutes, "fixture-preview");
+    ? themeRoutePaths(selectedPreviewThemeRoutes, "live", livePreviewInput.catalogRelease)
+    : themeRoutePaths(selectedPreviewThemeRoutes, "fixture-preview");
 const prerenderRoutes = previewBuild
   ? [...previewThemeRoutes, ...previewPlatformRoutes]
   : [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"];

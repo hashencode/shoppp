@@ -44,7 +44,7 @@ describe("source-equivalent theme policy", () => {
   test("accepts the repository policy and its explicit intentional-difference waivers", async () => {
     const policy = await loadSourceEquivalencePolicy(root);
     await expect(validateSourceEquivalencePolicy(policy, root)).resolves.toBeUndefined();
-    expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store"]);
+    expect(policy.themes.map(({ id }) => id)).toEqual(["fashion-store", "decor"]);
     expect(policy.themes[0]).toMatchObject({
       authorizedSourceRoot: "templates/Crafto - The Multipurpose HTML5 Template/html",
       equivalenceScope: [

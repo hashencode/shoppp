@@ -6,9 +6,10 @@ import {
 } from "../e2e/support/theme-fidelity-matrix";
 
 describe("theme fidelity matrix", () => {
-  test("covers the enabled Fashion Store pages at desktop/mobile and DPR 1/2", () => {
+  test("covers the enabled source-equivalent pages at desktop/mobile and DPR 1/2", () => {
     expect(() => assertFidelityMatrixComplete()).not.toThrow();
     expect(themeFidelityMatrix.map(({ id }) => id)).toEqual([
+      "decor-home",
       "fashion-store-home",
       "fashion-store-shop-left",
       "fashion-store-shop-none",
@@ -28,7 +29,7 @@ describe("theme fidelity matrix", () => {
   });
 
   test("maps the Crafto Fashion source home to Fashion Store", () => {
-    const route = themeFidelityMatrix[0]!;
+    const route = themeFidelityMatrix.find(({ id }) => id === "fashion-store-home")!;
     expect(route).toMatchObject({
       densities: [1, 2],
       id: "fashion-store-home",
@@ -52,17 +53,22 @@ describe("theme fidelity matrix", () => {
 
   test("rejects fidelity states that drift away from the behavior contract", () => {
     const missing = structuredClone(themeFidelityMatrix);
-    missing[0]!.regions.find(({ id }) => id === "collection")!.states = ["initial"];
+    const fashionHome = missing.find(({ id }) => id === "fashion-store-home")!;
+    fashionHome.regions.find(({ id }) => id === "collection")!.states = ["initial"];
     expect(() => assertFidelityMatrixComplete(missing)).toThrow(/missing behavior state/);
 
     const orphaned = structuredClone(themeFidelityMatrix);
-    orphaned[0]!.regions.find(({ id }) => id === "header")!.states.push("ghost-open");
+    const orphanedFashionHome = orphaned.find(({ id }) => id === "fashion-store-home")!;
+    orphanedFashionHome.regions.find(({ id }) => id === "header")!.states.push("ghost-open");
     expect(() => assertFidelityMatrixComplete(orphaned)).toThrow(
       /unknown behavior state ghost-open/,
     );
 
     const missingRegion = structuredClone(themeFidelityMatrix);
-    missingRegion[0]!.regions = missingRegion[0]!.regions.filter(({ id }) => id !== "collection");
+    const missingRegionFashionHome = missingRegion.find(({ id }) => id === "fashion-store-home")!;
+    missingRegionFashionHome.regions = missingRegionFashionHome.regions.filter(
+      ({ id }) => id !== "collection",
+    );
     expect(() => assertFidelityMatrixComplete(missingRegion)).toThrow(
       /fashion-store-home\/collection: behavior region is absent from the fidelity matrix/,
     );

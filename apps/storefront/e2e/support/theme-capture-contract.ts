@@ -1,8 +1,9 @@
 import { themeViewports } from "./theme-viewports";
 import type { NamedStateContract, ThemeAcceptanceMode } from "./theme-behavior-contract";
+import { decorSourceRegions } from "../../app/themes/decor/source-contract";
 
-export type CaptureThemeId = "fashion";
-export type ImplementationCaptureThemeId = "fashion-store";
+export type CaptureThemeId = "decor" | "fashion";
+export type ImplementationCaptureThemeId = "decor" | "fashion-store";
 
 export interface ThemeComparisonDescriptor {
   artifactRoots: {
@@ -60,12 +61,55 @@ export const fashionStoreComparisonDescriptor = {
   viewports: themeViewports,
 } as const satisfies ThemeComparisonDescriptor;
 
+const decorCaptureRegionIds = [
+  "clients",
+  "collection",
+  "footer",
+  "header",
+  "hero",
+  "marquee",
+] as const;
+const decorRegionById = new Map(decorSourceRegions.map((region) => [region.id, region] as const));
+const decorCaptureSelectors = Object.fromEntries(
+  decorCaptureRegionIds.map((id) => {
+    const region = decorRegionById.get(id);
+    if (!region) throw new Error(`Missing Decor source region: ${id}`);
+    return [id, { implementation: region.selector, reference: region.inventorySelector }];
+  }),
+) as ThemeComparisonDescriptor["selectors"];
+
+export const decorComparisonDescriptor = {
+  artifactRoots: {
+    implementation: "implementation/decor",
+    reference: "reference/decor",
+  },
+  densities: [1, 2],
+  id: "decor-to-decor",
+  implementationPath: "/",
+  implementationThemeId: "decor",
+  namedStates: [
+    "initial-home",
+    "hero-slide-1",
+    "hero-slide-2",
+    "hero-slide-3",
+    "collection-slide-1",
+    "scroll-progress-visible",
+  ],
+  referenceEntry: "demo-decor-store.html",
+  referenceThemeId: "decor",
+  selectors: decorCaptureSelectors,
+  viewports: themeViewports,
+} as const satisfies ThemeComparisonDescriptor;
+
 export function resolveThemeComparison(
   referenceThemeId: string,
   implementationThemeId: string,
 ): ThemeComparisonDescriptor {
   if (referenceThemeId === "fashion-store") {
     throw new Error("fashion-store is implementation-only and has no source entry filename.");
+  }
+  if (referenceThemeId === "decor" && implementationThemeId === "decor") {
+    return decorComparisonDescriptor;
   }
   if (referenceThemeId === "fashion" && implementationThemeId === "fashion-store") {
     return fashionStoreComparisonDescriptor;
@@ -192,5 +236,6 @@ export function captureModeForRegion(regionId: string): ThemeAcceptanceMode {
 export const deterministicCaptureCss = captureCssForMode("static");
 
 export const initialCarouselSelectors = {
+  decor: [".decor-hero", ".decor-collection"],
   "fashion-store": [".swiper.full-screen"],
 } as const satisfies Record<ImplementationCaptureThemeId, readonly string[]>;

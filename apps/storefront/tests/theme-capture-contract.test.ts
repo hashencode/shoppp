@@ -51,6 +51,7 @@ describe("theme capture contract", () => {
 
   test("names every autoplay carousel that must return to its initial index", () => {
     expect(initialCarouselSelectors).toEqual({
+      decor: [".decor-hero", ".decor-collection"],
       "fashion-store": [".swiper.full-screen"],
     });
   });

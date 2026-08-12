@@ -10,6 +10,13 @@ import type { PresentationViewModel } from "../../../theme-engine/view-models";
 
 interface HeroData {
   autoplayMs?: number;
+  interaction?: {
+    stopAfterLoops: number;
+    stopAtSlide: number;
+    stopLoop: boolean;
+    swipeThresholdPx: number;
+  };
+  layerTimeline?: { durationMs: number };
   slides: {
     accentAssetId: string;
     assetId: string;
@@ -21,6 +28,7 @@ interface HeroData {
     price: string;
     thumbAssetId: string;
   }[];
+  transition?: { durationMs: number };
 }
 const properties = defineProps<{
   resolveAsset: ThemeAssetResolver;
@@ -92,10 +100,33 @@ const visibleIndex = computed(() =>
     : snapshot.value.currentIndex,
 );
 const controllerReady = ref(false);
+const layerTimelineDurationMs = computed(() => data.value?.layerTimeline?.durationMs ?? 2_700);
+const transitionDurationMs = computed(() => data.value?.transition?.durationMs ?? 300);
+const swipeThresholdPx = computed(() => data.value?.interaction?.swipeThresholdPx ?? 75);
+const layerTimelineBusy = ref(true);
+const announcement = ref("");
 let controller: InteractionController | undefined;
 let unsubscribe: (() => void) | undefined;
 let reducedMotionQuery: MediaQueryList | undefined;
 let pointerStart: { id: number; x: number; y: number } | undefined;
+let layerTimelineTimer = 0;
+
+function finishLayerTimeline(): void {
+  layerTimelineBusy.value = false;
+  const slide = data.value?.slides[visibleIndex.value];
+  if (slide) {
+    announcement.value = `${slide.heading}, slide ${visibleIndex.value + 1} of ${data.value?.slides.length ?? 0}`;
+  }
+}
+function startLayerTimeline(): void {
+  window.clearTimeout(layerTimelineTimer);
+  if (reducedMotionQuery?.matches) {
+    finishLayerTimeline();
+    return;
+  }
+  layerTimelineBusy.value = true;
+  layerTimelineTimer = window.setTimeout(finishLayerTimeline, layerTimelineDurationMs.value);
+}
 
 function stateFor(index: number): "active" | "entering" | "exiting" | "inactive" {
   if (snapshot.value.phase === "transitioning") {
@@ -105,12 +136,15 @@ function stateFor(index: number): "active" | "entering" | "exiting" | "inactive"
   return index === snapshot.value.currentIndex ? "active" : "inactive";
 }
 function next(): void {
+  if (layerTimelineBusy.value) return;
   controller?.next();
 }
 function previous(): void {
+  if (layerTimelineBusy.value) return;
   controller?.previous();
 }
 function handleKey(event: KeyboardEvent): void {
+  if (layerTimelineBusy.value) return;
   if (!controller?.handleKey(event.key)) return;
   event.preventDefault();
 }
@@ -124,11 +158,15 @@ function pointerDown(event: PointerEvent): void {
 }
 function pointerUp(event: PointerEvent): void {
   if (!pointerStart || pointerStart.id !== event.pointerId) return;
+  if (layerTimelineBusy.value) {
+    pointerStart = undefined;
+    return;
+  }
   controller?.handleSwipe({
     axis: "horizontal",
     deltaX: event.clientX - pointerStart.x,
     deltaY: event.clientY - pointerStart.y,
-    threshold: 50,
+    threshold: swipeThresholdPx.value,
   });
   pointerStart = undefined;
 }
@@ -140,16 +178,22 @@ function visibilityChanged(): void {
   else controller?.resume("document-hidden");
 }
 function reducedMotionChanged(): void {
-  if (reducedMotionQuery?.matches) controller?.pause("reduced-motion");
-  else controller?.resume("reduced-motion");
+  if (reducedMotionQuery?.matches) {
+    controller?.pause("reduced-motion");
+    window.clearTimeout(layerTimelineTimer);
+    finishLayerTimeline();
+  } else controller?.resume("reduced-motion");
 }
 onMounted(() => {
   controller = createInteractionController({
     autoplayDelayMs: data.value?.autoplayMs ?? 9_000,
     count: data.value?.slides.length ?? 0,
-    transitionDurationMs: 300,
+    transitionDurationMs: transitionDurationMs.value,
   });
   unsubscribe = controller.subscribe((nextSnapshot) => {
+    if (snapshot.value.phase !== "transitioning" && nextSnapshot.phase === "transitioning") {
+      startLayerTimeline();
+    }
     snapshot.value = nextSnapshot;
   });
   reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
@@ -157,10 +201,17 @@ onMounted(() => {
   if (document.hidden) controller.pause("document-hidden");
   reducedMotionQuery.addEventListener("change", reducedMotionChanged);
   document.addEventListener("visibilitychange", visibilityChanged);
-  controller.start();
+  const interaction = data.value?.interaction;
+  const sourceStopsBeforeFirstAutoplay =
+    interaction?.stopLoop === true &&
+    interaction.stopAfterLoops === 0 &&
+    interaction.stopAtSlide === 1;
+  if (!sourceStopsBeforeFirstAutoplay) controller.start();
+  startLayerTimeline();
   controllerReady.value = true;
 });
 onBeforeUnmount(() => {
+  window.clearTimeout(layerTimelineTimer);
   unsubscribe?.();
   controller?.dispose();
   reducedMotionQuery?.removeEventListener("change", reducedMotionChanged);
@@ -181,15 +232,12 @@ onBeforeUnmount(() => {
     data-motion-autoplay-ms="9000"
     data-motion-direction="horizontal"
     data-motion-duration-ms="300"
+    :data-layer-timeline-duration-ms="layerTimelineDurationMs"
     data-motion-easing="ease-in-out"
     :data-motion-ready="controllerReady ? 'true' : 'false'"
     :data-motion-active-index="visibleIndex"
     :data-motion-paused="snapshot.pausedReasons.join(',')"
-    :data-motion-phase="snapshot.phase"
-    @mouseenter="controller?.pause('hover')"
-    @mouseleave="controller?.resume('hover')"
-    @focusin="controller?.pause('focus')"
-    @focusout="controller?.resume('focus')"
+    :data-motion-phase="layerTimelineBusy ? 'layer-timeline' : snapshot.phase"
     @keydown="handleKey"
     @pointerdown="pointerDown"
     @pointerup="pointerUp"
@@ -271,16 +319,31 @@ onBeforeUnmount(() => {
       </div>
     </article>
     <div class="decor-hero-controls">
-      <button type="button" aria-label="Previous furniture" @click="previous">
+      <button
+        type="button"
+        aria-label="Previous furniture"
+        :aria-disabled="layerTimelineBusy"
+        @click="previous"
+      >
         <ArrowLeft aria-hidden="true" :size="18" :stroke-width="1.7" /></button
       ><span
         >{{ String(visibleIndex + 1).padStart(2, "0") }} /
         {{ String(data.slides.length).padStart(2, "0") }}</span
-      ><button type="button" aria-label="Next furniture" @click="next">
+      ><button
+        type="button"
+        aria-label="Next furniture"
+        :aria-disabled="layerTimelineBusy"
+        @click="next"
+      >
         <ArrowRight aria-hidden="true" :size="18" :stroke-width="1.7" />
       </button>
     </div>
-    <button class="decor-hero-next-card" type="button" @click="next">
+    <button
+      class="decor-hero-next-card"
+      type="button"
+      :aria-disabled="layerTimelineBusy"
+      @click="next"
+    >
       <img
         :src="
           properties.resolveAsset(
@@ -303,5 +366,6 @@ onBeforeUnmount(() => {
         statement piece.</span
       >
     </div>
+    <p class="sr-only" aria-live="polite" aria-atomic="true">{{ announcement }}</p>
   </section>
 </template>

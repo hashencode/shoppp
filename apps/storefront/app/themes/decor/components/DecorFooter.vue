@@ -19,7 +19,12 @@ const p = defineProps<{ resolveAsset: ThemeAssetResolver; viewModel: Presentatio
 const cookieVisible = ref(false);
 const newsletterEmail = ref("");
 const newsletterMessage = ref("");
+const stickyActions = ref<HTMLElement | null>(null);
+const scrollProgressControl = ref<HTMLElement | null>(null);
 let cookieTimer = 0;
+let scrollFrame = 0;
+let maximumScroll = 1;
+let resizeObserver: ResizeObserver | undefined;
 const data = computed<Data | null>(() => {
   if (p.viewModel.kind === "theme-section") return p.viewModel.data as unknown as Data;
   if (p.viewModel.kind === "footer")
@@ -54,12 +59,46 @@ function submitNewsletter(): void {
     ? "Thanks for joining our newsletter."
     : "Please enter a valid email address.";
 }
+function updateScrollChrome(): void {
+  scrollFrame = 0;
+  const progress = Math.min(1, Math.max(0, window.scrollY / maximumScroll));
+  const visible = String(window.scrollY > Math.min(500, window.innerHeight * 0.6));
+  stickyActions.value?.setAttribute("data-visible", visible);
+  scrollProgressControl.value?.setAttribute("data-visible", visible);
+  scrollProgressControl.value?.setAttribute("data-progress", progress.toFixed(3));
+  scrollProgressControl.value?.style.setProperty("--decor-scroll-progress", `${progress * 360}deg`);
+}
+function handleScroll(): void {
+  if (scrollFrame) return;
+  scrollFrame = window.requestAnimationFrame(updateScrollChrome);
+}
+function refreshScrollBounds(): void {
+  maximumScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  handleScroll();
+}
+function returnToTop(): void {
+  window.scrollTo({
+    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    top: 0,
+  });
+}
 onMounted(() => {
   cookieTimer = window.setTimeout(() => {
     cookieVisible.value = !hasCookieConsent();
   }, 1_000);
+  refreshScrollBounds();
+  resizeObserver = new ResizeObserver(refreshScrollBounds);
+  resizeObserver.observe(document.documentElement);
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  window.addEventListener("resize", refreshScrollBounds, { passive: true });
 });
-onBeforeUnmount(() => clearTimeout(cookieTimer));
+onBeforeUnmount(() => {
+  clearTimeout(cookieTimer);
+  if (scrollFrame) cancelAnimationFrame(scrollFrame);
+  resizeObserver?.disconnect();
+  window.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("resize", refreshScrollBounds);
+});
 </script>
 <template>
   <footer
@@ -169,8 +208,23 @@ onBeforeUnmount(() => clearTimeout(cookieTimer));
     <a href="/policies/privacy">Cookie policy</a>
     <button type="button" @click="acceptCookies">Allow cookies</button>
   </aside>
-  <aside class="decor-sticky-actions" aria-label="Theme actions">
+  <aside
+    ref="stickyActions"
+    class="decor-sticky-actions"
+    aria-label="Theme actions"
+    data-visible="false"
+  >
     <a href="/#decor-footer">Demos</a><a href="/#decor-products">Buy theme</a>
   </aside>
-  <a class="decor-scroll-progress" href="#preview-content" aria-label="Back to top">↑</a>
+  <a
+    ref="scrollProgressControl"
+    class="decor-scroll-progress"
+    href="#preview-content"
+    aria-label="Back to top"
+    data-visible="false"
+    data-progress="0.000"
+    style="--decor-scroll-progress: 0deg"
+    @click.prevent="returnToTop"
+    >↑</a
+  >
 </template>

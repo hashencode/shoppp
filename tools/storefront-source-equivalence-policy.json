@@ -516,6 +516,44 @@
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/fashion-store/UPSTREAM.md"
+    },
+    {
+      "id": "decor",
+      "acceptance": {
+        "browserConfig": "apps/storefront/playwright.decor.config.ts",
+        "browserProject": "decor-desktop",
+        "pageCommand": ["bun", "tools/run-decor-acceptance.ts", "--scope=page", "--page={page}"],
+        "themeCommand": ["bun", "tools/run-decor-acceptance.ts", "--scope=theme"]
+      },
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "equivalenceScope": ["home"],
+      "manifestExport": "decorManifest",
+      "manifestPath": "apps/storefront/app/themes/decor/manifest.ts",
+      "pages": [
+        {
+          "acceptanceAdapterExport": "decorAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "decorBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor/behavior-contract.ts",
+          "focusedStates": [
+            { "id": "hero-slide-1", "modes": ["temporal", "interaction"] },
+            { "id": "scroll-progress-visible", "modes": ["scroll-fixed"] }
+          ],
+          "id": "home",
+          "implementationRoute": "/",
+          "implementationRuntimeReadySelector": ".decor-hero[data-motion-ready='true']",
+          "pageType": "home",
+          "requiredContractFacets": ["hero", "regions", "revealGroups", "sourceRegions"],
+          "sourceContractPath": "apps/storefront/app/themes/decor/source-contract.ts",
+          "sourceEntry": "demo-decor-store.html",
+          "sourceEntrySha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+          "sourceFirstHero": "images/demo-decor-store-slider-01-img-01.png",
+          "sourceRegionsExport": "decorSourceRegions",
+          "sourceRuntimeReadySelector": "#decor-store-slider"
+        }
+      ],
+      "upstreamPath": "apps/storefront/app/themes/decor/UPSTREAM.md"
     }
   ],
   "waivers": []

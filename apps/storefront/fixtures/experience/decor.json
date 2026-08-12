@@ -1,10 +1,10 @@
 {
-  "approvedAt": "2026-07-30T00:00:00.000Z",
+  "approvedAt": "2026-08-12T00:00:00.000Z",
   "approvedBy": "fixture-operator",
   "bindings": [
     {
       "fixtureId": "decor-home",
-      "id": "decor-header-binding",
+      "id": "decor-navigation-binding",
       "instanceId": "decor-navigation",
       "kind": "fixture",
       "resource": "header",
@@ -80,54 +80,6 @@
       "instanceId": "decor-footer",
       "kind": "fixture",
       "resource": "footer",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "decor-home",
-      "id": "decor-shop-binding",
-      "instanceId": "decor-shop",
-      "kind": "fixture",
-      "resource": "shop",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "decor-home",
-      "id": "decor-product-binding",
-      "instanceId": "decor-product",
-      "kind": "fixture",
-      "resource": "product",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "decor-cart-binding",
-      "instanceId": "decor-cart",
-      "kind": "fixture",
-      "resource": "cart",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "decor-checkout-binding",
-      "instanceId": "decor-checkout",
-      "kind": "fixture",
-      "resource": "checkout",
-      "state": "populated"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "decor-order-binding",
-      "instanceId": "decor-order",
-      "kind": "fixture",
-      "resource": "order",
-      "state": "success"
-    },
-    {
-      "fixtureId": "core-populated",
-      "id": "decor-policy-binding",
-      "instanceId": "decor-policy",
-      "kind": "fixture",
-      "resource": "policy",
       "state": "populated"
     }
   ],
