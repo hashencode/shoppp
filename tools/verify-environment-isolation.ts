@@ -12,7 +12,7 @@ interface WranglerConfig extends JsonRecord {
   env?: Partial<Record<EnvironmentName, JsonRecord>>;
 }
 
-interface EnvironmentSnapshot {
+export interface EnvironmentSnapshot {
   adminHostname: string;
   environment: EnvironmentName;
   applicationNames: string[];
@@ -20,6 +20,33 @@ interface EnvironmentSnapshot {
   endpointValues: string[];
   apiVariables: Record<string, string>;
   remoteDatabaseIdentities: string[];
+}
+
+export interface FashionEnvironmentProfile {
+  deploymentProfile: string;
+  runtimeEnvironment: string;
+  workers: {
+    api: string;
+    preview: string;
+  };
+  databaseIdentity: string;
+  storageIdentifiers: string[];
+  serviceCredentialRef: string;
+  lifecycle: {
+    resourceProvisioning: string;
+    ordinaryRuns: string;
+    credentialReplacement: string;
+  };
+  serviceBindings: {
+    PREVIEW_AUTH: {
+      service: string;
+      intent: string;
+    };
+    COMMERCE_API: {
+      service: string;
+      intent: string;
+    };
+  };
 }
 
 const ROOT = resolve(import.meta.dir, "..");
@@ -328,6 +355,107 @@ export function verifySnapshots(
       `strict release validation rejects placeholder resources: ${unique(placeholders).join(", ")}`,
     );
   }
+}
+
+export function verifyFashionEnvironmentProfile(
+  snapshots: EnvironmentSnapshot[],
+  profile: FashionEnvironmentProfile,
+): void {
+  verifySnapshots(snapshots);
+
+  assert(
+    profile.deploymentProfile === "fashion-staging",
+    "Fashion deployment profile must be fashion-staging, not a legacy or production target",
+  );
+  assert(
+    profile.runtimeEnvironment === "staging",
+    "Fashion API runtime must remain staging",
+  );
+  assert(
+    profile.lifecycle?.resourceProvisioning === "explicit-once",
+    "Fashion resource provisioning must be an explicit one-time operation",
+  );
+  assert(
+    profile.lifecycle?.ordinaryRuns === "verify-and-reuse",
+    "Fashion ordinary runs must only verify and reuse provisioned resources",
+  );
+  assert(
+    profile.lifecycle?.credentialReplacement === "security-event-or-operator",
+    "Fashion credential replacement must require a security event or operator action",
+  );
+
+  const apiWorker = profile.workers?.api;
+  const previewWorker = profile.workers?.preview;
+  assert(Boolean(apiWorker), "Fashion profile must define its API Worker identity");
+  assert(Boolean(previewWorker), "Fashion profile must define its private Preview Worker identity");
+  assert(apiWorker !== previewWorker, "Fashion API and Preview Workers must be distinct");
+  assert(Boolean(profile.databaseIdentity), "Fashion profile must define its D1 identity");
+  const databaseParts = profile.databaseIdentity.split("::");
+  assert(
+    databaseParts.length === 2 && databaseParts.every(Boolean),
+    "Fashion D1 identity must include both database ID and name",
+  );
+  assert(
+    Array.isArray(profile.storageIdentifiers) && profile.storageIdentifiers.length > 0,
+    "Fashion profile must define at least one storage identity",
+  );
+  assert(
+    profile.storageIdentifiers.every(Boolean),
+    "Fashion storage identities must not be empty",
+  );
+  assert(
+    new Set(profile.storageIdentifiers).size === profile.storageIdentifiers.length,
+    "Fashion storage identities must be unique",
+  );
+  assert(
+    Boolean(profile.serviceCredentialRef),
+    "Fashion profile must define its service credential reference",
+  );
+
+  const previewAuth = profile.serviceBindings?.PREVIEW_AUTH;
+  const commerceApi = profile.serviceBindings?.COMMERCE_API;
+  assert(isRecord(previewAuth), "Fashion profile must define PREVIEW_AUTH");
+  assert(isRecord(commerceApi), "Fashion profile must define COMMERCE_API");
+  assert(
+    previewAuth.intent === "preview-authorization",
+    "PREVIEW_AUTH must have preview-authorization intent",
+  );
+  assert(commerceApi.intent === "commerce-api", "COMMERCE_API must have commerce-api intent");
+  assert(
+    previewAuth.service === apiWorker,
+    "PREVIEW_AUTH must target the dedicated Fashion API Worker",
+  );
+  assert(
+    commerceApi.service === apiWorker,
+    "COMMERCE_API must target the dedicated Fashion API Worker",
+  );
+
+  const existingIdentities = new Set(
+    snapshots.flatMap((snapshot) => [
+      ...snapshot.applicationNames,
+      ...snapshot.resourceIdentifiers,
+      ...snapshot.endpointValues,
+      ...snapshot.remoteDatabaseIdentities,
+      ...Object.entries(snapshot.apiVariables)
+        .filter(([key]) => ID_VARIABLES.has(key))
+        .map(([, value]) => value),
+    ]),
+  );
+  const fashionIdentities = [
+    apiWorker,
+    previewWorker,
+    profile.databaseIdentity,
+    ...databaseParts,
+    ...profile.storageIdentifiers,
+    profile.serviceCredentialRef,
+  ];
+  const crossover = unique(
+    fashionIdentities.filter((identity) => existingIdentities.has(identity)),
+  );
+  assert(
+    crossover.length === 0,
+    `Fashion profile reuses an existing deployment identity: ${crossover.join(", ")}`,
+  );
 }
 
 export async function verifyEnvironmentIsolation(

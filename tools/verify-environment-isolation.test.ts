@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { loadSnapshots, verifySnapshots } from "./verify-environment-isolation";
+import {
+  loadSnapshots,
+  verifyFashionEnvironmentProfile,
+  verifySnapshots,
+} from "./verify-environment-isolation";
 
 function snapshots() {
   return [
@@ -60,6 +64,38 @@ function snapshots() {
       },
     },
   ];
+}
+
+function fashionProfile() {
+  return {
+    deploymentProfile: "fashion-staging" as const,
+    runtimeEnvironment: "staging" as const,
+    workers: {
+      api: "shoppp-api-fashion-staging",
+      preview: "shoppp-storefront-fashion-preview",
+    },
+    databaseIdentity: "fashion-db-id::shoppp-fashion-staging",
+    storageIdentifiers: [
+      "shoppp-fashion-staging-media",
+      "shoppp-fashion-staging-preview-artifacts",
+    ],
+    serviceCredentialRef: "fashion-staging-service-credential",
+    lifecycle: {
+      resourceProvisioning: "explicit-once" as const,
+      ordinaryRuns: "verify-and-reuse" as const,
+      credentialReplacement: "security-event-or-operator" as const,
+    },
+    serviceBindings: {
+      PREVIEW_AUTH: {
+        service: "shoppp-api-fashion-staging",
+        intent: "preview-authorization" as const,
+      },
+      COMMERCE_API: {
+        service: "shoppp-api-fashion-staging",
+        intent: "commerce-api" as const,
+      },
+    },
+  };
 }
 
 describe("environment isolation", () => {
@@ -194,5 +230,104 @@ describe("environment isolation", () => {
     const fixture = snapshots();
     fixture[1]!.apiVariables.TURNSTILE_TEST_MODE = "true";
     expect(() => verifySnapshots(fixture)).toThrow(/production cannot enable Turnstile test mode/);
+  });
+});
+
+describe("fashion-staging deployment profile", () => {
+  test("accepts a distinct API and private Preview profile with staging runtime semantics", () => {
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), fashionProfile())).not.toThrow();
+  });
+
+  test.each(["api", "preview"] as const)(
+    "rejects a Fashion %s Worker identity reused from legacy staging",
+    (worker) => {
+      const fixture = fashionProfile();
+      fixture.workers[worker] = snapshots()[0]!.applicationNames[0]!;
+      if (worker === "api") {
+        fixture.serviceBindings.PREVIEW_AUTH.service = fixture.workers.api;
+        fixture.serviceBindings.COMMERCE_API.service = fixture.workers.api;
+      }
+      expect(() => verifyFashionEnvironmentProfile(snapshots(), fixture)).toThrow(
+        /Fashion profile reuses an existing deployment identity/,
+      );
+    },
+  );
+
+  test("rejects Fashion D1 and storage identities reused from existing environments", () => {
+    const reusedDatabase = fashionProfile();
+    reusedDatabase.databaseIdentity = snapshots()[0]!.remoteDatabaseIdentities[0]!;
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), reusedDatabase)).toThrow(
+      /Fashion profile reuses an existing deployment identity/,
+    );
+
+    const reusedStorage = fashionProfile();
+    reusedStorage.storageIdentifiers[0] = snapshots()[1]!.resourceIdentifiers[2]!;
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), reusedStorage)).toThrow(
+      /Fashion profile reuses an existing deployment identity/,
+    );
+  });
+
+  test("rejects missing Fashion resource configuration", () => {
+    const fixture = fashionProfile();
+    fixture.storageIdentifiers = [];
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), fixture)).toThrow(
+      /Fashion profile must define at least one storage identity/,
+    );
+  });
+
+  test("rejects ordinary runs that create resources or rotate credentials", () => {
+    const createsOnDemand = fashionProfile();
+    createsOnDemand.lifecycle.ordinaryRuns = "create-if-missing" as "verify-and-reuse";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), createsOnDemand)).toThrow(
+      /ordinary runs must only verify and reuse provisioned resources/,
+    );
+
+    const automaticRotation = fashionProfile();
+    automaticRotation.lifecycle.credentialReplacement =
+      "automatic" as "security-event-or-operator";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), automaticRotation)).toThrow(
+      /credential replacement must require a security event or operator action/,
+    );
+  });
+
+  test("rejects production runtime semantics and legacy deployment targets", () => {
+    const productionRuntime = {
+      ...fashionProfile(),
+      runtimeEnvironment: "production",
+    };
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), productionRuntime)).toThrow(
+      /Fashion API runtime must remain staging/,
+    );
+
+    const legacyTarget = {
+      ...fashionProfile(),
+      deploymentProfile: "staging",
+    };
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), legacyTarget)).toThrow(
+      /deployment profile must be fashion-staging/,
+    );
+  });
+
+  test("keeps Preview authorization and Commerce calls as separate binding intents", () => {
+    const missingCommerce = fashionProfile();
+    delete (missingCommerce.serviceBindings as Partial<typeof missingCommerce.serviceBindings>)
+      .COMMERCE_API;
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), missingCommerce)).toThrow(
+      /must define COMMERCE_API/,
+    );
+
+    const wrongIntent = fashionProfile();
+    wrongIntent.serviceBindings.COMMERCE_API.intent = "preview-authorization" as "commerce-api";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), wrongIntent)).toThrow(
+      /COMMERCE_API must have commerce-api intent/,
+    );
+  });
+
+  test("rejects a binding that falls back to a legacy API Worker", () => {
+    const fixture = fashionProfile();
+    fixture.serviceBindings.COMMERCE_API.service = snapshots()[0]!.applicationNames[0]!;
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), fixture)).toThrow(
+      /COMMERCE_API must target the dedicated Fashion API Worker/,
+    );
   });
 });
