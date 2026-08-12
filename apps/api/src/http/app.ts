@@ -62,7 +62,7 @@ import {
   updateCartLine,
 } from "../cart/service";
 import { createProduct, getProduct, listProducts, updateProduct } from "../catalog/products";
-import { getLiveProduct } from "../catalog/public";
+import { getLiveProduct, getLiveProductById } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
@@ -87,6 +87,7 @@ import { adjustInventory, getInventoryHistory, listInventory } from "../inventor
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
 import {
+  getCanonicalDeployedCatalogRelease,
   listStorefrontCatalogMedia,
   listStorefrontCatalogReleases,
 } from "../storefront-experience/catalog-resources";
@@ -422,6 +423,55 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/catalog/products/by-id/:id/live", async (context) => {
+    const currency = (context.req.query("currency") ?? "USD").toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      throw new ApiError(422, "validation_failed", "Request validation failed.", [
+        { path: ["currency"], message: "Use a three-letter currency code." },
+      ]);
+    }
+    const releaseId = context.req.header("x-preview-catalog-release");
+    if (!releaseId) {
+      throw new ApiError(
+        422,
+        "catalog_release_required",
+        "A deployed Catalog Release is required for stable product lookup.",
+      );
+    }
+    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, releaseId);
+    const releaseProduct = release.products.find(
+      (product) => product.id === context.req.param("id") && product.status === "published",
+    );
+    if (!releaseProduct) {
+      throw new ApiError(
+        404,
+        "product_not_in_release",
+        "The product was not found in this Catalog Release.",
+      );
+    }
+    const product = await getLiveProductById(
+      context.env.DB,
+      releaseProduct.id,
+      currency,
+      context.env.MEDIA_PUBLIC_ORIGIN,
+    );
+    const releaseVariantIds = new Set(
+      releaseProduct.variants.filter(({ status }) => status === "active").map(({ id }) => id),
+    );
+    product.variants = product.variants.filter(({ id }) => releaseVariantIds.has(id));
+    if (product.variants.length === 0) {
+      throw new ApiError(
+        422,
+        "currency_unavailable",
+        "This release product is not sellable in the requested currency.",
+      );
+    }
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: product,
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.post("/cart", idempotency("cart.create"), async (context) => {
     const input = await parseJson(context, createCartRequestSchema);
     const cart = await createCart(context, input);
@@ -440,9 +490,13 @@ export function createApp(options: CreateAppOptions = {}) {
   app.post("/cart/lines", idempotency("cart.lines.add"), async (context) => {
     const cart = await requireCart(context);
     const input = await parseJson(context, addCartLineRequestSchema);
+    const authorizedReleaseId = context.req.header("x-preview-catalog-release");
     context.header("Cache-Control", "private, no-store");
     return context.json({
-      data: await addCartLine(context, cart, input),
+      data: await addCartLine(context, cart, {
+        ...input,
+        ...(authorizedReleaseId ? { releaseId: authorizedReleaseId } : {}),
+      }),
       meta: { requestId: context.get("requestId") },
     });
   });
@@ -958,6 +1012,12 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.preview.create"),
     async (context) => {
       const input = await parseJson(context, resolveStorefrontExperienceDraftRequestSchema);
+      if (input.catalogReleaseId) {
+        await requirePermission(context, "catalog.read", {
+          id: input.catalogReleaseId,
+          type: "catalog_release",
+        });
+      }
       const snapshot = await createStorefrontExperiencePreviewSnapshot(
         context,
         context.req.param("id"),
@@ -1078,6 +1138,12 @@ export function createApp(options: CreateAppOptions = {}) {
       type: "storefront_experience_snapshot",
     });
     const input = await parseJson(context, createStorefrontPreviewGrantRequestSchema);
+    if (input.catalogReleaseId) {
+      await requirePermission(context, "catalog.read", {
+        id: input.catalogReleaseId,
+        type: "catalog_release",
+      });
+    }
     return context.json(
       {
         data: await createStorefrontPreviewGrant(

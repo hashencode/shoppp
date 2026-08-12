@@ -90,8 +90,7 @@ export async function verifyProductCartAdd(
 ): Promise<VerifiedCartAdd | null> {
   const product = await port.revalidateProduct(request);
   if (product.availability !== "in-stock") return null;
-  const variant =
-    product.variants.find(({ id }) => id === preferredVariantId) ?? product.variants[0];
+  const variant = product.variants.find(({ id }) => id === preferredVariantId);
   if (!variant || variant.availability !== "in-stock") return null;
   return {
     input: {

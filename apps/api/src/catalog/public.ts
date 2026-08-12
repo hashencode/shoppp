@@ -30,20 +30,22 @@ interface PublicMediaRow {
   width: number;
 }
 
-export async function getLiveProduct(
+async function getLiveProductBy(
   db: D1Database,
-  slug: string,
+  lookup: { id: string } | { slug: string },
   currency: string,
   mediaOrigin: string,
 ): Promise<Product> {
   const now = new Date().toISOString();
+  const column = "id" in lookup ? "id" : "slug";
+  const value = "id" in lookup ? lookup.id : lookup.slug;
   const [productResult, variantsResult, mediaResult] = await db.batch([
     db
       .prepare(
         `SELECT id, slug, name, description, status, seo_title, seo_description
-         FROM products WHERE slug = ? AND status = 'published'`,
+         FROM products WHERE ${column} = ? AND status = 'published'`,
       )
-      .bind(slug),
+      .bind(value),
     db
       .prepare(
         `SELECT v.id, v.sku, v.title, v.option_values_json, pr.amount AS price_amount,
@@ -55,22 +57,22 @@ export async function getLiveProduct(
            JOIN products p ON p.id = v.product_id
            JOIN prices pr ON pr.variant_id = v.id
            JOIN price_lists pl ON pl.id = pr.price_list_id
-          WHERE p.slug = ? AND p.status = 'published' AND v.status = 'active'
+          WHERE p.${column} = ? AND p.status = 'published' AND v.status = 'active'
             AND pl.currency = ? AND pl.status = 'active'
             AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
             AND (pl.ends_at IS NULL OR pl.ends_at > ?)
           ORDER BY v.created_at, v.id`,
       )
-      .bind(slug, currency, now, now),
+      .bind(value, currency, now, now),
     db
       .prepare(
         `SELECT pm.id, pm.r2_key, pm.alt_text, pm.width, pm.height, pm.position
            FROM product_media pm
            JOIN products p ON p.id = pm.product_id
-          WHERE p.slug = ? AND p.status = 'published'
+          WHERE p.${column} = ? AND p.status = 'published'
           ORDER BY pm.position, pm.id`,
       )
-      .bind(slug),
+      .bind(value),
   ]);
   const product = productResult?.results[0] as PublicProductRow | undefined;
   if (!product) throw new ApiError(404, "product_not_found", "The product was not found.");
@@ -118,4 +120,22 @@ export async function getLiveProduct(
     status: product.status,
     variants: publicVariants,
   };
+}
+
+export function getLiveProduct(
+  db: D1Database,
+  slug: string,
+  currency: string,
+  mediaOrigin: string,
+): Promise<Product> {
+  return getLiveProductBy(db, { slug }, currency, mediaOrigin);
+}
+
+export function getLiveProductById(
+  db: D1Database,
+  id: string,
+  currency: string,
+  mediaOrigin: string,
+): Promise<Product> {
+  return getLiveProductBy(db, { id }, currency, mediaOrigin);
 }

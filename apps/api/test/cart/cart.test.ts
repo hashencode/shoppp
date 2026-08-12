@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { canonicalCatalogReleaseSchema } from "@shoppp/contracts";
+
 import { createApp } from "../../src/http/app";
 
 const now = "2026-07-30T00:00:00.000Z";
@@ -29,6 +31,7 @@ async function resetAndSeed(): Promise<void> {
     env.DB.prepare("DELETE FROM price_lists"),
     env.DB.prepare("DELETE FROM product_variants"),
     env.DB.prepare("DELETE FROM products"),
+    env.DB.prepare("DELETE FROM catalog_releases"),
   ]);
   await env.DB.batch([
     env.DB.prepare(
@@ -67,6 +70,69 @@ async function resetAndSeed(): Promise<void> {
   ]);
 }
 
+async function seedDeployedRelease(
+  releaseId: string,
+  productId = ids.product,
+  variantId = ids.variant,
+  variantStatus: "active" | "disabled" = "active",
+): Promise<void> {
+  const manifest = canonicalCatalogReleaseSchema.parse({
+    collections: [],
+    generatedAt: now,
+    policies: [
+      {
+        description: "Privacy policy",
+        effectiveDate: "2026-07-30",
+        sections: [{ body: "Private storefront policy.", heading: "Privacy" }],
+        slug: "privacy",
+        title: "Privacy",
+      },
+    ],
+    products: [
+      {
+        collectionIds: [],
+        collectionSlugs: [],
+        description: "Carry-on",
+        id: productId,
+        media: [],
+        name: "Atlas",
+        seoDescription: "Atlas carry-on",
+        seoTitle: "Atlas",
+        slug: "atlas-release-slug",
+        status: "published",
+        variants: [
+          {
+            id: variantId,
+            optionValues: { color: "Black" },
+            prices: [{ amount: 12_900, currency: "USD" }],
+            sku: "ATLAS-BLK",
+            status: variantStatus,
+            title: "Black",
+            weightGrams: 2_900,
+          },
+        ],
+      },
+    ],
+    redirects: [],
+    releaseId,
+    routes: ["/products/atlas-release-slug", "/policies/privacy"],
+    schemaVersion: 2,
+    site: {
+      defaultCurrency: "USD",
+      freshnessHours: 24,
+      name: "Fashion staging",
+      origin: "https://preview.example.test",
+    },
+  });
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+       (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at)
+     VALUES (?, 'deployed', ?, ?, ?, ?, ?)`,
+  )
+    .bind(releaseId, JSON.stringify(manifest), now, now, now, now)
+    .run();
+}
+
 function cartRequest(path: string, token?: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
@@ -102,7 +168,126 @@ describe("guest cart authority", () => {
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
 
+  test("resolves a live product by stable ID after its slug changes", async () => {
+    await seedDeployedRelease("release-stable-product");
+    await env.DB.prepare("UPDATE products SET slug = 'atlas-renamed' WHERE id = ?")
+      .bind(ids.product)
+      .run();
+    const response = await createApp().fetch(
+      new Request(
+        `https://api.example.test/catalog/products/by-id/${ids.product}/live?currency=USD`,
+        { headers: { "X-Preview-Catalog-Release": "release-stable-product" } },
+      ),
+      env,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: { id: ids.product, slug: "atlas-renamed", variants: [{ id: ids.variant }] },
+    });
+  });
+
+  test("binds the first deployed release and rejects foreign variants or later release changes", async () => {
+    await seedDeployedRelease("release-cart-a");
+    await seedDeployedRelease(
+      "release-cart-b",
+      "prd_01JFOREIGNPRODUCT0000000000",
+      "var_01JFOREIGNVARIANT0000000000",
+    );
+    await seedDeployedRelease("release-cart-disabled", ids.product, ids.variant, "disabled");
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-release-bound-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    const added = await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({
+          quantity: 1,
+          releaseId: "release-cart-b",
+          variantId: ids.variant,
+        }),
+        headers: {
+          "Idempotency-Key": "cart-add-release-bound-001",
+          "X-Preview-Catalog-Release": "release-cart-a",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(added.status).toBe(200);
+
+    const conflict = await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: {
+          "Idempotency-Key": "cart-add-release-conflict-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ error: { code: "cart_release_conflict" } });
+
+    const foreign = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-foreign-release-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const foreignCart = await foreign.json<{ data: { token: string } }>();
+    const rejected = await app.fetch(
+      cartRequest("/cart/lines", foreignCart.data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: {
+          "Idempotency-Key": "cart-add-foreign-variant-01",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(rejected.status).toBe(422);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "catalog_variant_not_in_release" },
+    });
+
+    const disabled = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-disabled-release-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const disabledCart = await disabled.json<{ data: { token: string } }>();
+    const disabledVariant = await app.fetch(
+      cartRequest("/cart/lines", disabledCart.data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: {
+          "Idempotency-Key": "cart-add-disabled-variant-01",
+          "X-Preview-Catalog-Release": "release-cart-disabled",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(disabledVariant.status).toBe(422);
+    expect(await disabledVariant.json()).toMatchObject({
+      error: { code: "catalog_variant_not_in_release" },
+    });
+  });
+
   test("creates, resumes, mutates, and safely replays one opaque-token cart", async () => {
+    await seedDeployedRelease("release-static-001");
     const app = createApp();
     const createdResponse = await app.fetch(
       cartRequest("/cart", undefined, {
@@ -173,6 +358,7 @@ describe("guest cart authority", () => {
   });
 
   test("makes stale price explicit and requires acknowledgement", async () => {
+    await seedDeployedRelease("stale-release");
     const app = createApp();
     const response = await app.fetch(
       cartRequest("/cart", undefined, {

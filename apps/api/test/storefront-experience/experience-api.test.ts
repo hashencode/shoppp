@@ -12,6 +12,7 @@ import releaseFixture from "../../../storefront/fixtures/release.json";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
 import { createApp } from "../../src/http/app";
+import { redactForLog } from "../../src/security/redaction";
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
@@ -110,10 +111,10 @@ async function seedPreviewCatalogRelease(id = previewCatalogRelease.releaseId): 
   const now = "2026-08-11T00:00:00.000Z";
   await env.DB.prepare(
     `INSERT INTO catalog_releases
-       (id, status, manifest_json, approved_at, created_at, updated_at)
-     VALUES (?, 'approved', ?, ?, ?, ?)`,
+       (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at)
+     VALUES (?, 'deployed', ?, ?, ?, ?, ?)`,
   )
-    .bind(id, JSON.stringify({ ...previewCatalogRelease, releaseId: id }), now, now, now)
+    .bind(id, JSON.stringify({ ...previewCatalogRelease, releaseId: id }), now, now, now, now)
     .run();
 }
 
@@ -172,6 +173,10 @@ describe("storefront experience API", () => {
       env.DB.prepare("DELETE FROM idempotency_claims"),
       env.DB.prepare("DELETE FROM audit_events"),
     ]);
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+       VALUES ('role_admin', 'catalog.read', '2026-08-04T00:00:00.000Z')`,
+    ).run();
     await seedOperator();
   });
 
@@ -266,6 +271,76 @@ describe("storefront experience API", () => {
         },
       ],
     });
+  });
+
+  test("requires catalog read permission for release discovery, direct preview, and grants", async () => {
+    await seedPreviewCatalogRelease("release-permission-parity");
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async () => ({ correlationId: "permission-parity-preview" }),
+    });
+    const created = await createDraft(app, "theme-permission-create-0001");
+    await validateDraft(app, created.body.data.id, 1, "theme-permission-validate-0001");
+    const initialPreview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+        {
+          catalogReleaseId: "release-permission-parity",
+          expectedVersion: 1,
+          reason: "Create an authorized preview before narrowing the role",
+        },
+        "theme-permission-preview-authorized-1",
+      ),
+      env,
+    );
+    expect(initialPreview.status).toBe(202);
+    const preview = await initialPreview.json<{ data: { snapshot: { id: string } } }>();
+
+    await env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = 'role_admin' AND permission_key = 'catalog.read'",
+    ).run();
+    try {
+      expect(
+        (await app.fetch(request("/admin/storefront-experiences/catalog-releases"), env)).status,
+      ).toBe(403);
+
+      const directPreview = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+          {
+            catalogReleaseId: "release-permission-parity",
+            expectedVersion: 1,
+            reason: "Reject direct release input without Catalog access",
+          },
+          "theme-permission-preview-denied-0001",
+        ),
+        env,
+      );
+      expect(directPreview.status).toBe(403);
+
+      const grant = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/snapshots/${preview.data.snapshot.id}/grants`,
+          {
+            catalogReleaseId: "release-permission-parity",
+            origin: env.PREVIEW_ORIGIN,
+            reason: "Reject grant release input without Catalog access",
+          },
+          "theme-permission-grant-denied-0001",
+        ),
+        env,
+      );
+      expect(grant.status).toBe(403);
+    } finally {
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_admin', 'catalog.read', '2026-08-04T00:00:00.000Z')`,
+      ).run();
+    }
   });
 
   test("persists catalog references as stable identifiers and validates declared fields", async () => {
@@ -1013,36 +1088,53 @@ describe("storefront experience API", () => {
     ).toEqual({ count: 2 });
   });
 
-  test("rejects a legacy Catalog Release before creating a live preview build", async () => {
+  test("rejects unavailable or non-canonical releases before creating a live preview build", async () => {
     const legacyReleaseId = "release-preview-legacy-v1";
     await seedLegacyPreviewCatalogRelease(legacyReleaseId);
+    await seedPreviewCatalogRelease("release-preview-building");
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET status = 'building' WHERE id = 'release-preview-building'",
+    ).run();
+    await seedPreviewCatalogRelease("release-preview-malformed");
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET manifest_json = ? WHERE id = 'release-preview-malformed'",
+    )
+      .bind('{"schemaVersion":2}')
+      .run();
+    await seedPreviewCatalogRelease("release-preview-identity-mismatch");
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET manifest_json = ? WHERE id = 'release-preview-identity-mismatch'",
+    )
+      .bind(JSON.stringify(previewCatalogRelease))
+      .run();
     const app = appFor();
     const created = await createDraft(app, "theme-legacy-preview-create-0001");
     await validateDraft(app, created.body.data.id, 1, "theme-legacy-preview-validate-0001");
 
-    const preview = await app.fetch(
-      writeRequest(
-        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
-        {
-          catalogReleaseId: legacyReleaseId,
-          expectedVersion: 1,
-          reason: "Reject an ID-less legacy Catalog Release",
-        },
-        "theme-legacy-preview-build-0001",
-      ),
-      env,
-    );
-
-    expect(preview.status).toBe(422);
-    expect(await preview.json()).toMatchObject({
-      error: { code: "storefront_preview_catalog_release_invalid" },
-    });
+    for (const [releaseId, code] of [
+      [legacyReleaseId, "catalog_release_unavailable"],
+      ["release-preview-building", "catalog_release_unavailable"],
+      ["release-preview-missing", "catalog_release_unavailable"],
+      ["release-preview-malformed", "catalog_release_invalid"],
+      ["release-preview-identity-mismatch", "catalog_release_invalid"],
+    ] as const) {
+      const preview = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+          {
+            catalogReleaseId: releaseId,
+            expectedVersion: 1,
+            reason: `Reject invalid Catalog Release ${releaseId}`,
+          },
+          `theme-invalid-release-${releaseId}`,
+        ),
+        env,
+      );
+      expect(preview.status).toBe(422);
+      expect(await preview.json()).toMatchObject({ error: { code } });
+    }
     expect(
-      await env.DB.prepare(
-        "SELECT COUNT(*) AS count FROM storefront_preview_builds WHERE catalog_release_id = ?",
-      )
-        .bind(legacyReleaseId)
-        .first(),
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM storefront_preview_builds").first(),
     ).toEqual({ count: 0 });
   });
 
@@ -1119,11 +1211,11 @@ describe("storefront experience API", () => {
       }),
       env,
     );
-    expect(corruptManifest.status).toBe(409);
+    expect(corruptManifest.status).toBe(422);
     expect(await corruptManifest.json()).toMatchObject({
       error: {
-        code: "storefront_preview_catalog_release_unavailable",
-        message: "The Catalog Release selected for this preview is unavailable.",
+        code: "catalog_release_invalid",
+        message: "The deployed Catalog Release is not canonical.",
       },
     });
     await env.DB.prepare("UPDATE catalog_releases SET manifest_json = ? WHERE id = ?")
@@ -1179,6 +1271,7 @@ describe("storefront experience API", () => {
     );
     expect(omittedCatalogGrant.status).toBe(409);
 
+    await seedPreviewCatalogRelease("different-release");
     const substitutedGrant = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/snapshots/${value.data.snapshot.id}/grants`,
@@ -1218,7 +1311,7 @@ describe("storefront experience API", () => {
     ).first<{ metadata_json: string }>();
     expect(JSON.parse(grantAudit!.metadata_json)).toMatchObject({
       catalogReleaseId: previewCatalogRelease.releaseId,
-      snapshotId: value.data.snapshot.id,
+      snapshotId: redactForLog(value.data.snapshot.id),
     });
     const redeem = await app.fetch(
       request("/internal/preview/redeem", {

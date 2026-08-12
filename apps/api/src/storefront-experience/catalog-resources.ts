@@ -1,6 +1,7 @@
-import { canonicalCatalogReleaseSchema } from "@shoppp/contracts";
+import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@shoppp/contracts";
 
 import type { ApiBindings } from "../http/context";
+import { ApiError } from "../http/errors";
 
 interface ReleaseRow {
   approved_at: string;
@@ -8,6 +9,45 @@ interface ReleaseRow {
   id: string;
   manifest_json: string;
   status: "deployed";
+}
+
+function parseCanonicalRelease(
+  row: Pick<ReleaseRow, "id" | "manifest_json">,
+): CanonicalCatalogRelease | null {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(row.manifest_json);
+  } catch {
+    return null;
+  }
+  const parsed = canonicalCatalogReleaseSchema.safeParse(manifest);
+  return parsed.success && parsed.data.releaseId === row.id ? parsed.data : null;
+}
+
+export async function getCanonicalDeployedCatalogRelease(
+  db: D1Database,
+  releaseId: string,
+): Promise<CanonicalCatalogRelease> {
+  const row = await db
+    .prepare(
+      `SELECT id, manifest_json
+         FROM catalog_releases
+        WHERE id = ? AND status = 'deployed'`,
+    )
+    .bind(releaseId)
+    .first<{ id: string; manifest_json: string }>();
+  if (!row) {
+    throw new ApiError(422, "catalog_release_unavailable", "Select a deployed Catalog Release.");
+  }
+  const release = parseCanonicalRelease(row);
+  if (!release) {
+    throw new ApiError(
+      422,
+      "catalog_release_invalid",
+      "The deployed Catalog Release is not canonical.",
+    );
+  }
+  return release;
 }
 
 export async function listStorefrontCatalogReleases(env: ApiBindings) {
@@ -20,18 +60,12 @@ export async function listStorefrontCatalogReleases(env: ApiBindings) {
   ).all<ReleaseRow>();
 
   return rows.results.flatMap((row) => {
-    let manifest: unknown;
-    try {
-      manifest = JSON.parse(row.manifest_json);
-    } catch {
-      return [];
-    }
-    const parsed = canonicalCatalogReleaseSchema.safeParse(manifest);
-    if (!parsed.success || parsed.data.releaseId !== row.id) return [];
+    const release = parseCanonicalRelease(row);
+    if (!release) return [];
     return [
       {
         approvedAt: row.approved_at,
-        collections: parsed.data.collections.map(({ id, name, slug }) => ({
+        collections: release.collections.map(({ id, name, slug }) => ({
           id,
           kind: "collection" as const,
           name,
@@ -40,7 +74,7 @@ export async function listStorefrontCatalogReleases(env: ApiBindings) {
         deployedAt: row.deployed_at,
         environment: env.ENVIRONMENT,
         id: row.id,
-        products: parsed.data.products.map(({ id, name, slug }) => ({
+        products: release.products.map(({ id, name, slug }) => ({
           id,
           kind: "product" as const,
           name,

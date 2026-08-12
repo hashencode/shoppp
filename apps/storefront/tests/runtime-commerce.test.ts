@@ -116,6 +116,18 @@ describe("runtime commerce presentation", () => {
     ).toBeNull();
   });
 
+  test("does not substitute the first variant when the selected stable variant disappears", async () => {
+    const runtime = toRuntimeProductState(liveProduct, "USD");
+    expect(
+      await verifyProductCartAdd(
+        { revalidateProduct: async () => runtime },
+        { currency: "USD", productId: liveProduct.id, slug: liveProduct.slug },
+        "var_01JDISAPPEARED0000000000001",
+        1,
+      ),
+    ).toBeNull();
+  });
+
   test("normalizes runtime quantities to the shared cart contract bounds", async () => {
     const runtime = toRuntimeProductState(liveProduct, "USD");
     const verified = await verifyProductCartAdd(

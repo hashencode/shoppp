@@ -1,7 +1,4 @@
-import {
-  canonicalCatalogReleaseSchema,
-  type StorefrontExperienceBuildResult,
-} from "@shoppp/contracts";
+import type { StorefrontExperienceBuildResult } from "@shoppp/contracts";
 import type { Context } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
@@ -9,6 +6,7 @@ import { ApiError } from "../http/errors";
 import { sha256Hex } from "../orders/tokens";
 import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { getStorefrontExperienceSnapshot } from "./service";
+import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
 
 export interface ExperienceBuildTriggerResult {
   readonly correlationId: string;
@@ -45,37 +43,6 @@ interface BuildRow extends PreviewInputIdentityRow {
 }
 
 const BUILD_HOOK_TIMEOUT_MS = 15_000;
-
-function parseCanonicalPreviewCatalogRelease(
-  manifestJson: string,
-  status: 409 | 422,
-  code:
-    "storefront_preview_catalog_release_invalid" | "storefront_preview_catalog_release_unavailable",
-) {
-  let manifest: unknown;
-  try {
-    manifest = JSON.parse(manifestJson);
-  } catch {
-    throw new ApiError(
-      status,
-      code,
-      status === 422
-        ? "Select a canonical Catalog Release for live preview."
-        : "The Catalog Release selected for this preview is unavailable.",
-    );
-  }
-  const parsed = canonicalCatalogReleaseSchema.safeParse(manifest);
-  if (!parsed.success) {
-    throw new ApiError(
-      status,
-      code,
-      status === 422
-        ? "Select a canonical Catalog Release for live preview."
-        : "The Catalog Release selected for this preview is unavailable.",
-    );
-  }
-  return parsed.data;
-}
 
 function mapBuild(row: BuildRow) {
   return {
@@ -218,28 +185,10 @@ export async function getStorefrontExperienceBuildManifestByBuild(
   if (!build.catalog_release_id) {
     return getStorefrontExperienceBuildManifest(context, build.snapshot_id);
   }
-  const [snapshot, releaseRow] = await Promise.all([
+  const [snapshot, catalogRelease] = await Promise.all([
     getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id),
-    context.env.DB.prepare(
-      `SELECT manifest_json
-           FROM catalog_releases
-          WHERE id = ? AND status IN ('approved', 'building', 'deployed')`,
-    )
-      .bind(build.catalog_release_id)
-      .first<{ manifest_json: string }>(),
+    getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id),
   ]);
-  if (!releaseRow) {
-    throw new ApiError(
-      409,
-      "storefront_preview_catalog_release_unavailable",
-      "The Catalog Release selected for this preview is unavailable.",
-    );
-  }
-  const catalogRelease = parseCanonicalPreviewCatalogRelease(
-    releaseRow.manifest_json,
-    409,
-    "storefront_preview_catalog_release_unavailable",
-  );
   return {
     catalogRelease,
     environment: "preview" as const,
@@ -259,25 +208,7 @@ export async function triggerStorefrontExperienceBuild(
 ) {
   const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
   if (catalogReleaseId) {
-    const release = await context.env.DB.prepare(
-      `SELECT manifest_json
-         FROM catalog_releases
-        WHERE id = ? AND status IN ('approved', 'building', 'deployed')`,
-    )
-      .bind(catalogReleaseId)
-      .first<{ manifest_json: string }>();
-    if (!release) {
-      throw new ApiError(
-        422,
-        "storefront_preview_catalog_release_invalid",
-        "Select an available Catalog Release for live preview.",
-      );
-    }
-    parseCanonicalPreviewCatalogRelease(
-      release.manifest_json,
-      422,
-      "storefront_preview_catalog_release_invalid",
-    );
+    await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId);
   }
   const existing = await context.env.DB.prepare(
     `SELECT *

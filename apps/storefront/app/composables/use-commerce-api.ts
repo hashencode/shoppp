@@ -37,6 +37,10 @@ export const useCommerceApi = () => {
     api<ApiData<Product>>(`/catalog/products/${encodeURIComponent(slug)}/live`, {
       query: { currency },
     });
+  const getLiveProductById = (id: string, currency: string) =>
+    api<ApiData<Product>>(`/catalog/products/by-id/${encodeURIComponent(id)}/live`, {
+      query: { currency },
+    });
   const getPublicRuntimeConfiguration = () =>
     api<ApiData<PublicRuntimeConfiguration>>("/platform/config");
   const createCart = (input: CreateCartRequest) =>
@@ -94,6 +98,7 @@ export const useCommerceApi = () => {
     createCheckoutSession,
     getCart,
     getLiveProduct,
+    getLiveProductById,
     getOrderAccess,
     getPublicRuntimeConfiguration,
     quoteShipping,

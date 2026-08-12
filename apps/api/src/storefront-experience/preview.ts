@@ -4,6 +4,7 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { opaqueAccessToken, sha256Hex } from "../orders/tokens";
+import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
 import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { getStorefrontExperienceSnapshot } from "./service";
 
@@ -89,6 +90,9 @@ export async function createStorefrontPreviewGrant(
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
   await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
+  if (catalogReleaseId) {
+    await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId);
+  }
   const build = await context.env.DB.prepare(
     `SELECT id, snapshot_id, artifact_digest, artifact_prefix, expires_at,
             catalog_release_id, experience_version, theme_id, theme_version,

@@ -19,6 +19,7 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { configuredTaxPort } from "../pricing/tax";
 import { loadRuntimeLaunchConfiguration } from "../settings/runtime";
+import { getCanonicalDeployedCatalogRelease } from "../storefront-experience/catalog-resources";
 
 type CartContext = Context<ApiEnvironment>;
 
@@ -516,9 +517,33 @@ export async function addCartLine(
       [{ path: ["expectedUnitPrice", "currency"], expected: cart.currency }],
     );
   }
+  const pricingContext = parsePricingContext(cart.pricing_context_json);
+  if (input.releaseId) {
+    if (pricingContext.releaseId && pricingContext.releaseId !== input.releaseId) {
+      throw new ApiError(
+        409,
+        "cart_release_conflict",
+        "This cart is already bound to another Catalog Release.",
+      );
+    }
+    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, input.releaseId);
+    const member = release.products.some(
+      (product) =>
+        product.status === "published" &&
+        product.variants.some(
+          (variant) => variant.id === input.variantId && variant.status === "active",
+        ),
+    );
+    if (!member) {
+      throw new ApiError(
+        422,
+        "catalog_variant_not_in_release",
+        "The selected variant is not available in this Catalog Release.",
+      );
+    }
+  }
   const authority = await authoritativeVariant(context.env.DB, input.variantId, cart.currency);
   assertQuantity(input.quantity, authority.available_quantity);
-  const pricingContext = parsePricingContext(cart.pricing_context_json);
   pricingContext.priceSnapshots[input.variantId] = authority.unit_price!;
   if (input.expectedUnitPrice && input.expectedUnitPrice.amount !== authority.unit_price) {
     pricingContext.pendingAdjustments = upsertAdjustment(

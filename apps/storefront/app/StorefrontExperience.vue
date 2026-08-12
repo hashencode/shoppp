@@ -62,8 +62,8 @@ const {
 const commerceApi = useCommerceApi();
 const runtimeCommercePort: RuntimeCommercePort = {
   async revalidateProduct(input) {
-    const product = (await commerceApi.getLiveProduct(input.slug, input.currency)).data;
-    if (product.id !== input.productId || product.slug !== input.slug) {
+    const product = (await commerceApi.getLiveProductById(input.productId, input.currency)).data;
+    if (product.id !== input.productId) {
       throw new Error("Commerce returned a different product than the selected Catalog Release.");
     }
     return toRuntimeProductState(product, input.currency);
