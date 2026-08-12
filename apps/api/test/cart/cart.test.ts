@@ -169,6 +169,100 @@ describe("guest cart authority", () => {
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
 
+  test("uses the same deterministic eligible price for live product and cart totals", async () => {
+    await seedDeployedRelease("release-price-parity");
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO price_lists (id, code, currency, status, created_at, updated_at) VALUES ('pl_usd_priority', 'A-USD', 'USD', 'active', ?, ?)",
+      ).bind(now, now),
+      env.DB.prepare(
+        "INSERT INTO prices (id, price_list_id, variant_id, amount, created_at, updated_at) VALUES ('price_usd_priority', 'pl_usd_priority', ?, 9900, ?, ?)",
+      ).bind(ids.variant, now, now),
+    ]);
+    const app = createApp();
+    const live = await app.fetch(
+      new Request("https://api.example.test/catalog/products/atlas/live?currency=USD"),
+      env,
+    );
+    expect(live.status).toBe(200);
+    expect(await live.json()).toMatchObject({
+      data: {
+        variants: [
+          {
+            id: ids.variant,
+            price: { amount: 9_900, currency: "USD" },
+          },
+        ],
+      },
+    });
+
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-price-parity-01" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    const added = await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({
+          expectedUnitPrice: { amount: 12_900, currency: "USD" },
+          quantity: 2,
+          releaseId: "release-price-parity",
+          variantId: ids.variant,
+        }),
+        headers: { "Idempotency-Key": "cart-add-price-parity-0001" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(added.status).toBe(200);
+    expect(await added.json()).toMatchObject({
+      data: {
+        adjustments: [expect.objectContaining({ code: "price_changed" })],
+        lines: [
+          {
+            lineTotal: { amount: 19_800, currency: "USD" },
+            unitPrice: { amount: 9_900, currency: "USD" },
+          },
+        ],
+        totals: { grandTotal: 19_800, subtotal: 19_800 },
+      },
+    });
+  });
+
+  test("keeps unavailable price-list states out of live product output", async () => {
+    const app = createApp();
+    const expectCurrencyUnavailable = async () => {
+      const response = await app.fetch(
+        new Request("https://api.example.test/catalog/products/atlas/live?currency=USD"),
+        env,
+      );
+      expect(response.status).toBe(422);
+      expect(await response.json()).toMatchObject({ error: { code: "currency_unavailable" } });
+    };
+
+    await env.DB.prepare("UPDATE price_lists SET status = 'archived' WHERE id = 'pl_usd'").run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare(
+      "UPDATE price_lists SET status = 'active', starts_at = '2099-01-01T00:00:00.000Z' WHERE id = 'pl_usd'",
+    ).run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare(
+      "UPDATE price_lists SET starts_at = NULL, ends_at = '2020-01-01T00:00:00.000Z' WHERE id = 'pl_usd'",
+    ).run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare(
+      "UPDATE price_lists SET ends_at = NULL, currency = 'EUR' WHERE id = 'pl_usd'",
+    ).run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare("UPDATE price_lists SET currency = 'USD' WHERE id = 'pl_usd'").run();
+    await env.DB.prepare("DELETE FROM prices WHERE variant_id = ?").bind(ids.variant).run();
+    await expectCurrencyUnavailable();
+  });
+
   test("resolves a live product by stable ID after its slug changes", async () => {
     await seedDeployedRelease("release-stable-product");
     await env.DB.prepare("UPDATE products SET slug = 'atlas-renamed' WHERE id = ?")

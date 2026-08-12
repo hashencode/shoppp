@@ -1138,6 +1138,113 @@ describe("storefront experience API", () => {
     ).toEqual({ count: 0 });
   });
 
+  test("allocates concurrent build attempts per exact Catalog tuple with a bounded collision failure", async () => {
+    const releaseA = "release-concurrent-build-a";
+    const releaseB = "release-concurrent-build-b";
+    const releaseC = "release-concurrent-build-c";
+    const releaseBlocked = "release-concurrent-build-blocked";
+    await Promise.all(
+      [releaseA, releaseB, releaseC, releaseBlocked].map((releaseId) =>
+        seedPreviewCatalogRelease(releaseId),
+      ),
+    );
+    const triggerCalls: string[] = [];
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async ({ buildId }) => {
+        triggerCalls.push(buildId);
+        return { correlationId: `correlation-${buildId}` };
+      },
+    });
+    const created = await createDraft(app, "theme-concurrent-build-create-0001");
+    const draftId = created.body.data.id;
+    await validateDraft(app, draftId, 1, "theme-concurrent-build-validate-0001");
+    const preview = (releaseId: string, key: string, bindings: typeof env = env) =>
+      app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${draftId}/preview`,
+          {
+            catalogReleaseId: releaseId,
+            expectedVersion: 1,
+            reason: `Build concurrent Catalog tuple ${releaseId}`,
+          },
+          key,
+        ),
+        bindings,
+      );
+
+    const identical = await Promise.all([
+      preview(releaseA, "theme-concurrent-identical-0001"),
+      preview(releaseA, "theme-concurrent-identical-0002"),
+    ]);
+    expect(identical.map(({ status }) => status)).toEqual([202, 202]);
+    const identicalBodies = await Promise.all(
+      identical.map((response) =>
+        response.json<{
+          data: { build: { attempt: number; id: string }; snapshot: { id: string } };
+        }>(),
+      ),
+    );
+    expect(new Set(identicalBodies.map(({ data }) => data.build.id)).size).toBe(1);
+    expect(triggerCalls).toHaveLength(1);
+
+    const distinct = await Promise.all([
+      preview(releaseB, "theme-concurrent-distinct-0001"),
+      preview(releaseC, "theme-concurrent-distinct-0002"),
+    ]);
+    expect(distinct.map(({ status }) => status)).toEqual([202, 202]);
+    const distinctBodies = await Promise.all(
+      distinct.map((response) =>
+        response.json<{
+          data: { build: { attempt: number; id: string }; snapshot: { id: string } };
+        }>(),
+      ),
+    );
+    expect(new Set(distinctBodies.map(({ data }) => data.build.id)).size).toBe(2);
+    expect(new Set(distinctBodies.map(({ data }) => data.build.attempt)).size).toBe(2);
+    expect(triggerCalls).toHaveLength(3);
+
+    const collisionDb = new Proxy(env.DB, {
+      get(target, property) {
+        if (property === "prepare") {
+          return (query: string) => {
+            const statement = target.prepare(query);
+            if (!query.includes("INSERT OR IGNORE INTO storefront_preview_builds")) {
+              return statement;
+            }
+            return {
+              bind: (...values: unknown[]) => {
+                statement.bind(...values);
+                return {
+                  run: async () => ({ meta: { changes: 0 } }),
+                } as unknown as D1PreparedStatement;
+              },
+            } as unknown as D1PreparedStatement;
+          };
+        }
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const collisionEnv = new Proxy(env, {
+      get(target, property) {
+        if (property === "DB") return collisionDb;
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const blocked = await preview(releaseBlocked, "theme-concurrent-blocked-0001", collisionEnv);
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toMatchObject({
+      error: { code: "storefront_preview_build_allocation_conflict" },
+    });
+    expect(triggerCalls).toHaveLength(3);
+  });
+
   test("binds a live preview build and manifest to the exact Catalog and Experience inputs", async () => {
     await seedPreviewCatalogRelease();
     const triggerCalls: Array<Record<string, string>> = [];

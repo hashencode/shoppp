@@ -55,15 +55,21 @@ async function getLiveProductBy(
                   AS available_quantity
            FROM product_variants v
            JOIN products p ON p.id = v.product_id
-           JOIN prices pr ON pr.variant_id = v.id
-           JOIN price_lists pl ON pl.id = pr.price_list_id
+           JOIN prices pr ON pr.id = (
+             SELECT eligible_price.id
+               FROM prices eligible_price
+               JOIN price_lists pl ON pl.id = eligible_price.price_list_id
+              WHERE eligible_price.variant_id = v.id
+                AND pl.currency = ? AND pl.status = 'active'
+                AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
+                AND (pl.ends_at IS NULL OR pl.ends_at > ?)
+              ORDER BY pl.code
+              LIMIT 1
+           )
           WHERE p.${column} = ? AND p.status = 'published' AND v.status = 'active'
-            AND pl.currency = ? AND pl.status = 'active'
-            AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
-            AND (pl.ends_at IS NULL OR pl.ends_at > ?)
           ORDER BY v.created_at, v.id`,
       )
-      .bind(value, currency, now, now),
+      .bind(currency, now, now, value),
     db
       .prepare(
         `SELECT pm.id, pm.r2_key, pm.alt_text, pm.width, pm.height, pm.position

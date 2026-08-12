@@ -43,6 +43,7 @@ interface BuildRow extends PreviewInputIdentityRow {
 }
 
 const BUILD_HOOK_TIMEOUT_MS = 15_000;
+const BUILD_ALLOCATION_ATTEMPTS = 4;
 
 function mapBuild(row: BuildRow) {
   return {
@@ -76,6 +77,24 @@ async function buildRow(db: D1Database, id: string): Promise<BuildRow> {
     );
   }
   return row;
+}
+
+function activeBuildForInput(
+  db: D1Database,
+  snapshotId: string,
+  catalogReleaseId?: string,
+): Promise<BuildRow | null> {
+  return db
+    .prepare(
+      `SELECT *
+         FROM storefront_preview_builds
+        WHERE snapshot_id = ? AND catalog_release_id IS ?
+          AND status IN ('deployed', 'building', 'pending')
+        ORDER BY attempt DESC
+        LIMIT 1`,
+    )
+    .bind(snapshotId, catalogReleaseId ?? null)
+    .first<BuildRow>();
 }
 
 function buildResultMatches(row: BuildRow, result: StorefrontExperienceBuildResult): boolean {
@@ -210,52 +229,57 @@ export async function triggerStorefrontExperienceBuild(
   if (catalogReleaseId) {
     await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId);
   }
-  const existing = await context.env.DB.prepare(
-    `SELECT *
-       FROM storefront_preview_builds
-      WHERE snapshot_id = ? AND catalog_release_id IS ?
-        AND status IN ('deployed', 'building', 'pending')
-      ORDER BY attempt DESC
-      LIMIT 1`,
-  )
-    .bind(snapshotId, catalogReleaseId ?? null)
-    .first<BuildRow>();
-  if (existing) return mapBuild(existing);
-
-  const latest = await context.env.DB.prepare(
-    `SELECT COALESCE(MAX(attempt), 0) AS attempt
-       FROM storefront_preview_builds
-      WHERE snapshot_id = ?`,
-  )
-    .bind(snapshotId)
-    .first<{ attempt: number }>();
-  const attempt = (latest?.attempt ?? 0) + 1;
   const inputToken = catalogReleaseId
     ? (await sha256Hex(catalogReleaseId)).slice(0, 16)
     : "fixture";
-  const buildId = `preview-build-${snapshotId.slice(-24)}-${inputToken}-${attempt}`;
-  const now = new Date().toISOString();
-  const inserted = await context.env.DB.prepare(
-    `INSERT OR IGNORE INTO storefront_preview_builds
-       (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
-        platform_contract_version, attempt, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-  )
-    .bind(
-      buildId,
-      snapshotId,
-      catalogReleaseId ?? null,
-      catalogReleaseId ? snapshot.snapshot.version : null,
-      catalogReleaseId ? snapshot.snapshot.themeId : null,
-      catalogReleaseId ? snapshot.snapshot.themeVersion : null,
-      catalogReleaseId ? snapshot.snapshot.platformContractVersion : null,
-      attempt,
-      now,
-      now,
+  let buildId: string | undefined;
+  for (let allocation = 0; allocation < BUILD_ALLOCATION_ATTEMPTS; allocation += 1) {
+    const existing = await activeBuildForInput(context.env.DB, snapshotId, catalogReleaseId);
+    if (existing) return mapBuild(existing);
+
+    const latest = await context.env.DB.prepare(
+      `SELECT COALESCE(MAX(attempt), 0) AS attempt
+         FROM storefront_preview_builds
+        WHERE snapshot_id = ?`,
     )
-    .run();
-  if (inserted.meta.changes === 0) {
-    return mapBuild(await buildRow(context.env.DB, buildId));
+      .bind(snapshotId)
+      .first<{ attempt: number }>();
+    const attempt = (latest?.attempt ?? 0) + 1;
+    const candidateId = `preview-build-${snapshotId.slice(-24)}-${inputToken}-${attempt}`;
+    const now = new Date().toISOString();
+    const inserted = await context.env.DB.prepare(
+      `INSERT OR IGNORE INTO storefront_preview_builds
+         (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
+          platform_contract_version, attempt, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+    )
+      .bind(
+        candidateId,
+        snapshotId,
+        catalogReleaseId ?? null,
+        catalogReleaseId ? snapshot.snapshot.version : null,
+        catalogReleaseId ? snapshot.snapshot.themeId : null,
+        catalogReleaseId ? snapshot.snapshot.themeVersion : null,
+        catalogReleaseId ? snapshot.snapshot.platformContractVersion : null,
+        attempt,
+        now,
+        now,
+      )
+      .run();
+    if (inserted.meta.changes > 0) {
+      buildId = candidateId;
+      break;
+    }
+
+    const identicalWinner = await activeBuildForInput(context.env.DB, snapshotId, catalogReleaseId);
+    if (identicalWinner) return mapBuild(identicalWinner);
+  }
+  if (!buildId) {
+    throw new ApiError(
+      409,
+      "storefront_preview_build_allocation_conflict",
+      "The storefront preview build could not allocate an attempt after concurrent requests.",
+    );
   }
 
   let result: ExperienceBuildTriggerResult;
