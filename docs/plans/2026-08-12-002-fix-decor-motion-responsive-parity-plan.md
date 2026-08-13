@@ -15,6 +15,12 @@ execution: code
 
 - **Objective:** Restore the Decor home page's missing source motion, correct its temporal behavior, and replace breakpoint jumps with source-shaped continuous responsive geometry.
 - **Product authority:** `demo-decor-store.html`, its adjacent source CSS/runtime, and observed source behavior are the authority. The existing Theme Engine and selected-theme build boundary remain authoritative architecture.
+- **Current relationship:** This is parallel same-product `decor-store` work. The implementation
+  currently uses the legacy internal ID `decor`; both names refer to this one template until a
+  deliberate code-ID migration. Its product-specific completion does not block Fashion Store U1 or
+  a `fashion-store`-only candidate. Cross-template regression, when requested, runs in DC3 as a
+  non-blocking compatibility observation unless `decor-store` is explicitly in the frozen Candidate
+  Template Matrix.
 - **Execution profile:** Restore a runnable Decor preview and failing acceptance seam first, implement motion and timing second, repair responsive geometry third, then close boundary/temporal gates and browser comparison.
 - **Stop conditions:** Do not import Crafto vendor JavaScript, Revolution Slider, anime.js, Swiper, or global source CSS. Stop before changing Fashion Store behavior or redesigning Decor secondary routes.
 - **Tail ownership:** The executor owns the focused plan, Decor home runtime/CSS, fixture and route wiring, focused automated gates, source comparison, and final diff review.

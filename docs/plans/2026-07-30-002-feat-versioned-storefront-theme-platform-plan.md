@@ -16,6 +16,10 @@ deepened: 2026-07-30
 
 - **Objective:** Build a versioned, schema-driven storefront theme platform and implement Fashion and Decor as its first fixture-driven theme packages without coupling them to unstable catalog, cart, checkout, inventory, or payment APIs.
 - **Product authority:** The confirmed scope in this plan governs theme structure, customization, preview, and source handling; the existing commerce plan and architecture documents continue to govern live storefront and transaction behavior.
+- **Current relationship:** This plan remains the upstream platform authority inherited by the
+  Fashion Store functional-integration plan. Later source-parity, page-suite, remediation, and Decor
+  plans extend or correct named template behavior without replacing the valid manifest, registry,
+  configuration, preview-lifecycle, and isolation contracts here.
 - **Execution profile:** Deliver the platform foundation, both themes, operator configuration, and isolated preview as dependency-ordered units while leaving the current production storefront selected and unchanged.
 - **Stop conditions:** Stop before copying Crafto assets when license or ownership is unverified, before exposing preview data publicly when authorization and cache isolation are incomplete, and before replacing current storefront routes with themes while business ViewModel contracts remain unstable.
 - **Tail ownership:** The executor owns implementation, tests, documentation, and cleanup for the fixture-driven theme platform; real commerce adapters, payment integration, production theme activation, and third-party theme uploads require follow-up plans.

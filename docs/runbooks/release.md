@@ -1,19 +1,79 @@
 # Release runbook
 
+## Planning vocabulary
+
+Shoppp uses three separate delivery states. An implementation unit (`U`) completes scoped product
+behavior. A development-candidate gate (`DC`) proves the selected capabilities together against one
+immutable candidate. A production gate (`PG`) records named human and environment authorization for
+that same candidate. A green U or DC must never be reported as production approval.
+
+The normative boundaries are in
+[`docs/architecture/delivery-units-and-candidate-gates.md`](../architecture/delivery-units-and-candidate-gates.md).
+The current candidate identity and DC/PG verdicts live in
+[`docs/progress/development-candidate-readiness.md`](../progress/development-candidate-readiness.md).
+Active feature plans own implementation status and the next concrete action. Existing progress
+documents remain retained evidence sources; the candidate ledger links plans and evidence rather
+than duplicating their unit queues.
+
+Shoppp is one product with a shared theme platform. Its current product template names are
+`fashion-store` and `decor-store`; the older `fashion` implementation is retired, while
+`decor-store` currently uses the legacy internal code ID `decor`. Template-focused plans, branches,
+worktrees, and deployment profiles do not create separate products. A candidate records its
+product-approved Candidate Template Matrix, one Activation Target, and any non-blocking
+Compatibility Observation Set separately.
+
+DC and PG are mandatory only for a build intended for production promotion. They do not gate an
+ordinary feature U, a local preview, or a development-only build. Every production promotion must
+use one immutable candidate that passed all applicable DC gates and then received every required PG
+approval; DC does not create product scope and PG does not replace engineering verification.
+
 ## Release contract
 
-Every candidate starts from a clean commit and runs:
+### Pre-DC entry conditions
+
+Do not start formal candidate validation while required product behavior or its validation
+machinery is still being implemented. Before DC1:
+
+- the intended Product Contract scope, required capabilities, and approved deferrals are explicit;
+- every required U is `Complete` in its owning active plan;
+- the Candidate Template Matrix, single Activation Target, and any Compatibility Observation Set
+  are known; and
+- the release validator can reject tracked and untracked non-ignored changes and bind the complete
+  candidate identity into its report.
+
+The current Fashion Store U13 result is a narrow topology proof. It does not replace U12 complete
+deployed-Commerce implementation or U8 test-environment acceptance. Until those units and the
+candidate-identity validator changes are complete, the command below is a local integration check,
+not formal DC1 evidence.
+
+After the entry conditions pass, every candidate starts from a clean commit and runs:
 
 ```sh
 bun run release:validate -- --release-id <release-id>
 ```
 
+This command contributes DC1 local evidence. It does not by itself satisfy the deployed-commerce,
+template-compatibility, activation-target, recovery, or production-authorization gates. Before
+running it for a formal
+candidate, record the exact commit, Product Contract revisions, required capability set, approved
+deferrals, Catalog Release, Candidate Template Matrix and versions, Activation Target, immutable
+Experience Snapshot identity and digest, platform contract, and staging environment in the
+candidate ledger. A later code, configuration, policy, fixture, migration, deployable-output, or
+normative acceptance-document change creates a new candidate or invalidates the affected DC
+evidence. An editorial-only amendment may retain the candidate only when it changes no requirement,
+security boundary, acceptance criterion, evidence meaning, owner, or invalidation rule, and the
+ledger records unchanged inputs and output digests.
+
 The command performs the locked install, formatting, lint, type, theme-contract, unit, Worker,
-admin-browser, representative-catalog, full Fashion/Decor theme-matrix, production-build,
-static-output, end-to-end, accessibility, and performance gates. It also checks
+admin-browser, representative-catalog, configured template-matrix, production-build, static-output,
+end-to-end, accessibility, and performance gates. Formal DC1 use additionally requires that the
+configured blocking matrix equals the frozen Candidate Template Matrix. Non-target cross-template
+regression runs occur in DC3 and are recorded as non-blocking observations. The command also checks
 staging/production isolation and writes `artifacts/releases/<release-id>.json` with the commit,
 individual gate outcomes, and SHA-256 digests for all three production deployable outputs and D1
-migrations. Preview artifacts and credentials are rejected from the production report.
+migrations. Preview artifacts and credentials are rejected from the production report. Until the
+Pre-DC validator work records the remaining identity fields, this report is supporting integration
+evidence rather than a complete candidate identity record.
 The build gate prebundles all three Worker entrypoints. Deployment uses those saved bundles with
 Wrangler `--no-bundle`; deploy jobs never rebuild Worker code.
 

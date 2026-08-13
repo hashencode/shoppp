@@ -1,0 +1,125 @@
+# Worktree Convergence Evidence
+
+This file records evidence for the local cleanup owned by
+`docs/plans/2026-08-13-003-refactor-worktree-convergence-plan.md`. It is not a product-U queue or a
+candidate-readiness ledger.
+
+## WTC-U1 inventory — 2026-08-13
+
+### Retained checkout
+
+| Path | HEAD / branch | State | Disposition |
+| --- | --- | --- | --- |
+| `/Users/studio/Documents/GitHub/shoppp` | `c4ebebf5`, `codex/feat-fashion-store-functional-integration` | Dirty with the current documentation revision | Retain as the one long-lived Shoppp checkout |
+
+### Removal targets
+
+| Exact path | HEAD / branch | Live state | Recovery evidence | Disposition |
+| --- | --- | --- | --- | --- |
+| `/private/tmp/shoppp-ce-review.2EvGZu/tree` | `8773f9e9`, detached | Clean | HEAD is contained by the retained Fashion branch and its remote | Remove |
+| `/private/tmp/shoppp-fashion-deploy` | `4c6dc554`, detached | Seven tracked modifications plus five untracked preview-artifact files | HEAD is contained by the retained Fashion branch and its remote; useful source/test outcomes are retained in later commits | Discard the audited dirty set, then remove |
+| `/private/tmp/shoppp-live-cart-proof.PRoMhj` | `8773f9e9`, detached | Two generated modifications plus three untracked source/test/config files | HEAD is contained by the retained Fashion branch and its remote; later retained files supersede the dirty versions | Discard the audited dirty set, then remove |
+| `/Users/studio/.codex/worktrees/7922/shoppp` | `0c2cdb86`, `codex/feat-decor-store-source-parity` | Clean | Local and remote branch point to the same HEAD; GitHub PR #6 is open and reported successful CI at audit time | Remove checkout only; retain branch, PR, commits, and Decor plan |
+
+All four targets were ordinary directories owned by `studio`, not symbolic links, at inventory time.
+The live `git worktree list --porcelain` contained exactly the retained checkout and these four
+targets. No target reported a worktree lock.
+
+The Fashion and Decor branches diverge from merge base `c089dde9`: the retained Fashion branch has
+22 unique commits and the Decor branch has 14. This cleanup does not merge, classify, or delete those
+Decor commits.
+
+### Bounded ignored-path classification
+
+The following ignored classes are reproducible and can be discarded by directory class:
+
+- root and workspace `node_modules/` directories — restored by the repository package install;
+- `.nuxt/`, `.output/`, `dist`, and `worker-dist/` — framework/build output;
+- generated collection, product, and Experience fixture directories — restored by their checked-in
+  preparation/generation scripts;
+- `test-results/` — one-run test output.
+
+Material ignored or untracked output received separate treatment:
+
+- Decor `artifacts/source-equivalence/reference-intake-u1/` contains four reference screenshots,
+  metadata, and process preflight output. It is reproducible from the tracked
+  `demo-decor-store.html` input with the capture command recorded in its preflight data. The tracked
+  source digest matches the metadata (`90a907f8...e9271`). Discard the generated capture with the
+  checkout; the Decor branch and source inputs remain.
+- Fashion deploy `artifacts/preview/` contains a one-time build input, manifest, deployment record,
+  headers, and root HTML. The retained implementation, preview configuration, and runbook are in
+  commit `363d4ed6`. Do not copy or commit this environment-bound output; discard it with the
+  checkout.
+
+### Dirty temporary-worktree comparison
+
+`shoppp-fashion-deploy` matched the approved disposition:
+
+- checkout page, integration CSS, and live-Commerce spec were byte-identical to the retained
+  checkout;
+- `StorefrontExperience.vue` differed only by formatting;
+- the Playwright configuration was an older form missing the retained preparation step;
+- active Experience/Theme files were environment-specific generated output;
+- the five preview files were the one-time artifacts described above.
+
+`shoppp-live-cart-proof.PRoMhj` matched the approved disposition:
+
+- its Playwright configuration was byte-identical to the retained checkout;
+- its live-Commerce spec and preparation script were older than the retained versions, which add
+  complete address handling, current MiniCart interaction, typed build-input construction, and
+  testable helpers;
+- active Experience/Theme files were environment-specific generated output.
+
+Relevant retained history includes `309c4bda` (live cart and shipping), `4c6dc554` (review fixes),
+and `363d4ed6` (Fashion staging preview acceptance); each is contained by the primary branch.
+
+## Removal invariant
+
+Immediately before each removal, re-check the exact path, directory/link type, ownership, worktree
+registration, HEAD/ref reachability, lock state, and porcelain/ignored content. Any new path, changed
+semantic diff, changed HEAD/ref, unexpected link, or failed removal stops the remaining cleanup.
+
+### Evidence-retention limitation
+
+The live checks classified every observed tracked, untracked, and material ignored path before the
+four removals, but the raw per-path porcelain, ignored-path, comparison, and command transcripts were
+not retained in this repository. After the dirty worktrees were removed, their exact raw manifests
+could no longer be reconstructed. The counts, material classes, semantic comparison outcomes, retained
+commit references, and post-removal topology below remain available, but they are not a substitute for
+the missing raw manifests.
+
+WTC-U1 and WTC-U2 are therefore operationally complete with limited audit replay: current topology and
+committed-history recoverability can be reverified, while the discarded uncommitted/ignored inventory
+cannot be independently replayed. Future dirty-worktree cleanup must retain the exact pre-removal
+manifests and removal command before deleting the checkout; this execution is not a reusable force-removal
+precedent.
+
+## WTC-U2 removal result — 2026-08-13
+
+The four targets were revalidated and removed one at a time with Git's worktree mechanism. The dirty
+temporary targets, and the Decor checkout containing ignored generated capture output, were removed with
+Git's force option after their approved live checks; the clean detached review checkout was removed
+normally. No command was retried with a stronger primitive after failure:
+
+| Removed checkout | Removal result | Recoverability after removal |
+| --- | --- | --- |
+| `/private/tmp/shoppp-ce-review.2EvGZu/tree` | Removed cleanly | HEAD `8773f9e9` remains in the retained Fashion branch history |
+| `/Users/studio/.codex/worktrees/7922/shoppp` | Checkout removed, including its reproducible ignored capture output | Local/remote branch `codex/feat-decor-store-source-parity` still points to `0c2cdb86`; PR #6 was not modified |
+| `/private/tmp/shoppp-fashion-deploy` | Audited dirty checkout and one-time preview output discarded, then removed | Base HEAD `4c6dc554` and all accepted implementation outcomes remain in the primary branch history |
+| `/private/tmp/shoppp-live-cart-proof.PRoMhj` | Audited superseded/generated content discarded, then removed | Base HEAD `8773f9e9` and later live-Commerce outcomes remain in the primary branch history |
+
+No removal command failed, no stronger retry was used after a removal failure, and no branch, PR,
+tag, product plan, or candidate state was deleted or promoted. The discarded uncommitted/generated
+and environment-bound artifacts cannot be recovered from Git.
+
+## WTC-U3 steady state — 2026-08-13
+
+Final enumeration contains one worktree:
+
+| Path | Role |
+| --- | --- |
+| `/Users/studio/Documents/GitHub/shoppp` | Long-lived checkout for Shoppp as a whole, including Fashion Store, Decor Store, and shared platform work |
+
+`AGENTS.md` now requires temporary worktrees to record a branch/ref, owner, purpose, and cleanup
+condition. Worktree topology does not couple the Fashion Store and Decor Store schedules, and it does
+not determine candidate scope. The active product-development pointer remains `FS-U1.1`.

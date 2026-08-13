@@ -18,6 +18,15 @@ deepened: 2026-08-06
 > experiment/isolation assumptions below. Future reconstructions must follow
 > [`docs/runbooks/source-equivalent-html-template-port.md`](../runbooks/source-equivalent-html-template-port.md).
 > The post-execution corrections in this document override conflicting pre-execution requirements.
+>
+> **Current lineage note (2026-08-13):** The “only retained storefront theme” statement above
+> records the decision at this historical milestone and is explicitly superseded by the later user
+> decision. The current product retains `fashion-store`, retires the older `fashion`
+> reimplementation for deletion, and retains Decor Store as one parallel product template named
+> `decor-store`. The current code ID `decor` refers to that same template until a deliberate ID
+> migration; it is not a separate product template. The completed Fashion Store home remains
+> inherited evidence, while current functional status is owned by
+> [`2026-08-11-001-feat-fashion-store-functional-integration-plan.md`](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 
 ## Goal Capsule
 

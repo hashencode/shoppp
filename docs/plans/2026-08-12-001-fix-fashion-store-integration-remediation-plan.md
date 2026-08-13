@@ -16,6 +16,10 @@ deepened: 2026-08-12
 
 - **Objective:** Close the ten validated Fashion Store integration defects without expanding the existing Theme Platform into a generalized gateway, recovery control plane, or production activation system.
 - **Product authority:** This remediation plan governs the reviewed defects and supersedes conflicting implementation detail in the two source plans only where this plan explicitly says so. The source plans remain authoritative for their broader product requirements.
+- **Current relationship:** This is a corrective child of the Theme Platform and Fashion Store
+  functional-integration plans, not their replacement. Its named corrections and deployed U13
+  evidence are inherited by the active functional plan; U13 remains a narrow proof and the other
+  changes do not retroactively mark broader functional units complete.
 - **Execution profile:** Correct historical plan status first, then repair the private Commerce boundary, Catalog and cart authority, storefront state, concurrency, pricing, and finally the deployed U13 acceptance gate.
 - **Stop conditions:** Stop remote U13 execution until the explicit one-time `fashion-staging` provisioning step creates and verifies the distinct Worker, isolated resources, service bindings, secrets, and least-privilege service principal. Never substitute legacy staging or production, commit invented resource identifiers, or let an ordinary staging run create or rotate long-lived infrastructure credentials.
 - **Tail ownership:** The executor owns the scoped code, focused tests, runbook changes, one-time non-production provisioning, deployed U13 evidence, and one final diff review. Production release remains separately authorized operational work; an existing write-only CI token may require one secure local user input if it cannot be rotated.

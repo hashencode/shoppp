@@ -15,6 +15,10 @@ deepened: 2026-08-07
 
 - **Objective:** Reconstruct every remaining Crafto Fashion Store source page as a source-equivalent Nuxt theme surface, while preserving the completed home page and connecting commerce-owned actions to the existing Shoppp cart and checkout boundaries.
 - **Source authority:** The HTML package under `templates/Crafto - The Multipurpose HTML5 Template/html/`, its CSS cascade, reviewed runtime behavior, original assets, and executable local pages remain authoritative in that order. Existing Vue output and screenshots are evidence, not implementation sources.
+- **Current relationship:** This plan supplies the inherited fifteen-page presentation, route,
+  interaction, and focused-QA baseline for the Fashion Store functional-integration plan. Existing
+  code and evidence are preserved, but current functional U completion is decided only by that
+  active plan's execution checkpoint and final acceptance gates.
 - **Execution profile:** Contract-first and page-incremental. For each page, establish structural, behavioral, and absence-parity evidence; prove the focused gate can fail; implement the page in source order; pass focused, page, then repository acceptance.
 - **Scope:** Preserve the existing home and add the Shop family, Collection, product detail, cart, checkout, wishlist, account, magazine index/article, about, FAQ, and contact surfaces. The three Shop layouts share one implementation but retain separate source and acceptance routes.
 - **Stop conditions:** Stop if a source entry or asset digest changes, a source behavior has no owner, a visible difference lacks approval, a page would require unreviewed upstream runtime, or commerce integration contradicts the source-equivalent presentation contract.

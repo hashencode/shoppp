@@ -8,6 +8,7 @@ artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
 execution: code
 deepened: 2026-08-12
+status: in_progress
 ---
 
 # Fashion Store Functional Integration - Plan
@@ -15,6 +16,19 @@ deepened: 2026-08-12
 ## Goal Capsule
 
 - **Objective:** Complete Fashion Store as a usable theme by connecting backend-owned commerce data, a theme-neutral Composer, one typed interaction system, bounded Experience editing, and real Fashion Store test-environment acceptance.
+- **Product authority:** The cross-border commerce Product Contract remains authoritative for
+  catalog, inventory, cart, shipping, checkout, payment, order, administration, and production
+  behavior. The Theme Platform plan remains authoritative for manifests, registries, configuration,
+  preview lifecycle, and selected-template isolation. This plan owns only their Fashion Store
+  functional integration.
+- **Inherited baseline:** The completed Fashion Store home reconstruction and HTML acceptance
+  automation are inherited as proven visual/tooling baselines. Theme Platform, complete page-suite,
+  Commerce, Admin, and functional-integration code and evidence are inherited without converting
+  unaudited work into completed U units. The deployed U13 result is inherited only as a narrow
+  private product-lookup, fresh-cart, and stable-variant-add proof.
+- **Plan relationship:** The 2026-08-12 remediation plan supersedes this plan only for the explicit
+  defects and U13 boundary it names. Decor motion/responsive parity is a parallel template
+  correction in the same Shoppp product, not a predecessor, replacement, or opposing project.
 - **Authority hierarchy:** Commerce owns product, price, inventory, cart, shipping, checkout, and order facts. Catalog Release owns immutable build-time catalog content. Experience Snapshot owns page composition and merchant-authored content. Composer maps those authorities into theme-neutral presentation models. Fashion Store owns only visuals and intent emission.
 - **Execution profile:** Freeze backend contracts; classify every interactive affordance; resolve typed routes and commerce intents; consolidate product cards; prove one real browse-to-cart slice; migrate the remaining Fashion Store surfaces; implement Admin editing and preview; then finish no-mock end-to-end acceptance on an isolated Fashion Store deployment.
 - **Stop conditions:** Stop if live rendering reads business facts from fixtures, if an active-looking control has no classified outcome, if a product link falls back to `/` or a generic product route, if Admin can persist Commerce-owned fields, if mocked browser APIs are used as final acceptance evidence, or if test evidence does not identify the exact Catalog Release and Experience input.
@@ -22,11 +36,147 @@ deepened: 2026-08-12
 
 ---
 
+## Plan Authority and Lineage
+
+The active plan inherits prior decisions and evidence instead of replacing the history. Stable
+R/F/AE/KTD/U identifiers keep their original meaning unless a later named plan explicitly revises
+that meaning. A later plan supersedes only the conflicts it names; all other upstream requirements
+and evidence remain available. The inheritance policy and completed document migration are recorded
+in the
+[Shoppp Product Master Plan](2026-08-13-001-refactor-shoppp-product-master-plan.md).
+
+| Plan or evidence source                                                                                                                         | Lineage role                         | Inherited result                                                                                                                                                                     | Current treatment                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Cross-Border DTC Commerce Platform](2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md)                                             | Product and Commerce authority       | Commerce domain boundaries, P0 journey, administration, provider, recovery, and production-separation contracts                                                                     | Inherited as product authority. Its complete release status is not inferred by this template plan.                                                                                    |
+| [Versioned Storefront Theme Platform](2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md)                                           | Theme-platform authority             | Versioned manifests, selected-template registry/build boundaries, schema configuration, approval snapshots, preview artifacts, grants, sessions, migrations, and cleanup foundations | Inherited platform baseline. Historical fixture-milestone wording does not authorize deletion of later implemented lifecycle infrastructure.                                         |
+| [Fashion and Decor Theme Fidelity](2026-07-30-003-fix-fashion-decor-theme-fidelity-plan.md) and [Source-Equivalent Fashion and Decor](2026-07-31-001-refactor-source-equivalent-fashion-decor-plan.md) | Historical visual lineage            | Fashion/Decor package, source, isolation, and visual-acceptance seams                                                                                                                | The source-equivalent plan supersedes the earlier plan's looser resemblance rules while preserving valid platform seams and historical evidence.                                     |
+| [Fashion Store Source-Parity Home](2026-08-06-001-feat-fashion-store-source-parity-plan.md)                                                     | Completed Fashion Store home baseline | Source-equivalent home, selected-template isolation, reviewed source reuse, and home verification                                                                                   | Inherited as completed historical baseline. Its former “only retained theme” statement is historical and does not define the current multi-template Shoppp product.                  |
+| [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md)                              | Completed acceptance-tooling baseline | Shared static, temporal, interaction, scroll/fixed, fallback, responsive, controlled-defect, and evidence contracts                                                                 | Inherited as completed tooling and evidence capability; later feature completion still requires the feature's own full acceptance outcomes.                                          |
+| [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md)                                                       | Presentation and route baseline       | Fifteen-page implementation, shared shell/components, route and interaction contracts, and retained focused QA evidence                                                             | Inherited as implemented code and evidence. Completion is reconciled through U4/U9/U10/U11 and the final U8 gates rather than inferred from the merge subject.                         |
+| This Functional Integration plan                                                                                                                | Current implementation authority     | Commerce/Composer/interaction/Admin/preview integration requirements and U1-U13 definitions                                                                                         | Owns current unit status, next action, remaining implementation, and the final feature-completion verdict.                                                                           |
+| [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md)                                       | Corrective child plan                | Explicit fixes to Preview/Commerce authorization, Catalog/cart identity, route composition, shipping/cart state, concurrency, pricing, and deployed U13                              | Its named corrections remain inherited. U13 is test-environment proven only in its narrow add-only scope; it cannot satisfy U12, U8, or unaudited unit outcomes.                       |
+| [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md)                                                 | Parallel same-product template work  | Decor Store preview/acceptance restoration, native motion, temporal contracts, responsive continuity, and shared regression evidence                                                 | Retained as parallel `decor-store` history. It does not block this plan, a `fashion-store`-only candidate, or Fashion Store activation. Any non-target compatibility run is a DC3 observation. |
+| [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md)                                              | Downstream candidate plan            | Pre-DC, immutable-candidate, DC, and PG vocabulary                                                                                                                                   | Blocked until this plan and every other selected active plan record their required U units complete. It does not finish product behavior.                                             |
+
+### Inherited baseline classification
+
+**Completed and inherited:**
+
+- Fashion Store source-parity home reconstruction.
+- HTML reconstruction acceptance automation and its recorded completion evidence.
+
+**Implemented or evidenced, but not yet a completion verdict:**
+
+- Commerce and Theme Platform foundations used by this integration.
+- The Fashion Store complete page suite and focused interaction QA.
+- Existing U1, U2, U9, U10, U3, U11, U4, and U7 code and tests.
+- The non-U13 remediation changes that overlap those units.
+
+**Narrow proof inherited without scope expansion:**
+
+- U13's isolated preview identity, live product lookup, fresh cart, and one stable-variant add.
+
+**Revised or deferred:**
+
+- Earlier wording that treated `fashion-store` as the only retained storefront is superseded by
+  the 2026-08-13 product decision: retain `fashion-store`, retire and delete the older `fashion`
+  implementation, and retain Decor Store under the product name `decor-store`. The current code ID
+  `decor` is a legacy implementation identity to migrate deliberately, not a separate template.
+- Production activation, production traffic, monitoring, rollback execution, and legacy cleanup
+  remain outside this feature plan and follow candidate and production gates.
+
+This classification preserves prior work while preventing code presence, a merge subject, a
+focused QA result, or a narrow deployed probe from silently satisfying a broader unit.
+
+---
+
+## Execution Checkpoint
+
+This plan is the single implementation-status authority for Fashion Store functional integration.
+It is **in progress**, not candidate-ready. Commit subjects, partial green suites, and the deployed
+U13 add-only probe do not establish overall completion.
+
+- **Current unit:** U1 — shared functional contracts.
+- **Current sub-stage:** U1.1 — reconcile existing implementation and evidence against the complete
+  U1 outcome and verification contract. This is an audit of already implemented work, not a reset
+  to zero.
+- **Next concrete action:** Finish U1.1. If gaps exist, enter U1.2 and implement only those gaps;
+  otherwise advance directly to U1.3, run focused verification, and record U1 `Complete`.
+- **Next unit:** U2 reconciliation, followed by U9, U10, U3, U11, U4, and U7 in dependency order.
+- **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
+  selected product scope enter DC1.
+- **Last reviewed:** 2026-08-13 at commit `c4ebebf5`; the working tree contains uncommitted
+  documentation amendments and is not a candidate identity.
+
+This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
+same-product template work and does not block this plan or a `fashion-store`-only candidate. The
+older `fashion` implementation is retired. A focused plan, branch, worktree, or deployment profile
+does not create a separate product.
+
+### Unit status
+
+Status vocabulary:
+
+- **Not audited:** Code may exist, but the unit has not been reconciled against its complete outcome
+  and verification contract.
+- **Initial implementation:** Substantial behavior or tests exist, but completion evidence is
+  incomplete or narrower than the unit.
+- **Locally complete:** The unit's observable behavior and focused local verification are recorded.
+- **Test-environment proven:** The unit's required real non-production journey is recorded against
+  exact immutable inputs.
+- **Complete:** The parent U's complete observable outcome and focused verification are recorded.
+  This is the only terminal U status consumed by Pre-DC.
+
+Execution sub-stage vocabulary:
+
+- **Ux.1 — Reconcile:** Compare existing code and retained evidence with the parent U contract.
+- **Ux.2 — Close gaps:** Implement only the missing behavior found by Ux.1. Skip this child stage
+  when reconciliation finds no gap.
+- **Ux.3 — Verify and close:** Run the parent U's focused verification and record the parent U as
+  `Complete`.
+
+Decimal child stages are execution labels beneath the stable parent U. They clarify the next action
+without renumbering requirements, discarding prior work, or creating separate DC completion units.
+
+| Unit                                      | Status                                | Current evidence                                                                                                                                                                                              | Required next result                                                                                                                                                                                                                                                                          |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1 — shared functional contracts          | Current — U1.1 reconciliation        | Shared Catalog, Experience, presentation, and stable-reference contracts are implemented with tests.                                                                                                          | Complete U1.1; run U1.2 only for confirmed gaps; then finish U1.3 and mark parent U1 `Complete` before advancing to U2.                                                                                                                                                                        |
+| U2 — Composer and provider split          | Not audited                           | Fixture and live composition paths, immutable inputs, and boundary tests exist.                                                                                                                               | Reconcile every U2 composition, missing-reference, and no-fixture-fallback scenario.                                                                                                                                                                                                          |
+| U13 — private transaction topology        | Complete — test-environment proven    | The isolated preview workflow verifies exact input identity, redeems a grant, reads a live product, creates a fresh cart, and performs one stable-variant add through separate Preview and Commerce bindings. | Retain as completion of the narrow parent U13 only; it cannot satisfy U12 or U8. Rerun later only when the owning surface or candidate identity requires it.                                                                                                                                   |
+| U9 — interaction ledger                   | Not audited                           | Typed routes, actions, behavior contracts, and interaction tests exist.                                                                                                                                       | Reconcile every rendered affordance, fallback, breakpoint, input mode, and named evidence row.                                                                                                                                                                                                |
+| U10 — live Home and product card          | Not audited                           | Live Home composition and shared product-card implementation exist with focused tests.                                                                                                                        | Reconcile the complete Home composition and representative product-card outcome matrix.                                                                                                                                                                                                       |
+| U3 — real-Commerce vertical slice         | Initial implementation                | Live catalog, cart, shipping, checkout UI, and payment-return foundations exist.                                                                                                                              | Prove the complete browse-to-order and authoritative payment-return behavior defined by U3 without fixture success.                                                                                                                                                                           |
+| U11 — full-site interaction migration     | Not audited                           | Shared product-card and route interaction work exists across supported pages.                                                                                                                                 | Reconcile the full interaction ledger, destination consistency, and zero-placeholder/no-op audit.                                                                                                                                                                                             |
+| U4 — routes and truthful page states      | Not audited                           | Route, page-state, static, SEO, and page-suite evidence exists.                                                                                                                                               | Reconcile all live-data, missing, empty, unavailable, and no-JavaScript states against U4.                                                                                                                                                                                                     |
+| U7 — bounded Experience editing           | Initial implementation                | Admin schema editing, resource selection, concurrency, approval, and preview tests exist.                                                                                                                     | Complete and record the representative operator task, migration, conflict, accessibility, approval, and private-preview evidence.                                                                                                                                                             |
+| U12 — complete deployed Commerce journey  | Initial implementation                | The private Commerce bridge and add-only staging topology exist.                                                                                                                                              | Implement and prove the no-mock single-variant, multi-variant, and unavailable journeys; complete checkout and payment-return states; enforce proxy, webhook, CSP, redaction, acceptance lock, inventory baseline, cleanup, interrupted-run reconciliation, and fresh-session postconditions. |
+| U8 — complete test-environment acceptance | Initial implementation                | Local page, Admin, accessibility, performance, scale, and staging foundations exist.                                                                                                                          | Run the complete route, Admin, security, responsive, accessibility, no-JavaScript, recovery, latency, scale, and live-Commerce matrix against exact approved inputs after U12 completes.                                                                                                      |
+
+### Checkpoint update discipline
+
+- Update this checkpoint in the same change that moves a unit between statuses, changes the current
+  or next unit, discovers a blocker that changes execution order, or completes the plan.
+- Do not rewrite it for an internal fix that leaves the unit and next action unchanged; attach any
+  new test, deployment, or run evidence to the relevant evidence document or unit references.
+- A commit subject or branch name is supporting trace, never completion authority. A focused or
+  deployed probe cannot satisfy a broader unit whose declared outcomes it does not exercise.
+- `docs/progress/` stores retained evidence. It is not a second implementation-status authority.
+- Candidate readiness is updated only after this plan becomes complete or its eligibility for DC
+  otherwise changes; DC reruns completed machinery against a frozen candidate rather than finishing
+  product behavior.
+
+---
+
 ## Product Contract
 
 ### Summary
 
-Use Fashion Store as the first fully integrated theme without waiting for Decor Store. Keep fixtures as deterministic design-QA input and make backend contracts the only source of business truth. Add a theme-neutral composition layer that resolves an Experience Snapshot against an immutable Catalog Release, while runtime Commerce APIs revalidate mutable transaction state.
+Complete Fashion Store first in the implementation sequence without making `decor-store` completion a
+dependency for this plan. Both remain templates in the same Shoppp product and may share platform
+changes. Keep fixtures as deterministic design-QA input and make backend contracts the only source
+of business truth. Add a theme-neutral composition layer that resolves an Experience Snapshot
+against an immutable Catalog Release, while runtime Commerce APIs revalidate mutable transaction
+state.
 
 ### Problem Frame
 
@@ -70,8 +220,13 @@ The current milestone is functional completion, not production release. It must 
 
 #### Theme selection and quality
 
-- R20. `fashion-store` is the first fully integrated theme, and Decor Store visual or page-suite acceptance is not a dependency.
-- R21. A deployable Fashion Store build includes only the selected theme and excludes fixtures, preview credentials, inactive-theme assets, and upstream Crafto `main.js`.
+- R20. `fashion-store` is the first template completed by this integration sequence. `decor-store`
+  visual, motion, responsive, or page-suite acceptance is not a dependency for this plan and does
+  not block a `fashion-store`-only candidate. Formal cross-template regression belongs to DC3 and
+  remains non-blocking unless the frozen candidate explicitly includes `decor-store` in its
+  Candidate Template Matrix.
+- R21. A deployable Fashion Store activation-target build includes only that template and excludes
+  fixtures, preview credentials, inactive-template assets, and upstream Crafto `main.js`.
 - R22. Fashion Store retains source-parity, accessibility, static-content, security, bundle, performance, scale, and staging-commerce gates.
 - R23. Existing approved fixture-era snapshots remain traceable but require migration and re-approval before live-data preview or test-environment acceptance.
 - R25. Operator preview preserves origin isolation, short-lived one-time grants, secure session cookies, cache and indexing exclusion, expiry, revocation, and replay prevention.
@@ -205,7 +360,7 @@ The current milestone is functional completion, not production release. It must 
 
 - AE8. **Decor non-blocking**
   - **Covers:** R20-R22.
-  - **Given:** Decor Store has an incomplete visual acceptance result.
+  - **Given:** `decor-store` has an incomplete visual acceptance result.
   - **When:** Fashion Store test acceptance runs.
   - **Then:** Decor visual parity does not block Fashion Store, while shared contract and inactive-theme isolation failures still block it.
 
@@ -321,9 +476,14 @@ The current milestone is functional completion, not production release. It must 
 - Production-domain smoke tests, production traffic validation, and post-deployment observation; these begin only after this feature plan is complete and a separate release decision is approved.
 - A persistent `StorefrontRelease` aggregate, release candidate lifecycle, build callback protocol, or release-specific machine credentials.
 
-#### Outside This Product's Identity
+#### Outside This Plan's Scope
 
-- Decor Store visual completion or a second-theme rollout.
+- `decor-store` visual completion or activation work. It is parallel same-product work and does not
+  block this plan or a `fashion-store`-only candidate; non-target compatibility observations belong
+  to DC3.
+- Deleting the retired `fashion` code package or migrating the current internal `decor` ID to the
+  product identity `decor-store`. Those are explicit template-lifecycle implementation tasks, not
+  hidden work inside a Fashion Store functional U.
 - A freeform page builder, arbitrary HTML, CSS, JavaScript, or third-party theme uploads.
 - New account persistence, wishlist persistence, coupon engine, review system, blog CMS, newsletter service, contact backend, or payment method.
 - Replacing Commerce, cart, checkout, payment, order, or catalog domains.
@@ -353,7 +513,7 @@ The current milestone is functional completion, not production release. It must 
 ### Key Technical Decisions
 
 - KTD1. Keep Commerce and shared runtime-validated contracts upstream of the Composer. Mappers translate them into Presentation ViewModels outside theme packages. (session-settled: user-directed — chosen over deriving backend contracts from Fashion fixtures: Commerce remains the authority and fixtures remain QA-only.) Governs R1-R5.
-- KTD2. Use the existing `fashion-store` ID as the first fully integrated theme. Decor parity is not part of its acceptance matrix. (session-settled: user-directed — chosen over Decor-gated sequencing: Fashion Store already provides the complete page suite.) Governs R20-R23.
+- KTD2. Use the existing `fashion-store` ID as the first fully integrated theme. `decor-store` parity is not part of its acceptance matrix. (session-settled: user-directed — chosen over Decor-gated sequencing: Fashion Store already provides the complete page suite.) Governs R20-R23.
 - KTD3. Maintain two rendering providers: deterministic `fixture-preview` and Composer-backed `live`. Operator draft preview uses `live` with a private draft input. Governs R2, R3, R18, R21.
 - KTD4. Move the immutable Catalog Release document to a shared contract and add stable product and collection IDs before resource resolution. Governs R3, R5, R6, R32.
 - KTD5. Keep build-time catalog content and runtime Commerce state as separate data paths. Cart and checkout never accept built price or inventory as authority. Governs R1, R6-R8.
