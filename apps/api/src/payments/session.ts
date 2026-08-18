@@ -49,7 +49,9 @@ function checkoutUrls(env: ApiEnvironment["Bindings"]): { cancelUrl: string; suc
     env.PAYMENT_SUCCESS_URL ??
       `${storefront.origin}/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
   );
-  const cancelUrl = new URL(env.PAYMENT_CANCEL_URL ?? `${storefront.origin}/checkout`);
+  const cancelUrl = new URL(
+    env.PAYMENT_CANCEL_URL ?? `${storefront.origin}/checkout/complete?return=canceled`,
+  );
   if (
     successUrl.origin !== storefront.origin ||
     cancelUrl.origin !== storefront.origin ||

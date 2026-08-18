@@ -155,11 +155,22 @@ export const experienceFixtureRegistry = {
         heading: "Atlas carry-on",
         kind: "product",
         media: [media],
+        optionGroups: [
+          {
+            name: "size",
+            values: ["Cabin", "Checked"],
+          },
+        ],
         priceLabel: "$129 fixture price",
         state: "populated",
         variants: [
-          { id: "cabin", label: "Cabin", selected: true },
-          { id: "checked", label: "Checked", selected: false },
+          { id: "cabin", label: "Cabin", optionValues: { size: "Cabin" }, selected: true },
+          {
+            id: "checked",
+            label: "Checked",
+            optionValues: { size: "Checked" },
+            selected: false,
+          },
         ],
       },
       cart: {

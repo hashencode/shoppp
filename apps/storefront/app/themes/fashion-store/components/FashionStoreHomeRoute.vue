@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
-import FashionStoreLiveCatalog from "./shared/FashionStoreLiveCatalog.vue";
-
 const FashionStoreFixtureHome = defineAsyncComponent(() => import("./FashionStoreHome.vue"));
+const FashionStoreLiveHome = defineAsyncComponent(() => import("./FashionStoreLiveHomePage.vue"));
 
 defineProps<{
   resolveAsset: ThemeAssetResolver;
@@ -12,9 +11,8 @@ defineProps<{
 </script>
 
 <template>
-  <FashionStoreLiveCatalog
-    v-if="viewModel.kind === 'collection-grid'"
-    page="home"
+  <FashionStoreLiveHome
+    v-if="viewModel.kind === 'home'"
     :resolve-asset="resolveAsset"
     :view-model="viewModel"
   />

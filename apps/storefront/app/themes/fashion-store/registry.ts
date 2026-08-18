@@ -6,7 +6,9 @@ import "./upstream/demos/fashion-store/fashion-store.css";
 import "./integration.css";
 import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import FashionStoreHomeRoute from "./components/FashionStoreHomeRoute.vue";
+import { fashionStoreCompositionAdapter } from "./composition";
+import FashionStoreLiveHomePage from "./components/FashionStoreLiveHomePage.vue";
+import FashionStoreShell from "./components/shared/FashionStoreShell.vue";
 import { fashionStoreThemeRoutes } from "./page-contracts";
 import { themeAssets } from "./resources";
 
@@ -17,19 +19,21 @@ const FashionStoreCartPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreCartPage.vue"),
 );
 const FashionStoreCollectionPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreCollectionPage.vue"),
+  () => import("./components/pages/FashionStoreLiveCollectionPage.vue"),
 );
 const FashionStoreContentPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreContentRoute.vue"),
+  () => import("./components/pages/FashionStoreLiveContentPage.vue"),
 );
 const FashionStoreProductPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreProductRoute.vue"),
+  () => import("./components/pages/FashionStoreLiveProductPage.vue"),
 );
 
 export const themeRegistry = {
   blocks: {},
+  composition: fashionStoreCompositionAdapter,
+  platformShell: FashionStoreShell,
   sections: {
-    "fashion-store.home": FashionStoreHomeRoute,
+    "fashion-store.home": FashionStoreLiveHomePage,
     "fashion-store.cart": FashionStoreCartPage,
     "fashion-store.checkout": FashionStoreCheckoutPage,
     "fashion-store.collection": FashionStoreCollectionPage,

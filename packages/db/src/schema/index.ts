@@ -341,6 +341,68 @@ export const inventoryItems = sqliteTable(
   ],
 );
 
+export const fashionStagingAcceptanceRuns = sqliteTable(
+  "fashion_staging_acceptance_runs",
+  {
+    runId: text("run_id").primaryKey(),
+    environment: text("environment", { enum: ["fashion-staging"] }).notNull(),
+    owner: text("owner").notNull(),
+    namespace: text("namespace").notNull().unique(),
+    status: text("status", {
+      enum: ["acquired", "running", "cleanup_pending", "completed", "failed"],
+    }).notNull(),
+    catalogReleaseId: text("catalog_release_id").notNull(),
+    experienceSnapshotId: text("experience_snapshot_id").notNull(),
+    artifactDigest: text("artifact_digest").notNull(),
+    commitSha: text("commit_sha").notNull(),
+    seedManifestDigest: text("seed_manifest_digest").notNull(),
+    variantId: text("variant_id").notNull(),
+    warehouseId: text("warehouse_id").notNull(),
+    baselineOnHandQuantity: integer("baseline_on_hand_quantity").notNull(),
+    baselineReservedQuantity: integer("baseline_reserved_quantity").notNull(),
+    baselineBackorderedQuantity: integer("baseline_backordered_quantity").notNull(),
+    baselineOversellLimit: integer("baseline_oversell_limit").notNull(),
+    leaseExpiresAt: text("lease_expires_at").notNull(),
+    journeyFailure: text("journey_failure"),
+    cleanupFailure: text("cleanup_failure"),
+    beforeInventoryJson: text("before_inventory_json").notNull(),
+    afterInventoryJson: text("after_inventory_json"),
+    retainedOrderReferencesJson: text("retained_order_references_json").notNull().default("[]"),
+    cleanupStartedAt: text("cleanup_started_at"),
+    completedAt: text("completed_at"),
+    ...timestamps,
+  },
+  (table) => [
+    index("fashion_staging_acceptance_status_lease_idx").on(
+      table.status,
+      table.leaseExpiresAt,
+      table.runId,
+    ),
+  ],
+);
+
+export const fashionStagingAcceptanceResources = sqliteTable(
+  "fashion_staging_acceptance_resources",
+  {
+    runId: text("run_id")
+      .notNull()
+      .references(() => fashionStagingAcceptanceRuns.runId, { onDelete: "restrict" }),
+    resourceType: text("resource_type", {
+      enum: ["cart", "checkout_attempt", "reservation_group", "reservation", "order"],
+    }).notNull(),
+    resourceId: text("resource_id").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.runId, table.resourceType, table.resourceId] }),
+    index("fashion_staging_acceptance_resource_lookup_idx").on(
+      table.resourceType,
+      table.resourceId,
+      table.runId,
+    ),
+  ],
+);
+
 export const inventoryReservations = sqliteTable(
   "inventory_reservations",
   {
@@ -869,6 +931,9 @@ export const storefrontExperienceDrafts = sqliteTable(
 export const storefrontExperienceValidations = sqliteTable(
   "storefront_experience_validations",
   {
+    catalogReleaseId: text("catalog_release_id").references(() => catalogReleases.id, {
+      onDelete: "restrict",
+    }),
     id: text("id").primaryKey(),
     draftId: text("draft_id")
       .notNull()
@@ -881,10 +946,12 @@ export const storefrontExperienceValidations = sqliteTable(
     createdAt: text("created_at").notNull(),
   },
   (table) => [
-    uniqueIndex("storefront_experience_validations_draft_version_unique").on(
-      table.draftId,
-      table.draftVersion,
-    ),
+    uniqueIndex("storefront_experience_validations_draft_version_unique")
+      .on(table.draftId, table.draftVersion)
+      .where(sql`${table.catalogReleaseId} IS NULL`),
+    uniqueIndex("storefront_experience_validations_draft_version_catalog_unique")
+      .on(table.draftId, table.draftVersion, table.catalogReleaseId)
+      .where(sql`${table.catalogReleaseId} IS NOT NULL`),
     check("storefront_experience_validations_version_positive", sql`${table.draftVersion} > 0`),
   ],
 );
@@ -940,6 +1007,7 @@ export const storefrontExperienceSnapshots = sqliteTable(
     themeVersion: text("theme_version").notNull(),
     configurationSchemaVersion: integer("configuration_schema_version").notNull(),
     snapshotJson: text("snapshot_json").notNull(),
+    contentDigest: text("content_digest"),
     createdBy: text("created_by").notNull(),
     approvedBy: text("approved_by"),
     approvedAt: text("approved_at"),
@@ -964,6 +1032,7 @@ export const storefrontPreviewBuilds = sqliteTable(
     themeId: text("theme_id"),
     themeVersion: text("theme_version"),
     platformContractVersion: text("platform_contract_version"),
+    mediaOriginsJson: text("media_origins_json"),
     attempt: integer("attempt").notNull(),
     status: text("status", {
       enum: ["pending", "building", "deployed", "failed", "expired"],
@@ -1008,10 +1077,17 @@ export const storefrontPreviewGrants = sqliteTable(
     origin: text("origin").notNull(),
     expiresAt: text("expires_at").notNull(),
     redeemedAt: text("redeemed_at"),
+    revokedAt: text("revoked_at"),
     createdBy: text("created_by").notNull(),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("storefront_preview_grants_expiry_idx").on(table.expiresAt, table.redeemedAt)],
+  (table) => [
+    index("storefront_preview_grants_expiry_idx").on(table.expiresAt, table.redeemedAt),
+    index("storefront_preview_grants_snapshot_revocation_idx").on(
+      table.snapshotId,
+      table.revokedAt,
+    ),
+  ],
 );
 
 export const storefrontPreviewSessions = sqliteTable(
@@ -1027,7 +1103,14 @@ export const storefrontPreviewSessions = sqliteTable(
     sessionDigest: text("session_digest").notNull().unique(),
     origin: text("origin").notNull(),
     expiresAt: text("expires_at").notNull(),
+    revokedAt: text("revoked_at"),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("storefront_preview_sessions_expiry_idx").on(table.expiresAt)],
+  (table) => [
+    index("storefront_preview_sessions_expiry_idx").on(table.expiresAt),
+    index("storefront_preview_sessions_snapshot_revocation_idx").on(
+      table.snapshotId,
+      table.revokedAt,
+    ),
+  ],
 );

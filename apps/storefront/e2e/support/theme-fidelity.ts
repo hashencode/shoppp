@@ -128,7 +128,7 @@ async function resetInitialCarousels(
   page: Page,
   themeId: ImplementationCaptureThemeId,
 ): Promise<void> {
-  if (themeId === "fashion" || themeId === "fashion-store") {
+  if (themeId === "fashion-store") {
     const firstSlide = page.getByRole("button", { name: "Show slide 1" });
     await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
     await expect(page.locator(initialCarouselSelectors[themeId][0])).toHaveAttribute(

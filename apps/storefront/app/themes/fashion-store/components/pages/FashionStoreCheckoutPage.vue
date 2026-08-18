@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import type { Cart, ShippingMethodQuote, ShippingQuoteRequest } from "@shoppp/contracts";
-
 import CheckoutAddress from "~/features/checkout/address.vue";
 import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
-import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
+import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
+import {
+  storefrontCheckoutAdapterKey,
+  type StorefrontShippingMethodQuote,
+  type StorefrontShippingQuoteRequest,
+} from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
-import type { FashionStoreCheckoutData } from "../../fixtures/pages/checkout";
+import type { FashionStoreLegacyCheckoutData } from "../../contracts/checkout";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
@@ -22,7 +24,7 @@ const properties = defineProps<{
 const isLive = computed(() => properties.viewModel.kind === "checkout");
 const initialFixtureData =
   properties.viewModel.kind === "theme-section"
-    ? (properties.viewModel.data as unknown as FashionStoreCheckoutData)
+    ? (properties.viewModel.data as unknown as FashionStoreLegacyCheckoutData)
     : undefined;
 const fixtureLinesByVariant = new Map(
   (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
@@ -30,7 +32,7 @@ const fixtureLinesByVariant = new Map(
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const form = ref<HTMLFormElement>();
 const ownerCart = inject(storefrontCartStateKey);
-const localCart = ref<Cart | null>(null);
+const localCart = ref<StorefrontCart | null>(null);
 const cart = computed(() => ownerCart?.value ?? localCart.value);
 const firstName = ref("");
 const lastName = ref("");
@@ -45,7 +47,7 @@ const helperPanel = ref<"coupon" | "login" | null>(null);
 const helperValue = ref("");
 const helperInvalid = ref(false);
 const selectedMethod = ref(initialFixtureData?.shipping[0]?.id);
-const paymentOptions: FashionStoreCheckoutData["payment"] = initialFixtureData?.payment ?? [
+const paymentOptions: FashionStoreLegacyCheckoutData["payment"] = initialFixtureData?.payment ?? [
   {
     detail: "You will continue to the platform's secure hosted payment page.",
     id: "hosted-payment",
@@ -60,6 +62,8 @@ const countryOptions = initialFixtureData?.countries ?? [
 ];
 const termsAccepted = ref(false);
 const submitting = ref(false);
+const hydrated = ref(false);
+const liveTransactionDisabled = computed(() => isLive.value && !hydrated.value);
 const shippingBusy = ref(false);
 const loadError = ref("");
 const loadNotice = ref("");
@@ -77,7 +81,7 @@ let disposed = false;
 let shippingTimer: ReturnType<typeof setTimeout> | undefined;
 let shippingSequence = 0;
 
-const billingAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
+const billingAddress = reactive<StorefrontShippingQuoteRequest["shippingAddress"]>({
   city: "",
   countryCode: "US",
   line1: "",
@@ -87,7 +91,7 @@ const billingAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   postalCode: "",
   region: "",
 });
-const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
+const alternateAddress = reactive<StorefrontShippingQuoteRequest["shippingAddress"]>({
   city: "",
   countryCode: "US",
   line1: "",
@@ -98,7 +102,7 @@ const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   region: "",
 });
 
-const activeShippingAddress = computed<ShippingQuoteRequest["shippingAddress"]>(() => {
+const activeShippingAddress = computed<StorefrontShippingQuoteRequest["shippingAddress"]>(() => {
   const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
   return {
     ...address,
@@ -152,7 +156,7 @@ const displayedTotals = computed(() =>
         total: "$0.00",
       }),
 );
-const shippingMethods = computed<ShippingMethodQuote[]>(() =>
+const shippingMethods = computed<StorefrontShippingMethodQuote[]>(() =>
   cart.value === null
     ? (initialFixtureData?.shipping ?? []).map((method) => ({
         amount: method.id === initialFixtureData?.shipping[1]?.id ? 1200 : 0,
@@ -180,7 +184,7 @@ function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function applyCart(nextCart: Cart, hydrateAddress = false): void {
+function applyCart(nextCart: StorefrontCart, hydrateAddress = false): void {
   if (!ownerCart) localCart.value = nextCart;
   if (hydrateAddress && nextCart.shippingAddress) {
     Object.assign(billingAddress, nextCart.shippingAddress);
@@ -273,6 +277,12 @@ watch([shippingAddressFingerprint, cartContentsFingerprint], () => {
 async function continueCheckout(): Promise<void> {
   submitError.value = "";
   if (!form.value?.reportValidity()) return;
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.action, "fashion-store.checkout.session");
+    localActionCount.value += 1;
+    loadNotice.value = "Checkout preview intent recorded. No order or payment session was created.";
+    return;
+  }
   if (!checkoutAdapter || !cart.value?.canCheckout) {
     submitError.value = "Checkout is unavailable for this cart.";
     return;
@@ -288,9 +298,6 @@ async function continueCheckout(): Promise<void> {
 
   const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
   billingAddress.name = `${firstName.value} ${lastName.value}`.trim();
-  if (initialFixtureData) {
-    recordPreviewIntent(initialFixtureData.action, "fashion-store.checkout.session");
-  }
   submitting.value = true;
   try {
     const session = await checkoutAdapter.begin(
@@ -323,8 +330,10 @@ async function continueCheckout(): Promise<void> {
 }
 
 onMounted(async () => {
+  hydrated.value = true;
   if (!checkoutAdapter) {
-    loadError.value = "Checkout is unavailable for this cart.";
+    if (!initialFixtureData) loadError.value = "Checkout is unavailable for this cart.";
+    turnstileRequired.value = false;
     securityConfigurationLoading.value = false;
     return;
   }
@@ -362,7 +371,7 @@ onBeforeUnmount(() => {
 
 <template>
   <FashionStoreShell
-    :announcement="initialFixtureData?.announcement ?? 'Checkout totals are verified by Commerce.'"
+    :announcement="initialFixtureData?.announcement"
     body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
@@ -370,10 +379,19 @@ onBeforeUnmount(() => {
     <main
       id="fashion-store-main"
       data-fashion-store-checkout
-      :data-runtime-status="loadError ? 'error' : cart ? 'ready' : 'loading'"
+      :data-runtime-status="loadError ? 'error' : cart || initialFixtureData ? 'ready' : 'loading'"
       :data-local-action-count="localActionCount"
       :data-session-count="sessionCount"
     >
+      <div
+        v-if="liveTransactionDisabled"
+        class="container pt-15px pb-15px"
+        role="region"
+        aria-label="JavaScript limitations"
+      >
+        <p>Shopping actions require JavaScript.</p>
+        <a href="/cart">Return to bag</a>
+      </div>
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
@@ -381,6 +399,15 @@ onBeforeUnmount(() => {
               class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large"
             >
               <h1 class="alt-font fw-600 text-dark-gray mb-10px">Checkout</h1>
+              <p v-if="viewModel.kind === 'checkout' && viewModel.helpCopy" class="mb-5px">
+                {{ viewModel.helpCopy }}
+                <a
+                  v-if="viewModel.policyLink"
+                  :href="viewModel.policyLink.href"
+                  data-fashion-store-route
+                  class="ms-5px text-decoration-line-bottom"
+                >{{ viewModel.policyLink.label }}</a>
+              </p>
             </div>
             <nav
               class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center"
@@ -413,13 +440,14 @@ onBeforeUnmount(() => {
                 <div class="feature-box-content">
                   <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
                     >Returning customer?
-                    <a
-                      href="#"
-                      class="text-decoration-line-bottom fw-600 text-dark-gray"
+                    <button
+                      type="button"
+                      class="fashion-checkout-helper-trigger text-decoration-line-bottom fw-600 text-dark-gray"
                       :aria-expanded="helperPanel === 'login'"
-                      @click.prevent="toggleHelper('login')"
-                      >Click here to login</a
-                    ></span
+                      @click="toggleHelper('login')"
+                    >
+                      Click here to login
+                    </button></span
                   >
                 </div>
               </div>
@@ -437,13 +465,14 @@ onBeforeUnmount(() => {
                 <div class="feature-box-content">
                   <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
                     >Have a coupon?
-                    <a
-                      href="#"
-                      class="text-decoration-line-bottom fw-600 text-dark-gray"
+                    <button
+                      type="button"
+                      class="fashion-checkout-helper-trigger text-decoration-line-bottom fw-600 text-dark-gray"
                       :aria-expanded="helperPanel === 'coupon'"
-                      @click.prevent="toggleHelper('coupon')"
-                      >Click here to enter your code</a
-                    ></span
+                      @click="toggleHelper('coupon')"
+                    >
+                      Click here to enter your code
+                    </button></span
                   >
                 </div>
               </div>
@@ -767,6 +796,7 @@ onBeforeUnmount(() => {
                               name="shipping-method"
                               class="d-block w-auto mb-0 me-10px p-0"
                               :value="method.id"
+                              :disabled="liveTransactionDisabled"
                               @change="updateShipping"
                             />
                             <label
@@ -876,11 +906,12 @@ onBeforeUnmount(() => {
                   class="fashion-checkout-submit btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-30px"
                   type="submit"
                   :disabled="
+                    liveTransactionDisabled ||
                     submitting ||
                     shippingBusy ||
                     securityConfigurationLoading ||
                     Boolean(securityConfigurationError) ||
-                    !cart?.canCheckout ||
+                    (isLive && !cart?.canCheckout) ||
                     (turnstileRequired && !turnstileToken)
                   "
                 >

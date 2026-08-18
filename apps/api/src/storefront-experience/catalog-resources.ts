@@ -2,6 +2,7 @@ import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@sh
 
 import type { ApiBindings } from "../http/context";
 import { ApiError } from "../http/errors";
+import { fashionStoreEditorDestinations } from "../../../storefront/app/themes/fashion-store/editor-destinations";
 
 interface ReleaseRow {
   approved_at: string;
@@ -50,6 +51,53 @@ export async function getCanonicalDeployedCatalogRelease(
   return release;
 }
 
+export function storefrontDestinationsForRelease(release: CanonicalCatalogRelease) {
+  return fashionStoreEditorDestinations(release);
+}
+
+export async function listStorefrontCatalogResources(
+  db: D1Database,
+  releaseId: string,
+  input: {
+    kind: "article" | "collection" | "page" | "policy" | "product";
+    page: number;
+    pageSize: number;
+    query: string;
+  },
+) {
+  const release = await getCanonicalDeployedCatalogRelease(db, releaseId);
+  const resources =
+    input.kind === "product"
+      ? release.products.map(({ id, name, slug }) => ({
+          id,
+          kind: "product" as const,
+          name,
+          path: `/products/${slug}`,
+        }))
+      : input.kind === "collection"
+        ? release.collections.map(({ id, name, slug }) => ({
+            id,
+            kind: "collection" as const,
+            name,
+            path: `/collections/${slug}`,
+          }))
+        : storefrontDestinationsForRelease(release).filter(({ kind }) => kind === input.kind);
+  const query = input.query.trim().toLocaleLowerCase("en-US");
+  const filtered = resources.filter(
+    (resource) =>
+      !query ||
+      resource.name.toLocaleLowerCase("en-US").includes(query) ||
+      resource.path.toLocaleLowerCase("en-US").includes(query),
+  );
+  const offset = (input.page - 1) * input.pageSize;
+  return {
+    data: filtered.slice(offset, offset + input.pageSize),
+    page: input.page,
+    pageSize: input.pageSize,
+    total: filtered.length,
+  };
+}
+
 export async function listStorefrontCatalogReleases(env: ApiBindings) {
   const rows = await env.DB.prepare(
     `SELECT id, status, manifest_json, approved_at, deployed_at
@@ -72,6 +120,7 @@ export async function listStorefrontCatalogReleases(env: ApiBindings) {
           slug,
         })),
         deployedAt: row.deployed_at,
+        destinations: storefrontDestinationsForRelease(release),
         environment: env.ENVIRONMENT,
         id: row.id,
         products: release.products.map(({ id, name, slug }) => ({
@@ -84,43 +133,4 @@ export async function listStorefrontCatalogReleases(env: ApiBindings) {
       },
     ];
   });
-}
-
-export async function listStorefrontCatalogMedia(env: ApiBindings, query: string) {
-  const normalizedQuery = query.trim().slice(0, 100);
-  const pattern = `%${normalizedQuery.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-  const rows = await env.DB.prepare(
-    `SELECT pm.r2_key, pm.alt_text, pm.width, pm.height, p.name AS product_name
-       FROM product_media pm
-       JOIN products p ON p.id = pm.product_id
-      WHERE p.status IN ('published', 'archived')
-        AND (? = '' OR pm.alt_text LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')
-      ORDER BY pm.created_at DESC, pm.r2_key
-      LIMIT 100`,
-  )
-    .bind(normalizedQuery, pattern, pattern)
-    .all<{
-      alt_text: string;
-      height: number;
-      product_name: string;
-      r2_key: string;
-      width: number;
-    }>();
-  const origin = env.MEDIA_PUBLIC_ORIGIN.replace(/\/+$/, "");
-  return rows.results
-    .filter(
-      ({ r2_key }) =>
-        /^catalog\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(r2_key) &&
-        !r2_key.includes("..") &&
-        !r2_key.includes("//"),
-    )
-    .map((row) => ({
-      alt: row.alt_text,
-      height: row.height,
-      key: row.r2_key,
-      kind: "catalog" as const,
-      productName: row.product_name,
-      src: `${origin}/${row.r2_key}`,
-      width: row.width,
-    }));
 }

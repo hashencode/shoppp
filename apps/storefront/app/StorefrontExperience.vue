@@ -10,32 +10,73 @@ import {
   activeThemeRoutes,
 } from "./generated/active-theme";
 import {
+  activeCatalogSearchIndex,
   activeExperienceProviderInput,
   activeFixtureRegistry,
 } from "./generated/active-experience";
 import { createThemeAssetResolver } from "./theme-engine/assets";
 import {
   createFixturePresentationProvider,
-  createLivePresentationProvider,
+  selectLivePort,
+  selectPresentationProvider,
 } from "./theme-engine/providers";
 import { resolveThemeRoute } from "./theme-engine/routes";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 import { useGuestCart } from "./features/cart/use-guest-cart";
-import { storeOrderAccess } from "./features/checkout/session";
-import type { StorefrontActionAdapter } from "./theme-engine/actions";
-import type { StorefrontCheckoutAdapter } from "./theme-engine/checkout";
+import { checkoutReturnCartRefreshKey, storeOrderAccess } from "./features/checkout/session";
+import {
+  storefrontActionAdapterKey,
+  type StorefrontActionAdapter,
+} from "./theme-engine/actions";
+import {
+  storefrontCheckoutAdapterKey,
+  type StorefrontCheckoutAdapter,
+} from "./theme-engine/checkout";
 import { storefrontCartStateKey } from "./theme-engine/cart-state";
 import {
-  runtimeCommercePortKey,
+  coalesceRuntimeCommerceRevalidations,
   liveCommerceModeKey,
+  runtimeCommercePortKey,
   toRuntimeProductState,
-  type RuntimeCommercePort,
 } from "./theme-engine/runtime-commerce";
 import { canonicalUrl, productStructuredData } from "./utils/seo";
+import { catalogSearchIndexKey } from "./theme-engine/search";
+import {
+  composeExperienceShell,
+  composePlatformRoutePresentation,
+} from "./theme-engine/composer";
+import {
+  storefrontPlatformPresentationKey,
+  storefrontPresentationShellKey,
+} from "./theme-engine/presentation-context";
+import type { ThemeRegistry } from "./theme-engine/registry";
 
 const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
+const themeRegistry: ThemeRegistry = activeThemeRegistry;
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
+interface PrivatePreviewContext {
+  contentDigest: string;
+  environment: "private-preview";
+  expiresAt: string;
+  generatedAt: string | null;
+  returnUrl: string;
+  snapshotId: string;
+}
+const privatePreviewContext = ref<PrivatePreviewContext | null>(null);
+if (import.meta.client && activeExperienceProviderInput.mode === "live") {
+  onMounted(async () => {
+    try {
+      const response = await fetch("/__preview/context", {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (response.ok) privatePreviewContext.value = await response.json();
+    } catch {
+      privatePreviewContext.value = null;
+    }
+  });
+}
 const routeMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
 const experienceSnapshot: ExperienceSnapshot | null = activeExperienceSnapshot;
 const fixturePresentationProvider = createFixturePresentationProvider({
@@ -52,17 +93,24 @@ const pageContract = computed(() =>
     routeMode,
   ),
 );
-const presentationProvider = computed(() =>
-  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && pageContract.value
-    ? createLivePresentationProvider({
-        experience: activeExperienceSnapshot,
-        locale: "en-US",
-        path: currentRoute.value.path,
-        release: activeExperienceProviderInput.release,
-        route: pageContract.value,
-      })
-    : fixturePresentationProvider,
-);
+const presentationProvider = computed(() => {
+  const liveInput =
+    activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && pageContract.value
+      ? {
+          adapter: themeRegistry.composition,
+          experience: activeExperienceSnapshot,
+          locale: "en-US",
+          path: currentRoute.value.path,
+          release: activeExperienceProviderInput.release,
+          route: pageContract.value,
+        }
+      : undefined;
+  return selectPresentationProvider({
+    fixtureProvider: fixturePresentationProvider,
+    liveInput,
+    mode: activeExperienceProviderInput.mode,
+  });
+});
 const {
   add: addGuestCartLine,
   beginCheckout,
@@ -75,7 +123,7 @@ const {
   update: updateGuestCartLine,
 } = useGuestCart();
 const commerceApi = useCommerceApi();
-const runtimeCommercePort: RuntimeCommercePort = {
+const runtimeCommercePort = coalesceRuntimeCommerceRevalidations({
   async revalidateProduct(input) {
     const product = (await commerceApi.getLiveProductById(input.productId, input.currency)).data;
     if (product.id !== input.productId) {
@@ -83,11 +131,16 @@ const runtimeCommercePort: RuntimeCommercePort = {
     }
     return toRuntimeProductState(product, input.currency);
   },
-};
+});
 if (activeExperienceProviderInput.mode === "live") {
+  const defaultCurrency = activeExperienceProviderInput.release.site.defaultCurrency;
+  provide(catalogSearchIndexKey, activeCatalogSearchIndex);
   provide(runtimeCommercePortKey, runtimeCommercePort);
   provide(liveCommerceModeKey, true);
   provide(storefrontCartStateKey, readonly(guestCart));
+  provide(checkoutReturnCartRefreshKey, async () => {
+    await ensureGuestCart(defaultCurrency);
+  });
 }
 const storefrontActionAdapter: StorefrontActionAdapter = async (dispatch) => {
   if (dispatch.kind === "cart.add") {
@@ -126,6 +179,16 @@ const storefrontCheckoutAdapter: StorefrontCheckoutAdapter = {
     return { error: guestCartError.value, notice: guestCartNotice.value };
   },
 };
+const themeActionAdapter = selectLivePort(
+  activeExperienceProviderInput.mode,
+  storefrontActionAdapter,
+);
+const themeCheckoutAdapter = selectLivePort(
+  activeExperienceProviderInput.mode,
+  storefrontCheckoutAdapter,
+);
+if (themeActionAdapter) provide(storefrontActionAdapterKey, themeActionAdapter);
+if (themeCheckoutAdapter) provide(storefrontCheckoutAdapterKey, themeCheckoutAdapter);
 
 const previewTemplate = computed(() =>
   pageContract.value
@@ -142,6 +205,27 @@ const rendersPlatformRoute = computed(() => {
 });
 const liveRelease =
   activeExperienceProviderInput.mode === "live" ? activeExperienceProviderInput.release : undefined;
+const experienceShell = computed(() =>
+  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && liveRelease
+    ? composeExperienceShell({
+        adapter: themeRegistry.composition,
+        experience: activeExperienceSnapshot,
+        release: liveRelease,
+      })
+    : undefined,
+);
+const platformPresentation = computed(() =>
+  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && liveRelease
+    ? composePlatformRoutePresentation({
+        adapter: themeRegistry.composition,
+        experience: activeExperienceSnapshot,
+        path: currentRoute.value.path,
+        release: liveRelease,
+      })
+    : undefined,
+);
+provide(storefrontPresentationShellKey, experienceShell);
+provide(storefrontPlatformPresentationKey, platformPresentation);
 const routeSeo = computed(() => {
   const contract = pageContract.value;
   const normalizedPath = currentRoute.value.path.replace(/\/+$/, "") || "/";
@@ -226,26 +310,39 @@ if (import.meta.client) {
       class="preview-context"
       aria-label="Private preview context"
     >
-      Catalog {{ activeExperienceProviderInput.identity.catalogReleaseId }} · Experience
+      <strong>Private preview</strong> · Catalog
+      {{ activeExperienceProviderInput.identity.catalogReleaseId }} · Experience
       {{ activeExperienceProviderInput.identity.experienceSnapshotId }} v{{
         activeExperienceProviderInput.identity.experienceVersion
       }}
       · Theme {{ activeExperienceProviderInput.identity.themeId }}
       {{ activeExperienceProviderInput.identity.themeVersion }} · Platform
       {{ activeExperienceProviderInput.identity.platformContractVersion }}
+      <template v-if="privatePreviewContext">
+        · Generated {{ privatePreviewContext.generatedAt ?? "pending" }} · Expires
+        {{ privatePreviewContext.expiresAt }} · Content {{ privatePreviewContext.contentDigest }} ·
+        <a :href="privatePreviewContext.returnUrl">Return to editor</a>
+      </template>
     </aside>
     <ThemeRenderer
-      v-if="previewTemplate"
-      :action-adapter="storefrontActionAdapter"
-      :checkout-adapter="storefrontCheckoutAdapter"
+      v-if="previewTemplate && presentationProvider"
+      :action-adapter="themeActionAdapter"
+      :checkout-adapter="themeCheckoutAdapter"
       :provider="presentationProvider"
-      :registry="activeThemeRegistry"
+      :registry="themeRegistry"
       :resolve-asset="resolveThemeAsset"
       :template="previewTemplate"
     />
-    <NuxtLayout v-else-if="activeExperienceSnapshot && rendersPlatformRoute">
+    <component
+      :is="themeRegistry.platformShell"
+      v-else-if="activeExperienceSnapshot && rendersPlatformRoute && themeRegistry.platformShell"
+      body-class=""
+      :resolve-asset="resolveThemeAsset"
+      :show-sticky-socials="false"
+    >
       <NuxtPage />
-    </NuxtLayout>
+    </component>
+    <NuxtLayout v-else-if="activeExperienceSnapshot && rendersPlatformRoute"><NuxtPage /></NuxtLayout>
     <main v-else-if="activeExperienceSnapshot">
       <h1>Preview template unavailable</h1>
       <p>The selected theme does not declare this presentation surface.</p>

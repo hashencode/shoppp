@@ -3,8 +3,12 @@ import {
   experienceResourceBindingSchema,
   experienceDraftSchema,
   experienceSnapshotSchema,
+  storefrontLinkSchema,
+  storefrontResourceReferenceSchema,
   themePackageSchema,
+  type CanonicalCatalogRelease,
   type CreateStorefrontExperienceDraftRequest,
+  type CreateStorefrontExperienceSuccessorRequest,
   type ExperienceResourceBinding,
   type StorefrontExperienceMigrationDryRunRequest,
   type ThemeOverride,
@@ -21,18 +25,20 @@ import type { Context } from "hono";
 
 import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
 import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
-import { fashionManifest } from "../../../storefront/app/themes/fashion/manifest";
-import { fashionPreset } from "../../../storefront/app/themes/fashion/presets/editorial";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
+import { sha256Hex } from "../orders/tokens";
 import decorFixture from "../../../storefront/fixtures/experience/decor.json";
-import fashionFixture from "../../../storefront/fixtures/experience/fashion.json";
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { redactForLog } from "../security/redaction";
+import {
+  getCanonicalDeployedCatalogRelease,
+  storefrontDestinationsForRelease,
+} from "./catalog-resources";
 
 export interface ExperienceValidationIssue {
   readonly code: string;
@@ -69,6 +75,7 @@ interface DraftRow {
 }
 
 interface ValidationRow {
+  catalog_release_id: string | null;
   created_at: string;
   draft_id: string;
   draft_version: number;
@@ -100,6 +107,7 @@ interface SnapshotRow {
   approved_at: string | null;
   approved_by: string | null;
   configuration_schema_version: number;
+  content_digest: string | null;
   created_at: string;
   created_by: string;
   deduplication_key: string;
@@ -116,14 +124,13 @@ interface SnapshotRow {
 }
 
 const PLATFORM_CONTRACT_VERSION = "1.0.0";
+const MAX_VALIDATION_LOOKUP_BINDINGS = 100;
 const defaultPackages = [
   themePackageSchema.parse({ manifest: decorManifest, presets: [decorPreset] }),
-  themePackageSchema.parse({ manifest: fashionManifest, presets: [fashionPreset] }),
   themePackageSchema.parse({ manifest: fashionStoreManifest, presets: [fashionStorePreset] }),
 ] as const;
 const fixtureBindingsByThemeId = {
   decor: decorFixture.bindings,
-  fashion: fashionFixture.bindings,
   "fashion-store": fashionStoreFixture.bindings,
 } as const;
 
@@ -200,6 +207,7 @@ function parseOverrides(value: string): ThemeOverride[] {
 function mapValidation(row: ValidationRow | null) {
   return row
     ? {
+        catalogReleaseId: row.catalog_release_id,
         createdAt: row.created_at,
         draftVersion: row.draft_version,
         id: row.id,
@@ -210,7 +218,8 @@ function mapValidation(row: ValidationRow | null) {
     : null;
 }
 
-function mapDraft(row: DraftRow, validation: ValidationRow | null = null) {
+function mapDraft(row: DraftRow, validationRows: readonly ValidationRow[] = []) {
+  const validations = validationRows.map((validation) => mapValidation(validation)!);
   return {
     bindings: parseBindings(row.bindings_json),
     configurationSchemaVersion: row.configuration_schema_version,
@@ -224,23 +233,37 @@ function mapDraft(row: DraftRow, validation: ValidationRow | null = null) {
     themeVersion: row.theme_version,
     updatedAt: row.updated_at,
     updatedBy: row.updated_by,
-    validation: mapValidation(validation),
+    validation: validations.find(({ catalogReleaseId }) => catalogReleaseId === null) ?? null,
+    validations,
     version: row.version,
   };
 }
 
-function mapSnapshot(row: SnapshotRow) {
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function mapSnapshot(row: SnapshotRow) {
+  const snapshot = experienceSnapshotSchema.parse(JSON.parse(row.snapshot_json));
   return {
     approvedAt: row.approved_at,
     approvedBy: row.approved_by,
     configurationSchemaVersion: row.configuration_schema_version,
     createdAt: row.created_at,
     createdBy: row.created_by,
+    contentDigest: row.content_digest ?? (await sha256Hex(canonicalJson(snapshot))),
     experienceId: row.experience_id,
     id: row.id,
     kind: row.kind,
     migrationId: row.migration_id,
-    snapshot: experienceSnapshotSchema.parse(JSON.parse(row.snapshot_json)),
+    snapshot,
     sourceDraftId: row.source_draft_id,
     sourceDraftVersion: row.source_draft_version,
     sourceValidationId: row.source_validation_id,
@@ -268,15 +291,69 @@ async function validationRow(
   db: D1Database,
   draftId: string,
   draftVersion: number,
+  catalogReleaseId?: string,
 ): Promise<ValidationRow | null> {
   return db
     .prepare(
       `SELECT *
          FROM storefront_experience_validations
-        WHERE draft_id = ? AND draft_version = ?`,
+        WHERE draft_id = ? AND draft_version = ? AND catalog_release_id IS ?`,
+    )
+    .bind(draftId, draftVersion, catalogReleaseId ?? null)
+    .first<ValidationRow>();
+}
+
+async function validationRows(
+  db: D1Database,
+  draftId: string,
+  draftVersion: number,
+): Promise<ValidationRow[]> {
+  const rows = await db
+    .prepare(
+      `SELECT *
+         FROM storefront_experience_validations
+        WHERE draft_id = ? AND draft_version = ?
+        ORDER BY created_at DESC, id DESC`,
     )
     .bind(draftId, draftVersion)
-    .first<ValidationRow>();
+    .all<ValidationRow>();
+  return rows.results;
+}
+
+function draftVersionKey(draftId: string, draftVersion: number): string {
+  return `${draftId}\u0000${draftVersion}`;
+}
+
+async function validationRowsByDraft(
+  db: D1Database,
+  drafts: readonly Pick<DraftRow, "id" | "version">[],
+): Promise<Map<string, ValidationRow[]>> {
+  const grouped = new Map<string, ValidationRow[]>();
+  const draftsPerQuery = Math.floor(MAX_VALIDATION_LOOKUP_BINDINGS / 2);
+
+  for (let index = 0; index < drafts.length; index += draftsPerQuery) {
+    const chunk = drafts.slice(index, index + draftsPerQuery);
+    const predicates = chunk.map(() => "(draft_id = ? AND draft_version = ?)").join(" OR ");
+    const bindings = chunk.flatMap(({ id, version }) => [id, version]);
+    const rows = await db
+      .prepare(
+        `SELECT *
+           FROM storefront_experience_validations
+          WHERE ${predicates}
+          ORDER BY draft_id ASC, draft_version ASC, created_at DESC, id DESC`,
+      )
+      .bind(...bindings)
+      .all<ValidationRow>();
+
+    for (const row of rows.results) {
+      const key = draftVersionKey(row.draft_id, row.draft_version);
+      const validations = grouped.get(key);
+      if (validations) validations.push(row);
+      else grouped.set(key, [row]);
+    }
+  }
+
+  return grouped;
 }
 
 function conflictError(): ApiError {
@@ -296,6 +373,7 @@ function resolveDraft(
   options?: StorefrontExperienceServiceOptions,
   overridePackage?: ThemePackage,
   overrideOperations?: readonly ThemeOverride[],
+  catalogRelease?: CanonicalCatalogRelease,
 ): {
   issues: ExperienceValidationIssue[];
   package: ThemePackage;
@@ -426,6 +504,13 @@ function resolveDraft(
     issues.push({ code: "duplicate_fixture_binding", message: "Fixture bindings must be unique." });
   }
   const catalogBindings = bindings.filter((binding) => binding.kind === "catalog");
+  const referenceKeys = catalogRelease
+    ? new Set([
+        ...catalogRelease.products.map(({ id }) => `product:${id}`),
+        ...catalogRelease.collections.map(({ id }) => `collection:${id}`),
+        ...storefrontDestinationsForRelease(catalogRelease).map(({ id, kind }) => `${kind}:${id}`),
+      ])
+    : null;
   const catalogBindingKeys = catalogBindings.map(
     ({ instanceId, settingId }) => `${instanceId}:${settingId}`,
   );
@@ -444,6 +529,23 @@ function resolveDraft(
       });
     }
   }
+  const definitionsByInstance = new Map(
+    resolvedTemplates.flatMap(({ sections }) =>
+      sections.flatMap((section) => {
+        const instances = [section, ...section.blocks];
+        return instances.map((instance) => {
+          const definition =
+            selectedPackage.manifest.componentRegistry.sections.find(
+              ({ type }) => type === instance.type,
+            ) ??
+            selectedPackage.manifest.componentRegistry.blocks.find(
+              ({ type }) => type === instance.type,
+            );
+          return [instance.id, definition?.settings ?? []] as const;
+        });
+      }),
+    ),
+  );
   if (catalogBindings.length === 0) {
     for (const instanceId of visibleInstanceIds) {
       if (!fixtureInstanceIds.includes(instanceId)) {
@@ -455,23 +557,6 @@ function resolveDraft(
       }
     }
   } else {
-    const definitionsByInstance = new Map(
-      resolvedTemplates.flatMap(({ sections }) =>
-        sections.flatMap((section) => {
-          const instances = [section, ...section.blocks];
-          return instances.map((instance) => {
-            const definition =
-              selectedPackage.manifest.componentRegistry.sections.find(
-                ({ type }) => type === instance.type,
-              ) ??
-              selectedPackage.manifest.componentRegistry.blocks.find(
-                ({ type }) => type === instance.type,
-              );
-            return [instance.id, definition?.settings ?? []] as const;
-          });
-        }),
-      ),
-    );
     for (const binding of catalogBindings) {
       const definition = definitionsByInstance
         .get(binding.instanceId)
@@ -485,7 +570,19 @@ function resolveDraft(
           path: `${binding.instanceId}.${binding.settingId}`,
         });
       }
+      if (
+        referenceKeys &&
+        !referenceKeys.has(`${binding.reference.kind}:${binding.reference.id}`)
+      ) {
+        issues.push({
+          code: "catalog_reference_missing",
+          message: `Catalog reference ${binding.reference.id} is not in the selected Catalog Release.`,
+          path: `${binding.instanceId}.${binding.settingId}`,
+        });
+      }
     }
+  }
+  if (referenceKeys || catalogBindings.length > 0) {
     for (const [instanceId, definitions] of definitionsByInstance) {
       if (!visibleInstanceIds.has(instanceId)) continue;
       for (const definition of definitions) {
@@ -505,12 +602,32 @@ function resolveDraft(
       }
     }
   }
+  if (referenceKeys) {
+    for (const template of resolvedTemplates) {
+      for (const instance of template.sections.flatMap((section) => [section, ...section.blocks])) {
+        const definitions = definitionsByInstance.get(instance.id) ?? [];
+        for (const definition of definitions) {
+          const value = instance.settings[definition.id];
+          if (value === undefined) continue;
+          const reference = storefrontResourceReferenceSchema.safeParse(value);
+          const link = storefrontLinkSchema.safeParse(value);
+          const target = reference.success
+            ? reference.data
+            : link.success && link.data.target.kind === "internal"
+              ? link.data.target.reference
+              : null;
+          if (target && !referenceKeys.has(`${target.kind}:${target.id}`)) {
+            issues.push({
+              code: "content_reference_missing",
+              message: `Content reference ${target.id} is not in the selected Catalog Release.`,
+              path: `${instance.id}.${definition.id}`,
+            });
+          }
+        }
+      }
+    }
+  }
   return { issues, package: selectedPackage, resolvedTemplates };
-}
-
-async function sha256(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function recordAuditOnce(
@@ -639,7 +756,7 @@ export async function createStorefrontExperienceDraft(
 
 export async function getStorefrontExperienceDraft(db: D1Database, id: string) {
   const row = await draftRow(db, id);
-  return mapDraft(row, await validationRow(db, id, row.version));
+  return mapDraft(row, await validationRows(db, id, row.version));
 }
 
 export async function listStorefrontExperienceDrafts(db: D1Database) {
@@ -651,8 +768,9 @@ export async function listStorefrontExperienceDrafts(db: D1Database) {
         LIMIT 100`,
     )
     .all<DraftRow>();
-  return Promise.all(
-    rows.results.map(async (row) => mapDraft(row, await validationRow(db, row.id, row.version))),
+  const validationsByDraft = await validationRowsByDraft(db, rows.results);
+  return rows.results.map((row) =>
+    mapDraft(row, validationsByDraft.get(draftVersionKey(row.id, row.version)) ?? []),
   );
 }
 
@@ -705,29 +823,102 @@ export async function updateStorefrontExperienceDraft(
   return getStorefrontExperienceDraft(context.env.DB, id);
 }
 
+export async function createStorefrontExperienceSuccessor(
+  context: Context<ApiEnvironment>,
+  sourceId: string,
+  request: CreateStorefrontExperienceSuccessorRequest,
+) {
+  const source = await draftRow(context.env.DB, sourceId);
+  if (request.sourceVersion > source.version) {
+    throw new ApiError(
+      409,
+      "storefront_experience_successor_source_invalid",
+      "The successor source version is newer than the saved draft.",
+    );
+  }
+  const id = `draft-${crypto.randomUUID()}`;
+  experienceDraftSchema.parse({
+    bindings: request.bindings,
+    experienceId: source.experience_id,
+    id,
+    overrides: request.overrides,
+    themeId: source.theme_id,
+    themeVersion: source.theme_version,
+    version: 1,
+  });
+  const principal = context.get("principal");
+  const now = new Date().toISOString();
+  await context.env.DB.prepare(
+    `INSERT INTO storefront_experience_drafts
+       (id, experience_id, theme_id, theme_version, configuration_schema_version,
+        preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+        created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      source.experience_id,
+      source.theme_id,
+      source.theme_version,
+      source.configuration_schema_version,
+      source.preset_id,
+      JSON.stringify(request.bindings),
+      JSON.stringify(request.overrides),
+      principal.id,
+      principal.id,
+      now,
+      now,
+    )
+    .run();
+  await recordAuditEvent(context.env.DB, {
+    action: "themes.draft.successor.create",
+    actorId: principal.id,
+    actorType: "admin",
+    id: crypto.randomUUID(),
+    metadata: {
+      savedSourceVersion: source.version,
+      sourceDraftId: sourceId,
+      sourceVersion: request.sourceVersion,
+    },
+    reason: request.reason,
+    requestId: context.get("requestId"),
+    result: "succeeded",
+    targetId: id,
+    targetType: "storefront_experience_draft",
+  });
+  return getStorefrontExperienceDraft(context.env.DB, id);
+}
+
 export async function validateStorefrontExperienceDraft(
   context: Context<ApiEnvironment>,
   id: string,
   expectedVersion: number,
   reason: string,
+  catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
   const row = await draftRow(context.env.DB, id);
   assertExpectedVersion(row, expectedVersion);
-  const resolution = resolveDraft(row, options);
-  const validationId = `validation-${(await sha256(`${id}:${expectedVersion}`)).slice(0, 40)}`;
+  const catalogRelease = catalogReleaseId
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    : undefined;
+  const resolution = resolveDraft(row, options, undefined, undefined, catalogRelease);
+  const validationId = `validation-${(
+    await sha256Hex(`${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}`)
+  ).slice(0, 40)}`;
   const principal = context.get("principal");
   const now = new Date().toISOString();
   await context.env.DB.prepare(
     `INSERT OR IGNORE INTO storefront_experience_validations
-       (id, draft_id, draft_version, status, issues_json, resolved_templates_json,
-        validated_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+        resolved_templates_json, validated_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       validationId,
       id,
       expectedVersion,
+      catalogReleaseId ?? null,
       resolution.issues.length === 0 ? "valid" : "invalid",
       JSON.stringify(resolution.issues),
       JSON.stringify(resolution.resolvedTemplates),
@@ -738,13 +929,17 @@ export async function validateStorefrontExperienceDraft(
   await recordAuditOnce(context, {
     action: "themes.draft.validate",
     id: `audit-${validationId}`,
-    metadata: { issueCount: resolution.issues.length, version: expectedVersion },
+    metadata: {
+      catalogReleaseId: catalogReleaseId ?? null,
+      issueCount: resolution.issues.length,
+      version: expectedVersion,
+    },
     reason,
     result: resolution.issues.length === 0 ? "succeeded" : "failed",
     targetId: id,
     targetType: "storefront_experience_draft",
   });
-  const validation = await validationRow(context.env.DB, id, expectedVersion);
+  const validation = await validationRow(context.env.DB, id, expectedVersion, catalogReleaseId);
   return mapValidation(validation);
 }
 
@@ -752,11 +947,12 @@ async function validResolution(
   context: Context<ApiEnvironment>,
   id: string,
   expectedVersion: number,
+  catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
   const row = await draftRow(context.env.DB, id);
   assertExpectedVersion(row, expectedVersion);
-  const validation = await validationRow(context.env.DB, id, expectedVersion);
+  const validation = await validationRow(context.env.DB, id, expectedVersion, catalogReleaseId);
   if (!validation || validation.status !== "valid") {
     throw new ApiError(
       409,
@@ -764,7 +960,10 @@ async function validResolution(
       "Validate the current draft version before creating a snapshot.",
     );
   }
-  const resolution = resolveDraft(row, options);
+  const catalogRelease = catalogReleaseId
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    : undefined;
+  const resolution = resolveDraft(row, options, undefined, undefined, catalogRelease);
   if (resolution.issues.length > 0) {
     throw new ApiError(
       409,
@@ -776,7 +975,7 @@ async function validResolution(
 }
 
 async function snapshotId(deduplicationKey: string, kind: "approved" | "preview") {
-  return `snapshot-${kind}-${(await sha256(deduplicationKey)).slice(0, 32)}`;
+  return `snapshot-${kind}-${(await sha256Hex(deduplicationKey)).slice(0, 32)}`;
 }
 
 async function existingSnapshot(
@@ -837,13 +1036,14 @@ async function insertSnapshot(
     themeVersion: input.package.manifest.themeVersion,
     version: input.row.version,
   });
+  const contentDigest = await sha256Hex(canonicalJson(snapshot));
   await context.env.DB.prepare(
     `INSERT OR IGNORE INTO storefront_experience_snapshots
        (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
         source_validation_id, migration_id, kind, theme_id, theme_version,
-        configuration_schema_version, snapshot_json, created_by, approved_by, approved_at,
-        created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        configuration_schema_version, snapshot_json, content_digest, created_by, approved_by,
+        approved_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
@@ -858,6 +1058,7 @@ async function insertSnapshot(
       input.package.manifest.themeVersion,
       input.package.manifest.configurationSchemaVersion,
       JSON.stringify(snapshot),
+      contentDigest,
       principal.id,
       input.kind === "approved" ? principal.id : null,
       input.kind === "approved" ? now : null,
@@ -869,6 +1070,7 @@ async function insertSnapshot(
       input.kind === "approved" ? "themes.experience.approve" : "themes.preview.snapshot.create",
     id: `audit-${id}`,
     metadata: {
+      catalogReleaseId: input.validation.catalog_release_id,
       draftId: input.row.id,
       draftVersion: input.row.version,
       themeVersion: input.package.manifest.themeVersion,
@@ -894,11 +1096,12 @@ export async function createStorefrontExperiencePreviewSnapshot(
   id: string,
   expectedVersion: number,
   reason: string,
+  catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
-  const resolution = await validResolution(context, id, expectedVersion, options);
+  const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
   return insertSnapshot(context, {
-    deduplicationKey: `${id}:${expectedVersion}:preview`,
+    deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:preview`,
     kind: "preview",
     package: resolution.package,
     reason,
@@ -913,11 +1116,12 @@ export async function approveStorefrontExperienceDraft(
   id: string,
   expectedVersion: number,
   reason: string,
+  catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
-  const resolution = await validResolution(context, id, expectedVersion, options);
+  const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
   return insertSnapshot(context, {
-    deduplicationKey: `${id}:${expectedVersion}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}`,
+    deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}`,
     kind: "approved",
     package: resolution.package,
     reason,
@@ -1033,7 +1237,7 @@ export async function dryRunStorefrontExperienceMigration(
     }
   }
   const key = `${id}:${row.version}:${request.targetThemeVersion}:${request.targetConfigurationSchemaVersion}`;
-  const migrationId = `migration-${(await sha256(key)).slice(0, 32)}`;
+  const migrationId = `migration-${(await sha256Hex(key)).slice(0, 32)}`;
   const principal = context.get("principal");
   const now = new Date().toISOString();
   await context.env.DB.prepare(
@@ -1116,33 +1320,52 @@ export async function approveStorefrontExperienceMigration(
   }
   const principal = context.get("principal");
   const now = new Date().toISOString();
-  const changed = await context.env.DB.prepare(
-    `UPDATE storefront_experience_migrations
-        SET status = 'approved', approved_by = ?, approved_at = ?
-      WHERE id = ? AND status = 'dry_run'`,
-  )
-    .bind(principal.id, now, migrationId)
-    .run();
-  if (changed.meta.changes === 0 && migration.status !== "approved") {
-    const reconciled = await migrationRow(context.env.DB, migrationId);
-    if (reconciled.status !== "approved") {
-      throw new ApiError(
-        409,
-        "storefront_experience_migration_conflict",
-        "The migration approval changed concurrently.",
-      );
-    }
+  const successorId = `draft-migration-${(await sha256Hex(migrationId)).slice(0, 32)}`;
+  await context.env.DB.batch([
+    context.env.DB.prepare(
+      `INSERT OR IGNORE INTO storefront_experience_drafts
+         (id, experience_id, theme_id, theme_version, configuration_schema_version,
+          preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+    ).bind(
+      successorId,
+      draft.experience_id,
+      draft.theme_id,
+      targetPackage.manifest.themeVersion,
+      targetPackage.manifest.configurationSchemaVersion,
+      draft.preset_id,
+      draft.bindings_json,
+      JSON.stringify(overrides),
+      principal.id,
+      principal.id,
+      now,
+      now,
+    ),
+    context.env.DB.prepare(
+      `UPDATE storefront_experience_migrations
+          SET status = 'approved', approved_by = ?, approved_at = ?
+        WHERE id = ? AND status = 'dry_run'`,
+    ).bind(principal.id, now, migrationId),
+  ]);
+  const reconciled = await migrationRow(context.env.DB, migrationId);
+  if (reconciled.status !== "approved") {
+    throw new ApiError(
+      409,
+      "storefront_experience_migration_conflict",
+      "The migration successor changed concurrently.",
+    );
   }
-  return insertSnapshot(context, {
-    deduplicationKey: `${draftId}:${expectedVersion}:approved:migration:${migrationId}`,
-    kind: "approved",
-    migrationId,
-    package: targetPackage,
+  await recordAuditOnce(context, {
+    action: "themes.migration.successor.create",
+    id: `audit-successor-${migrationId}`,
+    metadata: { migrationId, sourceDraftId: draftId, sourceDraftVersion: expectedVersion },
     reason,
-    resolvedTemplates: resolution.resolvedTemplates,
-    row: draft,
-    validation,
+    result: "succeeded",
+    targetId: successorId,
+    targetType: "storefront_experience_draft",
   });
+  return getStorefrontExperienceDraft(context.env.DB, successorId);
 }
 
 export async function getStorefrontExperienceSnapshot(db: D1Database, id: string) {

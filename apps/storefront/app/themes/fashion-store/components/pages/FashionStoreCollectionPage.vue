@@ -35,7 +35,6 @@ function sourceAsset(sourcePath: string): string {
 <template>
   <FashionStoreLiveCatalog
     v-if="viewModel.kind === 'collection-grid'"
-    page="collection"
     :resolve-asset="resolveAsset"
     :view-model="viewModel"
   />

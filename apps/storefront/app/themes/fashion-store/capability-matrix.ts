@@ -1,7 +1,7 @@
 export const fashionStoreLiveCapabilities = Object.freeze({
   account: false,
   articleComments: false,
-  catalogSearch: false,
+  catalogSearch: true,
   contactSubmission: false,
   newsletter: false,
   productCompare: false,

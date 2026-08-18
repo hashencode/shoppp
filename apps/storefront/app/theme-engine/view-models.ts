@@ -2,9 +2,12 @@ import {
   fixtureStateSchema,
   pageTypeSchema,
   presentationCollectionSchema,
+  presentationMediaSchema,
   presentationProductSchema,
   publicIdSchema,
+  storefrontLinkTargetBehaviorSchema,
   storefrontIdentifierSchema,
+  themeAssetReferenceSchema,
   type FixtureBinding,
   type PresentationCollection,
   type PresentationProduct,
@@ -18,17 +21,71 @@ const stateShape = {
 };
 const headingSchema = z.string().trim().min(1).max(160);
 const copySchema = z.string().trim().min(1).max(2_000);
-const mediaSchema = z
+const safeMediaSourceSchema = z
+  .string()
+  .min(1)
+  .max(2_000)
+  .refine((value) => {
+    if (/^\/media\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(value)) {
+      return !value.includes("..") && !value.includes("//");
+    }
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  });
+const mediaSchema = presentationMediaSchema.extend({ src: safeMediaSourceSchema });
+const editorMediaSchema = z.discriminatedUnion("source", [
+  mediaSchema.extend({ source: z.literal("url") }),
+  presentationMediaSchema.omit({ src: true }).extend({
+    source: z.literal("theme"),
+    themePath: themeAssetReferenceSchema.shape.path,
+  }),
+]);
+const presentationLinkSchema = z
   .object({
-    alt: z.string().trim().min(1).max(300),
-    height: z.int().positive().max(16_384),
-    src: z
-      .string()
-      .regex(/^\/media\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/)
-      .refine((value) => !value.includes("..") && !value.includes("//")),
-    width: z.int().positive().max(16_384),
+    href: z.string().min(1).max(2_000),
+    label: z.string().trim().min(1).max(120),
+    targetBehavior: storefrontLinkTargetBehaviorSchema,
   })
   .strict();
+const shellContactSchema = z
+  .object({
+    contactCopy: copySchema,
+    legalLink: presentationLinkSchema.optional(),
+    logo: editorMediaSchema.optional(),
+    socialLink: presentationLinkSchema.optional(),
+  })
+  .strict();
+export const presentationShellViewModelSchema = z
+  .object({
+    announcement: copySchema.optional(),
+    announcementLink: presentationLinkSchema.optional(),
+    footer: shellContactSchema,
+    header: shellContactSchema.extend({
+      highlightLink: presentationLinkSchema.optional(),
+    }),
+  })
+  .strict();
+export const platformRoutePresentationViewModelSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      helpCopy: copySchema.optional(),
+      kind: z.literal("order-presentation"),
+      policyLink: presentationLinkSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      documentLink: presentationLinkSchema.optional(),
+      helpCopy: copySchema.optional(),
+      kind: z.literal("policy-presentation"),
+      relatedLink: presentationLinkSchema.optional(),
+    })
+    .strict(),
+]);
 const productSummarySchema = z
   .object({
     href: z.string().regex(/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -38,6 +95,58 @@ const productSummarySchema = z
     priceLabel: z.string().trim().min(1).max(80),
   })
   .strict();
+
+export const presentationProductCardSchema = z
+  .object({
+    actionState: z
+      .object({
+        kind: z.enum(["loading", "available", "pending", "unavailable", "retry", "succeeded"]),
+        message: z.string().trim().min(1).max(240),
+      })
+      .strict(),
+    currency: z.string().trim().length(3).toUpperCase(),
+    href: z.string().regex(/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    id: publicIdSchema,
+    media: mediaSchema.optional(),
+    name: headingSchema,
+    priceLabel: z.string().trim().min(1).max(80),
+    productId: publicIdSchema,
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    staticPurchase: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("direct-add"),
+          label: z.string().trim().min(1).max(80),
+          productId: publicIdSchema,
+          variantId: publicIdSchema,
+        })
+        .strict(),
+      z
+        .object({
+          href: z.string().regex(/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          kind: z.literal("choose-options"),
+          label: z.string().trim().min(1).max(80),
+          productId: publicIdSchema,
+        })
+        .strict(),
+    ]),
+    variantIds: z.array(publicIdSchema).min(1).max(500),
+    visualVariant: z.enum(["default", "home"]),
+  })
+  .strict();
+
+const homeSectionSequenceSchema = z.tuple([
+  z.object({ kind: z.literal("hero") }).strict(),
+  z.object({ kind: z.literal("services") }).strict(),
+  z.object({ kind: z.literal("categories") }).strict(),
+  z.object({ kind: z.literal("best-sellers") }).strict(),
+  z.object({ kind: z.literal("promotion") }).strict(),
+  z.object({ kind: z.literal("collection") }).strict(),
+  z.object({ kind: z.literal("brands") }).strict(),
+  z.object({ kind: z.literal("featured-products") }).strict(),
+  z.object({ kind: z.literal("marquee") }).strict(),
+  z.object({ kind: z.literal("magazine") }).strict(),
+]);
 
 const navigationViewModelSchema = z
   .object({
@@ -65,6 +174,41 @@ const heroViewModelSchema = z
     primaryAction: previewActionSchema.optional(),
   })
   .strict();
+const homeViewModelSchema = z
+  .object({
+    ...stateShape,
+    announcement: copySchema.optional(),
+    announcementLink: presentationLinkSchema.optional(),
+    featuredCollection: z
+      .object({
+        href: z.string().regex(/^\/collections\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
+        id: publicIdSchema,
+        name: headingSchema,
+      })
+      .strict(),
+    hero: z
+      .object({
+        body: copySchema,
+        eyebrow: z.string().trim().min(1).max(120),
+        heading: headingSchema,
+        media: editorMediaSchema.optional(),
+        primaryLink: presentationLinkSchema.optional(),
+        secondaryLink: presentationLinkSchema.optional(),
+      })
+      .strict(),
+    featuredProduct: presentationProductCardSchema.optional(),
+    kind: z.literal("home"),
+    merchandisingOrder: z.int().min(1).max(12).default(1),
+    merchandisingTitle: headingSchema.default("Best sellers"),
+    merchandisingVisible: z.boolean().default(true),
+    products: z.array(presentationProductCardSchema).max(24),
+    sections: homeSectionSequenceSchema,
+    shell: presentationShellViewModelSchema.omit({
+      announcement: true,
+      announcementLink: true,
+    }),
+  })
+  .strict();
 const collectionGridViewModelSchema = z
   .object({
     ...stateShape,
@@ -80,8 +224,9 @@ const collectionGridViewModelSchema = z
       )
       .max(12),
     heading: headingSchema,
+    description: copySchema.optional(),
     kind: z.literal("collection-grid"),
-    products: z.array(productSummarySchema).max(24).default([]),
+    products: z.array(presentationProductCardSchema).max(24).default([]),
     resource: presentationCollectionSchema.optional(),
   })
   .strict();
@@ -135,7 +280,25 @@ const productViewModelSchema = z
     heading: headingSchema,
     kind: z.literal("product"),
     media: z.array(mediaSchema).max(12),
+    optionGroups: z
+      .array(
+        z
+          .object({
+            name: z.string().trim().min(1).max(80),
+            values: z.array(z.string().trim().min(1).max(160)).min(1).max(100),
+          })
+          .strict(),
+      )
+      .max(20),
     priceLabel: z.string().trim().min(1).max(80),
+    relatedCollection: z
+      .object({
+        href: z.string().regex(/^\/collections\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
+        id: publicIdSchema,
+        name: headingSchema,
+      })
+      .strict()
+      .optional(),
     resource: presentationProductSchema.optional(),
     variants: z
       .array(
@@ -143,6 +306,10 @@ const productViewModelSchema = z
           .object({
             id: z.union([storefrontIdentifierSchema, publicIdSchema]),
             label: z.string().trim().min(1).max(100),
+            optionValues: z.record(
+              z.string().trim().min(1).max(80),
+              z.string().trim().min(1).max(160),
+            ),
             selected: z.boolean(),
           })
           .strict(),
@@ -156,6 +323,7 @@ const cartViewModelSchema = z
     ...stateShape,
     checkoutAction: previewActionSchema,
     heading: headingSchema,
+    helpCopy: copySchema.optional(),
     kind: z.literal("cart"),
     lines: z
       .array(
@@ -171,6 +339,7 @@ const cartViewModelSchema = z
       )
       .max(20),
     subtotalLabel: z.string().trim().min(1).max(80),
+    policyLink: presentationLinkSchema.optional(),
   })
   .strict();
 const checkoutViewModelSchema = z
@@ -179,9 +348,11 @@ const checkoutViewModelSchema = z
     action: previewActionSchema,
     errorMessage: copySchema.optional(),
     heading: headingSchema,
+    helpCopy: copySchema.optional(),
     kind: z.literal("checkout"),
     steps: z.array(z.string().trim().min(1).max(100)).min(1).max(6),
     summaryLines: z.array(z.string().trim().min(1).max(160)).min(1).max(20),
+    policyLink: presentationLinkSchema.optional(),
   })
   .strict();
 const orderViewModelSchema = z
@@ -210,7 +381,10 @@ const stateViewModelSchema = z
     action: previewActionSchema.optional(),
     heading: headingSchema,
     kind: z.literal("state"),
+    media: editorMediaSchema.optional(),
     message: copySchema,
+    presentationStyle: z.enum(["standard", "editorial"]).optional(),
+    relatedAction: previewActionSchema.optional(),
   })
   .strict();
 const themeSectionViewModelSchema = z
@@ -225,6 +399,7 @@ export const presentationViewModelSchema = z.discriminatedUnion("kind", [
   navigationViewModelSchema,
   announcementViewModelSchema,
   heroViewModelSchema,
+  homeViewModelSchema,
   collectionGridViewModelSchema,
   productGridViewModelSchema,
   promotionViewModelSchema,
@@ -250,6 +425,11 @@ export const experienceFixtureSchema = z
   .strict();
 
 export type PresentationViewModel = z.infer<typeof presentationViewModelSchema>;
+export type PresentationProductCard = z.infer<typeof presentationProductCardSchema>;
+export type PresentationShellViewModel = z.infer<typeof presentationShellViewModelSchema>;
+export type PlatformRoutePresentationViewModel = z.infer<
+  typeof platformRoutePresentationViewModelSchema
+>;
 export type ExperienceFixture = z.infer<typeof experienceFixtureSchema>;
 export type ExperienceFixtureRegistry = Readonly<Record<string, ExperienceFixture>>;
 export {

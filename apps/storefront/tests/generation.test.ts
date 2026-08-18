@@ -10,11 +10,18 @@ import {
   fashionStoreThemeRoutes,
   fashionStorePreviewRoutes,
 } from "../app/themes/fashion-store/page-contracts";
+import { decorThemeRoutes } from "../app/themes/decor/page-contracts";
 import {
   resolveThemeRoute,
   staticThemeRoutePaths,
   themeRoutePaths,
 } from "../app/theme-engine/routes";
+import {
+  previewPlatformRoutes,
+  productionPlatformRoutes,
+  resolveStorefrontPrerenderRoutes,
+} from "../scripts/resolve-prerender-routes";
+import { assertStaticPageHtml } from "../scripts/static-page-verification";
 
 describe("static generation manifest", () => {
   test("derives private preview routes only from readiness-enabled page contracts", () => {
@@ -41,22 +48,42 @@ describe("static generation manifest", () => {
     ]);
   });
 
-  test("makes static verification and bundle budgets consume active preview routes", async () => {
-    const scripts = await Promise.all(
-      ["verify-static.ts", "check-bundle-budget.ts"].map((name) =>
-        readFile(resolve(import.meta.dir, `../scripts/${name}`), "utf8"),
-      ),
+  test("makes static verification share Nuxt's prerender route resolver", async () => {
+    const verificationScript = await readFile(
+      resolve(import.meta.dir, "../scripts/verify-static.ts"),
+      "utf8",
     );
-    expect(scripts.every((source) => source.includes("activeThemeRoutes"))).toBe(true);
-    expect(scripts.every((source) => source.includes("themeRoutePaths"))).toBe(true);
+    const bundleBudgetScript = await readFile(
+      resolve(import.meta.dir, "../scripts/check-bundle-budget.ts"),
+      "utf8",
+    );
+    expect(verificationScript).toContain("resolveStorefrontPrerenderRoutes");
+    expect(verificationScript).not.toContain("themeRoutePaths");
+    expect(bundleBudgetScript).toContain("activeThemeRoutes");
+    expect(bundleBudgetScript).toContain("themeRoutePaths");
     expect(staticThemeRoutePaths(fashionStoreThemeRoutes)).toEqual(fashionStorePreviewRoutes);
   });
 
-  test("prerenders the platform checkout completion shell alongside theme preview routes", async () => {
-    const nuxtConfig = await readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8");
-    expect(nuxtConfig).toContain('const previewPlatformRoutes = ["/checkout/complete"]');
-    expect(nuxtConfig).toContain("themeRoutePaths(fashionStoreThemeRoutes");
-    expect(nuxtConfig).toContain("livePreviewInput.catalogRelease");
+  test("resolves exact fixture and production prerender route sets", () => {
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        previewBuild: true,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual([...fashionStorePreviewRoutes, ...previewPlatformRoutes]);
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        experience: { environment: "preview", themeId: "decor" },
+        previewBuild: true,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual([...themeRoutePaths(decorThemeRoutes, "fixture-preview"), ...previewPlatformRoutes]);
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        previewBuild: false,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual(["/published", ...productionPlatformRoutes]);
   });
 
   test("contains every published route exactly once in isolated modules", async () => {
@@ -190,11 +217,71 @@ describe("static generation manifest", () => {
       "/products/release-only-product",
       "/collections/release-only-collection",
     ]);
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        experience: {
+          catalogRelease: release,
+          environment: "preview",
+          presentationMode: "live",
+          themeId: "fashion-store",
+        },
+        previewBuild: true,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual([
+      ...themeRoutePaths(fashionStoreThemeRoutes, "live", release),
+      "/policies/privacy",
+      ...previewPlatformRoutes,
+    ]);
 
     const registry = await readFile(
       resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"),
       "utf8",
     );
     expect(registry).toContain("export const themeRoutes = fashionStoreThemeRoutes");
+  });
+
+  test("binds live policy routes and rendering to the selected Catalog Release", async () => {
+    const policyPage = await readFile(
+      resolve(import.meta.dir, "../app/pages/policies/[slug].vue"),
+      "utf8",
+    );
+    expect(policyPage).toContain("activeExperienceProviderInput");
+    expect(policyPage).toContain('activeExperienceProviderInput.mode === "live"');
+    expect(policyPage).toContain("activeExperienceProviderInput.release");
+    expect(policyPage).not.toContain("catalogRelease.policies.find");
+  });
+
+  test("rejects malformed selected-release policy output during static verification", () => {
+    const release = {
+      ...catalogRelease,
+      collections: [],
+      generatedAt: "2026-08-17T00:00:00.000Z",
+      policies: [{ ...catalogRelease.policies[0]!, slug: "release-policy" }],
+      products: [],
+      redirects: [],
+      routes: ["/"],
+      schemaVersion: 2,
+    } as const;
+    const routes = resolveStorefrontPrerenderRoutes({
+      experience: {
+        catalogRelease: release,
+        environment: "preview",
+        presentationMode: "live",
+        themeId: "fashion-store",
+      },
+      previewBuild: true,
+      productionRoutes: [],
+    });
+    const policyRoute = "/policies/release-policy";
+
+    expect(routes).toContain(policyRoute);
+    expect(() =>
+      assertStaticPageHtml({
+        html: '<meta name="robots" content="noindex, nofollow"><h1>Policy</h1>',
+        previewBuild: true,
+        route: policyRoute,
+      }),
+    ).toThrow(`${policyRoute} is missing canonical metadata or meaningful static content.`);
   });
 });

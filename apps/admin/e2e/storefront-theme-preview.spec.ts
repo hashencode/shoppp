@@ -81,6 +81,7 @@ const draft = {
   updatedAt: '2026-07-30T00:00:00.000Z',
   updatedBy: 'theme-admin',
   validation: null,
+  validations: [],
   version: 1,
 }
 
@@ -131,6 +132,15 @@ test('operator saves, validates, previews, and approves one exact theme version'
       })
       return
     }
+    if (url.pathname.endsWith('/catalog-releases/release-fashion-e2e/resources')) {
+      const kind = url.searchParams.get('kind')
+      const data =
+        kind === 'product'
+          ? [{ id: 'product-stable-e2e', kind: 'product', name: 'Stable product', path: '/products/stable-product' }]
+          : []
+      await route.fulfill({ contentType: 'application/json', json: { data, page: 1, pageSize: 12, total: data.length } })
+      return
+    }
     if (url.pathname.endsWith('/media') && request.method() === 'GET') {
       await route.fulfill({ contentType: 'application/json', json: { data: [] } })
       return
@@ -150,10 +160,12 @@ test('operator saves, validates, previews, and approves one exact theme version'
     if (url.pathname.endsWith('/validate')) {
       sequence.push('validate')
       expect(request.postDataJSON().expectedVersion).toBe(2)
+      expect(request.postDataJSON().catalogReleaseId).toBe('release-fashion-e2e')
       await route.fulfill({
         contentType: 'application/json',
         json: {
           data: {
+            catalogReleaseId: 'release-fashion-e2e',
             createdAt: '2026-07-30T00:01:00.000Z',
             draftVersion: 2,
             id: 'validation-fashion-e2e',
@@ -201,6 +213,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
               approvedAt: null,
               approvedBy: null,
               configurationSchemaVersion: 1,
+              contentDigest: 'c'.repeat(64),
               createdAt: '2026-07-30T00:01:00.000Z',
               createdBy: 'theme-admin',
               experienceId: draft.experienceId,
@@ -236,7 +249,11 @@ test('operator saves, validates, previews, and approves one exact theme version'
     }
     if (url.pathname.endsWith('/approve')) {
       sequence.push('approve')
-      expect(request.postDataJSON()).toMatchObject({ confirm: true, expectedVersion: 2 })
+      expect(request.postDataJSON()).toMatchObject({
+        catalogReleaseId: 'release-fashion-e2e',
+        confirm: true,
+        expectedVersion: 2,
+      })
       await route.fulfill({
         contentType: 'application/json',
         json: {
@@ -244,6 +261,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
             approvedAt: '2026-07-30T00:03:00.000Z',
             approvedBy: 'theme-admin',
             configurationSchemaVersion: 1,
+            contentDigest: 'd'.repeat(64),
             createdAt: '2026-07-30T00:03:00.000Z',
             createdBy: 'theme-admin',
             experienceId: draft.experienceId,
@@ -274,12 +292,27 @@ test('operator saves, validates, previews, and approves one exact theme version'
   })
 
   await page.goto(`/storefront/themes/${draft.id}`)
+  await page.setViewportSize({ width: 768, height: 900 })
 
   await expect(page.getByText(/release-fashion-e2e · staging/)).toBeVisible()
   await page.getByRole('textbox', { name: 'home-hero heading' }).fill('E2E headline')
   await page.getByRole('textbox', { name: 'Change reason' }).fill('Review exact fixture version')
   await page.getByRole('button', { name: 'Save and preview' }).click()
   await expect(page.getByText('Ready')).toBeVisible()
+  expect(
+    await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('*')]
+        .filter((element) => element.getBoundingClientRect().right > window.innerWidth + 1)
+        .slice(0, 20)
+        .map((element) => ({
+          className: element.className,
+          right: Math.round(element.getBoundingClientRect().right),
+          tag: element.tagName,
+          text: element.textContent?.trim().slice(0, 80),
+        }))
+    )
+  ).toEqual([])
+  await expect(page.getByText('c'.repeat(64))).toBeVisible()
   expect(sequence.slice(0, 3)).toEqual(['save', 'validate', 'preview'])
 
   const popupPromise = context.waitForEvent('page')

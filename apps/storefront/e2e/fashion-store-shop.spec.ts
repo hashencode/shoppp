@@ -136,7 +136,7 @@ for (const shopPage of shopPages) {
   });
 }
 
-test("shop-product-hover interaction: pointer, keyboard, and touch expose operable product actions", async ({
+test("shop-product-hover interaction: desktop actions do not swallow the first touch", async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -148,15 +148,8 @@ test("shop-product-hover interaction: pointer, keyboard, and touch expose operab
   const addToCart = product.getByRole("button", { name: "Add to cart" });
 
   if (testInfo.project.name === "fashion-store-mobile") {
-    const box = await product.locator(".shop-image").boundingBox();
-    expect(box).not.toBeNull();
-    await page.touchscreen.tap(box!.x + box!.width / 2, box!.y + box!.height / 2);
-    await expect(addToCart).toHaveCSS("visibility", "visible");
-    await addToCart.tap();
-    await expect(page.locator("[data-fashion-store-shop]")).toHaveAttribute(
-      "data-preview-intent-count",
-      "1",
-    );
+    await product.locator(".shop-image > a").tap();
+    await expect(page).toHaveURL(/\/products\/relaxed-corduroy-shirt$/);
     recordThemeBehaviorEvidence(testInfo, {
       actionOutcome: true,
       behaviorId: "shop-product-actions",
@@ -193,7 +186,7 @@ test("Shop filters combine source controls without implementation-only result co
   await prepareImplementation(page, "/shop");
   const shop = page.locator("[data-fashion-store-shop]");
   const jeans = shop.locator(".category-filter button", { hasText: "Jeans" });
-  const cotton = shop.locator(".tag-cloud a", { hasText: "Cotton" });
+  const cotton = shop.locator(".tag-cloud button", { hasText: "Cotton" });
   await cotton.click();
   await expect(shop).toHaveAttribute("data-active-tag", "Cotton");
   await expect(shop).toHaveAttribute("data-visible-product-count", "3");
@@ -207,7 +200,7 @@ test("Shop filters combine source controls without implementation-only result co
   await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(12);
   await shop.locator(".color-filter button", { hasText: "Blue" }).click();
   await shop.locator(".size-filter button", { hasText: "M" }).click();
-  await shop.locator(".tag-cloud a", { hasText: "Cotton" }).click();
+  await shop.locator(".tag-cloud button", { hasText: "Cotton" }).click();
   await jeans.focus();
   await jeans.press("Enter");
   await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(1);

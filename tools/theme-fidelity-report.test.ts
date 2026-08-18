@@ -18,7 +18,7 @@ async function png(path: string, width: number, height: number, background = "#f
 }
 
 async function captureRoot(
-  themeId: "fashion" | "decor" | "fashion-store",
+  themeId: "fashion-store-source" | "decor" | "fashion-store",
   width = 1440,
   desktopViewportHeight = 1000,
   dpr = 1,
@@ -54,7 +54,7 @@ async function captureRoot(
 
 describe("theme fidelity report", () => {
   test("retains over-threshold Fashion Store pixel evidence and rejects stale identity", async () => {
-    const referenceRoot = await captureRoot("fashion");
+    const referenceRoot = await captureRoot("fashion-store-source");
     const implementationRoot = await captureRoot("fashion-store");
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
@@ -68,9 +68,12 @@ describe("theme fidelity report", () => {
         outputRoot,
         referenceRoot,
       }),
-    ).rejects.toThrow("fashion-to-fashion-store mobile");
+    ).rejects.toThrow("fashion-store-source-to-fashion-store mobile");
     expect(
-      await readFile(join(outputRoot, "fashion-to-fashion-store-mobile-diff.json"), "utf8"),
+      await readFile(
+        join(outputRoot, "fashion-store-source-to-fashion-store-mobile-diff.json"),
+        "utf8",
+      ),
     ).toContain('"changedPixelRatio": 1');
 
     const staleMetadata = JSON.parse(
@@ -92,8 +95,8 @@ describe("theme fidelity report", () => {
     ).rejects.toThrow("does not match commit");
   });
 
-  test("rejects mismatched DPR and stale Fashion-to-Fashion Store captures", async () => {
-    const referenceRoot = await captureRoot("fashion");
+  test("rejects mismatched DPR and stale Fashion Store Source-to-Fashion Store captures", async () => {
+    const referenceRoot = await captureRoot("fashion-store-source");
     const implementationRoot = await captureRoot("fashion-store", 1440, 1000, 2);
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
@@ -109,7 +112,7 @@ describe("theme fidelity report", () => {
     ).rejects.toThrow("viewport or DPR");
 
     const staleReferenceRoot = await captureRoot(
-      "fashion",
+      "fashion-store-source",
       1440,
       1000,
       1,
@@ -128,7 +131,7 @@ describe("theme fidelity report", () => {
   });
 
   test("does not accept temporal-only evidence as the initial static report", async () => {
-    const referenceRoot = await captureRoot("fashion");
+    const referenceRoot = await captureRoot("fashion-store-source");
     const implementationRoot = await captureRoot("fashion-store");
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
@@ -149,8 +152,8 @@ describe("theme fidelity report", () => {
   });
 
   test("creates review evidence without blessing an unapproved implementation", async () => {
-    const referenceRoot = await captureRoot("fashion");
-    const implementationRoot = await captureRoot("fashion");
+    const referenceRoot = await captureRoot("decor");
+    const implementationRoot = await captureRoot("decor");
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
     const report = await generateThemeFidelityReport({
@@ -158,16 +161,16 @@ describe("theme fidelity report", () => {
       implementationRoot,
       outputRoot,
       referenceRoot,
-      themes: ["fashion"],
+      themes: ["decor"],
     });
     const contents = await readFile(report, "utf8");
     await writeFile(join(outputRoot, "approval.json"), '{"commit":"stale"}\n');
     expect(contents).toContain("does not imply approval");
     expect(contents.match(/<section>/g)).toHaveLength(4);
-    expect(contents).toContain("fashion · laptop");
-    expect(contents).toContain("fashion · tablet");
+    expect(contents).toContain("decor · laptop");
+    expect(contents).toContain("decor · tablet");
     expect(contents).toContain("changed pixels <strong>0.000%</strong>");
-    expect(await readFile(join(outputRoot, "fashion-desktop-diff.json"), "utf8")).toContain(
+    expect(await readFile(join(outputRoot, "decor-desktop-diff.json"), "utf8")).toContain(
       '"changedPixelRatio": 0',
     );
     await generateThemeFidelityReport({
@@ -175,7 +178,7 @@ describe("theme fidelity report", () => {
       implementationRoot,
       outputRoot,
       referenceRoot,
-      themes: ["fashion"],
+      themes: ["decor"],
     });
     await expect(readFile(join(outputRoot, "approval.json"))).rejects.toThrow();
   });
@@ -193,11 +196,11 @@ describe("theme fidelity report", () => {
   });
 
   test("fails above the full-page threshold and retains actionable diff artifacts", async () => {
-    const referenceRoot = await captureRoot("fashion");
-    const implementationRoot = await captureRoot("fashion");
+    const referenceRoot = await captureRoot("decor");
+    const implementationRoot = await captureRoot("decor");
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
-    await png(join(implementationRoot, "fashion", "desktop.png"), 1440, 1000, "#000000");
+    await png(join(implementationRoot, "decor", "desktop.png"), 1440, 1000, "#000000");
 
     await expect(
       generateThemeFidelityReport({
@@ -205,21 +208,21 @@ describe("theme fidelity report", () => {
         implementationRoot,
         outputRoot,
         referenceRoot,
-        themes: ["fashion"],
+        themes: ["decor"],
       }),
-    ).rejects.toThrow("fashion desktop");
+    ).rejects.toThrow("decor desktop");
     expect(await readFile(join(outputRoot, "index.html"), "utf8")).toContain("100.000%");
-    expect(await readFile(join(outputRoot, "fashion-desktop-diff.json"), "utf8")).toContain(
+    expect(await readFile(join(outputRoot, "decor-desktop-diff.json"), "utf8")).toContain(
       '"changedPixelRatio": 1',
     );
     expect(
-      (await readFile(join(outputRoot, "fashion-desktop-diff.png"))).byteLength,
+      (await readFile(join(outputRoot, "decor-desktop-diff.png"))).byteLength,
     ).toBeGreaterThan(0);
   });
 
   test("refuses missing, wrong-theme, or dimension-mismatched evidence", async () => {
-    const referenceRoot = await captureRoot("fashion");
-    const implementationRoot = await captureRoot("fashion", 1200);
+    const referenceRoot = await captureRoot("decor");
+    const implementationRoot = await captureRoot("decor", 1200);
     const outputRoot = await mkdtemp(join(tmpdir(), "shoppp-fidelity-output-"));
     roots.push(outputRoot);
     await expect(
@@ -228,24 +231,24 @@ describe("theme fidelity report", () => {
         implementationRoot,
         outputRoot,
         referenceRoot,
-        themes: ["fashion"],
+        themes: ["decor"],
       }),
     ).rejects.toThrow("dimensions");
-    const wrongHeightRoot = await captureRoot("fashion", 1440, 900);
+    const wrongHeightRoot = await captureRoot("decor", 1440, 900);
     await expect(
       generateThemeFidelityReport({
         commit: "abcdef1234567",
         implementationRoot: wrongHeightRoot,
         outputRoot,
         referenceRoot,
-        themes: ["fashion"],
+        themes: ["decor"],
       }),
     ).rejects.toThrow("dimensions");
     await writeFile(
-      join(implementationRoot, "fashion", "metadata.json"),
+      join(implementationRoot, "decor", "metadata.json"),
       JSON.stringify({
         capturedAt: "2026-07-30T00:00:00.000Z",
-        themeId: "decor",
+        themeId: "fashion-store-source",
         viewports: [],
       }),
     );
@@ -255,7 +258,7 @@ describe("theme fidelity report", () => {
         implementationRoot,
         outputRoot,
         referenceRoot,
-        themes: ["fashion"],
+        themes: ["decor"],
       }),
     ).rejects.toThrow("wrong theme");
   });

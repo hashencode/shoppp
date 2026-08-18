@@ -4,10 +4,12 @@
 import type { ExperienceSnapshot } from "@shoppp/contracts";
 import {
   themeAssets as selectedThemeAssets,
-  themeRegistry as selectedThemeRegistry,
   themeRoutes as selectedThemeRoutes,
 } from "../themes/fashion-store/registry";
-import { themeFixtures as selectedThemeFixtures } from "../themes/fashion-store/fixture-registry";
+import {
+  fixtureThemeRegistry as selectedThemeRegistry,
+  themeFixtures as selectedThemeFixtures,
+} from "../themes/fashion-store/fixture-registry";
 
 export const activeThemeId = "fashion-store";
 // Preserve deterministic JSON serialization for the signed snapshot payload.
@@ -183,22 +185,11 @@ export const activeExperienceSnapshot = {
             "about.message": "Learn more about this store.",
             "account.heading": "Account unavailable",
             "account.message": "Customer accounts are not available yet.",
-            "brand-logo": {
-              "alt": "Fashion Store logo",
-              "height": 56,
-              "kind": "theme",
-              "path": "assets/images/fashion-store-logo.svg",
-              "width": 180
-            },
             "contact.heading": "Contact information",
             "contact.message": "Merchant contact details will appear here.",
             "content-style": "standard",
             "faq.heading": "Frequently asked questions",
             "faq.message": "Helpful answers from our team.",
-            "legal-link": {
-              "kind": "route",
-              "path": "/policies/privacy"
-            },
             "magazine.heading": "Magazine",
             "magazine.marketing-tips-and-tricks.heading": "Marketing tips and tricks",
             "magazine.marketing-tips-and-tricks.message": "Editorial story.",

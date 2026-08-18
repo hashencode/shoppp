@@ -5,9 +5,8 @@ import { activeThemeFixtures } from "./active-theme";
 import type { ActiveExperienceProviderInput } from "../theme-engine/providers";
 import { mergeExperienceFixtureRegistries } from "../theme-engine/assets";
 
-export const activeExperienceProviderInput: ActiveExperienceProviderInput = {
-  mode: "fixture-preview",
-};
+export const activeExperienceProviderInput: ActiveExperienceProviderInput = { mode: "fixture-preview" };
+export const activeCatalogSearchIndex = null;
 export const activeFixtureRegistry = mergeExperienceFixtureRegistries(
   experienceFixtureRegistry,
   activeThemeFixtures,

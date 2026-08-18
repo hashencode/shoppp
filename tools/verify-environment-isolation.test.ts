@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  loadFashionEnvironmentProfile,
   loadSnapshots,
   verifyFashionEnvironmentProfile,
   verifySnapshots,
@@ -80,10 +81,35 @@ function fashionProfile() {
       "shoppp-fashion-staging-preview-artifacts",
     ],
     serviceCredentialRef: "fashion-staging-service-credential",
+    checkoutProtection: {
+      rateLimit: {
+        binding: "CHECKOUT_RATE_LIMITER",
+        limit: 10,
+        namespaceId: "fashion-checkout-rate-limit",
+        period: 60,
+      },
+      turnstile: {
+        hostnames: ["shoppp-storefront-fashion-preview.example.com"],
+        required: true,
+        siteKey: "1x00000000000000000000AA",
+        testMode: true,
+      },
+    },
+    paymentTargets: {
+      cancelUrl:
+        "https://shoppp-storefront-fashion-preview.example.com/checkout/complete?return=canceled",
+      successUrl:
+        "https://shoppp-storefront-fashion-preview.example.com/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
+      webhookUrl: "https://shoppp-api-fashion-staging.example.com/webhooks/stripe",
+    },
     lifecycle: {
       resourceProvisioning: "explicit-once" as const,
       ordinaryRuns: "verify-and-reuse" as const,
       credentialReplacement: "security-event-or-operator" as const,
+    },
+    origins: {
+      api: "https://shoppp-api-fashion-staging.example.com",
+      preview: "https://shoppp-storefront-fashion-preview.example.com",
     },
     serviceBindings: {
       PREVIEW_AUTH: {
@@ -105,6 +131,46 @@ describe("environment isolation", () => {
       ["0c84c9e0-5ef1-4897-815e-5ec7efb7582e::shoppp-staging"],
       ["e17ef1dc-d87c-40c7-b218-e4827d815168::shoppp-production"],
     ]);
+  });
+
+  test("repository config resolves the dedicated Fashion Worker, D1, storage, and binding profile", async () => {
+    const profile = await loadFashionEnvironmentProfile();
+    expect(profile).toMatchObject({
+      databaseIdentity: "eb1ca4ef-3121-4d02-b20e-e619eac1cecc::shoppp-fashion-staging",
+      deploymentProfile: "fashion-staging",
+      runtimeEnvironment: "staging",
+      checkoutProtection: {
+        rateLimit: {
+          binding: "CHECKOUT_RATE_LIMITER",
+          limit: 10,
+          namespaceId: "14001",
+          period: 60,
+        },
+        turnstile: {
+          hostnames: ["shoppp-storefront-fashion-preview.hashencode.workers.dev"],
+          required: true,
+          siteKey: "1x00000000000000000000AA",
+          testMode: true,
+        },
+      },
+      paymentTargets: {
+        webhookUrl:
+          "https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe",
+      },
+      serviceBindings: {
+        COMMERCE_API: { service: "shoppp-api-fashion-staging" },
+        PREVIEW_AUTH: { service: "shoppp-api-fashion-staging" },
+      },
+      workers: {
+        api: "shoppp-api-fashion-staging",
+        preview: "shoppp-storefront-fashion-preview",
+      },
+    });
+    expect(profile.storageIdentifiers).toEqual([
+      "shoppp-fashion-staging-media",
+      "shoppp-fashion-staging-preview-artifacts",
+    ]);
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), profile)).not.toThrow();
   });
 
   test("accepts distinct staging and production resources", () => {
@@ -283,8 +349,7 @@ describe("fashion-staging deployment profile", () => {
     );
 
     const automaticRotation = fashionProfile();
-    automaticRotation.lifecycle.credentialReplacement =
-      "automatic" as "security-event-or-operator";
+    automaticRotation.lifecycle.credentialReplacement = "automatic" as "security-event-or-operator";
     expect(() => verifyFashionEnvironmentProfile(snapshots(), automaticRotation)).toThrow(
       /credential replacement must require a security event or operator action/,
     );
@@ -320,6 +385,43 @@ describe("fashion-staging deployment profile", () => {
     wrongIntent.serviceBindings.COMMERCE_API.intent = "preview-authorization" as "commerce-api";
     expect(() => verifyFashionEnvironmentProfile(snapshots(), wrongIntent)).toThrow(
       /COMMERCE_API must have commerce-api intent/,
+    );
+  });
+
+  test("fails closed unless Fashion checkout uses its exact Turnstile and rate-limit profile", () => {
+    const disabled = fashionProfile();
+    disabled.checkoutProtection.turnstile.required = false;
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), disabled)).toThrow(
+      /Fashion checkout must require Turnstile/,
+    );
+
+    const wrongHost = fashionProfile();
+    wrongHost.checkoutProtection.turnstile.hostnames = ["shoppp-storefront-staging.example.com"];
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), wrongHost)).toThrow(
+      /Turnstile hostname must match the private Preview origin/,
+    );
+
+    const sharedRateLimit = fashionProfile();
+    sharedRateLimit.checkoutProtection.rateLimit.namespaceId = "staging-rate-limit";
+    const existing = snapshots();
+    existing[0]!.resourceIdentifiers.push("staging-rate-limit");
+    expect(() => verifyFashionEnvironmentProfile(existing, sharedRateLimit)).toThrow(
+      /Fashion profile reuses an existing deployment identity/,
+    );
+  });
+
+  test("fails closed when Fashion payment targets leave the isolated origins", () => {
+    const wrongSuccess = fashionProfile();
+    wrongSuccess.paymentTargets.successUrl =
+      "https://shoppp-storefront-staging.example.com/checkout/complete?session_id={CHECKOUT_SESSION_ID}";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), wrongSuccess)).toThrow(
+      /Fashion payment success target must use the private Preview origin/,
+    );
+
+    const wrongWebhook = fashionProfile();
+    wrongWebhook.paymentTargets.webhookUrl = "https://api.example.com/webhooks/stripe";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), wrongWebhook)).toThrow(
+      /Fashion Stripe webhook must use the dedicated API origin/,
     );
   });
 

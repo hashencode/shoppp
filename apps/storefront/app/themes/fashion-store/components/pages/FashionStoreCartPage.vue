@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import type { Cart } from "@shoppp/contracts";
-
 import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
-import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
-import type { FashionStoreCartData, FashionStoreCartLine } from "../../fixtures/pages/cart";
+import type { FashionStoreLegacyCartData, FashionStoreLegacyCartLine } from "../../contracts/cart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
@@ -20,25 +18,25 @@ const properties = defineProps<{
 const isLive = computed(() => properties.viewModel.kind === "cart");
 const initialFixtureData =
   properties.viewModel.kind === "theme-section"
-    ? (properties.viewModel.data as unknown as FashionStoreCartData)
+    ? (properties.viewModel.data as unknown as FashionStoreLegacyCartData)
     : undefined;
-const data = computed<FashionStoreCartData>(() => {
+const data = computed<FashionStoreLegacyCartData>(() => {
   if (properties.viewModel.kind !== "theme-section") {
     throw new Error("Fashion Store Cart requires a theme-section fixture.");
   }
-  return properties.viewModel.data as unknown as FashionStoreCartData;
+  return properties.viewModel.data as unknown as FashionStoreLegacyCartData;
 });
 const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const ownerCart = inject(storefrontCartStateKey);
-const lines = ref<FashionStoreCartLine[]>([]);
+const lines = ref<FashionStoreLegacyCartLine[]>([]);
 const totals = reactive({ subtotal: "$0.00", tax: "(Includes $0.00 tax)", total: "$0.00" });
 const cartStatus = ref<"error" | "loading" | "ready">("loading");
 const cartLoadError = ref("");
 const sourceByVariant = new Map(
   (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
 );
-function presentLine(line: Cart["lines"][number]): FashionStoreCartLine {
+function presentLine(line: StorefrontCart["lines"][number]): FashionStoreLegacyCartLine {
   const source = sourceByVariant.get(line.variantId);
   return {
     color: source?.color ?? line.variantName,
@@ -102,6 +100,8 @@ const coupon = ref("");
 const couponInvalid = ref(false);
 const shippingInvalid = ref(false);
 const busy = ref(false);
+const hydrated = ref(false);
+const liveTransactionDisabled = computed(() => isLive.value && !hydrated.value);
 const mutationCount = ref(0);
 const localActionCount = ref(0);
 
@@ -113,7 +113,7 @@ function money(amount: number, currency: string): string {
   return formatCommerceMoney(amount, currency);
 }
 
-function applyOwnerCart(cart: Cart): void {
+function applyOwnerCart(cart: StorefrontCart): void {
   if (!ownerCart) {
     lines.value = cart.lines.map(presentLine);
     totals.subtotal = money(cart.totals.subtotal, cart.currency);
@@ -136,13 +136,22 @@ function applyFixtureCart(): void {
   cartStatus.value = "ready";
 }
 
-async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number): Promise<void> {
-  if (busy.value || !actionAdapter) return;
+async function updateQuantity(
+  line: FashionStoreLegacyCartLine,
+  nextQuantity: number,
+): Promise<void> {
+  if (busy.value) return;
   const quantity = Math.min(20, Math.max(1, Math.floor(nextQuantity || 1)));
   if (quantity === line.quantity) return;
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.update, "fashion-store.cart.quantity");
+    const fixtureLine = lines.value.find(({ variantId }) => variantId === line.variantId);
+    if (fixtureLine) fixtureLine.quantity = quantity;
+    mutationCount.value += 1;
+    cartAnnouncements.value = ["Preview quantity updated locally. No Commerce cart was changed."];
+    return;
   }
+  if (!actionAdapter) return;
   busy.value = true;
   cartLoadError.value = "";
   try {
@@ -163,14 +172,24 @@ async function updateQuantity(line: FashionStoreCartLine, nextQuantity: number):
   }
 }
 
-async function removeLine(line: FashionStoreCartLine): Promise<void> {
-  if (busy.value || !actionAdapter) return;
+async function removeLine(line: FashionStoreLegacyCartLine): Promise<void> {
+  if (busy.value) return;
   const removedIndex = displayedLines.value.findIndex(
     ({ variantId }) => variantId === line.variantId,
   );
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.remove, "fashion-store.cart.remove");
+    lines.value = lines.value.filter(({ variantId }) => variantId !== line.variantId);
+    mutationCount.value += 1;
+    cartAnnouncements.value = ["Preview item removed locally. No Commerce cart was changed."];
+    await nextTick();
+    const nextRemove = document.querySelectorAll<HTMLButtonElement>(
+      ".cart-products .product-remove button",
+    )[Math.min(removedIndex, displayedLines.value.length - 1)];
+    (nextRemove ?? document.querySelector<HTMLButtonElement>("[data-empty-cart]"))?.focus();
+    return;
   }
+  if (!actionAdapter) return;
   busy.value = true;
   cartLoadError.value = "";
   let restoreFocus = false;
@@ -225,10 +244,16 @@ function validateCoupon(): void {
 
 async function updateShipping(): Promise<void> {
   shippingInvalid.value = !countryCode.value || !city.value.trim() || !postalCode.value.trim();
-  if (shippingInvalid.value || busy.value || !actionAdapter) return;
+  if (shippingInvalid.value || busy.value) return;
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.shipping, "fashion-store.cart.shipping");
+    localActionCount.value += 1;
+    cartAnnouncements.value = [
+      "Preview delivery details validated locally. No Commerce quote was requested.",
+    ];
+    return;
   }
+  if (!actionAdapter) return;
   busy.value = true;
   cartLoadError.value = "";
   try {
@@ -259,10 +284,14 @@ async function updateShipping(): Promise<void> {
 }
 
 onMounted(async () => {
+  hydrated.value = true;
   if (!checkoutAdapter) {
-    cartLoadError.value = "Cart is unavailable.";
-    if (isLive.value) cartStatus.value = "error";
-    else applyFixtureCart();
+    if (isLive.value) {
+      cartLoadError.value = "Cart is unavailable.";
+      cartStatus.value = "error";
+    } else {
+      applyFixtureCart();
+    }
     return;
   }
   try {
@@ -281,7 +310,7 @@ onMounted(async () => {
 
 <template>
   <FashionStoreShell
-    :announcement="initialFixtureData?.announcement ?? 'Cart totals are verified by Commerce.'"
+    :announcement="initialFixtureData?.announcement"
     body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
@@ -293,6 +322,15 @@ onMounted(async () => {
       :data-local-action-count="localActionCount"
       :data-mutation-count="mutationCount"
     >
+      <div
+        v-if="liveTransactionDisabled"
+        class="container pt-15px pb-15px"
+        role="region"
+        aria-label="JavaScript limitations"
+      >
+        <p>Shopping actions require JavaScript.</p>
+        <a href="/shop">Browse the published catalog</a>
+      </div>
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
@@ -300,6 +338,15 @@ onMounted(async () => {
               class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large"
             >
               <h1 class="alt-font fw-600 text-dark-gray mb-10px">Shopping cart</h1>
+              <p v-if="viewModel.kind === 'cart' && viewModel.helpCopy" class="mb-5px">
+                {{ viewModel.helpCopy }}
+                <a
+                  v-if="viewModel.policyLink"
+                  :href="viewModel.policyLink.href"
+                  data-fashion-store-route
+                  class="ms-5px text-decoration-line-bottom"
+                >{{ viewModel.policyLink.label }}</a>
+              </p>
             </div>
             <nav
               class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center"
@@ -356,7 +403,7 @@ onMounted(async () => {
                             type="button"
                             class="fs-20 fw-500"
                             :aria-label="`Remove ${line.name}`"
-                            :disabled="busy"
+                            :disabled="liveTransactionDisabled || busy"
                             @click="removeLine(line)"
                           >
                             ×
@@ -400,7 +447,7 @@ onMounted(async () => {
                               type="button"
                               class="qty-minus"
                               :aria-label="`Decrease ${line.name} quantity`"
-                              :disabled="busy || line.quantity <= 1"
+                              :disabled="liveTransactionDisabled || busy || line.quantity <= 1"
                               @click="updateQuantity(line, line.quantity - 1)"
                             >
                               -
@@ -412,7 +459,7 @@ onMounted(async () => {
                               max="20"
                               :value="line.quantity"
                               :aria-label="`${line.name} quantity`"
-                              :disabled="busy"
+                              :disabled="liveTransactionDisabled || busy"
                               @change="
                                 updateQuantity(
                                   line,
@@ -424,7 +471,7 @@ onMounted(async () => {
                               type="button"
                               class="qty-plus"
                               :aria-label="`Increase ${line.name} quantity`"
-                              :disabled="busy"
+                              :disabled="liveTransactionDisabled || busy"
                               @click="updateQuantity(line, line.quantity + 1)"
                             >
                               +
@@ -452,6 +499,7 @@ onMounted(async () => {
                     <button
                       type="button"
                       class="btn apply-coupon-btn fs-13 fw-600 text-uppercase"
+                      :disabled="liveTransactionDisabled"
                       @click="validateCoupon"
                     >
                       Apply
@@ -463,14 +511,16 @@ onMounted(async () => {
                     type="button"
                     data-empty-cart
                     class="btn btn-small border-1 btn-round-edge btn-transparent-light-gray text-transform-none me-15px lg-me-5px"
-                    :disabled="busy"
+                    :disabled="liveTransactionDisabled || busy"
                     @click="emptyCart"
                   >
                     Empty cart
                   </button>
                   <button
                     type="button"
+                    data-local-cart-action="update-presentation"
                     class="btn btn-small border-1 btn-round-edge btn-transparent-light-gray text-transform-none"
+                    :disabled="liveTransactionDisabled"
                     @click="updateCartPresentation"
                   >
                     Update cart
@@ -504,6 +554,7 @@ onMounted(async () => {
                               name="shipping-option"
                               class="d-block w-auto mb-0 me-10px p-0"
                               :value="option.id"
+                              :disabled="liveTransactionDisabled"
                             />
                             <label class="md-line-height-18px" :for="option.id">{{
                               option.label
@@ -519,6 +570,7 @@ onMounted(async () => {
                           class="d-flex align-items-center calculate-shipping-title accordion-toggle"
                           :aria-expanded="shippingOpen"
                           aria-controls="shipping-accordion"
+                          :disabled="liveTransactionDisabled"
                           @click="shippingOpen = !shippingOpen"
                         >
                           <span class="fw-600 w-100 mb-0 text-dark-gray">Calculate shipping</span>
@@ -568,7 +620,7 @@ onMounted(async () => {
                             <button
                               type="button"
                               class="btn btn-small btn-box-shadow btn-round-edge btn-dark-gray w-100"
-                              :disabled="busy"
+                              :disabled="liveTransactionDisabled || busy"
                               @click="updateShipping"
                             >
                               Update

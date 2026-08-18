@@ -12,8 +12,10 @@ import releaseFixture from "../../../storefront/fixtures/release.json";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
 import { createApp } from "../../src/http/app";
+import { sha256Hex } from "../../src/orders/tokens";
 import { redactForLog } from "../../src/security/redaction";
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
+import type { StorefrontExperienceServiceOptions } from "../../src/storefront-experience/service";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 async function seedOperator(role = "admin", subject = "theme-admin"): Promise<void> {
@@ -106,15 +108,55 @@ const previewCatalogRelease = canonicalCatalogReleaseSchema.parse({
   ],
   schemaVersion: 2,
 });
+const previewCatalogReleaseWithExternalMedia = canonicalCatalogReleaseSchema.parse({
+  ...previewCatalogRelease,
+  products: previewCatalogRelease.products.map((product, index) =>
+    index === 0
+      ? {
+          ...product,
+          media: [
+            ...product.media,
+            { ...product.media[0]!, src: "https://media-a.example.test/catalog/atlas.svg" },
+            { ...product.media[0]!, src: "https://media-c.example.test/catalog/atlas.svg" },
+          ],
+        }
+      : product,
+  ),
+});
+const previewMediaOrigins = ["https://media-a.example.test", "https://media-c.example.test"];
 
-async function seedPreviewCatalogRelease(id = previewCatalogRelease.releaseId): Promise<void> {
+const catalogReadyDraftInput = storefrontExperienceDraftInputSchema.parse({
+  ...draftInput,
+  bindings: [
+    ...draftInput.bindings,
+    {
+      id: "catalog-fashion-store-home-featured-collection",
+      instanceId: "fashion-store-home",
+      kind: "catalog",
+      reference: { id: previewCatalogRelease.collections[0]!.id, kind: "collection" },
+      settingId: "featured-collection",
+    },
+    {
+      id: "catalog-fashion-store-collection-default-collection",
+      instanceId: "fashion-store-collection",
+      kind: "catalog",
+      reference: { id: previewCatalogRelease.collections[0]!.id, kind: "collection" },
+      settingId: "default-collection",
+    },
+  ],
+});
+
+async function seedPreviewCatalogRelease(
+  id = previewCatalogRelease.releaseId,
+  release: typeof previewCatalogRelease = previewCatalogRelease,
+): Promise<void> {
   const now = "2026-08-11T00:00:00.000Z";
   await env.DB.prepare(
     `INSERT INTO catalog_releases
        (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at)
      VALUES (?, 'deployed', ?, ?, ?, ?, ?)`,
   )
-    .bind(id, JSON.stringify({ ...previewCatalogRelease, releaseId: id }), now, now, now, now)
+    .bind(id, JSON.stringify({ ...release, releaseId: id }), now, now, now, now)
     .run();
 }
 
@@ -153,15 +195,84 @@ async function validateDraft(
   draftId: string,
   version: number,
   key: string,
+  catalogReleaseId?: string,
 ) {
   return app.fetch(
     writeRequest(
       `/admin/storefront-experiences/drafts/${draftId}/validate`,
-      { expectedVersion: version, reason: "Validate the exact draft version" },
+      { catalogReleaseId, expectedVersion: version, reason: "Validate the exact draft version" },
       key,
     ),
     env,
   );
+}
+
+function revokePreviewAccessAfterGrantClaim(database: D1Database, snapshotId: string): D1Database {
+  const rawStatements = new WeakMap<object, D1PreparedStatement>();
+  const claimStatements = new WeakSet<object>();
+  let revoked = false;
+  const revoke = async () => {
+    if (revoked) return;
+    revoked = true;
+    const revokedAt = "2026-08-11T00:01:00.000Z";
+    await database.batch([
+      database
+        .prepare(
+          "UPDATE storefront_preview_grants SET revoked_at = ? WHERE snapshot_id = ? AND revoked_at IS NULL",
+        )
+        .bind(revokedAt, snapshotId),
+      database
+        .prepare(
+          "UPDATE storefront_preview_sessions SET revoked_at = ? WHERE snapshot_id = ? AND revoked_at IS NULL",
+        )
+        .bind(revokedAt, snapshotId),
+    ]);
+  };
+  const wrapStatement = (statement: D1PreparedStatement, isClaim: boolean): D1PreparedStatement => {
+    const wrapped = new Proxy(statement, {
+      get(target, property) {
+        if (property === "bind") {
+          return (...values: unknown[]) => wrapStatement(target.bind(...values), isClaim);
+        }
+        if (property === "run") {
+          return async () => {
+            const result = await target.run();
+            if (isClaim) await revoke();
+            return result;
+          };
+        }
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    rawStatements.set(wrapped, statement);
+    if (isClaim) claimStatements.add(wrapped);
+    return wrapped;
+  };
+
+  return new Proxy(database, {
+    get(target, property) {
+      if (property === "prepare") {
+        return (query: string) =>
+          wrapStatement(
+            target.prepare(query),
+            query.includes("UPDATE storefront_preview_grants") && query.includes("SET redeemed_at"),
+          );
+      }
+      if (property === "batch") {
+        return async (statements: D1PreparedStatement[]) => {
+          const includesClaim = statements.some((statement) => claimStatements.has(statement));
+          const result = await target.batch(
+            statements.map((statement) => rawStatements.get(statement) ?? statement),
+          );
+          if (includesClaim) await revoke();
+          return result;
+        };
+      }
+      const value = Reflect.get(target, property, target) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
 }
 
 describe("storefront experience API", () => {
@@ -188,12 +299,6 @@ describe("storefront experience API", () => {
         {
           fixtureBindings: expect.any(Array),
           id: "decor",
-          presetDefinitions: expect.any(Array),
-          themeVersion: "1.0.0",
-        },
-        {
-          fixtureBindings: expect.any(Array),
-          id: "fashion",
           presetDefinitions: expect.any(Array),
           themeVersion: "1.0.0",
         },
@@ -244,6 +349,19 @@ describe("storefront experience API", () => {
     expect(await releases.json()).toMatchObject({
       data: expect.arrayContaining([
         expect.objectContaining({
+          destinations: expect.arrayContaining([
+            expect.objectContaining({ id: "page.about", kind: "page", path: "/about" }),
+            expect.objectContaining({
+              id: "article.marketing-tips-and-tricks",
+              kind: "article",
+              path: "/magazine/marketing-tips-and-tricks",
+            }),
+            expect.objectContaining({
+              id: "policy.privacy",
+              kind: "policy",
+              path: "/policies/privacy",
+            }),
+          ]),
           environment: "staging",
           id: releaseId,
           products: expect.arrayContaining([
@@ -252,6 +370,19 @@ describe("storefront experience API", () => {
           status: "deployed",
         }),
       ]),
+    });
+    const resources = await app.fetch(
+      request(
+        `/admin/storefront-experiences/catalog-releases/${releaseId}/resources?kind=policy&page=1&pageSize=1&query=privacy`,
+      ),
+      env,
+    );
+    expect(resources.status).toBe(200);
+    expect(await resources.json()).toMatchObject({
+      data: [{ id: "policy.privacy", kind: "policy", path: "/policies/privacy" }],
+      page: 1,
+      pageSize: 1,
+      total: 1,
     });
 
     const media = await app.fetch(
@@ -283,8 +414,14 @@ describe("storefront experience API", () => {
       }),
       experienceBuildTrigger: async () => ({ correlationId: "permission-parity-preview" }),
     });
-    const created = await createDraft(app, "theme-permission-create-0001");
-    await validateDraft(app, created.body.data.id, 1, "theme-permission-validate-0001");
+    const created = await createDraft(app, "theme-permission-create-0001", catalogReadyDraftInput);
+    await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "theme-permission-validate-0001",
+      "release-permission-parity",
+    );
     const initialPreview = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
@@ -306,6 +443,26 @@ describe("storefront experience API", () => {
     try {
       expect(
         (await app.fetch(request("/admin/storefront-experiences/catalog-releases"), env)).status,
+      ).toBe(403);
+      expect(
+        (
+          await app.fetch(
+            request(
+              `/admin/storefront-experiences/drafts/${created.body.data.id}/preview-context?draftVersion=1&catalogReleaseId=release-permission-parity`,
+            ),
+            env,
+          )
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await app.fetch(
+            request(
+              "/admin/storefront-experiences/catalog-releases/release-permission-parity/resources?kind=product",
+            ),
+            env,
+          )
+        ).status,
       ).toBe(403);
 
       const directPreview = await app.fetch(
@@ -344,6 +501,8 @@ describe("storefront experience API", () => {
   });
 
   test("persists catalog references as stable identifiers and validates declared fields", async () => {
+    const referenceReleaseId = "release-reference-validation";
+    await seedPreviewCatalogRelease(referenceReleaseId);
     const collectionId = previewCatalogRelease.collections[0]!.id;
     const productId = previewCatalogRelease.products[0]!.id;
     const bindings = [
@@ -356,18 +515,25 @@ describe("storefront experience API", () => {
         settingId: "featured-collection",
       },
       {
-        id: "catalog-fashion-store-collection-featured-collection",
+        id: "catalog-fashion-store-collection-default-collection",
         instanceId: "fashion-store-collection",
         kind: "catalog" as const,
         reference: { id: collectionId, kind: "collection" as const },
-        settingId: "featured-collection",
+        settingId: "default-collection",
       },
       {
-        id: "catalog-fashion-store-product-featured-product",
-        instanceId: "fashion-store-product",
+        id: "catalog-fashion-store-home-featured-product",
+        instanceId: "fashion-store-home",
         kind: "catalog" as const,
         reference: { id: productId, kind: "product" as const },
         settingId: "featured-product",
+      },
+      {
+        id: "catalog-fashion-store-product-related-collection",
+        instanceId: "fashion-store-product",
+        kind: "catalog" as const,
+        reference: { id: collectionId, kind: "collection" as const },
+        settingId: "related-collection",
       },
     ];
     const app = appFor();
@@ -381,6 +547,7 @@ describe("storefront experience API", () => {
       created.body.data.id,
       1,
       "theme-catalog-reference-validate-0001",
+      referenceReleaseId,
     );
     expect(await validation.json()).toMatchObject({
       data: { issues: [], status: "valid" },
@@ -389,14 +556,118 @@ describe("storefront experience API", () => {
       await app.fetch(request(`/admin/storefront-experiences/drafts/${created.body.data.id}`), env)
     ).json<{ data: { bindings: unknown[] } }>();
     expect(persisted.data.bindings).toContainEqual({
-      id: "catalog-fashion-store-product-featured-product",
-      instanceId: "fashion-store-product",
+      id: "catalog-fashion-store-home-featured-product",
+      instanceId: "fashion-store-home",
       kind: "catalog",
       reference: { id: productId, kind: "product" },
       settingId: "featured-product",
     });
     expect(JSON.stringify(persisted.data.bindings)).not.toContain("price");
     expect(JSON.stringify(persisted.data.bindings)).not.toContain("sku");
+
+    const missingProductBindings = bindings.map((binding) =>
+      binding.id === "catalog-fashion-store-home-featured-product"
+        ? {
+            ...binding,
+            reference: { id: "prod_01JPREVIEWPRODUCT99999999", kind: "product" as const },
+          }
+        : binding,
+    );
+    const missing = await createDraft(app, "theme-catalog-reference-missing-create-0001", {
+      ...draftInput,
+      bindings: missingProductBindings,
+      overrides: [
+        {
+          operations: [
+            {
+              instanceId: "fashion-store-content",
+              kind: "set-setting",
+              settingId: "policy.document",
+              value: { id: "policy.not-in-release", kind: "policy" },
+            },
+          ],
+          presetId: "source-parity",
+          schemaVersion: 1,
+          templateId: "fashion-store-content",
+        },
+      ],
+    });
+    const missingValidation = await validateDraft(
+      app,
+      missing.body.data.id,
+      1,
+      "theme-catalog-reference-missing-validate-0001",
+      referenceReleaseId,
+    );
+    expect(await missingValidation.json()).toMatchObject({
+      data: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({
+            code: "catalog_reference_missing",
+            path: "fashion-store-home.featured-product",
+          }),
+          expect.objectContaining({
+            code: "content_reference_missing",
+            path: "fashion-store-content.policy.document",
+          }),
+        ]),
+        status: "invalid",
+      },
+    });
+
+    const missingPrimary = await createDraft(app, "theme-catalog-required-references-create-0001", {
+      ...draftInput,
+      bindings: bindings.filter(
+        (binding) =>
+          !("settingId" in binding) ||
+          (binding.settingId !== "featured-collection" &&
+            binding.settingId !== "default-collection"),
+      ),
+    });
+    const missingPrimaryValidation = await validateDraft(
+      app,
+      missingPrimary.body.data.id,
+      1,
+      "theme-catalog-required-references-validate-0001",
+      referenceReleaseId,
+    );
+    expect(await missingPrimaryValidation.json()).toMatchObject({
+      data: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({
+            code: "catalog_binding_missing",
+            path: "fashion-store-home.featured-collection",
+          }),
+          expect.objectContaining({
+            code: "catalog_binding_missing",
+            path: "fashion-store-collection.default-collection",
+          }),
+        ]),
+        status: "invalid",
+      },
+    });
+
+    const fixtureOnly = await createDraft(
+      app,
+      "theme-catalog-fixture-only-create-0001",
+      draftInput,
+    );
+    const fixtureOnlyReleaseValidation = await validateDraft(
+      app,
+      fixtureOnly.body.data.id,
+      1,
+      "theme-catalog-fixture-only-validate-0001",
+      referenceReleaseId,
+    );
+    expect(await fixtureOnlyReleaseValidation.json()).toMatchObject({
+      data: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({ path: "fashion-store-home.featured-collection" }),
+          expect.objectContaining({ path: "fashion-store-collection.default-collection" }),
+        ]),
+        status: "invalid",
+      },
+    });
   });
 
   test("creates, reads, updates, validates, and idempotently replays an optimistic draft", async () => {
@@ -463,6 +734,34 @@ describe("storefront experience API", () => {
     );
     expect(stale.status).toBe(409);
 
+    const successor = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/successors`,
+        {
+          bindings: fashionStoreFixture.bindings,
+          overrides: [override],
+          reason: "Preserve local edits in a successor after the optimistic conflict",
+          sourceVersion: 1,
+        },
+        "theme-draft-successor-0001",
+      ),
+      env,
+    );
+    expect(successor.status).toBe(201);
+    expect(await successor.json()).toMatchObject({
+      data: {
+        id: expect.not.stringMatching(new RegExp(`^${draftId}$`)),
+        overrides: [override],
+        validation: null,
+        version: 1,
+      },
+    });
+    expect(
+      await env.DB.prepare("SELECT version FROM storefront_experience_drafts WHERE id = ?")
+        .bind(draftId)
+        .first(),
+    ).toEqual({ version: 2 });
+
     const validation = await validateDraft(app, draftId, 2, "theme-draft-validate-0001");
     expect(validation.status).toBe(200);
     expect(await validation.json()).toMatchObject({
@@ -472,6 +771,90 @@ describe("storefront experience API", () => {
     expect(read.status).toBe(200);
     expect(await read.json()).toMatchObject({
       data: { id: draftId, validation: { draftVersion: 2, status: "valid" }, version: 2 },
+    });
+  });
+
+  test("lists current validations for more drafts than one D1 binding batch", async () => {
+    const catalogReleaseId = "release-draft-list-batch";
+    await seedPreviewCatalogRelease(catalogReleaseId);
+    const draftIds = Array.from(
+      { length: 51 },
+      (_, index) => `draft-list-batch-${String(index).padStart(2, "0")}`,
+    );
+    await env.DB.batch(
+      draftIds.map((id, index) => {
+        const timestamp = `2099-08-17T00:00:${String(index).padStart(2, "0")}.000Z`;
+        return env.DB.prepare(
+          `INSERT INTO storefront_experience_drafts
+               (id, experience_id, theme_id, theme_version, configuration_schema_version,
+                preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+                created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+        ).bind(
+          id,
+          `experience-list-batch-${index}`,
+          draftInput.themeId,
+          draftInput.themeVersion,
+          fashionStoreManifest.configurationSchemaVersion,
+          draftInput.presetId,
+          JSON.stringify(draftInput.bindings),
+          JSON.stringify(draftInput.overrides),
+          "admin-theme-admin",
+          "admin-theme-admin",
+          timestamp,
+          timestamp,
+        );
+      }),
+    );
+    await env.DB.batch(
+      draftIds.map((draftId) =>
+        env.DB.prepare(
+          `INSERT INTO storefront_experience_validations
+               (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+                resolved_templates_json, validated_by, created_at)
+             VALUES (?, ?, 1, NULL, 'valid', '[]', '[]', ?, ?)`,
+        ).bind(
+          `validation-list-batch-${draftId}`,
+          draftId,
+          "admin-theme-admin",
+          "2099-08-17T00:01:00.000Z",
+        ),
+      ),
+    );
+    await env.DB.prepare(
+      `INSERT INTO storefront_experience_validations
+         (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+          resolved_templates_json, validated_by, created_at)
+       VALUES (?, ?, 1, ?, 'valid', '[]', '[]', ?, ?)`,
+    )
+      .bind(
+        "validation-list-batch-release",
+        draftIds[0],
+        catalogReleaseId,
+        "admin-theme-admin",
+        "2099-08-17T00:02:00.000Z",
+      )
+      .run();
+
+    const response = await appFor().fetch(request("/admin/storefront-experiences/drafts"), env);
+    expect(response.status).toBe(200);
+    const body = await response.json<{
+      data: Array<{
+        id: string;
+        validation: { catalogReleaseId: string | null; id: string } | null;
+        validations: Array<{ catalogReleaseId: string | null; id: string }>;
+      }>;
+    }>();
+    expect(draftIds.every((id) => body.data.some((draft) => draft.id === id))).toBe(true);
+    expect(body.data.find(({ id }) => id === draftIds[0])).toMatchObject({
+      validation: {
+        catalogReleaseId: null,
+        id: `validation-list-batch-${draftIds[0]}`,
+      },
+      validations: [
+        { catalogReleaseId, id: "validation-list-batch-release" },
+        { catalogReleaseId: null, id: `validation-list-batch-${draftIds[0]}` },
+      ],
     });
   });
 
@@ -700,7 +1083,12 @@ describe("storefront experience API", () => {
     const value = await preview.json<{
       data: {
         build: { status: string };
-        snapshot: { approvedAt: string | null; id: string; kind: string };
+        snapshot: {
+          approvedAt: string | null;
+          contentDigest: string;
+          id: string;
+          kind: string;
+        };
       };
     }>();
     expect(value.data).toMatchObject({
@@ -708,18 +1096,341 @@ describe("storefront experience API", () => {
       snapshot: { approvedAt: null, kind: "preview" },
     });
     expect(triggerCalls).toHaveLength(1);
+    expect(value.data.snapshot.contentDigest).toMatch(/^[a-f0-9]{64}$/);
+    const immutableDigest = value.data.snapshot.contentDigest;
+    const advanced = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}`,
+        {
+          bindings: fashionStoreFixture.bindings,
+          expectedVersion: 2,
+          overrides: [],
+          reason: "Advance the mutable draft after preview creation",
+        },
+        "theme-preview-update-0002",
+        "PUT",
+      ),
+      env,
+    );
+    expect(advanced.status).toBe(200);
+    const immutableSnapshot = await app.fetch(
+      request(`/admin/storefront-experiences/snapshots/${value.data.snapshot.id}`),
+      env,
+    );
+    expect(await immutableSnapshot.json()).toMatchObject({
+      data: {
+        contentDigest: immutableDigest,
+        id: value.data.snapshot.id,
+        sourceDraftVersion: 2,
+      },
+    });
     expect(
       await env.DB.prepare(
-        "SELECT approved_at, kind FROM storefront_experience_snapshots WHERE id = ?",
+        "SELECT approved_at, content_digest, kind FROM storefront_experience_snapshots WHERE id = ?",
       )
         .bind(value.data.snapshot.id)
         .first(),
-    ).toEqual({ approved_at: null, kind: "preview" });
+    ).toEqual({ approved_at: null, content_digest: immutableDigest, kind: "preview" });
     expect(
       await env.DB.prepare("SELECT COUNT(*) AS count FROM catalog_releases WHERE id = ?")
         .bind(value.data.snapshot.id)
         .first(),
     ).toEqual({ count: 0 });
+  });
+
+  test("binds validation and approval readiness to the selected Catalog Release", async () => {
+    const firstReleaseId = "release-validation-first";
+    const secondReleaseId = "release-validation-second";
+    await seedPreviewCatalogRelease(firstReleaseId);
+    await seedPreviewCatalogRelease(secondReleaseId);
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async () => ({ correlationId: "release-bound-preview" }),
+    });
+    const created = await createDraft(
+      app,
+      "theme-release-bound-create-0001",
+      catalogReadyDraftInput,
+    );
+    const draftId = created.body.data.id;
+
+    expect(
+      (
+        await validateDraft(
+          app,
+          draftId,
+          1,
+          "theme-release-bound-validate-first-0001",
+          firstReleaseId,
+        )
+      ).status,
+    ).toBe(200);
+    const mismatchedPreview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/preview`,
+        {
+          catalogReleaseId: secondReleaseId,
+          expectedVersion: 1,
+          reason: "Reject validation from another Catalog Release",
+        },
+        "theme-release-bound-preview-mismatch-0001",
+      ),
+      env,
+    );
+    expect(mismatchedPreview.status).toBe(409);
+    expect(await mismatchedPreview.json()).toMatchObject({
+      error: { code: "storefront_experience_validation_stale" },
+    });
+
+    expect(
+      (
+        await validateDraft(
+          app,
+          draftId,
+          1,
+          "theme-release-bound-validate-second-0001",
+          secondReleaseId,
+        )
+      ).status,
+    ).toBe(200);
+    const reloaded = await app.fetch(
+      request(`/admin/storefront-experiences/drafts/${draftId}`),
+      env,
+    );
+    expect(reloaded.status).toBe(200);
+    expect(await reloaded.json()).toMatchObject({
+      data: {
+        validation: null,
+        validations: expect.arrayContaining([
+          expect.objectContaining({ catalogReleaseId: firstReleaseId, status: "valid" }),
+          expect.objectContaining({ catalogReleaseId: secondReleaseId, status: "valid" }),
+        ]),
+      },
+    });
+    const matchingPreview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/preview`,
+        {
+          catalogReleaseId: secondReleaseId,
+          expectedVersion: 1,
+          reason: "Preview the release that passed validation",
+        },
+        "theme-release-bound-preview-match-0001",
+      ),
+      env,
+    );
+    expect(matchingPreview.status).toBe(202);
+    const matching = await matchingPreview.json<{
+      data: { build: { id: string }; snapshot: { id: string } };
+    }>();
+    const previewDigest = "d".repeat(64);
+    expect(
+      (
+        await app.fetch(
+          request(`/build/storefront-experiences/builds/${matching.data.build.id}/status`, {
+            body: JSON.stringify({
+              artifactDigest: previewDigest,
+              artifactPrefix: `snapshots/${matching.data.snapshot.id}/${secondReleaseId}/${previewDigest}`,
+              expiresAt: "2099-07-30T00:00:00.000Z",
+              status: "deployed",
+            }),
+            headers: {
+              Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}`,
+              "Content-Type": "application/json",
+              "Idempotency-Key": "theme-release-bound-build-deployed-0001",
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    const hydrated = await app.fetch(
+      request(
+        `/admin/storefront-experiences/drafts/${draftId}/preview-context?draftVersion=1&catalogReleaseId=${secondReleaseId}`,
+      ),
+      env,
+    );
+    expect(hydrated.status).toBe(200);
+    expect(await hydrated.json()).toMatchObject({
+      data: {
+        build: {
+          inputIdentity: { catalogReleaseId: secondReleaseId, experienceVersion: 1 },
+          status: "deployed",
+        },
+        snapshot: {
+          id: matching.data.snapshot.id,
+          sourceDraftId: draftId,
+          sourceDraftVersion: 1,
+        },
+      },
+    });
+    for (const query of [
+      `draftVersion=1&catalogReleaseId=${firstReleaseId}`,
+      `draftVersion=2&catalogReleaseId=${secondReleaseId}`,
+    ]) {
+      const mismatched = await app.fetch(
+        request(`/admin/storefront-experiences/drafts/${draftId}/preview-context?${query}`),
+        env,
+      );
+      expect(mismatched.status).toBe(200);
+      expect(await mismatched.json()).toMatchObject({ data: null });
+    }
+
+    const approval = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/approve`,
+        {
+          catalogReleaseId: secondReleaseId,
+          confirm: true,
+          expectedVersion: 1,
+          reason: "Approve only after validating this Catalog Release",
+        },
+        "theme-release-bound-approve-0001",
+      ),
+      env,
+    );
+    expect(approval.status).toBe(200);
+    const approved = await approval.json<{ data: { sourceValidationId: string } }>();
+    expect(
+      await env.DB.prepare(
+        "SELECT catalog_release_id FROM storefront_experience_validations WHERE id = ?",
+      )
+        .bind(approved.data.sourceValidationId)
+        .first(),
+    ).toEqual({ catalog_release_id: secondReleaseId });
+  });
+
+  test("starts an idempotent build only from an approved immutable Catalog-bound snapshot", async () => {
+    const catalogReleaseId = "release-approved-build";
+    await seedPreviewCatalogRelease(catalogReleaseId);
+    const triggerCalls: Array<{ catalogReleaseId?: string; snapshotId: string }> = [];
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async (input) => {
+        triggerCalls.push(input);
+        return { correlationId: "approved-build-correlation" };
+      },
+    });
+    const created = await createDraft(
+      app,
+      "theme-approved-build-create-0001",
+      catalogReadyDraftInput,
+    );
+    await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "theme-approved-build-validate-0001",
+      catalogReleaseId,
+    );
+    const approvedResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/approve`,
+        {
+          catalogReleaseId,
+          confirm: true,
+          expectedVersion: 1,
+          reason: "Freeze one approved Catalog-bound Fashion input",
+        },
+        "theme-approved-build-approve-0001",
+      ),
+      env,
+    );
+    expect(approvedResponse.status).toBe(200);
+    const approved = await approvedResponse.json<{ data: { id: string; kind: string } }>();
+    expect(approved.data.kind).toBe("approved");
+
+    const buildRequest = () =>
+      app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/snapshots/${approved.data.id}/build`,
+          { catalogReleaseId },
+          "theme-approved-build-trigger-0001",
+        ),
+        env,
+      );
+    const started = await buildRequest();
+    expect(started.status).toBe(202);
+    expect(await started.json()).toMatchObject({
+      data: {
+        inputIdentity: { catalogReleaseId },
+        snapshotId: approved.data.id,
+        status: "building",
+      },
+    });
+    const replay = await buildRequest();
+    expect(replay.status).toBe(202);
+    expect(triggerCalls).toHaveLength(1);
+    expect(triggerCalls[0]).toMatchObject({ catalogReleaseId, snapshotId: approved.data.id });
+
+    const previewResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+        {
+          catalogReleaseId,
+          expectedVersion: 1,
+          reason: "Create a preview-kind snapshot that cannot be used as approval proof",
+        },
+        "theme-approved-build-preview-0001",
+      ),
+      env,
+    );
+    const preview = await previewResponse.json<{ data: { snapshot: { id: string } } }>();
+    const rejected = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${preview.data.snapshot.id}/build`,
+        { catalogReleaseId },
+        "theme-preview-build-trigger-rejected-0001",
+      ),
+      env,
+    );
+    expect(rejected.status).toBe(409);
+  });
+
+  test("requires theme approval permission independently from draft write permission", async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_roles
+           (id, key, name, protected, system, enabled, version, created_at, updated_at)
+         VALUES ('role_theme_writer', 'theme_writer', 'Theme writer', 0, 0, 1, 1, ?, ?)`,
+      ).bind("2026-08-04T00:00:00.000Z", "2026-08-04T00:00:00.000Z"),
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_theme_writer', 'themes.write', '2026-08-04T00:00:00.000Z')`,
+      ),
+    ]);
+    await seedHumanAdmin(env.DB, {
+      displayName: "theme-writer",
+      email: "theme-writer@example.test",
+      id: "admin-theme-writer",
+      roleId: "role_theme_writer",
+      subject: "theme-writer",
+    });
+    const app = appFor("theme-writer");
+    const created = await createDraft(app, "theme-approval-permission-create-0001");
+    await validateDraft(app, created.body.data.id, 1, "theme-approval-permission-validate-0001");
+    const denied = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/approve`,
+        {
+          confirm: true,
+          expectedVersion: 1,
+          reason: "A writer must not approve immutable Experience content",
+        },
+        "theme-approval-permission-denied-0001",
+      ),
+      env,
+    );
+    expect(denied.status).toBe(403);
   });
 
   test("reconciles concurrent identical approvals into one immutable snapshot and audit", async () => {
@@ -804,24 +1515,24 @@ describe("storefront experience API", () => {
         },
       ],
     });
+    const storefrontExperienceServiceOptions: StorefrontExperienceServiceOptions = {
+      migrations: [
+        {
+          fromConfigurationSchemaVersion: 1,
+          migrate: (overrides) => overrides.map((override) => ({ ...override, schemaVersion: 2 })),
+          themeId: "fashion-store",
+          toConfigurationSchemaVersion: 2,
+        },
+      ],
+      packages: [sourcePackage, targetPackage, conflictingPackage],
+    };
     const app = createApp({
       testIdentityVerifier: async () => ({
         email: "theme-admin@example.test",
         principalKind: "human",
         subject: "theme-admin",
       }),
-      storefrontExperienceServiceOptions: {
-        migrations: [
-          {
-            fromConfigurationSchemaVersion: 1,
-            migrate: (overrides) =>
-              overrides.map((override) => ({ ...override, schemaVersion: 2 })),
-            themeId: "fashion-store",
-            toConfigurationSchemaVersion: 2,
-          },
-        ],
-        packages: [sourcePackage, targetPackage, conflictingPackage],
-      },
+      storefrontExperienceServiceOptions,
     });
     const created = await createDraft(app, "theme-migration-create-0001", {
       ...draftInput,
@@ -880,29 +1591,127 @@ describe("storefront experience API", () => {
       )?.count,
     ).toBe(0);
 
-    const migratedApproval = await app.fetch(
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_roles
+           (id, key, name, protected, system, enabled, version, created_at, updated_at)
+         VALUES ('role_migration_writer', 'migration_writer', 'Migration writer', 0, 0, 1, 1, ?, ?)`,
+      ).bind("2026-08-04T00:00:00.000Z", "2026-08-04T00:00:00.000Z"),
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_roles
+           (id, key, name, protected, system, enabled, version, created_at, updated_at)
+         VALUES ('role_migration_approver', 'migration_approver', 'Migration approver', 0, 0, 1, 1, ?, ?)`,
+      ).bind("2026-08-04T00:00:00.000Z", "2026-08-04T00:00:00.000Z"),
+      env.DB.prepare("DELETE FROM admin_role_permissions WHERE role_id = 'role_migration_writer'"),
+      env.DB.prepare(
+        "DELETE FROM admin_role_permissions WHERE role_id = 'role_migration_approver'",
+      ),
+      env.DB.prepare(
+        `INSERT INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_migration_writer', 'themes.write', '2026-08-04T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_migration_approver', 'themes.approve', '2026-08-04T00:00:00.000Z')`,
+      ),
+    ]);
+    await seedHumanAdmin(env.DB, {
+      displayName: "migration-writer",
+      email: "migration-writer@example.test",
+      id: "admin-migration-writer",
+      roleId: "role_migration_writer",
+      subject: "migration-writer",
+    });
+    await seedHumanAdmin(env.DB, {
+      displayName: "migration-approver",
+      email: "migration-approver@example.test",
+      id: "admin-migration-approver",
+      roleId: "role_migration_approver",
+      subject: "migration-approver",
+    });
+    const appForMigrationRole = (subject: "migration-writer" | "migration-approver") =>
+      createApp({
+        testIdentityVerifier: async () => ({
+          email: `${subject}@example.test`,
+          principalKind: "human",
+          subject,
+        }),
+        storefrontExperienceServiceOptions,
+      });
+    const writerDenied = await appForMigrationRole("migration-writer").fetch(
       writeRequest(
         `/admin/storefront-experiences/drafts/${draftId}/migrations/approve`,
         {
           confirm: true,
           expectedVersion: 1,
           migrationId: migration.data.id,
-          reason: "Explicitly approve the compatible migration",
+          reason: "A theme writer must not create a migration successor",
+        },
+        "theme-migration-writer-denied-0001",
+      ),
+      env,
+    );
+    expect(writerDenied.status).toBe(403);
+    expect(await writerDenied.json()).toMatchObject({ error: { code: "permission_denied" } });
+
+    const migratedSuccessor = await appForMigrationRole("migration-approver").fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/migrations/approve`,
+        {
+          confirm: true,
+          expectedVersion: 1,
+          migrationId: migration.data.id,
+          reason: "Create a reviewable successor for the compatible migration",
         },
         "theme-migration-approve-0001",
       ),
       env,
     );
-    expect(migratedApproval.status).toBe(200);
-    expect(await migratedApproval.json()).toMatchObject({
+    expect(migratedSuccessor.status).toBe(201);
+    const successor = await migratedSuccessor.json<{
+      data: {
+        configurationSchemaVersion: number;
+        id: string;
+        themeVersion: string;
+        version: number;
+      };
+    }>();
+    expect(successor).toMatchObject({
       data: {
         configurationSchemaVersion: 2,
-        snapshot: {
-          configurationSchemaVersion: 2,
-          themeVersion: "1.1.0",
-        },
+        id: expect.stringMatching(/^draft-/),
         themeVersion: "1.1.0",
+        validation: null,
+        version: 1,
       },
+    });
+    expect(successor.data.id).not.toBe(draftId);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM storefront_experience_snapshots WHERE migration_id = ?",
+        )
+          .bind(migration.data.id)
+          .first<{ count: number }>()
+      )?.count,
+    ).toBe(0);
+    const successorValidation = await validateDraft(
+      app,
+      successor.data.id,
+      1,
+      "theme-migration-successor-validate-0001",
+    );
+    expect(successorValidation.status).toBe(200);
+    const successorApproval = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${successor.data.id}/approve`,
+        { confirm: true, expectedVersion: 1, reason: "Approve the reviewed migration successor" },
+        "theme-migration-successor-approval-0001",
+      ),
+      env,
+    );
+    expect(await successorApproval.json()).toMatchObject({
+      data: { configurationSchemaVersion: 2, themeVersion: "1.1.0" },
     });
     expect(
       await env.DB.prepare(
@@ -1109,8 +1918,6 @@ describe("storefront experience API", () => {
       .run();
     const app = appFor();
     const created = await createDraft(app, "theme-legacy-preview-create-0001");
-    await validateDraft(app, created.body.data.id, 1, "theme-legacy-preview-validate-0001");
-
     for (const [releaseId, code] of [
       [legacyReleaseId, "catalog_release_unavailable"],
       ["release-preview-building", "catalog_release_unavailable"],
@@ -1118,6 +1925,15 @@ describe("storefront experience API", () => {
       ["release-preview-malformed", "catalog_release_invalid"],
       ["release-preview-identity-mismatch", "catalog_release_invalid"],
     ] as const) {
+      const validation = await validateDraft(
+        app,
+        created.body.data.id,
+        1,
+        `theme-invalid-release-validation-${releaseId}`,
+        releaseId,
+      );
+      expect(validation.status).toBe(422);
+      expect(await validation.json()).toMatchObject({ error: { code } });
       const preview = await app.fetch(
         writeRequest(
           `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
@@ -1130,8 +1946,10 @@ describe("storefront experience API", () => {
         ),
         env,
       );
-      expect(preview.status).toBe(422);
-      expect(await preview.json()).toMatchObject({ error: { code } });
+      expect(preview.status).toBe(409);
+      expect(await preview.json()).toMatchObject({
+        error: { code: "storefront_experience_validation_stale" },
+      });
     }
     expect(
       await env.DB.prepare("SELECT COUNT(*) AS count FROM storefront_preview_builds").first(),
@@ -1160,9 +1978,17 @@ describe("storefront experience API", () => {
         return { correlationId: `correlation-${buildId}` };
       },
     });
-    const created = await createDraft(app, "theme-concurrent-build-create-0001");
+    const created = await createDraft(
+      app,
+      "theme-concurrent-build-create-0001",
+      catalogReadyDraftInput,
+    );
     const draftId = created.body.data.id;
-    await validateDraft(app, draftId, 1, "theme-concurrent-build-validate-0001");
+    await Promise.all(
+      [releaseA, releaseB, releaseC, releaseBlocked].map((releaseId, index) =>
+        validateDraft(app, draftId, 1, `theme-concurrent-build-validate-${index + 1}`, releaseId),
+      ),
+    );
     const preview = (releaseId: string, key: string, bindings: typeof env = env) =>
       app.fetch(
         writeRequest(
@@ -1205,7 +2031,7 @@ describe("storefront experience API", () => {
       ),
     );
     expect(new Set(distinctBodies.map(({ data }) => data.build.id)).size).toBe(2);
-    expect(new Set(distinctBodies.map(({ data }) => data.build.attempt)).size).toBe(2);
+    expect(distinctBodies.map(({ data }) => data.build.attempt)).toEqual([1, 1]);
     expect(triggerCalls).toHaveLength(3);
 
     const collisionDb = new Proxy(env.DB, {
@@ -1246,7 +2072,10 @@ describe("storefront experience API", () => {
   });
 
   test("binds a live preview build and manifest to the exact Catalog and Experience inputs", async () => {
-    await seedPreviewCatalogRelease();
+    await seedPreviewCatalogRelease(
+      previewCatalogRelease.releaseId,
+      previewCatalogReleaseWithExternalMedia,
+    );
     const triggerCalls: Array<Record<string, string>> = [];
     const app = createApp({
       testIdentityVerifier: async () => ({
@@ -1259,8 +2088,18 @@ describe("storefront experience API", () => {
         return { correlationId: "live-preview-correlation" };
       },
     });
-    const created = await createDraft(app, "theme-live-preview-create-0001");
-    await validateDraft(app, created.body.data.id, 1, "theme-live-preview-validate-0001");
+    const created = await createDraft(
+      app,
+      "theme-live-preview-create-0001",
+      catalogReadyDraftInput,
+    );
+    await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "theme-live-preview-validate-0001",
+      previewCatalogRelease.releaseId,
+    );
     const preview = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
@@ -1276,7 +2115,11 @@ describe("storefront experience API", () => {
     expect(preview.status).toBe(202);
     const value = await preview.json<{
       data: {
-        build: { id: string; inputIdentity: Record<string, unknown> };
+        build: {
+          id: string;
+          inputIdentity: Record<string, unknown>;
+          mediaOrigins: string[];
+        };
         snapshot: { id: string };
       };
     }>();
@@ -1288,6 +2131,7 @@ describe("storefront experience API", () => {
       themeId: "fashion-store",
       themeVersion: "1.0.0",
     });
+    expect(value.data.build.mediaOrigins).toEqual(previewMediaOrigins);
     expect(triggerCalls).toEqual([
       expect.objectContaining({
         catalogReleaseId: previewCatalogRelease.releaseId,
@@ -1306,6 +2150,7 @@ describe("storefront experience API", () => {
     expect(await manifest.json()).toMatchObject({
       catalogRelease: { releaseId: previewCatalogRelease.releaseId, schemaVersion: 2 },
       inputIdentity: value.data.build.inputIdentity,
+      mediaOrigins: previewMediaOrigins,
       snapshot: { id: value.data.snapshot.id, version: 1 },
     });
 
@@ -1326,7 +2171,7 @@ describe("storefront experience API", () => {
       },
     });
     await env.DB.prepare("UPDATE catalog_releases SET manifest_json = ? WHERE id = ?")
-      .bind(JSON.stringify(previewCatalogRelease), previewCatalogRelease.releaseId)
+      .bind(JSON.stringify(previewCatalogReleaseWithExternalMedia), previewCatalogRelease.releaseId)
       .run();
 
     const digest = "d".repeat(64);
@@ -1450,6 +2295,13 @@ describe("storefront experience API", () => {
         )
       ).status,
     ).toBe(403);
+    const rotatedMediaEnvironment = new Proxy(env, {
+      get(target, property) {
+        if (property === "MEDIA_PUBLIC_ORIGIN") return "https://media-b.example.test";
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
     const authorization = await app.fetch(
       request("/internal/preview/authorize", {
         headers: {
@@ -1460,11 +2312,112 @@ describe("storefront experience API", () => {
         },
         method: "POST",
       }),
-      env,
+      rotatedMediaEnvironment,
     );
     expect(await authorization.json()).toMatchObject({
       artifactPrefix: `snapshots/${value.data.snapshot.id}/${previewCatalogRelease.releaseId}/${digest}`,
       inputIdentity: value.data.build.inputIdentity,
+      mediaOrigins: previewMediaOrigins,
+    });
+
+    const legacySession = "legacy_preview_session_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const legacyBuildId = `legacy-${value.data.build.id}`;
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO storefront_preview_builds
+             (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
+              platform_contract_version, media_origins_json, attempt, status, artifact_digest,
+              artifact_prefix, expires_at, completed_at, created_at, updated_at)
+           VALUES (?, ?, ?, 1, 'fashion-store', '1.0.0', '1.0.0', NULL, 2, 'deployed',
+                   ?, ?, '2099-08-11T00:00:00.000Z', '2026-08-11T00:00:00.000Z',
+                   '2026-08-11T00:00:00.000Z', '2026-08-11T00:00:00.000Z')`,
+      ).bind(
+        legacyBuildId,
+        value.data.snapshot.id,
+        previewCatalogRelease.releaseId,
+        "e".repeat(64),
+        `snapshots/${value.data.snapshot.id}/${previewCatalogRelease.releaseId}/${"e".repeat(64)}`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO storefront_preview_sessions
+             (id, snapshot_id, build_id, session_digest, origin, expires_at, created_at)
+           VALUES (?, ?, ?, ?, ?, '2099-08-11T00:00:00.000Z',
+                   '2026-08-11T00:00:00.000Z')`,
+      ).bind(
+        `session-${legacyBuildId}`,
+        value.data.snapshot.id,
+        legacyBuildId,
+        await sha256Hex(legacySession),
+        env.PREVIEW_ORIGIN,
+      ),
+    ]);
+    const legacyAuthorization = await app.fetch(
+      request("/internal/preview/authorize", {
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          Cookie: `__Host-shoppp-preview=${legacySession}`,
+          "X-Preview-Origin": env.PREVIEW_ORIGIN,
+        },
+        method: "POST",
+      }),
+      rotatedMediaEnvironment,
+    );
+    expect(legacyAuthorization.status).toBe(403);
+  });
+
+  test("rejects a Catalog Release whose preview media exceeds the bounded origin set", async () => {
+    const releaseId = "release-preview-too-many-media-origins";
+    const release = canonicalCatalogReleaseSchema.parse({
+      ...previewCatalogRelease,
+      products: previewCatalogRelease.products.map((product, index) =>
+        index === 0
+          ? {
+              ...product,
+              media: Array.from({ length: 9 }, (_, mediaIndex) => ({
+                ...product.media[0]!,
+                src: `https://media-${mediaIndex}.example.test/catalog/atlas.svg`,
+              })),
+            }
+          : product,
+      ),
+      releaseId,
+    });
+    await seedPreviewCatalogRelease(releaseId, release);
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async () => ({ correlationId: "must-not-start" }),
+    });
+    const created = await createDraft(
+      app,
+      "theme-media-origin-limit-create-0001",
+      catalogReadyDraftInput,
+    );
+    await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "theme-media-origin-limit-validate-0001",
+      releaseId,
+    );
+    const response = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+        {
+          catalogReleaseId: releaseId,
+          expectedVersion: 1,
+          reason: "Reject an over-broad private preview CSP",
+        },
+        "theme-media-origin-limit-preview-0001",
+      ),
+      env,
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: { code: "catalog_release_media_origins_invalid" },
     });
   });
 
@@ -1627,7 +2580,14 @@ describe("storefront experience API", () => {
     expect(await authorized.json()).toMatchObject({
       artifactPrefix: prefix,
       authorized: true,
+      mediaOrigins: [],
       origin: env.PREVIEW_ORIGIN,
+      previewContext: {
+        environment: "private-preview",
+        expiresAt: sessionValue.data.expiresAt,
+        returnUrl: `${env.ADMIN_ORIGIN}/storefront/themes/${draftId}`,
+        snapshotId: previewValue.data.snapshot.id,
+      },
     });
     expect(
       (
@@ -1644,7 +2604,94 @@ describe("storefront experience API", () => {
         )
       ).status,
     ).toBe(403);
+
+    const unredeemedGrantResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${previewValue.data.snapshot.id}/grants`,
+        { origin: env.PREVIEW_ORIGIN, reason: "Create a grant that revocation must invalidate" },
+        "theme-preview-grant-revoke-target-0001",
+      ),
+      env,
+    );
+    const unredeemedGrant = await unredeemedGrantResponse.json<{ data: { grant: string } }>();
+    const revoke = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${previewValue.data.snapshot.id}/revoke`,
+        { reason: "Stop access after review is complete" },
+        "theme-preview-revoke-0001",
+      ),
+      env,
+    );
+    expect(revoke.status).toBe(200);
+    expect(await revoke.json()).toMatchObject({
+      data: { grantsRevoked: 3, sessionsRevoked: 1, snapshotId: previewValue.data.snapshot.id },
+    });
+    expect((await redeem(unredeemedGrant.data.grant, env.PREVIEW_ORIGIN)).status).toBe(403);
+    expect(
+      (
+        await app.fetch(
+          request("/internal/preview/authorize", {
+            headers: {
+              Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+              Cookie: `__Host-shoppp-preview=${sessionValue.data.session}`,
+              "X-Preview-Origin": env.PREVIEW_ORIGIN,
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM audit_events WHERE action = 'themes.preview.access.revoke' AND target_id = ?",
+      )
+        .bind(previewValue.data.snapshot.id)
+        .first(),
+    ).toEqual({ count: 1 });
     expect((await app.fetch(request("/preview/grants"), env)).status).toBe(404);
+
+    const racingGrantResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${previewValue.data.snapshot.id}/grants`,
+        { origin: env.PREVIEW_ORIGIN, reason: "Reopen access and race revocation with redemption" },
+        "theme-preview-grant-race-0001",
+      ),
+      env,
+    );
+    const racingGrant = await racingGrantResponse.json<{ data: { grant: string } }>();
+    const racingEnvironment = {
+      ...env,
+      DB: revokePreviewAccessAfterGrantClaim(env.DB, previewValue.data.snapshot.id),
+    };
+    const racingRedemption = await app.fetch(
+      request("/internal/preview/redeem", {
+        body: JSON.stringify({ grant: racingGrant.data.grant, origin: env.PREVIEW_ORIGIN }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      }),
+      racingEnvironment,
+    );
+    expect(racingRedemption.status).toBe(200);
+    const racingSession = await racingRedemption.json<{ data: { session: string } }>();
+    expect(
+      (
+        await app.fetch(
+          request("/internal/preview/authorize", {
+            headers: {
+              Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+              Cookie: `__Host-shoppp-preview=${racingSession.data.session}`,
+              "X-Preview-Origin": env.PREVIEW_ORIGIN,
+            },
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(403);
 
     await env.PREVIEW_ARTIFACTS.put(`${prefix}/index.html`, "fixture preview");
     await env.DB.prepare("UPDATE storefront_preview_builds SET expires_at = ? WHERE id = ?")
@@ -1654,7 +2701,7 @@ describe("storefront experience API", () => {
       env,
       new Date("2026-07-30T00:00:00.000Z"),
     );
-    expect(cleanup).toMatchObject({ artifacts: 1, grants: 2, objects: 1, sessions: 1 });
+    expect(cleanup).toMatchObject({ artifacts: 1, grants: 4, objects: 1, sessions: 2 });
     expect(await env.PREVIEW_ARTIFACTS.get(`${prefix}/index.html`)).toBeNull();
     expect(
       await env.DB.prepare("SELECT id FROM storefront_experience_snapshots WHERE id = ?")

@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-08-11-001-feat-fashion-store-functional-integration-plan.md
-current_unit: FS-U1.1
+current_unit: FS-U12.3
 ---
 
 # Shoppp Product Master Plan
@@ -66,20 +66,27 @@ historical evidence remain unchanged inside the owning plans.
 ## Current execution pointer
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
-- **Current parent unit:** `FS-U1` — shared functional contracts.
-- **Current child stage:** `FS-U1.1` — reconcile the existing implementation and evidence against
-  the complete U1 contract before writing additional business code.
-- **Next action:** Finish `FS-U1.1`. Enter `FS-U1.2` only for confirmed gaps; otherwise advance to
-  `FS-U1.3`, run focused verification, and record parent `FS-U1` complete.
-- **Following feature unit:** `FS-U2`, then the dependency order recorded by the active child plan.
+- **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
+- **Current child stage:** `FS-U12.3` — execute the governed isolated preparation and deployed
+  no-interception proof only after separate remote-mutation authorization.
+- **Next action:** Report the exact isolated GitHub, Cloudflare, Stripe, Turnstile, D1, Catalog,
+  Snapshot, build, and workflow mutations, then await separate authorization. If authorized, the
+  backup/restore-first preparation workflow must produce a fresh readiness artifact before the
+  private Preview workflow may deploy or exercise the journey.
+- **Blocker:** U12.2's local deployment contract is green, but the inventoried remote gaps remain
+  deliberately unchanged and require authority to set environment/provider configuration, apply
+  migrations, deploy, seed durable Commerce/IAM/Catalog state, create the immutable build, or
+  dispatch either workflow. The user withheld that authority until after the exact report.
+- **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
+  `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
   candidate are complete in their owning plans.
 
-The completed repository-cleanup work does not replace this product-development pointer. `WTC-U1`
-through `WTC-U3` left one long-lived Shoppp checkout while preserving the Decor branch and PR as an
-independently resumable development line. The queued `FRT` plan may prove its data gate, rename the
-Crafto comparison label, and delete the old Fashion runtime without waiting for Decor code
-integration.
+The 2026-08-17 activation reverified exactly one registered Shoppp worktree at `8a3723d4` and a
+separately reachable Decor branch. The product master explicitly accepts that observable topology
+as satisfying FRT's operational one-worktree dependency. This does not mark WTC-U1 or WTC-U2
+complete, reconstruct their missing historical raw evidence, merge Decor code, or change candidate
+scope.
 
 ## Product-plan register
 
@@ -100,12 +107,12 @@ focused test alone.
 | `FS-H1` | [Fashion Store Source-Parity Home](2026-08-06-001-feat-fashion-store-source-parity-plan.md) | Fashion Store home baseline | Complete and inherited; its former only-template decision is superseded | `FS` owns current Fashion Store work |
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **In progress — current `FS-U1.1`** | This plan owns the current unit, next action and Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U12.3`; U12.2 local deployment prerequisites are green and remote execution awaits separate authorization** | This plan owns `FS-U12`, then `FS-U8`, and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
-| `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | Queued supporting code plan; does not replace `FS-U1.1` | Owns runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
-| `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Complete with evidence-retention limitation — one long-lived Shoppp checkout remains; Decor branch and PR are retained | Historical evidence and its non-reconstructible raw-manifest limitation are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
+| `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
+| `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions
@@ -137,24 +144,25 @@ The 2026-08-13 product decision explicitly supersedes earlier wording that retai
 No plan may add or remove candidate support merely from product membership or code existence. The
 frozen Candidate Template Matrix and Activation Target own candidate scope.
 
-## Next product-level plans
+## Product-level follow-up plans
 
-### 1. Retired Fashion runtime decommission
+### 1. Completed Retired Fashion runtime decommission
 
 [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md)
-owns authorized aggregate inventory for possible `theme_id=fashion` data, the
+completed authorized aggregate inventory for possible `theme_id=fashion` data, the
 `fashion-store-source` comparison-label migration, registry and catalog removal, old implementation
-deletion, and retained-template verification. Zero real rows remove speculative compatibility work;
-any non-zero result stops deletion until a separate explicit data disposition is approved.
+deletion, and retained-template verification. Its zero-row result removed speculative compatibility
+work; the completed plan remains the inherited retirement authority.
 
 ### 2. Worktree convergence
 
 [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) treats the
-former worktrees as implementation containers, not product boundaries. It completed bounded
-tracked, untracked, and material-ignored checks, removed four redundant local checkouts, and kept the
-Decor branch and PR independently resumable without forcing code harvesting or a merge. The current
-state is one long-lived primary worktree; future short-lived task worktrees are allowed only when
-concurrent work requires them and must carry a cleanup condition.
+former worktrees as implementation containers, not product boundaries. Four redundant local
+checkouts are absent and the Decor branch and commits remain independently resumable, but the
+required pre-removal raw manifests and removal commands were not retained. WTC-U1 and WTC-U2 are
+therefore not complete; the 2026-08-14 rerun verifies only the current one-worktree state. Future
+short-lived task worktrees are allowed only when concurrent work requires them and must carry a
+cleanup condition and retained pre-removal evidence.
 
 ### 3. Decor Store identity migration
 
@@ -182,7 +190,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-U1.1` is the single current product-development pointer and matches the active child plan.
+- `FS-U12.3` is the single current product execution pointer and matches the active child plan.
 - The old `fashion` implementation, `decor-store` naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.

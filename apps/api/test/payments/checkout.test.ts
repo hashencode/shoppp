@@ -257,6 +257,12 @@ describe("hosted checkout and payment convergence", () => {
     expect(replay.status).toBe(201);
     expect(await replay.text()).toBe(await first.clone().text());
     expect(provider.createHostedSession).toHaveBeenCalledTimes(1);
+    expect(provider.createHostedSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cancelUrl:
+          "https://storefront-staging.example.invalid/checkout/complete?return=canceled",
+      }),
+    );
     const created = await first.json<{
       data: { attemptId: string; orderAccessToken: string };
     }>();

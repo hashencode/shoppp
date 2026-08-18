@@ -8,6 +8,8 @@ import {
   linkTargetSchema,
   presentationProductSchema,
   settingDefinitionSchema,
+  storefrontLinkSchema,
+  storefrontResourceReferenceSchema,
   storefrontIntentActionSchema,
   themePackageSchema,
   type PresentationProduct,
@@ -58,7 +60,7 @@ const validThemePackage = {
               required: true,
             },
           ],
-          type: "fashion.hero",
+          type: "synthetic.hero",
         },
         {
           allowedBlockTypes: [],
@@ -73,7 +75,7 @@ const validThemePackage = {
       "color-accent": "#111111",
       "font-body": "system-ui",
     },
-    id: "fashion",
+    id: "synthetic",
     platformCompatibility: {
       maxExclusive: "2.0.0",
       min: "1.0.0",
@@ -83,7 +85,7 @@ const validThemePackage = {
       approvedAt: "2026-07-30T00:00:00.000Z",
       approvedBy: "theme-team",
       license: "Internal",
-      source: "internal://fashion",
+      source: "internal://synthetic",
     },
     supportedPageTemplates: ["home"],
     themeVersion: "1.0.0",
@@ -127,7 +129,7 @@ const validThemePackage = {
                   width: 1600,
                 },
               },
-              type: "fashion.hero",
+              type: "synthetic.hero",
               visible: true,
             },
             {
@@ -215,6 +217,136 @@ describe("storefront experience contracts", () => {
     ).toBe(false);
   });
 
+  test("persists every editor reference as one typed stable ID", () => {
+    const references = [
+      { id: "prd_01J00000000000000000000000", kind: "product" },
+      { id: "col_01J00000000000000000000000", kind: "collection" },
+      { id: "page.about", kind: "page" },
+      { id: "article.marketing-tips-and-tricks", kind: "article" },
+      { id: "policy.privacy", kind: "policy" },
+    ] as const;
+
+    for (const reference of references) {
+      expect(storefrontResourceReferenceSchema.parse(reference)).toEqual(reference);
+      expect(
+        storefrontResourceReferenceSchema.safeParse({
+          ...reference,
+          name: "Copied mutable display data",
+          price: { amount: 12_900, currency: "USD" },
+          slug: "copied-slug",
+        }).success,
+      ).toBe(false);
+      expect(
+        settingDefinitionSchema.safeParse({
+          cardinality: "one",
+          helpText: `Choose one ${reference.kind} by stable ID.`,
+          id: `${reference.kind}-destination`,
+          kind: `${reference.kind}-reference`,
+          label: `${reference.kind} destination`,
+          required: false,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  test("requires labeled link values with explicit behavior and typed internal destinations", () => {
+    const internal = {
+      label: "Privacy policy",
+      target: {
+        kind: "internal",
+        reference: { id: "policy.privacy", kind: "policy" },
+      },
+      targetBehavior: "same-window",
+    } as const;
+    const external = {
+      label: "Editorial partner",
+      target: { kind: "external", url: "https://example.test/editorial" },
+      targetBehavior: "new-window",
+    } as const;
+
+    expect(storefrontLinkSchema.parse(internal)).toEqual(internal);
+    expect(storefrontLinkSchema.parse(external)).toEqual(external);
+    const optionalLinkDefinition = settingDefinitionSchema.parse({
+      allowedTargets: ["page", "external"],
+      helpText: "Choose a typed page or a credential-free HTTPS destination.",
+      id: "primary-link",
+      kind: "link",
+      label: "Primary link",
+      required: false,
+    });
+    expect(optionalLinkDefinition).toMatchObject({ allowedTargets: ["page", "external"] });
+    expect("default" in optionalLinkDefinition).toBe(false);
+    expect(
+      settingDefinitionSchema.safeParse({
+        allowedTargets: ["page"],
+        default: external,
+        id: "primary-link",
+        kind: "link",
+        required: false,
+      }).success,
+    ).toBe(false);
+    expect(storefrontLinkSchema.safeParse({ ...internal, label: "" }).success).toBe(false);
+    expect(storefrontLinkSchema.safeParse({ ...internal, targetBehavior: undefined }).success).toBe(
+      false,
+    );
+    expect(
+      storefrontLinkSchema.safeParse({
+        ...internal,
+        target: { kind: "internal", path: "/policies/privacy" },
+      }).success,
+    ).toBe(false);
+    expect(
+      storefrontLinkSchema.safeParse({
+        ...external,
+        target: { kind: "external", url: "http://example.test/editorial" },
+      }).success,
+    ).toBe(false);
+    expect(
+      storefrontLinkSchema.safeParse({
+        ...external,
+        target: { kind: "external", url: "https://user:secret@example.test/editorial" },
+      }).success,
+    ).toBe(false);
+
+    const packageWithDisallowedLinkValue = {
+      ...validThemePackage,
+      manifest: {
+        ...validThemePackage.manifest,
+        componentRegistry: {
+          ...validThemePackage.manifest.componentRegistry,
+          sections: validThemePackage.manifest.componentRegistry.sections.map((section) =>
+            section.type === "synthetic.hero"
+              ? {
+                  ...section,
+                  settings: [
+                    ...section.settings,
+                    {
+                      allowedTargets: ["page"],
+                      id: "primary-link",
+                      kind: "link",
+                      required: false,
+                    },
+                  ],
+                }
+              : section,
+          ),
+        },
+      },
+      presets: validThemePackage.presets.map((preset) => ({
+        ...preset,
+        templates: preset.templates.map((template) => ({
+          ...template,
+          sections: template.sections.map((section) =>
+            section.type === "synthetic.hero"
+              ? { ...section, settings: { ...section.settings, "primary-link": external } }
+              : section,
+          ),
+        })),
+      })),
+    };
+    expect(themePackageSchema.safeParse(packageWithDisallowedLinkValue).success).toBe(false);
+  });
+
   test("validates structured presentation money and explicit availability", () => {
     const product = {
       availability: "in-stock",
@@ -267,7 +399,7 @@ describe("storefront experience contracts", () => {
   test("accepts a compatible bounded package with declared components and settings", () => {
     const parsed = themePackageSchema.parse(validThemePackage);
 
-    expect(parsed.manifest.id).toBe("fashion");
+    expect(parsed.manifest.id).toBe("synthetic");
     expect(parsed.presets[0]?.templates[0]?.sections.map(({ id }) => id)).toEqual([
       "hero",
       "legal-footer",
@@ -285,7 +417,7 @@ describe("storefront experience contracts", () => {
             templates: [
               {
                 ...template,
-                sections: [{ ...heroSection, type: "fashion.unknown" }],
+                sections: [{ ...heroSection, type: "synthetic.unknown" }],
               },
             ],
           },
@@ -490,7 +622,7 @@ describe("storefront experience contracts", () => {
       approvedBy: "operator-1",
       bindings: [
         {
-          fixtureId: "fashion-populated",
+          fixtureId: "synthetic-populated",
           id: "home-products",
           instanceId: "hero",
           kind: "fixture",
@@ -499,8 +631,8 @@ describe("storefront experience contracts", () => {
         },
       ],
       configurationSchemaVersion: 1,
-      experienceId: "experience-fashion",
-      id: "snapshot-fashion-1",
+      experienceId: "experience-synthetic",
+      id: "snapshot-synthetic-1",
       kind: "approved",
       overrides: [
         {
@@ -520,7 +652,7 @@ describe("storefront experience contracts", () => {
       platformContractVersion: "1.0.0",
       provenance: validThemePackage.manifest.provenance,
       resolvedTemplates: editorialPreset.templates,
-      themeId: "fashion",
+      themeId: "synthetic",
       themeVersion: "1.0.0",
       version: 1,
     });
@@ -534,14 +666,14 @@ describe("storefront experience contracts", () => {
       approvedBy: "operator-1",
       bindings: [],
       configurationSchemaVersion: 1,
-      experienceId: "experience-fashion",
-      id: "snapshot-fashion-approved",
+      experienceId: "experience-synthetic",
+      id: "snapshot-synthetic-approved",
       kind: "approved",
       overrides: [],
       platformContractVersion: "1.0.0",
       provenance: validThemePackage.manifest.provenance,
       resolvedTemplates: editorialPreset.templates,
-      themeId: "fashion",
+      themeId: "synthetic",
       themeVersion: "1.0.0",
       version: 1,
     });
@@ -551,7 +683,7 @@ describe("storefront experience contracts", () => {
         ...approved,
         approvedAt: null,
         approvedBy: null,
-        id: "snapshot-fashion-preview",
+        id: "snapshot-synthetic-preview",
         kind: "preview",
       }),
     ).toMatchObject({

@@ -2,7 +2,7 @@ import { themeViewports } from "./theme-viewports";
 import type { NamedStateContract, ThemeAcceptanceMode } from "./theme-behavior-contract";
 import { decorSourceRegions } from "../../app/themes/decor/source-contract";
 
-export type CaptureThemeId = "decor" | "fashion";
+export type CaptureThemeId = "decor" | "fashion-store-source";
 export type ImplementationCaptureThemeId = "decor" | "fashion-store";
 
 export interface ThemeComparisonDescriptor {
@@ -24,10 +24,10 @@ export interface ThemeComparisonDescriptor {
 export const fashionStoreComparisonDescriptor = {
   artifactRoots: {
     implementation: "implementation/fashion-store",
-    reference: "reference/fashion",
+    reference: "reference/fashion-store-source",
   },
   densities: [1, 2],
-  id: "fashion-to-fashion-store",
+  id: "fashion-store-source-to-fashion-store",
   implementationPath: "/",
   implementationThemeId: "fashion-store",
   namedStates: [
@@ -43,7 +43,7 @@ export const fashionStoreComparisonDescriptor = {
     "footer-sticky",
   ],
   referenceEntry: "demo-fashion-store.html",
-  referenceThemeId: "fashion",
+  referenceThemeId: "fashion-store-source",
   selectors: {
     collection: {
       implementation: ".swiper.slider-three-slide",
@@ -111,7 +111,10 @@ export function resolveThemeComparison(
   if (referenceThemeId === "decor" && implementationThemeId === "decor") {
     return decorComparisonDescriptor;
   }
-  if (referenceThemeId === "fashion" && implementationThemeId === "fashion-store") {
+  if (
+    referenceThemeId === "fashion-store-source" &&
+    implementationThemeId === "fashion-store"
+  ) {
     return fashionStoreComparisonDescriptor;
   }
   throw new Error(`Unsupported theme comparison: ${referenceThemeId} -> ${implementationThemeId}.`);

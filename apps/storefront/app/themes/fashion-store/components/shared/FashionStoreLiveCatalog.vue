@@ -6,35 +6,28 @@ import FashionStoreShell from "./FashionStoreShell.vue";
 
 type CollectionGridViewModel = Extract<PresentationViewModel, { kind: "collection-grid" }>;
 
-const properties = defineProps<{
-  page: "collection" | "home";
+defineProps<{
   resolveAsset: ThemeAssetResolver;
   viewModel: CollectionGridViewModel;
 }>();
-
-const heading = computed(() =>
-  properties.page === "home"
-    ? `${properties.viewModel.heading} collection`
-    : properties.viewModel.heading,
-);
 </script>
 
 <template>
   <FashionStoreShell
-    announcement="Catalog content is published; price and availability are verified before purchase."
     body-class=""
     :resolve-asset="resolveAsset"
   >
     <main
       id="fashion-store-main"
       data-fashion-store-live-catalog
-      :data-catalog-page="page"
+      data-catalog-page="collection"
       data-runtime-status="static"
     >
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container text-center">
           <p class="alt-font text-uppercase fs-12 fw-600 mb-10px">Selected catalog release</p>
-          <h1 class="alt-font fw-600 text-dark-gray mb-10px">{{ heading }}</h1>
+          <h1 class="alt-font fw-600 text-dark-gray mb-10px">{{ viewModel.heading }}</h1>
+          <p v-if="viewModel.description" class="mb-0">{{ viewModel.description }}</p>
         </div>
       </section>
       <section class="pt-70px pb-70px">
@@ -49,8 +42,7 @@ const heading = computed(() =>
           >
             <FashionStoreProductCard
               v-for="product in viewModel.products"
-              :key="product.id"
-              commerce-disabled
+              :key="product.productId"
               :product="product"
               :resolve-asset="resolveAsset"
             />

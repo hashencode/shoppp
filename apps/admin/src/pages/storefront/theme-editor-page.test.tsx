@@ -1,4 +1,4 @@
-import type { AdminStorefrontTheme } from '@shoppp/contracts'
+import type { AdminPermission, AdminStorefrontTheme } from '@shoppp/contracts'
 import React from 'react'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
@@ -48,7 +48,7 @@ const theme: AdminStorefrontTheme = {
         allowedBlockTypes: [],
         capabilities: ['navigation.primary'],
         settings: [],
-        type: 'fashion.navigation',
+        type: 'synthetic.navigation',
       },
       {
         allowedBlockTypes: [],
@@ -72,7 +72,7 @@ const theme: AdminStorefrontTheme = {
             required: true,
           },
         ],
-        type: 'fashion.hero',
+        type: 'synthetic.hero',
       },
       {
         allowedBlockTypes: [],
@@ -86,7 +86,7 @@ const theme: AdminStorefrontTheme = {
             required: true,
           },
         ],
-        type: 'fashion.story',
+        type: 'synthetic.story',
       },
     ],
   },
@@ -101,7 +101,7 @@ const theme: AdminStorefrontTheme = {
       state: 'populated',
     },
   ],
-  id: 'fashion',
+  id: 'synthetic',
   platformCompatibility: { maxExclusive: '2.0.0', min: '1.0.0' },
   platformContractVersion: '1.0.0',
   presetDefinitions: [
@@ -110,7 +110,7 @@ const theme: AdminStorefrontTheme = {
       label: 'Editorial',
       templates: [
         {
-          id: 'fashion-home',
+          id: 'synthetic-home',
           pageType: 'home',
           requiredCapabilities: ['navigation.primary'],
           sections: [
@@ -120,7 +120,7 @@ const theme: AdminStorefrontTheme = {
               id: 'site-navigation',
               required: true,
               settings: {},
-              type: 'fashion.navigation',
+              type: 'synthetic.navigation',
               visible: true,
             },
             {
@@ -128,7 +128,7 @@ const theme: AdminStorefrontTheme = {
               capabilities: [],
               id: 'home-hero',
               settings: { alignment: 'left', heading: 'Preset headline' },
-              type: 'fashion.hero',
+              type: 'synthetic.hero',
               visible: true,
             },
             {
@@ -136,7 +136,7 @@ const theme: AdminStorefrontTheme = {
               capabilities: [],
               id: 'home-story',
               settings: { body: 'Preset story' },
-              type: 'fashion.story',
+              type: 'synthetic.story',
               visible: true,
             },
           ],
@@ -154,8 +154,8 @@ const baseDraft: StorefrontExperienceDraft = {
   configurationSchemaVersion: 1,
   createdAt: '2026-07-30T00:00:00.000Z',
   createdBy: 'theme-admin',
-  experienceId: 'storefront-fashion',
-  id: 'draft-fashion-1',
+  experienceId: 'storefront-synthetic',
+  id: 'draft-synthetic-1',
   overrides: [
     {
       operations: [
@@ -168,15 +168,16 @@ const baseDraft: StorefrontExperienceDraft = {
       ],
       presetId: 'editorial',
       schemaVersion: 1,
-      templateId: 'fashion-home',
+      templateId: 'synthetic-home',
     },
   ],
   presetId: 'editorial',
-  themeId: 'fashion',
+  themeId: 'synthetic',
   themeVersion: '1.0.0',
   updatedAt: '2026-07-30T00:00:00.000Z',
   updatedBy: 'theme-admin',
   validation: null,
+  validations: [],
   version: 1,
 }
 
@@ -187,9 +188,11 @@ let previewBody: Record<string, unknown> | null = null
 let approvalBody: Record<string, unknown> | null = null
 let migrationBody: Record<string, unknown> | null = null
 let createDraftBody: Record<string, unknown> | null = null
+let successorBody: Record<string, unknown> | null = null
 let buildStatus: 'building' | 'deployed' = 'building'
 
 const validValidation = {
+  catalogReleaseId: null,
   createdAt: '2026-07-30T00:10:00.000Z',
   draftVersion: 2,
   id: 'validation-fashion-store',
@@ -202,15 +205,16 @@ const previewSnapshot = {
   approvedAt: null,
   approvedBy: null,
   configurationSchemaVersion: 1,
+  contentDigest: 'c'.repeat(64),
   createdAt: '2026-07-30T00:11:00.000Z',
   createdBy: 'theme-admin',
-  experienceId: 'storefront-fashion',
+  experienceId: 'storefront-synthetic',
   id: 'snapshot-preview-fashion-store',
   kind: 'preview' as const,
   sourceDraftId: baseDraft.id,
   sourceDraftVersion: 2,
   sourceValidationId: validValidation.id,
-  themeId: 'fashion',
+  themeId: 'synthetic',
   themeVersion: '1.0.0',
 }
 
@@ -231,6 +235,43 @@ const build = () => ({
   updatedAt: '2026-07-30T00:12:00.000Z',
 })
 
+const catalogRelease = (id: string) => ({
+  approvedAt: '2026-08-11T00:00:00.000Z',
+  collections: [],
+  destinations: [],
+  deployedAt: '2026-08-11T01:00:00.000Z',
+  environment: 'staging' as const,
+  id,
+  products: [],
+  status: 'deployed' as const,
+})
+
+const deployedPreviewContext = (releaseId: string, draftVersion = 1) => {
+  const snapshot = {
+    ...previewSnapshot,
+    id: `snapshot-preview-${releaseId}`,
+    sourceDraftVersion: draftVersion,
+  }
+  return {
+    build: {
+      ...build(),
+      artifactPrefix: `snapshots/${snapshot.id}/${releaseId}/${'a'.repeat(64)}`,
+      id: `preview-build-${releaseId}`,
+      inputIdentity: {
+        catalogReleaseId: releaseId,
+        experienceSnapshotId: snapshot.id,
+        experienceVersion: draftVersion,
+        platformContractVersion: '1.0.0',
+        themeId: 'fashion-store',
+        themeVersion: '1.0.0',
+      },
+      snapshotId: snapshot.id,
+      status: 'deployed' as const,
+    },
+    snapshot,
+  }
+}
+
 const server = setupServer(
   http.get('*/admin/storefront-experiences/themes', () => HttpResponse.json({ data: [theme] })),
   http.get('*/admin/storefront-experiences/drafts', () =>
@@ -238,6 +279,9 @@ const server = setupServer(
   ),
   http.get('*/admin/storefront-experiences/drafts/:id', () =>
     HttpResponse.json({ data: currentDraft })
+  ),
+  http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
+    HttpResponse.json({ data: null })
   ),
   http.post('*/admin/storefront-experiences/drafts', async ({ request }) => {
     createDraftBody = (await request.json()) as Record<string, unknown>
@@ -249,9 +293,22 @@ const server = setupServer(
       ...currentDraft,
       overrides: updateBody.overrides as StorefrontExperienceDraft['overrides'],
       validation: null,
+      validations: [],
       version: 2,
     }
     return HttpResponse.json({ data: currentDraft })
+  }),
+  http.post('*/admin/storefront-experiences/drafts/:id/successors', async ({ request }) => {
+    successorBody = (await request.json()) as Record<string, unknown>
+    currentDraft = {
+      ...currentDraft,
+      id: 'draft-successor-1',
+      overrides: successorBody.overrides as StorefrontExperienceDraft['overrides'],
+      validation: null,
+      validations: [],
+      version: 1,
+    }
+    return HttpResponse.json({ data: currentDraft }, { status: 201 })
   }),
   http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
     validationBody = (await request.json()) as Record<string, unknown>
@@ -260,7 +317,7 @@ const server = setupServer(
       data: {
         ...validValidation,
         draftVersion,
-        id: `validation-fashion-${draftVersion}`,
+        id: `validation-synthetic-${draftVersion}`,
       },
     })
   }),
@@ -288,6 +345,16 @@ const server = setupServer(
       { status: 201 }
     )
   ),
+  http.post('*/admin/storefront-experiences/snapshots/:id/revoke', () =>
+    HttpResponse.json({
+      data: {
+        grantsRevoked: 1,
+        revokedAt: '2026-07-30T00:20:00.000Z',
+        sessionsRevoked: 1,
+        snapshotId: previewSnapshot.id,
+      },
+    })
+  ),
   http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
     approvalBody = (await request.json()) as Record<string, unknown>
     return HttpResponse.json({
@@ -313,14 +380,14 @@ const server = setupServer(
               code: 'instance-removed',
               instanceId: 'home-story',
               message: 'The target package removed a stable instance with merchant overrides.',
-              templateId: 'fashion-home',
+              templateId: 'synthetic-home',
             },
           ],
           createdAt: '2026-07-30T00:20:00.000Z',
           createdBy: 'theme-admin',
           draftId: baseDraft.id,
           draftVersion: 1,
-          id: 'migration-fashion-1-2',
+          id: 'migration-synthetic-1-2',
           sourceConfigurationSchemaVersion: 1,
           sourceThemeVersion: '1.0.0',
           status: 'dry_run',
@@ -332,7 +399,7 @@ const server = setupServer(
   )
 )
 
-const authValue = (role: Role) => ({
+const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) => ({
   accountName: 'theme-admin@example.test',
   displayName: 'Theme admin',
   isAuthenticated: true,
@@ -340,9 +407,9 @@ const authValue = (role: Role) => ({
   login: async () => undefined,
   logout: () => undefined,
   permissions:
-    role === 'admin'
+    permissionOverride ?? (role === 'admin'
       ? (['themes.read', 'themes.write', 'themes.preview', 'themes.approve', 'catalog.read'] as const)
-      : (['themes.read'] as const),
+      : (['themes.read'] as const)),
   principalKind: 'human' as const,
   refreshSession: async () => undefined,
   role,
@@ -351,13 +418,17 @@ const authValue = (role: Role) => ({
   status: 'authenticated' as const,
 })
 
-const renderEditor = (role: Role = 'admin', pollIntervalMs = 60_000) => {
+const renderEditor = (
+  role: Role = 'admin',
+  pollIntervalMs = 60_000,
+  permissionOverride?: readonly AdminPermission[]
+) => {
   const router = createMemoryRouter(
     [
       {
         path: '/storefront/themes/:draftId',
         element: (
-          <AuthContext.Provider value={authValue(role)}>
+          <AuthContext.Provider value={authValue(role, permissionOverride)}>
             <ThemeProvider>
               <ThemeEditorPage
                 pollIntervalMs={pollIntervalMs}
@@ -403,6 +474,7 @@ afterEach(() => {
   approvalBody = null
   migrationBody = null
   createDraftBody = null
+  successorBody = null
   buildStatus = 'building'
   window.sessionStorage.clear()
   server.resetHandlers()
@@ -416,22 +488,22 @@ describe('ThemesPage', () => {
   it('lists API-approved packages and creates the selected preset draft', async () => {
     renderThemes()
     await screen.findByText('Approved packages')
-    expect(screen.getByText('fashion')).toBeTruthy()
+    expect(screen.getByText('synthetic')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Use package' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Creation reason' }), {
-      target: { value: 'Start an approved Fashion fixture draft' },
+      target: { value: 'Start an approved Synthetic fixture draft' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
 
     await screen.findByText('CREATED_EDITOR')
     expect(createDraftBody).toMatchObject({
       draft: {
-        experienceId: 'storefront-fashion',
+        experienceId: 'storefront-synthetic',
         presetId: 'editorial',
-        themeId: 'fashion',
+        themeId: 'synthetic',
         themeVersion: '1.0.0',
       },
-      reason: 'Start an approved Fashion fixture draft',
+      reason: 'Start an approved Synthetic fixture draft',
     })
   })
 
@@ -457,7 +529,7 @@ describe('ThemeEditorPage', () => {
       componentRegistry: {
         ...theme.componentRegistry,
         sections: theme.componentRegistry.sections.map((section) =>
-          section.type === 'fashion.hero'
+          section.type === 'synthetic.hero'
             ? {
                 ...section,
                 settings: [
@@ -476,7 +548,18 @@ describe('ThemeEditorPage', () => {
                     required: false,
                   },
                   {
-                    default: { kind: 'route', path: '/shop' },
+                    allowedTargets: ['page'],
+                    default: {
+                      label: 'Shop now',
+                      target: {
+                        kind: 'internal',
+                        reference: {
+                          id: 'page.shop',
+                          kind: 'page',
+                        },
+                      },
+                      targetBehavior: 'same-window',
+                    },
                     id: 'cta',
                     kind: 'link',
                     required: false,
@@ -497,7 +580,17 @@ describe('ThemeEditorPage', () => {
                   ...section,
                   settings: {
                     ...section.settings,
-                    cta: { kind: 'route', path: '/shop' },
+                    cta: {
+                      label: 'Shop now',
+                      target: {
+                        kind: 'internal',
+                        reference: {
+                          id: 'page.shop',
+                          kind: 'page',
+                        },
+                      },
+                      targetBehavior: 'same-window',
+                    },
                     image: {
                       alt: 'Hero',
                       height: 600,
@@ -523,6 +616,9 @@ describe('ThemeEditorPage', () => {
             {
               approvedAt: '2026-08-11T00:00:00.000Z',
               collections: [],
+              destinations: [
+                { id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' },
+              ],
               deployedAt: '2026-08-11T01:00:00.000Z',
               environment: 'staging',
               id: 'release-editor-1',
@@ -534,21 +630,53 @@ describe('ThemeEditorPage', () => {
           ],
         })
       ),
-      http.get('*/admin/storefront-experiences/media', () =>
-        HttpResponse.json({
+      http.get(
+        '*/admin/storefront-experiences/catalog-releases/:id/resources',
+        ({ request }) => {
+          const url = new URL(request.url)
+          const kind = url.searchParams.get('kind')
+          const page = Number(url.searchParams.get('page') ?? '1')
+          const data =
+            kind === 'product'
+              ? [{
+                  id: page === 1 ? 'product-stable-1' : 'product-stable-13',
+                  kind: 'product',
+                  name: page === 1 ? 'Stable product' : 'Thirteenth product',
+                  path: page === 1 ? '/products/stable' : '/products/thirteenth',
+                }]
+              : kind === 'page'
+                ? [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }]
+                : []
+          return HttpResponse.json({ data, page, pageSize: 12, total: kind === 'product' ? 13 : data.length })
+        }
+      ),
+      http.get('*/admin/storefront-experiences/media', ({ request }) => {
+        const page = Number(new URL(request.url).searchParams.get('page') ?? '1')
+        return HttpResponse.json({
           data: [
-            {
-              alt: 'Approved hero',
-              height: 600,
-              key: 'catalog/hero.webp',
-              kind: 'catalog',
-              productName: 'Stable product',
-              src: 'https://media.example.test/catalog/hero.webp',
-              width: 800,
-            },
+            page === 1
+              ? {
+                  alt: 'Approved hero',
+                  height: 600,
+                  key: 'catalog/hero.webp',
+                  kind: 'catalog',
+                  productName: 'Stable product',
+                  src: 'https://media.example.test/catalog/hero.webp',
+                  width: 800,
+                }
+              : {
+                  alt: 'Approved detail',
+                  height: 900,
+                  key: 'catalog/detail.webp',
+                  kind: 'catalog',
+                  productName: 'Stable product',
+                  src: 'https://media.example.test/catalog/detail.webp',
+                  width: 1200,
+                },
           ],
+          meta: { page, pageSize: 12, total: 13 },
         })
-      )
+      })
     )
 
     const view = renderEditor()
@@ -556,10 +684,22 @@ describe('ThemeEditorPage', () => {
     expect(screen.getByRole('textbox', { name: 'home-hero heading' })).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'home-hero alignment' })).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'home-hero featured-product' })).toBeTruthy()
-    expect(screen.getByRole('combobox', { name: 'home-hero image' })).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: 'home-hero cta' })).toBeTruthy()
+    expect(await screen.findByText('Page 1 of 2')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'home-hero image' })).toBeTruthy()
+    expect(await screen.findByRole('img', { name: 'Approved hero' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Select Approved hero' }))
+    expect(screen.getByText('800 × 600')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Next media page' }))
+    expect(await screen.findByRole('img', { name: 'Approved detail' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero image' }))
+    expect(screen.getByText('Theme asset · 800 × 600')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'home-hero cta' })).toBeTruthy()
+    expect(
+      (screen.getByRole('textbox', { name: 'home-hero cta label' }) as HTMLInputElement).value
+    ).toBe('Shop now')
+    expect(screen.getByRole('combobox', { name: 'home-hero cta destination' })).toBeTruthy()
     view.unmount()
-  })
+  }, 20_000)
 
   it('resolves overrides, preserves stable IDs, and emits minimal resettable operations', () => {
     const resolved = resolveDraftTemplates(theme, baseDraft)
@@ -676,18 +816,22 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
-      expect(screen.getByText(/draft changed. Reload it before saving again/)).toBeTruthy()
+      expect(screen.getByText('The saved draft changed while local edits were open')).toBeTruthy()
     )
     expect(
       (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
     ).toBe('Keep this local edit')
-    const originalConfirm = window.confirm
-    window.confirm = () => false
-    fireEvent.click(screen.getByRole('button', { name: 'Reload saved draft' }))
-    expect(
-      (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-    ).toBe('Keep this local edit')
-    window.confirm = originalConfirm
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Keep local edits' }))
+    )
+    expect(screen.getByRole('button', { name: 'Reload and discard local edits' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Save local edits as successor' }))
+    await screen.findByText('draft-successor-1')
+    expect(successorBody).toMatchObject({
+      reason: 'Attempt an optimistic save',
+      sourceVersion: 1,
+    })
+    expect(JSON.stringify(successorBody?.overrides)).toContain('Keep this local edit')
   })
 
   it('shows validation issues and never previews an invalid saved version', async () => {
@@ -696,14 +840,15 @@ describe('ThemeEditorPage', () => {
         validationBody = (await request.json()) as Record<string, unknown>
         return HttpResponse.json({
           data: {
+            catalogReleaseId: null,
             createdAt: '2026-07-30T00:10:00.000Z',
             draftVersion: 2,
-            id: 'validation-fashion-invalid-2',
+            id: 'validation-synthetic-invalid-2',
             issues: [
               {
                 code: 'required_capability_missing',
                 message: 'Required navigation capability is missing.',
-                templateId: 'fashion-home',
+                templateId: 'synthetic-home',
               },
             ],
             status: 'invalid',
@@ -755,6 +900,125 @@ describe('ThemeEditorPage', () => {
     expect(updateBody).toBeNull()
   })
 
+  it('creates a reviewable migration successor instead of approving a migrated snapshot', async () => {
+    const upgradeTheme: AdminStorefrontTheme = {
+      ...structuredClone(theme),
+      configurationSchemaVersion: 2,
+      themeVersion: '1.1.0',
+    }
+    let successorRequest: Record<string, unknown> | null = null
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [theme, upgradeTheme] })
+      ),
+      http.post(
+        '*/admin/storefront-experiences/drafts/:id/migrations/dry-run',
+        async () =>
+          HttpResponse.json({
+            data: {
+              approvedAt: null,
+              approvedBy: null,
+              conflicts: [],
+              createdAt: '2026-07-30T00:20:00.000Z',
+              createdBy: 'theme-admin',
+              draftId: baseDraft.id,
+              draftVersion: 1,
+              id: 'migration-synthetic-ready',
+              sourceConfigurationSchemaVersion: 1,
+              sourceThemeVersion: '1.0.0',
+              status: 'dry_run',
+              targetConfigurationSchemaVersion: 2,
+              targetThemeVersion: '1.1.0',
+            },
+          })
+      ),
+      http.post(
+        '*/admin/storefront-experiences/drafts/:id/migrations/approve',
+        async ({ request }) => {
+          successorRequest = (await request.json()) as Record<string, unknown>
+          currentDraft = {
+            ...currentDraft,
+            configurationSchemaVersion: 2,
+            id: 'draft-migration-successor',
+            themeVersion: '1.1.0',
+            validation: null,
+            validations: [],
+            version: 1,
+          }
+          return HttpResponse.json({ data: currentDraft }, { status: 201 })
+        }
+      )
+    )
+    renderEditor()
+    await screen.findByDisplayValue('Existing headline')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Migrate into a reviewable successor draft' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Assess upgrade conflicts' }))
+    await screen.findByText('Migration-ready')
+    fireEvent.click(screen.getByRole('button', { name: 'Create migration successor' }))
+
+    await screen.findByText('draft-migration-successor')
+    expect(successorRequest).toMatchObject({
+      confirm: true,
+      expectedVersion: 1,
+      migrationId: 'migration-synthetic-ready',
+    })
+    expect(screen.getByText('Validation required')).toBeTruthy()
+  })
+
+  it('lets a theme writer assess a migration but not create its successor', async () => {
+    const upgradeTheme: AdminStorefrontTheme = {
+      ...structuredClone(theme),
+      configurationSchemaVersion: 2,
+      themeVersion: '1.1.0',
+    }
+    let successorRequested = false
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [theme, upgradeTheme] })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/migrations/dry-run', () =>
+        HttpResponse.json({
+          data: {
+            approvedAt: null,
+            approvedBy: null,
+            conflicts: [],
+            createdAt: '2026-07-30T00:20:00.000Z',
+            createdBy: 'theme-writer',
+            draftId: baseDraft.id,
+            draftVersion: 1,
+            id: 'migration-synthetic-writer-assessment',
+            sourceConfigurationSchemaVersion: 1,
+            sourceThemeVersion: '1.0.0',
+            status: 'dry_run',
+            targetConfigurationSchemaVersion: 2,
+            targetThemeVersion: '1.1.0',
+          },
+        })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/migrations/approve', () => {
+        successorRequested = true
+        return HttpResponse.json({ data: currentDraft }, { status: 201 })
+      })
+    )
+    renderEditor('admin', 60_000, ['themes.read', 'themes.write'])
+    await screen.findByDisplayValue('Existing headline')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Assess without migration approval authority' },
+    })
+
+    const assessment = screen.getByRole('button', { name: 'Assess upgrade conflicts' })
+    expect((assessment as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(assessment)
+    await screen.findByText('Migration-ready')
+
+    const createSuccessor = screen.getByRole('button', { name: 'Create migration successor' })
+    expect((createSuccessor as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(createSuccessor)
+    expect(successorRequested).toBe(false)
+  })
+
   it('polls asynchronous artifacts and posts a one-time grant without a URL credential', async () => {
     let submitted:
       { action: string; grant: string | undefined; method: string; target: string } | undefined
@@ -784,14 +1048,32 @@ describe('ThemeEditorPage', () => {
       })
     )
     expect(submitted?.action).not.toContain('grant_')
+    expect(screen.getByText('c'.repeat(64))).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke preview access' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Open authenticated preview' }).hasAttribute('disabled')
+      ).toBe(true)
+    )
+    expect(screen.getAllByText('Preview access revoked')).toHaveLength(2)
     HTMLFormElement.prototype.submit = originalSubmit
   })
 
   it('approves only a current validated version and shows immutable audit identity', async () => {
+    const validation = { ...validValidation, draftVersion: 1, id: 'validation-synthetic-1' }
     currentDraft = {
       ...currentDraft,
-      validation: { ...validValidation, draftVersion: 1, id: 'validation-fashion-1' },
+      validation,
+      validations: [validation],
     }
+    const hydrated = deployedPreviewContext('fixture')
+    server.use(
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
+        HttpResponse.json({
+          data: { ...hydrated, build: { ...hydrated.build, inputIdentity: null } },
+        })
+      )
+    )
     renderEditor()
     await screen.findByText('Validated v1')
     fireEvent.change(screen.getByRole('textbox', { name: 'Approval reason' }), {
@@ -806,6 +1088,137 @@ describe('ThemeEditorPage', () => {
       reason: 'Approved after accessible fixture review',
     })
     expect(screen.getByText(/audit succeeded/)).toBeTruthy()
+  })
+
+  it('hydrates the exact deployed preview so an approver without draft-write access can approve', async () => {
+    const releaseId = 'release-approver-hydration'
+    const validation = {
+      ...validValidation,
+      catalogReleaseId: releaseId,
+      draftVersion: 1,
+      id: 'validation-approver-hydration',
+    }
+    currentDraft = {
+      ...currentDraft,
+      themeId: 'fashion-store',
+      validation: null,
+      validations: [validation],
+    }
+    let previewContextQuery = ''
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [{ ...theme, id: 'fashion-store' }] })
+      ),
+      http.get('*/admin/storefront-experiences/catalog-releases', () =>
+        HttpResponse.json({ data: [catalogRelease(releaseId)] })
+      ),
+      http.get(
+        '*/admin/storefront-experiences/drafts/:id/preview-context',
+        ({ request }) => {
+          previewContextQuery = new URL(request.url).search
+          return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
+        }
+      )
+    )
+
+    renderEditor('admin', 60_000, [
+      'themes.read',
+      'themes.preview',
+      'themes.approve',
+      'catalog.read',
+    ])
+    await screen.findByText('Ready')
+    expect(previewContextQuery).toContain('draftVersion=1')
+    expect(previewContextQuery).toContain(`catalogReleaseId=${releaseId}`)
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Validate saved version' })).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Approval reason' }), {
+      target: { value: 'Approve the previously reviewed deployed preview' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact draft v1' }))
+
+    await waitFor(() => expect(screen.getByText(/snapshot-approved-fashion-store/)).toBeTruthy())
+    expect(approvalBody).toMatchObject({
+      catalogReleaseId: releaseId,
+      expectedVersion: 1,
+    })
+  })
+
+  it('keeps release selection stable while busy and discards a delayed prior-release context', async () => {
+    const releaseA = 'release-race-a'
+    const releaseB = 'release-race-b'
+    const validation = {
+      ...validValidation,
+      catalogReleaseId: releaseB,
+      draftVersion: 1,
+      id: 'validation-release-race-b',
+    }
+    currentDraft = {
+      ...currentDraft,
+      themeId: 'fashion-store',
+      validation: null,
+      validations: [validation],
+    }
+    let releaseARequested = false
+    let resolveReleaseA!: (response: HttpResponse<Record<string, unknown>>) => void
+    const delayedReleaseA = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+      resolveReleaseA = resolve
+    })
+    let resolveApproval!: (response: HttpResponse<Record<string, unknown>>) => void
+    const delayedApproval = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+      resolveApproval = resolve
+    })
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [{ ...theme, id: 'fashion-store' }] })
+      ),
+      http.get('*/admin/storefront-experiences/catalog-releases', () =>
+        HttpResponse.json({ data: [catalogRelease(releaseA), catalogRelease(releaseB)] })
+      ),
+      http.get(
+        '*/admin/storefront-experiences/drafts/:id/preview-context',
+        ({ request }) => {
+          const releaseId = new URL(request.url).searchParams.get('catalogReleaseId')
+          if (releaseId === releaseA) {
+            releaseARequested = true
+            return delayedReleaseA
+          }
+          return HttpResponse.json({ data: deployedPreviewContext(releaseB) })
+        }
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/approve', () => delayedApproval)
+    )
+
+    renderEditor()
+    const selector = await screen.findByRole('combobox', { name: 'Catalog Release' })
+    await waitFor(() => expect(releaseARequested).toBe(true))
+    fireEvent.mouseDown(selector)
+    const releaseBOptions = await screen.findAllByText(new RegExp(`${releaseB} · staging`))
+    fireEvent.click(releaseBOptions.at(-1)!)
+    await screen.findByText(`preview-build-${releaseB}`)
+
+    resolveReleaseA(HttpResponse.json({ data: deployedPreviewContext(releaseA) }))
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(screen.getByText(`preview-build-${releaseB}`)).toBeTruthy()
+    expect(screen.queryByText(`preview-build-${releaseA}`)).toBeNull()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Approval reason' }), {
+      target: { value: 'Hold the selected release during approval' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact draft v1' }))
+    await waitFor(() => expect(selector.hasAttribute('disabled')).toBe(true))
+    resolveApproval(
+      HttpResponse.json({
+        data: {
+          ...previewSnapshot,
+          approvedAt: '2026-07-30T00:15:00.000Z',
+          approvedBy: 'theme-admin',
+          id: 'snapshot-approved-release-race-b',
+          kind: 'approved',
+        },
+      })
+    )
+    await waitFor(() => expect(selector.hasAttribute('disabled')).toBe(false))
   })
 
   it('keeps read-only roles from mutating, previewing, or approving a draft', async () => {

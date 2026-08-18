@@ -88,13 +88,30 @@ could no longer be reconstructed. The counts, material classes, semantic compari
 commit references, and post-removal topology below remain available, but they are not a substitute for
 the missing raw manifests.
 
-WTC-U1 and WTC-U2 are therefore operationally complete with limited audit replay: current topology and
-committed-history recoverability can be reverified, while the discarded uncommitted/ignored inventory
-cannot be independently replayed. Future dirty-worktree cleanup must retain the exact pre-removal
-manifests and removal command before deleting the checkout; this execution is not a reusable force-removal
-precedent.
+WTC-U1 and WTC-U2 are therefore **not complete**. Current topology and committed-history
+recoverability can be reverified, but the discarded uncommitted and ignored inventories cannot be
+independently replayed. Future dirty-worktree cleanup must retain the exact pre-removal manifests and
+removal command before deleting the checkout; this execution is not a reusable force-removal precedent.
 
-## WTC-U2 removal result — 2026-08-13
+## Re-execution audit — 2026-08-14
+
+The completion claim was withdrawn and the observable checks were rerun without deleting or changing
+any worktree, branch, ref, or file:
+
+| Check | Observed result |
+| --- | --- |
+| Live worktree enumeration | Exactly one registered worktree: `/Users/studio/Documents/GitHub/shoppp`, HEAD `8a3723d4`, branch `codex/feat-fashion-store-functional-integration` |
+| Primary checkout boundary | Ordinary directory owned by `studio`; not a symbolic link |
+| Stale worktree metadata | `git worktree prune --dry-run --verbose` reported nothing to prune |
+| Four historical target paths | All four paths are absent |
+| Decor recoverability | Local and remote `codex/feat-decor-store-source-parity` refs both resolve to `0c2cdb86`; that commit remains reachable from each ref |
+| Destructive action | None performed during this audit |
+
+This rerun confirms the current one-worktree steady state and retained Decor history. It cannot prove
+the exact contents of the already deleted dirty worktrees immediately before removal. U1 and U2 stay
+not complete for that reason; U3's current operating rule remains valid.
+
+## Historical WTC-U2 removal record — 2026-08-13
 
 The four targets were revalidated and removed one at a time with Git's worktree mechanism. The dirty
 temporary targets, and the Decor checkout containing ignored generated capture output, were removed with
@@ -122,4 +139,5 @@ Final enumeration contains one worktree:
 
 `AGENTS.md` now requires temporary worktrees to record a branch/ref, owner, purpose, and cleanup
 condition. Worktree topology does not couple the Fashion Store and Decor Store schedules, and it does
-not determine candidate scope. The active product-development pointer remains `FS-U1.1`.
+not determine candidate scope. At convergence completion, the active product-development pointer was
+`FS-U1.1`; the product master plan owns all later pointer changes.

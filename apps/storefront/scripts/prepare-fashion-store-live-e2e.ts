@@ -25,6 +25,19 @@ interface FashionStoreReleaseFixture {
   [key: string]: unknown;
 }
 
+const selectedReleasePolicyProof = {
+  description: "This notice exists only in the selected live preview Catalog Release.",
+  effectiveDate: "2026-08-14",
+  sections: [
+    {
+      body: "Selected-release policy content must never fall back to the generated default Catalog.",
+      heading: "Selected release authority",
+    },
+  ],
+  slug: "live-preview-policy-proof",
+  title: "Live preview policy proof",
+};
+
 export function fashionStoreLiveBuildInput(
   fixtureInput: FashionStoreFixtureInput,
   releaseFixture: FashionStoreReleaseFixture,
@@ -99,6 +112,45 @@ export function fashionStoreLiveBuildInput(
     ],
     experienceId: "experience-fashion-store-live",
     id: "snapshot-fashion-store-live-1",
+    resolvedTemplates: fixtureInput.snapshot.resolvedTemplates.map((template) => ({
+      ...template,
+      sections: template.sections.map((section) => ({
+        ...section,
+        settings: {
+          ...section.settings,
+          ...(template.pageType === "home"
+            ? {
+                "announcement-text": "Live Experience announcement",
+                "footer-contact-copy": "Live Experience footer support",
+                "header-contact-copy": "Live Experience header support",
+              }
+            : {}),
+          ...(template.pageType === "content"
+            ? {
+                "order.help-copy": "Live Experience order help",
+                "order.policy-link": {
+                  label: "Order privacy policy",
+                  target: {
+                    kind: "internal",
+                    reference: { id: "policy.privacy", kind: "policy" },
+                  },
+                  targetBehavior: "same-window",
+                },
+                "policy.document": { id: "policy.shipping", kind: "policy" },
+                "policy.help-copy": "Live Experience policy help",
+                "policy.related-link": {
+                  label: "Related returns policy",
+                  target: {
+                    kind: "internal",
+                    reference: { id: "policy.returns", kind: "policy" },
+                  },
+                  targetBehavior: "same-window",
+                },
+              }
+            : {}),
+        },
+      })),
+    })),
   });
   return {
     catalogRelease,
@@ -125,7 +177,16 @@ async function main(): Promise<void> {
   const releaseFixture = JSON.parse(
     await readFile(resolve(root, "fixtures/release.json"), "utf8"),
   ) as FashionStoreReleaseFixture;
-  const input = fashionStoreLiveBuildInput(fixtureInput, releaseFixture);
+  const liveReleaseFixture = {
+    ...releaseFixture,
+    policies: [...releaseFixture.policies, selectedReleasePolicyProof],
+    site: {
+      ...(releaseFixture.site as Record<string, unknown>),
+      name: "Shoppp live preview",
+      origin: "https://live-policy.example.test",
+    },
+  } satisfies FashionStoreReleaseFixture;
+  const input = fashionStoreLiveBuildInput(fixtureInput, liveReleaseFixture);
   await writeFile(
     resolve(fixtureRoot, "fashion-store-live-e2e-input.json"),
     `${JSON.stringify(input, null, 2)}\n`,

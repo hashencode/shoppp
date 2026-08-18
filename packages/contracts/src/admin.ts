@@ -693,23 +693,30 @@ export const updateStorefrontExperienceDraftRequestSchema = z
   })
   .strict();
 
+export const createStorefrontExperienceSuccessorRequestSchema =
+  updateStorefrontExperienceDraftRequestSchema.omit({ expectedVersion: true }).extend({
+    sourceVersion: z.int().positive(),
+  });
+
 export const validateStorefrontExperienceDraftRequestSchema = z
   .object({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     expectedVersion: z.int().positive(),
     reason: experienceReasonSchema,
   })
   .strict();
 
 export const resolveStorefrontExperienceDraftRequestSchema =
+  validateStorefrontExperienceDraftRequestSchema;
+
+export const approveStorefrontExperienceDraftRequestSchema =
   validateStorefrontExperienceDraftRequestSchema.extend({
-    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
+    confirm: z.literal(true),
   });
 
-export const approveStorefrontExperienceDraftRequestSchema = z
+export const createStorefrontExperienceBuildRequestSchema = z
   .object({
-    confirm: z.literal(true),
-    expectedVersion: z.int().positive(),
-    reason: experienceReasonSchema,
+    catalogReleaseId: z.string().trim().min(1).max(160),
   })
   .strict();
 
@@ -756,6 +763,10 @@ export const createStorefrontPreviewGrantRequestSchema = z
     origin: z.url().refine((value) => new URL(value).protocol === "https:"),
     reason: experienceReasonSchema,
   })
+  .strict();
+
+export const revokeStorefrontPreviewAccessRequestSchema = z
+  .object({ reason: experienceReasonSchema })
   .strict();
 
 export const redeemStorefrontPreviewGrantRequestSchema = z
@@ -814,11 +825,20 @@ export type ApproveStorefrontExperienceMigrationRequest = z.infer<
 export type CreateStorefrontExperienceDraftRequest = z.infer<
   typeof createStorefrontExperienceDraftRequestSchema
 >;
+export type CreateStorefrontExperienceBuildRequest = z.infer<
+  typeof createStorefrontExperienceBuildRequestSchema
+>;
+export type CreateStorefrontExperienceSuccessorRequest = z.infer<
+  typeof createStorefrontExperienceSuccessorRequestSchema
+>;
 export type CreateStorefrontPreviewGrantRequest = z.infer<
   typeof createStorefrontPreviewGrantRequestSchema
 >;
 export type RedeemStorefrontPreviewGrantRequest = z.infer<
   typeof redeemStorefrontPreviewGrantRequestSchema
+>;
+export type RevokeStorefrontPreviewAccessRequest = z.infer<
+  typeof revokeStorefrontPreviewAccessRequestSchema
 >;
 export type ResolveStorefrontExperienceDraftRequest = z.infer<
   typeof resolveStorefrontExperienceDraftRequestSchema

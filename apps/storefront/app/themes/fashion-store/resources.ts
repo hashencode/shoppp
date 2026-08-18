@@ -1,3 +1,6 @@
+import type { ThemeAssetResolver } from "../../theme-engine/assets";
+import type { PresentationViewModel } from "../../theme-engine/view-models";
+
 import image0 from "./upstream/images/apple-touch-icon-114x114.png";
 import image1 from "./upstream/images/apple-touch-icon-57x57.png";
 import image2 from "./upstream/images/apple-touch-icon-72x72.png";
@@ -243,6 +246,19 @@ export function fashionStoreAssetId(sourcePath: string): string {
       .replace(/[^a-zA-Z0-9-]+/g, "-")
       .toLowerCase()}`
   );
+}
+
+type FashionStoreEditorMedia = NonNullable<
+  Extract<PresentationViewModel, { kind: "home" }>["hero"]["media"]
+>;
+
+export function resolveFashionStoreEditorMedia(
+  resolveAsset: ThemeAssetResolver,
+  media: FashionStoreEditorMedia,
+): string {
+  return media.source === "url"
+    ? media.src
+    : resolveAsset(fashionStoreAssetId(media.themePath));
 }
 
 export const themeAssets = Object.freeze(

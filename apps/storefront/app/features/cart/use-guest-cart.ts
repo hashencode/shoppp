@@ -8,6 +8,7 @@ import type {
 
 const TOKEN_KEY = "shoppp.guest-cart-token";
 const clientEnsureFlights = new Map<string, Promise<Cart>>();
+const clientCartOperationFlights = new Map<string, Promise<void>>();
 
 export class GuestCartCurrencyMismatchError extends Error {
   constructor(currentCurrency: string, requestedCurrency: string) {
@@ -57,7 +58,7 @@ export function useGuestCart() {
   const busy = useState("guest-cart-busy", () => false);
   const error = useState<string | null>("guest-cart-error", () => null);
   const notice = useState<string | null>("guest-cart-notice", () => null);
-  const shippingRequestVersion = useState("guest-cart-shipping-request-version", () => 0);
+  const publicationVersion = useState("guest-cart-publication-version", () => 0);
   const api = useCommerceApi();
 
   const token = () =>
@@ -89,12 +90,33 @@ export function useGuestCart() {
       if (canPublish()) busy.value = false;
     }
   };
+  const queueCartOperation = async (operation: (cartToken: string) => Promise<{ data: Cart }>) => {
+    const requestVersion = publicationVersion.value + 1;
+    publicationVersion.value = requestVersion;
+    const operationKey = token() ?? "cart-token-unavailable";
+    const previous = clientCartOperationFlights.get(operationKey) ?? Promise.resolve();
+    const request = previous.then(() =>
+      withCart(operation, () => publicationVersion.value === requestVersion),
+    );
+    const settled = request.then(
+      () => undefined,
+      () => undefined,
+    );
+    clientCartOperationFlights.set(operationKey, settled);
+    try {
+      return await request;
+    } finally {
+      if (clientCartOperationFlights.get(operationKey) === settled) {
+        clientCartOperationFlights.delete(operationKey);
+      }
+    }
+  };
   const runEnsure = async (currency: string) => {
     const existingToken = token();
     let recoveredTerminalCart = false;
     if (existingToken) {
       try {
-        const currentCart = await withCart((value) => api.getCart(value));
+        const currentCart = await queueCartOperation((value) => api.getCart(value));
         assertGuestCartCurrency(currentCart, currency);
         return currentCart;
       } catch (cause) {
@@ -135,21 +157,16 @@ export function useGuestCart() {
   };
   const add = async (input: AddCartLineRequest, currency: string) => {
     await ensure(currency);
-    return withCart((value) => api.addCartLine(value, input));
+    return queueCartOperation((value) => api.addCartLine(value, input));
   };
   const update = (variantId: string, input: UpdateCartLineRequest) =>
-    withCart((value) => api.updateCartLine(value, variantId, input));
-  const remove = (variantId: string) => withCart((value) => api.removeCartLine(value, variantId));
+    queueCartOperation((value) => api.updateCartLine(value, variantId, input));
+  const remove = (variantId: string) =>
+    queueCartOperation((value) => api.removeCartLine(value, variantId));
   const acknowledge = (codes: string[]) =>
-    withCart((value) => api.acknowledgeCartAdjustments(value, codes));
-  const shipping = (input: ShippingQuoteRequest) => {
-    const requestVersion = shippingRequestVersion.value + 1;
-    shippingRequestVersion.value = requestVersion;
-    return withCart(
-      (value) => api.quoteShipping(value, input),
-      () => shippingRequestVersion.value === requestVersion,
-    );
-  };
+    queueCartOperation((value) => api.acknowledgeCartAdjustments(value, codes));
+  const shipping = (input: ShippingQuoteRequest) =>
+    queueCartOperation((value) => api.quoteShipping(value, input));
   const beginCheckout = async (input: CheckoutRequest, turnstileToken?: string) => {
     busy.value = true;
     error.value = null;

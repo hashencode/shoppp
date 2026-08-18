@@ -35,6 +35,7 @@ export interface ApiBindings {
   TAX_MODE: "zero";
   RESERVATION_TTL_MINUTES?: string;
   GUEST_ORDER_TOKEN_TTL_HOURS?: string;
+  FASHION_ACCEPTANCE_TOKEN?: string;
   PAYMENT_CANCEL_URL?: string;
   PAYMENT_SUCCESS_URL?: string;
   STRIPE_SECRET_KEY?: string;

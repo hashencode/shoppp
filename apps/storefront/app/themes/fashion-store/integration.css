@@ -270,7 +270,7 @@
   opacity: 1;
 }
 
-[data-fashion-store-shop] .tag-cloud a {
+[data-fashion-store-shop] .tag-cloud button {
   display: inline-block;
   margin: 0 6px 10px 0;
   padding: 5px 10px;
@@ -281,6 +281,14 @@
   background: transparent;
   border: 1px solid var(--extra-medium-gray);
   border-radius: 4px;
+}
+
+[data-fashion-store-checkout] .fashion-checkout-helper-trigger,
+[data-fashion-store-article] .fashion-article-like {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
 }
 
 [data-fashion-store-shop] .slider-one-slide {
@@ -297,22 +305,31 @@
   font-weight: 400;
 }
 
-[data-fashion-store-shop] .tag-cloud a:hover,
-[data-fashion-store-shop] .tag-cloud a.active {
+[data-fashion-store-shop] .tag-cloud button:hover,
+[data-fashion-store-shop] .tag-cloud button.active {
   color: var(--dark-gray);
   background-color: var(--white);
   box-shadow: 0 0 10px rgb(23 23 23 / 10%);
 }
 
-[data-fashion-store-shop] .shop-box:focus-within .shop-image .shop-buttons-wrap .btn,
+.shop-modern
+  [data-fashion-store-product-card][data-action-state]
+  .shop-box
+  .shop-image
+  .shop-buttons-wrap
+  .btn {
+  visibility: visible;
+}
+
+[data-fashion-store-product-card] .shop-box:focus-within .shop-image .shop-buttons-wrap .btn,
 [data-fashion-store-shop] .shop-box.actions-open .shop-image .shop-buttons-wrap .btn,
-[data-fashion-store-shop] .shop-box:focus-within .shop-image .shop-hover {
+[data-fashion-store-product-card] .shop-box:focus-within .shop-image .shop-hover {
   visibility: visible;
   opacity: 1;
   transform: translateY(0);
 }
 
-[data-fashion-store-shop] .shop-box:focus-within .shop-image .shop-hover li {
+[data-fashion-store-product-card] .shop-box:focus-within .shop-image .shop-hover li {
   transform: translateY(0);
 }
 
@@ -323,6 +340,14 @@
 
 [data-fashion-store-shop] .shop-box.actions-open .shop-image .shop-hover li {
   transform: translateY(0);
+}
+
+@media (hover: none), (pointer: coarse) {
+  [data-fashion-store-product-card] .shop-image .shop-buttons-wrap .btn {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 [data-fashion-store-shop] .slider-one-slide .swiper-slide {
@@ -338,7 +363,7 @@
   }
 }
 
-[data-fashion-store-shop] .shop-filter.tag-cloud a {
+[data-fashion-store-shop] .shop-filter.tag-cloud button {
   margin-right: 10px;
 }
 

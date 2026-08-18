@@ -11,8 +11,8 @@ import {
   compareThemeScreenshots,
 } from "../apps/storefront/scripts/compare-theme-screenshots";
 
-export type FidelityThemeId = "decor" | "fashion" | "fashion-store";
-export type SameIdentityFidelityThemeId = Exclude<FidelityThemeId, "fashion-store">;
+export type FidelityThemeId = "decor" | "fashion-store-source" | "fashion-store";
+export type SameIdentityFidelityThemeId = "decor";
 export type FidelityViewportId = "desktop" | "laptop" | "tablet" | "mobile";
 
 export const fidelityViewportIds: FidelityViewportId[] = ["desktop", "laptop", "tablet", "mobile"];
@@ -61,7 +61,7 @@ export async function generateThemeFidelityReport(options: {
   if (!/^[a-f0-9]{7,40}$/.test(options.commit)) throw new Error("A real commit SHA is required.");
   if ((options.themes as FidelityThemeId[] | undefined)?.includes("fashion-store"))
     throw new Error(
-      "Fashion Store fidelity must use the Fashion-to-Fashion Store comparison descriptor.",
+      "Fashion Store fidelity must use the Fashion Store Source-to-Fashion Store comparison descriptor.",
     );
   const themes = options.themes;
   const comparison = options.comparison ?? (themes ? undefined : fashionStoreComparisonDescriptor);
@@ -237,11 +237,11 @@ async function main(): Promise<void> {
   const implementationRoot = value(arguments_, "--implementation");
   const outputRoot = value(arguments_, "--output");
   const commit = value(arguments_, "--commit");
-  const referenceThemeId = value(arguments_, "--reference-theme") ?? "fashion";
+  const referenceThemeId = value(arguments_, "--reference-theme") ?? "fashion-store-source";
   const implementationThemeId = value(arguments_, "--implementation-theme") ?? "fashion-store";
   if (!referenceRoot || !implementationRoot || !outputRoot || !commit) {
     throw new Error(
-      "Usage: bun tools/theme-fidelity-report.ts --reference=<root> --implementation=<root> --output=<root> --commit=<sha> [--reference-theme=fashion --implementation-theme=fashion-store]",
+      "Usage: bun tools/theme-fidelity-report.ts --reference=<root> --implementation=<root> --output=<root> --commit=<sha> [--reference-theme=fashion-store-source --implementation-theme=fashion-store]",
     );
   }
   console.log(

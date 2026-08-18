@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { Cart } from "@shoppp/contracts";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
-import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
+import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import {
   formatCommerceMoney,
@@ -17,7 +16,7 @@ const cartOpen = ref(false);
 const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const liveCommerceMode = inject(liveCommerceModeKey, false);
-const liveCart = inject(storefrontCartStateKey, readonly(ref<Cart | null>(null)));
+const liveCart = inject(storefrontCartStateKey, readonly(ref<StorefrontCart | null>(null)));
 const liveCartCount = computed(
   () => liveCart.value?.lines.reduce((total, line) => total + line.quantity, 0) ?? 0,
 );
@@ -102,6 +101,7 @@ defineExpose({ closeCart });
     <div
       class="header-cart dropdown"
       :class="{ open: cartOpen }"
+      :data-fashion-store-commerce-mode="liveCommerceMode ? 'live' : 'fixture'"
       @mouseenter="cartOpen = true"
       @mouseleave="handleCartMouseLeave"
       @focusout="handleCartFocusOut"
@@ -157,18 +157,18 @@ defineExpose({ closeCart });
               money(liveCart.totals.subtotal, liveCart.currency)
             }}</span>
           </div>
-          <a
-            :href="fashionStoreRoutePaths.cart"
+          <NuxtLink
+            :to="fashionStoreRoutePaths.cart"
             data-fashion-store-route
             class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
-            >View cart</a
+            >View cart</NuxtLink
           >
-          <a
+          <NuxtLink
             v-if="liveCart.canCheckout"
-            :href="fashionStoreRoutePaths.checkout"
+            :to="fashionStoreRoutePaths.checkout"
             data-fashion-store-route
             class="btn btn-large btn-dark-gray btn-box-shadow"
-            >Checkout</a
+            >Checkout</NuxtLink
           >
         </li>
       </ul>
@@ -178,19 +178,22 @@ defineExpose({ closeCart });
             type="button"
             class="alt-font close fashion-store-source-action"
             aria-label="Remove Ribbed tank from preview cart"
+            disabled
           >
             ×
           </button>
           <div class="product-image">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
               ><img
                 class="cart-thumb"
                 alt=""
                 v-bind:src="sourceAsset('images/demo-fashion-store-product-01.jpg')"
-            /></a>
+            /></NuxtLink>
           </div>
           <div class="product-detail fw-600">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>Ribbed tank</a>
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
+              >Ribbed tank</NuxtLink
+            >
             <span class="item-ammount fw-400">1 x $23.00</span>
           </div>
         </li>
@@ -199,19 +202,22 @@ defineExpose({ closeCart });
             type="button"
             class="alt-font close fashion-store-source-action"
             aria-label="Remove Pleated dress from preview cart"
+            disabled
           >
             ×
           </button>
           <div class="product-image">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
               ><img
                 class="cart-thumb"
                 alt=""
                 v-bind:src="sourceAsset('images/demo-fashion-store-product-02.jpg')"
-            /></a>
+            /></NuxtLink>
           </div>
           <div class="product-detail fw-600">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>Pleated dress</a>
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
+              >Pleated dress</NuxtLink
+            >
             <span class="item-ammount fw-400">2 x $15.00</span>
           </div>
         </li>
@@ -220,17 +226,17 @@ defineExpose({ closeCart });
             <span class="w-50 fw-500 text-start">Subtotal:</span
             ><span class="w-50 text-end fw-700">$199.99</span>
           </div>
-          <a
-            :href="fashionStoreRoutePaths.cart"
+          <NuxtLink
+            :to="fashionStoreRoutePaths.cart"
             data-fashion-store-route
             class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
-            >View cart</a
+            >View cart</NuxtLink
           >
-          <a
-            :href="fashionStoreRoutePaths.checkout"
+          <NuxtLink
+            :to="fashionStoreRoutePaths.checkout"
             data-fashion-store-route
             class="btn btn-large btn-dark-gray btn-box-shadow"
-            >Checkout</a
+            >Checkout</NuxtLink
           >
         </li>
       </ul>

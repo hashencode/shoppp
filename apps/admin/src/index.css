@@ -43,7 +43,7 @@ body {
 
 #root {
   min-height: 100vh;
-  min-width: 800px;
+  min-width: 0;
 }
 
 .rule-list-table .ant-table-pagination.ant-pagination {

@@ -56,19 +56,9 @@ function submitComment(): void {
               <div class="col-lg-10 text-center">
                 <span class="fs-18 mb-30px d-inline-block sm-mb-20px"
                   >By
-                  <a
-                    href="#"
-                    class="text-dark-gray text-decoration-line-bottom"
-                    @click.prevent="recordLocalAction"
-                    >{{ data.lead.author }}</a
-                  >
+                  <span class="text-dark-gray">{{ data.lead.author }}</span>
                   in
-                  <a
-                    href="#"
-                    class="text-dark-gray text-decoration-line-bottom"
-                    @click.prevent="recordLocalAction"
-                    >{{ data.lead.category }}</a
-                  >
+                  <span class="text-dark-gray">{{ data.lead.category }}</span>
                   on {{ data.lead.date }}</span
                 >
                 <h1 class="alt-font fw-600 text-dark-gray ls-minus-2px mb-0">
@@ -120,14 +110,14 @@ function submitComment(): void {
                         >
                       </li>
                       <li>
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           class="fashion-article-like text-uppercase alt-font fs-13"
-                          @click.prevent="recordLocalAction"
+                          @click="recordLocalAction"
                         >
                           <i class="feather icon-feather-heart me-5px icon-small align-middle"></i
                           >Like
-                        </a>
+                        </button>
                       </li>
                     </ul>
                   </aside>
@@ -405,11 +395,7 @@ function submitComment(): void {
                         />
                       </div>
                       <div class="w-100 ps-30px last-paragraph-no-margin sm-ps-0">
-                        <a
-                          href="#"
-                          class="text-dark-gray fw-500"
-                          @click.prevent="recordLocalAction"
-                          >{{ comment.author }}</a
+                        <span class="text-dark-gray fw-500">{{ comment.author }}</span
                         ><a href="#comments" class="btn-reply text-uppercase section-link">Reply</a>
                         <div class="fs-14 lh-24 mb-10px">{{ comment.date }}</div>
                         <p class="w-85 sm-w-100">{{ comment.text }}</p>

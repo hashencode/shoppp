@@ -1,3 +1,6 @@
+import { defineAsyncComponent } from "vue";
+import type { ThemeRegistry } from "../../theme-engine/registry";
+import FashionStoreHomeRoute from "./components/FashionStoreHomeRoute.vue";
 import { fashionStoreHomeFixtures } from "./fixtures/home";
 import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
 import { fashionStoreCheckoutFixtures } from "./fixtures/pages/checkout";
@@ -13,3 +16,31 @@ export const themeFixtures = {
   ...fashionStoreProductFixtures,
   ...fashionStoreShopFixtures,
 };
+
+const FashionStoreCartPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreCartPage.vue"),
+);
+const FashionStoreCheckoutPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreCheckoutPage.vue"),
+);
+const FashionStoreCollectionPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreCollectionPage.vue"),
+);
+const FashionStoreContentPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreContentRoute.vue"),
+);
+const FashionStoreProductPage = defineAsyncComponent(
+  () => import("./components/pages/FashionStoreProductRoute.vue"),
+);
+
+export const fixtureThemeRegistry = {
+  blocks: {},
+  sections: {
+    "fashion-store.home": FashionStoreHomeRoute,
+    "fashion-store.cart": FashionStoreCartPage,
+    "fashion-store.checkout": FashionStoreCheckoutPage,
+    "fashion-store.collection": FashionStoreCollectionPage,
+    "fashion-store.content": FashionStoreContentPage,
+    "fashion-store.product": FashionStoreProductPage,
+  },
+} as const satisfies ThemeRegistry;

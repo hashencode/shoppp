@@ -111,11 +111,10 @@ function submitRegister(): void {
                     />
                     <span class="box fs-14">Remember me</span>
                   </label>
-                  <a
-                    href="#"
+                  <span
                     class="fs-14 text-dark-gray fw-500 text-decoration-line-bottom ms-auto"
-                    @click.prevent
-                    >Forget your password?</a
+                    aria-disabled="true"
+                    >Forget your password?</span
                   >
                 </div>
                 <button
@@ -173,9 +172,9 @@ function submitRegister(): void {
                 <span class="fs-13 lh-22 w-90 lg-w-100 md-w-90 sm-w-100 d-block mb-30px"
                   >{{ data.privacyCopy.replace("privacy policy.", "")
                   }}<a
-                    href="#"
+                    href="/policies/privacy"
+                    data-fashion-store-route
                     class="text-dark-gray text-decoration-line-bottom fw-500"
-                    @click.prevent
                     >privacy policy.</a
                   ></span
                 >

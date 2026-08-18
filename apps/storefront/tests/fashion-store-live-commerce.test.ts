@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { composeExperienceRoute } from "../app/theme-engine/composer";
 import { resolveThemeRoute } from "../app/theme-engine/routes";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
+import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 
 const appRoot = resolve(import.meta.dir, "../app");
@@ -43,6 +44,7 @@ describe("Fashion Store live commerce boundary", () => {
       expect(route).toBeDefined();
       expect(
         composeExperienceRoute({
+          adapter: fashionStoreCompositionAdapter,
           experience: input.snapshot,
           locale: "en-US",
           path,
@@ -71,15 +73,48 @@ describe("Fashion Store live commerce boundary", () => {
       source("themes/fashion-store/components/pages/FashionStoreProductRoute.vue"),
     ]);
     expect(dispatchers.every((value) => value.includes("defineAsyncComponent"))).toBe(true);
-    expect(dispatchers[0]).toContain("viewModel.kind === 'collection-grid'");
+    expect(dispatchers[0]).toContain("viewModel.kind === 'home'");
     expect(dispatchers[1]).toContain("viewModel.kind === 'product'");
+  });
+
+  test("renders the full live Home and one stateful shared Home card without first-touch suppression", async () => {
+    const [liveHome, productCard] = await Promise.all([
+      source("themes/fashion-store/components/FashionStoreLiveHomePage.vue"),
+      source("themes/fashion-store/components/shared/FashionStoreProductCard.vue"),
+    ]);
+
+    expect(liveHome).not.toContain("FashionStoreLiveCatalog");
+    expect(liveHome).toContain("FashionStoreProductCard");
+    for (const section of [
+      "hero",
+      "services",
+      "categories",
+      "best-sellers",
+      "promotion",
+      "collection",
+      "brands",
+      "featured-products",
+      "marquee",
+      "magazine",
+    ]) {
+      expect(liveHome).toContain(`data-home-section="${section}"`);
+    }
+    expect(liveHome).not.toContain('visual-variant="home"');
+    expect(productCard).toContain("runtimeCommercePortKey");
+    expect(productCard).toContain("storefrontActionAdapterKey");
+    expect(productCard).toContain("verifyProductCartAdd(");
+    expect(productCard).not.toContain("onMounted(");
+    expect(productCard).toContain("data-action-state");
+    expect(productCard).toContain('aria-live="polite"');
+    expect(productCard).not.toContain("suppressNextProductLink");
+    expect(productCard).not.toContain("exposeTouchActions");
   });
 
   test("keeps unsupported capabilities absent from live surfaces while preserving truthful exits", async () => {
     expect(fashionStoreLiveCapabilities).toEqual({
       account: false,
       articleComments: false,
-      catalogSearch: false,
+      catalogSearch: true,
       contactSubmission: false,
       newsletter: false,
       productCompare: false,
@@ -97,7 +132,12 @@ describe("Fashion Store live commerce boundary", () => {
     expect(contentRoute).toContain("viewModel.kind === 'state'");
     expect(liveContent).not.toMatch(/<form|useCommerceApi|useGuestCart|\/fixtures\//);
     expect(liveContent).toContain("viewModel.action.label");
+    expect(liveContent).toContain('href="/shop"');
+    expect(liveContent).toContain("no recovery products are currently published");
     expect(liveContent).toContain("Return home");
+    expect(liveContent).toContain("FashionStoreProductCard");
+    expect(liveContent).toContain("viewModel.products");
+    expect(liveContent).not.toContain("fashion-wishlist-remove");
   });
 
   test("shares the readonly guest cart with every mounted live cart surface", async () => {
@@ -114,5 +154,36 @@ describe("Fashion Store live commerce boundary", () => {
       expect(surface).not.toContain("useGuestCart(");
     }
     expect(miniCart).not.toContain("const liveCart = ref<Cart | null>");
+  });
+
+  test("shares Home shell edits and platform presentation without replacing Commerce facts", async () => {
+    const [host, shell, content, product, catalog, cart, checkout, order, policy] =
+      await Promise.all([
+        source("StorefrontExperience.vue"),
+        source("themes/fashion-store/components/shared/FashionStoreShell.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreLiveContentPage.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreLiveProductPage.vue"),
+        source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreCartPage.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreCheckoutPage.vue"),
+        source("pages/orders/[token].vue"),
+        source("pages/policies/[slug].vue"),
+      ]);
+
+    expect(host).toContain("provide(storefrontPresentationShellKey, experienceShell)");
+    expect(host).toContain("provide(storefrontPlatformPresentationKey, platformPresentation)");
+    expect(shell).toContain("inject(storefrontPresentationShellKey");
+    for (const surface of [content, product, catalog]) {
+      expect(surface).not.toMatch(/announcement=(?:"|')/);
+    }
+    for (const surface of [cart, checkout]) {
+      expect(surface).not.toContain("totals are verified by Commerce");
+    }
+    expect(order).toContain("data-order-presentation-help");
+    expect(order).toContain("data-order-presentation-policy-link");
+    expect(order).toContain("access.order.lines");
+    expect(policy).toContain("data-policy-presentation-document-link");
+    expect(policy).toContain("data-policy-presentation-related-link");
+    expect(policy).toContain("policy.sections");
   });
 });

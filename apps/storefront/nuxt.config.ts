@@ -2,13 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
-import { themeRoutePaths } from "./app/theme-engine/routes";
-import { decorThemeRoutes } from "./app/themes/decor/page-contracts";
-import { fashionStoreThemeRoutes } from "./app/themes/fashion-store/page-contracts";
-import {
-  experienceBuildInputSchema,
-  type ExperienceBuildInput,
-} from "./scripts/prepare-experience";
+import { experienceBuildInputSchema } from "./scripts/prepare-experience";
+import { resolveStorefrontPrerenderRoutes } from "./scripts/resolve-prerender-routes";
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
 const fashionStoreFontImports = [
@@ -23,35 +18,34 @@ const redirectRules = Object.fromEntries(
     { redirect: { to: redirect.to, statusCode: 301 } },
   ]),
 );
-const previewPlatformRoutes = ["/checkout/complete"] as const;
 const previewExperienceFile = process.env.STOREFRONT_EXPERIENCE_FILE;
 const previewExperienceInput = previewExperienceFile
   ? experienceBuildInputSchema.parse(
       JSON.parse(readFileSync(resolve(previewExperienceFile), "utf8")),
     )
   : undefined;
-type LivePreviewInput = Extract<ExperienceBuildInput, { presentationMode: "live" }>;
-function isLivePreviewInput(input?: ExperienceBuildInput): input is LivePreviewInput {
-  return (input as { presentationMode?: unknown } | undefined)?.presentationMode === "live";
-}
-const livePreviewInput = isLivePreviewInput(previewExperienceInput)
-  ? previewExperienceInput
-  : undefined;
-const selectedPreviewThemeRoutes =
-  previewExperienceInput?.environment === "preview" && previewExperienceInput.themeId === "decor"
-    ? decorThemeRoutes
-    : fashionStoreThemeRoutes;
-const previewThemeRoutes =
-  livePreviewInput?.presentationMode === "live"
-    ? themeRoutePaths(selectedPreviewThemeRoutes, "live", livePreviewInput.catalogRelease)
-    : themeRoutePaths(selectedPreviewThemeRoutes, "fixture-preview");
-const prerenderRoutes = previewBuild
-  ? [...previewThemeRoutes, ...previewPlatformRoutes]
-  : [...manifest.routes, "/cart", "/checkout", "/checkout/complete", "/orders/access"];
+const previewThemeStyles =
+  previewBuild &&
+  previewExperienceInput?.environment === "preview" &&
+  previewExperienceInput.themeId === "fashion-store"
+    ? [
+        "~/themes/fashion-store/upstream/css/vendors.min.css",
+        "~/themes/fashion-store/upstream/css/icon.min.css",
+        "~/themes/fashion-store/upstream/css/style.css",
+        "~/themes/fashion-store/upstream/css/responsive.css",
+        "~/themes/fashion-store/upstream/demos/fashion-store/fashion-store.css",
+        "~/themes/fashion-store/integration.css",
+      ]
+    : [];
+const prerenderRoutes = resolveStorefrontPrerenderRoutes({
+  experience: previewExperienceInput,
+  previewBuild,
+  productionRoutes: manifest.routes,
+});
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-07-30",
-  css: ["~/assets/css/main.css"],
+  css: ["~/assets/css/main.css", ...previewThemeStyles],
   devtools: { enabled: false },
   features: {
     inlineStyles: previewBuild ? false : (id) => Boolean(id?.includes(".vue")),
@@ -79,6 +73,7 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: "en" },
       link: [{ href: "/favicon.svg", rel: "icon", type: "image/svg+xml" }],
+      script: [{ src: "/storefront-interaction-capture.js" }],
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -95,11 +90,29 @@ export default defineNuxtConfig({
   },
   hooks: {
     "build:manifest": (clientManifest) => {
-      for (const entry of Object.values(clientManifest)) {
+      const dependencyGraph = new Map(
+        Object.entries(clientManifest).map(([id, entry]) => [
+          id,
+          { css: entry.css ?? [], imports: entry.imports ?? [] },
+        ]),
+      );
+      const collectDependencyCss = (id: string, visited = new Set<string>()): string[] => {
+        if (visited.has(id)) return [];
+        visited.add(id);
+        const dependency = dependencyGraph.get(id);
+        if (!dependency) return [];
+        return [
+          ...dependency.css,
+          ...dependency.imports.flatMap((importId) => collectDependencyCss(importId, visited)),
+        ];
+      };
+
+      for (const [id, entry] of Object.entries(clientManifest)) {
         entry.assets = entry.assets?.filter(
           (asset) => !/\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(asset),
         );
         if (previewBuild) {
+          entry.css = [...new Set(collectDependencyCss(id))];
           entry.imports = [];
         }
       }

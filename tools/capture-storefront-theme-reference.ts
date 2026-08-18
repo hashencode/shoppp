@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { deterministicCaptureCss } from "../apps/storefront/e2e/support/theme-capture-contract";
 import { acquireCaptureLease } from "./theme-capture-resource-guard";
 
-export type ReferenceThemeId = "decor" | "fashion";
+export type ReferenceThemeId = "decor" | "fashion-store-source";
 
 export interface ReferenceCaptureConfig {
   entry: string;
@@ -13,7 +13,7 @@ export interface ReferenceCaptureConfig {
   themeId: string;
 }
 
-export const fashionReferenceEntrySha256 =
+export const fashionStoreSourceEntrySha256 =
   "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465";
 
 export const referenceCaptureConfigs = {
@@ -22,10 +22,10 @@ export const referenceCaptureConfigs = {
     firstHero: "images/demo-decor-store-slider-01-img-01.png",
     themeId: "decor",
   },
-  fashion: {
+  "fashion-store-source": {
     entry: "demo-fashion-store.html",
     firstHero: "images/demo-fashion-store-slider-01.jpg",
-    themeId: "fashion",
+    themeId: "fashion-store-source",
   },
 } as const satisfies Record<ReferenceThemeId, ReferenceCaptureConfig>;
 
@@ -34,10 +34,10 @@ export function resolveReferenceCaptureConfig(
 ): ReferenceCaptureConfig & { themeId: ReferenceThemeId } {
   if (themeId === "fashion-store") {
     throw new Error(
-      "fashion-store is an implementation identity; use the fashion source entry demo-fashion-store.html.",
+      "fashion-store is an implementation identity; use the fashion-store-source entry demo-fashion-store.html.",
     );
   }
-  if (themeId !== "fashion" && themeId !== "decor") {
+  if (themeId !== "fashion-store-source" && themeId !== "decor") {
     throw new Error(`Unsupported reference theme: ${themeId}.`);
   }
   return referenceCaptureConfigs[themeId];
@@ -329,7 +329,7 @@ async function main(): Promise<void> {
   const themeId = argumentValue(arguments_, "--theme");
   if (!sourceRoot || !outputRoot || !themeId) {
     throw new Error(
-      "Usage: bun tools/capture-storefront-theme-reference.ts --source=<html-root> --output=<artifact-root> --theme=<fashion|decor>",
+      "Usage: bun tools/capture-storefront-theme-reference.ts --source=<html-root> --output=<artifact-root> --theme=<fashion-store-source|decor>",
     );
   }
   const config = resolveReferenceCaptureConfig(themeId);

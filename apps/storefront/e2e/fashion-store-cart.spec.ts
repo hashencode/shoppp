@@ -69,6 +69,7 @@ test("Cart preserves source rows, totals, controls, and responsive geometry", as
   await source.evaluate(async () => document.fonts.ready);
 
   const cartPage = page.locator("[data-fashion-store-cart]");
+  await expect(page.getByText("Cart is unavailable.", { exact: true })).toHaveCount(0);
   await expect(cartPage.getByRole("heading", { name: "Shopping cart" })).toBeVisible();
   await expect(cartPage.locator(".cart-products tbody tr")).toHaveCount(3);
   await expect(cartPage.locator(".cart-products")).toContainText("Textured sweater");
@@ -96,18 +97,16 @@ test("Cart preserves source rows, totals, controls, and responsive geometry", as
   ]).toContain(testInfo.project.name);
 });
 
-test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once through guest cart", async ({
+test("cart-first-line-quantity-2 interaction: fixture quantity and removal stay local", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "fashion-store-desktop", "Mutation evidence runs once.");
   let patchCount = 0;
   let deleteCount = 0;
-  let quantityBody: unknown;
   await page.route("**/api/cart/lines/**", async (route) => {
     const method = route.request().method();
     if (method === "PATCH") {
       patchCount += 1;
-      quantityBody = route.request().postDataJSON();
       await route.fulfill({ contentType: "application/json", json: { data: cart([2, 1, 1]) } });
       return;
     }
@@ -119,8 +118,7 @@ test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once
   await prepareCart(page);
   const firstRow = page.locator(".cart-products tbody tr").first();
   await firstRow.getByRole("button", { name: "Increase Textured sweater quantity" }).click();
-  await expect.poll(() => patchCount).toBe(1);
-  expect(quantityBody).toEqual({ quantity: 2 });
+  expect(patchCount).toBe(0);
   await expect(firstRow.getByRole("spinbutton", { name: "Textured sweater quantity" })).toHaveValue(
     "2",
   );
@@ -132,12 +130,15 @@ test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once
   const remove = page.getByRole("button", { name: "Remove Bermuda shorts" });
   await remove.focus();
   await page.keyboard.press("Enter");
-  await expect.poll(() => deleteCount).toBe(1);
+  expect(deleteCount).toBe(0);
   await expect(page.locator(".cart-products tbody tr")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Remove Pocket sweatshirt" })).toBeFocused();
   await expect(page.locator("[data-fashion-store-cart]")).toHaveAttribute(
     "data-mutation-count",
     "2",
+  );
+  await expect(page.getByRole("status")).toContainText(
+    "Preview item removed locally. No Commerce cart was changed.",
   );
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
@@ -150,15 +151,13 @@ test("cart-first-line-quantity-2 interaction: quantity and removal dispatch once
   });
 });
 
-test("cart-shipping-open interaction: calculator validates locally and quotes once", async ({
+test("cart-shipping-open interaction: fixture calculator validates locally without a quote", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "fashion-store-desktop", "Shipping evidence runs once.");
   let quoteCount = 0;
-  let quoteBody: unknown;
   await page.route("**/api/cart/shipping", async (route) => {
     quoteCount += 1;
-    quoteBody = route.request().postDataJSON();
     await route.fulfill({
       contentType: "application/json",
       json: { data: cart([1, 1, 1], "ship_01J00000000000000000000000") },
@@ -180,11 +179,10 @@ test("cart-shipping-open interaction: calculator validates locally and quotes on
   await page.getByPlaceholder("Town/City").fill("Austin");
   await page.getByPlaceholder("ZIP").fill("78701");
   await page.locator("#shipping-accordion button", { hasText: "Update" }).click();
-  await expect.poll(() => quoteCount).toBe(1);
-  expect(quoteBody).toMatchObject({
-    shippingAddress: { city: "Austin", countryCode: "US", postalCode: "78701" },
-    shippingMethodId: "ship_01J00000000000000000000000",
-  });
+  expect(quoteCount).toBe(0);
+  await expect(page.getByRole("status")).toContainText(
+    "Preview delivery details validated locally. No Commerce quote was requested.",
+  );
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "cart-shipping-calculator",

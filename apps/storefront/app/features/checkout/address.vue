@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { ShippingQuoteRequest } from "@shoppp/contracts";
+import type { StorefrontShippingAddress } from "../../theme-engine/cart-state";
 
-type Address = ShippingQuoteRequest["shippingAddress"];
+type Address = StorefrontShippingAddress;
 
 withDefaults(defineProps<{ disabled?: boolean; showLegend?: boolean }>(), {
   disabled: false,

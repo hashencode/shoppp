@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL,
-    reducedMotion: "reduce",
+    contextOptions: { reducedMotion: "reduce" },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

@@ -7,6 +7,7 @@ artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
 execution: code
+status: complete
 ---
 
 # Retired Fashion Runtime Decommission - Plan
@@ -254,13 +255,30 @@ The repository ends with these non-overlapping identities:
 - **Approach:**
   1. U4.1 reconciles the retained-template verification matrix and documentation against R7-R12.
   2. U4.2 closes confirmed gaps in source comparison, identity absence, retained-template behavior, types, and build output.
-  3. U4.3 records parent completion and changes the master-plan classification from planned to complete without changing the active `FS` development pointer.
+  3. U4.3 records parent completion, changes the master-plan classification to complete, and returns the active product pointer to `FS-U12.1`.
 - **Test scenarios:**
   1. Fashion Store source, static, interaction, and route checks use `fashion-store-source` as their comparison label.
   2. Decor Store focused tests remain unchanged apart from expected active-catalog cardinality.
   3. Typechecking finds no deleted import, stale generated union, old reference label, or orphaned fixture mapping.
   4. Selected `fashion-store` and `decor` builds exclude retired runtime assets and comparison-only identities.
 - **Verification:** Focused API, generator, source-equivalence, Fashion Store, Decor Store, and type checks pass; the master plan records the result without advancing to DC.
+
+---
+
+## Execution Checkpoint
+
+- **Plan status:** Complete supporting code plan.
+- **Completed units:** U1 — authorized zero-data inventory; U2 — unambiguous independent source comparison; U3 — old runtime, fixture, registrations, import support, and inactive build assets removed; U4 — retained-template, documentation, repository, and fresh-static verification complete.
+- **Current unit:** None. U1-U4 are complete.
+- **Current sub-stage:** None. U4.3 recorded the final green verification and closed FRT.
+- **Next unit:** None in FRT. Product execution has returned to FS-U12.
+- **Next concrete action:** The product master and FS checkpoint activate `FS-U12.1` to reconcile the inherited U13/live-Commerce implementation and evidence against the complete U12 contract before any local gap implementation or separately authorized deployment proof.
+- **Dependency state:** On 2026-08-17 the product master explicitly accepted the reverified one-worktree operating topology as satisfying FRT's operational WTC dependency. This narrow decision does not mark `WTC-U1` or `WTC-U2` complete and does not reconstruct their missing historical pre-removal evidence.
+- **Current repository evidence:** The 98-file old runtime subtree, its exclusive fixture, registrations, imports, generated entries, and inactive build assets are removed. The retained runtime catalogs contain exactly `decor` and `fashion-store`; comparison identity is `fashion-store-source` only.
+- **Data gate:** Complete. `shoppp-staging` and `shoppp-fashion-staging` returned zero for every schema-supported governed count; `shoppp-production` returned authorized schema absence for all seven governed tables. All successful queries reported zero rows written. Evidence is retained in `docs/progress/retired-fashion-runtime.md`.
+- **Blockers:** None. FRT is complete.
+- **Execution order:** Complete. Product execution continues in `FS-U12.1`.
+- **Tail boundary:** FRT's temporary supporting-plan tail is complete. The product master has returned to FS-U12; FRT did not advance an FS unit, freeze a candidate, run DC/PG, or take ownership of the separate `decor` to `decor-store` identity migration.
 
 ---
 
@@ -288,4 +306,4 @@ The repository ends with these non-overlapping identities:
 - No speculative retirement service, database trigger, compatibility migration, or abandoned shim remains when inventory is zero.
 - Generated outputs and focused retained-template verification pass.
 - Historical plan documents remain in the product register as lineage evidence rather than active product templates.
-- The product master records retirement completion while keeping `FS-U1.1` or its then-current successor as the active product-development pointer.
+- The product master records retirement completion and returns the active product-development pointer to `FS-U12`.

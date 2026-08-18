@@ -4,6 +4,10 @@ import { resolve } from "node:path";
 
 const workflowPath = resolve(import.meta.dir, "../.github/workflows/deploy.yml");
 const previewWorkflowPath = resolve(import.meta.dir, "../.github/workflows/preview-storefront.yml");
+const fashionPreparationWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/prepare-fashion-staging-u12.yml",
+);
 const storefrontPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.config.ts",
@@ -272,6 +276,22 @@ describe("source-equivalence documentation authority", () => {
 });
 
 describe("private storefront preview workflow", () => {
+  test("requires a fresh governed readiness artifact before any deployment mutation", async () => {
+    const workflow = await readFile(previewWorkflowPath, "utf8");
+    const readiness = workflow.indexOf("Verify fresh pre-deployment readiness before any mutation");
+    const upload = workflow.indexOf("Upload immutable files to the private preview bucket");
+    const deploy = workflow.indexOf("Deploy the isolated preview access Worker");
+
+    expect(workflow).toContain("readiness_run_id:");
+    expect(workflow).toContain("readiness_digest:");
+    expect(workflow).toContain("run-id: ${{ inputs.readiness_run_id }}");
+    expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
+    expect(workflow).toContain(".commitSha == $commit");
+    expect(readiness).toBeGreaterThan(0);
+    expect(upload).toBeGreaterThan(readiness);
+    expect(deploy).toBeGreaterThan(readiness);
+  });
+
   test("uses the authoritative build manifest and preserves its exact Catalog identity", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
 
@@ -321,15 +341,16 @@ describe("private storefront preview workflow", () => {
     };
     const installStart = workflow.indexOf("      - run: bun install --frozen-lockfile");
     expect(installStart).toBeGreaterThan(0);
-    const install = workflow.slice(
-      installStart,
-      workflow.indexOf("\n      - name:", installStart),
-    );
+    const install = workflow.slice(installStart, workflow.indexOf("\n      - name:", installStart));
 
     expect(workflow).toContain("group: fashion-staging-preview");
     expect(workflow).toContain("environment: fashion-staging");
-    expect(workflow.split(secretReference)).toHaveLength(2);
+    expect(workflow.split(secretReference)).toHaveLength(4);
     expect(u13Step).toContain(secretReference);
+    expect(
+      namedStep("Run no-interception Fashion archetype and sandbox purchase journey"),
+    ).toContain(secretReference);
+    expect(namedStep("Prove the fresh-session sellable postcondition")).toContain(secretReference);
     expect(install).not.toContain(secretReference);
     for (const step of [
       "Build and verify isolated static preview",
@@ -344,6 +365,93 @@ describe("private storefront preview workflow", () => {
     expect(u13).toBeGreaterThan(deployed);
     expect(accepted).toBeGreaterThan(u13);
     expect(workflow).toContain("bun tools/run-fashion-staging-u13.ts");
+  });
+
+  test("locks, cleans, recovers, and fresh-session verifies the complete Fashion U12 journey", async () => {
+    const workflow = await readFile(previewWorkflowPath, "utf8");
+    const isolation = workflow.indexOf(
+      "Verify Fashion staging isolation and sandbox provider profile",
+    );
+    const upload = workflow.indexOf("Upload immutable files to the private preview bucket");
+    const acquire = workflow.indexOf("Acquire Fashion U12 acceptance lock and inventory baseline");
+    const journey = workflow.indexOf(
+      "Run no-interception Fashion archetype and sandbox purchase journey",
+    );
+    const cleanup = workflow.indexOf(
+      "Restore the Fashion U12 baseline and retain paid-order evidence",
+    );
+    const postcondition = workflow.indexOf("Prove the fresh-session sellable postcondition");
+    const postCleanup = workflow.indexOf("Clean the fresh-session postcondition run");
+    const verdict = workflow.indexOf("Enforce the complete Fashion U12 verdict");
+
+    expect(isolation).toBeGreaterThan(0);
+    expect(upload).toBeGreaterThan(isolation);
+    expect(acquire).toBeGreaterThan(upload);
+    expect(journey).toBeGreaterThan(acquire);
+    expect(cleanup).toBeGreaterThan(journey);
+    expect(postcondition).toBeGreaterThan(cleanup);
+    expect(postCleanup).toBeGreaterThan(postcondition);
+    expect(verdict).toBeGreaterThan(postCleanup);
+    expect(workflow).toContain("recovery_run_id:");
+    expect(workflow).toContain("--action=reconcile");
+    expect(workflow).toContain("--action=failure");
+    expect(workflow.match(/--action=cleanup/g)?.length).toBe(2);
+    expect(workflow).toContain("FASHION_U12_PHASE: journey");
+    expect(workflow).toContain("FASHION_U12_PHASE: postcondition");
+    expect(workflow).toContain("FASHION_U12_STRIPE_SECRET_KEY");
+    expect(workflow).toContain("sk_test_");
+    expect(workflow).toContain("FASHION_U12_TURNSTILE_SECRET");
+    expect(workflow).toContain("FASHION_U12_EMAIL_MODE");
+    expect(workflow).toContain("playwright-report/");
+    expect(workflow).toContain("test-results/");
+  });
+});
+
+describe("governed Fashion staging preparation workflow", () => {
+  test("backs up and locally restores exact D1 before migrations or seed mutation", async () => {
+    const workflow = await readFile(fashionPreparationWorkflowPath, "utf8");
+    const exportD1 = workflow.indexOf("Export exact Fashion D1 before migrations");
+    const restore = workflow.indexOf("Restore exported Fashion D1 into a disposable local database");
+    const preserve = workflow.indexOf("Preserve verified Fashion D1 backup before migration");
+    const migrate = workflow.indexOf("Apply pending Fashion D1 migrations after verified backup");
+    const seed = workflow.indexOf("Apply collision-checked three-archetype seed");
+
+    expect(workflow).toContain('test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"');
+    expect(workflow).toContain("shoppp-fashion-staging --env fashion-staging --remote");
+    expect(workflow).toContain("--persist-to \"$RESTORE_STATE\"");
+    expect(workflow).toContain("PRAGMA foreign_key_check");
+    expect(exportD1).toBeGreaterThan(0);
+    expect(restore).toBeGreaterThan(exportD1);
+    expect(preserve).toBeGreaterThan(restore);
+    expect(migrate).toBeGreaterThan(preserve);
+    expect(seed).toBeGreaterThan(migrate);
+  });
+
+  test("fails closed on credentials and collisions, then produces approved immutable readiness", async () => {
+    const workflow = await readFile(fashionPreparationWorkflowPath, "utf8");
+    const credentialGate = workflow.indexOf(
+      "Verify required Worker and protected-environment credentials before mutation",
+    );
+    const collisionGate = workflow.indexOf("Reject seed identity collisions");
+    const seed = workflow.indexOf("Apply collision-checked three-archetype seed");
+    const immutable = workflow.indexOf(
+      "Create validated approved immutable snapshot and building build",
+    );
+    const readiness = workflow.indexOf("Capture and verify fresh deployment-readiness evidence");
+
+    expect(workflow).toContain("FASHION_U12_ADMIN_SERVICE_TOKEN");
+    expect(workflow).toContain("FASHION_U12_GITHUB_ADMIN_TOKEN");
+    expect(workflow).toContain("STRIPE_WEBHOOK_SECRET");
+    expect(workflow).not.toContain("wrangler secret put");
+    expect(workflow).not.toContain("environment: staging\n");
+    expect(workflow).not.toContain("environment: production\n");
+    expect(credentialGate).toBeGreaterThan(0);
+    expect(collisionGate).toBeGreaterThan(credentialGate);
+    expect(seed).toBeGreaterThan(collisionGate);
+    expect(immutable).toBeGreaterThan(seed);
+    expect(readiness).toBeGreaterThan(immutable);
+    expect(workflow).toContain("/snapshots/$SNAPSHOT_ID/build");
+    expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
   });
 });
 

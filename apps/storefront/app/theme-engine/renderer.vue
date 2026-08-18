@@ -9,16 +9,16 @@ import type { PresentationProvider } from "./providers";
 import { composeThemeRegistries, renderTemplatePlan, type ThemeRegistry } from "./registry";
 
 const properties = defineProps<{
-  actionAdapter: StorefrontActionAdapter;
+  actionAdapter?: StorefrontActionAdapter;
   provider: PresentationProvider;
   registry: ThemeRegistry;
   resolveAsset: ThemeAssetResolver;
   template: PageTemplate;
-  checkoutAdapter: StorefrontCheckoutAdapter;
+  checkoutAdapter?: StorefrontCheckoutAdapter;
 }>();
 
-provide(storefrontActionAdapterKey, properties.actionAdapter);
-provide(storefrontCheckoutAdapterKey, properties.checkoutAdapter);
+if (properties.actionAdapter) provide(storefrontActionAdapterKey, properties.actionAdapter);
+if (properties.checkoutAdapter) provide(storefrontCheckoutAdapterKey, properties.checkoutAdapter);
 
 const plan = computed(() =>
   renderTemplatePlan(

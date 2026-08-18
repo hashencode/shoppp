@@ -6,6 +6,7 @@ import type { FashionStoreContentData } from "../../fixtures/pages/content";
 import { buildFashionStoreProductCartRequest } from "../../fixtures/pages/product";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
+import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
@@ -22,6 +23,8 @@ const data = computed(() => {
 const products = ref([...data.value.products]);
 const actionAdapter = inject(storefrontActionAdapterKey);
 const cartAddCount = ref(0);
+const previewCartIntentCount = ref(0);
+const cartNotice = ref("");
 const removeCount = ref(0);
 const busyProductId = ref("");
 
@@ -30,9 +33,15 @@ function sourceAsset(sourcePath: string): string {
 }
 
 async function addToCart(productId: string): Promise<void> {
-  if (!actionAdapter || busyProductId.value) return;
+  if (busyProductId.value) return;
   busyProductId.value = productId;
   recordPreviewIntent(data.value.actions.cart, "fashion-store.wishlist.cart");
+  if (!actionAdapter) {
+    previewCartIntentCount.value += 1;
+    cartNotice.value = "Preview cart intent recorded. No Commerce cart was changed.";
+    busyProductId.value = "";
+    return;
+  }
   try {
     await actionAdapter({
       context: "fashion-store.wishlist.cart",
@@ -58,6 +67,11 @@ async function removeProduct(productId: string): Promise<void> {
   const controls = document.querySelectorAll<HTMLButtonElement>(".fashion-wishlist-remove");
   controls[Math.min(index, controls.length - 1)]?.focus();
 }
+
+function handleProductIntent(productId: string, kind: "cart" | "quickView" | "wishlist"): void {
+  if (kind === "cart") void addToCart(productId);
+  else if (kind === "wishlist") void removeProduct(productId);
+}
 </script>
 
 <template>
@@ -73,8 +87,12 @@ async function removeProduct(productId: string): Promise<void> {
       data-fashion-store-wishlist
       data-runtime-status="ready"
       :data-cart-add-count="cartAddCount"
+      :data-preview-cart-intent-count="previewCartIntentCount"
       :data-remove-count="removeCount"
     >
+      <p v-if="cartNotice" class="sr-only" role="status" aria-live="polite">
+        {{ cartNotice }}
+      </p>
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
@@ -107,73 +125,14 @@ async function removeProduct(productId: string): Promise<void> {
                 class="shop-modern shop-wrapper grid grid-4col xl-grid-3col sm-grid-2col xs-grid-1col gutter-extra-large text-center fashion-wishlist-grid"
               >
                 <li class="grid-sizer" aria-hidden="true"></li>
-                <li v-for="product in products" :key="product.id" class="grid-item">
-                  <div class="shop-box mb-10px">
-                    <div class="shop-image mb-20px">
-                      <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
-                        <img
-                          :src="sourceAsset(product.sourceImage)"
-                          alt=""
-                          width="600"
-                          height="765"
-                        />
-                        <span
-                          v-if="product.badge"
-                          class="lable"
-                          :class="product.badge.toLowerCase()"
-                          >{{ product.badge }}</span
-                        >
-                        <span class="shop-overlay bg-gradient-gray-light-dark-transparent"></span>
-                      </a>
-                      <div class="shop-buttons-wrap">
-                        <button
-                          type="button"
-                          class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart fashion-wishlist-add"
-                          :disabled="busyProductId === product.id"
-                          @click="addToCart(product.id)"
-                        >
-                          <i class="feather icon-feather-shopping-bag"></i
-                          ><span class="quick-view-text button-text">Add to cart</span>
-                        </button>
-                      </div>
-                      <div class="shop-hover d-flex justify-content-center">
-                        <ul>
-                          <li>
-                            <button
-                              type="button"
-                              class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px fashion-wishlist-remove"
-                              :aria-label="`Remove ${product.name} from wishlist`"
-                              @click="removeProduct(product.id)"
-                            >
-                              <i class="feather icon-feather-heart-on fs-16"></i>
-                            </button>
-                          </li>
-                          <li>
-                            <a
-                              :href="fashionStoreRoutePaths.product"
-                              class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                              aria-label="Quick shop"
-                              data-fashion-store-route
-                              ><i class="feather icon-feather-eye fs-16"></i
-                            ></a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div class="shop-footer text-center">
-                      <a
-                        :href="fashionStoreRoutePaths.product"
-                        class="alt-font text-dark-gray fs-19 fw-500"
-                        data-fashion-store-route
-                        >{{ product.name }}</a
-                      >
-                      <div class="price lh-22 fs-16">
-                        <del>{{ product.originalPrice }}</del
-                        >{{ product.price }}
-                      </div>
-                    </div>
-                  </div>
-                </li>
+                <FashionStoreProductCard
+                  v-for="product in products"
+                  :key="product.id"
+                  context="wishlist"
+                  :product="product"
+                  :resolve-asset="resolveAsset"
+                  @intent="handleProductIntent(product.id, $event)"
+                />
               </ul>
             </div>
           </div>

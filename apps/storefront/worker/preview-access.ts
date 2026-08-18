@@ -62,7 +62,16 @@ interface PreviewAuthorization {
     themeId: string;
     themeVersion: string;
   };
+  mediaOrigins?: string[];
   origin: string;
+  previewContext?: {
+    contentDigest: string;
+    environment: "private-preview";
+    expiresAt: string;
+    generatedAt: string | null;
+    returnUrl: string;
+    snapshotId: string;
+  };
 }
 
 const digestPattern = /^[a-f0-9]{64}$/;
@@ -214,16 +223,40 @@ export async function uploadPreviewArtifact(
   return { digest: descriptor.digest, prefix: descriptor.prefix };
 }
 
-function securityHeaders(origin: string): Headers {
+function validMediaOrigins(value: unknown): value is string[] {
+  if (value === undefined) return true;
+  if (!Array.isArray(value) || value.length > 8 || new Set(value).size !== value.length) {
+    return false;
+  }
+  return value.every((entry) => {
+    if (typeof entry !== "string") return false;
+    try {
+      const url = new URL(entry);
+      return (
+        url.protocol === "https:" &&
+        url.username === "" &&
+        url.password === "" &&
+        url.origin === entry
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+function securityHeaders(origin: string, mediaOrigins: readonly string[] = []): Headers {
+  const imageSources = [origin, ...mediaOrigins].join(" ");
+  const turnstileOrigin = "https://challenges.cloudflare.com";
   return new Headers({
     "Cache-Control": "private, no-store",
     "Content-Security-Policy": [
       `default-src ${origin}`,
-      `script-src ${origin}`,
+      `script-src ${origin} ${turnstileOrigin}`,
       `style-src ${origin} 'unsafe-inline'`,
-      `img-src ${origin}`,
+      `img-src ${imageSources}`,
       `font-src ${origin}`,
       "connect-src 'self'",
+      `frame-src ${turnstileOrigin}`,
       "frame-ancestors 'none'",
       "base-uri 'none'",
       "form-action 'none'",
@@ -244,6 +277,30 @@ function responseWithSecurity(
   const headers = securityHeaders(origin);
   headers.set("Content-Type", contentType);
   return new Response(body, { headers, status });
+}
+
+function validPreviewContext(
+  value: PreviewAuthorization["previewContext"],
+  authorizationExpiresAt: string,
+): value is NonNullable<PreviewAuthorization["previewContext"]> {
+  if (
+    !value ||
+    value.environment !== "private-preview" ||
+    !digestPattern.test(value.contentDigest) ||
+    !snapshotPattern.test(value.snapshotId) ||
+    value.expiresAt !== authorizationExpiresAt ||
+    (value.generatedAt !== null && !Number.isFinite(Date.parse(value.generatedAt)))
+  ) {
+    return false;
+  }
+  try {
+    const returnUrl = new URL(value.returnUrl);
+    return (
+      returnUrl.protocol === "https:" && returnUrl.username === "" && returnUrl.password === ""
+    );
+  } catch {
+    return false;
+  }
 }
 
 function previewSession(request: Request): string | undefined {
@@ -283,7 +340,8 @@ async function authorize(
     !Number.isFinite(Date.parse(value.expiresAt)) ||
     Date.parse(value.expiresAt) <= now.getTime() ||
     value.origin !== environment.PREVIEW_ORIGIN ||
-    value.origin !== new URL(request.url).origin
+    value.origin !== new URL(request.url).origin ||
+    !validMediaOrigins(value.mediaOrigins)
   ) {
     return null;
   }
@@ -294,7 +352,13 @@ const commerceRoutes = [
   { methods: new Set(["GET"]), pattern: /^\/platform\/config$/ },
   {
     methods: new Set(["GET"]),
+    pattern: /^\/catalog\/products\/[A-Za-z0-9_-]{1,160}\/live$/,
+    query: "currency",
+  },
+  {
+    methods: new Set(["GET"]),
     pattern: /^\/catalog\/products\/by-id\/[A-Za-z0-9_-]{1,160}\/live$/,
+    query: "currency",
   },
   { methods: new Set(["GET", "POST"]), pattern: /^\/cart$/ },
   { methods: new Set(["POST"]), pattern: /^\/cart\/lines$/ },
@@ -302,8 +366,14 @@ const commerceRoutes = [
     methods: new Set(["DELETE", "PATCH"]),
     pattern: /^\/cart\/lines\/[A-Za-z0-9_-]{1,160}$/,
   },
+  { methods: new Set(["POST"]), pattern: /^\/cart\/adjustments\/acknowledge$/ },
   { methods: new Set(["PUT"]), pattern: /^\/cart\/shipping$/ },
+  { methods: new Set(["POST"]), pattern: /^\/cart\/reservations$/ },
+  { methods: new Set(["POST"]), pattern: /^\/checkout\/sessions$/ },
+  { methods: new Set(["GET"]), pattern: /^\/orders\/[A-Za-z0-9_-]{40,160}$/ },
 ] as const;
+
+const commerceBodyLimit = 64 * 1024;
 
 function commercePath(pathname: string): string {
   const decoded = decodedPath(pathname);
@@ -317,15 +387,22 @@ function commercePath(pathname: string): string {
   return decoded.slice("/api".length);
 }
 
-function commerceRoute(pathname: string, method: string): boolean {
-  const matchingPath = commerceRoutes.find(({ pattern }) => pattern.test(pathname));
-  return Boolean(matchingPath?.methods.has(method as never));
+function matchingCommerceRoute(pathname: string) {
+  return commerceRoutes.find(({ pattern }) => pattern.test(pathname));
+}
+
+function validCommerceQuery(route: (typeof commerceRoutes)[number], search: URLSearchParams) {
+  if (!("query" in route)) return search.size === 0;
+  return (
+    search.size === 1 && search.has("currency") && /^[A-Z]{3}$/.test(search.get("currency") ?? "")
+  );
 }
 
 function commerceRequestHeaders(
   request: Request,
   origin: string,
   catalogReleaseId: string,
+  pathname: string,
 ): Headers {
   const headers = new Headers({
     Accept: "application/json",
@@ -333,14 +410,40 @@ function commerceRequestHeaders(
     "X-Preview-Catalog-Release": catalogReleaseId,
   });
   const authorization = request.headers.get("Authorization");
-  if (authorization && /^CartToken [A-Za-z0-9_-]{32,160}$/.test(authorization)) {
+  const acceptsCartToken =
+    (pathname === "/cart" && request.method === "GET") ||
+    pathname.startsWith("/cart/") ||
+    pathname === "/checkout/sessions";
+  if (
+    acceptsCartToken &&
+    authorization &&
+    /^CartToken [A-Za-z0-9_-]{32,160}$/.test(authorization)
+  ) {
     headers.set("Authorization", authorization);
   }
   const contentType = request.headers.get("Content-Type")?.split(";", 1)[0]?.trim();
-  if (contentType === "application/json") headers.set("Content-Type", "application/json");
-  for (const name of ["Idempotency-Key", "X-Request-Id"] as const) {
-    const value = request.headers.get(name);
-    if (value && value.length <= 200 && !/[\r\n]/.test(value)) headers.set(name, value);
+  const mutation = request.method !== "GET" && request.method !== "HEAD";
+  if (mutation && contentType === "application/json") {
+    headers.set("Content-Type", "application/json");
+  }
+  const requestId = request.headers.get("X-Request-Id");
+  if (requestId && requestId.length <= 200 && !/[\r\n]/.test(requestId)) {
+    headers.set("X-Request-Id", requestId);
+  }
+  const idempotencyKey = request.headers.get("Idempotency-Key");
+  if (
+    mutation &&
+    idempotencyKey &&
+    idempotencyKey.length <= 200 &&
+    !/[\r\n]/.test(idempotencyKey)
+  ) {
+    headers.set("Idempotency-Key", idempotencyKey);
+  }
+  if (pathname === "/checkout/sessions") {
+    const turnstile = request.headers.get("X-Turnstile-Token");
+    if (turnstile && /^[A-Za-z0-9._~-]{1,2048}$/.test(turnstile)) {
+      headers.set("X-Turnstile-Token", turnstile);
+    }
   }
   return headers;
 }
@@ -371,8 +474,12 @@ async function forwardCommerce(
   } catch {
     return responseWithSecurity("Commerce path is invalid.", origin, 400);
   }
-  if (!commerceRoute(pathname, request.method)) {
+  const route = matchingCommerceRoute(pathname);
+  if (!route || !route.methods.has(request.method as never)) {
     return responseWithSecurity("Method not allowed.", origin, 405);
+  }
+  if (!validCommerceQuery(route, requestUrl.searchParams)) {
+    return responseWithSecurity("Commerce query is invalid.", origin, 400);
   }
   if (
     request.method !== "GET" &&
@@ -381,22 +488,25 @@ async function forwardCommerce(
   ) {
     return responseWithSecurity("Commerce origin is not authorized.", origin, 403);
   }
-  const body = request.method === "GET" || request.method === "HEAD"
-    ? undefined
-    : await request.arrayBuffer();
-  const upstreamRequest = new Request(
-    `https://commerce.internal${pathname}${requestUrl.search}`,
-    {
-      body,
-      headers: commerceRequestHeaders(
-        request,
-        origin,
-        catalogReleaseId,
-      ),
-      method: request.method,
-      redirect: "manual",
-    },
-  );
+  const declaredLength = Number(request.headers.get("Content-Length") ?? "0");
+  if (
+    !Number.isFinite(declaredLength) ||
+    declaredLength < 0 ||
+    declaredLength > commerceBodyLimit
+  ) {
+    return responseWithSecurity("Commerce payload is too large.", origin, 413);
+  }
+  const body =
+    request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+  if (body && body.byteLength > commerceBodyLimit) {
+    return responseWithSecurity("Commerce payload is too large.", origin, 413);
+  }
+  const upstreamRequest = new Request(`https://commerce.internal${pathname}${requestUrl.search}`, {
+    body,
+    headers: commerceRequestHeaders(request, origin, catalogReleaseId, pathname),
+    method: request.method,
+    redirect: "manual",
+  });
   let upstream: Response;
   try {
     if (!environment.COMMERCE_API) throw new Error("Commerce binding is missing.");
@@ -530,6 +640,21 @@ export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
         403,
       );
     }
+    if (requestUrl.pathname === "/__preview/context") {
+      if (!validPreviewContext(authorization.previewContext, authorization.expiresAt)) {
+        return responseWithSecurity(
+          "Preview context is unavailable.",
+          configuredOrigin.origin,
+          503,
+        );
+      }
+      return responseWithSecurity(
+        JSON.stringify(authorization.previewContext),
+        configuredOrigin.origin,
+        200,
+        "application/json; charset=utf-8",
+      );
+    }
     if (requestUrl.pathname === "/api" || requestUrl.pathname.startsWith("/api/")) {
       return forwardCommerce(request, environment, authorization, configuredOrigin.origin);
     }
@@ -548,7 +673,7 @@ export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
     if (!object) {
       return responseWithSecurity("Preview artifact not found.", configuredOrigin.origin, 404);
     }
-    const headers = securityHeaders(configuredOrigin.origin);
+    const headers = securityHeaders(configuredOrigin.origin, authorization.mediaOrigins);
     headers.set("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream");
     return new Response(request.method === "HEAD" ? null : object.body, {
       headers,

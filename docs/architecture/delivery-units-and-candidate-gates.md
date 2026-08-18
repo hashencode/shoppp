@@ -72,8 +72,10 @@ churn.
 
 - Shoppp is one product. Its current product template names are `fashion-store` and `decor-store`;
   they are parallel implementations within the same theme platform, not competing projects.
-- The older internal template ID `fashion` is retired and may be deleted. It is not supported,
-  activation-eligible, candidate-blocking, or a source of current product requirements.
+- The older internal template ID `fashion` is retired and has been removed from active runtime,
+  fixture, registry, catalog, Admin-selection, and build surfaces. Historical plans and aggregate
+  inventory evidence may still name it; it is not supported, activation-eligible,
+  candidate-blocking, or a source of current product requirements.
 - `decor-store` is the product name for the existing Decor Store implementation. The code currently
   uses the legacy internal ID `decor`; that ID must be migrated deliberately before a
   `decor-store` activation candidate is frozen. It does not denote a second product template.

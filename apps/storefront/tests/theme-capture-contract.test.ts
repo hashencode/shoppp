@@ -56,20 +56,23 @@ describe("theme capture contract", () => {
     });
   });
 
-  test("describes Fashion source and Fashion Store implementation as distinct evidence roots", () => {
-    expect(resolveThemeComparison("fashion", "fashion-store")).toBe(
+  test("describes Fashion Store source and implementation as distinct evidence roots", () => {
+    expect(resolveThemeComparison("fashion-store-source", "fashion-store")).toBe(
       fashionStoreComparisonDescriptor,
     );
     expect(fashionStoreComparisonDescriptor).toMatchObject({
       artifactRoots: {
         implementation: "implementation/fashion-store",
-        reference: "reference/fashion",
+        reference: "reference/fashion-store-source",
       },
       densities: [1, 2],
       implementationThemeId: "fashion-store",
       referenceEntry: "demo-fashion-store.html",
-      referenceThemeId: "fashion",
+      referenceThemeId: "fashion-store-source",
     });
+    expect(() => resolveThemeComparison("fashion", "fashion-store")).toThrow(
+      "Unsupported theme comparison",
+    );
     expect(() => resolveThemeComparison("fashion-store", "fashion-store")).toThrow(
       "implementation-only",
     );

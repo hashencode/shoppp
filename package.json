@@ -25,6 +25,7 @@
     "release:validate": "bun tools/release-validate.ts",
     "recover:admin-password": "bun tools/recover-admin-password.ts",
     "provision:admin-service": "bun tools/provision-admin-service.ts",
+    "prepare:fashion-staging-u12": "bun tools/prepare-fashion-staging-u12.ts",
     "scaffold:source-equivalent-theme": "bun tools/scaffold-source-equivalent-theme.ts",
     "source-equivalence:rc": "bun tools/source-equivalence-rc.ts",
     "test": "bun test tools && bun tools/run-workspace-script.ts test --if-present",

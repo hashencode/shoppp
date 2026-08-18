@@ -248,7 +248,9 @@ test("product-size-m interaction: options and quantity dispatch one bounded upda
   });
 });
 
-test("Product add-to-cart reaches the typed guest-cart owner once", async ({ page }, testInfo) => {
+test("Product fixture records cart intent without reaching Commerce", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name !== "fashion-store-desktop", "Commerce evidence runs once.");
   await page.addInitScript(() => localStorage.setItem("shoppp.guest-cart-token", "cart-token"));
   let addRequests = 0;
@@ -267,18 +269,20 @@ test("Product add-to-cart reaches the typed guest-cart owner once", async ({ pag
   const addToCart = page.locator(".product-info .btn-cart");
   await addToCart.focus();
   await page.keyboard.press("Enter");
-  await expect.poll(() => addRequests).toBe(1);
+  expect(addRequests).toBe(0);
   await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
     "data-cart-add-count",
-    "1",
+    "0",
   );
   await expect(page).toHaveURL(new RegExp(`${productRoute}$`));
-  expect(requestBody).toEqual({
-    expectedUnitPrice: { amount: 6500, currency: "USD" },
-    quantity: 2,
-    releaseId: "representative-release-2026-07-30",
-    variantId: "var_01JFSHIRTGREENXL000000001",
-  });
+  expect(requestBody).toBeUndefined();
+  await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
+    "data-preview-intent-count",
+    "2",
+  );
+  await expect(page.getByRole("status")).toContainText(
+    "Preview cart intent recorded. No Commerce cart was changed.",
+  );
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "product-commerce-actions",

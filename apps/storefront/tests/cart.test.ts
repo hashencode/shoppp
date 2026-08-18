@@ -200,13 +200,17 @@ describe("cart presentation", () => {
     expect(storage.get("shoppp.guest-cart-token")).toBe("replacement-cart-token");
   });
 
-  test("does not publish an older shipping quote that resolves last", async () => {
+  test("serializes shipping quotes so the last request commits last", async () => {
     const firstResponse = deferred<{ data: typeof serverCart }>();
     const secondResponse = deferred<{ data: typeof serverCart }>();
+    const firstStarted = deferred<void>();
+    const secondStarted = deferred<void>();
     let requestCount = 0;
     installCartRuntime({
       quoteShipping() {
         requestCount += 1;
+        if (requestCount === 1) firstStarted.resolve(undefined);
+        else secondStarted.resolve(undefined);
         return requestCount === 1 ? firstResponse.promise : secondResponse.promise;
       },
     });
@@ -224,24 +228,28 @@ describe("cart presentation", () => {
 
     const first = guestCart.shipping(shippingInput);
     const second = guestCart.shipping(shippingInput);
+    await firstStarted.promise;
+    expect(requestCount).toBe(1);
+    firstResponse.resolve({ data: olderCart });
+    await first;
+    await secondStarted.promise;
     secondResponse.resolve({ data: newerCart });
     await second;
     expect(guestCart.cart.value).toEqual(newerCart);
     expect(guestCart.busy.value).toBe(false);
-
-    firstResponse.resolve({ data: olderCart });
-    await first;
-    expect(guestCart.cart.value).toEqual(newerCart);
-    expect(guestCart.busy.value).toBe(false);
   });
 
-  test("does not publish an older shipping error that rejects last", async () => {
+  test("continues the shipping queue after an earlier request fails", async () => {
     const firstResponse = deferred<{ data: typeof serverCart }>();
     const secondResponse = deferred<{ data: typeof serverCart }>();
+    const firstStarted = deferred<void>();
+    const secondStarted = deferred<void>();
     let requestCount = 0;
     installCartRuntime({
       quoteShipping() {
         requestCount += 1;
+        if (requestCount === 1) firstStarted.resolve(undefined);
+        else secondStarted.resolve(undefined);
         return requestCount === 1 ? firstResponse.promise : secondResponse.promise;
       },
     });
@@ -249,13 +257,139 @@ describe("cart presentation", () => {
 
     const first = guestCart.shipping(shippingInput);
     const second = guestCart.shipping(shippingInput);
-    secondResponse.resolve({ data: serverCart });
-    await second;
+    await firstStarted.promise;
     firstResponse.reject(new Error("stale shipping failure"));
     await expect(first).rejects.toThrow("stale shipping failure");
+    await secondStarted.promise;
+    secondResponse.resolve({ data: serverCart });
+    await second;
 
     expect(guestCart.cart.value).toEqual(serverCart);
     expect(guestCart.busy.value).toBe(false);
     expect(guestCart.error.value).toBeNull();
+  });
+
+  test("serializes cart mutations so an older response cannot overwrite a newer cart", async () => {
+    const firstResponse = deferred<{ data: typeof serverCart }>();
+    const secondResponse = deferred<{ data: typeof serverCart }>();
+    const firstStarted = deferred<void>();
+    const secondStarted = deferred<void>();
+    let requestCount = 0;
+    installCartRuntime({
+      addCartLine() {
+        requestCount += 1;
+        if (requestCount === 1) firstStarted.resolve(undefined);
+        else secondStarted.resolve(undefined);
+        return requestCount === 1 ? firstResponse.promise : secondResponse.promise;
+      },
+      async getCart() {
+        return { data: serverCart };
+      },
+    });
+    const firstCart = {
+      ...serverCart,
+      totals: { ...serverCart.totals, grandTotal: 15_000 },
+    };
+    const secondCart = {
+      ...serverCart,
+      totals: { ...serverCart.totals, grandTotal: 20_000 },
+    };
+    const guestCart = useGuestCart();
+    const input = {
+      expectedUnitPrice: { amount: 750, currency: "USD" },
+      quantity: 1,
+      variantId: "var_01J00000000000000000000000",
+    };
+
+    const first = guestCart.add(input, "USD");
+    const second = guestCart.add(input, "USD");
+    await firstStarted.promise;
+    expect(requestCount).toBe(1);
+    firstResponse.resolve({ data: firstCart });
+    await first;
+    await secondStarted.promise;
+    expect(requestCount).toBe(2);
+    secondResponse.resolve({ data: secondCart });
+    await second;
+
+    expect(guestCart.cart.value).toEqual(secondCart);
+  });
+
+  test("orders an existing-cart refresh before a mutation requested after it", async () => {
+    const refreshResponse = deferred<{ data: typeof serverCart }>();
+    const updateResponse = deferred<{ data: typeof serverCart }>();
+    const refreshStarted = deferred<void>();
+    const updateStarted = deferred<void>();
+    let updateRequests = 0;
+    const updatedCart = {
+      ...serverCart,
+      totals: { ...serverCart.totals, grandTotal: 20_000 },
+    };
+    installCartRuntime({
+      getCart() {
+        refreshStarted.resolve(undefined);
+        return refreshResponse.promise;
+      },
+      updateCartLine() {
+        updateRequests += 1;
+        updateStarted.resolve(undefined);
+        return updateResponse.promise;
+      },
+    });
+    const guestCart = useGuestCart();
+
+    const refresh = guestCart.ensure("USD");
+    const update = guestCart.update("var_01J00000000000000000000000", { quantity: 2 });
+    await refreshStarted.promise;
+    expect(updateRequests).toBe(0);
+    refreshResponse.resolve({ data: serverCart });
+    await refresh;
+    await updateStarted.promise;
+    updateResponse.resolve({ data: updatedCart });
+    await update;
+
+    expect(guestCart.cart.value).toEqual(updatedCart);
+  });
+
+  test("orders a shipping write before the cart mutation requested after it", async () => {
+    const shippingResponse = deferred<{ data: typeof serverCart }>();
+    const updateResponse = deferred<{ data: typeof serverCart }>();
+    const shippingStarted = deferred<void>();
+    const updateStarted = deferred<void>();
+    let updateRequests = 0;
+    const updatedCart = {
+      ...serverCart,
+      totals: { ...serverCart.totals, grandTotal: 20_000 },
+    };
+    installCartRuntime({
+      updateCartLine() {
+        updateRequests += 1;
+        updateStarted.resolve(undefined);
+        return updateResponse.promise;
+      },
+      quoteShipping() {
+        shippingStarted.resolve(undefined);
+        return shippingResponse.promise;
+      },
+    });
+    const guestCart = useGuestCart();
+
+    const shipping = guestCart.shipping(shippingInput);
+    const update = guestCart.update("var_01J00000000000000000000000", { quantity: 2 });
+    await shippingStarted.promise;
+    expect(updateRequests).toBe(0);
+
+    shippingResponse.resolve({
+      data: {
+        ...serverCart,
+        selectedShippingMethodId: "ship_stale",
+      },
+    });
+    await shipping;
+    await updateStarted.promise;
+    updateResponse.resolve({ data: updatedCart });
+    await update;
+
+    expect(guestCart.cart.value).toEqual(updatedCart);
   });
 });

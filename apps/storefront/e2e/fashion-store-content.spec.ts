@@ -104,17 +104,19 @@ test("wishlist-first-product-actions interaction: cart and removal stay host-own
   const firstCard = page.locator(".fashion-wishlist-grid > .grid-item").first();
   await firstCard.hover();
   await firstCard.getByRole("button", { name: "Add to cart" }).click();
-  await expect.poll(() => addRequests).toBe(1);
+  expect(addRequests).toBe(0);
   await expect(page.locator("[data-fashion-store-wishlist]")).toHaveAttribute(
     "data-cart-add-count",
+    "0",
+  );
+  expect(requestBody).toBeUndefined();
+  await expect(page.locator("[data-fashion-store-wishlist]")).toHaveAttribute(
+    "data-preview-cart-intent-count",
     "1",
   );
-  expect(requestBody).toEqual({
-    expectedUnitPrice: { amount: 6500, currency: "USD" },
-    quantity: 1,
-    releaseId: "representative-release-2026-07-30",
-    variantId: "var_01JFSHIRTBLUEM00000000001",
-  });
+  await expect(page.getByRole("status")).toContainText(
+    "Preview cart intent recorded. No Commerce cart was changed.",
+  );
 
   const remove = firstCard.getByRole("button", { name: /Remove Textured sweater/ });
   await remove.focus();

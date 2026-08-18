@@ -7,6 +7,7 @@ import { sha256Hex } from "../orders/tokens";
 import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { getStorefrontExperienceSnapshot } from "./service";
 import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
+import { catalogMediaOrigins, parsePersistedMediaOrigins } from "./media-origins";
 
 export interface ExperienceBuildTriggerResult {
   readonly correlationId: string;
@@ -33,6 +34,7 @@ interface BuildRow extends PreviewInputIdentityRow {
   expires_at: string | null;
   failure_code: string | null;
   id: string;
+  media_origins_json: string | null;
   experience_version: number | null;
   platform_contract_version: string | null;
   snapshot_id: string;
@@ -45,7 +47,19 @@ interface BuildRow extends PreviewInputIdentityRow {
 const BUILD_HOOK_TIMEOUT_MS = 15_000;
 const BUILD_ALLOCATION_ATTEMPTS = 4;
 
+function assertBuildMediaOrigins(row: BuildRow, expected: readonly string[]): void {
+  const persisted = parsePersistedMediaOrigins(row.media_origins_json);
+  if (!persisted || JSON.stringify(persisted) !== JSON.stringify(expected)) {
+    throw new ApiError(
+      409,
+      "storefront_preview_build_input_invalid",
+      "The preview build media origins do not match its immutable Catalog input.",
+    );
+  }
+}
+
 function mapBuild(row: BuildRow) {
+  const mediaOrigins = parsePersistedMediaOrigins(row.media_origins_json);
   return {
     artifactDigest: row.artifact_digest,
     artifactPrefix: row.artifact_prefix,
@@ -58,6 +72,7 @@ function mapBuild(row: BuildRow) {
     failureCode: row.failure_code,
     id: row.id,
     inputIdentity: toPreviewInputIdentity(row),
+    mediaOrigins,
     snapshotId: row.snapshot_id,
     status: row.status,
     updatedAt: row.updated_at,
@@ -145,6 +160,37 @@ export async function getStorefrontExperienceBuild(db: D1Database, id: string) {
   return mapBuild(await buildRow(db, id));
 }
 
+export async function getLatestDeployedStorefrontExperiencePreview(
+  db: D1Database,
+  draftId: string,
+  draftVersion: number,
+  catalogReleaseId?: string,
+) {
+  const row = await db
+    .prepare(
+      `SELECT b.*
+         FROM storefront_preview_builds b
+         JOIN storefront_experience_snapshots s ON s.id = b.snapshot_id
+         JOIN storefront_experience_validations v ON v.id = s.source_validation_id
+        WHERE s.source_draft_id = ?
+          AND s.source_draft_version = ?
+          AND s.kind = 'preview'
+          AND b.catalog_release_id IS ?
+          AND v.catalog_release_id IS ?
+          AND b.status = 'deployed'
+          AND (b.catalog_release_id IS NULL OR b.experience_version = s.source_draft_version)
+        ORDER BY b.completed_at DESC, b.attempt DESC
+        LIMIT 1`,
+    )
+    .bind(draftId, draftVersion, catalogReleaseId ?? null, catalogReleaseId ?? null)
+    .first<BuildRow>();
+  if (!row) return null;
+  return {
+    build: mapBuild(row),
+    snapshot: await getStorefrontExperienceSnapshot(db, row.snapshot_id),
+  };
+}
+
 export function defaultExperienceBuildTrigger(
   environment: ApiEnvironment["Bindings"],
 ): ExperienceBuildTrigger {
@@ -208,11 +254,14 @@ export async function getStorefrontExperienceBuildManifestByBuild(
     getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id),
     getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id),
   ]);
+  const mediaOrigins = catalogMediaOrigins(catalogRelease);
+  assertBuildMediaOrigins(build, mediaOrigins);
   return {
     catalogRelease,
     environment: "preview" as const,
     expectedOrigin: context.env.PREVIEW_ORIGIN,
     inputIdentity: mapBuild(build).inputIdentity,
+    mediaOrigins,
     presentationMode: "live" as const,
     snapshot: snapshot.snapshot,
     themeId: snapshot.themeId,
@@ -226,16 +275,20 @@ export async function triggerStorefrontExperienceBuild(
   catalogReleaseId?: string,
 ) {
   const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
-  if (catalogReleaseId) {
-    await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId);
-  }
+  const catalogRelease = catalogReleaseId
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    : null;
+  const mediaOrigins = catalogRelease ? catalogMediaOrigins(catalogRelease) : [];
   const inputToken = catalogReleaseId
     ? (await sha256Hex(catalogReleaseId)).slice(0, 16)
     : "fixture";
   let buildId: string | undefined;
   for (let allocation = 0; allocation < BUILD_ALLOCATION_ATTEMPTS; allocation += 1) {
     const existing = await activeBuildForInput(context.env.DB, snapshotId, catalogReleaseId);
-    if (existing) return mapBuild(existing);
+    if (existing) {
+      assertBuildMediaOrigins(existing, mediaOrigins);
+      return mapBuild(existing);
+    }
 
     const latest = await context.env.DB.prepare(
       `SELECT COALESCE(MAX(attempt), 0) AS attempt
@@ -250,8 +303,8 @@ export async function triggerStorefrontExperienceBuild(
     const inserted = await context.env.DB.prepare(
       `INSERT OR IGNORE INTO storefront_preview_builds
          (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
-          platform_contract_version, attempt, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+          platform_contract_version, media_origins_json, attempt, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
     )
       .bind(
         candidateId,
@@ -261,6 +314,7 @@ export async function triggerStorefrontExperienceBuild(
         catalogReleaseId ? snapshot.snapshot.themeId : null,
         catalogReleaseId ? snapshot.snapshot.themeVersion : null,
         catalogReleaseId ? snapshot.snapshot.platformContractVersion : null,
+        JSON.stringify(mediaOrigins),
         attempt,
         now,
         now,
@@ -272,7 +326,10 @@ export async function triggerStorefrontExperienceBuild(
     }
 
     const identicalWinner = await activeBuildForInput(context.env.DB, snapshotId, catalogReleaseId);
-    if (identicalWinner) return mapBuild(identicalWinner);
+    if (identicalWinner) {
+      assertBuildMediaOrigins(identicalWinner, mediaOrigins);
+      return mapBuild(identicalWinner);
+    }
   }
   if (!buildId) {
     throw new ApiError(

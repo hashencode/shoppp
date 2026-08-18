@@ -15,7 +15,7 @@ defineProps<{
 
 <template>
   <FashionStoreLiveContentPage
-    v-if="viewModel.kind === 'state'"
+    v-if="viewModel.kind === 'state' || viewModel.kind === 'collection-grid'"
     :resolve-asset="resolveAsset"
     :view-model="viewModel"
   />

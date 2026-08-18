@@ -2,8 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { orderAccessSchema } from "@shoppp/contracts";
 
 import {
+  markPaymentReturnVisit,
   orderAccessMessage,
   readOrderAccess,
+  resolvePaymentReturnState,
   storeOrderAccess,
 } from "../app/features/checkout/session";
 
@@ -73,5 +75,85 @@ describe("secure checkout return state", () => {
     expect(orderAccessMessage(orderAccessSchema.parse({ status: "expired" }))).toBe(
       "Payment session expired",
     );
+  });
+
+  test("resolves every payment return outcome with authoritative cart behavior", () => {
+    expect(resolvePaymentReturnState({})).toMatchObject({
+      cartDisposition: "preserve",
+      kind: "invalid",
+    });
+    expect(
+      resolvePaymentReturnState({ access: { status: "pending" }, returnIntent: "success" }),
+    ).toMatchObject({ cartDisposition: "preserve", kind: "pending" });
+    expect(
+      resolvePaymentReturnState({ access: { status: "pending" }, returnIntent: "canceled" }),
+    ).toMatchObject({ cartDisposition: "preserve", kind: "canceled" });
+    expect(resolvePaymentReturnState({ access: { status: "expired" } })).toMatchObject({
+      cartDisposition: "preserve",
+      kind: "expired",
+    });
+    expect(resolvePaymentReturnState({ access: { status: "failed" } })).toMatchObject({
+      cartDisposition: "preserve",
+      kind: "failed",
+    });
+    expect(resolvePaymentReturnState({ requestFailed: true })).toMatchObject({
+      cartDisposition: "preserve",
+      kind: "retry",
+    });
+    expect(
+      resolvePaymentReturnState({
+        access: orderAccessSchema.parse({
+          order: {
+            createdAt: "2026-08-14T00:00:00.000Z",
+            currency: "USD",
+            email: "shopper@example.test",
+            fulfillmentStatus: "unfulfilled",
+            lines: [
+              {
+                currency: "USD",
+                discountAmount: 0,
+                lineTotalAmount: 6500,
+                productName: "Relaxed corduroy shirt",
+                quantity: 1,
+                sku: "SHIRT-XL",
+                taxAmount: 0,
+                unitPriceAmount: 6500,
+                variantName: "Green / XL",
+              },
+            ],
+            orderStatus: "confirmed",
+            paymentStatus: "paid",
+            publicReference: "SHOPPP-ABC123",
+            shippingAddress: {
+              city: "Portland",
+              countryCode: "US",
+              line1: "100 Market Street",
+              name: "Example Shopper",
+              postalCode: "97205",
+              region: "OR",
+            },
+            totals: {
+              discountTotal: 0,
+              grandTotal: 6500,
+              shippingTotal: 0,
+              subtotal: 6500,
+              taxTotal: 0,
+            },
+          },
+          status: "paid",
+        }),
+      }),
+    ).toMatchObject({ cartDisposition: "refresh", kind: "confirmed" });
+  });
+
+  test("marks a repeated provider return without storing order credentials twice", () => {
+    const storage = new MemoryStorage();
+    Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: storage });
+
+    expect(markPaymentReturnVisit("chk_01J00000000000000000000000")).toBe(false);
+    expect(markPaymentReturnVisit("chk_01J00000000000000000000000")).toBe(true);
+    expect(
+      resolvePaymentReturnState({ access: { status: "pending" }, duplicateReturn: true }),
+    ).toMatchObject({ cartDisposition: "preserve", kind: "duplicate" });
   });
 });

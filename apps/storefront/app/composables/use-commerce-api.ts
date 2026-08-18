@@ -90,7 +90,7 @@ export const useCommerceApi = () => {
       method: "POST",
     });
   const getOrderAccess = (token: string) =>
-    api<ApiData<OrderAccess>>(`/orders/${encodeURIComponent(token)}`);
+    api<ApiData<OrderAccess>>(`/orders/${encodeURIComponent(token)}`, { retry: 0 });
   return {
     acknowledgeCartAdjustments,
     addCartLine,

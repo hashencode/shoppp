@@ -102,7 +102,8 @@ const productBehavior = {
   id: "shop-product-actions",
   initialState: "actions visually recessed",
   modes: ["interaction", "fallback"],
-  outcome: "Hover, focus, and touch expose the source product actions.",
+  outcome:
+    "Hover and focus expose secondary actions; first touch follows the primary product link.",
   owner: "framework-adapter",
   region: "product-grid",
   role: "commerce-action",

@@ -1,13 +1,8 @@
 import * as z from "zod";
-import type {
-  AddCartLineRequest,
-  Cart,
-  ShippingQuoteRequest,
-  UpdateCartLineRequest,
-  StorefrontIntentAction,
-} from "@shoppp/contracts";
-import { storefrontIntentActionSchema } from "@shoppp/contracts";
 import type { InjectionKey } from "vue";
+
+import type { StorefrontCart, StorefrontMoney } from "./cart-state";
+import type { StorefrontShippingQuoteRequest } from "./checkout";
 
 export const previewActionIntentSchema = z.enum([
   "navigation",
@@ -65,19 +60,28 @@ export const previewActionSchema = z
 
 export type PreviewAction = z.infer<typeof previewActionSchema>;
 export type PreviewActionIntent = z.infer<typeof previewActionIntentSchema>;
-export { storefrontIntentActionSchema as liveStorefrontIntentActionSchema };
-export type LiveStorefrontIntentAction = StorefrontIntentAction;
+
+export interface StorefrontCartAddRequest {
+  expectedUnitPrice?: StorefrontMoney;
+  quantity: number;
+  releaseId?: string;
+  variantId: string;
+}
+
+export interface StorefrontCartUpdateRequest {
+  quantity: number;
+}
 
 export interface StorefrontCartAddDispatch {
   context: string;
   currency: string;
-  input: AddCartLineRequest;
+  input: StorefrontCartAddRequest;
   kind: "cart.add";
 }
 
 export interface StorefrontCartUpdateDispatch {
   context: string;
-  input: UpdateCartLineRequest;
+  input: StorefrontCartUpdateRequest;
   kind: "cart.update";
   variantId: string;
 }
@@ -90,7 +94,7 @@ export interface StorefrontCartRemoveDispatch {
 
 export interface StorefrontCartShippingDispatch {
   context: string;
-  input: ShippingQuoteRequest;
+  input: StorefrontShippingQuoteRequest;
   kind: "cart.shipping";
 }
 
@@ -99,7 +103,9 @@ export type StorefrontActionDispatch =
   | StorefrontCartRemoveDispatch
   | StorefrontCartShippingDispatch
   | StorefrontCartUpdateDispatch;
-export type StorefrontActionAdapter = (dispatch: StorefrontActionDispatch) => Promise<Cart>;
+export type StorefrontActionAdapter = (
+  dispatch: StorefrontActionDispatch,
+) => Promise<StorefrontCart>;
 export const storefrontActionAdapterKey = Symbol(
   "storefront-action-adapter",
 ) as InjectionKey<StorefrontActionAdapter>;

@@ -9,11 +9,13 @@ const PREVIEW_ORIGIN = "https://preview.example.test";
 const SESSION = "session_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CATALOG_RELEASE_ID = "release-fashion-2026";
 
-function environment(options: {
-  auth?: PreviewAccessEnvironment["PREVIEW_AUTH"];
-  commerce?: PreviewAccessEnvironment["COMMERCE_API"];
-  themeId?: string;
-} = {}): PreviewAccessEnvironment {
+function environment(
+  options: {
+    auth?: PreviewAccessEnvironment["PREVIEW_AUTH"];
+    commerce?: PreviewAccessEnvironment["COMMERCE_API"];
+    themeId?: string;
+  } = {},
+): PreviewAccessEnvironment {
   return {
     COMMERCE_API:
       options.commerce ??
@@ -42,6 +44,14 @@ function environment(options: {
               themeVersion: "1.0.0",
             },
             origin: PREVIEW_ORIGIN,
+            previewContext: {
+              contentDigest: "c".repeat(64),
+              environment: "private-preview",
+              expiresAt: "2099-08-12T00:00:00.000Z",
+              generatedAt: "2026-08-14T08:00:00.000Z",
+              returnUrl: "https://admin.example.test/storefront/themes/draft-fashion-1",
+              snapshotId: "snapshot-fashion-1",
+            },
           }),
       } satisfies PreviewAccessEnvironment["PREVIEW_AUTH"]),
     PREVIEW_AUTH_TOKEN: "preview-auth-token-000000000000000001",
@@ -57,11 +67,29 @@ function apiRequest(path: string, init: RequestInit = {}): Request {
 }
 
 describe("private Preview Commerce bridge", () => {
+  test("exposes authenticated, non-cacheable preview context without reading artifact files", async () => {
+    const response = await createPreviewAccessHandler()(
+      apiRequest("/__preview/context"),
+      environment(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.json()).toEqual({
+      contentDigest: "c".repeat(64),
+      environment: "private-preview",
+      expiresAt: "2099-08-12T00:00:00.000Z",
+      generatedAt: "2026-08-14T08:00:00.000Z",
+      returnUrl: "https://admin.example.test/storefront/themes/draft-fashion-1",
+      snapshotId: "snapshot-fashion-1",
+    });
+  });
+
   test("authorizes and forwards an admitted cart mutation with rebuilt headers", async () => {
     const commerceRequests: Request[] = [];
     const handler = createPreviewAccessHandler();
     const response = await handler(
-      apiRequest("/api/cart/lines?currency=USD", {
+      apiRequest("/api/cart/lines", {
         body: JSON.stringify({ quantity: 1, variantId: "var_01J00000000000000000000001" }),
         headers: {
           Authorization: `CartToken ${"c".repeat(40)}`,
@@ -104,7 +132,7 @@ describe("private Preview Commerce bridge", () => {
     expect(response.headers.get("Content-Security-Policy")).toBeNull();
     expect(commerceRequests).toHaveLength(1);
     const forwarded = commerceRequests[0]!;
-    expect(forwarded.url).toBe("https://commerce.internal/cart/lines?currency=USD");
+    expect(forwarded.url).toBe("https://commerce.internal/cart/lines");
     expect(forwarded.redirect).toBe("manual");
     expect(forwarded.headers.get("Authorization")).toBe(`CartToken ${"c".repeat(40)}`);
     expect(forwarded.headers.get("Content-Type")).toBe("application/json");
@@ -138,14 +166,11 @@ describe("private Preview Commerce bridge", () => {
     });
     const handler = createPreviewAccessHandler();
 
-    const missingSession = await handler(
-      new Request(`${PREVIEW_ORIGIN}/api/cart`),
-      env,
-    );
+    const missingSession = await handler(new Request(`${PREVIEW_ORIGIN}/api/cart`), env);
     expect(missingSession.status).toBe(401);
     expect(authorizationCalls).toBe(0);
 
-    const unlisted = await handler(apiRequest("/api/checkout/sessions", { method: "POST" }), env);
+    const unlisted = await handler(apiRequest("/api/admin/orders", { method: "POST" }), env);
     expect(unlisted.status).toBe(405);
     const wrongMethod = await handler(apiRequest("/api/cart/lines", { method: "PUT" }), env);
     expect(wrongMethod.status).toBe(405);
@@ -169,6 +194,116 @@ describe("private Preview Commerce bridge", () => {
       const response = await handler(apiRequest("/api/platform/config"), environment({ themeId }));
       expect(response.status).toBe(200);
     }
+  });
+
+  test("admits the complete checkout bridge while forwarding Turnstile only to checkout", async () => {
+    const requests: Request[] = [];
+    const env = environment({
+      commerce: {
+        fetch: async (request) => {
+          requests.push(request);
+          return Response.json({ data: { ok: true } });
+        },
+      },
+    });
+    const cartToken = `CartToken ${"c".repeat(40)}`;
+    const mutation = (path: string, method: string) =>
+      createPreviewAccessHandler()(
+        apiRequest(`/api${path}`, {
+          body: JSON.stringify({ accepted: true }),
+          headers: {
+            Authorization: cartToken,
+            "Content-Type": "application/json",
+            "Idempotency-Key": `fashion-u12-${path.replaceAll("/", "-")}`,
+            Origin: PREVIEW_ORIGIN,
+            "X-Turnstile-Token": "turnstile.accepted-token_1",
+          },
+          method,
+        }),
+        env,
+      );
+
+    for (const [path, method] of [
+      ["/cart/adjustments/acknowledge", "POST"],
+      ["/cart/reservations", "POST"],
+      ["/checkout/sessions", "POST"],
+    ] as const) {
+      expect((await mutation(path, method)).status).toBe(200);
+    }
+    expect(
+      (
+        await createPreviewAccessHandler()(
+          apiRequest(`/api/orders/${"o".repeat(40)}`, {
+            headers: {
+              Authorization: cartToken,
+              "Content-Type": "application/json",
+              "Idempotency-Key": "must-not-cross-on-order-read",
+            },
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    expect(requests.map((request) => new URL(request.url).pathname)).toEqual([
+      "/cart/adjustments/acknowledge",
+      "/cart/reservations",
+      "/checkout/sessions",
+      `/orders/${"o".repeat(40)}`,
+    ]);
+    expect(requests[0]!.headers.get("X-Turnstile-Token")).toBeNull();
+    expect(requests[1]!.headers.get("X-Turnstile-Token")).toBeNull();
+    expect(requests[2]!.headers.get("X-Turnstile-Token")).toBe("turnstile.accepted-token_1");
+    expect(requests[3]!.headers.get("Authorization")).toBeNull();
+    expect(requests[3]!.headers.get("Content-Type")).toBeNull();
+    expect(requests[3]!.headers.get("Idempotency-Key")).toBeNull();
+  });
+
+  test("rejects unexpected query state and oversized bodies before Commerce", async () => {
+    let commerceCalls = 0;
+    const env = environment({
+      commerce: {
+        fetch: async () => {
+          commerceCalls += 1;
+          return Response.json({});
+        },
+      },
+    });
+    const invalidQuery = await createPreviewAccessHandler()(
+      apiRequest("/api/cart?admin=true"),
+      env,
+    );
+    expect(invalidQuery.status).toBe(400);
+    const invalidCurrency = await createPreviewAccessHandler()(
+      apiRequest("/api/catalog/products/shirt/live?currency=usd"),
+      env,
+    );
+    expect(invalidCurrency.status).toBe(400);
+    const oversized = await createPreviewAccessHandler()(
+      apiRequest("/api/checkout/sessions", {
+        body: "x".repeat(64 * 1024 + 1),
+        headers: { "Content-Type": "application/json", Origin: PREVIEW_ORIGIN },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(oversized.status).toBe(413);
+    expect(commerceCalls).toBe(0);
+  });
+
+  test("serves artifacts with only the exact Turnstile script and frame origin", async () => {
+    const env = environment();
+    env.PREVIEW_ARTIFACTS.get = async () => ({
+      body: "<!doctype html>",
+      httpMetadata: { contentType: "text/html; charset=utf-8" },
+    });
+    const response = await createPreviewAccessHandler()(apiRequest("/"), env);
+    const policy = response.headers.get("Content-Security-Policy") ?? "";
+    expect(response.status).toBe(200);
+    expect(policy).toContain(`script-src ${PREVIEW_ORIGIN} https://challenges.cloudflare.com`);
+    expect(policy).toContain("frame-src https://challenges.cloudflare.com");
+    expect(policy).toContain("connect-src 'self'");
+    expect(policy).toContain("form-action 'none'");
+    expect(policy).not.toContain("*");
   });
 
   test("returns sanitized unavailable responses for binding failures and upstream redirects", async () => {

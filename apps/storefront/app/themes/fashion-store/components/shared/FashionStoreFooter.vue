@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { fashionStoreRoutePaths } from "../../page-contracts";
+import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
 import { fashionStoreLiveCapabilities } from "../../capability-matrix";
+import { fashionStoreDestinations } from "../../destinations";
+import { resolveFashionStoreEditorMedia } from "../../resources";
+
+type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
+  configuration?: HomeViewModel["shell"]["footer"];
+  resolveAsset: ThemeAssetResolver;
   sourceAsset: (sourcePath: string) => string;
 }>();
 
@@ -21,6 +29,11 @@ onMounted(() => {
 function densityAsset(standardPath: string, highDensityPath: string): string {
   return sourceAsset(highDensity.value ? highDensityPath : standardPath);
 }
+
+function configuredLogo(): string | undefined {
+  const logo = properties.configuration?.logo;
+  return logo ? resolveFashionStoreEditorMedia(properties.resolveAsset, logo) : undefined;
+}
 </script>
 
 <template>
@@ -30,14 +43,12 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">
           <a href="/" data-fashion-store-route class="footer-logo" aria-label="Lifestyle home"
             ><img
-              alt=""
+              :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
-              v-bind:src="
-                densityAsset(
+              v-bind:src="configuredLogo() ?? densityAsset(
                   'images/demo-fashion-store-logo-white.png',
                   'images/demo-fashion-store-logo-white@2x.png',
-                )
-              "
+                )"
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-white@2x.png')"
           /></a>
         </div>
@@ -90,6 +101,22 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
             </li>
           </ul>
         </div>
+        <div v-if="configuration" class="col-12 text-center text-md-end mt-15px">
+          <span class="text-white me-15px">{{ configuration.contactCopy }}</span>
+          <a
+            v-if="configuration.legalLink"
+            :href="configuration.legalLink.href"
+            data-fashion-store-route
+            class="text-white me-15px"
+          >{{ configuration.legalLink.label }}</a>
+          <a
+            v-if="configuration.socialLink"
+            :href="configuration.socialLink.href"
+            :target="configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined"
+            :rel="configuration.socialLink.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
+            class="text-white"
+          >{{ configuration.socialLink.label }}</a>
+        </div>
       </div>
       <div class="row justify-content-center fs-15 lh-28 pb-50px xs-pb-35px">
         <div class="col-12 mb-50px sm-mb-35px">
@@ -101,11 +128,13 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Categories</span>
           <ul>
-            <li><a href="/" data-fashion-store-route>Men</a></li>
-            <li><a href="/" data-fashion-store-route>Women</a></li>
-            <li><a href="/" data-fashion-store-route>Accessories</a></li>
-            <li><a href="/" data-fashion-store-route>Shoes</a></li>
-            <li><a href="/" data-fashion-store-route>Dresses</a></li>
+            <li><a :href="undefined" data-fashion-store-route aria-disabled="true">Men</a></li>
+            <li><a :href="undefined" data-fashion-store-route aria-disabled="true">Women</a></li>
+            <li>
+              <a :href="undefined" data-fashion-store-route aria-disabled="true">Accessories</a>
+            </li>
+            <li><a :href="undefined" data-fashion-store-route aria-disabled="true">Shoes</a></li>
+            <li><a :href="undefined" data-fashion-store-route aria-disabled="true">Dresses</a></li>
           </ul>
         </div>
 
@@ -130,9 +159,15 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
             <li v-if="accountVisible">
               <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>My account</a>
             </li>
-            <li><a href="/" data-fashion-store-route>Orders tracking</a></li>
-            <li><a href="/" data-fashion-store-route>Our store</a></li>
-            <li><a href="/" data-fashion-store-route>Size guide</a></li>
+            <li>
+              <a :href="undefined" data-fashion-store-route aria-disabled="true">Orders tracking</a>
+            </li>
+            <li>
+              <a :href="undefined" data-fashion-store-route aria-disabled="true">Our store</a>
+            </li>
+            <li>
+              <a :href="undefined" data-fashion-store-route aria-disabled="true">Size guide</a>
+            </li>
             <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>FAQs</a></li>
           </ul>
         </div>
@@ -143,11 +178,11 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
           <span class="fw-500 d-block text-white mb-10px fs-17">Quick contact</span>
           <div>
             <i class="feather icon-feather-phone-call fs-16 text-white me-10px xs-me-5px"></i
-            ><a href="tel:1234567890">123 456 7890</a>
+            ><a :href="fashionStoreDestinations.phone">123 456 7890</a>
           </div>
           <div class="mb-15px">
             <i class="feather icon-feather-mail fs-16 text-white me-10px xs-me-5px"></i
-            ><a href="mailto:info@domain.com" class="text-decoration-line-bottom"
+            ><a :href="fashionStoreDestinations.supportEmail" class="text-decoration-line-bottom"
               >info@domain.com</a
             >
           </div>
@@ -157,8 +192,9 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
               <li>
                 <a
                   class="facebook"
-                  href="https://www.facebook.com/"
+                  :href="fashionStoreDestinations.facebook"
                   target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Facebook"
                   ><i class="fa-brands fa-facebook-f"></i
                 ></a>
@@ -169,8 +205,9 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
               <li>
                 <a
                   class="dribbble"
-                  href="http://www.dribbble.com"
+                  :href="fashionStoreDestinations.dribbble"
                   target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Dribbble"
                   ><i class="fa-brands fa-dribbble"></i
                 ></a>
@@ -181,8 +218,9 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
               <li>
                 <a
                   class="twitter"
-                  href="http://www.twitter.com"
+                  :href="fashionStoreDestinations.twitter"
                   target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Twitter"
                   ><i class="fa-brands fa-twitter"></i
                 ></a>
@@ -193,8 +231,9 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
               <li>
                 <a
                   class="instagram"
-                  href="http://www.instagram.com"
+                  :href="fashionStoreDestinations.instagram"
                   target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Instagram"
                   ><i class="fa-brands fa-instagram"></i
                 ></a>
@@ -228,38 +267,40 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
           </div>
           <div class="footer-card">
             <a
-              href="/"
+              :href="undefined"
               data-fashion-store-route
+              aria-disabled="true"
               class="d-inline-block me-5px align-middle"
-              aria-label="Visa payment information"
               ><img
-                alt=""
+                alt="Visa payment information"
                 v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-01.png')" /></a
             >{{ sourceInlineGap }}
             <a
-              href="/"
+              :href="undefined"
               data-fashion-store-route
+              aria-disabled="true"
               class="d-inline-block me-5px align-middle"
-              aria-label="PayPal payment information"
               ><img
-                alt=""
+                alt="PayPal payment information"
                 v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-02.png')" /></a
             >{{ sourceInlineGap }}
             <a
-              href="/"
+              :href="undefined"
               data-fashion-store-route
+              aria-disabled="true"
               class="d-inline-block me-5px align-middle"
-              aria-label="Mastercard payment information"
               ><img
-                alt=""
+                alt="Mastercard payment information"
                 v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-03.png')" /></a
             >{{ sourceInlineGap }}
             <a
-              href="/"
+              :href="undefined"
               data-fashion-store-route
+              aria-disabled="true"
               class="d-inline-block me-5px align-middle"
-              aria-label="American Express payment information"
-              ><img alt="" v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-04.png')"
+              ><img
+                alt="American Express payment information"
+                v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-04.png')"
             /></a>
           </div>
         </div>
@@ -273,11 +314,19 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
           >
             <p>
               This site is protected by reCAPTCHA and the Google
-              <a href="/" data-fashion-store-route class="text-white text-decoration-line-bottom"
+              <a
+                :href="undefined"
+                data-fashion-store-route
+                aria-disabled="true"
+                class="text-white text-decoration-line-bottom"
                 >privacy policy</a
               >
               and
-              <a href="/" data-fashion-store-route class="text-white text-decoration-line-bottom"
+              <a
+                :href="undefined"
+                data-fashion-store-route
+                aria-disabled="true"
+                class="text-white text-decoration-line-bottom"
                 >terms of service.</a
               >
             </p>
@@ -288,6 +337,7 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
               <a
                 href="https://www.themezaa.com/"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="text-decoration-line-bottom text-white"
                 >ThemeZaa</a
               ></span
