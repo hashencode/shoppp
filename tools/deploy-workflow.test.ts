@@ -442,6 +442,10 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("FASHION_U12_ADMIN_SERVICE_TOKEN");
     expect(workflow).toContain("FASHION_U12_GITHUB_ADMIN_TOKEN");
     expect(workflow).toContain("STRIPE_WEBHOOK_SECRET");
+    expect(workflow).toContain("wrangler secret list --env fashion-staging --format json");
+    expect(workflow).toContain("wrangler secret list --config wrangler.preview.jsonc");
+    expect(workflow).toContain("--env fashion-staging --format json");
+    expect(workflow).not.toContain("wrangler secret list --env fashion-staging --json");
     expect(workflow).not.toContain("wrangler secret put");
     expect(workflow).not.toContain("environment: staging\n");
     expect(workflow).not.toContain("environment: production\n");

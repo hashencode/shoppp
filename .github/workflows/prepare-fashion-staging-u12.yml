@@ -50,9 +50,10 @@ jobs:
         run: bun run prepare:fashion-staging-u12 --output-dir=artifacts/fashion-u12
       - name: Verify required Worker and protected-environment credentials before mutation
         run: |
-          (cd apps/api && bunx wrangler secret list --env fashion-staging --json) \
+          (cd apps/api && bunx wrangler secret list --env fashion-staging --format json) \
             > artifacts/fashion-u12/api-secrets.json
-          (cd apps/storefront && bunx wrangler secret list --env fashion-staging --json) \
+          (cd apps/storefront && bunx wrangler secret list --config wrangler.preview.jsonc \
+            --env fashion-staging --format json) \
             > artifacts/fashion-u12/preview-secrets.json
           gh api "repos/$GITHUB_REPOSITORY/environments/fashion-staging/secrets" \
             > artifacts/fashion-u12/github-secrets.json
