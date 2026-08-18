@@ -69,14 +69,16 @@ historical evidence remain unchanged inside the owning plans.
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
 - **Current child stage:** `FS-U12.3` — execute the governed isolated preparation and deployed
   no-interception proof only after separate remote-mutation authorization.
-- **Next action:** Report the exact isolated GitHub, Cloudflare, Stripe, Turnstile, D1, Catalog,
-  Snapshot, build, and workflow mutations, then await separate authorization. If authorized, the
-  backup/restore-first preparation workflow must produce a fresh readiness artifact before the
-  private Preview workflow may deploy or exercise the journey.
-- **Blocker:** U12.2's local deployment contract is green, but the inventoried remote gaps remain
-  deliberately unchanged and require authority to set environment/provider configuration, apply
-  migrations, deploy, seed durable Commerce/IAM/Catalog state, create the immutable build, or
-  dispatch either workflow. The user withheld that authority until after the exact report.
+- **Next action:** Stop after pushing the approved single-operator gate and report its commit and
+  local evidence. Await a new exact authorization before dispatching Fashion preparation; that run
+  must bind its protected ref and exact commit SHA, preserve the Fashion-only concurrency and
+  resource guards, verify backup restoration before migration, emit readiness evidence, and stop
+  before Preview.
+- **Blocker:** No local implementation or billing-plan blocker remains. The user approved the
+  single-operator exact-SHA dispatch gate as the replacement for unavailable GitHub required
+  reviewers. Remote preparation remains intentionally undispatched pending separate authorization;
+  no D1 migration, Worker code deployment, durable seed, immutable build, or workflow dispatch has
+  occurred.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the

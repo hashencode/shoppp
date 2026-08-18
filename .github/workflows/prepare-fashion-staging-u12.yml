@@ -218,11 +218,14 @@ jobs:
           bunx wrangler d1 migrations list shoppp-fashion-staging --env fashion-staging --remote --json \
             > ../../artifacts/fashion-u12/migrations-after.json
       - name: Capture and verify fresh deployment-readiness evidence
+        env:
+          FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           bun tools/capture-fashion-staging-readiness.ts \
             --input-dir=artifacts/fashion-u12 \
             --output=artifacts/fashion-u12/readiness.json \
-            --commit-sha="$GITHUB_SHA" --repository="$GITHUB_REPOSITORY"
+            --commit-sha="$GITHUB_SHA" --confirmation="$FASHION_U12_CONFIRMATION" \
+            --repository="$GITHUB_REPOSITORY"
           bun tools/verify-fashion-staging-readiness.ts \
             --snapshot=artifacts/fashion-u12/readiness.json \
             > artifacts/fashion-u12/readiness-verdict.json

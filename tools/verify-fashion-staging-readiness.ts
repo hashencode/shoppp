@@ -75,9 +75,19 @@ export interface FashionStagingReadinessSnapshot {
     r2Buckets: { name: string; publicAccess: boolean }[];
   };
   github: {
-    branchPolicyProtected: boolean;
     environment: string;
-    requiredReviewers: number;
+    operatorGate: {
+      actor: string;
+      authorizationMode: string;
+      concurrencyGroup: string;
+      confirmation: string;
+      eventName: string;
+      ref: string;
+      refProtected: boolean;
+      runAttempt: number;
+      runId: string;
+      workflow: string;
+    };
     secrets: string[];
     variables: Record<string, string>;
   };
@@ -264,13 +274,36 @@ export function assertFashionStagingReadiness(
     snapshot.github.environment === "fashion-staging",
     "GitHub environment is not Fashion staging",
   );
+  const { operatorGate } = snapshot.github;
   assert(
-    snapshot.github.requiredReviewers >= 1,
-    "Fashion GitHub environment must require a reviewer",
+    operatorGate.authorizationMode === "single-operator-exact-sha",
+    "Fashion single-operator authorization mode is incorrect",
   );
   assert(
-    snapshot.github.branchPolicyProtected,
-    "Fashion GitHub environment must restrict deployment branches",
+    operatorGate.eventName === "workflow_dispatch",
+    "Fashion single-operator gate requires a manual workflow dispatch",
+  );
+  assert(
+    operatorGate.confirmation === `PREPARE FASHION U12 ${snapshot.commitSha}`,
+    "Fashion single-operator confirmation must bind the exact commit SHA",
+  );
+  assert(
+    operatorGate.refProtected && /^refs\/heads\/[A-Za-z0-9._/-]+$/.test(operatorGate.ref),
+    "Fashion single-operator gate requires a protected branch ref",
+  );
+  assert(
+    operatorGate.concurrencyGroup === "fashion-staging-preview",
+    "Fashion single-operator gate must use the governed concurrency group",
+  );
+  assert(
+    operatorGate.workflow === "Prepare governed Fashion staging U12 inputs",
+    "Fashion single-operator gate used the wrong workflow",
+  );
+  stableIdentifier(operatorGate.actor, "Fashion single-operator actor");
+  stableIdentifier(operatorGate.runId, "Fashion single-operator run ID");
+  assert(
+    Number.isSafeInteger(operatorGate.runAttempt) && operatorGate.runAttempt >= 1,
+    "Fashion single-operator run attempt is invalid",
   );
   requireNames(
     snapshot.github.secrets,

@@ -134,6 +134,7 @@ if (import.meta.main) {
   const inputDirectory = resolve(argument("input-dir"));
   const output = resolve(argument("output"));
   const commitSha = argument("commit-sha");
+  const confirmation = argument("confirmation");
   const repository = argument("repository");
   const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
   const githubToken = required("GH_TOKEN");
@@ -196,9 +197,6 @@ if (import.meta.main) {
   const webhookUrl = "https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe";
   const webhook = stripeEndpoints.find(({ url }) => url === webhookUrl);
   if (!webhook) throw new Error("The exact Fashion Stripe webhook was not returned");
-  const environmentResult = (githubEnvironment.protection_rules ?? []) as JsonObject[];
-  const reviewerRule = environmentResult.find(({ type }) => type === "required_reviewers");
-  const deploymentPolicy = (githubEnvironment.deployment_branch_policy ?? {}) as JsonObject;
   const build = buildEnvelope.data;
   const immutableSnapshot = snapshotEnvelope.data;
   const productsById = new Map(catalogRelease.products.map((product) => [product.id, product]));
@@ -245,9 +243,19 @@ if (import.meta.main) {
       ],
     },
     github: {
-      branchPolicyProtected: deploymentPolicy.protected_branches === true,
       environment: String(githubEnvironment.name),
-      requiredReviewers: Array.isArray(reviewerRule?.reviewers) ? reviewerRule.reviewers.length : 0,
+      operatorGate: {
+        actor: required("GITHUB_ACTOR"),
+        authorizationMode: "single-operator-exact-sha",
+        concurrencyGroup: "fashion-staging-preview",
+        confirmation,
+        eventName: required("GITHUB_EVENT_NAME"),
+        ref: required("GITHUB_REF"),
+        refProtected: required("GITHUB_REF_PROTECTED") === "true",
+        runAttempt: number(required("GITHUB_RUN_ATTEMPT"), "GitHub run attempt"),
+        runId: required("GITHUB_RUN_ID"),
+        workflow: required("GITHUB_WORKFLOW"),
+      },
       secrets: names(githubSecrets, "secrets"),
       variables: protectedVariables,
     },

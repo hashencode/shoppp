@@ -1160,3 +1160,52 @@ those shared resources are outside the U12 journey and were not added.
 U12.2 is locally complete. U12 itself is not complete or test-environment proven. The child and
 master checkpoints advance together to U12.3, whose only next action is the separately authorized
 remote preparation and no-interception proof; this evidence file does not own a competing queue.
+
+## 2026-08-18 — U12.3 preparation stopped at unsupported GitHub reviewer gate
+
+The user separately authorized Fashion-only remote preparation and prohibited ordinary staging,
+production, and Preview workflow dispatch. Commit `86a2a328` corrected the preparation preflight to
+use Wrangler's current JSON-format option and the explicit Preview Worker configuration; its 22
+workflow tests passed before the branch was fast-forward pushed.
+
+The authorized prerequisite phase created Stripe sandbox endpoint
+`we_1U5e3VEaazxPV5ywEL6kPKcI` in test account `acct_1TykFBEaazxPV5yw`. It targets only
+`https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe`, is enabled, and listens
+to exactly the four governed Checkout events. The pre-existing ordinary-staging endpoint was
+observed but not opened or modified. Stripe API and signing secrets were transferred directly to
+the approved GitHub environment and Fashion API Worker without being printed, and the local
+clipboard was cleared.
+
+The `fashion-staging` environment now has all ten required secret names and the reported U12
+variables. The Fashion API Worker has the complete six-secret name set, including the acceptance,
+Stripe, webhook, and Turnstile secrets. No value was read back from either secret store.
+
+GitHub rejected the required-reviewer environment update with HTTP 422: the current billing plan
+does not support that protection rule for this private repository. A follow-up read proved that the
+failed request left `protection_rules=[]` and `deployment_branch_policy=null`; the workflow was not
+dispatched. Therefore no D1 backup artifact, migration, Worker code deployment, preparer/IAM row,
+Commerce seed, Catalog Release, Snapshot, or build was created. U12.3 remains blocked on an explicit
+account/governance decision rather than silently weakening the readiness contract.
+
+## 2026-08-18 — approved single-operator preparation gate
+
+For this solo private repository, the user approved replacing the unsupported GitHub required
+reviewer with a documented single-operator gate while keeping GitHub-hosted CD. The replacement
+does not change the Fashion-only target boundary or authorize a run: preparation remains a manual
+`workflow_dispatch` whose confirmation must equal `PREPARE FASHION U12 <exact commit SHA>`, whose
+source must be a protected branch ref, and whose fixed `fashion-staging-preview` concurrency group
+serializes preparation and Preview activity.
+
+The readiness snapshot now retains the dispatch actor, workflow and event identity, exact
+confirmation, protected ref, run ID and attempt, authorization mode, and concurrency identity. Its
+verifier rejects any mismatch before the artifact can authorize Preview. Existing exact Cloudflare,
+D1, Worker, Stripe sandbox, Turnstile, environment-secret, Catalog-lineage, three-archetype,
+backup/restore, migration, and immutable Snapshot/build checks remain unchanged.
+
+Test-first evidence recorded the old reviewer assertion and missing workflow evidence fields as six
+expected failures. After implementation,
+`bun test tools/verify-fashion-staging-readiness.test.ts
+tools/capture-fashion-staging-readiness.test.ts tools/deploy-workflow.test.ts` passed 29/29 tests
+with 230 assertions. The complete tools suite passed 223/223 tests with 710 assertions, and the
+repository typecheck, lint/import-boundary, focused formatting, and `git diff --check` gates passed.
+No preparation or Preview workflow was dispatched, and no additional remote mutation occurred.

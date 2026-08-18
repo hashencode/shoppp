@@ -100,22 +100,23 @@ U13 add-only probe do not establish overall completion.
   explicit product-level FRT interlude are complete.
 - **Current sub-stage:** U12.3 — execute and verify the governed `fashion-staging` preparation and
   no-interception journey only after a separate exact remote-mutation authorization.
-- **Next concrete action:** Report the exact GitHub, Cloudflare, Stripe, Turnstile, D1, Catalog,
-  Snapshot, build, and workflow mutations now required. Await separate authorization before setting
-  any secret or protection rule, creating any provider or Commerce resource, applying migrations,
-  deploying either Worker, or dispatching either workflow. If authorized, run the preparation
-  workflow first and require its fresh readiness artifact before the preview journey can mutate.
-- **Blocker:** U12.2's deployment contract and local gates are complete, but the inventoried remote
-  state remains intentionally unchanged: D1 migrations `0018`-`0020`, environment protection and
-  credentials, the Stripe sandbox webhook, Turnstile configuration, two missing Commerce
-  archetypes, and an approved immutable Catalog/Snapshot/build still require remote mutation. The
-  user explicitly withheld that authority pending this exact report and a separate approval.
+- **Next concrete action:** Stop after committing and pushing the approved single-operator gate,
+  report its exact commit and local evidence, and await a new exact authorization before dispatching
+  preparation. A later preparation run must originate from a protected branch ref, supply
+  `PREPARE FASHION U12 <exact commit SHA>`, retain the fixed `fashion-staging-preview` concurrency
+  group and Fashion-only resource allowlist, verify the D1 backup restore before migration, and
+  capture the operator/run identity in the immutable readiness evidence. Do not dispatch Preview.
+- **Blocker:** No local implementation or billing-plan blocker remains. The user explicitly approved
+  the single-operator exact-SHA gate as the replacement for GitHub required reviewers in this solo
+  private repository. Remote preparation remains intentionally undispatched behind the separate
+  remote-execution authorization boundary; no D1 migration, Worker code deployment,
+  IAM/Commerce/Catalog mutation, immutable build, or workflow dispatch has occurred.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-18 at commit `8a3723d4`; the dirty working tree contains the retained
-  implementation and U12.2 local deployment-contract closure and is not a candidate identity.
+- **Last reviewed:** 2026-08-18 in the commit containing this checkpoint; U12.3 remains in progress
+  and the approved gate change is not a preparation or candidate identity.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The
@@ -545,7 +546,7 @@ The current milestone is functional completion, not production release. It must 
 - KTD27. Make staging setup and teardown idempotent and run-namespaced. One environment-level acceptance lock serializes destructive runs; startup reconciliation restores or verifies the recorded baseline after interruption, and paid orders are never cleanup targets. Governs R7, R37, R42, R43, R66.
 - KTD28. Give Fashion Store Home an explicit live page ViewModel composed from its complete section schema. Do not route `collection-grid` directly to `FashionStoreLiveCatalog` as the accepted Home implementation. Governs R3, R6, R9, R40, R44.
 - KTD29. Reuse `useGuestCart` as the single reactive cart-state authority behind an injected theme-neutral port. Mutation adapters publish the returned server Cart; Product, MiniCart, Cart, Checkout, and header consumers do not maintain independent authoritative copies. Governs R1, R4, R7, R8, R28, R39, R45.
-- KTD30. Provision a dedicated `fashion-staging` Commerce/API environment paired with the private Fashion Store acceptance origin, while reusing the repository's current deployment, migration, secret, and environment-verification mechanisms. Do not repoint legacy staging or create a new release protocol; only `COMMERCE_API` binds the preview origin to this distinct service. Governs R25, R35, R37, R42, R43, R46, R47, R56.
+- KTD30. Provision a dedicated `fashion-staging` Commerce/API environment paired with the private Fashion Store acceptance origin, while reusing the repository's current deployment, migration, secret, and environment-verification mechanisms. Do not repoint legacy staging or create a new release protocol; only `COMMERCE_API` binds the preview origin to this distinct service. For this single-operator private repository, preparation authorization uses a manual workflow dispatch bound to the exact commit SHA from a protected branch ref, the fixed Fashion concurrency group, and retained operator/run readiness evidence; this is the approved substitute for unavailable GitHub required reviewers and does not relax resource identity, backup/restore, or separate Preview authorization. (session-settled: user-approved — chosen over upgrading GitHub or introducing local CD.) Governs R25, R35, R37, R42, R43, R46, R47, R56.
 - KTD31. Separate static card purchase routing from mutable runtime action state. Direct-add routing requires exactly one selectable variant, while current availability comes only from hydrated Commerce state and is revalidated before mutation. Multiple or unresolved variants navigate to the typed product-page selector, and hover-only affordances never own the first touch. Governs R4, R7, R28, R39, R40, R49-R51.
 - KTD32. Treat the preview transaction bridge as a narrow security boundary: deny by default, allow only the storefront route and method pairs needed by the accepted journey, forward no Preview credentials, and keep API responses non-cacheable. Focused tests cover the bridge contract; the feature plan does not create a parallel generalized API gateway policy. Governs R25, R42, R46, R47, R52.
 - KTD34. Prove the transaction topology immediately after the Composer/provider boundary, before broad card or page migration. U13 is an add-only acceptance probe: workflow concurrency serializes it, a unique run creates a fresh cart, one real stable-ID cart add proves the bridge, and existing cart expiry handles abandonment. U13 creates no reservation, payment, or order state and adds no persistent acceptance-run record, inventory baseline, cleanup scheduler, startup reconciliation, or per-resource fence. Checkout return, payment states, destructive cleanup, webhook behavior, and the complete bridge matrix remain in U12. Governs R25, R35, R37, R42, R46, R47, R52.

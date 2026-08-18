@@ -64,9 +64,19 @@ function snapshot(): FashionStagingReadinessSnapshot {
       ],
     },
     github: {
-      branchPolicyProtected: true,
       environment: "fashion-staging",
-      requiredReviewers: 1,
+      operatorGate: {
+        actor: "studio",
+        authorizationMode: "single-operator-exact-sha",
+        concurrencyGroup: "fashion-staging-preview",
+        confirmation: `PREPARE FASHION U12 ${"d".repeat(40)}`,
+        eventName: "workflow_dispatch",
+        ref: "refs/heads/codex/feat-fashion-store-functional-integration",
+        refProtected: true,
+        runAttempt: 1,
+        runId: "123456789",
+        workflow: "Prepare governed Fashion staging U12 inputs",
+      },
       secrets: [
         "CLOUDFLARE_ACCOUNT_ID",
         "CLOUDFLARE_API_TOKEN",
@@ -228,12 +238,38 @@ describe("Fashion staging deployment readiness", () => {
     );
   });
 
-  test("rejects an unprotected GitHub environment or mismatched variables", () => {
+  test("rejects an incomplete single-operator gate or mismatched variables", () => {
     const unprotected = snapshot();
-    unprotected.github.requiredReviewers = 0;
+    unprotected.github.operatorGate.refProtected = false;
     expect(() => assertFashionStagingReadiness(unprotected)).toThrow(
-      /GitHub environment must require a reviewer/,
+      /single-operator gate requires a protected branch ref/,
     );
+
+    const wrongConfirmation = snapshot();
+    wrongConfirmation.github.operatorGate.confirmation = "PREPARE FASHION U12 wrong-sha";
+    expect(() => assertFashionStagingReadiness(wrongConfirmation)).toThrow(
+      /confirmation must bind the exact commit SHA/,
+    );
+
+    const wrongEvent = snapshot();
+    wrongEvent.github.operatorGate.eventName = "push";
+    expect(() => assertFashionStagingReadiness(wrongEvent)).toThrow(
+      /requires a manual workflow dispatch/,
+    );
+
+    const wrongConcurrency = snapshot();
+    wrongConcurrency.github.operatorGate.concurrencyGroup = "fashion-preview-other";
+    expect(() => assertFashionStagingReadiness(wrongConcurrency)).toThrow(
+      /must use the governed concurrency group/,
+    );
+
+    const wrongWorkflow = snapshot();
+    wrongWorkflow.github.operatorGate.workflow = "Preview Storefront";
+    expect(() => assertFashionStagingReadiness(wrongWorkflow)).toThrow(/used the wrong workflow/);
+
+    const invalidAttempt = snapshot();
+    invalidAttempt.github.operatorGate.runAttempt = 0;
+    expect(() => assertFashionStagingReadiness(invalidAttempt)).toThrow(/run attempt is invalid/);
 
     const mismatched = snapshot();
     mismatched.github.variables.FASHION_U12_WAREHOUSE_ID = "other-warehouse";

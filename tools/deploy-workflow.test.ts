@@ -411,14 +411,20 @@ describe("governed Fashion staging preparation workflow", () => {
   test("backs up and locally restores exact D1 before migrations or seed mutation", async () => {
     const workflow = await readFile(fashionPreparationWorkflowPath, "utf8");
     const exportD1 = workflow.indexOf("Export exact Fashion D1 before migrations");
-    const restore = workflow.indexOf("Restore exported Fashion D1 into a disposable local database");
+    const restore = workflow.indexOf(
+      "Restore exported Fashion D1 into a disposable local database",
+    );
     const preserve = workflow.indexOf("Preserve verified Fashion D1 backup before migration");
     const migrate = workflow.indexOf("Apply pending Fashion D1 migrations after verified backup");
     const seed = workflow.indexOf("Apply collision-checked three-archetype seed");
 
     expect(workflow).toContain('test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"');
+    expect(workflow).toContain('test "$GITHUB_REF_PROTECTED" = "true"');
+    expect(workflow).toContain("group: fashion-staging-preview");
+    expect(workflow).toContain("FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}");
+    expect(workflow).toContain('--confirmation="$FASHION_U12_CONFIRMATION"');
     expect(workflow).toContain("shoppp-fashion-staging --env fashion-staging --remote");
-    expect(workflow).toContain("--persist-to \"$RESTORE_STATE\"");
+    expect(workflow).toContain('--persist-to "$RESTORE_STATE"');
     expect(workflow).toContain("PRAGMA foreign_key_check");
     expect(exportD1).toBeGreaterThan(0);
     expect(restore).toBeGreaterThan(exportD1);
