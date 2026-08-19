@@ -9,6 +9,14 @@
       "kind": "fixture",
       "resource": "home",
       "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-collection",
+      "id": "decor-store-collection-binding",
+      "instanceId": "decor-store-collection",
+      "kind": "fixture",
+      "resource": "collection",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-decor-store-fixture",

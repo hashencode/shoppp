@@ -39,7 +39,7 @@ const expectedSecondaryPages = [
 ] as const;
 
 describe("Decor Store remaining-page route authority", () => {
-  test("freezes all fourteen secondary source routes as initially unready", () => {
+  test("freezes all fourteen secondary source routes and exposes only evidenced families", () => {
     expect(
       decorStorePageContracts
         .filter(({ id }) => id !== "home")
@@ -50,13 +50,24 @@ describe("Decor Store remaining-page route authority", () => {
           sourceEntry,
           ready,
         ]),
-    ).toEqual(expectedSecondaryPages.map((row) => [...row, false]));
-    expect(decorStorePreviewRoutes).toEqual(["/"]);
+    ).toEqual(
+      expectedSecondaryPages.map((row) => [
+        ...row,
+        ["shop-left", "shop-none", "shop-right", "collection"].includes(row[0]),
+      ]),
+    );
+    expect(decorStorePreviewRoutes).toEqual([
+      "/",
+      "/shop",
+      "/shop/no-sidebar",
+      "/shop/right-sidebar",
+      "/collections",
+    ]);
   });
 
   test("normalizes trailing slashes without exposing unknown or unready routes", () => {
     expect(resolveDecorStorePage("///")?.id).toBe("home");
-    expect(resolveDecorStorePage("/shop/")).toBeUndefined();
+    expect(resolveDecorStorePage("/shop/")?.id).toBe("shop-left");
     expect(resolveDecorStorePage("/shop/", { includeDisabled: true })?.id).toBe("shop-left");
     expect(resolveDecorStorePage("/not-a-decor-page", { includeDisabled: true })).toBeUndefined();
   });
@@ -80,12 +91,16 @@ describe("Decor Store remaining-page route authority", () => {
 
   test("rejects prematurely enabled pages without completion evidence", () => {
     const contracts = structuredClone(decorStorePageContracts) as DecorStorePageContract[];
-    const shop = contracts.find(({ id }) => id === "shop-left")!;
-    shop.ready = true;
-    shop.fixtureId = "decor-store-shop-left";
+    const product = contracts.find(({ id }) => id === "product")!;
+    product.ready = true;
+    product.fixtureId = "decor-store-product";
     expect(() =>
-      assertDecorStorePageContracts(contracts, ["decor-store-home", "decor-store-shop-left"]),
-    ).toThrow("shop-left readiness evidence");
+      assertDecorStorePageContracts(contracts, [
+        "decor-store-home",
+        "decor-store-collection",
+        "decor-store-product",
+      ]),
+    ).toThrow("product readiness evidence");
   });
 
   test("keeps shared acceptance policy identity aligned without advertising unready pages", async () => {

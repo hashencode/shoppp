@@ -17,6 +17,8 @@ export default defineConfig({
     "decor-store-acceptance-slice.spec.ts",
     "decor-store-home.spec.ts",
     "decor-store-shell.spec.ts",
+    "decor-store-shop.spec.ts",
+    "decor-store-collection.spec.ts",
     "decor-store-stabilization.spec.ts",
     "decor-store-source-equivalence.spec.ts",
   ],
@@ -55,7 +57,11 @@ export default defineConfig({
     },
     {
       name: "decor-store-mobile",
-      testMatch: "decor-store-source-equivalence.spec.ts",
+      testMatch: [
+        "decor-store-source-equivalence.spec.ts",
+        "decor-store-shop.spec.ts",
+        "decor-store-collection.spec.ts",
+      ],
       use: {
         ...devices["Pixel 7"],
         deviceScaleFactor: 1,

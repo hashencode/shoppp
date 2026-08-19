@@ -95,31 +95,38 @@ export const decorStorePageContracts = [
     sourceEntry: "demo-decor-store.html",
   }),
   contract({
+    fixtureId: "decor-store-collection",
     id: "shop-left",
     pageType: "collection",
     path: "/shop",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-shop-unit", "decor-store-shop-browser"],
     sourceEntry: "demo-decor-store-shop.html",
   }),
   contract({
+    fixtureId: "decor-store-collection",
     id: "shop-none",
     pageType: "collection",
     path: "/shop/no-sidebar",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-shop-unit", "decor-store-shop-browser"],
     sourceEntry: "demo-decor-store-no-sidebar.html",
   }),
   contract({
+    fixtureId: "decor-store-collection",
     id: "shop-right",
     pageType: "collection",
     path: "/shop/right-sidebar",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-shop-unit", "decor-store-shop-browser"],
     sourceEntry: "demo-decor-store-right-sidebar.html",
   }),
   contract({
     id: "collection",
     pageType: "collection",
     path: "/collections",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-collection-unit", "decor-store-collection-browser"],
     sourceEntry: "demo-decor-store-collections.html",
   }),
   contract({
@@ -221,7 +228,10 @@ export function assertDecorStorePageContracts(
   }
 }
 
-assertDecorStorePageContracts(decorStorePageContracts, ["decor-store-home"]);
+assertDecorStorePageContracts(decorStorePageContracts, [
+  "decor-store-home",
+  "decor-store-collection",
+]);
 
 export const decorStoreEnabledPageContracts = decorStorePageContracts.filter(({ ready }) => ready);
 

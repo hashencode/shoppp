@@ -635,28 +635,28 @@
           "id": "shop-left",
           "implementationRoute": "/shop",
           "pageType": "collection",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-shop.html"
         },
         {
           "id": "shop-none",
           "implementationRoute": "/shop/no-sidebar",
           "pageType": "collection",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-no-sidebar.html"
         },
         {
           "id": "shop-right",
           "implementationRoute": "/shop/right-sidebar",
           "pageType": "collection",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-right-sidebar.html"
         },
         {
           "id": "collection",
           "implementationRoute": "/collections",
           "pageType": "collection",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-collections.html"
         },
         {

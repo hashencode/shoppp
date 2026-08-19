@@ -12,6 +12,7 @@ import type { ThemeRegistry } from "../../theme-engine/registry";
 import DecorStoreHome from "./components/DecorStoreHome.vue";
 import { decorStoreHomeFixtures } from "./fixtures/home";
 import { decorStoreSecondaryShellFixtures } from "./fixtures/pages/shell";
+import { decorStoreShopFixtures } from "./fixtures/pages/shop";
 import { decorStoreEnabledPageContracts } from "./page-contracts";
 import { themeAssets } from "./resources";
 
@@ -35,5 +36,6 @@ export { themeAssets };
 export const themeFixtures = {
   ...decorStoreHomeFixtures,
   ...decorStoreSecondaryShellFixtures,
+  ...decorStoreShopFixtures,
 };
 export const themeRoutes = decorStoreEnabledPageContracts;

@@ -3,6 +3,8 @@ import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { normalizeThemeRoutePath } from "../../../../theme-engine/routes";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { resolveDecorStorePage } from "../../page-contracts";
+import DecorStoreCollectionPage from "./DecorStoreCollectionPage.vue";
+import DecorStoreShopPage from "./DecorStoreShopPage.vue";
 import DecorStoreShell from "../shared/DecorStoreShell.vue";
 
 const properties = defineProps<{
@@ -28,7 +30,14 @@ const announcement = computed(() =>
 </script>
 
 <template>
+  <DecorStoreCollectionPage v-if="page.id === 'collection'" :resolve-asset="resolveAsset" />
+  <DecorStoreShopPage
+    v-else-if="page.id === 'shop-left' || page.id === 'shop-none' || page.id === 'shop-right'"
+    :page-id="page.id"
+    :resolve-asset="resolveAsset"
+  />
   <DecorStoreShell
+    v-else
     :active-page="page.id"
     :announcement="announcement"
     :resolve-asset="resolveAsset"

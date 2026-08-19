@@ -48,7 +48,7 @@ describe("Decor Store U2 registration", () => {
     ).toEqual(["home", "collection", "product", "cart", "checkout", "content"].sort());
   });
 
-  test("prepares a home-only fixture and one isolated static registry import", async () => {
+  test("prepares only readiness-gated fixtures and one isolated static registry import", async () => {
     const input = await decorStorePreviewBuildInput("https://preview.example.test");
     const source = renderActiveThemeModule({
       catalog: [decorStoreThemeDescriptor],
@@ -56,13 +56,23 @@ describe("Decor Store U2 registration", () => {
       moduleAllowlist: { "decor-store": "../themes/decor-store/registry" },
     });
 
-    expect(input.snapshot.bindings).toEqual([
-      expect.objectContaining({
-        fixtureId: "decor-store-home",
-        instanceId: "decor-store-home",
-      }),
+    expect(input.snapshot.bindings).toHaveLength(2);
+    expect(input.snapshot.bindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fixtureId: "decor-store-home",
+          instanceId: "decor-store-home",
+        }),
+        expect.objectContaining({
+          fixtureId: "decor-store-collection",
+          instanceId: "decor-store-collection",
+        }),
+      ]),
+    );
+    expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType).sort()).toEqual([
+      "collection",
+      "home",
     ]);
-    expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual(["home"]);
     expect(decorStoreRoutes).toEqual(decorStoreEnabledPageContracts);
     expect(source).toContain('from "../themes/decor-store/registry"');
     expect(source).not.toContain("themes/fashion-store/registry");

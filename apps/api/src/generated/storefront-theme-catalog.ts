@@ -38,7 +38,12 @@ export const storefrontThemeCatalog = [
       "source-parity"
     ],
     "supportedPageTemplates": [
-      "home"
+      "home",
+      "collection",
+      "product",
+      "cart",
+      "checkout",
+      "content"
     ],
     "themeVersion": "1.0.0"
   },

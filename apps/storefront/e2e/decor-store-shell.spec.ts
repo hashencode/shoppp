@@ -1,9 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test("secondary routes remain unavailable until their page contracts are ready", async ({
-  page,
-}) => {
-  const response = await page.goto("/shop");
+test("an unfinished secondary route remains unavailable", async ({ page }) => {
+  const response = await page.goto("/single-product");
   expect(response?.status()).toBe(404);
   await expect(page.locator("[data-decor-store-secondary-shell]")).toHaveCount(0);
 });
