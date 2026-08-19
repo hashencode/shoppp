@@ -187,7 +187,7 @@ test("checkout persists the opaque access token and displays only provider-verif
 
   await expect(page).toHaveURL(/\/checkout\/complete\/?\?session_id=cs_test$/);
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
-  await expect(page.getByText("Order ORD-TEST001 is confirmed.")).toBeVisible();
+  await expect(page.getByText("Order reference: ORD-TEST001.")).toBeVisible();
   expect(orderLookups).toBe(1);
   expect(submitted).toMatchObject({
     acceptTerms: true,
@@ -211,9 +211,7 @@ test("a forged return URL cannot approve an order", async ({ page }, testInfo) =
   await page.goto("/checkout/complete?session_id=forged");
 
   await expect(
-    page.getByText(
-      "This return URL cannot confirm payment. Use the secure order link from your checkout session.",
-    ),
+    page.getByText("This return cannot be matched to a secure checkout session."),
   ).toBeVisible();
   expect(orderLookups).toBe(0);
 });

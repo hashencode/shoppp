@@ -484,6 +484,8 @@ describe("storefront theme browser matrix", () => {
     ]);
     const productionIgnore = production.match(/testIgnore:\s*\[([\s\S]*?)\],/)?.[1];
 
+    expect(productionIgnore).toContain('"decor-theme.spec.ts"');
+    expect(productionIgnore).toContain('"decor-motion.spec.ts"');
     expect(productionIgnore).toContain('"fashion-store-*.spec.ts"');
     expect(productionIgnore).toContain('"theme-behavior-contract.spec.ts"');
     expect(fashionStore).toContain('"fashion-store-*.spec.ts"');

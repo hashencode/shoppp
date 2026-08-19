@@ -80,7 +80,7 @@ test("desktop and mobile add the same variant and render the API-authoritative q
   await liveProduct;
   await page.getByRole("button", { name: "Add to bag" }).click();
   await expect(page).toHaveURL(/\/cart\/?$/);
-  await expect(page.getByRole("heading", { name: "Your bag" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your bag" })).toBeVisible();
   await expect(page.getByText("$129.00").last()).toBeVisible();
   expect(submitted).toMatchObject({
     expectedUnitPrice: { amount: 12_900, currency: "USD" },
