@@ -26,7 +26,8 @@ describe("Fashion U12 least-privilege preparer", () => {
     expect(sql).not.toContain("catalog.write");
     expect(sql).not.toContain("iam.roles.write");
     expect(sql).not.toContain(token);
-    expect(sql).toContain("BEGIN TRANSACTION");
+    expect(sql).not.toContain("BEGIN TRANSACTION");
+    expect(sql).not.toContain("COMMIT;");
     expect(sql).toContain("_fashion_u12_preparer_guard");
   });
 });

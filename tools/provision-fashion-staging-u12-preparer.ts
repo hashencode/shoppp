@@ -32,7 +32,6 @@ export async function fashionStagingU12PreparerSql(
   const tokenHash = await hashOpaqueToken(token);
   return [
     "PRAGMA foreign_keys = ON;",
-    "BEGIN TRANSACTION;",
     `INSERT OR IGNORE INTO admin_roles (id, key, name, description, protected, system, enabled, version, created_at, updated_at) VALUES (${sql(ROLE_ID)}, 'fashion_u12_preparer', 'Fashion U12 preparer', 'Least-privilege service role for one governed Fashion staging Catalog and immutable Experience preparation.', 0, 0, 1, 1, ${sql(now)}, ${sql(now)});`,
     ...PERMISSIONS.map(
       (permission) =>
@@ -47,7 +46,6 @@ export async function fashionStagingU12PreparerSql(
     `INSERT INTO _fashion_u12_preparer_guard SELECT abs(1 - COUNT(*)) FROM admin_identities WHERE id = ${sql(IDENTITY_ID)} AND principal_kind = 'service' AND access_subject = ${sql(SUBJECT)} AND role_id = ${sql(ROLE_ID)} AND enabled = 1;`,
     `INSERT INTO _fashion_u12_preparer_guard SELECT COUNT(*) FROM admin_service_credentials WHERE token_hash = ${sql(tokenHash)} AND identity_id <> ${sql(IDENTITY_ID)};`,
     "DROP TABLE _fashion_u12_preparer_guard;",
-    "COMMIT;",
     "",
   ].join("\n");
 }
