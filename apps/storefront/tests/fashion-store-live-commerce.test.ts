@@ -6,6 +6,7 @@ import { resolveThemeRoute } from "../app/theme-engine/routes";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
+import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 
 const appRoot = resolve(import.meta.dir, "../app");
 
@@ -19,13 +20,7 @@ describe("Fashion Store live commerce boundary", () => {
     expect(typeof script.fashionStoreLiveBuildInput).toBe("function");
 
     const [fixtureInput, releaseFixture] = await Promise.all([
-      readFile(
-        resolve(
-          import.meta.dir,
-          "../fixtures/experience/.generated/fashion-store-preview-input.json",
-        ),
-        "utf8",
-      ).then(JSON.parse),
+      fashionStorePreviewBuildInput("https://preview.example.test"),
       readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8").then(JSON.parse),
     ]);
     const input = script.fashionStoreLiveBuildInput(
