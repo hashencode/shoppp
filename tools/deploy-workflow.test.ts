@@ -430,6 +430,10 @@ describe("governed Fashion staging preparation workflow", () => {
 
     expect(workflow).toContain('test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"');
     expect(workflow).toContain('test "$GITHUB_REF" = "refs/heads/main"');
+    expect(workflow).toContain("runner:");
+    expect(workflow).toContain("default: ubuntu-latest");
+    expect(workflow).toContain("- fashion-staging-preparation");
+    expect(workflow).toContain("runs-on: ${{ inputs.runner }}");
     expect(workflow).not.toContain("GITHUB_REF_PROTECTED");
     expect(workflow).toContain("group: fashion-staging-preview");
     expect(workflow).toContain("FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}");

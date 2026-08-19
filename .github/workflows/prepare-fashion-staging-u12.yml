@@ -7,6 +7,14 @@ on:
         description: Type PREPARE FASHION U12 followed by the exact commit SHA
         required: true
         type: string
+      runner:
+        description: Select the dedicated one-time runner only for an explicitly authorized preparation
+        required: true
+        default: ubuntu-latest
+        type: choice
+        options:
+          - ubuntu-latest
+          - fashion-staging-preparation
 
 concurrency:
   group: fashion-staging-preview
@@ -18,7 +26,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 30
     environment: fashion-staging
     env:
