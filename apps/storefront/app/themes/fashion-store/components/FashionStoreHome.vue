@@ -427,7 +427,7 @@ onBeforeUnmount(() => {
           <div class="col categories-style-02 lg-mb-30px">
             <div class="categories-box">
               <a
-                href="/"
+                :href="fashionStoreRoutePaths.collection"
                 data-fashion-store-route
                 v-bind:aria-label="'View ' + data.categories[0].name"
               >
@@ -444,7 +444,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="absolute-bottom-center bottom-40px md-bottom-25px">
                 <a
-                  href="/"
+                  :href="fashionStoreRoutePaths.collection"
                   data-fashion-store-route
                   class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
                 >
@@ -463,7 +463,7 @@ onBeforeUnmount(() => {
           <div class="col categories-style-02 lg-mb-30px">
             <div class="categories-box">
               <a
-                href="/"
+                :href="fashionStoreRoutePaths.collection"
                 data-fashion-store-route
                 v-bind:aria-label="'View ' + data.categories[1].name"
               >
@@ -480,7 +480,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="absolute-bottom-center bottom-40px md-bottom-25px">
                 <a
-                  href="/"
+                  :href="fashionStoreRoutePaths.collection"
                   data-fashion-store-route
                   class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
                 >
@@ -499,7 +499,7 @@ onBeforeUnmount(() => {
           <div class="col categories-style-02 sm-mb-30px">
             <div class="categories-box">
               <a
-                href="/"
+                :href="fashionStoreRoutePaths.collection"
                 data-fashion-store-route
                 v-bind:aria-label="'View ' + data.categories[2].name"
               >
@@ -516,7 +516,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="absolute-bottom-center bottom-40px md-bottom-25px">
                 <a
-                  href="/"
+                  :href="fashionStoreRoutePaths.collection"
                   data-fashion-store-route
                   class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
                 >
@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
           <div class="col categories-style-02">
             <div class="categories-box">
               <a
-                href="/"
+                :href="fashionStoreRoutePaths.collection"
                 data-fashion-store-route
                 v-bind:aria-label="'View ' + data.categories[3].name"
               >
@@ -552,7 +552,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="absolute-bottom-center bottom-40px md-bottom-25px">
                 <a
-                  href="/"
+                  :href="fashionStoreRoutePaths.collection"
                   data-fashion-store-route
                   class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
                 >
@@ -595,7 +595,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[0].name"
                         v-bind:src="sourceAsset(data.bestSellers[0].sourceImage)"
@@ -647,7 +647,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[0].name }}</a
@@ -663,7 +663,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[1].name"
                         v-bind:src="sourceAsset(data.bestSellers[1].sourceImage)"
@@ -714,7 +714,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[1].name }}</a
@@ -730,7 +730,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[2].name"
                         v-bind:src="sourceAsset(data.bestSellers[2].sourceImage)"
@@ -781,7 +781,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[2].name }}</a
@@ -797,7 +797,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[3].name"
                         v-bind:src="sourceAsset(data.bestSellers[3].sourceImage)"
@@ -848,7 +848,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[3].name }}</a
@@ -864,7 +864,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[4].name"
                         v-bind:src="sourceAsset(data.bestSellers[4].sourceImage)"
@@ -915,7 +915,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[4].name }}</a
@@ -931,7 +931,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[5].name"
                         v-bind:src="sourceAsset(data.bestSellers[5].sourceImage)"
@@ -983,7 +983,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[5].name }}</a
@@ -999,7 +999,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[6].name"
                         v-bind:src="sourceAsset(data.bestSellers[6].sourceImage)"
@@ -1050,7 +1050,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[6].name }}</a
@@ -1066,7 +1066,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[7].name"
                         v-bind:src="sourceAsset(data.bestSellers[7].sourceImage)"
@@ -1117,7 +1117,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[7].name }}</a
@@ -1133,7 +1133,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[8].name"
                         v-bind:src="sourceAsset(data.bestSellers[8].sourceImage)"
@@ -1184,7 +1184,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[8].name }}</a
@@ -1200,7 +1200,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.bestSellers[9].name"
                         v-bind:src="sourceAsset(data.bestSellers[9].sourceImage)"
@@ -1251,7 +1251,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.bestSellers[9].name }}</a
@@ -1348,7 +1348,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[0].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1363,7 +1363,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[0].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1390,7 +1390,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[1].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1405,7 +1405,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[1].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1432,7 +1432,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[2].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1447,7 +1447,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[2].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1474,7 +1474,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[3].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1489,7 +1489,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[3].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1516,7 +1516,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[0].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1531,7 +1531,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[0].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1558,7 +1558,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[1].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1573,7 +1573,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[1].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1600,7 +1600,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[2].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1615,7 +1615,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[2].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1642,7 +1642,7 @@ onBeforeUnmount(() => {
                             >{{ data.collection[3].subtitle }}</span
                           >
                           <a
-                            href="/"
+                            :href="fashionStoreRoutePaths.collection"
                             data-fashion-store-route
                             class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
                             >Explore collection</a
@@ -1657,7 +1657,7 @@ onBeforeUnmount(() => {
                         ></div>
                         <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
-                          href="/"
+                          :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
                           v-bind:aria-label="'Explore ' + data.collection[3].name"
                           class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
@@ -1686,48 +1686,48 @@ onBeforeUnmount(() => {
           data-anime='{ "el": "childs", "translateY": [-15, 0], "scale": [0.8, 1], "opacity": [0,1], "duration": 300, "delay": 0, "staggervalue": 100, "easing": "easeOutQuad" }'
         >
           <div class="col text-center sm-mb-30px">
-            <a href="/" data-fashion-store-route
+            <span
               ><img
                 class="h-30px"
                 v-bind:alt="data.brands[0].name"
                 v-bind:src="sourceAsset(data.brands[0].sourceImage)"
-            /></a>
+            /></span>
           </div>
 
           <div class="col text-center sm-mb-30px">
-            <a href="/" data-fashion-store-route
+            <span
               ><img
                 class="h-30px"
                 v-bind:alt="data.brands[1].name"
                 v-bind:src="sourceAsset(data.brands[1].sourceImage)"
-            /></a>
+            /></span>
           </div>
 
           <div class="col text-center sm-mb-30px">
-            <a href="/" data-fashion-store-route
+            <span
               ><img
                 class="h-30px"
                 v-bind:alt="data.brands[2].name"
                 v-bind:src="sourceAsset(data.brands[2].sourceImage)"
-            /></a>
+            /></span>
           </div>
 
           <div class="col text-center xs-mb-30px">
-            <a href="/" data-fashion-store-route
+            <span
               ><img
                 class="h-30px"
                 v-bind:alt="data.brands[3].name"
                 v-bind:src="sourceAsset(data.brands[3].sourceImage)"
-            /></a>
+            /></span>
           </div>
 
           <div class="col text-center">
-            <a href="/" data-fashion-store-route
+            <span
               ><img
                 class="h-30px"
                 v-bind:alt="data.brands[4].name"
                 v-bind:src="sourceAsset(data.brands[4].sourceImage)"
-            /></a>
+            /></span>
           </div>
         </div>
       </div>
@@ -1757,7 +1757,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.featuredProducts[0].name"
                         v-bind:src="sourceAsset(data.featuredProducts[0].sourceImage)"
@@ -1809,7 +1809,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.featuredProducts[0].name }}</a
@@ -1825,7 +1825,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.featuredProducts[1].name"
                         v-bind:src="sourceAsset(data.featuredProducts[1].sourceImage)"
@@ -1876,7 +1876,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.featuredProducts[1].name }}</a
@@ -1892,7 +1892,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.featuredProducts[2].name"
                         v-bind:src="sourceAsset(data.featuredProducts[2].sourceImage)"
@@ -1943,7 +1943,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.featuredProducts[2].name }}</a
@@ -1959,7 +1959,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.featuredProducts[3].name"
                         v-bind:src="sourceAsset(data.featuredProducts[3].sourceImage)"
@@ -2010,7 +2010,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.featuredProducts[3].name }}</a
@@ -2026,7 +2026,7 @@ onBeforeUnmount(() => {
               <li class="grid-item">
                 <div class="shop-box mb-10px">
                   <div class="shop-image mb-20px">
-                    <a href="/" data-fashion-store-route>
+                    <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>
                       <img
                         v-bind:alt="data.featuredProducts[4].name"
                         v-bind:src="sourceAsset(data.featuredProducts[4].sourceImage)"
@@ -2077,7 +2077,7 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="shop-footer text-center">
                     <a
-                      href="/"
+                      :href="fashionStoreRoutePaths.product"
                       data-fashion-store-route
                       class="alt-font text-dark-gray fs-19 fw-500"
                       >{{ data.featuredProducts[4].name }}</a

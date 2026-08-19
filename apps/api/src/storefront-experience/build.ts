@@ -3,7 +3,11 @@ import type { Context } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
+import { sha256Hex } from "../orders/tokens";
+import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { getStorefrontExperienceSnapshot } from "./service";
+import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
+import { catalogMediaOrigins, parsePersistedMediaOrigins } from "./media-origins";
 
 export interface ExperienceBuildTriggerResult {
   readonly correlationId: string;
@@ -11,31 +15,51 @@ export interface ExperienceBuildTriggerResult {
 
 export type ExperienceBuildTrigger = (input: {
   readonly buildId: string;
+  readonly catalogReleaseId?: string;
   readonly environment: string;
   readonly manifestUrl: string;
   readonly requestId: string;
   readonly snapshotId: string;
 }) => Promise<ExperienceBuildTriggerResult>;
 
-interface BuildRow {
+interface BuildRow extends PreviewInputIdentityRow {
   artifact_digest: string | null;
   artifact_prefix: string | null;
   attempt: number;
   cleaned_at: string | null;
   completed_at: string | null;
   correlation_id: string | null;
+  catalog_release_id: string | null;
   created_at: string;
   expires_at: string | null;
   failure_code: string | null;
   id: string;
+  media_origins_json: string | null;
+  experience_version: number | null;
+  platform_contract_version: string | null;
   snapshot_id: string;
   status: "building" | "deployed" | "expired" | "failed" | "pending";
+  theme_id: string | null;
+  theme_version: string | null;
   updated_at: string;
 }
 
 const BUILD_HOOK_TIMEOUT_MS = 15_000;
+const BUILD_ALLOCATION_ATTEMPTS = 4;
+
+function assertBuildMediaOrigins(row: BuildRow, expected: readonly string[]): void {
+  const persisted = parsePersistedMediaOrigins(row.media_origins_json);
+  if (!persisted || JSON.stringify(persisted) !== JSON.stringify(expected)) {
+    throw new ApiError(
+      409,
+      "storefront_preview_build_input_invalid",
+      "The preview build media origins do not match its immutable Catalog input.",
+    );
+  }
+}
 
 function mapBuild(row: BuildRow) {
+  const mediaOrigins = parsePersistedMediaOrigins(row.media_origins_json);
   return {
     artifactDigest: row.artifact_digest,
     artifactPrefix: row.artifact_prefix,
@@ -47,6 +71,8 @@ function mapBuild(row: BuildRow) {
     expiresAt: row.expires_at,
     failureCode: row.failure_code,
     id: row.id,
+    inputIdentity: toPreviewInputIdentity(row),
+    mediaOrigins,
     snapshotId: row.snapshot_id,
     status: row.status,
     updatedAt: row.updated_at,
@@ -66,6 +92,24 @@ async function buildRow(db: D1Database, id: string): Promise<BuildRow> {
     );
   }
   return row;
+}
+
+function activeBuildForInput(
+  db: D1Database,
+  snapshotId: string,
+  catalogReleaseId?: string,
+): Promise<BuildRow | null> {
+  return db
+    .prepare(
+      `SELECT *
+         FROM storefront_preview_builds
+        WHERE snapshot_id = ? AND catalog_release_id IS ?
+          AND status IN ('deployed', 'building', 'pending')
+        ORDER BY attempt DESC
+        LIMIT 1`,
+    )
+    .bind(snapshotId, catalogReleaseId ?? null)
+    .first<BuildRow>();
 }
 
 function buildResultMatches(row: BuildRow, result: StorefrontExperienceBuildResult): boolean {
@@ -114,6 +158,37 @@ async function auditBuildStart(
 
 export async function getStorefrontExperienceBuild(db: D1Database, id: string) {
   return mapBuild(await buildRow(db, id));
+}
+
+export async function getLatestDeployedStorefrontExperiencePreview(
+  db: D1Database,
+  draftId: string,
+  draftVersion: number,
+  catalogReleaseId?: string,
+) {
+  const row = await db
+    .prepare(
+      `SELECT b.*
+         FROM storefront_preview_builds b
+         JOIN storefront_experience_snapshots s ON s.id = b.snapshot_id
+         JOIN storefront_experience_validations v ON v.id = s.source_validation_id
+        WHERE s.source_draft_id = ?
+          AND s.source_draft_version = ?
+          AND s.kind = 'preview'
+          AND b.catalog_release_id IS ?
+          AND v.catalog_release_id IS ?
+          AND b.status = 'deployed'
+          AND (b.catalog_release_id IS NULL OR b.experience_version = s.source_draft_version)
+        ORDER BY b.completed_at DESC, b.attempt DESC
+        LIMIT 1`,
+    )
+    .bind(draftId, draftVersion, catalogReleaseId ?? null, catalogReleaseId ?? null)
+    .first<BuildRow>();
+  if (!row) return null;
+  return {
+    build: mapBuild(row),
+    snapshot: await getStorefrontExperienceSnapshot(db, row.snapshot_id),
+  };
 }
 
 export function defaultExperienceBuildTrigger(
@@ -167,48 +242,112 @@ export async function getStorefrontExperienceBuildManifest(
   };
 }
 
+export async function getStorefrontExperienceBuildManifestByBuild(
+  context: Context<ApiEnvironment>,
+  buildId: string,
+) {
+  const build = await buildRow(context.env.DB, buildId);
+  if (!build.catalog_release_id) {
+    return getStorefrontExperienceBuildManifest(context, build.snapshot_id);
+  }
+  const [snapshot, catalogRelease] = await Promise.all([
+    getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id),
+    getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id),
+  ]);
+  const mediaOrigins = catalogMediaOrigins(catalogRelease);
+  assertBuildMediaOrigins(build, mediaOrigins);
+  return {
+    catalogRelease,
+    environment: "preview" as const,
+    expectedOrigin: context.env.PREVIEW_ORIGIN,
+    inputIdentity: mapBuild(build).inputIdentity,
+    mediaOrigins,
+    presentationMode: "live" as const,
+    snapshot: snapshot.snapshot,
+    themeId: snapshot.themeId,
+  };
+}
+
 export async function triggerStorefrontExperienceBuild(
   context: Context<ApiEnvironment>,
   snapshotId: string,
   trigger: ExperienceBuildTrigger,
+  catalogReleaseId?: string,
 ) {
-  await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
-  const existing = await context.env.DB.prepare(
-    `SELECT *
-       FROM storefront_preview_builds
-      WHERE snapshot_id = ? AND status IN ('deployed', 'building', 'pending')
-      ORDER BY attempt DESC
-      LIMIT 1`,
-  )
-    .bind(snapshotId)
-    .first<BuildRow>();
-  if (existing) return mapBuild(existing);
+  const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
+  const catalogRelease = catalogReleaseId
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    : null;
+  const mediaOrigins = catalogRelease ? catalogMediaOrigins(catalogRelease) : [];
+  const inputToken = catalogReleaseId
+    ? (await sha256Hex(catalogReleaseId)).slice(0, 16)
+    : "fixture";
+  let buildId: string | undefined;
+  for (let allocation = 0; allocation < BUILD_ALLOCATION_ATTEMPTS; allocation += 1) {
+    const existing = await activeBuildForInput(context.env.DB, snapshotId, catalogReleaseId);
+    if (existing) {
+      assertBuildMediaOrigins(existing, mediaOrigins);
+      return mapBuild(existing);
+    }
 
-  const latest = await context.env.DB.prepare(
-    "SELECT COALESCE(MAX(attempt), 0) AS attempt FROM storefront_preview_builds WHERE snapshot_id = ?",
-  )
-    .bind(snapshotId)
-    .first<{ attempt: number }>();
-  const attempt = (latest?.attempt ?? 0) + 1;
-  const buildId = `preview-build-${snapshotId.slice(-24)}-${attempt}`;
-  const now = new Date().toISOString();
-  const inserted = await context.env.DB.prepare(
-    `INSERT OR IGNORE INTO storefront_preview_builds
-       (id, snapshot_id, attempt, status, created_at, updated_at)
-     VALUES (?, ?, ?, 'pending', ?, ?)`,
-  )
-    .bind(buildId, snapshotId, attempt, now, now)
-    .run();
-  if (inserted.meta.changes === 0) {
-    return mapBuild(await buildRow(context.env.DB, buildId));
+    const latest = await context.env.DB.prepare(
+      `SELECT COALESCE(MAX(attempt), 0) AS attempt
+         FROM storefront_preview_builds
+        WHERE snapshot_id = ?`,
+    )
+      .bind(snapshotId)
+      .first<{ attempt: number }>();
+    const attempt = (latest?.attempt ?? 0) + 1;
+    const candidateId = `preview-build-${snapshotId.slice(-24)}-${inputToken}-${attempt}`;
+    const now = new Date().toISOString();
+    const inserted = await context.env.DB.prepare(
+      `INSERT OR IGNORE INTO storefront_preview_builds
+         (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
+          platform_contract_version, media_origins_json, attempt, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+    )
+      .bind(
+        candidateId,
+        snapshotId,
+        catalogReleaseId ?? null,
+        catalogReleaseId ? snapshot.snapshot.version : null,
+        catalogReleaseId ? snapshot.snapshot.themeId : null,
+        catalogReleaseId ? snapshot.snapshot.themeVersion : null,
+        catalogReleaseId ? snapshot.snapshot.platformContractVersion : null,
+        JSON.stringify(mediaOrigins),
+        attempt,
+        now,
+        now,
+      )
+      .run();
+    if (inserted.meta.changes > 0) {
+      buildId = candidateId;
+      break;
+    }
+
+    const identicalWinner = await activeBuildForInput(context.env.DB, snapshotId, catalogReleaseId);
+    if (identicalWinner) {
+      assertBuildMediaOrigins(identicalWinner, mediaOrigins);
+      return mapBuild(identicalWinner);
+    }
+  }
+  if (!buildId) {
+    throw new ApiError(
+      409,
+      "storefront_preview_build_allocation_conflict",
+      "The storefront preview build could not allocate an attempt after concurrent requests.",
+    );
   }
 
   let result: ExperienceBuildTriggerResult;
   try {
     result = await trigger({
       buildId,
+      ...(catalogReleaseId ? { catalogReleaseId } : {}),
       environment: context.env.ENVIRONMENT,
-      manifestUrl: `${context.env.PUBLIC_ORIGIN.replace(/\/$/, "")}/build/storefront-experiences/snapshots/${snapshotId}`,
+      manifestUrl: catalogReleaseId
+        ? `${context.env.PUBLIC_ORIGIN.replace(/\/$/, "")}/build/storefront-experiences/builds/${buildId}`
+        : `${context.env.PUBLIC_ORIGIN.replace(/\/$/, "")}/build/storefront-experiences/snapshots/${snapshotId}`,
       requestId: context.get("requestId"),
       snapshotId,
     });
@@ -258,7 +397,9 @@ export async function recordStorefrontExperienceBuildResult(
     );
   }
   if (result.status === "deployed") {
-    const expectedPrefix = `snapshots/${current.snapshot_id}/${result.artifactDigest}`;
+    const expectedPrefix = current.catalog_release_id
+      ? `snapshots/${current.snapshot_id}/${current.catalog_release_id}/${result.artifactDigest}`
+      : `snapshots/${current.snapshot_id}/${result.artifactDigest}`;
     if (result.artifactPrefix !== expectedPrefix || Date.parse(result.expiresAt) <= Date.now()) {
       throw new ApiError(
         422,

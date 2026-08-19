@@ -10,8 +10,8 @@ import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 
 const fixture = {
-  id: "fashion-home",
-  label: "Fashion home",
+  id: "synthetic-home",
+  label: "Synthetic home",
   pageTypes: ["home"],
   viewModels: {
     hero: {
@@ -62,37 +62,37 @@ describe("selected theme resources", () => {
   });
 
   test("derives accessible payment names from namespaced asset IDs", () => {
-    expect(paymentAssetName("fashion.payment-american-express")).toBe("American Express");
+    expect(paymentAssetName("synthetic.payment-american-express")).toBe("American Express");
     expect(paymentAssetName("decor.payment-union-pay")).toBe("Union Pay");
   });
 
   test("validates namespaced assets and rejects missing or cross-theme IDs", () => {
-    const assets = validateThemeAssets("fashion", {
-      "fashion.hero-01": "/assets/hero-01.abc.jpg",
-      "fashion.logo": "/assets/logo.abc.png",
+    const assets = validateThemeAssets("synthetic", {
+      "synthetic.hero-01": "/assets/hero-01.abc.jpg",
+      "synthetic.logo": "/assets/logo.abc.png",
     });
-    const resolveAsset = createThemeAssetResolver("fashion", assets);
+    const resolveAsset = createThemeAssetResolver("synthetic", assets);
 
-    expect(resolveAsset("fashion.hero-01")).toContain("hero-01");
-    expect(() => resolveAsset("fashion.missing")).toThrow("missing");
+    expect(resolveAsset("synthetic.hero-01")).toContain("hero-01");
+    expect(() => resolveAsset("synthetic.missing")).toThrow("missing");
     expect(() => resolveAsset("decor.hero-01")).toThrow("namespace");
     expect(() =>
-      validateThemeAssets("fashion", { "fashion.hero": "https://example.test/x.jpg" }),
+      validateThemeAssets("synthetic", { "synthetic.hero": "https://example.test/x.jpg" }),
     ).toThrow("same-origin");
     expect(() =>
-      validateThemeAssets("fashion", {
-        "fashion.hero": "/assets/one.jpg",
-        "fashion.logo": "/assets/one.jpg",
+      validateThemeAssets("synthetic", {
+        "synthetic.hero": "/assets/one.jpg",
+        "synthetic.logo": "/assets/one.jpg",
       }),
     ).toThrow("duplicate");
   });
 
   test("merges validated theme fixtures without disturbing core fixtures", () => {
     const core = { "core-populated": { ...fixture, id: "core-populated" } };
-    const merged = mergeExperienceFixtureRegistries(core, { "fashion-home": fixture });
+    const merged = mergeExperienceFixtureRegistries(core, { "synthetic-home": fixture });
 
-    expect(Object.keys(merged)).toEqual(["core-populated", "fashion-home"]);
-    expect(merged["fashion-home"]?.viewModels.hero?.kind).toBe("theme-section");
+    expect(Object.keys(merged)).toEqual(["core-populated", "synthetic-home"]);
+    expect(merged["synthetic-home"]?.viewModels.hero?.kind).toBe("theme-section");
     expect(() =>
       mergeExperienceFixtureRegistries(core, {
         "core-populated": { ...fixture, id: "core-populated" },
@@ -106,7 +106,7 @@ describe("selected theme resources", () => {
   test("generates selected assets and fixtures while production stays empty", () => {
     const descriptor = {
       configurationSchemaVersion: 1,
-      id: "fashion",
+      id: "synthetic",
       platformCompatibility: { maxExclusive: "2.0.0", min: "1.0.0" },
       platformContractVersion: "1.0.0",
       presets: ["editorial"],
@@ -118,8 +118,8 @@ describe("selected theme resources", () => {
       approvedBy: "operator-1",
       bindings: [],
       configurationSchemaVersion: 1,
-      experienceId: "experience-fashion",
-      id: "snapshot-fashion-resource-test",
+      experienceId: "experience-synthetic",
+      id: "snapshot-synthetic-resource-test",
       kind: "approved",
       overrides: [],
       platformContractVersion: "1.0.0",
@@ -127,11 +127,11 @@ describe("selected theme resources", () => {
         approvedAt: "2026-07-30T00:00:00.000Z",
         approvedBy: "theme-team",
         license: "Internal",
-        source: "internal://fashion",
+        source: "internal://synthetic",
       },
       resolvedTemplates: [
         {
-          id: "fashion-home-resource-test",
+          id: "synthetic-home-resource-test",
           pageType: "home",
           requiredCapabilities: [],
           sections: [
@@ -146,7 +146,7 @@ describe("selected theme resources", () => {
           ],
         },
       ],
-      themeId: "fashion",
+      themeId: "synthetic",
       themeVersion: "1.0.0",
       version: 1,
     } as const;
@@ -156,9 +156,9 @@ describe("selected theme resources", () => {
         environment: "preview",
         expectedOrigin: "https://preview.example.test",
         snapshot,
-        themeId: "fashion",
+        themeId: "synthetic",
       },
-      moduleAllowlist: { fashion: "../themes/fashion/registry" },
+      moduleAllowlist: { synthetic: "../themes/synthetic/registry" },
     });
     const fallback = renderActiveThemeModule({
       catalog: [],

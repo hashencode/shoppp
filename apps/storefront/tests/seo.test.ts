@@ -19,6 +19,7 @@ describe("storefront SEO", () => {
         priceCurrency: "USD",
       },
     });
+    expect(structured.offers).not.toHaveProperty("availability");
   });
 
   test("emits ordered breadcrumb structured data", () => {

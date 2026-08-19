@@ -12,7 +12,7 @@ interface WranglerConfig extends JsonRecord {
   env?: Partial<Record<EnvironmentName, JsonRecord>>;
 }
 
-interface EnvironmentSnapshot {
+export interface EnvironmentSnapshot {
   adminHostname: string;
   environment: EnvironmentName;
   applicationNames: string[];
@@ -20,6 +20,56 @@ interface EnvironmentSnapshot {
   endpointValues: string[];
   apiVariables: Record<string, string>;
   remoteDatabaseIdentities: string[];
+}
+
+export interface FashionEnvironmentProfile {
+  checkoutProtection: {
+    rateLimit: {
+      binding: string;
+      limit: number;
+      namespaceId: string;
+      period: number;
+    };
+    turnstile: {
+      hostnames: string[];
+      required: boolean;
+      siteKey: string;
+      testMode: boolean;
+    };
+  };
+  deploymentProfile: string;
+  runtimeEnvironment: string;
+  workers: {
+    api: string;
+    preview: string;
+  };
+  databaseIdentity: string;
+  storageIdentifiers: string[];
+  serviceCredentialRef: string;
+  paymentTargets: {
+    cancelUrl: string;
+    successUrl: string;
+    webhookUrl: string;
+  };
+  lifecycle: {
+    resourceProvisioning: string;
+    ordinaryRuns: string;
+    credentialReplacement: string;
+  };
+  origins: {
+    api: string;
+    preview: string;
+  };
+  serviceBindings: {
+    PREVIEW_AUTH: {
+      service: string;
+      intent: string;
+    };
+    COMMERCE_API: {
+      service: string;
+      intent: string;
+    };
+  };
 }
 
 const ROOT = resolve(import.meta.dir, "..");
@@ -98,6 +148,115 @@ function stringVariables(value: unknown): Record<string, string> {
       (entry): entry is [string, string] => typeof entry[1] === "string",
     ),
   );
+}
+
+async function jsoncConfig(root: string, relativePath: string): Promise<JsonRecord> {
+  const value = parseJsonc(await readFile(resolve(root, relativePath), "utf8"));
+  assert(isRecord(value), `${relativePath} must contain one configuration object`);
+  return value;
+}
+
+function namedResources(value: unknown, key: string): string[] {
+  if (!isRecord(value) || !Array.isArray(value[key])) return [];
+  return value[key].flatMap((entry) => {
+    if (!isRecord(entry)) return [];
+    const name = entry.bucket_name ?? entry.service;
+    return typeof name === "string" ? [name] : [];
+  });
+}
+
+function checkoutRateLimit(
+  value: JsonRecord,
+): FashionEnvironmentProfile["checkoutProtection"]["rateLimit"] {
+  const limits = Array.isArray(value.ratelimits) ? value.ratelimits.filter(isRecord) : [];
+  const selected = limits.find((entry) => entry.name === "CHECKOUT_RATE_LIMITER");
+  const simple = selected && isRecord(selected.simple) ? selected.simple : undefined;
+  return {
+    binding: typeof selected?.name === "string" ? selected.name : "",
+    limit: typeof simple?.limit === "number" ? simple.limit : Number.NaN,
+    namespaceId: typeof selected?.namespace_id === "string" ? selected.namespace_id : "",
+    period: typeof simple?.period === "number" ? simple.period : Number.NaN,
+  };
+}
+
+export async function loadFashionEnvironmentProfile(
+  root = ROOT,
+): Promise<FashionEnvironmentProfile> {
+  const [api, storefront] = await Promise.all([
+    jsoncConfig(root, "apps/api/wrangler.jsonc"),
+    jsoncConfig(root, "apps/storefront/wrangler.preview.jsonc"),
+  ]);
+  const apiEnvironment =
+    isRecord(api.env) && isRecord(api.env["fashion-staging"])
+      ? api.env["fashion-staging"]
+      : undefined;
+  const previewEnvironment =
+    isRecord(storefront.env) && isRecord(storefront.env["fashion-staging"])
+      ? storefront.env["fashion-staging"]
+      : undefined;
+  assert(isRecord(apiEnvironment), "Fashion API deployment profile is missing");
+  assert(isRecord(previewEnvironment), "Fashion Preview deployment profile is missing");
+  const databases = Array.isArray(apiEnvironment.d1_databases)
+    ? apiEnvironment.d1_databases.filter(isRecord)
+    : [];
+  assert(databases.length === 1, "Fashion profile must bind exactly one D1 database");
+  const databaseId = databases[0]!.database_id;
+  const databaseName = databases[0]!.database_name;
+  assert(
+    typeof databaseId === "string" && typeof databaseName === "string",
+    "Fashion D1 profile must define its ID and name",
+  );
+  const apiVariables = stringVariables(apiEnvironment.vars);
+  const previewOrigin = apiVariables.PREVIEW_ORIGIN ?? "";
+  const publicOrigin = apiVariables.PUBLIC_ORIGIN ?? "";
+  const services = Array.isArray(previewEnvironment.services)
+    ? previewEnvironment.services.filter(isRecord)
+    : [];
+  const service = (binding: string) => {
+    const match = services.find((entry) => entry.binding === binding)?.service;
+    assert(typeof match === "string", `Fashion profile must define ${binding}`);
+    return match;
+  };
+  assert(typeof apiEnvironment.name === "string", "Fashion API Worker identity is missing");
+  assert(typeof previewEnvironment.name === "string", "Fashion Preview Worker identity is missing");
+  return {
+    checkoutProtection: {
+      rateLimit: checkoutRateLimit(apiEnvironment),
+      turnstile: {
+        hostnames: (apiVariables.TURNSTILE_HOSTNAMES ?? "")
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean),
+        required: apiVariables.TURNSTILE_REQUIRED === "true",
+        siteKey: apiVariables.TURNSTILE_SITE_KEY ?? "",
+        testMode: apiVariables.TURNSTILE_TEST_MODE === "true",
+      },
+    },
+    databaseIdentity: `${databaseId}::${databaseName}`,
+    deploymentProfile: "fashion-staging",
+    lifecycle: {
+      credentialReplacement: "security-event-or-operator",
+      ordinaryRuns: "verify-and-reuse",
+      resourceProvisioning: "explicit-once",
+    },
+    origins: { api: publicOrigin, preview: previewOrigin },
+    runtimeEnvironment: apiVariables.ENVIRONMENT ?? "",
+    paymentTargets: {
+      cancelUrl: apiVariables.PAYMENT_CANCEL_URL ?? "",
+      successUrl: apiVariables.PAYMENT_SUCCESS_URL ?? "",
+      webhookUrl: publicOrigin ? `${publicOrigin}/webhooks/stripe` : "",
+    },
+    serviceBindings: {
+      COMMERCE_API: { intent: "commerce-api", service: service("COMMERCE_API") },
+      PREVIEW_AUTH: { intent: "preview-authorization", service: service("PREVIEW_AUTH") },
+    },
+    serviceCredentialRef: apiVariables.SERVICE_CREDENTIAL_REF ?? "",
+    storageIdentifiers: unique([
+      ...namedResources(apiEnvironment, "r2_buckets"),
+      ...namedResources(previewEnvironment, "r2_buckets"),
+    ]),
+    workers: { api: apiEnvironment.name, preview: previewEnvironment.name },
+  };
 }
 
 function remoteDatabaseIdentities(value: unknown): string[] {
@@ -330,6 +489,148 @@ export function verifySnapshots(
   }
 }
 
+export function verifyFashionEnvironmentProfile(
+  snapshots: EnvironmentSnapshot[],
+  profile: FashionEnvironmentProfile,
+): void {
+  verifySnapshots(snapshots);
+
+  assert(
+    profile.deploymentProfile === "fashion-staging",
+    "Fashion deployment profile must be fashion-staging, not a legacy or production target",
+  );
+  assert(profile.runtimeEnvironment === "staging", "Fashion API runtime must remain staging");
+  const previewOrigin = new URL(profile.origins.preview);
+  const apiOrigin = new URL(profile.origins.api);
+  assert(
+    previewOrigin.protocol === "https:" && previewOrigin.origin === profile.origins.preview,
+    "Fashion Preview origin must be one exact HTTPS origin",
+  );
+  assert(
+    apiOrigin.protocol === "https:" && apiOrigin.origin === profile.origins.api,
+    "Fashion API origin must be one exact HTTPS origin",
+  );
+  assert(profile.checkoutProtection.turnstile.required, "Fashion checkout must require Turnstile");
+  assert(
+    profile.checkoutProtection.turnstile.testMode,
+    "Fashion staging must use the Turnstile test profile",
+  );
+  assert(
+    profile.checkoutProtection.turnstile.siteKey.length >= 20 &&
+      !looksPlaceholder(profile.checkoutProtection.turnstile.siteKey),
+    "Fashion checkout must define a non-placeholder Turnstile site key",
+  );
+  assert(
+    profile.checkoutProtection.turnstile.hostnames.length === 1 &&
+      profile.checkoutProtection.turnstile.hostnames[0] === previewOrigin.hostname,
+    "Fashion Turnstile hostname must match the private Preview origin",
+  );
+  assert(
+    profile.checkoutProtection.rateLimit.binding === "CHECKOUT_RATE_LIMITER" &&
+      Boolean(profile.checkoutProtection.rateLimit.namespaceId) &&
+      profile.checkoutProtection.rateLimit.limit === 10 &&
+      profile.checkoutProtection.rateLimit.period === 60,
+    "Fashion checkout must define its dedicated 10-per-minute rate limiter",
+  );
+  assert(
+    profile.paymentTargets.successUrl ===
+      `${previewOrigin.origin}/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
+    "Fashion payment success target must use the private Preview origin",
+  );
+  assert(
+    profile.paymentTargets.cancelUrl ===
+      `${previewOrigin.origin}/checkout/complete?return=canceled`,
+    "Fashion payment cancel target must use the private Preview origin",
+  );
+  assert(
+    profile.paymentTargets.webhookUrl === `${apiOrigin.origin}/webhooks/stripe`,
+    "Fashion Stripe webhook must use the dedicated API origin",
+  );
+  assert(
+    profile.lifecycle?.resourceProvisioning === "explicit-once",
+    "Fashion resource provisioning must be an explicit one-time operation",
+  );
+  assert(
+    profile.lifecycle?.ordinaryRuns === "verify-and-reuse",
+    "Fashion ordinary runs must only verify and reuse provisioned resources",
+  );
+  assert(
+    profile.lifecycle?.credentialReplacement === "security-event-or-operator",
+    "Fashion credential replacement must require a security event or operator action",
+  );
+
+  const apiWorker = profile.workers?.api;
+  const previewWorker = profile.workers?.preview;
+  assert(Boolean(apiWorker), "Fashion profile must define its API Worker identity");
+  assert(Boolean(previewWorker), "Fashion profile must define its private Preview Worker identity");
+  assert(apiWorker !== previewWorker, "Fashion API and Preview Workers must be distinct");
+  assert(Boolean(profile.databaseIdentity), "Fashion profile must define its D1 identity");
+  const databaseParts = profile.databaseIdentity.split("::");
+  assert(
+    databaseParts.length === 2 && databaseParts.every(Boolean),
+    "Fashion D1 identity must include both database ID and name",
+  );
+  assert(
+    Array.isArray(profile.storageIdentifiers) && profile.storageIdentifiers.length > 0,
+    "Fashion profile must define at least one storage identity",
+  );
+  assert(profile.storageIdentifiers.every(Boolean), "Fashion storage identities must not be empty");
+  assert(
+    new Set(profile.storageIdentifiers).size === profile.storageIdentifiers.length,
+    "Fashion storage identities must be unique",
+  );
+  assert(
+    Boolean(profile.serviceCredentialRef),
+    "Fashion profile must define its service credential reference",
+  );
+
+  const previewAuth = profile.serviceBindings?.PREVIEW_AUTH;
+  const commerceApi = profile.serviceBindings?.COMMERCE_API;
+  assert(isRecord(previewAuth), "Fashion profile must define PREVIEW_AUTH");
+  assert(isRecord(commerceApi), "Fashion profile must define COMMERCE_API");
+  assert(
+    previewAuth.intent === "preview-authorization",
+    "PREVIEW_AUTH must have preview-authorization intent",
+  );
+  assert(commerceApi.intent === "commerce-api", "COMMERCE_API must have commerce-api intent");
+  assert(
+    previewAuth.service === apiWorker,
+    "PREVIEW_AUTH must target the dedicated Fashion API Worker",
+  );
+  assert(
+    commerceApi.service === apiWorker,
+    "COMMERCE_API must target the dedicated Fashion API Worker",
+  );
+
+  const existingIdentities = new Set(
+    snapshots.flatMap((snapshot) => [
+      ...snapshot.applicationNames,
+      ...snapshot.resourceIdentifiers,
+      ...snapshot.endpointValues,
+      ...snapshot.remoteDatabaseIdentities,
+      ...Object.entries(snapshot.apiVariables)
+        .filter(([key]) => ID_VARIABLES.has(key))
+        .map(([, value]) => value),
+    ]),
+  );
+  const fashionIdentities = [
+    apiWorker,
+    previewWorker,
+    profile.databaseIdentity,
+    ...databaseParts,
+    ...profile.storageIdentifiers,
+    profile.serviceCredentialRef,
+    profile.checkoutProtection.rateLimit.namespaceId,
+  ];
+  const crossover = unique(
+    fashionIdentities.filter((identity) => existingIdentities.has(identity)),
+  );
+  assert(
+    crossover.length === 0,
+    `Fashion profile reuses an existing deployment identity: ${crossover.join(", ")}`,
+  );
+}
+
 export async function verifyEnvironmentIsolation(
   options: {
     root?: string;
@@ -338,6 +639,10 @@ export async function verifyEnvironmentIsolation(
 ): Promise<EnvironmentSnapshot[]> {
   const snapshots = await loadSnapshots(options.root);
   verifySnapshots(snapshots, options);
+  verifyFashionEnvironmentProfile(
+    snapshots,
+    await loadFashionEnvironmentProfile(options.root ?? ROOT),
+  );
   return snapshots;
 }
 
@@ -352,6 +657,6 @@ if (import.meta.main) {
     ...(values.strict ? { strictEnvironment: "all" as const } : {}),
   });
   console.log(
-    `Environment isolation verified for ${snapshots.map((entry) => entry.environment).join(" and ")}${values.strict ? " (strict)" : ""}.`,
+    `Environment isolation verified for ${snapshots.map((entry) => entry.environment).join(" and ")} plus fashion-staging${values.strict ? " (strict)" : ""}.`,
   );
 }

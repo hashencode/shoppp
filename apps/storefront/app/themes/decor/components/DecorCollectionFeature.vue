@@ -6,6 +6,7 @@ import {
   type InteractionSnapshot,
 } from "../../../theme-engine/interaction-controller";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
+import { useDecorRevealMotion } from "../composables/useDecorRevealMotion";
 
 interface Data {
   backgroundAssetId: string;
@@ -35,6 +36,7 @@ const visibleIndex = computed(() =>
     ? snapshot.value.targetIndex
     : snapshot.value.currentIndex,
 );
+const revealRoot = useDecorRevealMotion(["collection-banner", "collection-product"]);
 const controllerReady = ref(false);
 let controller: InteractionController | undefined;
 let unsubscribe: (() => void) | undefined;
@@ -108,6 +110,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     v-if="data"
+    ref="revealRoot"
     class="decor-collection"
     tabindex="0"
     aria-roledescription="carousel"
@@ -122,16 +125,14 @@ onBeforeUnmount(() => {
     :data-motion-phase="snapshot.phase"
     :data-current-index="snapshot.currentIndex"
     :data-target-index="snapshot.targetIndex"
-    @mouseenter="controller?.pause('hover')"
-    @mouseleave="controller?.resume('hover')"
-    @focusin="controller?.pause('focus')"
-    @focusout="controller?.resume('focus')"
+    data-source-reveal="collection"
+    data-reveal-state="pending"
     @keydown="handleKey"
     @pointerdown="pointerDown"
     @pointerup="pointerUp"
     @pointercancel="pointerCancel"
   >
-    <div class="decor-collection-banner">
+    <div class="decor-collection-banner" data-reveal-group="collection-banner" data-reveal-item>
       <img
         :src="p.resolveAsset(data.bannerAssetId)"
         alt="Blue lounge interior"
@@ -149,6 +150,8 @@ onBeforeUnmount(() => {
     </div>
     <div
       class="decor-collection-product"
+      data-reveal-group="collection-product"
+      data-reveal-item
       :style="{ backgroundImage: `url(${p.resolveAsset(data.backgroundAssetId)})` }"
     >
       <article

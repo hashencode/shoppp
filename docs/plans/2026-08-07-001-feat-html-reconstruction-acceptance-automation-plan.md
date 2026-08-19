@@ -20,6 +20,11 @@ The implementation extends the current Bun, TypeScript, Playwright, capture, and
 toolchain with a shared behavior contract and reusable probes; Fashion Store becomes the first complete
 page contract, while genuinely unusual interactions retain a narrow page-specific adapter seam.
 
+**Current relationship (2026-08-13):** This completed plan is inherited as shared acceptance
+tooling by the active Fashion Store functional plan and every supported source-equivalent template.
+Its completion proves the tooling capability, not the completion of every feature or template that
+uses it.
+
 | Acceptance mode | Shared responsibility | Page responsibility |
 | --- | --- | --- |
 | Static visual | Stable loading, geometry, typography, pixel comparison | Regions, selectors, source/implementation mapping |
@@ -44,8 +49,10 @@ The corrective method is already documented in
 executable gates. Fashion Store has focused browser tests for some repaired behaviors, while its source
 contract, named-state contract, fidelity matrix, capture scripts, and policy do not share one
 canonical behavioral declaration. Capture tooling also contains hard-coded branches for themes
-that are being deleted. A new page would therefore still rely on the implementing model or reviewer
-to remember which files and state lists must be updated.
+that were scheduled for deletion at this historical milestone. The current Shoppp model retains
+multiple templates in one platform; the durable conclusion is that shared tooling must not depend
+on template-specific hard-coded branches. A new page would otherwise still rely on the implementing
+model or reviewer to remember which files and state lists must be updated.
 
 ---
 

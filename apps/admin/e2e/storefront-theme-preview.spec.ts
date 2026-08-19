@@ -16,14 +16,27 @@ const theme = {
             maxLength: 80,
             required: true,
           },
+          {
+            id: 'featured-product',
+            kind: 'product-reference',
+            required: true,
+          },
         ],
-        type: 'fashion.hero',
+        type: 'fashion-store.home',
       },
     ],
   },
   configurationSchemaVersion: 1,
-  fixtureBindings: [],
-  id: 'fashion',
+  fixtureBindings: [
+    {
+      id: 'catalog-home-featured-product',
+      instanceId: 'home-hero',
+      kind: 'catalog',
+      reference: { id: 'product-stable-e2e', kind: 'product' },
+      settingId: 'featured-product',
+    },
+  ],
+  id: 'fashion-store',
   platformCompatibility: { maxExclusive: '2.0.0', min: '1.0.0' },
   platformContractVersion: '1.0.0',
   presetDefinitions: [
@@ -41,7 +54,7 @@ const theme = {
               capabilities: [],
               id: 'home-hero',
               settings: { heading: 'Preset headline' },
-              type: 'fashion.hero',
+              type: 'fashion-store.home',
               visible: true,
             },
           ],
@@ -55,7 +68,7 @@ const theme = {
 }
 
 const draft = {
-  bindings: [],
+  bindings: theme.fixtureBindings,
   configurationSchemaVersion: 1,
   createdAt: '2026-07-30T00:00:00.000Z',
   createdBy: 'theme-admin',
@@ -63,11 +76,12 @@ const draft = {
   id: 'draft-fashion-e2e',
   overrides: [],
   presetId: 'editorial',
-  themeId: 'fashion',
+  themeId: 'fashion-store',
   themeVersion: '1.0.0',
   updatedAt: '2026-07-30T00:00:00.000Z',
   updatedBy: 'theme-admin',
   validation: null,
+  validations: [],
   version: 1,
 }
 
@@ -92,6 +106,45 @@ test('operator saves, validates, previews, and approves one exact theme version'
       await route.fulfill({ contentType: 'application/json', json: { data: [theme] } })
       return
     }
+    if (url.pathname.endsWith('/catalog-releases') && request.method() === 'GET') {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          data: [
+            {
+              approvedAt: '2026-07-30T00:00:00.000Z',
+              collections: [],
+              deployedAt: '2026-07-30T00:00:00.000Z',
+              environment: 'staging',
+              id: 'release-fashion-e2e',
+              products: [
+                {
+                  id: 'product-stable-e2e',
+                  kind: 'product',
+                  name: 'Stable product',
+                  slug: 'stable-product',
+                },
+              ],
+              status: 'deployed',
+            },
+          ],
+        },
+      })
+      return
+    }
+    if (url.pathname.endsWith('/catalog-releases/release-fashion-e2e/resources')) {
+      const kind = url.searchParams.get('kind')
+      const data =
+        kind === 'product'
+          ? [{ id: 'product-stable-e2e', kind: 'product', name: 'Stable product', path: '/products/stable-product' }]
+          : []
+      await route.fulfill({ contentType: 'application/json', json: { data, page: 1, pageSize: 12, total: data.length } })
+      return
+    }
+    if (url.pathname.endsWith('/media') && request.method() === 'GET') {
+      await route.fulfill({ contentType: 'application/json', json: { data: [] } })
+      return
+    }
     if (url.pathname.endsWith(`/drafts/${draft.id}`) && request.method() === 'GET') {
       await route.fulfill({ contentType: 'application/json', json: { data: currentDraft } })
       return
@@ -107,10 +160,12 @@ test('operator saves, validates, previews, and approves one exact theme version'
     if (url.pathname.endsWith('/validate')) {
       sequence.push('validate')
       expect(request.postDataJSON().expectedVersion).toBe(2)
+      expect(request.postDataJSON().catalogReleaseId).toBe('release-fashion-e2e')
       await route.fulfill({
         contentType: 'application/json',
         json: {
           data: {
+            catalogReleaseId: 'release-fashion-e2e',
             createdAt: '2026-07-30T00:01:00.000Z',
             draftVersion: 2,
             id: 'validation-fashion-e2e',
@@ -125,6 +180,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
     if (url.pathname.endsWith('/preview')) {
       sequence.push('preview')
       expect(request.postDataJSON().expectedVersion).toBe(2)
+      expect(request.postDataJSON().catalogReleaseId).toBe('release-fashion-e2e')
       await route.fulfill({
         contentType: 'application/json',
         status: 202,
@@ -132,7 +188,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
           data: {
             build: {
               artifactDigest: 'a'.repeat(64),
-              artifactPrefix: `snapshots/snapshot-preview-e2e/${'a'.repeat(64)}`,
+              artifactPrefix: `snapshots/snapshot-preview-e2e/release-fashion-e2e/${'a'.repeat(64)}`,
               attempt: 1,
               cleanedAt: null,
               completedAt: '2026-07-30T00:02:00.000Z',
@@ -141,6 +197,14 @@ test('operator saves, validates, previews, and approves one exact theme version'
               expiresAt: '2099-07-30T00:00:00.000Z',
               failureCode: null,
               id: 'preview-build-e2e',
+              inputIdentity: {
+                catalogReleaseId: 'release-fashion-e2e',
+                experienceSnapshotId: 'snapshot-preview-e2e',
+                experienceVersion: 2,
+                platformContractVersion: '1.0.0',
+                themeId: 'fashion-store',
+                themeVersion: '1.0.0',
+              },
               snapshotId: 'snapshot-preview-e2e',
               status: 'deployed',
               updatedAt: '2026-07-30T00:02:00.000Z',
@@ -149,6 +213,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
               approvedAt: null,
               approvedBy: null,
               configurationSchemaVersion: 1,
+              contentDigest: 'c'.repeat(64),
               createdAt: '2026-07-30T00:01:00.000Z',
               createdBy: 'theme-admin',
               experienceId: draft.experienceId,
@@ -157,7 +222,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
               sourceDraftId: draft.id,
               sourceDraftVersion: 2,
               sourceValidationId: 'validation-fashion-e2e',
-              themeId: 'fashion',
+              themeId: 'fashion-store',
               themeVersion: '1.0.0',
             },
           },
@@ -167,6 +232,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
     }
     if (url.pathname.endsWith('/grants')) {
       sequence.push('grant')
+      expect(request.postDataJSON().catalogReleaseId).toBe('release-fashion-e2e')
       await route.fulfill({
         contentType: 'application/json',
         status: 201,
@@ -183,7 +249,11 @@ test('operator saves, validates, previews, and approves one exact theme version'
     }
     if (url.pathname.endsWith('/approve')) {
       sequence.push('approve')
-      expect(request.postDataJSON()).toMatchObject({ confirm: true, expectedVersion: 2 })
+      expect(request.postDataJSON()).toMatchObject({
+        catalogReleaseId: 'release-fashion-e2e',
+        confirm: true,
+        expectedVersion: 2,
+      })
       await route.fulfill({
         contentType: 'application/json',
         json: {
@@ -191,6 +261,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
             approvedAt: '2026-07-30T00:03:00.000Z',
             approvedBy: 'theme-admin',
             configurationSchemaVersion: 1,
+            contentDigest: 'd'.repeat(64),
             createdAt: '2026-07-30T00:03:00.000Z',
             createdBy: 'theme-admin',
             experienceId: draft.experienceId,
@@ -199,7 +270,7 @@ test('operator saves, validates, previews, and approves one exact theme version'
             sourceDraftId: draft.id,
             sourceDraftVersion: 2,
             sourceValidationId: 'validation-fashion-e2e',
-            themeId: 'fashion',
+            themeId: 'fashion-store',
             themeVersion: '1.0.0',
           },
         },
@@ -221,11 +292,27 @@ test('operator saves, validates, previews, and approves one exact theme version'
   })
 
   await page.goto(`/storefront/themes/${draft.id}`)
+  await page.setViewportSize({ width: 768, height: 900 })
 
+  await expect(page.getByText(/release-fashion-e2e · staging/)).toBeVisible()
   await page.getByRole('textbox', { name: 'home-hero heading' }).fill('E2E headline')
   await page.getByRole('textbox', { name: 'Change reason' }).fill('Review exact fixture version')
   await page.getByRole('button', { name: 'Save and preview' }).click()
   await expect(page.getByText('Ready')).toBeVisible()
+  expect(
+    await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('*')]
+        .filter((element) => element.getBoundingClientRect().right > window.innerWidth + 1)
+        .slice(0, 20)
+        .map((element) => ({
+          className: element.className,
+          right: Math.round(element.getBoundingClientRect().right),
+          tag: element.tagName,
+          text: element.textContent?.trim().slice(0, 80),
+        }))
+    )
+  ).toEqual([])
+  await expect(page.getByText('c'.repeat(64))).toBeVisible()
   expect(sequence.slice(0, 3)).toEqual(['save', 'validate', 'preview'])
 
   const popupPromise = context.waitForEvent('page')

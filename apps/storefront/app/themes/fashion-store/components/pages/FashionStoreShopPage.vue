@@ -282,17 +282,16 @@ onBeforeUnmount(stopArrivalAutoplay);
                   >Filter by tags</span
                 >
                 <div class="shop-filter tag-cloud fs-16">
-                  <a
+                  <button
                     v-for="option in data.filters.tag"
                     :key="option.label"
-                    href="#"
-                    role="button"
+                    type="button"
                     :class="{ active: activeFilters.tag === option.label }"
                     :aria-pressed="activeFilters.tag === option.label"
-                    @click.prevent="toggleFilter('tag', option.label)"
+                    @click="toggleFilter('tag', option.label)"
                   >
                     {{ option.label }}
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>

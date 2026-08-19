@@ -30,10 +30,10 @@ describe("storefront theme catalog generation", () => {
       descriptors: [
         {
           configurationSchemaVersion: 1,
-          id: "fashion",
+          id: "sample-theme",
           platformCompatibility: { maxExclusive: "2.0.0", min: "1.0.0" },
           platformContractVersion: "1.0.0",
-          presets: ["editorial"],
+          presets: ["sample"],
           supportedPageTemplates: ["home"],
           themeVersion: "1.0.0",
         },
@@ -53,7 +53,7 @@ describe("storefront theme catalog generation", () => {
     expect(await readFile(apiOutput, "utf8")).toBe(await readFile(storefrontOutput, "utf8"));
     expect(await readFile(apiOutput, "utf8")).toContain('"decor"');
     expect((await readFile(apiOutput, "utf8")).indexOf('"decor"')).toBeLessThan(
-      (await readFile(apiOutput, "utf8")).indexOf('"fashion"'),
+      (await readFile(apiOutput, "utf8")).indexOf('"sample-theme"'),
     );
   });
 
@@ -72,11 +72,7 @@ describe("storefront theme catalog generation", () => {
   });
 
   test("keeps both checked-in catalog modules current", async () => {
-    expect(storefrontThemeDescriptors.map(({ id }) => id)).toEqual([
-      "decor",
-      "fashion",
-      "fashion-store",
-    ]);
+    expect(storefrontThemeDescriptors.map(({ id }) => id)).toEqual(["decor", "fashion-store"]);
     await expect(
       verifyStorefrontThemeCatalog({
         descriptors: storefrontThemeDescriptors,

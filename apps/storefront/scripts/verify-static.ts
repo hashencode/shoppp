@@ -1,13 +1,15 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
-import {
-  activeExperienceSnapshot,
-  activeThemeId,
-  activeThemeRoutes,
-} from "../app/generated/active-theme";
+import { activeExperienceSnapshot, activeThemeId } from "../app/generated/active-theme";
+import { activeExperienceProviderInput } from "../app/generated/active-experience";
 import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
 import manifest from "../app/generated/route-manifest.json";
 import verificationCatalog from "../app/generated/verification-catalog.json";
+import {
+  productionPlatformRoutes,
+  resolveStorefrontPrerenderRoutes,
+} from "./resolve-prerender-routes";
+import { assertStaticPageHtml } from "./static-page-verification";
 
 const root = resolve(import.meta.dir, "..");
 const output = resolve(root, ".output/public");
@@ -34,22 +36,32 @@ if (previewBuild) {
 const outputPath = (route: string) =>
   route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
 
-const pageRoutes = previewBuild ? activeThemeRoutes.map(({ path }) => path) : manifest.routes;
+function linkedStylesheets(html: string): string[] {
+  return [...html.matchAll(/<link\b[^>]*>/gi)].flatMap(([link]) => {
+    if (!/\brel=["']stylesheet["']/i.test(link)) return [];
+    const href = link.match(/\bhref=["'](\/_nuxt\/[^"']+\.css)["']/i)?.[1];
+    return href ? [href] : [];
+  });
+}
+
+const pageRoutes = resolveStorefrontPrerenderRoutes({
+  experience: previewBuild
+    ? {
+        catalogRelease:
+          activeExperienceProviderInput.mode === "live"
+            ? activeExperienceProviderInput.release
+            : undefined,
+        environment: "preview",
+        presentationMode: activeExperienceProviderInput.mode === "live" ? "live" : undefined,
+        themeId: activeThemeId,
+      }
+    : undefined,
+  previewBuild,
+  productionRoutes: manifest.routes,
+});
 for (const route of pageRoutes) {
   const html = await readFile(outputPath(route), "utf8");
-  if (!html.includes('<link rel="canonical"') || !html.includes("<h1")) {
-    throw new Error(`${route} is missing canonical metadata or meaningful static content.`);
-  }
-  if (previewBuild && !/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html)) {
-    throw new Error(`${route} preview HTML must be non-indexable.`);
-  }
-  if (
-    previewBuild &&
-    (!/<link[^>]+rel="stylesheet"[^>]+href="\/_nuxt\/[^"]+\.css"/.test(html) ||
-      /<style\b/i.test(html))
-  ) {
-    throw new Error(`${route} preview CSS must remain external and cacheable.`);
-  }
+  assertStaticPageHtml({ html, previewBuild, route });
   if (!previewBuild && route.startsWith("/products/")) {
     const product = verificationCatalog.products.find(
       (item) => item.slug === route.slice("/products/".length),
@@ -68,7 +80,7 @@ for (const route of pageRoutes) {
 }
 
 if (!previewBuild) {
-  for (const route of ["/cart", "/checkout", "/checkout/complete", "/orders/access"]) {
+  for (const route of productionPlatformRoutes) {
     const html = await readFile(outputPath(route), "utf8");
     if (!/<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html)) {
       throw new Error(`${route} must be a deployable, non-indexable static commerce shell.`);
@@ -77,7 +89,19 @@ if (!previewBuild) {
 }
 
 if (previewBuild && activeThemeId === "fashion-store") {
-  const enabledPaths = new Set(activeThemeRoutes.map(({ path }) => path));
+  const homeHtml = await readFile(outputPath("/"), "utf8");
+  const firstRenderCss = (
+    await Promise.all(
+      linkedStylesheets(homeHtml).map((href) => readFile(resolve(output, href.slice(1)), "utf8")),
+    )
+  ).join("\n");
+  if (!firstRenderCss.includes("[data-fashion-store-product-card]")) {
+    throw new Error(
+      "Fashion Store preview must link its selected-theme CSS in the initial document.",
+    );
+  }
+
+  const enabledPaths = new Set(pageRoutes);
   for (const { path } of fashionStorePageContracts) {
     if (enabledPaths.has(path)) continue;
     try {
@@ -145,5 +169,5 @@ if (!previewBuild) {
 console.log(
   previewBuild
     ? `Static preview verification passed for ${activeThemeId} snapshot ${activeExperienceSnapshot?.id}.`
-    : `Static SEO verification passed for ${manifest.routes.length} indexable routes and 4 private commerce shells.`,
+    : `Static SEO verification passed for ${manifest.routes.length} indexable routes and ${productionPlatformRoutes.length} private commerce shells.`,
 );

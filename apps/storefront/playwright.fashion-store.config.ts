@@ -13,6 +13,7 @@ const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 export default defineConfig({
   testDir: "./e2e",
   testMatch: ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
+  testIgnore: ["fashion-store-live-commerce.spec.ts"],
   outputDir: "test-results/fashion-store",
   fullyParallel: false,
   reporter: [
@@ -23,7 +24,7 @@ export default defineConfig({
   use: {
     baseURL,
     ...(chromiumExecutable ? { launchOptions: { executablePath: chromiumExecutable } } : {}),
-    reducedMotion: "reduce",
+    contextOptions: { reducedMotion: "reduce" },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

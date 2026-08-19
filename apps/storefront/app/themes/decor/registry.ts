@@ -13,6 +13,7 @@ import DecorProductTabs from "./components/DecorProductTabs.vue";
 import DecorServiceStrip from "./components/DecorServiceStrip.vue";
 import DecorShop from "./components/DecorShop.vue";
 import { decorHomeFixtures } from "./fixtures/home";
+import { decorThemeRoutes } from "./page-contracts";
 import { themeAssets } from "./resources";
 
 export const themeRegistry = {
@@ -35,3 +36,4 @@ export const themeRegistry = {
 
 export { themeAssets };
 export const themeFixtures = decorHomeFixtures;
+export const themeRoutes = decorThemeRoutes;

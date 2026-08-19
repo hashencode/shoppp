@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { readFile, readdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
@@ -14,6 +15,10 @@ import {
 } from "../app/theme-engine/view-models";
 import { coreBlockDefinitions, coreSectionDefinitions } from "../app/theme-engine/core-manifest";
 import { experienceFixtureRegistry } from "../fixtures/experience";
+import {
+  auditLiveComponentGraph,
+  diagnoseLiveComponentImports,
+} from "./support/live-component-boundary";
 
 describe("storefront experience fixtures", () => {
   test("validates representative fixtures for every page type and meaningful state", () => {
@@ -178,5 +183,189 @@ describe("storefront experience fixtures", () => {
     expect(source).not.toMatch(/\bfetch\s*\(|\$fetch|XMLHttpRequest|useCommerceApi|useGuestCart/);
     expect(source).not.toMatch(/\.php(?:["'?]|\b)/i);
     expect(source).not.toContain("@shoppp/db");
+  });
+
+  test("keeps renderer provider-neutral and the live provider free of fixture fallback", async () => {
+    const [renderer, liveProvider] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/theme-engine/renderer.vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/theme-engine/providers/live.ts"), "utf8"),
+    ]);
+
+    expect(renderer).toContain("provider.resolve");
+    expect(renderer).not.toContain("resolveFixtureBinding");
+    expect(renderer).not.toContain("resolveFixtureViewModel");
+    expect(liveProvider).not.toMatch(/fixture-preview|resolveFixture|fixtures\/experience/);
+  });
+
+  test("wires live route composition reactively and keeps the live registry fixture-free", async () => {
+    const [experience, liveRegistry, fixtureRegistry] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/StorefrontExperience.vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/fixture-registry.ts"), "utf8"),
+    ]);
+
+    expect(experience).toMatch(
+      /resolveThemeRoute\([\s\S]*activeThemeRoutes,[\s\S]*activeExperienceProviderInput\.release/,
+    );
+    expect(experience).toContain("path: currentRoute.value.path");
+    expect(liveRegistry).not.toMatch(/\.\/fixtures\//);
+    expect(liveRegistry).not.toContain("themeFixtures");
+    expect(fixtureRegistry).toMatch(/\.\/fixtures\//);
+    expect(fixtureRegistry).toContain("themeFixtures");
+  });
+
+  test("rejects each prohibited dependency class at the live component boundary", () => {
+    const diagnostics = diagnoseLiveComponentImports(
+      "SyntheticLiveComponent.vue",
+      `
+        import type { Cart } from "@shoppp/contracts";
+        import type { FixtureProduct } from "../../fixtures/pages/shop";
+        import { useGuestCart } from "~/composables/use-guest-cart";
+        const provider = import("../../fixtures/provider");
+      `,
+    );
+
+    expect(diagnostics.map(({ rule }) => rule).sort()).toEqual([
+      "commerce-composable",
+      "commerce-contract",
+      "fixture-owned",
+      "fixture-owned",
+    ]);
+    expect(
+      diagnoseLiveComponentImports(
+        "AllowedLiveComponent.vue",
+        'import type { PresentationViewModel } from "../../../../theme-engine/view-models";',
+      ),
+    ).toEqual([]);
+    expect(
+      diagnoseLiveComponentImports(
+        "AutoImportedLiveComponent.vue",
+        `<script setup lang="ts">
+          const api = useCommerceApi();
+          const cart = useGuestCart();
+        </script>`,
+      ).map(({ rule }) => rule),
+    ).toEqual(["commerce-composable", "commerce-composable"]);
+  });
+
+  test("keeps injected presentation port contracts independent from Commerce DTOs", async () => {
+    const portRoot = resolve(import.meta.dir, "../app/theme-engine");
+    const portFiles = ["actions.ts", "cart-state.ts", "checkout.ts"];
+    const diagnostics = (
+      await Promise.all(
+        portFiles.map(async (file) =>
+          diagnoseLiveComponentImports(file, await readFile(resolve(portRoot, file), "utf8")),
+        ),
+      )
+    ).flat();
+
+    expect(diagnostics).toEqual([]);
+  });
+
+  test("keeps the complete Fashion Store live component graph behind presentation ports", async () => {
+    const appRoot = resolve(import.meta.dir, "../app");
+    const componentRoot = resolve(import.meta.dir, "../app/themes/fashion-store/components");
+    const registrySource = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"),
+      "utf8",
+    );
+    const componentPathBySymbol = new Map<string, string>();
+    for (const match of registrySource.matchAll(
+      /^import\s+(\w+)\s+from\s+["']\.\/components\/([^"']+\.vue)["'];/gm,
+    )) {
+      componentPathBySymbol.set(match[1]!, match[2]!);
+    }
+    for (const match of registrySource.matchAll(
+      /const\s+(\w+)\s*=\s*defineAsyncComponent\(\s*\(\)\s*=>\s*import\(["']\.\/components\/([^"']+\.vue)["']\)/g,
+    )) {
+      componentPathBySymbol.set(match[1]!, match[2]!);
+    }
+    const registryRootBySection = Object.fromEntries(
+      [...registrySource.matchAll(/^\s*"(fashion-store\.[^"]+)"\s*:\s*(\w+),/gm)].map((match) => [
+        match[1]!,
+        componentPathBySymbol.get(match[2]!),
+      ]),
+    );
+
+    expect(registryRootBySection).toEqual({
+      "fashion-store.cart": "pages/FashionStoreCartPage.vue",
+      "fashion-store.checkout": "pages/FashionStoreCheckoutPage.vue",
+      "fashion-store.collection": "pages/FashionStoreLiveCollectionPage.vue",
+      "fashion-store.content": "pages/FashionStoreLiveContentPage.vue",
+      "fashion-store.home": "FashionStoreLiveHomePage.vue",
+      "fashion-store.product": "pages/FashionStoreLiveProductPage.vue",
+    });
+    const roots = [...new Set(Object.values(registryRootBySection))].map((path) =>
+      resolve(componentRoot, path),
+    );
+
+    expect(
+      await auditLiveComponentGraph(componentRoot, roots, {
+        aliases: { "~/": appRoot },
+        componentDependencyRoot: appRoot,
+      }),
+    ).toEqual([]);
+  });
+
+  test("follows dynamically imported live descendants when auditing the component graph", async () => {
+    const componentRoot = await mkdtemp(resolve(tmpdir(), "shoppp-live-boundary-"));
+    try {
+      const root = resolve(componentRoot, "Root.vue");
+      await Promise.all([
+        writeFile(
+          root,
+          '<script setup lang="ts">const Child = defineAsyncComponent(() => import("./Child.vue"));</script>',
+        ),
+        writeFile(
+          resolve(componentRoot, "Child.vue"),
+          '<script setup lang="ts">\nimport type { Cart } from "@shoppp/contracts";\n</script>',
+        ),
+      ]);
+
+      expect(await auditLiveComponentGraph(componentRoot, [root])).toEqual([
+        {
+          file: "Child.vue",
+          importSpecifier: "@shoppp/contracts",
+          rule: "commerce-contract",
+        },
+      ]);
+    } finally {
+      await rm(componentRoot, { force: true, recursive: true });
+    }
+  });
+
+  test("follows Nuxt-alias component dependencies outside the theme directory", async () => {
+    const appRoot = await mkdtemp(resolve(tmpdir(), "shoppp-live-alias-boundary-"));
+    const componentRoot = resolve(appRoot, "themes/fashion-store/components");
+    try {
+      const root = resolve(componentRoot, "Root.vue");
+      await mkdir(componentRoot, { recursive: true });
+      await mkdir(resolve(appRoot, "features/checkout"), { recursive: true });
+      await Promise.all([
+        writeFile(
+          root,
+          '<script setup lang="ts">\nimport Child from "~/features/checkout/Child.vue";\n</script>',
+        ),
+        writeFile(
+          resolve(appRoot, "features/checkout/Child.vue"),
+          '<script setup lang="ts">\nimport type { Cart } from "@shoppp/contracts";\n</script>',
+        ),
+      ]);
+
+      expect(
+        await auditLiveComponentGraph(componentRoot, [root], {
+          aliases: { "~/": appRoot },
+          componentDependencyRoot: appRoot,
+        }),
+      ).toEqual([
+        {
+          file: "../../../features/checkout/Child.vue",
+          importSpecifier: "@shoppp/contracts",
+          rule: "commerce-contract",
+        },
+      ]);
+    } finally {
+      await rm(appRoot, { force: true, recursive: true });
+    }
   });
 });

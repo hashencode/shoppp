@@ -1,3 +1,5 @@
+import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@shoppp/contracts";
+
 import { ApiError } from "../http/errors";
 
 export interface StorefrontMedia {
@@ -25,7 +27,9 @@ export interface StorefrontVariant {
 export interface BuildCatalogInput {
   collections: Array<{
     description: string;
+    id: string;
     name: string;
+    productIds: string[];
     productSlugs: string[];
     seoDescription: string;
     seoTitle: string;
@@ -40,8 +44,10 @@ export interface BuildCatalogInput {
     title: string;
   }>;
   products: Array<{
+    collectionIds: string[];
     collectionSlugs: string[];
     description: string;
+    id: string;
     media: StorefrontMedia[];
     name: string;
     seoDescription: string;
@@ -60,12 +66,7 @@ export interface BuildCatalogInput {
   };
 }
 
-export interface StaticRouteManifest extends BuildCatalogInput {
-  generatedAt: string;
-  redirects: Array<{ from: string; status: 301; to: string }>;
-  routes: string[];
-  schemaVersion: 1;
-}
+export type StaticRouteManifest = CanonicalCatalogRelease;
 
 interface BuildManifestOptions {
   candidateProductId: string;
@@ -367,39 +368,46 @@ export async function buildCatalogReleaseManifest(
       .filter((membership) => membership.product_id === options.candidateProductId)
       .map((membership) => membership.collection_id),
   );
-  const manifestProducts: BuildCatalogInput["products"] = products.results.map((product) => ({
-    collectionSlugs: memberships.results
+  const manifestProducts: BuildCatalogInput["products"] = products.results.map((product) => {
+    const collectionReferences = memberships.results
       .filter((membership) => membership.product_id === product.id)
-      .map((membership) => collectionSlugs.get(membership.collection_id))
-      .filter((slug): slug is string => Boolean(slug)),
-    description: product.description,
-    media: media.results
-      .filter((item) => item.product_id === product.id)
-      .map((item) => ({
-        alt: item.alt_text,
-        height: item.height,
-        src: `${trimSlash(options.mediaOrigin)}/${item.r2_key}`,
-        width: item.width,
-      })),
-    name: product.name,
-    seoDescription: product.seo_description,
-    seoTitle: product.seo_title,
-    slug: product.slug,
-    status: product.id === options.candidateProductId ? "published" : product.status,
-    variants: variants.results
-      .filter((variant) => variant.product_id === product.id)
-      .map((variant) => ({
-        optionValues: parseSetting<Record<string, string>>(variant.option_values_json, {}),
-        id: variant.id,
-        prices: prices.results
-          .filter((price) => price.variant_id === variant.id)
-          .map((price) => ({ amount: price.amount, currency: price.currency })),
-        sku: variant.sku,
-        status: variant.status,
-        title: variant.title,
-        weightGrams: variant.weight_grams,
-      })),
-  }));
+      .flatMap((membership) => {
+        const slug = collectionSlugs.get(membership.collection_id);
+        return slug ? [{ id: membership.collection_id, slug }] : [];
+      });
+    return {
+      collectionIds: collectionReferences.map(({ id }) => id),
+      collectionSlugs: collectionReferences.map(({ slug }) => slug),
+      description: product.description,
+      id: product.id,
+      media: media.results
+        .filter((item) => item.product_id === product.id)
+        .map((item) => ({
+          alt: item.alt_text,
+          height: item.height,
+          src: `${trimSlash(options.mediaOrigin)}/${item.r2_key}`,
+          width: item.width,
+        })),
+      name: product.name,
+      seoDescription: product.seo_description,
+      seoTitle: product.seo_title,
+      slug: product.slug,
+      status: product.id === options.candidateProductId ? "published" : product.status,
+      variants: variants.results
+        .filter((variant) => variant.product_id === product.id)
+        .map((variant) => ({
+          optionValues: parseSetting<Record<string, string>>(variant.option_values_json, {}),
+          id: variant.id,
+          prices: prices.results
+            .filter((price) => price.variant_id === variant.id)
+            .map((price) => ({ amount: price.amount, currency: price.currency })),
+          sku: variant.sku,
+          status: variant.status,
+          title: variant.title,
+          weightGrams: variant.weight_grams,
+        })),
+    };
+  });
   const configuredSite = await setting<Partial<BuildCatalogInput["site"]>>(
     db,
     "storefront.site",
@@ -408,18 +416,25 @@ export async function buildCatalogReleaseManifest(
   const policies = await setting(db, "storefront.policies", defaultPolicies);
   const redirects = await setting<BuildCatalogInput["redirects"]>(db, "storefront.redirects", []);
   return buildStaticRouteManifest({
-    collections: collections.results.map((collection) => ({
-      description: collection.description,
-      name: collection.name,
-      productSlugs: memberships.results
+    collections: collections.results.map((collection) => {
+      const productReferences = memberships.results
         .filter((membership) => membership.collection_id === collection.id)
-        .map((membership) => productSlugs.get(membership.product_id))
-        .filter((slug): slug is string => Boolean(slug)),
-      seoDescription: collection.description,
-      seoTitle: collection.name,
-      slug: collection.slug,
-      status: candidateCollections.has(collection.id) ? "published" : collection.status,
-    })),
+        .flatMap((membership) => {
+          const slug = productSlugs.get(membership.product_id);
+          return slug ? [{ id: membership.product_id, slug }] : [];
+        });
+      return {
+        description: collection.description,
+        id: collection.id,
+        name: collection.name,
+        productIds: productReferences.map(({ id }) => id),
+        productSlugs: productReferences.map(({ slug }) => slug),
+        seoDescription: collection.description,
+        seoTitle: collection.name,
+        slug: collection.slug,
+        status: candidateCollections.has(collection.id) ? "published" : collection.status,
+      };
+    }),
     policies,
     products: manifestProducts,
     redirects,
@@ -443,6 +458,33 @@ export function buildStaticRouteManifest(input: BuildCatalogInput): StaticRouteM
   const publishedCollections = input.collections.filter(
     (collection) => collection.status === "published",
   );
+  const publishedProductsById = new Map(publishedProducts.map((product) => [product.id, product]));
+  const publishedCollectionsById = new Map(
+    publishedCollections.map((collection) => [collection.id, collection]),
+  );
+  const releaseProducts = publishedProducts.map((product) => {
+    const memberships = product.collectionIds
+      .map((id) => publishedCollectionsById.get(id))
+      .filter((collection): collection is BuildCatalogInput["collections"][number] =>
+        Boolean(collection),
+      );
+    return {
+      ...product,
+      collectionIds: memberships.map(({ id }) => id),
+      collectionSlugs: memberships.map(({ slug }) => slug),
+      variants: product.variants.filter((variant) => variant.status === "active"),
+    };
+  });
+  const releaseCollections = publishedCollections.map((collection) => {
+    const memberships = collection.productIds
+      .map((id) => publishedProductsById.get(id))
+      .filter((product): product is BuildCatalogInput["products"][number] => Boolean(product));
+    return {
+      ...collection,
+      productIds: memberships.map(({ id }) => id),
+      productSlugs: memberships.map(({ slug }) => slug),
+    };
+  });
   const routes = [
     "/",
     ...publishedCollections.map((collection) => `/collections/${collection.slug}`),
@@ -461,16 +503,13 @@ export function buildStaticRouteManifest(input: BuildCatalogInput): StaticRouteM
       "Published storefront routes must be unique.",
     );
   }
-  return {
+  return canonicalCatalogReleaseSchema.parse({
     ...input,
-    collections: publishedCollections,
+    collections: releaseCollections,
     generatedAt: new Date().toISOString(),
-    products: publishedProducts.map((product) => ({
-      ...product,
-      variants: product.variants.filter((variant) => variant.status === "active"),
-    })),
+    products: releaseProducts,
     redirects: input.redirects.map((redirect) => ({ ...redirect, status: 301 })),
     routes: uniqueRoutes,
-    schemaVersion: 1,
-  };
+    schemaVersion: 2,
+  });
 }

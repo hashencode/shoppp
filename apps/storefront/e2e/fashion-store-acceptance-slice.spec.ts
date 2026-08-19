@@ -16,7 +16,7 @@ import {
 import { assertThemeVisibleCopyEquivalent } from "./support/theme-source-contract";
 import { fashionStoreSourceRegions } from "../app/themes/fashion-store/source-contract";
 import {
-  fashionReferenceEntrySha256,
+  fashionStoreSourceEntrySha256,
   referenceCaptureConfigs,
   validateIndependentReferenceSource,
 } from "../../../tools/capture-storefront-theme-reference";
@@ -188,8 +188,8 @@ async function assertSourceCollectionTouchEnabled(page: Page): Promise<void> {
 
 test.beforeAll(async () => {
   await validateIndependentReferenceSource({
-    config: referenceCaptureConfigs.fashion,
-    expectedEntrySha256: fashionReferenceEntrySha256,
+    config: referenceCaptureConfigs["fashion-store-source"],
+    expectedEntrySha256: fashionStoreSourceEntrySha256,
     implementationThemeRoot,
     sourceRoot,
   });
@@ -250,7 +250,7 @@ test("search-open interaction: contract-driven search opens and dismisses on sou
 }, testInfo) => {
   const source = await browser.newPage(sourcePageOptions(page, testInfo.project.name));
   try {
-    await Promise.all([prepareSource(source), prepareImplementation(page)]);
+    await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
     const behavior = behaviorRow(fashionStoreBehaviorContract, "header-search-overlay");
     const [sourceResult, implementationResult] = await Promise.all([
       runSearchBehavior({
@@ -358,7 +358,7 @@ test("collection-slide-1 interaction: declared controls advance both carousels",
 }, testInfo) => {
   const source = await browser.newPage(sourcePageOptions(page, testInfo.project.name));
   try {
-    await Promise.all([prepareSource(source), prepareImplementation(page)]);
+    await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
     const behavior = behaviorRow(fashionStoreBehaviorContract, "new-arrival-collection-carousel");
     const desktop = testInfo.project.name === "fashion-store-desktop";
     const options = {

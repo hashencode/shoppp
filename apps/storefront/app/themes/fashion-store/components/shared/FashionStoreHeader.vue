@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import type { PresentationViewModel } from "../../../../theme-engine/view-models";
+import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
+import { fashionStoreLiveCapabilities } from "../../capability-matrix";
 import { fashionStoreRoutePaths } from "../../page-contracts";
-import { fashionStoreAssetId } from "../../resources";
+import { fashionStoreAssetId, resolveFashionStoreEditorMedia } from "../../resources";
 import FashionStoreMiniCart from "./FashionStoreMiniCart.vue";
 import FashionStoreSearchOverlay from "./FashionStoreSearchOverlay.vue";
 
@@ -9,9 +12,12 @@ type MiniCartHandle = { closeCart(): void };
 type SearchOverlayHandle = {
   closeSearch(restoreFocus?: boolean): Promise<void>;
 };
+type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
-  announcement: string;
+  announcement?: string;
+  announcementLink?: HomeViewModel["announcementLink"];
+  configuration?: HomeViewModel["shell"]["header"];
   resolveAsset: ThemeAssetResolver;
 }>();
 const emit = defineEmits<{
@@ -24,6 +30,11 @@ const miniCart = ref<MiniCartHandle>();
 const searchOpen = ref(false);
 const searchOverlay = ref<SearchOverlayHandle>();
 const highDensity = ref(false);
+const liveMode = inject(liveCommerceModeKey, false);
+const accountVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.account);
+const searchVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.catalogSearch);
+const wishlistVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.wishlist);
+const unavailableHref = undefined;
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -31,6 +42,11 @@ function sourceAsset(sourcePath: string): string {
 
 function densityAsset(standardPath: string, highDensityPath: string): string {
   return sourceAsset(highDensity.value ? highDensityPath : standardPath);
+}
+
+function configuredLogo(): string | undefined {
+  const logo = properties.configuration?.logo;
+  return logo ? resolveFashionStoreEditorMedia(properties.resolveAsset, logo) : undefined;
 }
 
 onMounted(() => {
@@ -52,28 +68,19 @@ function toggleCompactDropdown(toggle: HTMLElement): void {
   toggle.setAttribute("aria-expanded", String(expanded));
 }
 
-function handleDocumentKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape" && searchOpen.value) {
-    void searchOverlay.value?.closeSearch(true);
-  }
-  if (event.key !== "Enter" && event.key !== " ") return;
-  const target = event.target;
-  if (!(target instanceof Element)) return;
-  const toggle = target.closest<HTMLElement>(".navbar-left .dropdown-toggle");
-  if (!toggle || innerWidth >= 992) return;
+function handleDropdownToggle(event: Event): void {
+  if (innerWidth >= 992) return;
+  const toggle = event.currentTarget;
+  if (!(toggle instanceof HTMLElement)) return;
   event.preventDefault();
   toggleCompactDropdown(toggle);
 }
 
-function handleInternalClick(event: MouseEvent): boolean {
+function handleHeaderNavigation(event: MouseEvent): void {
   const target = event.target;
-  if (!(target instanceof Element)) return false;
-  const dropdownToggle = target.closest<HTMLElement>(".navbar-left .dropdown-toggle");
-  if (!dropdownToggle || innerWidth >= 992) return false;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  toggleCompactDropdown(dropdownToggle);
-  return true;
+  if (!(target instanceof Element)) return;
+  if (!target.closest("a[data-fashion-store-route]")) return;
+  void closeTransient(true);
 }
 
 async function closeTransient(restoreMenuFocus = false): Promise<void> {
@@ -97,12 +104,17 @@ async function closeTransient(restoreMenuFocus = false): Promise<void> {
   }
 }
 
-defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
+defineExpose({ closeTransient });
 </script>
 
 <template>
-  <header class="header-with-topbar" data-fashion-store-header="true">
+  <header
+    class="header-with-topbar"
+    data-fashion-store-header="true"
+    @click="handleHeaderNavigation"
+  >
     <div
+      v-if="announcement"
       class="header-top-bar top-bar-light bg-base-color disable-fixed md-border-bottom border-color-transparent-dark-very-light"
     >
       <div class="container-fluid">
@@ -110,10 +122,19 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
           <div class="col-12 justify-content-center alt-font fs-13 fw-500 text-uppercase">
             <div class="text-dark-gray">{{ announcement }}</div>
             <a
-              :href="fashionStoreRoutePaths['shop-left']"
+              v-if="announcementLink || !configuration"
+              :href="announcementLink?.href ?? fashionStoreRoutePaths['shop-left']"
+              :target="announcementLink?.targetBehavior === 'new-window' ? '_blank' : undefined"
+              :rel="
+                announcementLink?.targetBehavior === 'new-window'
+                  ? 'noopener noreferrer'
+                  : undefined
+              "
               data-fashion-store-route
               class="text-dark-gray fw-600 ms-5px text-dark-gray-hover"
-              ><span class="text-decoration-line-bottom">Shop now</span></a
+              ><span class="text-decoration-line-bottom">{{
+                announcementLink?.label ?? "Shop now"
+              }}</span></a
             >
           </div>
         </div>
@@ -124,14 +145,41 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
       <div class="container-fluid">
         <div class="col-auto col-xxl-3 col-lg-2 menu-logo">
           <div class="header-icon d-none d-lg-flex">
+            <div v-if="configuration" class="widget-text icon alt-font">
+              <span>{{ configuration.contactCopy }}</span>
+            </div>
+            <div v-if="configuration?.highlightLink" class="widget-text icon alt-font">
+              <a :href="configuration.highlightLink.href" data-fashion-store-route>{{
+                configuration.highlightLink.label
+              }}</a>
+            </div>
+            <div v-if="configuration?.legalLink" class="widget-text icon alt-font">
+              <a :href="configuration.legalLink.href" data-fashion-store-route>{{
+                configuration.legalLink.label
+              }}</a>
+            </div>
+            <div v-if="configuration?.socialLink" class="widget-text icon alt-font">
+              <a
+                :href="configuration.socialLink.href"
+                :target="
+                  configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined
+                "
+                :rel="
+                  configuration.socialLink.targetBehavior === 'new-window'
+                    ? 'noopener noreferrer'
+                    : undefined
+                "
+                >{{ configuration.socialLink.label }}</a
+              >
+            </div>
             <div class="widget-text icon alt-font">
-              <a href="/" data-fashion-store-route
+              <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
                 ><i class="feather icon-feather-map-pin d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">Find stores</span></a
               >
             </div>
             <div class="widget-text icon alt-font">
-              <a href="https://www.instagram.com/" target="_blank"
+              <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"
                 ><i class="feather icon-feather-instagram d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">100k Followers</span></a
               >
@@ -139,9 +187,10 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
           </div>
           <a class="navbar-brand" href="/" data-fashion-store-route aria-label="Lifestyle home">
             <img
-              alt=""
+              :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
               v-bind:src="
+                configuredLogo() ??
                 densityAsset(
                   'images/demo-fashion-store-logo-black.png',
                   'images/demo-fashion-store-logo-black@2x.png',
@@ -150,9 +199,10 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
             <img
-              alt=""
+              :alt="configuration?.logo?.alt ?? ''"
               class="alt-logo"
               v-bind:src="
+                configuredLogo() ??
                 densityAsset(
                   'images/demo-fashion-store-logo-black.png',
                   'images/demo-fashion-store-logo-black@2x.png',
@@ -161,9 +211,10 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
             <img
-              alt=""
+              :alt="configuration?.logo?.alt ?? ''"
               class="mobile-logo"
               v-bind:src="
+                configuredLogo() ??
                 densityAsset(
                   'images/demo-fashion-store-logo-black.png',
                   'images/demo-fashion-store-logo-black@2x.png',
@@ -197,7 +248,7 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
           >
             <ul class="navbar-nav alt-font navbar-left justify-content-end">
               <li class="nav-item">
-                <a href="/" data-fashion-store-route class="nav-link">Home</a>
+                <NuxtLink to="/" data-fashion-store-route class="nav-link">Home</NuxtLink>
               </li>
               <li class="nav-item dropdown submenu">
                 <a
@@ -211,6 +262,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                   id="navbarDropdownMenuLink1"
                   role="button"
                   tabindex="0"
+                  @click="handleDropdownToggle"
+                  @keydown.enter="handleDropdownToggle"
+                  @keydown.space="handleDropdownToggle"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 ></i>
@@ -225,62 +279,182 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                       <div class="col">
                         <ul>
                           <li class="sub-title">Men</li>
-                          <li><a href="/" data-fashion-store-route>Jeans</a></li>
-                          <li><a href="/" data-fashion-store-route>Trousers</a></li>
-                          <li><a href="/" data-fashion-store-route>Swimwear</a></li>
-                          <li><a href="/" data-fashion-store-route>Casual shirts</a></li>
-                          <li><a href="/" data-fashion-store-route>Rain jackets</a></li>
-                          <li><a href="/" data-fashion-store-route>Loungewear</a></li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Jeans</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Trousers</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Swimwear</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Casual shirts</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Rain jackets</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Loungewear</a
+                            >
+                          </li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Women</li>
-                          <li><a href="/" data-fashion-store-route>Dupattas</a></li>
-                          <li><a href="/" data-fashion-store-route>Leggings</a></li>
-                          <li><a href="/" data-fashion-store-route>Ethnic wear</a></li>
-                          <li><a href="/" data-fashion-store-route>Kurtas &amp; suits</a></li>
-                          <li><a href="/" data-fashion-store-route>Western wear</a></li>
-                          <li><a href="/" data-fashion-store-route>Dress materials</a></li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Dupattas</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Leggings</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Ethnic wear</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Kurtas &amp; suits</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Western wear</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Dress materials</a
+                            >
+                          </li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Kids</li>
-                          <li><a href="/" data-fashion-store-route>Dresses</a></li>
-                          <li><a href="/" data-fashion-store-route>Jumpsuits</a></li>
-                          <li><a href="/" data-fashion-store-route>Track pants</a></li>
-                          <li><a href="/" data-fashion-store-route>Ethnic wear</a></li>
-                          <li><a href="/" data-fashion-store-route>Value packs</a></li>
-                          <li><a href="/" data-fashion-store-route>Loungewear</a></li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Dresses</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Jumpsuits</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Track pants</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Ethnic wear</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Value packs</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Loungewear</a
+                            >
+                          </li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Divided</li>
-                          <li><a href="/" data-fashion-store-route>Tops</a></li>
-                          <li><a href="/" data-fashion-store-route>Dresses</a></li>
-                          <li><a href="/" data-fashion-store-route>Shorts</a></li>
-                          <li><a href="/" data-fashion-store-route>Swimwear</a></li>
-                          <li><a href="/" data-fashion-store-route>Jeans</a></li>
-                          <li><a href="/" data-fashion-store-route>Jackets</a></li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Tops</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Dresses</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Shorts</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Swimwear</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Jeans</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Jackets</a
+                            >
+                          </li>
                         </ul>
                       </div>
                       <div class="col">
                         <ul>
                           <li class="sub-title">Accessories</li>
-                          <li><a href="/" data-fashion-store-route>Shoes</a></li>
-                          <li><a href="/" data-fashion-store-route>Scarves</a></li>
-                          <li><a href="/" data-fashion-store-route>Watches</a></li>
-                          <li><a href="/" data-fashion-store-route>Wristwear</a></li>
-                          <li><a href="/" data-fashion-store-route>Backpacks</a></li>
-                          <li><a href="/" data-fashion-store-route>Sunglasses</a></li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Shoes</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Scarves</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Watches</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Wristwear</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Backpacks</a
+                            >
+                          </li>
+                          <li>
+                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
+                              >Sunglasses</a
+                            >
+                          </li>
                         </ul>
                       </div>
                     </div>
                     <div class="row row-cols-1 row-cols-sm-2">
                       <div class="col">
-                        <a href="/" data-fashion-store-route
+                        <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
                           ><img
                             alt=""
                             v-bind:src="
@@ -289,7 +463,7 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                         /></a>
                       </div>
                       <div class="col">
-                        <a href="/" data-fashion-store-route
+                        <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
                           ><img
                             alt=""
                             v-bind:src="
@@ -313,6 +487,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                   id="navbarDropdownMenuLink2"
                   role="button"
                   tabindex="0"
+                  @click="handleDropdownToggle"
+                  @keydown.enter="handleDropdownToggle"
+                  @keydown.space="handleDropdownToggle"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 ></i>
@@ -325,7 +502,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                       class="row row-cols-2 row-cols-lg-6 row-cols-md-3 row-cols-sm-2 md-mx-0 align-items-center justify-content-center"
                     >
                       <div class="col md-mb-25px">
-                        <a href="/" data-fashion-store-route class="justify-content-center mb-10px">
+                        <a
+                          :href="unavailableHref"
+                          data-fashion-store-route
+                          aria-disabled="true"
+                          class="justify-content-center mb-10px"
+                        >
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -335,8 +517,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                           />
                         </a>
                         <a
-                          href="/"
+                          :href="unavailableHref"
                           data-fashion-store-route
+                          aria-disabled="true"
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -348,7 +531,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                         </a>
                       </div>
                       <div class="col md-mb-25px">
-                        <a href="/" data-fashion-store-route class="justify-content-center mb-10px">
+                        <a
+                          :href="unavailableHref"
+                          data-fashion-store-route
+                          aria-disabled="true"
+                          class="justify-content-center mb-10px"
+                        >
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -358,8 +546,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                           />
                         </a>
                         <a
-                          href="/"
+                          :href="unavailableHref"
                           data-fashion-store-route
+                          aria-disabled="true"
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -371,7 +560,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                         </a>
                       </div>
                       <div class="col md-mb-25px">
-                        <a href="/" data-fashion-store-route class="justify-content-center mb-10px">
+                        <a
+                          :href="unavailableHref"
+                          data-fashion-store-route
+                          aria-disabled="true"
+                          class="justify-content-center mb-10px"
+                        >
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -381,8 +575,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                           />
                         </a>
                         <a
-                          href="/"
+                          :href="unavailableHref"
                           data-fashion-store-route
+                          aria-disabled="true"
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -394,7 +589,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                         </a>
                       </div>
                       <div class="col sm-mb-25px">
-                        <a href="/" data-fashion-store-route class="justify-content-center mb-10px">
+                        <a
+                          :href="unavailableHref"
+                          data-fashion-store-route
+                          aria-disabled="true"
+                          class="justify-content-center mb-10px"
+                        >
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -404,8 +604,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                           />
                         </a>
                         <a
-                          href="/"
+                          :href="unavailableHref"
                           data-fashion-store-route
+                          aria-disabled="true"
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -417,7 +618,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                         </a>
                       </div>
                       <div class="col">
-                        <a href="/" data-fashion-store-route class="justify-content-center mb-10px">
+                        <a
+                          :href="unavailableHref"
+                          data-fashion-store-route
+                          aria-disabled="true"
+                          class="justify-content-center mb-10px"
+                        >
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -427,8 +633,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                           />
                         </a>
                         <a
-                          href="/"
+                          :href="unavailableHref"
                           data-fashion-store-route
+                          aria-disabled="true"
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -440,7 +647,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                         </a>
                       </div>
                       <div class="col">
-                        <a href="/" data-fashion-store-route class="justify-content-center mb-10px">
+                        <a
+                          :href="unavailableHref"
+                          data-fashion-store-route
+                          aria-disabled="true"
+                          class="justify-content-center mb-10px"
+                        >
                           <img
                             class="border-radius-4px w-100"
                             alt=""
@@ -450,8 +662,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                           />
                         </a>
                         <a
-                          href="/"
+                          :href="unavailableHref"
                           data-fashion-store-route
+                          aria-disabled="true"
                           class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
                         >
                           <span>
@@ -480,6 +693,9 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                   id="navbarDropdownMenuLink3"
                   role="button"
                   tabindex="0"
+                  @click="handleDropdownToggle"
+                  @keydown.enter="handleDropdownToggle"
+                  @keydown.space="handleDropdownToggle"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 ></i>
@@ -488,10 +704,10 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
                     <a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About</a>
                   </li>
                   <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>Faq</a></li>
-                  <li>
+                  <li v-if="wishlistVisible">
                     <a :href="fashionStoreRoutePaths.wishlist" data-fashion-store-route>Wishlist</a>
                   </li>
-                  <li>
+                  <li v-if="accountVisible">
                     <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>Account</a>
                   </li>
                   <li><a :href="fashionStoreRoutePaths.cart" data-fashion-store-route>Cart</a></li>
@@ -510,8 +726,12 @@ defineExpose({ closeTransient, handleDocumentKeydown, handleInternalClick });
         </div>
         <div class="col-auto col-xxl-3 col-lg-2 text-end">
           <div class="header-icon">
-            <FashionStoreSearchOverlay ref="searchOverlay" v-model="searchOpen" />
-            <div class="widget-text icon alt-font">
+            <FashionStoreSearchOverlay
+              v-if="searchVisible"
+              ref="searchOverlay"
+              v-model="searchOpen"
+            />
+            <div v-if="accountVisible" class="widget-text icon alt-font">
               <a
                 :href="fashionStoreRoutePaths.account"
                 data-fashion-store-route

@@ -126,6 +126,21 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     permission: "themes.read",
   },
   {
+    method: "GET",
+    path: "/admin/storefront-experiences/catalog-releases",
+    permission: "themes.preview",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/catalog-releases/:id/resources",
+    permission: "themes.preview",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/media",
+    permission: "themes.write",
+  },
+  {
     method: "POST",
     path: "/admin/storefront-experiences/drafts",
     permission: "themes.write",
@@ -139,6 +154,11 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     method: "GET",
     path: "/admin/storefront-experiences/drafts/:id",
     permission: "themes.read",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/successors",
+    permission: "themes.write",
   },
   {
     method: "PUT",
@@ -153,6 +173,11 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   {
     method: "POST",
     path: "/admin/storefront-experiences/drafts/:id/preview",
+    permission: "themes.preview",
+  },
+  {
+    method: "GET",
+    path: "/admin/storefront-experiences/drafts/:id/preview-context",
     permission: "themes.preview",
   },
   {
@@ -182,7 +207,17 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   },
   {
     method: "POST",
+    path: "/admin/storefront-experiences/snapshots/:id/build",
+    permission: "themes.preview",
+  },
+  {
+    method: "POST",
     path: "/admin/storefront-experiences/snapshots/:id/grants",
+    permission: "themes.preview",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/snapshots/:id/revoke",
     permission: "themes.preview",
   },
 ] as const;

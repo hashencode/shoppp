@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { defineAsyncComponent, hydrateOnInteraction, type HydrationStrategy } from "vue";
+import { defineAsyncComponent, type HydrationStrategy } from "vue";
+import { captureStorefrontInteraction, hydrateOnStorefrontInteraction } from "./hydration";
+
+const defersHomeHydration =
+  import.meta.client &&
+  location.pathname === "/" &&
+  matchMedia("(prefers-reduced-motion: reduce)").matches;
+const earlyStorefrontInteraction = defersHomeHydration ? captureStorefrontInteraction() : undefined;
 
 const hydrateStorefrontExperience: HydrationStrategy = (hydrate, forEachElement) => {
-  if (location.pathname !== "/" || !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (!defersHomeHydration) {
     hydrate();
     return;
   }
 
-  return hydrateOnInteraction(["click", "focusin", "keydown", "pointerdown"])(
-    hydrate,
-    forEachElement,
-  );
+  return hydrateOnStorefrontInteraction(hydrate, forEachElement, earlyStorefrontInteraction);
 };
 
 const StorefrontExperience = defineAsyncComponent({

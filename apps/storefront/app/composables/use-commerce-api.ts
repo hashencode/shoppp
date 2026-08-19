@@ -15,6 +15,8 @@ interface ApiData<T> {
   data: T;
 }
 
+export const COMMERCE_REQUEST_TIMEOUT_MS = 8_000;
+
 function mutationKey(scope: string): string {
   return `${scope}-${crypto.randomUUID()}`;
 }
@@ -22,13 +24,21 @@ function mutationKey(scope: string): string {
 export const useCommerceApi = () => {
   const config = useRuntimeConfig();
   const api = <T>(path: string, options: Parameters<typeof $fetch<T>>[1] = {}) =>
-    $fetch<T>(path, { baseURL: config.public.apiBase, ...options });
+    $fetch<T>(path, {
+      baseURL: config.public.apiBase,
+      timeout: COMMERCE_REQUEST_TIMEOUT_MS,
+      ...options,
+    });
   const cartHeaders = (token: string, scope?: string) => ({
     Authorization: `CartToken ${token}`,
     ...(scope ? { "Idempotency-Key": mutationKey(scope) } : {}),
   });
   const getLiveProduct = (slug: string, currency: string) =>
     api<ApiData<Product>>(`/catalog/products/${encodeURIComponent(slug)}/live`, {
+      query: { currency },
+    });
+  const getLiveProductById = (id: string, currency: string) =>
+    api<ApiData<Product>>(`/catalog/products/by-id/${encodeURIComponent(id)}/live`, {
       query: { currency },
     });
   const getPublicRuntimeConfiguration = () =>
@@ -80,7 +90,7 @@ export const useCommerceApi = () => {
       method: "POST",
     });
   const getOrderAccess = (token: string) =>
-    api<ApiData<OrderAccess>>(`/orders/${encodeURIComponent(token)}`);
+    api<ApiData<OrderAccess>>(`/orders/${encodeURIComponent(token)}`, { retry: 0 });
   return {
     acknowledgeCartAdjustments,
     addCartLine,
@@ -88,6 +98,7 @@ export const useCommerceApi = () => {
     createCheckoutSession,
     getCart,
     getLiveProduct,
+    getLiveProductById,
     getOrderAccess,
     getPublicRuntimeConfiguration,
     quoteShipping,

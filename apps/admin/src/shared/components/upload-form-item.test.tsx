@@ -1,9 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, rstest } from '@rstest/core'
+import { afterEach, describe, expect, it, rstest } from '@rstest/core'
+import { Upload, message } from 'antd'
 import React, { useState } from 'react'
 import { normalizeUploadUrl, UploadFormItem, type UploadFormItemValue } from './upload-form-item'
 
 void React
+
+afterEach(() => {
+  rstest.restoreAllMocks()
+})
 
 rstest.mock('compressorjs', () => ({
   default: class CompressorMock {
@@ -81,10 +86,30 @@ describe('UploadFormItem', () => {
 
     expect(container.querySelector('.ax-upload-form-item--card')).toBeTruthy()
     expect(container.querySelector('.ant-upload-list-picture-card')).toBeTruthy()
+    expect(getUploadInput(container).accept).toBe('.jpg,image/png')
 
     rerender(<UploadFormItem accept=".pdf,.jpg" uploadFile={uploadFile} />)
     expect(container.querySelector('.ax-upload-form-item--button')).toBeTruthy()
     expect(screen.getByRole('button', { name: '上传文件' })).toBeTruthy()
+
+    rerender(
+      <UploadFormItem
+        accept=".pdf,.jpg"
+        value={['/uploads/manual.pdf', '/uploads/photo.JPG?x=1#preview']}
+        uploadFile={uploadFile}
+      />
+    )
+    expect(container.querySelector('.ax-upload-form-item--card')).toBeTruthy()
+
+    rerender(
+      <UploadFormItem
+        accept=".pdf,.jpg"
+        maxCount={2}
+        value="/uploads/manual.pdf,/uploads/photo.PNG?x=1#preview"
+        uploadFile={uploadFile}
+      />
+    )
+    expect(container.querySelector('.ax-upload-form-item--card')).toBeTruthy()
 
     rerender(
       <UploadFormItem
@@ -94,6 +119,104 @@ describe('UploadFormItem', () => {
       />
     )
     expect(container.querySelector('.ax-upload-form-item--button')).toBeTruthy()
+
+    rerender(<UploadFormItem accept=".pdf" listType="picture-card" uploadFile={uploadFile} />)
+    expect(container.querySelector('.ax-upload-form-item--card')).toBeTruthy()
+  })
+
+  it('defaults to images and validates the transformed candidate before uploading', async () => {
+    const uploaded: File[] = []
+    const { container, rerender } = render(
+      <UploadFormItem
+        beforeUpload={() =>
+          new File(['image'], 'converted.jpg', { type: 'image/jpeg', lastModified: 123 })
+        }
+        uploadFile={async (file) => {
+          uploaded.push(file)
+          return '/uploads/converted.jpg'
+        }}
+      />
+    )
+
+    expect(getUploadInput(container).accept).toBe('.jpg,.jpeg,.png')
+    fireEvent.change(getUploadInput(container), {
+      target: { files: [new File(['image'], 'source.heic', { type: 'image/heic' })] },
+    })
+    await waitFor(() => expect(uploaded[0]?.name).toBe('converted.jpg'))
+    expect(uploaded[0]?.lastModified).toBe(123)
+
+    rerender(
+      <UploadFormItem
+        accept=".jpg"
+        beforeUpload={() => new Blob(['image'], { type: 'image/jpeg' })}
+        uploadFile={async (file) => {
+          uploaded.push(file)
+          return '/uploads/unexpected.jpg'
+        }}
+      />
+    )
+    fireEvent.change(getUploadInput(container), {
+      target: { files: [new File(['image'], 'source.heic', { type: 'image/heic' })] },
+    })
+    await waitFor(() => expect(document.body.textContent).toContain('文件格式不支持'))
+    expect(uploaded).toHaveLength(1)
+    expect(container.textContent).not.toContain('source.heic')
+  })
+
+  it('preserves external rejections and reports its own rejection exactly once without side effects', async () => {
+    const errorSpy = rstest.spyOn(message, 'error')
+    const externalResults: Array<boolean | string> = []
+    let uploadCount = 0
+    let changeCount = 0
+    const { container, rerender } = render(
+      <UploadFormItem
+        multiple
+        maxCount={2}
+        beforeUpload={(file) => {
+          const result = file.name === 'ignored.png' ? Upload.LIST_IGNORE : false
+          externalResults.push(result)
+          return result
+        }}
+        uploadFile={async () => {
+          uploadCount += 1
+          return '/uploads/unexpected.png'
+        }}
+      />
+    )
+
+    fireEvent.change(getUploadInput(container), {
+      target: {
+        files: [
+          new File(['a'], 'ignored.png', { type: 'image/png' }),
+          new File(['b'], 'blocked.png', { type: 'image/png' }),
+        ],
+      },
+    })
+    await waitFor(() => expect(externalResults).toEqual([Upload.LIST_IGNORE, false]))
+    expect(errorSpy).not.toHaveBeenCalled()
+
+    rerender(
+      <UploadFormItem
+        accept=".jpg"
+        value="/uploads/existing.jpg"
+        uploadFile={async () => {
+          uploadCount += 1
+          return '/uploads/unexpected.jpg'
+        }}
+        onChange={() => {
+          changeCount += 1
+        }}
+      />
+    )
+    await waitFor(() => expect(container.querySelector('a[href="/uploads/existing.jpg"]')).toBeTruthy())
+    fireEvent.change(getUploadInput(container), {
+      target: { files: [new File(['image'], 'rejected.heic', { type: 'image/heic' })] },
+    })
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
+    expect(uploadCount).toBe(0)
+    expect(changeCount).toBe(0)
+    expect(container.querySelector('a[href="/uploads/existing.jpg"]')).toBeTruthy()
+    expect(container.textContent).not.toContain('rejected.heic')
   })
 
   it('compresses supported images and aligns the filename with the output mime type', async () => {
@@ -188,7 +311,7 @@ describe('UploadFormItem', () => {
   it('renders tooltip with upload spacing in button mode', () => {
     const tooltip = '请上传格式为jpg、jpeg、png格式，大小不超过10MB的文件'
     const { container } = render(
-      <UploadFormItem tooltip={tooltip} uploadFile={async () => 'https://oss.example.com/license.png'} />
+      <UploadFormItem displayMode="button" tooltip={tooltip} uploadFile={async () => 'https://oss.example.com/license.png'} />
     )
 
     const hint = screen.getByText(tooltip)
@@ -269,6 +392,7 @@ describe('UploadFormItem', () => {
       const [value, setValue] = useState<string[]>([])
       return (
         <UploadFormItem
+          accept=".pdf"
           multiple
           maxCount={2}
           value={value}
@@ -299,6 +423,7 @@ describe('UploadFormItem', () => {
       new Promise<string>((resolve, reject) => pending.set(file.name, { resolve, reject }))
     const { container } = render(
       <UploadFormItem
+        accept=".pdf"
         multiple
         maxCount={2}
         uploadFile={uploadFile}
@@ -326,6 +451,7 @@ describe('UploadFormItem', () => {
         <>
           <button type="button" onClick={() => setValue(['/uploads/external.pdf'])}>外部更新</button>
           <UploadFormItem
+            accept=".pdf"
             multiple
             maxCount={2}
             value={value}
@@ -355,6 +481,7 @@ describe('UploadFormItem', () => {
     const uploadFile = () => new Promise<string>((resolve) => { resolveUpload = resolve })
     const { container } = render(
       <UploadFormItem
+        accept=".pdf"
         multiple
         maxCount={2}
         uploadFile={uploadFile}
@@ -380,7 +507,7 @@ describe('UploadFormItem', () => {
     let resolveUpload: ((url: string) => void) | undefined
     const uploadFile = () => new Promise<string>((resolve) => { resolveUpload = resolve })
     const { container, unmount } = render(
-      <UploadFormItem uploadFile={uploadFile} onChange={(value) => changes.push(value)} />
+      <UploadFormItem accept=".pdf" uploadFile={uploadFile} onChange={(value) => changes.push(value)} />
     )
 
     fireEvent.change(getUploadInput(container), { target: { files: [new File(['a'], 'a.pdf')] } })

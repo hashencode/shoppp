@@ -1,5 +1,9 @@
 import type { FidelityViewportId } from "../../../../tools/theme-fidelity-report";
 import {
+  decorBehaviorContract,
+  decorFidelityStatesByRegion,
+} from "../../app/themes/decor/behavior-contract";
+import {
   fashionStoreBehaviorContract,
   fashionStoreFidelityStatesByRegion,
 } from "../../app/themes/fashion-store/behavior-contract";
@@ -83,6 +87,11 @@ const fashionStoreStates = (regionId: string, defaults: readonly string[] = ["in
   ...(fashionStoreFidelityStatesByRegion[regionId] ?? []),
 ];
 
+const decorStates = (regionId: string, defaults: readonly string[] = ["initial"]) => [
+  ...defaults,
+  ...(decorFidelityStatesByRegion[regionId] ?? []),
+];
+
 const shopStates = (
   contract: ThemeBehaviorContract,
   regionId: string,
@@ -108,6 +117,60 @@ const region = (
 });
 
 export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
+  {
+    densities: [1, 2] as const,
+    id: "decor-home",
+    implementationPath: "/",
+    regions: [
+      region("header", "section", "header", ".decor-header"),
+      region(
+        "hero",
+        "component",
+        "#decor-store-slider",
+        ".decor-hero",
+        decorStates("hero", ["initial", "reduced-motion"]),
+      ),
+      region(
+        "categories",
+        "section",
+        "section:nth-of-type(2)",
+        ".decor-categories",
+        decorStates("categories"),
+      ),
+      region(
+        "marquee",
+        "component",
+        "section:nth-of-type(4)",
+        ".decor-marquee",
+        decorStates("marquee"),
+      ),
+      region(
+        "collection",
+        "section",
+        "section:nth-of-type(5)",
+        ".decor-collection",
+        decorStates("collection"),
+      ),
+      region(
+        "clients",
+        "component",
+        "section:nth-of-type(6)",
+        ".decor-clients",
+        decorStates("clients"),
+      ),
+      region("footer", "component", "footer", ".decor-footer"),
+      region(
+        "scroll-progress",
+        "control",
+        ".scroll-progress",
+        ".decor-scroll-progress",
+        decorStates("scroll-progress"),
+      ),
+      region("full-page", "full-page-smoke", "body", "body"),
+    ],
+    sourcePath: "/demo-decor-store.html",
+    viewports: themeViewportIds,
+  },
   {
     densities: [1, 2] as const,
     id: "fashion-store-home",
@@ -554,6 +617,10 @@ type FidelityBehaviorDescriptor = Pick<
 >;
 
 const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
+  {
+    contract: decorBehaviorContract,
+    fidelityStatesByRegion: decorFidelityStatesByRegion,
+  },
   {
     contract: fashionStoreBehaviorContract,
     fidelityStatesByRegion: fashionStoreFidelityStatesByRegion,

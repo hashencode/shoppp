@@ -1,0 +1,247 @@
+name: Prepare governed Fashion staging U12 inputs
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type PREPARE FASHION U12 followed by the exact commit SHA
+        required: true
+        type: string
+
+concurrency:
+  group: fashion-staging-preview
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: fashion-staging
+    env:
+      API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      FASHION_U12_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
+      GH_TOKEN: ${{ secrets.FASHION_U12_GITHUB_ADMIN_TOKEN }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - name: Require exact preparation authorization and default branch
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$API_ORIGIN" = "https://shoppp-api-fashion-staging.hashencode.workers.dev"
+          [[ "$STRIPE_SECRET_KEY" == sk_test_* ]]
+          test "${#TURNSTILE_SECRET}" -ge 20
+          test "${#FASHION_U12_ADMIN_SERVICE_TOKEN}" -ge 32
+          bun run verify:environment
+      - name: Generate deterministic three-archetype and immutable-input plan
+        run: bun run prepare:fashion-staging-u12 --output-dir=artifacts/fashion-u12
+      - name: Verify required Worker and protected-environment credentials before mutation
+        run: |
+          (cd apps/api && bunx wrangler secret list --env fashion-staging --format json) \
+            > artifacts/fashion-u12/api-secrets.json
+          (cd apps/storefront && bunx wrangler secret list --config wrangler.preview.jsonc \
+            --env fashion-staging --format json) \
+            > artifacts/fashion-u12/preview-secrets.json
+          gh api "repos/$GITHUB_REPOSITORY/environments/fashion-staging/secrets" \
+            > artifacts/fashion-u12/github-secrets.json
+          jq --exit-status '
+            ([.[].name] | contains([
+              "FASHION_ACCEPTANCE_TOKEN", "PREVIEW_BUILD_CALLBACK_TOKEN",
+              "PREVIEW_SERVICE_TOKEN", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
+              "TURNSTILE_SECRET"
+            ]))' artifacts/fashion-u12/api-secrets.json >/dev/null
+          jq --exit-status '([.[].name] | contains(["PREVIEW_AUTH_TOKEN"]))' \
+            artifacts/fashion-u12/preview-secrets.json >/dev/null
+          jq --exit-status '
+            ([.secrets[].name] | contains([
+              "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN",
+              "FASHION_U12_ACCEPTANCE_TOKEN", "FASHION_U12_ADMIN_SERVICE_TOKEN",
+              "FASHION_U12_GITHUB_ADMIN_TOKEN",
+              "FASHION_U13_SERVICE_TOKEN", "PREVIEW_BUILD_TOKEN", "STRIPE_SECRET_KEY",
+              "STRIPE_TEST_CARD", "TURNSTILE_SECRET"
+            ]))' artifacts/fashion-u12/github-secrets.json >/dev/null
+      - name: Verify Stripe sandbox webhook before mutation
+        run: |
+          curl --fail --silent --show-error --user "$STRIPE_SECRET_KEY:" \
+            https://api.stripe.com/v1/account > artifacts/fashion-u12/stripe-account.json
+          curl --fail --silent --show-error --get --user "$STRIPE_SECRET_KEY:" \
+            --data-urlencode limit=100 https://api.stripe.com/v1/webhook_endpoints \
+            > artifacts/fashion-u12/stripe-webhooks.json
+          jq --exit-status '.livemode == false' artifacts/fashion-u12/stripe-account.json >/dev/null
+          jq --exit-status --arg url "$API_ORIGIN/webhooks/stripe" '
+            any(.data[];
+              .url == $url and .status == "enabled" and
+              ([.enabled_events[]] | contains([
+                "checkout.session.async_payment_failed",
+                "checkout.session.async_payment_succeeded",
+                "checkout.session.completed",
+                "checkout.session.expired"
+              ]))
+            )' artifacts/fashion-u12/stripe-webhooks.json >/dev/null
+      - name: Export exact Fashion D1 before migrations
+        working-directory: apps/api
+        run: |
+          bunx wrangler d1 export shoppp-fashion-staging --env fashion-staging --remote \
+            --output="../../artifacts/fashion-u12/fashion-d1-before-${GITHUB_SHA}.sql"
+      - name: Restore exported Fashion D1 into a disposable local database
+        working-directory: apps/api
+        run: |
+          RESTORE_STATE="$RUNNER_TEMP/fashion-u12-restore-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -p "$RESTORE_STATE"
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --local \
+            --persist-to "$RESTORE_STATE" \
+            --file="../../artifacts/fashion-u12/fashion-d1-before-${GITHUB_SHA}.sql"
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --local --json \
+            --persist-to "$RESTORE_STATE" --command "PRAGMA foreign_key_check" \
+            > ../../artifacts/fashion-u12/restore-foreign-keys.json
+          jq --exit-status 'all(.[]?; ((.results // []) | length == 0))' \
+            ../../artifacts/fashion-u12/restore-foreign-keys.json >/dev/null
+          BACKUP_SHA="$(sha256sum "../../artifacts/fashion-u12/fashion-d1-before-${GITHUB_SHA}.sql" | cut -d ' ' -f 1)"
+          jq --null-input \
+            --arg artifactName "fashion-u12-d1-backup-$GITHUB_SHA" \
+            --arg createdAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --arg databaseId "eb1ca4ef-3121-4d02-b20e-e619eac1cecc" \
+            --arg restoreVerifiedAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --arg runId "$GITHUB_RUN_ID" --arg sha256 "$BACKUP_SHA" \
+            '{artifactName:$artifactName,createdAt:$createdAt,databaseId:$databaseId,restoreVerifiedAt:$restoreVerifiedAt,runId:$runId,sha256:$sha256}' \
+            > ../../artifacts/fashion-u12/backup-receipt.json
+      - name: Preserve verified Fashion D1 backup before migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: fashion-u12-d1-backup-${{ github.sha }}
+          path: |
+            artifacts/fashion-u12/fashion-d1-before-${{ github.sha }}.sql
+            artifacts/fashion-u12/backup-receipt.json
+            artifacts/fashion-u12/restore-foreign-keys.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: List pending Fashion D1 migrations after verified backup
+        working-directory: apps/api
+        run: bunx wrangler d1 migrations list shoppp-fashion-staging --env fashion-staging --remote --json > ../../artifacts/fashion-u12/migrations-before.json
+      - name: Apply pending Fashion D1 migrations after verified backup
+        working-directory: apps/api
+        run: bunx wrangler d1 migrations apply shoppp-fashion-staging --env fashion-staging --remote
+      - name: Verify Fashion D1 integrity and required acceptance schema
+        working-directory: apps/api
+        run: |
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
+            --command "PRAGMA foreign_key_check" > ../../artifacts/fashion-u12/remote-foreign-keys.json
+          jq --exit-status 'all(.[]?; ((.results // []) | length == 0))' \
+            ../../artifacts/fashion-u12/remote-foreign-keys.json >/dev/null
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
+            --command "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('fashion_staging_acceptance_runs','fashion_staging_acceptance_resources') ORDER BY name" \
+            > ../../artifacts/fashion-u12/schema-tables.json
+          jq --exit-status '([.[]?.results[]?.name] | length) == 2' \
+            ../../artifacts/fashion-u12/schema-tables.json >/dev/null
+      - name: Deploy the migration-compatible Fashion API Worker
+        working-directory: apps/api
+        run: bunx wrangler deploy --env fashion-staging
+      - name: Provision the least-privilege Fashion preparation credential
+        working-directory: apps/api
+        run: |
+          FASHION_U12_ADMIN_SERVICE_TOKEN="$FASHION_U12_ADMIN_SERVICE_TOKEN" \
+            bun ../../tools/provision-fashion-staging-u12-preparer.ts \
+              --confirm="PROVISION FASHION U12 PREPARER" \
+              > "$RUNNER_TEMP/fashion-u12-preparer.sql"
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote \
+            --file="$RUNNER_TEMP/fashion-u12-preparer.sql"
+      - name: Reject seed identity collisions
+        working-directory: apps/api
+        run: |
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
+            --file=../../artifacts/fashion-u12/preflight.sql \
+            > ../../artifacts/fashion-u12/seed-preflight.json
+          jq --exit-status 'all(.[]?.results[]?; (.conflict_count | tonumber) == 0)' \
+            ../../artifacts/fashion-u12/seed-preflight.json >/dev/null
+      - name: Apply collision-checked three-archetype seed
+        working-directory: apps/api
+        run: bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --file=../../artifacts/fashion-u12/seed.sql
+      - name: Create validated approved immutable snapshot and building build
+        run: |
+          AUTHORIZATION="Authorization: Bearer $FASHION_U12_ADMIN_SERVICE_TOKEN"
+          curl --fail --silent --show-error --request POST --header "$AUTHORIZATION" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: fashion-u12-draft-$GITHUB_SHA" \
+            --data-binary @<(jq '.createBody' artifacts/fashion-u12/experience-plan.json) \
+            "$API_ORIGIN/admin/storefront-experiences/drafts" \
+            > artifacts/fashion-u12/draft.json
+          DRAFT_ID="$(jq -er '.data.id' artifacts/fashion-u12/draft.json)"
+          DRAFT_VERSION="$(jq -er '.data.version' artifacts/fashion-u12/draft.json)"
+          CATALOG_RELEASE_ID="$(jq -er '.catalogReleaseId' artifacts/fashion-u12/seed-receipt.json)"
+          curl --fail --silent --show-error --request POST --header "$AUTHORIZATION" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: fashion-u12-validate-$GITHUB_SHA" \
+            --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" --argjson version "$DRAFT_VERSION" '{catalogReleaseId:$catalog,expectedVersion:$version,reason:"Validate exact Fashion U12 Catalog input"}')" \
+            "$API_ORIGIN/admin/storefront-experiences/drafts/$DRAFT_ID/validate" \
+            > artifacts/fashion-u12/validation.json
+          jq --exit-status '.data.status == "valid"' artifacts/fashion-u12/validation.json >/dev/null
+          curl --fail --silent --show-error --request POST --header "$AUTHORIZATION" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: fashion-u12-approve-$GITHUB_SHA" \
+            --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" --argjson version "$DRAFT_VERSION" '{catalogReleaseId:$catalog,confirm:true,expectedVersion:$version,reason:"Approve immutable Fashion U12 Catalog input"}')" \
+            "$API_ORIGIN/admin/storefront-experiences/drafts/$DRAFT_ID/approve" \
+            > artifacts/fashion-u12/snapshot.json
+          SNAPSHOT_ID="$(jq -er 'select(.data.kind == "approved") | .data.id' artifacts/fashion-u12/snapshot.json)"
+          curl --fail --silent --show-error --request POST --header "$AUTHORIZATION" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: fashion-u12-build-$GITHUB_SHA" \
+            --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" '{catalogReleaseId:$catalog}')" \
+            "$API_ORIGIN/admin/storefront-experiences/snapshots/$SNAPSHOT_ID/build" \
+            > artifacts/fashion-u12/build.json
+          jq --exit-status '.data.status == "building"' artifacts/fashion-u12/build.json >/dev/null
+      - name: Verify immutable seed, snapshot, and build postconditions
+        working-directory: apps/api
+        run: |
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
+            --file=../../artifacts/fashion-u12/verify.sql \
+            > ../../artifacts/fashion-u12/seed-verification.json
+          jq --exit-status 'all(.[]?.results[]?;
+            .product_count == 3 and .single_variant_count == 1 and
+            .single_available_count == 1 and .multi_variant_count == 12 and
+            .multi_available_count > 0 and .unavailable_sellable_count == 0 and
+            .immutable_catalog_count == 1 and .approved_snapshot_count >= 1 and
+            .building_build_count == 1)' \
+            ../../artifacts/fashion-u12/seed-verification.json >/dev/null
+          bunx wrangler d1 migrations list shoppp-fashion-staging --env fashion-staging --remote --json \
+            > ../../artifacts/fashion-u12/migrations-after.json
+      - name: Capture and verify fresh deployment-readiness evidence
+        env:
+          FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          bun tools/capture-fashion-staging-readiness.ts \
+            --input-dir=artifacts/fashion-u12 \
+            --output=artifacts/fashion-u12/readiness.json \
+            --commit-sha="$GITHUB_SHA" --confirmation="$FASHION_U12_CONFIRMATION" \
+            --repository="$GITHUB_REPOSITORY"
+          bun tools/verify-fashion-staging-readiness.ts \
+            --snapshot=artifacts/fashion-u12/readiness.json \
+            > artifacts/fashion-u12/readiness-verdict.json
+          READINESS_DIGEST="$(sha256sum artifacts/fashion-u12/readiness.json | cut -d ' ' -f 1)"
+          printf 'Readiness run: %s\nReadiness SHA-256: %s\n' "$GITHUB_RUN_ID" "$READINESS_DIGEST" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"Build: \(.seed.buildId)\nSnapshot: \(.seed.experienceSnapshotId)\nCatalog: \(.seed.catalogReleaseId)"' \
+            artifacts/fashion-u12/readiness.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve governed Fashion deployment readiness
+        uses: actions/upload-artifact@v4
+        with:
+          name: fashion-u12-readiness-${{ github.sha }}
+          path: |
+            artifacts/fashion-u12/readiness.json
+            artifacts/fashion-u12/readiness-verdict.json
+            artifacts/fashion-u12/seed-receipt.json
+            artifacts/fashion-u12/build.json
+            artifacts/fashion-u12/snapshot.json
+          if-no-files-found: error
+          retention-days: 7

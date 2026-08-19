@@ -20,9 +20,17 @@ export default defineConfig({
       testMatch: "storefront-purchase.spec.ts",
     },
     {
+      name: "fashion-provider-purchase",
+      testMatch: "fashion-store-purchase.spec.ts",
+    },
+    {
       name: "release-operations",
       dependencies: ["provider-purchase"],
-      testIgnore: ["storefront-purchase.spec.ts", "admin-access.spec.ts"],
+      testIgnore: [
+        "storefront-purchase.spec.ts",
+        "fashion-store-purchase.spec.ts",
+        "admin-access.spec.ts",
+      ],
     },
   ],
   use: {

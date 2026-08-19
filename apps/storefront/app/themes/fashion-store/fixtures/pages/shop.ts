@@ -1,5 +1,6 @@
 import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
+import type { FashionStoreLegacyProductCard } from "../../contracts/product-card";
 import { fashionStoreCollectionData, type FashionStoreCollectionData } from "./collection";
 
 export type FashionStoreShopFilterGroup = "category" | "color" | "size" | "tag";
@@ -10,18 +11,7 @@ export interface FashionStoreShopFilterOption {
   swatch?: string;
 }
 
-export interface FashionStoreShopProduct {
-  badge?: "Hot" | "New";
-  categories: readonly string[];
-  colors: readonly string[];
-  id: string;
-  name: string;
-  originalPrice: string;
-  price: string;
-  sizes: readonly string[];
-  sourceImage: string;
-  tags: readonly string[];
-}
+export type FashionStoreShopProduct = FashionStoreLegacyProductCard;
 
 export interface FashionStoreShopArrival {
   id: string;

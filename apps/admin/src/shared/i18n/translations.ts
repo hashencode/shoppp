@@ -856,6 +856,8 @@ export const zhCNMessages: Record<string, string> = {
   File: '文件',
   'Uploaded file': '已上传文件',
   'Upload failed. Please try again later.': '上传失败，请稍后重试。',
+  'Unsupported file format.': '文件格式不支持。',
+  'Unsupported file format. Upload {types} files.': '文件格式不支持，请上传 {types} 格式文件。',
   'File size cannot exceed {size} MB.': '文件大小不能超过 {size}MB。',
   'The upload response is missing a file URL.': '上传结果缺少文件地址。',
   'Supports {types} files, up to {size} MB each.':

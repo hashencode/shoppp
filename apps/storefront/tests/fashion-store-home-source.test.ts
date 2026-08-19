@@ -48,7 +48,7 @@ describe("Fashion Store complete static source home", () => {
     expect(home).not.toContain('<footer class="footer-dark');
     expect(shell).toContain("<FashionStoreHeader");
     expect(shell).toContain("<FashionStoreFooter");
-    expect(header).toContain('<header class="header-with-topbar"');
+    expect(header).toMatch(/<header\s+class="header-with-topbar"/);
     expect(header).toContain("<FashionStoreSearchOverlay");
     expect(header).toContain("<FashionStoreMiniCart");
     expect(search).toContain('class="search-form-wrapper"');
@@ -79,7 +79,8 @@ describe("Fashion Store complete static source home", () => {
     );
     expect(component).toContain("data-swiper-number-pagination-progress");
     expect(component).toContain("data-anime");
-    expect(component).not.toContain("v-html");
+    expect(component).toContain('<noscript v-html="noScriptMarkup" />');
+    expect(component.match(/\bv-html=/g)).toHaveLength(1);
     expect(component).not.toContain("<iframe");
   });
 

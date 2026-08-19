@@ -1,8 +1,11 @@
 import type { BlockInstance, PageTemplate, SectionInstance } from "@shoppp/contracts";
 import type { Component } from "vue";
+import type { ThemeCompositionAdapter } from "./composition";
 
 export interface ThemeRegistry {
   blocks: Readonly<Record<string, Component>>;
+  composition?: ThemeCompositionAdapter;
+  platformShell?: Component;
   sections: Readonly<Record<string, Component>>;
 }
 
@@ -34,6 +37,8 @@ export function composeThemeRegistries(core: ThemeRegistry, theme: ThemeRegistry
   }
   return {
     blocks: Object.freeze({ ...core.blocks, ...theme.blocks }),
+    ...(theme.composition ? { composition: theme.composition } : {}),
+    ...(theme.platformShell ? { platformShell: theme.platformShell } : {}),
     sections: Object.freeze({ ...core.sections, ...theme.sections }),
   };
 }

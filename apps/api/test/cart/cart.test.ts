@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { canonicalCatalogReleaseSchema } from "@shoppp/contracts";
+
 import { createApp } from "../../src/http/app";
 
 const now = "2026-07-30T00:00:00.000Z";
@@ -19,6 +21,7 @@ async function resetAndSeed(): Promise<void> {
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM cart_lines"),
     env.DB.prepare("DELETE FROM carts"),
+    env.DB.prepare("DELETE FROM settings WHERE key = 'launch_configuration'"),
     env.DB.prepare("DELETE FROM shipping_methods"),
     env.DB.prepare("DELETE FROM shipping_zone_countries"),
     env.DB.prepare("DELETE FROM shipping_zones"),
@@ -29,6 +32,7 @@ async function resetAndSeed(): Promise<void> {
     env.DB.prepare("DELETE FROM price_lists"),
     env.DB.prepare("DELETE FROM product_variants"),
     env.DB.prepare("DELETE FROM products"),
+    env.DB.prepare("DELETE FROM catalog_releases"),
   ]);
   await env.DB.batch([
     env.DB.prepare(
@@ -67,6 +71,69 @@ async function resetAndSeed(): Promise<void> {
   ]);
 }
 
+async function seedDeployedRelease(
+  releaseId: string,
+  productId = ids.product,
+  variantId = ids.variant,
+  variantStatus: "active" | "disabled" = "active",
+): Promise<void> {
+  const manifest = canonicalCatalogReleaseSchema.parse({
+    collections: [],
+    generatedAt: now,
+    policies: [
+      {
+        description: "Privacy policy",
+        effectiveDate: "2026-07-30",
+        sections: [{ body: "Private storefront policy.", heading: "Privacy" }],
+        slug: "privacy",
+        title: "Privacy",
+      },
+    ],
+    products: [
+      {
+        collectionIds: [],
+        collectionSlugs: [],
+        description: "Carry-on",
+        id: productId,
+        media: [],
+        name: "Atlas",
+        seoDescription: "Atlas carry-on",
+        seoTitle: "Atlas",
+        slug: "atlas-release-slug",
+        status: "published",
+        variants: [
+          {
+            id: variantId,
+            optionValues: { color: "Black" },
+            prices: [{ amount: 12_900, currency: "USD" }],
+            sku: "ATLAS-BLK",
+            status: variantStatus,
+            title: "Black",
+            weightGrams: 2_900,
+          },
+        ],
+      },
+    ],
+    redirects: [],
+    releaseId,
+    routes: ["/products/atlas-release-slug", "/policies/privacy"],
+    schemaVersion: 2,
+    site: {
+      defaultCurrency: "USD",
+      freshnessHours: 24,
+      name: "Fashion staging",
+      origin: "https://preview.example.test",
+    },
+  });
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+       (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at)
+     VALUES (?, 'deployed', ?, ?, ?, ?, ?)`,
+  )
+    .bind(releaseId, JSON.stringify(manifest), now, now, now, now)
+    .run();
+}
+
 function cartRequest(path: string, token?: string, init: RequestInit = {}): Request {
   return new Request(`https://api.example.test${path}`, {
     ...init,
@@ -102,7 +169,274 @@ describe("guest cart authority", () => {
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
 
+  test("uses the same deterministic eligible price for live product and cart totals", async () => {
+    await seedDeployedRelease("release-price-parity");
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO price_lists (id, code, currency, status, created_at, updated_at) VALUES ('pl_usd_priority', 'A-USD', 'USD', 'active', ?, ?)",
+      ).bind(now, now),
+      env.DB.prepare(
+        "INSERT INTO prices (id, price_list_id, variant_id, amount, created_at, updated_at) VALUES ('price_usd_priority', 'pl_usd_priority', ?, 9900, ?, ?)",
+      ).bind(ids.variant, now, now),
+    ]);
+    const app = createApp();
+    const live = await app.fetch(
+      new Request("https://api.example.test/catalog/products/atlas/live?currency=USD"),
+      env,
+    );
+    expect(live.status).toBe(200);
+    expect(await live.json()).toMatchObject({
+      data: {
+        variants: [
+          {
+            id: ids.variant,
+            price: { amount: 9_900, currency: "USD" },
+          },
+        ],
+      },
+    });
+
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-price-parity-01" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    const added = await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({
+          expectedUnitPrice: { amount: 12_900, currency: "USD" },
+          quantity: 2,
+          releaseId: "release-price-parity",
+          variantId: ids.variant,
+        }),
+        headers: { "Idempotency-Key": "cart-add-price-parity-0001" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(added.status).toBe(200);
+    expect(await added.json()).toMatchObject({
+      data: {
+        adjustments: [expect.objectContaining({ code: "price_changed" })],
+        lines: [
+          {
+            lineTotal: { amount: 19_800, currency: "USD" },
+            unitPrice: { amount: 9_900, currency: "USD" },
+          },
+        ],
+        totals: { grandTotal: 19_800, subtotal: 19_800 },
+      },
+    });
+  });
+
+  test("keeps unavailable price-list states out of live product output", async () => {
+    const app = createApp();
+    const expectCurrencyUnavailable = async () => {
+      const response = await app.fetch(
+        new Request("https://api.example.test/catalog/products/atlas/live?currency=USD"),
+        env,
+      );
+      expect(response.status).toBe(422);
+      expect(await response.json()).toMatchObject({ error: { code: "currency_unavailable" } });
+    };
+
+    await env.DB.prepare("UPDATE price_lists SET status = 'archived' WHERE id = 'pl_usd'").run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare(
+      "UPDATE price_lists SET status = 'active', starts_at = '2099-01-01T00:00:00.000Z' WHERE id = 'pl_usd'",
+    ).run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare(
+      "UPDATE price_lists SET starts_at = NULL, ends_at = '2020-01-01T00:00:00.000Z' WHERE id = 'pl_usd'",
+    ).run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare(
+      "UPDATE price_lists SET ends_at = NULL, currency = 'EUR' WHERE id = 'pl_usd'",
+    ).run();
+    await expectCurrencyUnavailable();
+    await env.DB.prepare("UPDATE price_lists SET currency = 'USD' WHERE id = 'pl_usd'").run();
+    await env.DB.prepare("DELETE FROM prices WHERE variant_id = ?").bind(ids.variant).run();
+    await expectCurrencyUnavailable();
+  });
+
+  test("resolves a live product by stable ID after its slug changes", async () => {
+    await seedDeployedRelease("release-stable-product");
+    await env.DB.prepare("UPDATE products SET slug = 'atlas-renamed' WHERE id = ?")
+      .bind(ids.product)
+      .run();
+    const response = await createApp().fetch(
+      new Request(
+        `https://api.example.test/catalog/products/by-id/${ids.product}/live?currency=USD`,
+        { headers: { "X-Preview-Catalog-Release": "release-stable-product" } },
+      ),
+      env,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: { id: ids.product, slug: "atlas-renamed", variants: [{ id: ids.variant }] },
+    });
+  });
+
+  test("binds the first deployed release and rejects foreign variants or later release changes", async () => {
+    await seedDeployedRelease("release-cart-a");
+    await seedDeployedRelease(
+      "release-cart-b",
+      "prd_01JFOREIGNPRODUCT0000000000",
+      "var_01JFOREIGNVARIANT0000000000",
+    );
+    await seedDeployedRelease("release-cart-disabled", ids.product, ids.variant, "disabled");
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-release-bound-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    const added = await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({
+          quantity: 1,
+          releaseId: "release-cart-b",
+          variantId: ids.variant,
+        }),
+        headers: {
+          "Idempotency-Key": "cart-add-release-bound-001",
+          "X-Preview-Catalog-Release": "release-cart-a",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(added.status).toBe(200);
+
+    const conflict = await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: {
+          "Idempotency-Key": "cart-add-release-conflict-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ error: { code: "cart_release_conflict" } });
+
+    const switchedSessionRequests = [
+      cartRequest("/cart", data.token, {
+        headers: { "X-Preview-Catalog-Release": "release-cart-b" },
+      }),
+      cartRequest(`/cart/lines/${ids.variant}`, data.token, {
+        body: JSON.stringify({ quantity: 2 }),
+        headers: {
+          "Idempotency-Key": "cart-release-switch-update-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "PATCH",
+      }),
+      cartRequest(`/cart/lines/${ids.variant}`, data.token, {
+        headers: {
+          "Idempotency-Key": "cart-release-switch-delete-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "DELETE",
+      }),
+      cartRequest("/cart/shipping", data.token, {
+        body: JSON.stringify({
+          shippingAddress: {
+            city: "Portland",
+            countryCode: "US",
+            line1: "100 Market Street",
+            name: "Example Shopper",
+            postalCode: "97205",
+            region: "OR",
+          },
+        }),
+        headers: {
+          "Idempotency-Key": "cart-release-switch-shipping-1",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "PUT",
+      }),
+    ];
+    for (const request of switchedSessionRequests) {
+      const response = await app.fetch(request, env);
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        error: { code: "cart_release_conflict" },
+      });
+    }
+    const retained = await app.fetch(
+      cartRequest("/cart", data.token, {
+        headers: { "X-Preview-Catalog-Release": "release-cart-a" },
+      }),
+      env,
+    );
+    expect(await retained.json()).toMatchObject({
+      data: { lines: [{ quantity: 1 }], shippingAddress: null },
+    });
+
+    const foreign = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-foreign-release-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const foreignCart = await foreign.json<{ data: { token: string } }>();
+    const rejected = await app.fetch(
+      cartRequest("/cart/lines", foreignCart.data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: {
+          "Idempotency-Key": "cart-add-foreign-variant-01",
+          "X-Preview-Catalog-Release": "release-cart-b",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(rejected.status).toBe(422);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "catalog_variant_not_in_release" },
+    });
+
+    const disabled = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-disabled-release-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const disabledCart = await disabled.json<{ data: { token: string } }>();
+    const disabledVariant = await app.fetch(
+      cartRequest("/cart/lines", disabledCart.data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: {
+          "Idempotency-Key": "cart-add-disabled-variant-01",
+          "X-Preview-Catalog-Release": "release-cart-disabled",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(disabledVariant.status).toBe(422);
+    expect(await disabledVariant.json()).toMatchObject({
+      error: { code: "catalog_variant_not_in_release" },
+    });
+  });
+
   test("creates, resumes, mutates, and safely replays one opaque-token cart", async () => {
+    await seedDeployedRelease("release-static-001");
     const app = createApp();
     const createdResponse = await app.fetch(
       cartRequest("/cart", undefined, {
@@ -173,6 +507,7 @@ describe("guest cart authority", () => {
   });
 
   test("makes stale price explicit and requires acknowledgement", async () => {
+    await seedDeployedRelease("stale-release");
     const app = createApp();
     const response = await app.fetch(
       cartRequest("/cart", undefined, {
@@ -394,6 +729,90 @@ describe("guest cart authority", () => {
     expect(unsupported.status).toBe(422);
     expect(await unsupported.json()).toMatchObject({
       error: { code: "shipping_destination_unavailable" },
+    });
+  });
+
+  test("selects and persists the first eligible configured method for an optionless quote", async () => {
+    await env.DB.prepare(
+      `INSERT INTO settings (key, value_json, updated_at)
+       VALUES ('launch_configuration', ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
+    )
+      .bind(
+        JSON.stringify({
+          defaultCurrency: "USD",
+          legalApproved: true,
+          orderNumberPrefix: "SHOP",
+          oversellPolicy: "deny",
+          paymentMode: "test",
+          paymentProvider: "stripe",
+          policies: {
+            contact: "https://shop.example.test/contact",
+            cookies: "https://shop.example.test/cookies",
+            privacy: "https://shop.example.test/privacy",
+            returns: "https://shop.example.test/returns",
+            shipping: "https://shop.example.test/shipping",
+            terms: "https://shop.example.test/terms",
+          },
+          privacyContactEmail: "privacy@example.test",
+          providerConfigured: true,
+          reservationTtlMinutes: 15,
+          sellableCurrencies: ["USD"],
+          shippingCountries: ["US"],
+          shippingMethodIds: [ids.free, ids.weight, ids.flat],
+          supportEmail: "support@example.test",
+          taxMode: "zero",
+          webhookConfigured: true,
+        }),
+        now,
+      )
+      .run();
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-default-ship-1" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    await app.fetch(
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({ quantity: 1, variantId: ids.variant }),
+        headers: { "Idempotency-Key": "cart-default-ship-line-1" },
+        method: "POST",
+      }),
+      env,
+    );
+
+    const response = await app.fetch(
+      cartRequest("/cart/shipping", data.token, {
+        body: JSON.stringify({
+          shippingAddress: {
+            city: "Portland",
+            countryCode: "US",
+            line1: "100 Market Street",
+            name: "Example Shopper",
+            postalCode: "97205",
+          },
+        }),
+        headers: { "Idempotency-Key": "cart-default-ship-quote-1" },
+        method: "PUT",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: {
+        selectedShippingMethodId: ids.free,
+        shippingMethods: [{ id: ids.free }, { id: ids.weight }, { id: ids.flat }],
+        totals: { grandTotal: 12_900, shippingTotal: 0 },
+      },
+    });
+    expect(await env.DB.prepare("SELECT shipping_method_id FROM carts LIMIT 1").first()).toEqual({
+      shipping_method_id: ids.free,
     });
   });
 

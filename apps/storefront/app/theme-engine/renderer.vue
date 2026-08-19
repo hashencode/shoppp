@@ -1,29 +1,24 @@
 <script setup lang="ts">
-import type { FixtureBinding, PageTemplate } from "@shoppp/contracts";
+import type { PageTemplate } from "@shoppp/contracts";
 
 import type { ThemeAssetResolver } from "./assets";
-import { previewActionAdapterKey, type PreviewActionAdapter } from "./actions";
-import { previewCheckoutAdapterKey, type PreviewCheckoutAdapter } from "./checkout";
+import { storefrontActionAdapterKey, type StorefrontActionAdapter } from "./actions";
+import { storefrontCheckoutAdapterKey, type StorefrontCheckoutAdapter } from "./checkout";
 import { coreThemeRegistry } from "./core-registry";
+import type { PresentationProvider } from "./providers";
 import { composeThemeRegistries, renderTemplatePlan, type ThemeRegistry } from "./registry";
-import {
-  resolveFixtureBinding,
-  resolveFixtureViewModel,
-  type ExperienceFixtureRegistry,
-} from "./view-models";
 
 const properties = defineProps<{
-  actionAdapter: PreviewActionAdapter;
-  bindings: readonly FixtureBinding[];
-  fixtures: ExperienceFixtureRegistry;
+  actionAdapter?: StorefrontActionAdapter;
+  provider: PresentationProvider;
   registry: ThemeRegistry;
   resolveAsset: ThemeAssetResolver;
   template: PageTemplate;
-  checkoutAdapter: PreviewCheckoutAdapter;
+  checkoutAdapter?: StorefrontCheckoutAdapter;
 }>();
 
-provide(previewActionAdapterKey, properties.actionAdapter);
-provide(previewCheckoutAdapterKey, properties.checkoutAdapter);
+if (properties.actionAdapter) provide(storefrontActionAdapterKey, properties.actionAdapter);
+if (properties.checkoutAdapter) provide(storefrontCheckoutAdapterKey, properties.checkoutAdapter);
 
 const plan = computed(() =>
   renderTemplatePlan(
@@ -33,15 +28,9 @@ const plan = computed(() =>
     ...section,
     blocks: section.blocks.map((block) => ({
       ...block,
-      viewModel: resolveFixtureViewModel(
-        resolveFixtureBinding(block.instance.id, properties.bindings),
-        properties.fixtures,
-      ),
+      viewModel: properties.provider.resolve({ instanceId: block.instance.id }),
     })),
-    viewModel: resolveFixtureViewModel(
-      resolveFixtureBinding(section.instance.id, properties.bindings),
-      properties.fixtures,
-    ),
+    viewModel: properties.provider.resolve({ instanceId: section.instance.id }),
   })),
 );
 </script>

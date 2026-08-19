@@ -13,7 +13,7 @@ import { dirname, extname, join, normalize, posix, relative, resolve, sep } from
 import { pathToFileURL } from "node:url";
 import { format } from "prettier";
 
-export type StorefrontThemeId = "decor" | "fashion" | "fashion-store";
+export type StorefrontThemeId = "decor" | "fashion-store";
 export type StorefrontThemeAssetKind =
   "font" | "icon" | "image" | "markup" | "stylesheet" | "visual-runtime";
 
@@ -364,12 +364,7 @@ function sha256(contents: Uint8Array): string {
 }
 
 function upstreamMarkdown(source: StorefrontThemeSource): string {
-  const title =
-    source.themeId === "fashion-store"
-      ? "Fashion Store"
-      : source.themeId === "fashion"
-        ? "Fashion"
-        : "Decor";
+  const title = source.themeId === "fashion-store" ? "Fashion Store" : "Decor";
   if (source.themeId === "fashion-store") {
     return `# ${title} Theme Source Provenance
 
@@ -616,11 +611,11 @@ async function main(): Promise<void> {
   const themeId = argumentValue(arguments_, "--theme");
   if (
     !source ||
-    (themeId !== "fashion" && themeId !== "decor" && themeId !== "fashion-store") ||
+    (themeId !== "decor" && themeId !== "fashion-store") ||
     !arguments_.includes("--ownership-confirmed")
   ) {
     throw new Error(
-      "Usage: bun tools/import-storefront-theme.ts --source=<path> --theme=<fashion|decor|fashion-store> --ownership-confirmed",
+      "Usage: bun tools/import-storefront-theme.ts --source=<path> --theme=<decor|fashion-store> --ownership-confirmed",
     );
   }
   const root = process.cwd();

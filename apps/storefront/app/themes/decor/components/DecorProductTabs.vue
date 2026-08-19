@@ -2,6 +2,7 @@
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import { recordPreviewIntent } from "../../../theme-engine/actions";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
+import { useDecorRevealMotion } from "../composables/useDecorRevealMotion";
 interface Data {
   categories: string[];
   productGroups: {
@@ -22,6 +23,7 @@ const tabButtons = ref<HTMLButtonElement[]>([]);
 const savedProducts = ref(new Set<string>());
 const message = ref("");
 const shown = computed(() => data.value?.productGroups[active.value] ?? []);
+const revealRoot = useDecorRevealMotion(["product-tabs", "product-grid"]);
 async function selectAndFocus(index: number): Promise<void> {
   const count = data.value?.categories.length ?? 1;
   active.value = (index + count) % count;
@@ -72,8 +74,15 @@ function addToPreviewBag(product: Data["productGroups"][number][number]): void {
 }
 </script>
 <template>
-  <section v-if="data" id="decor-products" class="decor-products">
-    <header>
+  <section
+    v-if="data"
+    id="decor-products"
+    ref="revealRoot"
+    class="decor-products"
+    data-source-reveal="product-tabs"
+    data-reveal-state="pending"
+  >
+    <header data-reveal-group="product-tabs" data-reveal-item>
       <div role="tablist" aria-label="Product groups">
         <button
           v-for="(category, index) in data.categories"
@@ -96,11 +105,17 @@ function addToPreviewBag(product: Data["productGroups"][number][number]): void {
     <div
       id="decor-product-panel"
       class="decor-product-grid"
+      data-reveal-group="product-grid"
       role="tabpanel"
       :aria-labelledby="`decor-tab-${active}`"
       tabindex="0"
     >
-      <article v-for="product in shown" :key="product.assetId" class="decor-product-card">
+      <article
+        v-for="product in shown"
+        :key="product.assetId"
+        class="decor-product-card"
+        data-reveal-item
+      >
         <div class="decor-product-box">
           <div class="decor-product-media">
             <NuxtLink

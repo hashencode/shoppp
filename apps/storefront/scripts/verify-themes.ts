@@ -10,13 +10,11 @@ import { extname, resolve } from "node:path";
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
 import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
 import { decorPreset } from "../app/themes/decor/presets/layered";
-import { fashionManifest, fashionThemeDescriptor } from "../app/themes/fashion/manifest";
 import {
   fashionStoreManifest,
   fashionStoreThemeDescriptor,
 } from "../app/themes/fashion-store/manifest";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
-import { fashionPreset } from "../app/themes/fashion/presets/editorial";
 
 export const STOREFRONT_PLATFORM_CONTRACT_VERSION = "1.0.0";
 export const REQUIRED_STOREFRONT_PAGE_TYPES = [
@@ -55,13 +53,6 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
     descriptor: decorThemeDescriptor,
     migrations: [],
     package: { manifest: decorManifest, presets: [decorPreset] },
-    requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
-  },
-  {
-    assetPolicy: "binary-only",
-    descriptor: fashionThemeDescriptor,
-    migrations: [],
-    package: { manifest: fashionManifest, presets: [fashionPreset] },
     requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
   },
 ];

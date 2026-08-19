@@ -25,6 +25,196 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("upgrades referenced storefront validations through 0019 without losing legacy uniqueness", async () => {
+    const db = env.STOREFRONT_VALIDATION_UPGRADE_DB;
+    const migrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
+      name.endsWith("0019_storefront_validation_catalog_identity.sql"),
+    );
+    expect(migrationIndex).toBeGreaterThan(0);
+    expect(
+      (await db.prepare("SELECT COUNT(*) AS count FROM d1_migrations").first<{ count: number }>())
+        ?.count,
+    ).toBe(migrationIndex);
+
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO admin_identities
+             (id, principal_kind, access_subject, normalized_email, display_name, role_id,
+              enabled, version, created_at, updated_at)
+           VALUES ('admin-validation-upgrade', 'human', 'validation-upgrade',
+                   'validation-upgrade@example.test', 'Validation Upgrade', 'role_admin',
+                   1, 1, ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_drafts
+             (id, experience_id, theme_id, theme_version, configuration_schema_version,
+              preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+              created_at, updated_at)
+           VALUES ('draft-validation-upgrade', 'experience-validation-upgrade', 'synthetic',
+                   '1.0.0', 1, 'editorial', '[]', '[]', 1, 'admin-validation-upgrade',
+                   'admin-validation-upgrade', ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO catalog_releases
+             (id, status, manifest_json, approved_by, approved_at, created_at, updated_at)
+           VALUES ('release-validation-upgrade-a', 'approved', '{}',
+                   'admin-validation-upgrade', ?, ?, ?),
+                  ('release-validation-upgrade-b', 'approved', '{}',
+                   'admin-validation-upgrade', ?, ?, ?)`,
+        )
+        .bind(NOW, NOW, NOW, NOW, NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_validations
+             (id, draft_id, draft_version, status, issues_json, resolved_templates_json,
+              validated_by, created_at)
+           VALUES ('validation-upgrade', 'draft-validation-upgrade', 1, 'valid', '[]', '[]',
+                   'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_snapshots
+             (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
+              source_validation_id, kind, theme_id, theme_version,
+              configuration_schema_version, snapshot_json, created_by, created_at)
+           VALUES ('snapshot-validation-upgrade', 'draft-validation-upgrade:1:preview',
+                   'experience-validation-upgrade', 'draft-validation-upgrade', 1,
+                   'validation-upgrade', 'preview', 'synthetic', '1.0.0', 1, '{}',
+                   'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_preview_builds
+             (id, snapshot_id, attempt, status, created_at, updated_at)
+           VALUES ('build-validation-upgrade', 'snapshot-validation-upgrade', 1, 'pending',
+                   ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_preview_grants
+             (id, snapshot_id, build_id, grant_digest, origin, expires_at, created_by,
+              created_at)
+           VALUES ('grant-validation-upgrade', 'snapshot-validation-upgrade',
+                   'build-validation-upgrade', 'grant-validation-upgrade-digest',
+                   'https://preview.example.test', ?, 'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_preview_sessions
+             (id, snapshot_id, build_id, session_digest, origin, expires_at, created_at)
+           VALUES ('session-validation-upgrade', 'snapshot-validation-upgrade',
+                   'build-validation-upgrade', 'session-validation-upgrade-digest',
+                   'https://preview.example.test', ?, ?)`,
+        )
+        .bind(NOW, NOW),
+    ]);
+
+    await applyD1Migrations(db, env.TEST_MIGRATIONS);
+
+    expect(
+      await db
+        .prepare(
+          `SELECT snapshot.source_validation_id AS validationId,
+                  validation.catalog_release_id AS catalogReleaseId
+             FROM storefront_experience_snapshots snapshot
+             JOIN storefront_experience_validations validation
+               ON validation.id = snapshot.source_validation_id
+            WHERE snapshot.id = 'snapshot-validation-upgrade'`,
+        )
+        .first(),
+    ).toEqual({ validationId: "validation-upgrade", catalogReleaseId: null });
+    expect(
+      await db
+        .prepare(
+          `SELECT media_origins_json AS mediaOriginsJson
+             FROM storefront_preview_builds
+            WHERE id = 'build-validation-upgrade'`,
+        )
+        .first(),
+    ).toEqual({ mediaOriginsJson: null });
+    await expect(
+      db
+        .prepare(
+          `UPDATE storefront_preview_builds
+              SET media_origins_json = '[]'
+            WHERE id = 'build-validation-upgrade'`,
+        )
+        .run(),
+    ).rejects.toThrow("immutable_storefront_preview_artifact");
+    expect(
+      await db
+        .prepare(
+          `SELECT grant.id AS grantId, session.id AS sessionId
+             FROM storefront_preview_grants grant
+             JOIN storefront_preview_sessions session
+               ON session.snapshot_id = grant.snapshot_id
+              AND session.build_id = grant.build_id
+            WHERE grant.id = 'grant-validation-upgrade'`,
+        )
+        .first(),
+    ).toEqual({
+      grantId: "grant-validation-upgrade",
+      sessionId: "session-validation-upgrade",
+    });
+    expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
+    await expect(
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_validations
+             (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+              resolved_templates_json, validated_by, created_at)
+           VALUES ('validation-upgrade-duplicate', 'draft-validation-upgrade', 1, NULL,
+                   'valid', '[]', '[]', 'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW)
+        .run(),
+    ).rejects.toThrow("UNIQUE constraint failed");
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_validations
+             (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+              resolved_templates_json, validated_by, created_at)
+           VALUES ('validation-upgrade-release-a', 'draft-validation-upgrade', 1,
+                   'release-validation-upgrade-a', 'valid', '[]', '[]',
+                   'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW),
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_validations
+             (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+              resolved_templates_json, validated_by, created_at)
+           VALUES ('validation-upgrade-release-b', 'draft-validation-upgrade', 1,
+                   'release-validation-upgrade-b', 'valid', '[]', '[]',
+                   'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW),
+    ]);
+    await expect(
+      db
+        .prepare(
+          `INSERT INTO storefront_experience_validations
+             (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+              resolved_templates_json, validated_by, created_at)
+           VALUES ('validation-upgrade-release-a-duplicate', 'draft-validation-upgrade', 1,
+                   'release-validation-upgrade-a', 'valid', '[]', '[]',
+                   'admin-validation-upgrade', ?)`,
+        )
+        .bind(NOW)
+        .run(),
+    ).rejects.toThrow("UNIQUE constraint failed");
+  });
+
   test("migrates a fresh database and accepts a relational launch fixture", async () => {
     const tables = await env.DB.prepare(
       "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE '_cf_%' ORDER BY name",
@@ -191,7 +381,7 @@ describe("D1 migrations", () => {
            (id, experience_id, theme_id, theme_version, configuration_schema_version,
             preset_id, bindings_json, overrides_json, version, created_by, updated_by,
             created_at, updated_at)
-         VALUES ('draft-theme-test', 'experience-theme-test', 'fashion', '1.0.0', 1,
+         VALUES ('draft-theme-test', 'experience-theme-test', 'synthetic', '1.0.0', 1,
                  'editorial', '[]', '[]', 1, 'admin_theme_test', 'admin_theme_test', ?, ?)`,
       ).bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z"),
       env.DB.prepare(
@@ -207,7 +397,7 @@ describe("D1 migrations", () => {
             source_validation_id, kind, theme_id, theme_version,
             configuration_schema_version, snapshot_json, created_by, created_at)
          VALUES ('snapshot-theme-test', 'draft-theme-test:1:preview', 'experience-theme-test',
-                 'draft-theme-test', 1, 'validation-theme-test', 'preview', 'fashion',
+                 'draft-theme-test', 1, 'validation-theme-test', 'preview', 'synthetic',
                  '1.0.0', 1, '{}', 'admin_theme_test', ?)`,
       ).bind("2026-07-30T00:00:00.000Z"),
     ]);

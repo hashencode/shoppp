@@ -7,6 +7,8 @@ import CheckoutShipping from "~/features/checkout/shipping.vue";
 import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { storeOrderAccess } from "~/features/checkout/session";
 import { useGuestCart } from "~/features/cart/use-guest-cart";
+import { catalogRelease } from "~/generated/catalog";
+import { canonicalUrl } from "~/utils/seo";
 
 const { beginCheckout, busy, cart, ensure, error, shipping } = useGuestCart();
 const address = reactive<ShippingQuoteRequest["shippingAddress"]>({
@@ -29,7 +31,10 @@ const securityConfigurationError = ref("");
 const commerceApi = useCommerceApi();
 
 useSeoMeta({ title: "Checkout | Shoppp", robots: "noindex, nofollow" });
-useHead({ meta: [{ name: "referrer", content: "no-referrer" }] });
+useHead({
+  link: [{ rel: "canonical", href: canonicalUrl(catalogRelease.site.origin, "/checkout") }],
+  meta: [{ name: "referrer", content: "no-referrer" }],
+});
 onMounted(async () => {
   const [currentResult, configurationResult] = await Promise.allSettled([
     ensure(),

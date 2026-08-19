@@ -25,5 +25,12 @@
       "preview_database_id": "00000000-0000-0000-0000-000000000005",
       "migrations_dir": "migrations",
     },
+    {
+      "binding": "STOREFRONT_VALIDATION_UPGRADE_DB",
+      "database_name": "shoppp-storefront-validation-upgrade-test",
+      "database_id": "00000000-0000-0000-0000-000000000006",
+      "preview_database_id": "00000000-0000-0000-0000-000000000007",
+      "migrations_dir": "migrations",
+    },
   ],
 }

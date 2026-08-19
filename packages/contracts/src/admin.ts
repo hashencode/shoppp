@@ -9,7 +9,7 @@ import {
 import { guestOrderLineSchema, shippingAddressSchema } from "./checkout";
 import {
   blockDefinitionSchema,
-  fixtureBindingSchema,
+  experienceResourceBindingSchema,
   sectionDefinitionSchema,
   storefrontIdentifierSchema,
   storefrontSemverSchema,
@@ -661,14 +661,14 @@ export const adminStorefrontThemeSchema = z
         sections: z.array(sectionDefinitionSchema).max(60),
       })
       .strict(),
-    fixtureBindings: z.array(fixtureBindingSchema).max(100),
+    fixtureBindings: z.array(experienceResourceBindingSchema).max(100),
     presetDefinitions: z.array(themePresetSchema).min(1).max(20),
   })
   .strict();
 
 export const storefrontExperienceDraftInputSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     experienceId: storefrontIdentifierSchema,
     overrides: z.array(themeOverrideSchema).max(10),
     presetId: storefrontIdentifierSchema,
@@ -686,15 +686,21 @@ export const createStorefrontExperienceDraftRequestSchema = z
 
 export const updateStorefrontExperienceDraftRequestSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     expectedVersion: z.int().positive(),
     overrides: z.array(themeOverrideSchema).max(10),
     reason: experienceReasonSchema,
   })
   .strict();
 
+export const createStorefrontExperienceSuccessorRequestSchema =
+  updateStorefrontExperienceDraftRequestSchema.omit({ expectedVersion: true }).extend({
+    sourceVersion: z.int().positive(),
+  });
+
 export const validateStorefrontExperienceDraftRequestSchema = z
   .object({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     expectedVersion: z.int().positive(),
     reason: experienceReasonSchema,
   })
@@ -703,11 +709,14 @@ export const validateStorefrontExperienceDraftRequestSchema = z
 export const resolveStorefrontExperienceDraftRequestSchema =
   validateStorefrontExperienceDraftRequestSchema;
 
-export const approveStorefrontExperienceDraftRequestSchema = z
-  .object({
+export const approveStorefrontExperienceDraftRequestSchema =
+  validateStorefrontExperienceDraftRequestSchema.extend({
     confirm: z.literal(true),
-    expectedVersion: z.int().positive(),
-    reason: experienceReasonSchema,
+  });
+
+export const createStorefrontExperienceBuildRequestSchema = z
+  .object({
+    catalogReleaseId: z.string().trim().min(1).max(160),
   })
   .strict();
 
@@ -733,7 +742,9 @@ export const storefrontExperienceBuildResultSchema = z.discriminatedUnion("statu
   z
     .object({
       artifactDigest: z.string().regex(/^[a-f0-9]{64}$/),
-      artifactPrefix: z.string().regex(/^snapshots\/[a-z][a-z0-9-]{2,99}\/[a-f0-9]{64}$/),
+      artifactPrefix: z
+        .string()
+        .regex(/^snapshots\/[a-z][a-z0-9-]{2,99}\/(?:[A-Za-z0-9_-]{1,160}\/)?[a-f0-9]{64}$/),
       expiresAt: isoDateTimeSchema,
       status: z.literal("deployed"),
     })
@@ -748,9 +759,14 @@ export const storefrontExperienceBuildResultSchema = z.discriminatedUnion("statu
 
 export const createStorefrontPreviewGrantRequestSchema = z
   .object({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     origin: z.url().refine((value) => new URL(value).protocol === "https:"),
     reason: experienceReasonSchema,
   })
+  .strict();
+
+export const revokeStorefrontPreviewAccessRequestSchema = z
+  .object({ reason: experienceReasonSchema })
   .strict();
 
 export const redeemStorefrontPreviewGrantRequestSchema = z
@@ -809,11 +825,20 @@ export type ApproveStorefrontExperienceMigrationRequest = z.infer<
 export type CreateStorefrontExperienceDraftRequest = z.infer<
   typeof createStorefrontExperienceDraftRequestSchema
 >;
+export type CreateStorefrontExperienceBuildRequest = z.infer<
+  typeof createStorefrontExperienceBuildRequestSchema
+>;
+export type CreateStorefrontExperienceSuccessorRequest = z.infer<
+  typeof createStorefrontExperienceSuccessorRequestSchema
+>;
 export type CreateStorefrontPreviewGrantRequest = z.infer<
   typeof createStorefrontPreviewGrantRequestSchema
 >;
 export type RedeemStorefrontPreviewGrantRequest = z.infer<
   typeof redeemStorefrontPreviewGrantRequestSchema
+>;
+export type RevokeStorefrontPreviewAccessRequest = z.infer<
+  typeof revokeStorefrontPreviewAccessRequestSchema
 >;
 export type ResolveStorefrontExperienceDraftRequest = z.infer<
   typeof resolveStorefrontExperienceDraftRequestSchema

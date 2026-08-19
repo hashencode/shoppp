@@ -183,12 +183,21 @@ describe("catalog management and publishing", () => {
       "SELECT id, manifest_json FROM catalog_releases ORDER BY created_at DESC LIMIT 1",
     ).first<{ id: string; manifest_json: string }>();
     const manifest = JSON.parse(release!.manifest_json) as {
-      collections: Array<{ status: string }>;
-      products: Array<{ slug: string }>;
+      collections: Array<{ id: string; productIds: string[]; status: string }>;
+      products: Array<{ collectionIds: string[]; id: string; slug: string }>;
       routes: string[];
     };
-    expect(manifest.products).toEqual([expect.objectContaining({ slug: "carry-on-pro" })]);
-    expect(manifest.collections).toEqual([expect.objectContaining({ status: "published" })]);
+    expect(manifest.products).toEqual([
+      expect.objectContaining({ id: created.data.id, slug: "carry-on-pro" }),
+    ]);
+    expect(manifest.collections).toEqual([
+      expect.objectContaining({
+        id: expect.any(String),
+        productIds: [created.data.id],
+        status: "published",
+      }),
+    ]);
+    expect(manifest.products[0]?.collectionIds).toEqual([manifest.collections[0]?.id]);
     expect(manifest.routes).toContain("/products/carry-on-pro");
     const releaseResponse = await app.fetch(
       new Request(`https://api.example.test/build/catalog/releases/${release!.id}`, {
@@ -452,6 +461,145 @@ describe("catalog management and publishing", () => {
           .first<{ count: number }>()
       )?.count,
     ).toBe(1);
+  });
+
+  test("keeps Commerce product identity stable across slug and lifecycle changes", async () => {
+    const buildTrigger = vi.fn(async () => ({ correlationId: "identity-build-001" }));
+    const { app } = appFor("catalog-user", buildTrigger);
+    await uploadValidMedia(app);
+    const identityProduct = {
+      ...validProduct,
+      collections: [{ name: "Identity collection", slug: "identity-collection" }],
+      slug: "identity-original",
+    };
+    const created = await (
+      await app.fetch(productRequest(identityProduct), env)
+    ).json<{ data: { id: string } }>();
+    const originalProductId = created.data.id;
+
+    expect(
+      (
+        await app.fetch(
+          request(`/admin/catalog/products/${originalProductId}`, {
+            body: JSON.stringify({ ...identityProduct, slug: "identity-renamed" }),
+            headers: { "Content-Type": "application/json" },
+            method: "PUT",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    await env.DB.prepare("UPDATE products SET status = 'archived' WHERE id = ?")
+      .bind(originalProductId)
+      .run();
+    await env.DB.prepare("UPDATE products SET status = 'draft' WHERE id = ?")
+      .bind(originalProductId)
+      .run();
+    expect(
+      await env.DB.prepare("SELECT id, slug FROM products WHERE id = ?")
+        .bind(originalProductId)
+        .first(),
+    ).toEqual({ id: originalProductId, slug: "identity-renamed" });
+    const originalCollection = await env.DB.prepare(
+      "SELECT id FROM collections WHERE slug = 'identity-collection'",
+    ).first<{ id: string }>();
+    await env.DB.prepare(
+      "UPDATE collections SET slug = 'identity-collection-renamed', status = 'archived' WHERE id = ?",
+    )
+      .bind(originalCollection!.id)
+      .run();
+    await env.DB.prepare("UPDATE collections SET status = 'draft' WHERE id = ?")
+      .bind(originalCollection!.id)
+      .run();
+    expect(
+      await env.DB.prepare("SELECT id, slug FROM collections WHERE id = ?")
+        .bind(originalCollection!.id)
+        .first(),
+    ).toEqual({ id: originalCollection!.id, slug: "identity-collection-renamed" });
+
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM product_media WHERE product_id = ?").bind(originalProductId),
+      env.DB.prepare("DELETE FROM collection_products WHERE product_id = ?").bind(
+        originalProductId,
+      ),
+      env.DB.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(originalProductId),
+      env.DB.prepare(
+        "DELETE FROM prices WHERE variant_id IN (SELECT id FROM product_variants WHERE product_id = ?)",
+      ).bind(originalProductId),
+      env.DB.prepare("DELETE FROM product_variants WHERE product_id = ?").bind(originalProductId),
+      env.DB.prepare("DELETE FROM products WHERE id = ?").bind(originalProductId),
+      env.DB.prepare("DELETE FROM collections WHERE id = ?").bind(originalCollection!.id),
+    ]);
+    const recreated = await (
+      await app.fetch(
+        productRequest({
+          ...identityProduct,
+          collections: [{ name: "Identity collection", slug: "identity-collection-renamed" }],
+          slug: "identity-renamed",
+        }),
+        env,
+      )
+    ).json<{ data: { id: string } }>();
+    const productId = recreated.data.id;
+    expect(productId).not.toBe(originalProductId);
+    const recreatedCollection = await env.DB.prepare(
+      "SELECT id FROM collections WHERE slug = 'identity-collection-renamed'",
+    ).first<{ id: string }>();
+    expect(recreatedCollection!.id).not.toBe(originalCollection!.id);
+    expect(
+      (
+        await app.fetch(
+          request(`/admin/catalog/products/${productId}`, {
+            body: JSON.stringify({
+              ...identityProduct,
+              collections: [{ name: "Identity collection", slug: "identity-collection-renamed" }],
+              slug: "identity-final",
+            }),
+            headers: { "Content-Type": "application/json" },
+            method: "PUT",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    await env.DB.prepare(
+      "UPDATE collections SET slug = 'identity-collection-final', status = 'archived' WHERE id = ?",
+    )
+      .bind(recreatedCollection!.id)
+      .run();
+    await env.DB.prepare("UPDATE collections SET status = 'draft' WHERE id = ?")
+      .bind(recreatedCollection!.id)
+      .run();
+    await env.DB.prepare("UPDATE products SET status = 'archived' WHERE id = ?")
+      .bind(productId)
+      .run();
+    await env.DB.prepare("UPDATE products SET status = 'draft' WHERE id = ?").bind(productId).run();
+
+    const publish = await app.fetch(
+      request(`/admin/catalog/products/${productId}/publish`, {
+        body: JSON.stringify({ reason: "Identity publication" }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "publish-identity-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(publish.status).toBe(202);
+    const release = await env.DB.prepare(
+      "SELECT manifest_json FROM catalog_releases ORDER BY created_at DESC LIMIT 1",
+    ).first<{ manifest_json: string }>();
+    const manifest = JSON.parse(release!.manifest_json);
+    expect(manifest.products[0]).toMatchObject({
+      collectionIds: [recreatedCollection!.id],
+      id: productId,
+    });
+    expect(manifest.collections[0]).toMatchObject({
+      id: recreatedCollection!.id,
+      productIds: [productId],
+      slug: "identity-collection-final",
+    });
   });
 
   test("allows a view-only operator to read but denies and audits mutation", async () => {

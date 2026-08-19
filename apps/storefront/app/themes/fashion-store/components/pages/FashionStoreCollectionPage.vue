@@ -6,6 +6,7 @@ import type { FashionStoreShopData } from "../../fixtures/pages/shop";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStorePageTitle from "../shared/FashionStorePageTitle.vue";
+import FashionStoreLiveCatalog from "../shared/FashionStoreLiveCatalog.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 import FashionStoreShopPage from "./FashionStoreShopPage.vue";
 
@@ -32,7 +33,16 @@ function sourceAsset(sourcePath: string): string {
 </script>
 
 <template>
-  <FashionStoreShopPage v-if="!isLanding" :resolve-asset="resolveAsset" :view-model="viewModel" />
+  <FashionStoreLiveCatalog
+    v-if="viewModel.kind === 'collection-grid'"
+    :resolve-asset="resolveAsset"
+    :view-model="viewModel"
+  />
+  <FashionStoreShopPage
+    v-else-if="!isLanding"
+    :resolve-asset="resolveAsset"
+    :view-model="viewModel"
+  />
   <FashionStoreShell
     v-else
     :announcement="data.announcement"

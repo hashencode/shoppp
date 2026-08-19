@@ -1180,7 +1180,7 @@ export async function captureFashionNamedStates(options: {
         results,
         sourceUrl: options.sourceUrl,
         implementationThemeId,
-        referenceThemeId: "fashion",
+        referenceThemeId: "fashion-store-source",
         state: `${selection.evidenceThemeId}-named-states`,
         themeId: selection.evidenceThemeId,
         viewports: themeViewports,

@@ -1,26 +1,7 @@
-import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
+import type { FashionStoreLegacyCheckoutData } from "../../contracts/checkout";
 
-export interface FashionStoreCheckoutData {
-  action: PreviewAction;
-  announcement: string;
-  countries: readonly { code: string; label: string }[];
-  lines: readonly {
-    color: string;
-    name: string;
-    quantity: number;
-    total: string;
-    variantId: string;
-  }[];
-  payment: readonly {
-    detail: string;
-    id: string;
-    label: string;
-    sourceImage?: string;
-  }[];
-  shipping: readonly { amount: string; id: string; label: string }[];
-  totals: { subtotal: string; tax: string; total: string };
-}
+export type FashionStoreCheckoutData = FashionStoreLegacyCheckoutData;
 
 export const fashionStoreCheckoutData = {
   action: {

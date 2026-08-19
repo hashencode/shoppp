@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { previewActionAdapterKey, recordPreviewIntent } from "../../../../theme-engine/actions";
+import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import {
@@ -39,11 +39,12 @@ const cartBusy = ref(false);
 const optionUpdateCount = ref(0);
 const reviewAttemptCount = ref(0);
 const previewIntentCount = ref(0);
+const previewNotice = ref("");
 const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
 const thumbnailTrack = ref<HTMLElement | null>(null);
 const thumbnailStep = ref(0);
 const thumbnailHorizontal = ref(false);
-const actionAdapter = inject(previewActionAdapterKey);
+const actionAdapter = inject(storefrontActionAdapterKey);
 let galleryTimer: ReturnType<typeof setInterval> | undefined;
 let touchStartX = 0;
 
@@ -145,11 +146,13 @@ async function addToCart(): Promise<void> {
   if (cartBusy.value) return;
   recordPreviewIntent(data.value.actions.cart, "fashion-store.product.cart");
   previewIntentCount.value += 1;
+  if (!actionAdapter) {
+    previewNotice.value = "Preview cart intent recorded. No Commerce cart was changed.";
+    return;
+  }
   cartBusy.value = true;
   try {
-    if (!actionAdapter) throw new Error("Preview action adapter unavailable");
     await actionAdapter({
-      action: data.value.actions.cart,
       context: "fashion-store.product.cart",
       currency: "USD",
       input: buildFashionStoreProductCartRequest(
@@ -170,6 +173,7 @@ async function addToCart(): Promise<void> {
 function recordAction(kind: "compare" | "question" | "share" | "wishlist"): void {
   recordPreviewIntent(data.value.actions[kind], `fashion-store.product.${kind}`);
   previewIntentCount.value += 1;
+  previewNotice.value = `${data.value.actions[kind].label} recorded as preview-only state.`;
 }
 
 function activateTab(index: number): void {
@@ -233,6 +237,9 @@ onBeforeUnmount(() => {
       :data-preview-intent-count="previewIntentCount"
       :data-review-attempt-count="reviewAttemptCount"
     >
+      <p v-if="previewNotice" class="sr-only" role="status" aria-live="polite">
+        {{ previewNotice }}
+      </p>
       <section
         class="top-space-margin bg-gradient-very-light-gray pt-20px pb-20px ps-45px pe-45px sm-ps-15px sm-pe-15px"
       >
@@ -533,31 +540,26 @@ onBeforeUnmount(() => {
                   >Guarantee safe and secure checkout</span
                 >
                 <div class="fashion-product-payments">
-                  <a
+                  <span
                     v-for="(payment, index) in data.payments"
                     :key="payment"
-                    href="#"
                     :aria-label="`Payment method ${index + 1}`"
-                    @click.prevent
                     ><img
                       :src="sourceAsset(payment)"
                       class="h-30px"
                       :class="{ 'me-5px mb-5px': payment !== data.payments.at(-1) }"
                       alt=""
-                  /></a>
+                  /></span>
                 </div>
               </div>
               <div>
                 <div class="w-100 d-block">
                   <span class="text-dark-gray alt-font fw-500">Category:</span>
-                  <a href="#" @click.prevent>Fashion,</a>
-                  <a href="#" @click.prevent>Woman</a>
+                  <span>Fashion, Woman</span>
                 </div>
                 <div>
                   <span class="text-dark-gray alt-font fw-500">Tags: </span
-                  ><a href="#" @click.prevent>Shirts,</a>
-                  <a href="#" @click.prevent>Cotton,</a>
-                  <a href="#" @click.prevent>Printed</a>
+                  ><span>Shirts, Cotton, Printed</span>
                 </div>
               </div>
             </div>
@@ -803,10 +805,8 @@ onBeforeUnmount(() => {
                               <i class="bi bi-star-fill"></i>{{ index < 5 ? " " : "" }}
                             </template>
                           </span>
-                          <a
-                            href="#"
+                          <span
                             class="w-65px bg-light-red border-radius-15px fs-13 text-dark-gray fw-600 text-center position-absolute sm-position-relative d-inline-block d-md-block right-0px top-0px"
-                            @click.prevent
                             ><i
                               :class="
                                 review.author === 'Colene landin'
@@ -815,24 +815,23 @@ onBeforeUnmount(() => {
                               "
                               class="text-red me-5px"
                             ></i
-                            ><span>{{ ["08", "06", "00"][reviewIndex] }}</span></a
+                            ><span>{{ ["08", "06", "00"][reviewIndex] }}</span></span
                           >
                           <p class="w-85 sm-w-100 sm-mt-15px">{{ review.text }}</p>
                         </div>
                       </div>
                     </div>
                     <div class="col-12 last-paragraph-no-margin text-center">
-                      <a
-                        href="#"
+                      <span
                         class="btn btn-link btn-hover-animation-switch btn-extra-large text-dark-gray"
-                        @click.prevent
+                        aria-disabled="true"
                       >
                         <span>
                           <span class="btn-text">Show more reviews</span>
                           <span class="btn-icon"><i class="fa-solid fa-chevron-down"></i></span>
                           <span class="btn-icon"><i class="fa-solid fa-chevron-down"></i></span>
                         </span>
-                      </a>
+                      </span>
                     </div>
                   </div>
                   <div class="row justify-content-center">

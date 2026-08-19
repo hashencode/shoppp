@@ -17,7 +17,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
 
-async function fixture(themeId: "decor" | "fashion"): Promise<string> {
+async function fixture(themeId: "decor" | "fashion-store-source"): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "shoppp-reference-capture-"));
   roots.push(root);
   const config = referenceCaptureConfigs[themeId];
@@ -28,11 +28,12 @@ async function fixture(themeId: "decor" | "fashion"): Promise<string> {
 }
 
 describe("reference source validation", () => {
-  test("keeps the Fashion source identity distinct from Fashion Store", () => {
-    expect(resolveReferenceCaptureConfig("fashion")).toMatchObject({
+  test("keeps the Fashion Store source identity distinct from Fashion Store", () => {
+    expect(resolveReferenceCaptureConfig("fashion-store-source")).toMatchObject({
       entry: "demo-fashion-store.html",
-      themeId: "fashion",
+      themeId: "fashion-store-source",
     });
+    expect(() => resolveReferenceCaptureConfig("fashion")).toThrow("Unsupported reference theme");
     expect(() => resolveReferenceCaptureConfig("fashion-store")).toThrow("implementation identity");
   });
   test("captures every approved fidelity width with stable viewport identities", () => {
@@ -44,7 +45,7 @@ describe("reference source validation", () => {
     ]);
   });
 
-  test.each(["fashion", "decor"] as const)(
+  test.each(["fashion-store-source", "decor"] as const)(
     "accepts the approved %s entry and first hero",
     async (themeId) => {
       const root = await fixture(themeId);
@@ -58,8 +59,8 @@ describe("reference source validation", () => {
   );
 
   test("fails clearly when the entry point, first hero, or expected reference is missing", async () => {
-    const root = await fixture("fashion");
-    const config = referenceCaptureConfigs.fashion;
+    const root = await fixture("fashion-store-source");
+    const config = referenceCaptureConfigs["fashion-store-source"];
     await rm(join(root, config.firstHero));
     await expect(validateReferenceSource(root, config)).rejects.toThrow(
       "expected first hero is missing",
@@ -76,8 +77,8 @@ describe("reference source validation", () => {
   });
 
   test("rejects an implementation-owned reference root and a mismatched source digest", async () => {
-    const sourceRoot = await fixture("fashion");
-    const config = referenceCaptureConfigs.fashion;
+    const sourceRoot = await fixture("fashion-store-source");
+    const config = referenceCaptureConfigs["fashion-store-source"];
     const entry = await Bun.file(join(sourceRoot, config.entry)).arrayBuffer();
     const digest = new Bun.CryptoHasher("sha256").update(entry).digest("hex");
 

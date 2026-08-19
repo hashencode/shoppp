@@ -6,14 +6,10 @@ import "./upstream/demos/fashion-store/fashion-store.css";
 import "./integration.css";
 import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import FashionStoreHome from "./components/FashionStoreHome.vue";
-import { fashionStoreHomeFixtures } from "./fixtures/home";
-import { fashionStoreCartFixtures } from "./fixtures/pages/cart";
-import { fashionStoreCheckoutFixtures } from "./fixtures/pages/checkout";
-import { fashionStoreContentFixtures } from "./fixtures/pages/content";
-import { fashionStoreShopFixtures } from "./fixtures/pages/shop";
-import { fashionStoreProductFixtures } from "./fixtures/pages/product";
-import { fashionStoreEnabledPageContracts } from "./page-contracts";
+import { fashionStoreCompositionAdapter } from "./composition";
+import FashionStoreLiveHomePage from "./components/FashionStoreLiveHomePage.vue";
+import FashionStoreShell from "./components/shared/FashionStoreShell.vue";
+import { fashionStoreThemeRoutes } from "./page-contracts";
 import { themeAssets } from "./resources";
 
 const FashionStoreCheckoutPage = defineAsyncComponent(
@@ -23,19 +19,21 @@ const FashionStoreCartPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreCartPage.vue"),
 );
 const FashionStoreCollectionPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreCollectionPage.vue"),
+  () => import("./components/pages/FashionStoreLiveCollectionPage.vue"),
 );
 const FashionStoreContentPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreContentPage.vue"),
+  () => import("./components/pages/FashionStoreLiveContentPage.vue"),
 );
 const FashionStoreProductPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreProductPage.vue"),
+  () => import("./components/pages/FashionStoreLiveProductPage.vue"),
 );
 
 export const themeRegistry = {
   blocks: {},
+  composition: fashionStoreCompositionAdapter,
+  platformShell: FashionStoreShell,
   sections: {
-    "fashion-store.home": FashionStoreHome,
+    "fashion-store.home": FashionStoreLiveHomePage,
     "fashion-store.cart": FashionStoreCartPage,
     "fashion-store.checkout": FashionStoreCheckoutPage,
     "fashion-store.collection": FashionStoreCollectionPage,
@@ -45,12 +43,4 @@ export const themeRegistry = {
 } as const satisfies ThemeRegistry;
 
 export { themeAssets };
-export const themeFixtures = {
-  ...fashionStoreCartFixtures,
-  ...fashionStoreCheckoutFixtures,
-  ...fashionStoreContentFixtures,
-  ...fashionStoreHomeFixtures,
-  ...fashionStoreProductFixtures,
-  ...fashionStoreShopFixtures,
-};
-export const themeRoutes = fashionStoreEnabledPageContracts;
+export const themeRoutes = fashionStoreThemeRoutes;

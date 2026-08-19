@@ -18,7 +18,7 @@ deepened: 2026-08-05
 - **Product authority:** The actual branch tips and both dirty worktrees observed on 2026-08-05 are the implementation source of truth. Existing feature plans explain original intent, but later code and the user's confirmed authority order override stale plan statements, especially the earlier Cloudflare Access authentication model.
 - **Execution profile:** Freeze all current work first, integrate dependency layers in a clean local branch, resolve conflicts by named semantic authority, then run targeted and full-repository gates before any local cleanup.
 - **Stop conditions:** Stop before integrating if a dirty state lacks a recoverable local reference; stop on ambiguous auth, IAM, database migration, release-policy, or source-license semantics; stop before cleanup if any required validation fails, a source branch is not provably contained, or a worktree is not clean.
-- **Tail ownership:** The executor owns local commits, integration, conflict resolution, tests, documentation alignment, and validated local cleanup. It must not push, merge or close GitHub pull requests, delete remote branches, deploy, or mutate shared remote data.
+- **Tail ownership:** The executor owns local commits, integration, conflict resolution, tests, documentation alignment, and validated local cleanup. It must not push, modify remote refs, deploy, or mutate shared remote data.
 
 ---
 
@@ -40,7 +40,7 @@ A naive merge or whole-file conflict choice could therefore compile while silent
 ### Actors
 
 - A1. **Integrator:** Freezes source states, performs dependency-ordered integration, resolves conflicts using the authority rules, and records verification evidence.
-- A2. **Repository maintainer:** Reviews the resulting local branch and decides later whether and how to update remote pull requests.
+- A2. **Repository maintainer:** Reviews the resulting local branch and decides later whether and how to publish it.
 - A3. **Admin operator:** Must retain password login, account recovery, IAM management, authorization, and language selection after integration.
 - A4. **Theme operator:** Must retain theme catalog, editor, preview, approval, and theme-specific permission behavior.
 - A5. **Storefront shopper and reviewer:** Must retain Fashion/Decor routes, interactions, accessibility, fidelity, and static-output behavior.
@@ -69,7 +69,7 @@ A naive merge or whole-file conflict choice could therefore compile while silent
 
 - R13. Targeted auth/IAM, theme, Fashion/Decor, Admin internationalization, contract, worker, static-output, and route tests must pass before the full repository gates run.
 - R14. The final integration branch must pass formatting, lint, types, unit/contract tests, worker tests, builds, static verification, theme/source-equivalence gates, applicable browser journeys, accessibility/performance checks, and release-validation-compatible cleanliness.
-- R15. Local worktrees and branches may be removed only after their intended changes are contained in the verified integration branch, their filesystem state is clean, and recovery references remain available; remote branches and pull requests remain untouched.
+- R15. Local worktrees and branches may be removed only after their intended changes are contained in the verified integration branch, their filesystem state is clean, and recovery references remain available; shared remote state remains untouched.
 
 ### Key Flows
 
@@ -143,7 +143,7 @@ A naive merge or whole-file conflict choice could therefore compile while silent
 
 ### Scope Boundaries
 
-- No push, force-push, pull-request merge/close/delete, remote branch deletion, deployment, or shared database mutation.
+- No push, force-push, remote-ref modification, deployment, or shared database mutation.
 - No redesign of auth, IAM, theme architecture, or storefront visuals beyond resolving their integration and compatibility gaps.
 - No blanket retention of all generated screenshots and no blanket deletion of unclassified artifacts.
 - No attempt to integrate the unrelated AI-assisted product form plan in this effort.
@@ -160,7 +160,7 @@ The 2026-08-04 multi-user plan's Cloudflare Access text is historical rather tha
 ### Key Technical Decisions
 
 - KTD1. **Freeze before integration.** Source work becomes named, inspectable local commits or equivalent durable references before its worktree changes, because synthetic merge tests alone do not preserve untracked files.
-- KTD2. **Use a fresh local integration branch from `origin/main` rather than turning either feature branch into the merge destination.** The cross-border tip is then incorporated as the first feature layer. This preserves existing PR branch tips, makes the authority order visible, and prevents local consolidation from silently rewriting remote review history.
+- KTD2. **Use a fresh local integration branch from `origin/main` rather than turning either feature branch into the merge destination.** The cross-border tip is then incorporated as the first feature layer. This preserves existing feature-branch tips, makes the authority order visible, and prevents local consolidation from silently rewriting published history.
 - KTD3. **Integrate by dependency and semantic authority, not by timestamp or whole-side conflict selection.** Cross-border provides the base; password/IAM owns auth and trust; theme owns theme capabilities; Fashion/Decor owns presentation and fidelity; i18n owns translated presentation only.
 - KTD4. **Preserve ancestry where it is useful, but forward-port dirty snapshots explicitly.** Committed feature lines can be merged as historical units; dirty source work is first isolated on dedicated local branches so its latest content can be applied and audited without depending on a disappearing worktree.
 - KTD5. **Resolve the IAM/theme intersection as a union.** Permission catalogs, contracts, API composition, Worker bindings, route guards, Playwright settings, and trust-boundary docs must include both capabilities, while all human-admin identity claims use the password/session model.
@@ -379,7 +379,7 @@ U6 is last because it touches current Admin structure across auth, IAM, routes, 
 - **Test scenarios:**
   - A dirty or non-contained source refuses cleanup.
   - Remaining worktree paths resolve to expected branches and no stale administrative entry remains.
-  - Existing remote refs and PR branches are byte-for-byte unchanged.
+  - Existing remote refs are byte-for-byte unchanged.
 - **Verification:** Worktree listing contains only the intended active checkout(s), local branch listing contains no provably redundant integrated source branches selected for cleanup, and recovery references remain inspectable.
 
 ---
@@ -422,7 +422,7 @@ Credential-dependent staging or production gates are never simulated with invent
 - Fashion and Decor source-equivalence behavior, assets, routes, interactions, evidence policy, accessibility, and performance gates remain intact.
 - Both Admin locales cover current password, IAM, theme, route, and common UI surfaces while preserving authorization behavior.
 - All applicable verification gates pass; any credential-dependent production validation remains explicitly external and no fake deployment evidence is created.
-- No remote branch, pull request, deployment, or shared database was changed.
+- No remote ref, deployment, or shared database was changed.
 - Redundant local worktrees and only provably contained local branches are removed; retained safety references are documented and inspectable.
 - No merge markers, abandoned conflict variants, dead-end integration adapters, obsolete generated output, IDE metadata, or unclassified bulk artifacts remain in the integrated diff.
 

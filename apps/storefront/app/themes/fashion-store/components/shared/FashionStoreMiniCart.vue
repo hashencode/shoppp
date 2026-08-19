@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
+import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
+import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import {
+  formatCommerceMoney,
+  liveCommerceModeKey,
+} from "../../../../theme-engine/runtime-commerce";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 
 const properties = defineProps<{
@@ -6,6 +13,16 @@ const properties = defineProps<{
 }>();
 
 const cartOpen = ref(false);
+const actionAdapter = inject(storefrontActionAdapterKey);
+const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
+const liveCommerceMode = inject(liveCommerceModeKey, false);
+const liveCart = inject(storefrontCartStateKey, readonly(ref<StorefrontCart | null>(null)));
+const liveCartCount = computed(
+  () => liveCart.value?.lines.reduce((total, line) => total + line.quantity, 0) ?? 0,
+);
+const liveCartError = ref("");
+const liveCartNotice = ref("");
+const liveCartBusy = ref(false);
 let cartActivationPrepared = false;
 let cartOpenBeforeActivation = false;
 let touchActivation = false;
@@ -41,6 +58,39 @@ function closeCart(): void {
   touchActivation = false;
 }
 
+function money(amount: number, currency: string): string {
+  return formatCommerceMoney(amount, currency);
+}
+
+async function removeLiveLine(variantId: string): Promise<void> {
+  if (!actionAdapter || liveCartBusy.value) return;
+  liveCartBusy.value = true;
+  liveCartError.value = "";
+  try {
+    await actionAdapter({
+      context: "fashion-store.live-mini-cart.remove",
+      kind: "cart.remove",
+      variantId,
+    });
+  } catch {
+    liveCartError.value =
+      checkoutAdapter?.status().error ?? "The cart could not be updated. Try again.";
+  } finally {
+    liveCartBusy.value = false;
+  }
+}
+
+onMounted(async () => {
+  if (!liveCommerceMode || !checkoutAdapter) return;
+  try {
+    await checkoutAdapter.ensure();
+    liveCartNotice.value = checkoutAdapter.status().notice ?? "";
+  } catch {
+    liveCartError.value =
+      checkoutAdapter.status().error ?? "Your current cart is unavailable. Try again.";
+  }
+});
+
 const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
 
 defineExpose({ closeCart });
@@ -51,6 +101,7 @@ defineExpose({ closeCart });
     <div
       class="header-cart dropdown"
       :class="{ open: cartOpen }"
+      :data-fashion-store-commerce-mode="liveCommerceMode ? 'live' : 'fixture'"
       @mouseenter="cartOpen = true"
       @mouseleave="handleCartMouseLeave"
       @focusout="handleCartFocusOut"
@@ -65,27 +116,84 @@ defineExpose({ closeCart });
         @pointerdown="prepareCartToggle"
       >
         <i class="feather icon-feather-shopping-bag"></i
-        ><span class="cart-count alt-font text-white bg-dark-gray">2</span>
+        ><span class="cart-count alt-font text-white bg-dark-gray">{{
+          liveCommerceMode ? liveCartCount : 2
+        }}</span>
       </button>
-      <ul class="cart-item-list">
+      <ul v-if="liveCommerceMode" class="cart-item-list" aria-live="polite">
+        <li v-if="liveCartError" class="cart-item" role="alert">{{ liveCartError }}</li>
+        <li v-else-if="liveCartNotice" class="cart-item" role="status">
+          {{ liveCartNotice }}
+        </li>
+        <li v-else-if="!liveCart" class="cart-item" role="status">Loading cart…</li>
+        <li v-else-if="liveCart.lines.length === 0" class="cart-item" role="status">
+          Your cart is empty.
+        </li>
+        <li
+          v-for="line in liveCart?.lines ?? []"
+          :key="line.variantId"
+          class="cart-item align-items-center"
+        >
+          <button
+            type="button"
+            class="alt-font close fashion-store-source-action"
+            :aria-label="`Remove ${line.productName} from cart`"
+            :disabled="liveCartBusy"
+            @click="removeLiveLine(line.variantId)"
+          >
+            ×
+          </button>
+          <div class="product-detail fw-600">
+            <span>{{ line.productName }}</span>
+            <span class="item-ammount fw-400">
+              {{ line.quantity }} × {{ money(line.unitPrice.amount, liveCart!.currency) }}
+            </span>
+          </div>
+        </li>
+        <li v-if="liveCart" class="cart-total">
+          <div class="fs-18 alt-font mb-15px">
+            <span class="w-50 fw-500 text-start">Subtotal:</span>
+            <span class="w-50 text-end fw-700">{{
+              money(liveCart.totals.subtotal, liveCart.currency)
+            }}</span>
+          </div>
+          <NuxtLink
+            :to="fashionStoreRoutePaths.cart"
+            data-fashion-store-route
+            class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
+            >View cart</NuxtLink
+          >
+          <NuxtLink
+            v-if="liveCart.canCheckout"
+            :to="fashionStoreRoutePaths.checkout"
+            data-fashion-store-route
+            class="btn btn-large btn-dark-gray btn-box-shadow"
+            >Checkout</NuxtLink
+          >
+        </li>
+      </ul>
+      <ul v-else class="cart-item-list">
         <li class="cart-item align-items-center">
           <button
             type="button"
             class="alt-font close fashion-store-source-action"
             aria-label="Remove Ribbed tank from preview cart"
+            disabled
           >
             ×
           </button>
           <div class="product-image">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
               ><img
                 class="cart-thumb"
                 alt=""
                 v-bind:src="sourceAsset('images/demo-fashion-store-product-01.jpg')"
-            /></a>
+            /></NuxtLink>
           </div>
           <div class="product-detail fw-600">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>Ribbed tank</a>
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
+              >Ribbed tank</NuxtLink
+            >
             <span class="item-ammount fw-400">1 x $23.00</span>
           </div>
         </li>
@@ -94,19 +202,22 @@ defineExpose({ closeCart });
             type="button"
             class="alt-font close fashion-store-source-action"
             aria-label="Remove Pleated dress from preview cart"
+            disabled
           >
             ×
           </button>
           <div class="product-image">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
               ><img
                 class="cart-thumb"
                 alt=""
                 v-bind:src="sourceAsset('images/demo-fashion-store-product-02.jpg')"
-            /></a>
+            /></NuxtLink>
           </div>
           <div class="product-detail fw-600">
-            <a :href="fashionStoreRoutePaths.product" data-fashion-store-route>Pleated dress</a>
+            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
+              >Pleated dress</NuxtLink
+            >
             <span class="item-ammount fw-400">2 x $15.00</span>
           </div>
         </li>
@@ -115,17 +226,17 @@ defineExpose({ closeCart });
             <span class="w-50 fw-500 text-start">Subtotal:</span
             ><span class="w-50 text-end fw-700">$199.99</span>
           </div>
-          <a
-            :href="fashionStoreRoutePaths.cart"
+          <NuxtLink
+            :to="fashionStoreRoutePaths.cart"
             data-fashion-store-route
             class="btn btn-large btn-transparent-light-gray border-color-extra-medium-gray"
-            >View cart</a
+            >View cart</NuxtLink
           >
-          <a
-            :href="fashionStoreRoutePaths.checkout"
+          <NuxtLink
+            :to="fashionStoreRoutePaths.checkout"
             data-fashion-store-route
             class="btn btn-large btn-dark-gray btn-box-shadow"
-            >Checkout</a
+            >Checkout</NuxtLink
           >
         </li>
       </ul>

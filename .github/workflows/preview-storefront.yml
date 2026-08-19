@@ -11,19 +11,32 @@ on:
         description: Approved immutable experience snapshot ID
         required: true
         type: string
+      readiness_run_id:
+        description: Preparation workflow run containing the verified readiness artifact
+        required: true
+        type: string
+      readiness_digest:
+        description: SHA-256 of the exact readiness snapshot
+        required: true
+        type: string
+      recovery_run_id:
+        description: Expired Fashion U12 run to reconcile before acquiring a new lock
+        required: false
+        type: string
 
 concurrency:
-  group: storefront-preview-${{ inputs.build_id }}
+  group: fashion-staging-preview
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
   build-preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment: preview
+    timeout-minutes: 55
+    environment: fashion-staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -31,6 +44,27 @@ jobs:
       PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}
       PREVIEW_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
       PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
+      FASHION_U13_AUTHORITY_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+      FASHION_U13_BUILD_ID: ${{ inputs.build_id }}
+      FASHION_U13_CURRENCY: ${{ vars.FASHION_U13_CURRENCY }}
+      FASHION_U13_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
+      FASHION_U13_PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
+      FASHION_U13_PRODUCT_ID: ${{ vars.FASHION_U13_PRODUCT_ID }}
+      FASHION_U13_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      FASHION_U13_VARIANT_ID: ${{ vars.FASHION_U13_VARIANT_ID }}
+      FASHION_U12_API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+      FASHION_U12_CURRENCY: ${{ vars.FASHION_U13_CURRENCY }}
+      FASHION_U12_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
+      FASHION_U12_MULTI_VARIANT_PRODUCT_ID: ${{ vars.FASHION_U12_MULTI_VARIANT_PRODUCT_ID }}
+      FASHION_U12_OPTION_VALUES: ${{ vars.FASHION_U12_OPTION_VALUES }}
+      FASHION_U12_OWNER: github-${{ github.run_id }}-${{ github.run_attempt }}
+      FASHION_U12_PRODUCT_NAME: ${{ vars.FASHION_U12_PRODUCT_NAME }}
+      FASHION_U12_PRODUCT_SLUG: ${{ vars.FASHION_U12_PRODUCT_SLUG }}
+      FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      FASHION_U12_SINGLE_VARIANT_PRODUCT_ID: ${{ vars.FASHION_U12_SINGLE_VARIANT_PRODUCT_ID }}
+      FASHION_U12_UNAVAILABLE_PRODUCT_ID: ${{ vars.FASHION_U12_UNAVAILABLE_PRODUCT_ID }}
+      FASHION_U12_VARIANT_ID: ${{ vars.FASHION_U13_VARIANT_ID }}
+      FASHION_U12_WAREHOUSE_ID: ${{ vars.FASHION_U12_WAREHOUSE_ID }}
       BUILD_ID: ${{ inputs.build_id }}
       SNAPSHOT_ID: ${{ inputs.snapshot_id }}
       STOREFRONT_BUILD_MODE: preview
@@ -41,6 +75,29 @@ jobs:
         with:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
+      - name: Download the governed Fashion readiness snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: fashion-u12-readiness-${{ github.sha }}
+          path: artifacts/readiness
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.readiness_run_id }}
+      - name: Verify fresh pre-deployment readiness before any mutation
+        env:
+          READINESS_DIGEST: ${{ inputs.readiness_digest }}
+          READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
+        run: |
+          [[ "$READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          test "$(sha256sum artifacts/readiness/readiness.json | cut -d ' ' -f 1)" = "$READINESS_DIGEST"
+          bun tools/verify-fashion-staging-readiness.ts \
+            --snapshot=artifacts/readiness/readiness.json > artifacts/readiness/verified.json
+          jq --exit-status \
+            --arg build "$BUILD_ID" \
+            --arg commit "$GITHUB_SHA" \
+            --arg snapshot "$SNAPSHOT_ID" \
+            '.commitSha == $commit and .seed.buildId == $build and .seed.experienceSnapshotId == $snapshot' \
+            artifacts/readiness/readiness.json >/dev/null
       - name: Validate fixed build inputs
         id: validate
         run: |
@@ -61,29 +118,69 @@ jobs:
             }
           }
           NODE
+      - name: Verify Fashion staging isolation and sandbox provider profile
+        env:
+          FASHION_U12_EMAIL_MODE: ${{ vars.FASHION_U12_EMAIL_MODE }}
+          FASHION_U12_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          FASHION_U12_TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+          FASHION_U12_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+        run: |
+          bun run verify:environment
+          node - <<'NODE'
+          const required = (name) => {
+            const value = process.env[name]?.trim();
+            if (!value) throw new Error(`${name} is required in the protected Fashion environment`);
+            return value;
+          };
+          if (!required("FASHION_U12_STRIPE_SECRET_KEY").startsWith("sk_test_")) {
+            throw new Error("Fashion U12 requires a Stripe sandbox secret");
+          }
+          if (required("FASHION_U12_TURNSTILE_SECRET").length < 20) {
+            throw new Error("Fashion U12 requires a configured Turnstile server secret");
+          }
+          if (required("FASHION_U12_TURNSTILE_SITE_KEY").length < 20) {
+            throw new Error("Fashion U12 requires a configured Turnstile site key");
+          }
+          if (!new Set(["suppressed", "sandbox"]).has(required("FASHION_U12_EMAIL_MODE"))) {
+            throw new Error("Fashion U12 email must be isolated or deliberately suppressed");
+          }
+          NODE
       - name: Fetch fixed build input from the preview authority
+        id: build-input
         run: |
           mkdir -p artifacts/preview
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
-            "$PREVIEW_API_URL/build/storefront-experiences/snapshots/$SNAPSHOT_ID" \
+            "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID" \
             --output "$STOREFRONT_EXPERIENCE_FILE"
           jq -e \
             --arg origin "$PREVIEW_ORIGIN" \
             --arg snapshot "$SNAPSHOT_ID" \
-            '.environment == "preview" and .expectedOrigin == $origin and .snapshot.id == $snapshot' \
+            '.environment == "preview" and .expectedOrigin == $origin and .snapshot.id == $snapshot and (.inputIdentity | type == "object") and .catalogRelease.releaseId == .inputIdentity.catalogReleaseId' \
             "$STOREFRONT_EXPERIENCE_FILE" >/dev/null
+          CATALOG_RELEASE_ID="$(jq -er '.catalogRelease.releaseId' "$STOREFRONT_EXPERIENCE_FILE")"
+          printf 'catalog_release_id=%s\n' "$CATALOG_RELEASE_ID" >> "$GITHUB_OUTPUT"
+          printf 'experience_version=%s\n' "$(jq -er '.inputIdentity.experienceVersion' "$STOREFRONT_EXPERIENCE_FILE")" >> "$GITHUB_OUTPUT"
+          printf 'platform_contract_version=%s\n' "$(jq -er '.inputIdentity.platformContractVersion' "$STOREFRONT_EXPERIENCE_FILE")" >> "$GITHUB_OUTPUT"
+          printf 'seed_manifest_digest=%s\n' "$(jq -cS '.catalogRelease' "$STOREFRONT_EXPERIENCE_FILE" | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          printf 'theme_id=%s\n' "$(jq -er '.inputIdentity.themeId' "$STOREFRONT_EXPERIENCE_FILE")" >> "$GITHUB_OUTPUT"
+          printf 'theme_version=%s\n' "$(jq -er '.inputIdentity.themeVersion' "$STOREFRONT_EXPERIENCE_FILE")" >> "$GITHUB_OUTPUT"
       - name: Build and verify isolated static preview
         run: |
           bun run --cwd apps/storefront build
           bun run --cwd apps/storefront verify:static
       - name: Describe content-addressed preview artifact
         id: artifact
+        env:
+          CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
         run: |
-          ARTIFACT_JSON="$(bun apps/storefront/scripts/package-preview-artifact.ts \
-            --snapshot-id="$SNAPSHOT_ID" \
-            --output="apps/storefront/.output/public" \
-            --manifest="artifacts/preview/artifact-manifest.json")"
+          PACKAGE_ARGS=(
+            "--snapshot-id=$SNAPSHOT_ID"
+            "--catalog-release-id=$CATALOG_RELEASE_ID"
+            "--output=apps/storefront/.output/public"
+            "--manifest=artifacts/preview/artifact-manifest.json"
+          )
+          ARTIFACT_JSON="$(bun apps/storefront/scripts/package-preview-artifact.ts "${PACKAGE_ARGS[@]}")"
           printf '%s\n' "$ARTIFACT_JSON" > artifacts/preview/deployment.json
           printf 'prefix=%s\n' "$(jq -r '.prefix' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
           printf 'digest=%s\n' "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
@@ -94,13 +191,13 @@ jobs:
             SOURCE_VALUE="$(jq -r '.sourcePath' <<<"$ITEM")"
             CONTENT_TYPE="$(jq -r '.contentType' <<<"$ITEM")"
             bunx wrangler r2 object put \
-              "shoppp-storefront-preview-artifacts/${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
+              "shoppp-fashion-staging-preview-artifacts/${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
               --file "$SOURCE_VALUE" \
               --content-type "$CONTENT_TYPE" \
               --remote
           done < <(jq -c '.files[]' artifacts/preview/deployment.json)
           bunx wrangler r2 object put \
-            "shoppp-storefront-preview-artifacts/${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
+            "shoppp-fashion-staging-preview-artifacts/${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
             --file artifacts/preview/artifact-manifest.json \
             --content-type "application/json; charset=utf-8" \
             --remote
@@ -109,6 +206,7 @@ jobs:
         run: |
           bunx wrangler deploy \
             --config wrangler.preview.jsonc \
+            --env fashion-staging \
             --var "PREVIEW_HANDOFF_ORIGIN:$PREVIEW_HANDOFF_ORIGIN" \
             --var "PREVIEW_ORIGIN:$PREVIEW_ORIGIN"
       - name: Report the exact preview artifact to the authority
@@ -122,6 +220,155 @@ jobs:
             --header "Idempotency-Key: preview-build-result-$BUILD_ID" \
             --data '{"artifactDigest":"${{ steps.artifact.outputs.digest }}","artifactPrefix":"${{ steps.artifact.outputs.prefix }}","expiresAt":"'"$EXPIRES_AT"'","status":"deployed"}' \
             "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status"
+      - name: Reconcile an explicitly selected abandoned Fashion U12 run
+        if: ${{ inputs.recovery_run_id != '' }}
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_RUN_ID: ${{ inputs.recovery_run_id }}
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=reconcile > artifacts/preview/u12-recovery.json
+      - name: Acquire Fashion U12 acceptance lock and inventory baseline
+        id: u12-acquire
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-acquire.json
+      - name: Run deployed Fashion U13 acceptance
+        id: u13
+        continue-on-error: true
+        env:
+          FASHION_U13_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U13_EXPERIENCE_VERSION: ${{ steps.build-input.outputs.experience_version }}
+          FASHION_U13_PLATFORM_CONTRACT_VERSION: ${{ steps.build-input.outputs.platform_contract_version }}
+          FASHION_U13_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+          FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
+          FASHION_U13_THEME_ID: ${{ steps.build-input.outputs.theme_id }}
+          FASHION_U13_THEME_VERSION: ${{ steps.build-input.outputs.theme_version }}
+        run: bun tools/run-fashion-staging-u13.ts > artifacts/preview/u13-report.json
+      - name: Register the U13 cart with the U12 cleanup owner
+        if: ${{ steps.u13.outcome == 'success' }}
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_RESOURCE_TYPE: cart
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: |
+          export FASHION_U12_RESOURCE_ID="$(jq -er '.cartId' artifacts/preview/u13-report.json)"
+          bun tools/run-fashion-staging-u12.ts --action=register
+      - name: Install Chromium for the no-interception Fashion journey
+        if: ${{ steps.u13.outcome == 'success' }}
+        run: bunx playwright install --with-deps chromium
+      - name: Run no-interception Fashion archetype and sandbox purchase journey
+        id: u12-journey
+        if: ${{ steps.u13.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          E2E_STRIPE_TEST_CARD: ${{ secrets.STRIPE_TEST_CARD }}
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_PHASE: journey
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+          FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
+          STOREFRONT_E2E_BASE_URL: ${{ vars.PREVIEW_ORIGIN }}
+        run: bunx playwright test --config e2e/playwright.config.ts --project=fashion-provider-purchase --grep="no-interception archetype"
+      - name: Preserve the original Fashion journey failure
+        if: ${{ steps.u13.outcome == 'failure' || steps.u12-journey.outcome == 'failure' }}
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_FAILURE: ${{ steps.u13.outcome == 'failure' && 'deployed U13 preflight failed' || 'no-interception Fashion journey failed' }}
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=failure
+      - name: Restore the Fashion U12 baseline and retain paid-order evidence
+        id: u12-cleanup
+        if: ${{ always() && steps.u12-acquire.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-cleanup.json
+      - name: Acquire an isolated fresh-session postcondition run
+        id: u12-post-acquire
+        if: ${{ steps.u13.outcome == 'success' && steps.u12-journey.outcome == 'success' && steps.u12-cleanup.outcome == 'success' }}
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-post-acquire.json
+      - name: Prove the fresh-session sellable postcondition
+        id: u12-postcondition
+        if: ${{ steps.u12-post-acquire.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_PHASE: postcondition
+          FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+          FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
+          STOREFRONT_E2E_BASE_URL: ${{ vars.PREVIEW_ORIGIN }}
+        run: bunx playwright test --config e2e/playwright.config.ts --project=fashion-provider-purchase --grep="fresh-session sellable"
+      - name: Preserve a failed fresh-session postcondition
+        if: ${{ steps.u12-postcondition.outcome == 'failure' }}
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_FAILURE: fresh-session sellable postcondition failed
+          FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=failure
+      - name: Clean the fresh-session postcondition run
+        id: u12-post-cleanup
+        if: ${{ always() && steps.u12-post-acquire.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
+          FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-post-cleanup.json
+      - name: Enforce the complete Fashion U12 verdict
+        run: |
+          test "${{ steps.u13.outcome }}" = success
+          test "${{ steps.u12-journey.outcome }}" = success
+          test "${{ steps.u12-cleanup.outcome }}" = success
+          test "${{ steps.u12-postcondition.outcome }}" = success
+          test "${{ steps.u12-post-cleanup.outcome }}" = success
+      - name: Report Fashion preview accepted
+        run: |
+          jq -e '.passed == true and .runId == "${{ github.run_id }}-${{ github.run_attempt }}"' \
+            artifacts/preview/u13-report.json >/dev/null
+          jq -e '.status == "completed"' artifacts/preview/u12-cleanup.json >/dev/null
+          jq -e '.status == "completed"' artifacts/preview/u12-post-cleanup.json >/dev/null
+          printf 'Fashion preview accepted by deployed U13 and complete U12 lifecycle proof.\n' >> "$GITHUB_STEP_SUMMARY"
       - name: Report a failed preview build
         if: failure() && steps.validate.outcome == 'success' && steps.report.outcome != 'success'
         run: |
@@ -133,9 +380,13 @@ jobs:
             --data '{"failureCode":"preview.build-failed","status":"failed"}' \
             "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status"
       - name: Preserve private build metadata
+        if: always() && steps.validate.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: preview-build-${{ inputs.snapshot_id }}
-          path: artifacts/preview/
+          path: |
+            artifacts/preview/
+            playwright-report/
+            test-results/
           if-no-files-found: error
           retention-days: 7

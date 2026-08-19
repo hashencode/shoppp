@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
+import { useDecorRevealMotion } from "../composables/useDecorRevealMotion";
 interface Data {
   items: string[];
 }
@@ -8,10 +9,12 @@ const p = defineProps<{ resolveAsset: ThemeAssetResolver; viewModel: Presentatio
 const data = computed(() =>
   p.viewModel.kind === "theme-section" ? (p.viewModel.data as unknown as Data) : null,
 );
+const revealRoot = useDecorRevealMotion(["clients"]);
 </script>
 <template>
   <section
     v-if="data"
+    ref="revealRoot"
     class="decor-clients"
     aria-label="Selected partners"
     data-motion-autoplay-ms="0"
@@ -19,9 +22,11 @@ const data = computed(() =>
     data-motion-direction="horizontal"
     data-motion-interaction="continuous,no-touch,no-hover-pause"
     data-motion-ready="true"
+    data-source-reveal="clients"
+    data-reveal-state="pending"
   >
     <div class="decor-clients-window">
-      <div class="decor-clients-track">
+      <div class="decor-clients-track" data-reveal-group="clients" data-reveal-item>
         <template v-for="loop in 2" :key="loop">
           <span v-for="item in data.items" :key="`${loop}-${item}`">
             <img

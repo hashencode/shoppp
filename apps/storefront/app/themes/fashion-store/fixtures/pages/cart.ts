@@ -1,33 +1,8 @@
-import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
+import type { FashionStoreLegacyCartData, FashionStoreLegacyCartLine } from "../../contracts/cart";
 
-export interface FashionStoreCartLine {
-  color: string;
-  name: string;
-  price: string;
-  quantity: number;
-  sourceImage: string;
-  total: string;
-  variantId: string;
-}
-
-export interface FashionStoreCartData {
-  actions: {
-    coupon: PreviewAction;
-    remove: PreviewAction;
-    shipping: PreviewAction;
-    update: PreviewAction;
-  };
-  announcement: string;
-  countries: readonly { code: string; label: string }[];
-  lines: readonly FashionStoreCartLine[];
-  shipping: readonly { id: string; label: string }[];
-  totals: {
-    subtotal: string;
-    tax: string;
-    total: string;
-  };
-}
+export type FashionStoreCartLine = FashionStoreLegacyCartLine;
+export type FashionStoreCartData = FashionStoreLegacyCartData;
 
 export const fashionStoreCartData = {
   actions: {

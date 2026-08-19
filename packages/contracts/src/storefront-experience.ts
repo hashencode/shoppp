@@ -1,5 +1,21 @@
 import * as z from "zod";
 
+import { stableCatalogReferenceSchema } from "./catalog";
+import { moneySchema, publicIdSchema } from "./common";
+import {
+  credentialFreeHttpsUrlSchema,
+  linkTargetSchema,
+  storefrontLinkSchema,
+  storefrontResourceKindSchema,
+  storefrontResourceReferenceSchema,
+} from "./storefront-links";
+
+export {
+  linkTargetSchema,
+  storefrontLinkSchema,
+  storefrontResourceReferenceSchema,
+} from "./storefront-links";
+
 const MAX_SECTIONS = 40;
 const MAX_BLOCKS_PER_SECTION = 20;
 const MAX_SETTINGS_PER_COMPONENT = 32;
@@ -12,6 +28,10 @@ const safeTextSchema = z
   .string()
   .max(5_000)
   .refine((value) => !htmlTagPattern.test(value), "HTML markup is not allowed.");
+const editorSettingMetadata = {
+  helpText: z.string().trim().min(1).max(500).optional(),
+  label: z.string().trim().min(1).max(120).optional(),
+};
 
 function compareVersions(left: string, right: string): number {
   const leftParts = left.split(".").map(Number);
@@ -21,15 +41,6 @@ function compareVersions(left: string, right: string): number {
     if (difference !== 0) return difference;
   }
   return 0;
-}
-
-function safeHttpsUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && !url.username && !url.password && !url.hash && !url.port;
-  } catch {
-    return false;
-  }
 }
 
 export const storefrontIdentifierSchema = z.string().min(1).max(100).regex(identifierPattern);
@@ -72,10 +83,22 @@ export const remoteAssetReferenceSchema = z
     alt: z.string().trim().min(1).max(300),
     height: z.int().positive().max(16_384),
     kind: z.literal("remote"),
-    url: z
-      .string()
-      .url()
-      .refine(safeHttpsUrl, "Remote media must use a credential-free HTTPS URL."),
+    url: credentialFreeHttpsUrlSchema,
+    width: z.int().positive().max(16_384),
+  })
+  .strict();
+
+export const catalogAssetKeySchema = z
+  .string()
+  .regex(/^catalog\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/)
+  .refine((key) => !key.includes("..") && !key.includes("//"), "Unsafe catalog asset key.");
+
+export const catalogAssetReferenceSchema = z
+  .object({
+    alt: z.string().trim().min(1).max(300),
+    height: z.int().positive().max(16_384),
+    key: catalogAssetKeySchema,
+    kind: z.literal("catalog"),
     width: z.int().positive().max(16_384),
   })
   .strict();
@@ -83,33 +106,12 @@ export const remoteAssetReferenceSchema = z
 export const assetReferenceSchema = z.discriminatedUnion("kind", [
   themeAssetReferenceSchema,
   remoteAssetReferenceSchema,
-]);
-
-export const linkTargetSchema = z.discriminatedUnion("kind", [
-  z
-    .object({
-      kind: z.literal("route"),
-      path: z
-        .string()
-        .min(1)
-        .max(500)
-        .regex(/^\/(?!\/)[^\s]*$/)
-        .refine((path) => !path.includes(".."), "Route targets cannot traverse paths."),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("external"),
-      url: z
-        .string()
-        .url()
-        .refine(safeHttpsUrl, "External links must be credential-free HTTPS URLs."),
-    })
-    .strict(),
+  catalogAssetReferenceSchema,
 ]);
 
 const textSettingDefinitionSchema = z
   .object({
+    ...editorSettingMetadata,
     default: safeTextSchema,
     id: storefrontIdentifierSchema,
     kind: z.literal("text"),
@@ -129,6 +131,7 @@ const textSettingDefinitionSchema = z
 
 const numberSettingDefinitionSchema = z
   .object({
+    ...editorSettingMetadata,
     default: z.number().finite(),
     id: storefrontIdentifierSchema,
     kind: z.literal("number"),
@@ -150,6 +153,7 @@ const numberSettingDefinitionSchema = z
 
 const booleanSettingDefinitionSchema = z
   .object({
+    ...editorSettingMetadata,
     default: z.boolean(),
     id: storefrontIdentifierSchema,
     kind: z.literal("boolean"),
@@ -159,6 +163,7 @@ const booleanSettingDefinitionSchema = z
 
 const selectSettingDefinitionSchema = z
   .object({
+    ...editorSettingMetadata,
     default: storefrontIdentifierSchema,
     id: storefrontIdentifierSchema,
     kind: z.literal("select"),
@@ -196,6 +201,7 @@ const selectSettingDefinitionSchema = z
 
 const assetSettingDefinitionSchema = z
   .object({
+    ...editorSettingMetadata,
     default: assetReferenceSchema,
     id: storefrontIdentifierSchema,
     kind: z.literal("asset"),
@@ -205,12 +211,85 @@ const assetSettingDefinitionSchema = z
 
 const linkSettingDefinitionSchema = z
   .object({
-    default: linkTargetSchema,
+    ...editorSettingMetadata,
+    allowedTargets: z
+      .array(z.enum([...storefrontResourceKindSchema.options, "external"]))
+      .min(1)
+      .max(6),
+    default: storefrontLinkSchema.optional(),
     id: storefrontIdentifierSchema,
     kind: z.literal("link"),
     required: z.boolean(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (new Set(value.allowedTargets).size !== value.allowedTargets.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Allowed link targets must be unique.",
+        path: ["allowedTargets"],
+      });
+    }
+    if (value.default) {
+      const targetKind =
+        value.default.target.kind === "external" ? "external" : value.default.target.reference.kind;
+      if (!value.allowedTargets.includes(targetKind)) {
+        context.addIssue({
+          code: "custom",
+          message: "The default link target must use a declared target type.",
+          path: ["default", "target"],
+        });
+      }
+    }
+  });
+
+const resourceReferenceSettingDefinitionSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      ...editorSettingMetadata,
+      cardinality: z.literal("one").optional(),
+      id: storefrontIdentifierSchema,
+      kind: z.literal("product-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      ...editorSettingMetadata,
+      cardinality: z.literal("one").optional(),
+      id: storefrontIdentifierSchema,
+      kind: z.literal("collection-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      ...editorSettingMetadata,
+      cardinality: z.literal("one").optional(),
+      id: storefrontIdentifierSchema,
+      kind: z.literal("page-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      ...editorSettingMetadata,
+      cardinality: z.literal("one").optional(),
+      id: storefrontIdentifierSchema,
+      kind: z.literal("article-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      ...editorSettingMetadata,
+      cardinality: z.literal("one").optional(),
+      id: storefrontIdentifierSchema,
+      kind: z.literal("policy-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+]);
 
 export const settingDefinitionSchema = z.discriminatedUnion("kind", [
   textSettingDefinitionSchema,
@@ -219,6 +298,7 @@ export const settingDefinitionSchema = z.discriminatedUnion("kind", [
   selectSettingDefinitionSchema,
   assetSettingDefinitionSchema,
   linkSettingDefinitionSchema,
+  ...resourceReferenceSettingDefinitionSchema.options,
 ]);
 
 export const settingValueSchema = z.union([
@@ -226,7 +306,8 @@ export const settingValueSchema = z.union([
   z.number().finite(),
   z.boolean(),
   assetReferenceSchema,
-  linkTargetSchema,
+  storefrontLinkSchema,
+  storefrontResourceReferenceSchema,
 ]);
 
 const componentDefinitionBase = {
@@ -425,6 +506,111 @@ export const fixtureBindingSchema = z
   })
   .strict();
 
+export const catalogResourceReferenceSchema = stableCatalogReferenceSchema;
+
+export const catalogResourceBindingSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    instanceId: storefrontIdentifierSchema,
+    kind: z.literal("catalog"),
+    reference: catalogResourceReferenceSchema,
+    settingId: storefrontIdentifierSchema,
+  })
+  .strict();
+
+export const experienceResourceBindingSchema = z.discriminatedUnion("kind", [
+  fixtureBindingSchema,
+  catalogResourceBindingSchema,
+]);
+
+export const presentationAvailabilitySchema = z.enum([
+  "in-stock",
+  "out-of-stock",
+  "unavailable",
+  "unknown",
+]);
+
+export const presentationMediaSchema = z
+  .object({
+    alt: z.string().trim().min(1).max(300),
+    height: z.int().positive().max(16_384),
+    src: z.string().min(1).max(2_000),
+    width: z.int().positive().max(16_384),
+  })
+  .strict();
+
+export const presentationProductSchema = z
+  .object({
+    availability: presentationAvailabilitySchema,
+    id: publicIdSchema,
+    kind: z.literal("product"),
+    media: z.array(presentationMediaSchema).max(50),
+    money: moneySchema,
+    name: z.string().trim().min(1).max(300),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    variantIds: z.array(publicIdSchema).min(1).max(500),
+  })
+  .strict();
+
+export const presentationCollectionSchema = z
+  .object({
+    id: publicIdSchema,
+    kind: z.literal("collection"),
+    name: z.string().trim().min(1).max(300),
+    productIds: z.array(publicIdSchema).max(5_000),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  })
+  .strict();
+
+const productOpenIntentSchema = z
+  .object({ kind: z.literal("product.open"), productId: publicIdSchema })
+  .strict();
+const collectionOpenIntentSchema = z
+  .object({ collectionId: publicIdSchema, kind: z.literal("collection.open") })
+  .strict();
+const variantSelectIntentSchema = z
+  .object({
+    kind: z.literal("variant.select"),
+    productId: publicIdSchema,
+    variantId: publicIdSchema,
+  })
+  .strict();
+const cartAddIntentSchema = z
+  .object({
+    kind: z.literal("cart.add"),
+    productId: publicIdSchema,
+    quantity: z.int().positive().max(20),
+    variantId: publicIdSchema,
+  })
+  .strict();
+const cartRemoveIntentSchema = z
+  .object({ kind: z.literal("cart.remove"), variantId: publicIdSchema })
+  .strict();
+const cartQuantityIntentSchema = z
+  .object({
+    kind: z.literal("cart.quantity"),
+    quantity: z.int().nonnegative().max(20),
+    variantId: publicIdSchema,
+  })
+  .strict();
+
+export const storefrontIntentSchema = z.discriminatedUnion("kind", [
+  productOpenIntentSchema,
+  collectionOpenIntentSchema,
+  variantSelectIntentSchema,
+  cartAddIntentSchema,
+  cartRemoveIntentSchema,
+  cartQuantityIntentSchema,
+]);
+
+export const storefrontIntentActionSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    intent: storefrontIntentSchema,
+    label: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
 const reorderSectionsOperationSchema = z
   .object({
     instanceIds: z.array(storefrontIdentifierSchema).min(1).max(MAX_SECTIONS),
@@ -471,7 +657,7 @@ export const themeOverrideSchema = z
 
 export const experienceDraftSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     experienceId: storefrontIdentifierSchema,
     id: storefrontIdentifierSchema,
     overrides: z.array(themeOverrideSchema).max(10),
@@ -483,7 +669,7 @@ export const experienceDraftSchema = z
 
 const experienceSnapshotBaseSchema = z
   .object({
-    bindings: z.array(fixtureBindingSchema).max(100),
+    bindings: z.array(experienceResourceBindingSchema).max(100),
     configurationSchemaVersion: z.int().positive(),
     experienceId: storefrontIdentifierSchema,
     id: storefrontIdentifierSchema,
@@ -541,21 +727,16 @@ function settingMatchesDefinition(
 ): boolean {
   switch (definition.kind) {
     case "asset":
-      return (
-        typeof value === "object" &&
-        value !== null &&
-        "kind" in value &&
-        (value.kind === "theme" || value.kind === "remote")
-      );
+      return assetReferenceSchema.safeParse(value).success;
     case "boolean":
       return typeof value === "boolean";
-    case "link":
-      return (
-        typeof value === "object" &&
-        value !== null &&
-        "kind" in value &&
-        (value.kind === "route" || value.kind === "external")
+    case "link": {
+      const link = storefrontLinkSchema.safeParse(value);
+      if (!link.success) return false;
+      return definition.allowedTargets.includes(
+        link.data.target.kind === "external" ? "external" : link.data.target.reference.kind,
       );
+    }
     case "number":
       return typeof value === "number" && value >= definition.min && value <= definition.max;
     case "select":
@@ -565,6 +746,14 @@ function settingMatchesDefinition(
       );
     case "text":
       return typeof value === "string" && value.length <= definition.maxLength;
+    case "collection-reference":
+    case "product-reference":
+    case "page-reference":
+    case "article-reference":
+    case "policy-reference": {
+      const reference = storefrontResourceReferenceSchema.safeParse(value);
+      return reference.success && definition.kind === `${reference.data.kind}-reference`;
+    }
   }
 }
 
@@ -593,6 +782,9 @@ function validateInstanceSettings(
     }
   }
   for (const definition of definitions) {
+    if (definition.kind.endsWith("-reference")) {
+      continue;
+    }
     if (definition.required && !(definition.id in settings)) {
       addIssue(
         context,
@@ -799,6 +991,15 @@ export type BlockInstance = z.infer<typeof blockInstanceSchema>;
 export type ExperienceDraft = z.infer<typeof experienceDraftSchema>;
 export type ExperienceSnapshot = z.infer<typeof experienceSnapshotSchema>;
 export type FixtureBinding = z.infer<typeof fixtureBindingSchema>;
+export type CatalogResourceBinding = z.infer<typeof catalogResourceBindingSchema>;
+export type CatalogResourceReference = z.infer<typeof catalogResourceReferenceSchema>;
+export type SettingDefinition = z.infer<typeof settingDefinitionSchema>;
+export type ExperienceResourceBinding = z.infer<typeof experienceResourceBindingSchema>;
+export type PresentationAvailability = z.infer<typeof presentationAvailabilitySchema>;
+export type PresentationCollection = z.infer<typeof presentationCollectionSchema>;
+export type PresentationProduct = z.infer<typeof presentationProductSchema>;
+export type StorefrontIntent = z.infer<typeof storefrontIntentSchema>;
+export type StorefrontIntentAction = z.infer<typeof storefrontIntentActionSchema>;
 export type PageTemplate = z.infer<typeof pageTemplateSchema>;
 export type SectionInstance = z.infer<typeof sectionInstanceSchema>;
 export type SectionDefinition = z.infer<typeof sectionDefinitionSchema>;

@@ -27,15 +27,11 @@ const implementationOrigin = argumentValue(arguments_, "--implementation-origin"
 const outputRoot = argumentValue(arguments_, "--output");
 const commit = argumentValue(arguments_, "--commit");
 const matchesTheme = (routeId: string): boolean =>
-  theme === "fashion-store"
-    ? routeId.startsWith("fashion-store-")
-    : theme === "fashion"
-      ? routeId.startsWith("fashion-") && !routeId.startsWith("fashion-store-")
-      : routeId.startsWith("decor-");
+  theme === "fashion-store" ? routeId.startsWith("fashion-store-") : routeId.startsWith("decor-");
 
 if (
   !theme ||
-  !["fashion", "fashion-store", "decor"].includes(theme) ||
+  !["fashion-store", "decor"].includes(theme) ||
   !["regional", "full-page"].includes(phase) ||
   !sourceOrigin ||
   !implementationOrigin ||
@@ -44,7 +40,7 @@ if (
   densities.some((density) => density !== 1 && density !== 2)
 ) {
   throw new Error(
-    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion|fashion-store|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
+    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion-store|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
   );
 }
 
@@ -143,7 +139,7 @@ const summary = {
   startedAt,
   theme,
   ...(theme === "fashion-store"
-    ? { implementationThemeId: "fashion-store", referenceThemeId: "fashion" }
+    ? { implementationThemeId: "fashion-store", referenceThemeId: "fashion-store-source" }
     : {}),
   total: results.length,
 };

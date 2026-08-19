@@ -16,9 +16,8 @@ defineProps<{
       </div>
       <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
         <span class="mb-5px d-block"
-          >By
-          <a href="#" class="text-dark-gray fw-500 categories-text" @click.prevent>{{ author }}</a
-          ><a href="#" class="blog-date" @click.prevent>{{ date }}</a></span
+          >By <span class="text-dark-gray fw-500 categories-text">{{ author }}</span
+          ><span class="blog-date">{{ date }}</span></span
         >
         <a
           :href="href"

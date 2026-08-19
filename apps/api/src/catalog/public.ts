@@ -30,22 +30,22 @@ interface PublicMediaRow {
   width: number;
 }
 
-export async function getLiveProduct(
+async function getLiveProductBy(
   db: D1Database,
-  slug: string,
+  lookup: { id: string } | { slug: string },
   currency: string,
   mediaOrigin: string,
 ): Promise<Product> {
-  const product = await db
-    .prepare(
-      `SELECT id, slug, name, description, status, seo_title, seo_description
-         FROM products WHERE slug = ? AND status = 'published'`,
-    )
-    .bind(slug)
-    .first<PublicProductRow>();
-  if (!product) throw new ApiError(404, "product_not_found", "The product was not found.");
   const now = new Date().toISOString();
-  const [variants, media] = await Promise.all([
+  const column = "id" in lookup ? "id" : "slug";
+  const value = "id" in lookup ? lookup.id : lookup.slug;
+  const [productResult, variantsResult, mediaResult] = await db.batch([
+    db
+      .prepare(
+        `SELECT id, slug, name, description, status, seo_title, seo_description
+         FROM products WHERE ${column} = ? AND status = 'published'`,
+      )
+      .bind(value),
     db
       .prepare(
         `SELECT v.id, v.sku, v.title, v.option_values_json, pr.amount AS price_amount,
@@ -54,25 +54,37 @@ export async function getLiveProduct(
                             FROM inventory_items i WHERE i.variant_id = v.id), 0)
                   AS available_quantity
            FROM product_variants v
-           JOIN prices pr ON pr.variant_id = v.id
-           JOIN price_lists pl ON pl.id = pr.price_list_id
-          WHERE v.product_id = ? AND v.status = 'active'
-            AND pl.currency = ? AND pl.status = 'active'
-            AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
-            AND (pl.ends_at IS NULL OR pl.ends_at > ?)
+           JOIN products p ON p.id = v.product_id
+           JOIN prices pr ON pr.id = (
+             SELECT eligible_price.id
+               FROM prices eligible_price
+               JOIN price_lists pl ON pl.id = eligible_price.price_list_id
+              WHERE eligible_price.variant_id = v.id
+                AND pl.currency = ? AND pl.status = 'active'
+                AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
+                AND (pl.ends_at IS NULL OR pl.ends_at > ?)
+              ORDER BY pl.code
+              LIMIT 1
+           )
+          WHERE p.${column} = ? AND p.status = 'published' AND v.status = 'active'
           ORDER BY v.created_at, v.id`,
       )
-      .bind(product.id, currency, now, now)
-      .all<PublicVariantRow>(),
+      .bind(currency, now, now, value),
     db
       .prepare(
-        `SELECT id, r2_key, alt_text, width, height, position
-           FROM product_media WHERE product_id = ? ORDER BY position, id`,
+        `SELECT pm.id, pm.r2_key, pm.alt_text, pm.width, pm.height, pm.position
+           FROM product_media pm
+           JOIN products p ON p.id = pm.product_id
+          WHERE p.${column} = ? AND p.status = 'published'
+          ORDER BY pm.position, pm.id`,
       )
-      .bind(product.id)
-      .all<PublicMediaRow>(),
+      .bind(value),
   ]);
-  if (variants.results.length === 0) {
+  const product = productResult?.results[0] as PublicProductRow | undefined;
+  if (!product) throw new ApiError(404, "product_not_found", "The product was not found.");
+  const variants = (variantsResult?.results ?? []) as unknown as PublicVariantRow[];
+  const media = (mediaResult?.results ?? []) as unknown as PublicMediaRow[];
+  if (variants.length === 0) {
     throw new ApiError(
       422,
       "currency_unavailable",
@@ -81,7 +93,7 @@ export async function getLiveProduct(
     );
   }
   const options = new Map<string, Set<string>>();
-  const publicVariants = variants.results.map((variant) => {
+  const publicVariants = variants.map((variant) => {
     const values = JSON.parse(variant.option_values_json) as Record<string, string>;
     for (const [name, value] of Object.entries(values)) {
       const choices = options.get(name) ?? new Set<string>();
@@ -99,7 +111,7 @@ export async function getLiveProduct(
   return {
     description: product.description,
     id: product.id,
-    media: media.results.map((item) => ({
+    media: media.map((item) => ({
       alt: item.alt_text,
       height: item.height,
       id: item.id,
@@ -114,4 +126,22 @@ export async function getLiveProduct(
     status: product.status,
     variants: publicVariants,
   };
+}
+
+export function getLiveProduct(
+  db: D1Database,
+  slug: string,
+  currency: string,
+  mediaOrigin: string,
+): Promise<Product> {
+  return getLiveProductBy(db, { slug }, currency, mediaOrigin);
+}
+
+export function getLiveProductById(
+  db: D1Database,
+  id: string,
+  currency: string,
+  mediaOrigin: string,
+): Promise<Product> {
+  return getLiveProductBy(db, { id }, currency, mediaOrigin);
 }

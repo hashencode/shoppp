@@ -7,8 +7,21 @@ import manifest from "../app/generated/route-manifest.json";
 import verificationCatalog from "../app/generated/verification-catalog.json";
 import {
   fashionStoreEnabledPageContracts,
+  fashionStoreThemeRoutes,
   fashionStorePreviewRoutes,
 } from "../app/themes/fashion-store/page-contracts";
+import { decorThemeRoutes } from "../app/themes/decor/page-contracts";
+import {
+  resolveThemeRoute,
+  staticThemeRoutePaths,
+  themeRoutePaths,
+} from "../app/theme-engine/routes";
+import {
+  previewPlatformRoutes,
+  productionPlatformRoutes,
+  resolveStorefrontPrerenderRoutes,
+} from "../scripts/resolve-prerender-routes";
+import { assertStaticPageHtml } from "../scripts/static-page-verification";
 
 describe("static generation manifest", () => {
   test("derives private preview routes only from readiness-enabled page contracts", () => {
@@ -35,19 +48,42 @@ describe("static generation manifest", () => {
     ]);
   });
 
-  test("makes static verification and bundle budgets consume active preview routes", async () => {
-    const scripts = await Promise.all(
-      ["verify-static.ts", "check-bundle-budget.ts"].map((name) =>
-        readFile(resolve(import.meta.dir, `../scripts/${name}`), "utf8"),
-      ),
+  test("makes static verification share Nuxt's prerender route resolver", async () => {
+    const verificationScript = await readFile(
+      resolve(import.meta.dir, "../scripts/verify-static.ts"),
+      "utf8",
     );
-    expect(scripts.every((source) => source.includes("activeThemeRoutes"))).toBe(true);
+    const bundleBudgetScript = await readFile(
+      resolve(import.meta.dir, "../scripts/check-bundle-budget.ts"),
+      "utf8",
+    );
+    expect(verificationScript).toContain("resolveStorefrontPrerenderRoutes");
+    expect(verificationScript).not.toContain("themeRoutePaths");
+    expect(bundleBudgetScript).toContain("activeThemeRoutes");
+    expect(bundleBudgetScript).toContain("themeRoutePaths");
+    expect(staticThemeRoutePaths(fashionStoreThemeRoutes)).toEqual(fashionStorePreviewRoutes);
   });
 
-  test("prerenders the platform checkout completion shell alongside theme preview routes", async () => {
-    const nuxtConfig = await readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8");
-    expect(nuxtConfig).toContain('const previewPlatformRoutes = ["/checkout/complete"]');
-    expect(nuxtConfig).toContain("[...fashionStorePreviewRoutes, ...previewPlatformRoutes]");
+  test("resolves exact fixture and production prerender route sets", () => {
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        previewBuild: true,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual([...fashionStorePreviewRoutes, ...previewPlatformRoutes]);
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        experience: { environment: "preview", themeId: "decor" },
+        previewBuild: true,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual([...themeRoutePaths(decorThemeRoutes, "fixture-preview"), ...previewPlatformRoutes]);
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        previewBuild: false,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual(["/published", ...productionPlatformRoutes]);
   });
 
   test("contains every published route exactly once in isolated modules", async () => {
@@ -73,5 +109,183 @@ describe("static generation manifest", () => {
       expect(redirect.status).toBe(301);
       expect(manifest.routes).not.toContain(redirect.from);
     }
+  });
+
+  test("exports live catalog families without changing exact fixture preview routes", async () => {
+    const release = {
+      collections: [
+        {
+          description: "Live collection",
+          id: "col_01JGENERATIONCOLLECTION001",
+          name: "Live collection",
+          productIds: ["prod_01JGENERATIONPRODUCT00001"],
+          productSlugs: ["release-only-product"],
+          seoDescription: "Live collection",
+          seoTitle: "Live collection",
+          slug: "release-only-collection",
+          status: "published",
+        },
+      ],
+      generatedAt: "2026-08-11T00:00:00.000Z",
+      policies: [
+        {
+          description: "Policy",
+          effectiveDate: "2026-08-11",
+          sections: [{ body: "Policy", heading: "Policy" }],
+          slug: "privacy",
+          title: "Privacy",
+        },
+      ],
+      products: [
+        {
+          collectionIds: ["col_01JGENERATIONCOLLECTION001"],
+          collectionSlugs: ["release-only-collection"],
+          description: "Live product",
+          id: "prod_01JGENERATIONPRODUCT00001",
+          media: [],
+          name: "Live product",
+          seoDescription: "Live product",
+          seoTitle: "Live product",
+          slug: "release-only-product",
+          status: "published",
+          variants: [
+            {
+              id: "var_01JGENERATIONVARIANT000001",
+              optionValues: { size: "M" },
+              prices: [{ amount: 1000, currency: "USD" }],
+              sku: "LIVE-M",
+              status: "active",
+              title: "Medium",
+              weightGrams: 100,
+            },
+          ],
+        },
+      ],
+      redirects: [],
+      releaseId: "release-generation-live",
+      routes: ["/", "/collections/release-only-collection", "/products/release-only-product"],
+      schemaVersion: 2,
+      site: {
+        defaultCurrency: "USD",
+        freshnessHours: 24,
+        name: "Generation",
+        origin: "https://shop.example.test",
+      },
+    } as const;
+
+    expect(resolveThemeRoute("/", fashionStoreThemeRoutes)).toMatchObject({ id: "home" });
+    expect(
+      resolveThemeRoute("/products/release-only-product", fashionStoreThemeRoutes, release),
+    ).toMatchObject({ id: "catalog-product" });
+    expect(
+      resolveThemeRoute("/collections/release-only-collection", fashionStoreThemeRoutes, release),
+    ).toMatchObject({ id: "catalog-collection" });
+    expect(fashionStorePreviewRoutes).not.toContain("/products/:slug");
+    expect(fashionStorePreviewRoutes).not.toContain("/collections/:slug");
+
+    expect(
+      resolveThemeRoute(
+        "/products/relaxed-corduroy-shirt",
+        fashionStoreThemeRoutes,
+        release,
+        "live",
+      ),
+    ).toBeUndefined();
+    expect(
+      resolveThemeRoute(
+        "/products/relaxed-corduroy-shirt",
+        fashionStoreThemeRoutes,
+        undefined,
+        "fixture-preview",
+      )?.id,
+    ).toBe("product");
+    expect(themeRoutePaths(fashionStoreThemeRoutes, "live", release)).toEqual([
+      "/",
+      "/shop",
+      "/shop/no-sidebar",
+      "/shop/right-sidebar",
+      "/collections",
+      "/cart",
+      "/checkout",
+      "/wishlist",
+      "/account",
+      "/magazine",
+      "/magazine/marketing-tips-and-tricks",
+      "/about",
+      "/faq",
+      "/contact",
+      "/products/release-only-product",
+      "/collections/release-only-collection",
+    ]);
+    expect(
+      resolveStorefrontPrerenderRoutes({
+        experience: {
+          catalogRelease: release,
+          environment: "preview",
+          presentationMode: "live",
+          themeId: "fashion-store",
+        },
+        previewBuild: true,
+        productionRoutes: ["/published"],
+      }),
+    ).toEqual([
+      ...themeRoutePaths(fashionStoreThemeRoutes, "live", release),
+      "/policies/privacy",
+      ...previewPlatformRoutes,
+    ]);
+
+    const registry = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"),
+      "utf8",
+    );
+    expect(registry).toContain("export const themeRoutes = fashionStoreThemeRoutes");
+  });
+
+  test("keeps platform routes theme-neutral and binds live policy rendering to the selected Catalog Release", async () => {
+    const [checkoutCompletePage, orderPage, policyPage] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/pages/checkout/complete.vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/pages/orders/[token].vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/pages/policies/[slug].vue"), "utf8"),
+    ]);
+    expect(policyPage).toContain("activeExperienceProviderInput");
+    expect(policyPage).toContain('activeExperienceProviderInput.mode === "live"');
+    expect(policyPage).toContain("activeExperienceProviderInput.release");
+    expect(policyPage).not.toContain("catalogRelease.policies.find");
+    for (const platformPage of [checkoutCompletePage, orderPage, policyPage]) {
+      expect(platformPage).not.toContain('id="fashion-store-main"');
+    }
+  });
+
+  test("rejects malformed selected-release policy output during static verification", () => {
+    const release = {
+      ...catalogRelease,
+      collections: [],
+      generatedAt: "2026-08-17T00:00:00.000Z",
+      policies: [{ ...catalogRelease.policies[0]!, slug: "release-policy" }],
+      products: [],
+      redirects: [],
+      routes: ["/"],
+      schemaVersion: 2,
+    } as const;
+    const routes = resolveStorefrontPrerenderRoutes({
+      experience: {
+        catalogRelease: release,
+        environment: "preview",
+        presentationMode: "live",
+        themeId: "fashion-store",
+      },
+      previewBuild: true,
+      productionRoutes: [],
+    });
+    const policyRoute = "/policies/release-policy";
+
+    expect(routes).toContain(policyRoute);
+    expect(() =>
+      assertStaticPageHtml({
+        html: '<meta name="robots" content="noindex, nofollow"><h1>Policy</h1>',
+        previewBuild: true,
+        route: policyRoute,
+      }),
+    ).toThrow(`${policyRoute} is missing canonical metadata or meaningful static content.`);
   });
 });

@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import type { Cart, ShippingMethodQuote, ShippingQuoteRequest } from "@shoppp/contracts";
-
 import CheckoutAddress from "~/features/checkout/address.vue";
 import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import { previewCheckoutAdapterKey } from "../../../../theme-engine/checkout";
+import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
+import {
+  storefrontCheckoutAdapterKey,
+  type StorefrontShippingMethodQuote,
+  type StorefrontShippingQuoteRequest,
+} from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import type { FashionStoreCheckoutData } from "../../fixtures/pages/checkout";
+import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
+import type { FashionStoreLegacyCheckoutData } from "../../contracts/checkout";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
@@ -17,15 +21,19 @@ const properties = defineProps<{
   viewModel: PresentationViewModel;
 }>();
 
-const data = computed<FashionStoreCheckoutData>(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Checkout requires a theme-section fixture.");
-  }
-  return properties.viewModel.data as unknown as FashionStoreCheckoutData;
-});
-const checkoutAdapter = inject(previewCheckoutAdapterKey);
+const isLive = computed(() => properties.viewModel.kind === "checkout");
+const initialFixtureData =
+  properties.viewModel.kind === "theme-section"
+    ? (properties.viewModel.data as unknown as FashionStoreLegacyCheckoutData)
+    : undefined;
+const fixtureLinesByVariant = new Map(
+  (initialFixtureData?.lines ?? []).map((line) => [line.variantId, line]),
+);
+const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const form = ref<HTMLFormElement>();
-const cart = ref<Cart | null>(null);
+const ownerCart = inject(storefrontCartStateKey);
+const localCart = ref<StorefrontCart | null>(null);
+const cart = computed(() => ownerCart?.value ?? localCart.value);
 const firstName = ref("");
 const lastName = ref("");
 const company = ref("");
@@ -38,12 +46,27 @@ const orderNotes = ref("");
 const helperPanel = ref<"coupon" | "login" | null>(null);
 const helperValue = ref("");
 const helperInvalid = ref(false);
-const selectedMethod = ref(data.value.shipping[0]?.id);
-const selectedPayment = ref(data.value.payment[0]?.id ?? "bank");
+const selectedMethod = ref(initialFixtureData?.shipping[0]?.id);
+const paymentOptions: FashionStoreLegacyCheckoutData["payment"] = initialFixtureData?.payment ?? [
+  {
+    detail: "You will continue to the platform's secure hosted payment page.",
+    id: "hosted-payment",
+    label: "Secure payment",
+  },
+];
+const selectedPayment = ref(paymentOptions[0]?.id ?? "hosted-payment");
+const countryOptions = initialFixtureData?.countries ?? [
+  { code: "US", label: "United States" },
+  { code: "CA", label: "Canada" },
+  { code: "GB", label: "United Kingdom" },
+];
 const termsAccepted = ref(false);
 const submitting = ref(false);
+const hydrated = ref(false);
+const liveTransactionDisabled = computed(() => isLive.value && !hydrated.value);
 const shippingBusy = ref(false);
 const loadError = ref("");
+const loadNotice = ref("");
 const submitError = ref("");
 const shippingError = ref("");
 const securityConfigurationLoading = ref(true);
@@ -55,8 +78,10 @@ const turnstileRenderKey = ref(0);
 const localActionCount = ref(0);
 const sessionCount = ref(0);
 let disposed = false;
+let shippingTimer: ReturnType<typeof setTimeout> | undefined;
+let shippingSequence = 0;
 
-const billingAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
+const billingAddress = reactive<StorefrontShippingQuoteRequest["shippingAddress"]>({
   city: "",
   countryCode: "US",
   line1: "",
@@ -66,7 +91,7 @@ const billingAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   postalCode: "",
   region: "",
 });
-const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
+const alternateAddress = reactive<StorefrontShippingQuoteRequest["shippingAddress"]>({
   city: "",
   countryCode: "US",
   line1: "",
@@ -76,13 +101,42 @@ const alternateAddress = reactive<ShippingQuoteRequest["shippingAddress"]>({
   postalCode: "",
   region: "",
 });
+
+const activeShippingAddress = computed<StorefrontShippingQuoteRequest["shippingAddress"]>(() => {
+  const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
+  return {
+    ...address,
+    name: alternateShippingOpen.value
+      ? address.name.trim()
+      : `${firstName.value} ${lastName.value}`.trim(),
+  };
+});
+const shippingAddressComplete = computed(() => {
+  const address = activeShippingAddress.value;
+  return Boolean(
+    address.name.trim() &&
+    address.line1.trim() &&
+    address.city.trim() &&
+    address.countryCode &&
+    address.region?.trim() &&
+    address.postalCode.trim(),
+  );
+});
+const shippingAddressFingerprint = computed(() => JSON.stringify(activeShippingAddress.value));
+const cartContentsFingerprint = computed(() =>
+  JSON.stringify(
+    cart.value?.lines.map(({ quantity, unitPrice, variantId }) => ({
+      quantity,
+      unitPrice,
+      variantId,
+    })) ?? [],
+  ),
+);
 
 const displayedLines = computed(() => {
-  if (cart.value === null) return data.value.lines;
+  if (cart.value === null) return initialFixtureData?.lines ?? [];
   return cart.value.lines.map((line) => ({
-    color:
-      data.value.lines.find(({ variantId }) => variantId === line.variantId)?.color ??
-      line.variantName,
+    color: fixtureLinesByVariant.get(line.variantId)?.color ?? line.variantName,
     name: line.productName,
     quantity: line.quantity,
     total: money(line.lineTotal.amount, line.lineTotal.currency),
@@ -96,39 +150,49 @@ const displayedTotals = computed(() =>
         tax: `(Includes ${money(cart.value.totals.taxTotal, cart.value.currency)} tax)`,
         total: money(cart.value.totals.grandTotal, cart.value.currency),
       }
-    : data.value.totals,
+    : (initialFixtureData?.totals ?? {
+        subtotal: "$0.00",
+        tax: "(Includes $0.00 tax)",
+        total: "$0.00",
+      }),
 );
-const shippingMethods = computed<ShippingMethodQuote[]>(() =>
+const shippingMethods = computed<StorefrontShippingMethodQuote[]>(() =>
   cart.value === null
-    ? data.value.shipping.map((method) => ({
-        amount: method.id === data.value.shipping[1]?.id ? 1200 : 0,
+    ? (initialFixtureData?.shipping ?? []).map((method) => ({
+        amount: method.id === initialFixtureData?.shipping[1]?.id ? 1200 : 0,
         currency: "USD",
         estimatedDaysMax: 5,
         estimatedDaysMin: 3,
         id: method.id,
         name: method.label,
       }))
-    : cart.value.shippingMethods,
+    : [...cart.value.shippingMethods],
+);
+watch(
+  () => cart.value?.selectedShippingMethodId,
+  (methodId) => {
+    if (isLive.value) selectedMethod.value = methodId ?? undefined;
+  },
+  { immediate: true },
 );
 
 function money(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { currency, style: "currency" }).format(amount / 100);
+  return formatCommerceMoney(amount, currency);
 }
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function applyCart(nextCart: Cart): void {
-  cart.value = nextCart;
-  if (nextCart.shippingAddress) {
+function applyCart(nextCart: StorefrontCart, hydrateAddress = false): void {
+  if (!ownerCart) localCart.value = nextCart;
+  if (hydrateAddress && nextCart.shippingAddress) {
     Object.assign(billingAddress, nextCart.shippingAddress);
     const nameParts = nextCart.shippingAddress.name.trim().split(/\s+/);
     firstName.value = nameParts.shift() ?? "";
     lastName.value = nameParts.join(" ");
   }
-  selectedMethod.value =
-    nextCart.selectedShippingMethodId ?? nextCart.shippingMethods[0]?.id ?? selectedMethod.value;
+  selectedMethod.value = nextCart.selectedShippingMethodId ?? undefined;
 }
 
 function toggleHelper(panel: "coupon" | "login"): void {
@@ -162,28 +226,63 @@ function selectPayment(id: string): void {
   localActionCount.value += 1;
 }
 
-async function updateShipping(): Promise<void> {
-  const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
-  if (!checkoutAdapter || !selectedMethod.value || shippingBusy.value) return;
+async function requestShipping(shippingMethodId?: string): Promise<void> {
+  if (!isLive.value || !checkoutAdapter || !shippingAddressComplete.value) return;
+  const sequence = ++shippingSequence;
   shippingBusy.value = true;
   shippingError.value = "";
   try {
-    applyCart(
-      await checkoutAdapter.shipping({
-        shippingAddress: { ...address },
-        shippingMethodId: selectedMethod.value,
-      }),
-    );
+    const nextCart = await checkoutAdapter.shipping({
+      shippingAddress: { ...activeShippingAddress.value },
+      ...(shippingMethodId ? { shippingMethodId } : {}),
+    });
+    if (sequence === shippingSequence) applyCart(nextCart);
   } catch {
-    shippingError.value = "Delivery options are unavailable. Please try again.";
+    if (sequence === shippingSequence) {
+      shippingError.value =
+        checkoutAdapter.status().error ?? "Delivery options are unavailable. Please try again.";
+    }
   } finally {
-    shippingBusy.value = false;
+    if (sequence === shippingSequence) shippingBusy.value = false;
   }
 }
+
+function updateShipping(): void {
+  if (shippingTimer) {
+    clearTimeout(shippingTimer);
+    shippingTimer = undefined;
+  }
+  shippingSequence += 1;
+  void requestShipping(selectedMethod.value);
+}
+
+watch([shippingAddressFingerprint, cartContentsFingerprint], () => {
+  if (!isLive.value) return;
+  if (shippingTimer) {
+    clearTimeout(shippingTimer);
+    shippingTimer = undefined;
+  }
+  shippingSequence += 1;
+  if (!shippingAddressComplete.value) {
+    selectedMethod.value = undefined;
+    shippingBusy.value = false;
+    return;
+  }
+  shippingTimer = setTimeout(() => {
+    shippingTimer = undefined;
+    void requestShipping();
+  }, 300);
+});
 
 async function continueCheckout(): Promise<void> {
   submitError.value = "";
   if (!form.value?.reportValidity()) return;
+  if (initialFixtureData) {
+    recordPreviewIntent(initialFixtureData.action, "fashion-store.checkout.session");
+    localActionCount.value += 1;
+    loadNotice.value = "Checkout preview intent recorded. No order or payment session was created.";
+    return;
+  }
   if (!checkoutAdapter || !cart.value?.canCheckout) {
     submitError.value = "Checkout is unavailable for this cart.";
     return;
@@ -199,7 +298,6 @@ async function continueCheckout(): Promise<void> {
 
   const address = alternateShippingOpen.value ? alternateAddress : billingAddress;
   billingAddress.name = `${firstName.value} ${lastName.value}`.trim();
-  recordPreviewIntent(data.value.action, "fashion-store.checkout.session");
   submitting.value = true;
   try {
     const session = await checkoutAdapter.begin(
@@ -222,7 +320,8 @@ async function continueCheckout(): Promise<void> {
     sessionCount.value += 1;
     checkoutAdapter.complete(session);
   } catch {
-    submitError.value = "Checkout could not continue. Please try again.";
+    submitError.value =
+      checkoutAdapter.status().error ?? "Checkout could not continue. Please try again.";
     turnstileToken.value = "";
     turnstileRenderKey.value += 1;
   } finally {
@@ -231,8 +330,10 @@ async function continueCheckout(): Promise<void> {
 }
 
 onMounted(async () => {
+  hydrated.value = true;
   if (!checkoutAdapter) {
-    loadError.value = "Checkout is unavailable for this cart.";
+    if (!initialFixtureData) loadError.value = "Checkout is unavailable for this cart.";
+    turnstileRequired.value = false;
     securityConfigurationLoading.value = false;
     return;
   }
@@ -240,8 +341,12 @@ onMounted(async () => {
     checkoutAdapter.ensure(),
     checkoutAdapter.configuration(),
   ]);
-  if (cartResult.status === "fulfilled") applyCart(cartResult.value);
-  else loadError.value = "Checkout is unavailable for this cart.";
+  if (cartResult.status === "fulfilled") {
+    applyCart(cartResult.value, true);
+    loadNotice.value = checkoutAdapter.status().notice ?? "";
+  } else {
+    loadError.value = checkoutAdapter.status().error ?? "Checkout is unavailable for this cart.";
+  }
 
   if (configurationResult.status === "fulfilled") {
     turnstileRequired.value = configurationResult.value.turnstile.required;
@@ -259,12 +364,14 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   disposed = true;
+  if (shippingTimer) clearTimeout(shippingTimer);
+  shippingSequence += 1;
 });
 </script>
 
 <template>
   <FashionStoreShell
-    :announcement="data.announcement"
+    :announcement="initialFixtureData?.announcement"
     body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
@@ -272,10 +379,19 @@ onBeforeUnmount(() => {
     <main
       id="fashion-store-main"
       data-fashion-store-checkout
-      data-runtime-status="ready"
+      :data-runtime-status="loadError ? 'error' : cart || initialFixtureData ? 'ready' : 'loading'"
       :data-local-action-count="localActionCount"
       :data-session-count="sessionCount"
     >
+      <div
+        v-if="liveTransactionDisabled"
+        class="container pt-15px pb-15px"
+        role="region"
+        aria-label="JavaScript limitations"
+      >
+        <p>Shopping actions require JavaScript.</p>
+        <a href="/cart">Return to bag</a>
+      </div>
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
@@ -283,6 +399,16 @@ onBeforeUnmount(() => {
               class="col-12 col-xl-8 col-lg-10 text-center position-relative page-title-extra-large"
             >
               <h1 class="alt-font fw-600 text-dark-gray mb-10px">Checkout</h1>
+              <p v-if="viewModel.kind === 'checkout' && viewModel.helpCopy" class="mb-5px">
+                {{ viewModel.helpCopy }}
+                <a
+                  v-if="viewModel.policyLink"
+                  :href="viewModel.policyLink.href"
+                  data-fashion-store-route
+                  class="ms-5px text-decoration-line-bottom"
+                  >{{ viewModel.policyLink.label }}</a
+                >
+              </p>
             </div>
             <nav
               class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center"
@@ -315,13 +441,14 @@ onBeforeUnmount(() => {
                 <div class="feature-box-content">
                   <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
                     >Returning customer?
-                    <a
-                      href="#"
-                      class="text-decoration-line-bottom fw-600 text-dark-gray"
+                    <button
+                      type="button"
+                      class="fashion-checkout-helper-trigger text-decoration-line-bottom fw-600 text-dark-gray"
                       :aria-expanded="helperPanel === 'login'"
-                      @click.prevent="toggleHelper('login')"
-                      >Click here to login</a
-                    ></span
+                      @click="toggleHelper('login')"
+                    >
+                      Click here to login
+                    </button></span
                   >
                 </div>
               </div>
@@ -339,13 +466,14 @@ onBeforeUnmount(() => {
                 <div class="feature-box-content">
                   <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
                     >Have a coupon?
-                    <a
-                      href="#"
-                      class="text-decoration-line-bottom fw-600 text-dark-gray"
+                    <button
+                      type="button"
+                      class="fashion-checkout-helper-trigger text-decoration-line-bottom fw-600 text-dark-gray"
                       :aria-expanded="helperPanel === 'coupon'"
-                      @click.prevent="toggleHelper('coupon')"
-                      >Click here to enter your code</a
-                    ></span
+                      @click="toggleHelper('coupon')"
+                    >
+                      Click here to enter your code
+                    </button></span
                   >
                 </div>
               </div>
@@ -426,7 +554,7 @@ onBeforeUnmount(() => {
                   >
                     <option value="">Select a country</option>
                     <option
-                      v-for="country in data.countries"
+                      v-for="country in countryOptions"
                       :key="country.code"
                       :value="country.code"
                     >
@@ -525,7 +653,7 @@ onBeforeUnmount(() => {
                   />
                 </div>
 
-                <div class="col-md-12 mb-5px checkout-accordion">
+                <div v-if="!isLive" class="col-md-12 mb-5px checkout-accordion">
                   <div
                     class="position-relative terms-condition-box text-start d-flex align-items-center"
                   >
@@ -651,6 +779,12 @@ onBeforeUnmount(() => {
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
                         <ul class="shipping-methods fashion-checkout-shipping-methods p-0">
+                          <li v-if="isLive && !shippingAddressComplete" role="status">
+                            Complete the shipping address to calculate delivery automatically.
+                          </li>
+                          <li v-else-if="isLive && shippingBusy" role="status">
+                            Calculating delivery options…
+                          </li>
                           <li
                             v-for="method in shippingMethods"
                             :key="method.id"
@@ -663,6 +797,7 @@ onBeforeUnmount(() => {
                               name="shipping-method"
                               class="d-block w-auto mb-0 me-10px p-0"
                               :value="method.id"
+                              :disabled="liveTransactionDisabled"
                               @change="updateShipping"
                             />
                             <label
@@ -695,7 +830,7 @@ onBeforeUnmount(() => {
                 >
                   <div id="fashion-payment-accordion" class="w-100">
                     <div
-                      v-for="payment in data.payment"
+                      v-for="payment in paymentOptions"
                       :key="payment.id"
                       class="fashion-payment-option"
                     >
@@ -772,11 +907,12 @@ onBeforeUnmount(() => {
                   class="fashion-checkout-submit btn btn-dark-gray btn-large btn-switch-text btn-round-edge btn-box-shadow w-100 mt-30px"
                   type="submit"
                   :disabled="
+                    liveTransactionDisabled ||
                     submitting ||
                     shippingBusy ||
                     securityConfigurationLoading ||
                     Boolean(securityConfigurationError) ||
-                    !cart?.canCheckout ||
+                    (isLive && !cart?.canCheckout) ||
                     (turnstileRequired && !turnstileToken)
                   "
                 >
@@ -786,6 +922,9 @@ onBeforeUnmount(() => {
                 </button>
                 <p v-if="loadError || submitError" class="form-error mt-15px" role="alert">
                   {{ loadError || submitError }}
+                </p>
+                <p v-if="loadNotice" class="mt-15px" role="status" aria-live="polite">
+                  {{ loadNotice }}
                 </p>
               </div>
             </div>

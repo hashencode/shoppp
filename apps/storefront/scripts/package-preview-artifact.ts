@@ -52,6 +52,7 @@ export async function packagePreviewArtifact(options: {
   manifestPath: string;
   outputRoot: string;
   snapshotId: string;
+  catalogReleaseId?: string;
 }): Promise<{
   digest: string;
   files: Array<{ contentType: string; path: string; sourcePath: string }>;
@@ -62,6 +63,8 @@ export async function packagePreviewArtifact(options: {
   const descriptor = await describePreviewArtifact(
     options.snapshotId,
     await previewFiles(outputRoot),
+    undefined,
+    options.catalogReleaseId,
   );
   const manifestPath = resolve(options.manifestPath);
   await mkdir(dirname(manifestPath), { recursive: true });
@@ -86,6 +89,7 @@ function argumentValue(arguments_: string[], name: string): string | undefined {
 async function main(): Promise<void> {
   const arguments_ = Bun.argv.slice(2);
   const snapshotId = argumentValue(arguments_, "--snapshot-id");
+  const catalogReleaseId = argumentValue(arguments_, "--catalog-release-id");
   const outputRoot = argumentValue(arguments_, "--output");
   const manifestPath = argumentValue(arguments_, "--manifest");
   if (!snapshotId || !outputRoot || !manifestPath) {
@@ -94,7 +98,9 @@ async function main(): Promise<void> {
     );
   }
   console.log(
-    JSON.stringify(await packagePreviewArtifact({ manifestPath, outputRoot, snapshotId })),
+    JSON.stringify(
+      await packagePreviewArtifact({ catalogReleaseId, manifestPath, outputRoot, snapshotId }),
+    ),
   );
 }
 

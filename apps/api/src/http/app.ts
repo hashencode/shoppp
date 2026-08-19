@@ -21,7 +21,9 @@ import {
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
   createPrivacyRequestSchema,
+  createStorefrontExperienceBuildRequestSchema,
   createStorefrontExperienceDraftRequestSchema,
+  createStorefrontExperienceSuccessorRequestSchema,
   createStorefrontPreviewGrantRequestSchema,
   checkoutRequestSchema,
   commerceFunnelEventSchema,
@@ -38,6 +40,7 @@ import {
   shippingQuoteRequestSchema,
   publicRuntimeConfigurationSchema,
   redeemStorefrontPreviewGrantRequestSchema,
+  revokeStorefrontPreviewAccessRequestSchema,
   resolveStorefrontExperienceDraftRequestSchema,
   publicIdSchema,
   updateCartLineRequestSchema,
@@ -49,6 +52,7 @@ import {
   validateStorefrontExperienceDraftRequestSchema,
   storefrontExperienceBuildResultSchema,
   storefrontExperienceMigrationDryRunRequestSchema,
+  storefrontResourceKindSchema,
 } from "@shoppp/contracts";
 
 import {
@@ -62,7 +66,7 @@ import {
   updateCartLine,
 } from "../cart/service";
 import { createProduct, getProduct, listProducts, updateProduct } from "../catalog/products";
-import { getLiveProduct } from "../catalog/public";
+import { getLiveProduct, getLiveProductById } from "../catalog/public";
 import { productDraftSchema, publicationSchema } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
@@ -86,6 +90,12 @@ import {
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
 import { uploadCatalogMedia } from "../media/uploads";
+import { listCatalogMedia } from "../media/library";
+import {
+  getCanonicalDeployedCatalogRelease,
+  listStorefrontCatalogResources,
+  listStorefrontCatalogReleases,
+} from "../storefront-experience/catalog-resources";
 import { adminAuthentication, type TestIdentityVerifier } from "../middleware/auth";
 import { adminOriginProtection, isAllowedAdminBrowserOrigin } from "../middleware/admin-origin";
 import { idempotency } from "../middleware/idempotency";
@@ -133,6 +143,8 @@ import {
   defaultExperienceBuildTrigger,
   getStorefrontExperienceBuild,
   getStorefrontExperienceBuildManifest,
+  getStorefrontExperienceBuildManifestByBuild,
+  getLatestDeployedStorefrontExperiencePreview,
   recordStorefrontExperienceBuildResult,
   triggerStorefrontExperienceBuild,
   type ExperienceBuildTrigger,
@@ -142,11 +154,13 @@ import {
   createStorefrontPreviewGrant,
   redeemStorefrontPreviewGrant,
   requirePreviewServiceCredential,
+  revokeStorefrontPreviewAccess,
 } from "../storefront-experience/preview";
 import {
   approveStorefrontExperienceDraft,
   approveStorefrontExperienceMigration,
   createStorefrontExperienceDraft,
+  createStorefrontExperienceSuccessor,
   createStorefrontExperiencePreviewSnapshot,
   dryRunStorefrontExperienceMigration,
   getStorefrontExperienceDraft,
@@ -157,6 +171,14 @@ import {
   validateStorefrontExperienceDraft,
   type StorefrontExperienceServiceOptions,
 } from "../storefront-experience/service";
+import {
+  acquireFashionStagingAcceptance,
+  cleanupFashionStagingAcceptance,
+  reconcileAbandonedFashionStagingAcceptance,
+  recordFashionStagingJourneyFailure,
+  registerFashionStagingResource,
+  startFashionStagingAcceptance,
+} from "../testing/fashion-staging";
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
@@ -244,6 +266,38 @@ const reportOrderQuerySchema = reportingQuerySchema
     query: z.string().trim().max(160).optional(),
   })
   .strict();
+const storefrontPreviewContextQuerySchema = z
+  .object({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
+    draftVersion: z.coerce.number().int().positive(),
+  })
+  .strict();
+const stableIdentifierSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/);
+const fashionAcceptanceAcquireSchema = z
+  .object({
+    artifactDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    catalogReleaseId: stableIdentifierSchema,
+    commitSha: z.string().regex(/^[a-f0-9]{40}$/),
+    experienceSnapshotId: stableIdentifierSchema,
+    leaseMinutes: z.number().int().min(5).max(240).optional(),
+    minimumSellableQuantity: z.number().int().positive().optional(),
+    owner: stableIdentifierSchema,
+    runId: stableIdentifierSchema,
+    seedManifestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    variantId: stableIdentifierSchema,
+    warehouseId: stableIdentifierSchema,
+  })
+  .strict();
+const fashionAcceptanceOwnerSchema = z.object({ owner: stableIdentifierSchema }).strict();
+const fashionAcceptanceResourceSchema = fashionAcceptanceOwnerSchema
+  .extend({
+    resourceId: stableIdentifierSchema,
+    resourceType: z.enum(["cart", "checkout_attempt", "order", "reservation", "reservation_group"]),
+  })
+  .strict();
+const fashionAcceptanceFailureSchema = fashionAcceptanceOwnerSchema
+  .extend({ failure: z.string().trim().min(1).max(500) })
+  .strict();
 
 function validatedQuery<Schema extends z.ZodType>(
   context: Context<ApiEnvironment>,
@@ -277,6 +331,29 @@ function requireBuildCredential(
   }
   if (context.req.header("authorization") !== `Bearer ${configuredToken}`) {
     throw new ApiError(401, "build_manifest_unauthorized", "Build credential required.");
+  }
+}
+
+function requireFashionAcceptanceCredential(context: Context<ApiEnvironment>): void {
+  const token = context.env.FASHION_ACCEPTANCE_TOKEN;
+  if (
+    context.env.ENVIRONMENT !== "staging" ||
+    context.env.RESOURCE_NAMESPACE !== "shoppp-fashion-staging" ||
+    !token ||
+    token.length < 32
+  ) {
+    throw new ApiError(
+      404,
+      "fashion_staging_acceptance_unavailable",
+      "Fashion staging acceptance is unavailable.",
+    );
+  }
+  if (context.req.header("authorization") !== `Bearer ${token}`) {
+    throw new ApiError(
+      401,
+      "fashion_staging_acceptance_unauthorized",
+      "Fashion staging acceptance credential required.",
+    );
   }
 }
 
@@ -345,6 +422,76 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/health", (context) =>
     context.json({ data: { status: "ok" }, meta: { requestId: context.get("requestId") } }),
   );
+  app.post("/internal/testing/fashion-staging/runs", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionAcceptanceAcquireSchema);
+    const acquired = await acquireFashionStagingAcceptance(context.env.DB, {
+      artifactDigest: input.artifactDigest,
+      catalogReleaseId: input.catalogReleaseId,
+      commitSha: input.commitSha,
+      environment: "fashion-staging",
+      experienceSnapshotId: input.experienceSnapshotId,
+      ...(input.leaseMinutes === undefined ? {} : { leaseMinutes: input.leaseMinutes }),
+      ...(input.minimumSellableQuantity === undefined
+        ? {}
+        : { minimumSellableQuantity: input.minimumSellableQuantity }),
+      owner: input.owner,
+      runId: input.runId,
+      seedManifestDigest: input.seedManifestDigest,
+      variantId: input.variantId,
+      warehouseId: input.warehouseId,
+    });
+    await startFashionStagingAcceptance(context.env.DB, input.runId, input.owner);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: acquired, meta: { requestId: context.get("requestId") } }, 201);
+  });
+  app.post("/internal/testing/fashion-staging/runs/:id/resources", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionAcceptanceResourceSchema);
+    await registerFashionStagingResource(
+      context.env.DB,
+      context.req.param("id"),
+      input.owner,
+      input.resourceType,
+      input.resourceId,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.body(null, 204);
+  });
+  app.post("/internal/testing/fashion-staging/runs/:id/failure", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionAcceptanceFailureSchema);
+    await recordFashionStagingJourneyFailure(
+      context.env.DB,
+      context.req.param("id"),
+      input.owner,
+      input.failure,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.body(null, 204);
+  });
+  app.post("/internal/testing/fashion-staging/runs/:id/cleanup", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionAcceptanceOwnerSchema);
+    const result = await cleanupFashionStagingAcceptance(
+      context.env.DB,
+      context.req.param("id"),
+      input.owner,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/internal/testing/fashion-staging/runs/:id/reconcile", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionAcceptanceOwnerSchema);
+    const result = await reconcileAbandonedFashionStagingAcceptance(
+      context.env.DB,
+      context.req.param("id"),
+      input.owner,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
   const publicCors = cors({
     allowHeaders: [
       "Authorization",
@@ -417,6 +564,55 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/catalog/products/by-id/:id/live", async (context) => {
+    const currency = (context.req.query("currency") ?? "USD").toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      throw new ApiError(422, "validation_failed", "Request validation failed.", [
+        { path: ["currency"], message: "Use a three-letter currency code." },
+      ]);
+    }
+    const releaseId = context.req.header("x-preview-catalog-release");
+    if (!releaseId) {
+      throw new ApiError(
+        422,
+        "catalog_release_required",
+        "A deployed Catalog Release is required for stable product lookup.",
+      );
+    }
+    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, releaseId);
+    const releaseProduct = release.products.find(
+      (product) => product.id === context.req.param("id") && product.status === "published",
+    );
+    if (!releaseProduct) {
+      throw new ApiError(
+        404,
+        "product_not_in_release",
+        "The product was not found in this Catalog Release.",
+      );
+    }
+    const product = await getLiveProductById(
+      context.env.DB,
+      releaseProduct.id,
+      currency,
+      context.env.MEDIA_PUBLIC_ORIGIN,
+    );
+    const releaseVariantIds = new Set(
+      releaseProduct.variants.filter(({ status }) => status === "active").map(({ id }) => id),
+    );
+    product.variants = product.variants.filter(({ id }) => releaseVariantIds.has(id));
+    if (product.variants.length === 0) {
+      throw new ApiError(
+        422,
+        "currency_unavailable",
+        "This release product is not sellable in the requested currency.",
+      );
+    }
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: product,
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.post("/cart", idempotency("cart.create"), async (context) => {
     const input = await parseJson(context, createCartRequestSchema);
     const cart = await createCart(context, input);
@@ -435,9 +631,13 @@ export function createApp(options: CreateAppOptions = {}) {
   app.post("/cart/lines", idempotency("cart.lines.add"), async (context) => {
     const cart = await requireCart(context);
     const input = await parseJson(context, addCartLineRequestSchema);
+    const authorizedReleaseId = context.req.header("x-preview-catalog-release");
     context.header("Cache-Control", "private, no-store");
     return context.json({
-      data: await addCartLine(context, cart, input),
+      data: await addCartLine(context, cart, {
+        ...input,
+        ...(authorizedReleaseId ? { releaseId: authorizedReleaseId } : {}),
+      }),
       meta: { requestId: context.get("requestId") },
     });
   });
@@ -594,6 +794,17 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Referrer-Policy", "no-referrer");
     return context.json(
       await getStorefrontExperienceBuildManifest(context, context.req.param("id")),
+    );
+  });
+  app.get("/build/storefront-experiences/builds/:id", async (context) => {
+    requireBuildCredential(
+      context,
+      options.buildManifestToken ?? context.env.PREVIEW_BUILD_CALLBACK_TOKEN,
+    );
+    context.header("Cache-Control", "private, no-store");
+    context.header("Referrer-Policy", "no-referrer");
+    return context.json(
+      await getStorefrontExperienceBuildManifestByBuild(context, context.req.param("id")),
     );
   });
   app.post(
@@ -827,6 +1038,67 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/storefront-experiences/catalog-releases", async (context) => {
+    await requirePermission(context, "themes.preview", { type: "storefront_catalog_release" });
+    await requirePermission(context, "catalog.read", { type: "catalog_release" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await listStorefrontCatalogReleases(context.env),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/catalog-releases/:id/resources", async (context) => {
+    await requirePermission(context, "themes.preview", {
+      id: context.req.param("id"),
+      type: "catalog_release",
+    });
+    await requirePermission(context, "catalog.read", {
+      id: context.req.param("id"),
+      type: "catalog_release",
+    });
+    const kind = storefrontResourceKindSchema.safeParse(context.req.query("kind"));
+    if (!kind.success) {
+      throw new ApiError(422, "storefront_resource_kind_invalid", "Select a valid resource kind.");
+    }
+    const page = Math.max(Number.parseInt(context.req.query("page") ?? "1", 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(context.req.query("pageSize") ?? "20", 10) || 20, 1),
+      100,
+    );
+    return context.json({
+      ...(await listStorefrontCatalogResources(context.env.DB, context.req.param("id"), {
+        kind: kind.data,
+        page,
+        pageSize,
+        query: context.req.query("query") ?? "",
+      })),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/media", async (context) => {
+    await requirePermission(context, "themes.write", { type: "storefront_media" });
+    await requirePermission(context, "catalog.read", { type: "media" });
+    context.header("Cache-Control", "private, no-store");
+    const page = Math.max(Number.parseInt(context.req.query("page") ?? "1", 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(context.req.query("pageSize") ?? "24", 10) || 24, 1),
+      100,
+    );
+    const result = await listCatalogMedia(context.env, {
+      page,
+      pageSize,
+      query: context.req.query("query") ?? "",
+    });
+    return context.json({
+      data: result.data,
+      meta: {
+        page: result.page,
+        pageSize: result.pageSize,
+        requestId: context.get("requestId"),
+        total: result.total,
+      },
+    });
+  });
   app.post(
     "/admin/storefront-experiences/drafts",
     async (context, next) => {
@@ -870,6 +1142,29 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/storefront-experiences/drafts/:id/preview-context", async (context) => {
+    const draftId = context.req.param("id");
+    await requirePermission(context, "themes.preview", {
+      id: draftId,
+      type: "storefront_experience_draft",
+    });
+    const input = validatedQuery(context, storefrontPreviewContextQuerySchema);
+    if (input.catalogReleaseId) {
+      await requirePermission(context, "catalog.read", {
+        id: input.catalogReleaseId,
+        type: "catalog_release",
+      });
+    }
+    return context.json({
+      data: await getLatestDeployedStorefrontExperiencePreview(
+        context.env.DB,
+        draftId,
+        input.draftVersion,
+        input.catalogReleaseId,
+      ),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.put(
     "/admin/storefront-experiences/drafts/:id",
     async (context, next) => {
@@ -889,6 +1184,27 @@ export function createApp(options: CreateAppOptions = {}) {
     },
   );
   app.post(
+    "/admin/storefront-experiences/drafts/:id/successors",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.draft.successor.create"),
+    async (context) => {
+      const input = await parseJson(context, createStorefrontExperienceSuccessorRequestSchema);
+      return context.json(
+        {
+          data: await createStorefrontExperienceSuccessor(context, context.req.param("id"), input),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
+    },
+  );
+  app.post(
     "/admin/storefront-experiences/drafts/:id/validate",
     async (context, next) => {
       await requirePermission(context, "themes.write", {
@@ -900,12 +1216,19 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.draft.validate"),
     async (context) => {
       const input = await parseJson(context, validateStorefrontExperienceDraftRequestSchema);
+      if (input.catalogReleaseId) {
+        await requirePermission(context, "catalog.read", {
+          id: input.catalogReleaseId,
+          type: "catalog_release",
+        });
+      }
       return context.json({
         data: await validateStorefrontExperienceDraft(
           context,
           context.req.param("id"),
           input.expectedVersion,
           input.reason,
+          input.catalogReleaseId,
           options.storefrontExperienceServiceOptions,
         ),
         meta: { requestId: context.get("requestId") },
@@ -924,17 +1247,25 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.preview.create"),
     async (context) => {
       const input = await parseJson(context, resolveStorefrontExperienceDraftRequestSchema);
+      if (input.catalogReleaseId) {
+        await requirePermission(context, "catalog.read", {
+          id: input.catalogReleaseId,
+          type: "catalog_release",
+        });
+      }
       const snapshot = await createStorefrontExperiencePreviewSnapshot(
         context,
         context.req.param("id"),
         input.expectedVersion,
         input.reason,
+        input.catalogReleaseId,
         options.storefrontExperienceServiceOptions,
       );
       const build = await triggerStorefrontExperienceBuild(
         context,
         snapshot.id,
         options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env),
+        input.catalogReleaseId,
       );
       return context.json(
         {
@@ -957,16 +1288,64 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.approve"),
     async (context) => {
       const input = await parseJson(context, approveStorefrontExperienceDraftRequestSchema);
+      if (input.catalogReleaseId) {
+        await requirePermission(context, "catalog.read", {
+          id: input.catalogReleaseId,
+          type: "catalog_release",
+        });
+      }
       return context.json({
         data: await approveStorefrontExperienceDraft(
           context,
           context.req.param("id"),
           input.expectedVersion,
           input.reason,
+          input.catalogReleaseId,
           options.storefrontExperienceServiceOptions,
         ),
         meta: { requestId: context.get("requestId") },
       });
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/snapshots/:id/build",
+    async (context, next) => {
+      await requirePermission(context, "themes.preview", {
+        id: context.req.param("id"),
+        type: "storefront_experience_snapshot",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.snapshot.build"),
+    async (context) => {
+      const input = await parseJson(context, createStorefrontExperienceBuildRequestSchema);
+      await requirePermission(context, "catalog.read", {
+        id: input.catalogReleaseId,
+        type: "catalog_release",
+      });
+      const snapshot = await getStorefrontExperienceSnapshot(
+        context.env.DB,
+        context.req.param("id"),
+      );
+      if (snapshot.kind !== "approved") {
+        throw new ApiError(
+          409,
+          "storefront_experience_snapshot_not_approved",
+          "Only an approved immutable storefront experience snapshot can start this build.",
+        );
+      }
+      return context.json(
+        {
+          data: await triggerStorefrontExperienceBuild(
+            context,
+            snapshot.id,
+            options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env),
+            input.catalogReleaseId,
+          ),
+          meta: { requestId: context.get("requestId") },
+        },
+        202,
+      );
     },
   );
   app.post(
@@ -1004,17 +1383,20 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.migration.approve"),
     async (context) => {
       const input = await parseJson(context, approveStorefrontExperienceMigrationRequestSchema);
-      return context.json({
-        data: await approveStorefrontExperienceMigration(
-          context,
-          context.req.param("id"),
-          input.migrationId,
-          input.expectedVersion,
-          input.reason,
-          options.storefrontExperienceServiceOptions,
-        ),
-        meta: { requestId: context.get("requestId") },
-      });
+      return context.json(
+        {
+          data: await approveStorefrontExperienceMigration(
+            context,
+            context.req.param("id"),
+            input.migrationId,
+            input.expectedVersion,
+            input.reason,
+            options.storefrontExperienceServiceOptions,
+          ),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
     },
   );
   app.get("/admin/storefront-experiences/snapshots/:id", async (context) => {
@@ -1043,6 +1425,12 @@ export function createApp(options: CreateAppOptions = {}) {
       type: "storefront_experience_snapshot",
     });
     const input = await parseJson(context, createStorefrontPreviewGrantRequestSchema);
+    if (input.catalogReleaseId) {
+      await requirePermission(context, "catalog.read", {
+        id: input.catalogReleaseId,
+        type: "catalog_release",
+      });
+    }
     return context.json(
       {
         data: await createStorefrontPreviewGrant(
@@ -1050,12 +1438,31 @@ export function createApp(options: CreateAppOptions = {}) {
           context.req.param("id"),
           input.origin,
           input.reason,
+          input.catalogReleaseId,
         ),
         meta: { requestId: context.get("requestId") },
       },
       201,
     );
   });
+  app.post(
+    "/admin/storefront-experiences/snapshots/:id/revoke",
+    async (context, next) => {
+      await requirePermission(context, "themes.preview", {
+        id: context.req.param("id"),
+        type: "storefront_experience_snapshot",
+      });
+      await next();
+    },
+    idempotency("storefront.preview.access.revoke"),
+    async (context) => {
+      const input = await parseJson(context, revokeStorefrontPreviewAccessRequestSchema);
+      return context.json({
+        data: await revokeStorefrontPreviewAccess(context, context.req.param("id"), input.reason),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
   app.get("/admin/settings/launch", async (context) => {
     await requirePermission(context, "settings.read", { type: "setting" });
     return context.json({

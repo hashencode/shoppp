@@ -31,7 +31,8 @@ export default defineConfig(async () => {
             RESERVATION_TTL_MINUTES: "30",
             STOREFRONT_ORIGIN: "https://storefront-staging.example.invalid",
             GUEST_ORDER_TOKEN_TTL_HOURS: "720",
-            PAYMENT_CANCEL_URL: "https://storefront-staging.example.invalid/checkout",
+            PAYMENT_CANCEL_URL:
+              "https://storefront-staging.example.invalid/checkout/complete?return=canceled",
             PAYMENT_SUCCESS_URL:
               "https://storefront-staging.example.invalid/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
             TAX_MODE: "zero",
