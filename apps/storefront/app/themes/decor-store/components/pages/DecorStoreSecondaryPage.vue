@@ -4,6 +4,9 @@ import { normalizeThemeRoutePath } from "../../../../theme-engine/routes";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { resolveDecorStorePage } from "../../page-contracts";
 import DecorStoreCollectionPage from "./DecorStoreCollectionPage.vue";
+import DecorStoreAccountPage from "./DecorStoreAccountPage.vue";
+import DecorStoreCartPage from "./DecorStoreCartPage.vue";
+import DecorStoreCheckoutPage from "./DecorStoreCheckoutPage.vue";
 import DecorStoreProductPage from "./DecorStoreProductPage.vue";
 import DecorStoreShopPage from "./DecorStoreShopPage.vue";
 import DecorStoreWishlistPage from "./DecorStoreWishlistPage.vue";
@@ -40,6 +43,9 @@ const announcement = computed(() =>
   />
   <DecorStoreProductPage v-else-if="page.id === 'product'" :resolve-asset="resolveAsset" />
   <DecorStoreWishlistPage v-else-if="page.id === 'wishlist'" :resolve-asset="resolveAsset" />
+  <DecorStoreCartPage v-else-if="page.id === 'cart'" :resolve-asset="resolveAsset" />
+  <DecorStoreCheckoutPage v-else-if="page.id === 'checkout'" :resolve-asset="resolveAsset" />
+  <DecorStoreAccountPage v-else-if="page.id === 'account'" :resolve-asset="resolveAsset" />
   <DecorStoreShell
     v-else
     :active-page="page.id"

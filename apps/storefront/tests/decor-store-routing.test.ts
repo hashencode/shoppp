@@ -53,9 +53,17 @@ describe("Decor Store remaining-page route authority", () => {
     ).toEqual(
       expectedSecondaryPages.map((row) => [
         ...row,
-        ["shop-left", "shop-none", "shop-right", "collection", "product", "wishlist"].includes(
-          row[0],
-        ),
+        [
+          "shop-left",
+          "shop-none",
+          "shop-right",
+          "collection",
+          "product",
+          "wishlist",
+          "cart",
+          "checkout",
+          "account",
+        ].includes(row[0]),
       ]),
     );
     expect(decorStorePreviewRoutes).toEqual([
@@ -66,6 +74,9 @@ describe("Decor Store remaining-page route authority", () => {
       "/collections",
       "/products/minimalist-wooden-chair",
       "/wishlist",
+      "/cart",
+      "/checkout",
+      "/account",
     ]);
   });
 
@@ -95,17 +106,19 @@ describe("Decor Store remaining-page route authority", () => {
 
   test("rejects prematurely enabled pages without completion evidence", () => {
     const contracts = structuredClone(decorStorePageContracts) as DecorStorePageContract[];
-    const account = contracts.find(({ id }) => id === "account")!;
-    account.ready = true;
-    account.fixtureId = "decor-store-content";
+    const blog = contracts.find(({ id }) => id === "blog")!;
+    blog.ready = true;
+    blog.fixtureId = "decor-store-content";
     expect(() =>
       assertDecorStorePageContracts(contracts, [
         "decor-store-home",
         "decor-store-collection",
         "decor-store-product",
         "decor-store-content",
+        "decor-store-cart",
+        "decor-store-checkout",
       ]),
-    ).toThrow("account readiness evidence");
+    ).toThrow("blog readiness evidence");
   });
 
   test("keeps shared acceptance policy identity aligned without advertising unready pages", async () => {

@@ -56,7 +56,7 @@ describe("Decor Store U2 registration", () => {
       moduleAllowlist: { "decor-store": "../themes/decor-store/registry" },
     });
 
-    expect(input.snapshot.bindings).toHaveLength(4);
+    expect(input.snapshot.bindings).toHaveLength(6);
     expect(input.snapshot.bindings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -75,9 +75,19 @@ describe("Decor Store U2 registration", () => {
           fixtureId: "decor-store-content",
           instanceId: "decor-store-content",
         }),
+        expect.objectContaining({
+          fixtureId: "decor-store-cart",
+          instanceId: "decor-store-cart",
+        }),
+        expect.objectContaining({
+          fixtureId: "decor-store-checkout",
+          instanceId: "decor-store-checkout",
+        }),
       ]),
     );
     expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType).sort()).toEqual([
+      "cart",
+      "checkout",
       "collection",
       "content",
       "home",

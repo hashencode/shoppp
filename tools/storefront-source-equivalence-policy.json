@@ -677,21 +677,21 @@
           "id": "cart",
           "implementationRoute": "/cart",
           "pageType": "cart",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-cart.html"
         },
         {
           "id": "checkout",
           "implementationRoute": "/checkout",
           "pageType": "checkout",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-checkout.html"
         },
         {
           "id": "account",
           "implementationRoute": "/account",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-account.html"
         },
         {

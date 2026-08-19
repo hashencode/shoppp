@@ -33,6 +33,22 @@
       "kind": "fixture",
       "resource": "content",
       "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-cart",
+      "id": "decor-store-cart-binding",
+      "instanceId": "decor-store-cart",
+      "kind": "fixture",
+      "resource": "cart",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-checkout",
+      "id": "decor-store-checkout-binding",
+      "instanceId": "decor-store-checkout",
+      "kind": "fixture",
+      "resource": "checkout",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-decor-store-fixture",

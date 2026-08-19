@@ -151,21 +151,25 @@ export const decorStorePageContracts = [
     id: "cart",
     pageType: "cart",
     path: "/cart",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-commerce-unit", "decor-store-commerce-browser"],
     sourceEntry: "demo-decor-store-cart.html",
   }),
   contract({
     id: "checkout",
     pageType: "checkout",
     path: "/checkout",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-commerce-unit", "decor-store-commerce-browser"],
     sourceEntry: "demo-decor-store-checkout.html",
   }),
   contract({
+    fixtureId: "decor-store-content",
     id: "account",
     pageType: "content",
     path: "/account",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-commerce-unit", "decor-store-commerce-browser"],
     sourceEntry: "demo-decor-store-account.html",
   }),
   contract({
@@ -237,6 +241,8 @@ assertDecorStorePageContracts(decorStorePageContracts, [
   "decor-store-collection",
   "decor-store-product",
   "decor-store-content",
+  "decor-store-cart",
+  "decor-store-checkout",
 ]);
 
 export const decorStoreEnabledPageContracts = decorStorePageContracts.filter(({ ready }) => ready);

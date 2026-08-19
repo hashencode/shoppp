@@ -9,7 +9,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 product_authority: 2026-08-13-001-refactor-shoppp-product-master-plan.md
 inherited_baseline: 2026-08-10-001-feat-decor-store-source-parity-plan.md
-current_unit: U5.1
+current_unit: U6.1
 deepened: 2026-08-19
 ---
 
@@ -178,14 +178,14 @@ This plan is the sole authority for the remaining-page queue. Decimal child stag
 | U2 | Complete | Decor-local secondary shell, five non-home page-type registry/fixture seams, readiness-derived preview discovery, home isolation, and unready-route 404 evidence are complete |
 | U3 | Complete | Three Shop layouts and Collections are fixture-backed, ready, buildable, responsive, and browser-verified with local-only filter, sort, pagination, and Wishlist state |
 | U4 | Complete | Product gallery/options/quantity/tabs and Wishlist removal are source-shaped, deterministic, responsive, refresh-resetting, and emit no business request |
-| U5 | In progress | `U5.1` — reproduce Cart, Checkout, and Account as deterministic or inert presentation surfaces with focused secret/request absence evidence |
-| U6 | Pending | Depends on U1-U2; may follow U3-U5 to keep one implementation queue |
+| U5 | Complete | Cart local totals/removal and inert Checkout/Account surfaces are responsive, refresh-resetting, secret-disabled, and browser-verified with zero business requests |
+| U6 | In progress | `U6.1` — reproduce Blog, Article, About, FAQ, and Contact with deterministic editorial fixtures and presentation-only interactions |
 | U7 | Pending | Depends on U1-U6 |
 
-- **Current parent unit:** U5.
-- **Current child stage:** U5.1.
+- **Current parent unit:** U6.
+- **Current child stage:** U6.1.
 - **Blocker:** None. Missing remote placeholder content is a bounded local-asset adaptation under R5/KTD8, not a blocker.
-- **Next concrete action:** Reproduce `/cart`, `/checkout`, and `/account` with Decor-owned fixtures; verify ephemeral cart totals/removal, inert checkout/account typing, non-operable password/payment surfaces, responsive readability, refresh reset, and zero authentication/payment/order requests; then mark only those three contracts ready.
+- **Next concrete action:** Reproduce `/blog`, the frozen Article route, `/about`, `/faq`, and `/contact` with Decor-owned fixtures; verify editorial navigation, About carousel, FAQ accordion, inert Contact canary handling, responsive composition, reduced motion, and zero remote/form requests; then mark those five contracts ready.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7.
 
 ---

@@ -20,6 +20,7 @@ export default defineConfig({
     "decor-store-shop.spec.ts",
     "decor-store-collection.spec.ts",
     "decor-store-product.spec.ts",
+    "decor-store-cart-checkout-account.spec.ts",
     "decor-store-stabilization.spec.ts",
     "decor-store-source-equivalence.spec.ts",
   ],
@@ -63,6 +64,7 @@ export default defineConfig({
         "decor-store-shop.spec.ts",
         "decor-store-collection.spec.ts",
         "decor-store-product.spec.ts",
+        "decor-store-cart-checkout-account.spec.ts",
       ],
       use: {
         ...devices["Pixel 7"],
