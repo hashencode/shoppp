@@ -4,7 +4,9 @@ import { normalizeThemeRoutePath } from "../../../../theme-engine/routes";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { resolveDecorStorePage } from "../../page-contracts";
 import DecorStoreCollectionPage from "./DecorStoreCollectionPage.vue";
+import DecorStoreProductPage from "./DecorStoreProductPage.vue";
 import DecorStoreShopPage from "./DecorStoreShopPage.vue";
+import DecorStoreWishlistPage from "./DecorStoreWishlistPage.vue";
 import DecorStoreShell from "../shared/DecorStoreShell.vue";
 
 const properties = defineProps<{
@@ -36,6 +38,8 @@ const announcement = computed(() =>
     :page-id="page.id"
     :resolve-asset="resolveAsset"
   />
+  <DecorStoreProductPage v-else-if="page.id === 'product'" :resolve-asset="resolveAsset" />
+  <DecorStoreWishlistPage v-else-if="page.id === 'wishlist'" :resolve-asset="resolveAsset" />
   <DecorStoreShell
     v-else
     :active-page="page.id"

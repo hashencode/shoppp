@@ -17,6 +17,22 @@
       "kind": "fixture",
       "resource": "collection",
       "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-product",
+      "id": "decor-store-product-binding",
+      "instanceId": "decor-store-product",
+      "kind": "fixture",
+      "resource": "product",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-content",
+      "id": "decor-store-content-binding",
+      "instanceId": "decor-store-content",
+      "kind": "fixture",
+      "resource": "content",
+      "state": "populated"
     }
   ],
   "experienceId": "experience-decor-store-fixture",

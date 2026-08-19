@@ -12,13 +12,11 @@ import {
 
 describe("Decor Store Shop and Collections", () => {
   test("enables exactly the three Shop layouts and Collections after focused evidence", () => {
-    expect(decorStorePageContracts.filter(({ ready }) => ready).map(({ id }) => id)).toEqual([
-      "home",
-      "shop-left",
-      "shop-none",
-      "shop-right",
-      "collection",
-    ]);
+    expect(
+      decorStorePageContracts
+        .filter(({ ready, pageType }) => ready && pageType === "collection")
+        .map(({ id }) => id),
+    ).toEqual(["shop-left", "shop-none", "shop-right", "collection"]);
     expect(resolveDecorStorePage("/shop")?.id).toBe("shop-left");
     expect(resolveDecorStorePage("/shop/no-sidebar")?.id).toBe("shop-none");
     expect(resolveDecorStorePage("/shop/right-sidebar")?.id).toBe("shop-right");

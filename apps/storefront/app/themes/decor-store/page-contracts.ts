@@ -130,17 +130,21 @@ export const decorStorePageContracts = [
     sourceEntry: "demo-decor-store-collections.html",
   }),
   contract({
+    fixtureId: "decor-store-product",
     id: "product",
     pageType: "product",
     path: "/products/minimalist-wooden-chair",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-product-unit", "decor-store-product-browser"],
     sourceEntry: "demo-decor-store-single-product.html",
   }),
   contract({
+    fixtureId: "decor-store-content",
     id: "wishlist",
     pageType: "content",
     path: "/wishlist",
-    ready: false,
+    ready: true,
+    readinessEvidence: ["decor-store-wishlist-unit", "decor-store-product-browser"],
     sourceEntry: "demo-decor-store-wishlist.html",
   }),
   contract({
@@ -231,6 +235,8 @@ export function assertDecorStorePageContracts(
 assertDecorStorePageContracts(decorStorePageContracts, [
   "decor-store-home",
   "decor-store-collection",
+  "decor-store-product",
+  "decor-store-content",
 ]);
 
 export const decorStoreEnabledPageContracts = decorStorePageContracts.filter(({ ready }) => ready);

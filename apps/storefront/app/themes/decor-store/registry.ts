@@ -11,6 +11,7 @@ import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import DecorStoreHome from "./components/DecorStoreHome.vue";
 import { decorStoreHomeFixtures } from "./fixtures/home";
+import { decorStoreProductFixtures } from "./fixtures/pages/product";
 import { decorStoreSecondaryShellFixtures } from "./fixtures/pages/shell";
 import { decorStoreShopFixtures } from "./fixtures/pages/shop";
 import { decorStoreEnabledPageContracts } from "./page-contracts";
@@ -35,6 +36,7 @@ export const themeRegistry = {
 export { themeAssets };
 export const themeFixtures = {
   ...decorStoreHomeFixtures,
+  ...decorStoreProductFixtures,
   ...decorStoreSecondaryShellFixtures,
   ...decorStoreShopFixtures,
 };

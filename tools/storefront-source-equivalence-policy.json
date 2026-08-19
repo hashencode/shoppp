@@ -663,14 +663,14 @@
           "id": "product",
           "implementationRoute": "/products/minimalist-wooden-chair",
           "pageType": "product",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-single-product.html"
         },
         {
           "id": "wishlist",
           "implementationRoute": "/wishlist",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-wishlist.html"
         },
         {

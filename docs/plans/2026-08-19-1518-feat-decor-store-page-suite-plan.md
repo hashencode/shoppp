@@ -9,7 +9,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 product_authority: 2026-08-13-001-refactor-shoppp-product-master-plan.md
 inherited_baseline: 2026-08-10-001-feat-decor-store-source-parity-plan.md
-current_unit: U4.1
+current_unit: U5.1
 deepened: 2026-08-19
 ---
 
@@ -177,15 +177,15 @@ This plan is the sole authority for the remaining-page queue. Decimal child stag
 | U1 | Complete | Fourteen source/route/fixture identities, source digests, region/control inventories, behavior ownership, placeholder adaptations, and initially-unready gates are verified through the existing shared intake and policy seams |
 | U2 | Complete | Decor-local secondary shell, five non-home page-type registry/fixture seams, readiness-derived preview discovery, home isolation, and unready-route 404 evidence are complete |
 | U3 | Complete | Three Shop layouts and Collections are fixture-backed, ready, buildable, responsive, and browser-verified with local-only filter, sort, pagination, and Wishlist state |
-| U4 | In progress | `U4.1` — reproduce Product detail and Wishlist with deterministic local presentation state and focused absence evidence |
-| U5 | Pending | Depends on U1-U4 presentation-state patterns |
+| U4 | Complete | Product gallery/options/quantity/tabs and Wishlist removal are source-shaped, deterministic, responsive, refresh-resetting, and emit no business request |
+| U5 | In progress | `U5.1` — reproduce Cart, Checkout, and Account as deterministic or inert presentation surfaces with focused secret/request absence evidence |
 | U6 | Pending | Depends on U1-U2; may follow U3-U5 to keep one implementation queue |
 | U7 | Pending | Depends on U1-U6 |
 
-- **Current parent unit:** U4.
-- **Current child stage:** U4.1.
+- **Current parent unit:** U5.
+- **Current child stage:** U5.1.
 - **Blocker:** None. Missing remote placeholder content is a bounded local-asset adaptation under R5/KTD8, not a blocker.
-- **Next concrete action:** Reproduce `/single-product` and `/wishlist` with Decor-owned fixtures; verify gallery, option, quantity, tabs, related navigation, ephemeral Wishlist state, reduced-motion fallback, and the absence of catalog/cart/persistence requests; then mark only those two contracts ready.
+- **Next concrete action:** Reproduce `/cart`, `/checkout`, and `/account` with Decor-owned fixtures; verify ephemeral cart totals/removal, inert checkout/account typing, non-operable password/payment surfaces, responsive readability, refresh reset, and zero authentication/payment/order requests; then mark only those three contracts ready.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7.
 
 ---
