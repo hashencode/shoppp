@@ -623,6 +623,113 @@
         "themeCommand": ["bun", "tools/run-decor-store-acceptance.ts", "--scope=theme"]
       },
       "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "declaredPages": [
+        {
+          "id": "home",
+          "implementationRoute": "/",
+          "pageType": "home",
+          "ready": true,
+          "sourceEntry": "demo-decor-store.html"
+        },
+        {
+          "id": "shop-left",
+          "implementationRoute": "/shop",
+          "pageType": "collection",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-shop.html"
+        },
+        {
+          "id": "shop-none",
+          "implementationRoute": "/shop/no-sidebar",
+          "pageType": "collection",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-no-sidebar.html"
+        },
+        {
+          "id": "shop-right",
+          "implementationRoute": "/shop/right-sidebar",
+          "pageType": "collection",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-right-sidebar.html"
+        },
+        {
+          "id": "collection",
+          "implementationRoute": "/collections",
+          "pageType": "collection",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-collections.html"
+        },
+        {
+          "id": "product",
+          "implementationRoute": "/products/minimalist-wooden-chair",
+          "pageType": "product",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-single-product.html"
+        },
+        {
+          "id": "wishlist",
+          "implementationRoute": "/wishlist",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-wishlist.html"
+        },
+        {
+          "id": "cart",
+          "implementationRoute": "/cart",
+          "pageType": "cart",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-cart.html"
+        },
+        {
+          "id": "checkout",
+          "implementationRoute": "/checkout",
+          "pageType": "checkout",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-checkout.html"
+        },
+        {
+          "id": "account",
+          "implementationRoute": "/account",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-account.html"
+        },
+        {
+          "id": "blog",
+          "implementationRoute": "/blog",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-blog.html"
+        },
+        {
+          "id": "article",
+          "implementationRoute": "/blog/best-influencers-for-decor-inspiration",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-blog-single-classic.html"
+        },
+        {
+          "id": "about",
+          "implementationRoute": "/about",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-about.html"
+        },
+        {
+          "id": "faq",
+          "implementationRoute": "/faq",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-faq.html"
+        },
+        {
+          "id": "contact",
+          "implementationRoute": "/contact",
+          "pageType": "content",
+          "ready": false,
+          "sourceEntry": "demo-decor-store-contact.html"
+        }
+      ],
       "equivalenceScope": ["home"],
       "manifestExport": "decorStoreManifest",
       "manifestPath": "apps/storefront/app/themes/decor-store/manifest.ts",

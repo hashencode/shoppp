@@ -103,8 +103,10 @@ import asset101 from "./upstream/images/marker02.png?url&no-inline";
 import asset102 from "./upstream/images/mfg-close.png?url&no-inline";
 import asset103 from "./upstream/images/rev-trans-tile.png?url&no-inline";
 import asset106 from "./upstream/revolution/assets/loader.gif?url&no-inline";
+import placeholderAsset from "./assets/decor-store-placeholder.svg?url&no-inline";
 
 const sourceAssets = new Map<string, string>([
+  ["images/decor-store-placeholder.svg", placeholderAsset],
   ["fonts/bootstrap-icons.woff", asset0],
   ["fonts/bootstrap-icons.woff2", asset1],
   ["fonts/fa-brands-400.ttf", asset2],

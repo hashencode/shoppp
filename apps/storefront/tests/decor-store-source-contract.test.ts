@@ -6,6 +6,7 @@ import {
   decorStoreAbsenceContract,
   decorStoreAcceptanceModes,
   decorStoreCanonicalViewports,
+  decorStoreSecondaryPageSourceContracts,
   decorStoreSourceActions,
   decorStoreSourceContract,
   decorStoreSourceRegionOrder,
@@ -15,6 +16,7 @@ import {
   decorStoreBehaviorContract,
   decorStoreFidelityStatesByRegion,
   decorStoreNamedStateContracts,
+  decorStoreSecondaryPageBehaviorLedger,
 } from "../app/themes/decor-store/behavior-contract";
 import { decorStoreAcceptanceAdapters } from "../app/themes/decor-store/acceptance-adapter";
 import { prepareDecorStoreMarkup } from "../app/themes/decor-store/runtime/source-markup";
@@ -32,6 +34,48 @@ const sourcePath = resolve(
 const repositoryRoot = resolve(import.meta.dir, "../../..");
 
 describe("Decor Store source contracts", () => {
+  test("freezes source regions, controls, interactions, and placeholder adaptations for all secondary pages", async () => {
+    expect(decorStoreSecondaryPageSourceContracts).toHaveLength(14);
+    for (const page of decorStoreSecondaryPageSourceContracts) {
+      const markup = await readFile(
+        resolve(
+          repositoryRoot,
+          "templates/Crafto - The Multipurpose HTML5 Template/html",
+          page.sourceEntry,
+        ),
+        "utf8",
+      );
+      expect(markup.match(/<section\b/g) ?? [], page.id).toHaveLength(page.sectionCount);
+      expect(markup.match(/<form\b/g) ?? [], `${page.id}/forms`).toHaveLength(page.formCount);
+      expect(markup.match(/<input\b/g) ?? [], `${page.id}/inputs`).toHaveLength(page.inputCount);
+      expect(markup.match(/<button\b/g) ?? [], `${page.id}/buttons`).toHaveLength(page.buttonCount);
+      expect(page.regions.length, `${page.id}/regions`).toBeGreaterThan(0);
+      expect(page.interactions.length, `${page.id}/interactions`).toBeGreaterThan(0);
+      expect(page.comparisonViewports).toEqual([1440, 1024, 768, 390]);
+      for (const adaptation of page.placeholderAdaptations) {
+        expect(markup).toContain(`https://via.placeholder.com/${adaptation.sourceDimensions}`);
+        expect(adaptation.localAsset).toBe("decor-store.images-decor-store-placeholder");
+        expect(adaptation.claimExclusion).toBe("image-content");
+      }
+    }
+  });
+
+  test("assigns every secondary interaction an observable transition and safe owner", () => {
+    const expected = decorStoreSecondaryPageSourceContracts.flatMap((page) =>
+      page.interactions.map((interaction) => `${page.id}:${interaction}`),
+    );
+    expect(decorStoreSecondaryPageBehaviorLedger.map(({ id }) => id)).toEqual(expected);
+    for (const row of decorStoreSecondaryPageBehaviorLedger) {
+      expect(row.trigger.length, `${row.id}/trigger`).toBeGreaterThan(0);
+      expect(row.initialState.length, `${row.id}/initial`).toBeGreaterThan(0);
+      expect(row.visibleOutcome.length, `${row.id}/outcome`).toBeGreaterThan(0);
+      expect(row.closeOrReset.length, `${row.id}/reset`).toBeGreaterThan(0);
+      expect(row.evidence.length, `${row.id}/evidence`).toBeGreaterThan(0);
+      expect(row.implementationOwner).not.toBe("crafto-main-js");
+      expect(row.businessEffect).toBe("none");
+    }
+  });
+
   test("prioritizes only the first Hero slide and defers below-the-fold source images", () => {
     const resolveAsset = (id: string) => `/assets/${id}`;
     const hero = prepareDecorStoreMarkup(

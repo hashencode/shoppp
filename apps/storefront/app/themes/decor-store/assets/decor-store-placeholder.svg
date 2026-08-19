@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
+  <title id="title">Decor Store image placeholder</title>
+  <desc id="description">A neutral local placeholder used where the supplied source references unavailable remote image content.</desc>
+  <rect width="1200" height="800" fill="#f1eee9"/>
+  <path d="M0 620 260 390l180 145 210-250 550 515H0Z" fill="#d8d0c6"/>
+  <circle cx="900" cy="220" r="82" fill="#c7b6a5"/>
+</svg>

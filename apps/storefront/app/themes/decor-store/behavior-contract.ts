@@ -6,6 +6,7 @@ import {
   type ThemeBehaviorContractRow,
   type ThemeBehaviorEvidenceState,
 } from "../../../e2e/support/theme-behavior-contract";
+import { decorStoreSecondaryPageSourceContracts } from "./source-contract";
 
 const named = (state: NamedStateContract, fidelityState?: string): ThemeBehaviorEvidenceState => ({
   ...(fidelityState ? { fidelityState } : {}),
@@ -506,4 +507,136 @@ export const decorStoreNamedStateContracts = namedStatesFromBehaviorContract(
 );
 export const decorStoreFidelityStatesByRegion = fidelityStatesByRegionFromBehaviorContract(
   decorStoreBehaviorContract,
+);
+
+export interface DecorStoreSecondaryBehaviorLedgerRow {
+  businessEffect: "none";
+  closeOrReset: string;
+  evidence: string;
+  id: `${(typeof decorStoreSecondaryPageSourceContracts)[number]["id"]}:${string}`;
+  implementationOwner: "static-presentation" | "vue-browser-primitives";
+  initialState: string;
+  trigger: string;
+  visibleOutcome: string;
+}
+
+function secondaryBehaviorDetails(
+  interaction: string,
+): Omit<DecorStoreSecondaryBehaviorLedgerRow, "id"> {
+  if (interaction.endsWith("-inert"))
+    return {
+      businessEffect: "none",
+      closeOrReset:
+        "Navigation or unmount clears non-sensitive local input; no result state is retained.",
+      evidence:
+        "Source markup plus controlled reference runtime and no-request/no-storage browser evidence.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The source-shaped control is visible with no validation or result message.",
+      trigger: "Safe non-sensitive focus and typing; submit activation is intercepted.",
+      visibleOutcome:
+        "No validation, success, failure, Demo message, navigation, or business outcome appears.",
+    };
+  if (interaction === "map-static")
+    return {
+      businessEffect: "none",
+      closeOrReset: "The static local presentation has no retained state.",
+      evidence: "Source geometry and blocked external-map request evidence.",
+      implementationOwner: "static-presentation",
+      initialState: "A local source-shaped map region is visible.",
+      trigger: "Pointer, keyboard, and touch do not activate a remote map.",
+      visibleOutcome: "The region remains visually unchanged and no external request is emitted.",
+    };
+  if (/overlay|navigation|article-navigation|checkout-navigation/.test(interaction))
+    return {
+      businessEffect: "none",
+      closeOrReset:
+        "Escape, explicit close, route change, or unmount closes transient state and restores focus.",
+      evidence:
+        "Source markup/runtime observation plus pointer, keyboard, touch, and focus browser evidence.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The destination or transient surface is closed and inactive.",
+      trigger: "Pointer click, keyboard activation, or touch.",
+      visibleOutcome:
+        "The declared Decor route or source-shaped transient surface becomes visible.",
+    };
+  if (/carousel|gallery/.test(interaction))
+    return {
+      businessEffect: "none",
+      closeOrReset: "Unmount removes timers/listeners; reduced motion leaves all content readable.",
+      evidence:
+        "Controlled source runtime timing plus index/geometry browser evidence at declared viewports.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The first source item is visible at source geometry.",
+      trigger:
+        "Pointer, keyboard, touch, timer when source-proven, resize, or reduced-motion change.",
+      visibleOutcome: "The active item and track geometry change to the source-observable state.",
+    };
+  if (/accordion|panel|tabs|options|sort/.test(interaction))
+    return {
+      businessEffect: "none",
+      closeOrReset:
+        "A second activation, another selection, navigation, or unmount restores a deterministic state.",
+      evidence:
+        "Source attributes/runtime observation plus accessible-state and visual browser evidence.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The source default option or panel is selected.",
+      trigger: "Pointer, keyboard, or touch activation.",
+      visibleOutcome:
+        "Only the source-declared selected panel, option, or ordering state is visible.",
+    };
+  if (/quantity|remove|toggle|pagination|cookie|filter/.test(interaction))
+    return {
+      businessEffect: "none",
+      closeOrReset: "Navigation or unmount discards the ephemeral page-local state.",
+      evidence:
+        "Source markup/runtime observation plus deterministic local-state and no-request browser evidence.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The source fixture value and controls are visible.",
+      trigger: "Pointer, keyboard, or touch activation.",
+      visibleOutcome:
+        "Only the source-visible page-local quantity, membership, page, or visibility state changes.",
+    };
+  if (/hover|share-links/.test(interaction))
+    return {
+      businessEffect: "none",
+      closeOrReset:
+        "Pointer leave, focus out, navigation, or unmount restores the initial presentation.",
+      evidence: "Source CSS/runtime observation plus hover/focus/touch named-state evidence.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The source resting presentation is visible.",
+      trigger: "Hover, focus, keyboard, or touch.",
+      visibleOutcome:
+        "The source hover/focus affordance becomes visible without a remote side effect.",
+    };
+  if (interaction === "scroll-progress")
+    return {
+      businessEffect: "none",
+      closeOrReset:
+        "Returning to the top hides or resets the progress state; unmount removes listeners.",
+      evidence:
+        "Controlled source runtime scroll observation plus progress and back-to-top browser evidence.",
+      implementationOwner: "vue-browser-primitives",
+      initialState: "The control is hidden or at zero progress at the top of the page.",
+      trigger: "Scroll and pointer, keyboard, or touch activation.",
+      visibleOutcome:
+        "Progress grows with scroll and activation returns the viewport to the top without routing.",
+    };
+  return {
+    businessEffect: "none",
+    closeOrReset: "Navigation or unmount restores the deterministic initial state.",
+    evidence:
+      "Source markup/runtime observation plus focused pointer, keyboard, touch, and lifecycle evidence.",
+    implementationOwner: "vue-browser-primitives",
+    initialState: "The source default presentation is visible.",
+    trigger: "Pointer, keyboard, or touch activation.",
+    visibleOutcome: "The corresponding source-observable local presentation state is shown.",
+  };
+}
+
+export const decorStoreSecondaryPageBehaviorLedger = decorStoreSecondaryPageSourceContracts.flatMap(
+  (page) =>
+    page.interactions.map((interaction) => ({
+      id: `${page.id}:${interaction}` as const,
+      ...secondaryBehaviorDetails(interaction),
+    })),
 );

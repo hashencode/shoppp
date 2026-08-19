@@ -23,6 +23,276 @@ export const decorStoreCanonicalViewports = [
   { height: 844, id: "mobile", width: 390 },
 ] as const;
 
+export interface DecorStorePlaceholderAdaptation {
+  claimExclusion: "image-content";
+  localAsset: "decor-store.images-decor-store-placeholder";
+  sourceDimensions: `${number}x${number}`;
+}
+
+export interface DecorStoreSecondaryPageSourceContract {
+  buttonCount: number;
+  comparisonViewports: readonly [1440, 1024, 768, 390];
+  formCount: number;
+  id:
+    | "shop-left"
+    | "shop-none"
+    | "shop-right"
+    | "collection"
+    | "product"
+    | "wishlist"
+    | "cart"
+    | "checkout"
+    | "account"
+    | "blog"
+    | "article"
+    | "about"
+    | "faq"
+    | "contact";
+  inputCount: number;
+  interactions: readonly string[];
+  placeholderAdaptations: readonly DecorStorePlaceholderAdaptation[];
+  regions: readonly string[];
+  sectionCount: number;
+  sourceEntry: `demo-decor-store-${string}.html`;
+}
+
+const sharedSecondaryInteractions = [
+  "header-navigation",
+  "mobile-navigation",
+  "search-overlay",
+  "mini-cart-overlay",
+  "cookie-dismissal",
+  "scroll-progress",
+] as const;
+
+const placeholderAdaptations = (
+  dimensions: readonly `${number}x${number}`[],
+): readonly DecorStorePlaceholderAdaptation[] =>
+  dimensions.map((sourceDimensions) => ({
+    claimExclusion: "image-content",
+    localAsset: "decor-store.images-decor-store-placeholder",
+    sourceDimensions,
+  }));
+
+const secondaryPageSourceContract = (
+  value: Omit<
+    DecorStoreSecondaryPageSourceContract,
+    "comparisonViewports" | "interactions" | "placeholderAdaptations"
+  > & {
+    interactions: readonly string[];
+    placeholderDimensions: readonly `${number}x${number}`[];
+  },
+): DecorStoreSecondaryPageSourceContract => ({
+  ...value,
+  comparisonViewports: [1440, 1024, 768, 390],
+  interactions: [...sharedSecondaryInteractions, ...value.interactions],
+  placeholderAdaptations: placeholderAdaptations(value.placeholderDimensions),
+});
+
+const shellPlaceholderDimensions = ["170x165", "55x20", "580x175", "580x240", "600x700"] as const;
+
+export const decorStoreSecondaryPageSourceContracts = [
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "shop-left",
+    inputCount: 3,
+    interactions: ["filter-accordion", "sort", "pagination", "product-card-hover"],
+    placeholderDimensions: [...shellPlaceholderDimensions, "30x30"],
+    regions: ["shell-header", "page-title", "filter-sidebar", "product-grid", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-shop.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "shop-none",
+    inputCount: 3,
+    interactions: ["sort", "pagination", "product-card-hover"],
+    placeholderDimensions: shellPlaceholderDimensions,
+    regions: ["shell-header", "page-title", "product-grid", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-no-sidebar.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "shop-right",
+    inputCount: 3,
+    interactions: ["filter-accordion", "sort", "pagination", "product-card-hover"],
+    placeholderDimensions: [...shellPlaceholderDimensions, "30x30"],
+    regions: ["shell-header", "page-title", "product-grid", "filter-sidebar", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-right-sidebar.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "collection",
+    inputCount: 3,
+    interactions: ["collection-card-hover"],
+    placeholderDimensions: [...shellPlaceholderDimensions, "600x585"],
+    regions: ["shell-header", "page-title", "collection-grid", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-collections.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 7,
+    formCount: 3,
+    id: "product",
+    inputCount: 12,
+    interactions: [
+      "product-gallery",
+      "product-options",
+      "quantity",
+      "product-tabs",
+      "wishlist-toggle",
+      "review-form-inert",
+    ],
+    placeholderDimensions: [
+      ...shellPlaceholderDimensions,
+      "1045x489",
+      "1190x500",
+      "140x140",
+      "200x200",
+      "500x570",
+      "600x650",
+      "682x480",
+    ],
+    regions: [
+      "shell-header",
+      "product-gallery",
+      "product-summary",
+      "product-tabs",
+      "related-products",
+      "shell-footer",
+    ],
+    sectionCount: 4,
+    sourceEntry: "demo-decor-store-single-product.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "wishlist",
+    inputCount: 3,
+    interactions: ["wishlist-remove", "wishlist-product-navigation"],
+    placeholderDimensions: shellPlaceholderDimensions,
+    regions: ["shell-header", "page-title", "wishlist-table", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-wishlist.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 10,
+    formCount: 2,
+    id: "cart",
+    inputCount: 12,
+    interactions: ["cart-quantity", "cart-remove", "coupon-form-inert", "checkout-navigation"],
+    placeholderDimensions: shellPlaceholderDimensions,
+    regions: ["shell-header", "page-title", "cart-table", "cart-summary", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-cart.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 3,
+    id: "checkout",
+    inputCount: 31,
+    interactions: ["login-panel", "coupon-panel", "billing-fields-inert", "payment-options-inert"],
+    placeholderDimensions: shellPlaceholderDimensions,
+    regions: ["shell-header", "page-title", "billing", "order-summary", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-checkout.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 6,
+    formCount: 4,
+    id: "account",
+    inputCount: 11,
+    interactions: ["account-tabs", "login-form-inert", "register-form-inert"],
+    placeholderDimensions: shellPlaceholderDimensions,
+    regions: ["shell-header", "page-title", "account-tabs", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-account.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "blog",
+    inputCount: 3,
+    interactions: ["article-navigation", "blog-pagination"],
+    placeholderDimensions: [...shellPlaceholderDimensions, "600x445"],
+    regions: ["shell-header", "page-title", "article-grid", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-blog.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 5,
+    formCount: 3,
+    id: "article",
+    inputCount: 6,
+    interactions: ["share-links", "comment-form-inert"],
+    placeholderDimensions: [
+      ...shellPlaceholderDimensions,
+      "1190x700",
+      "125x125",
+      "130x130",
+      "600x445",
+      "750x950",
+    ],
+    regions: ["shell-header", "article-hero", "article-body", "author", "comments", "shell-footer"],
+    sectionCount: 10,
+    sourceEntry: "demo-decor-store-blog-single-classic.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "about",
+    inputCount: 3,
+    interactions: ["about-carousel"],
+    placeholderDimensions: [
+      ...shellPlaceholderDimensions,
+      "1000x611",
+      "164x164",
+      "1920x1100",
+      "195x50",
+      "500x610",
+      "600x756",
+    ],
+    regions: ["shell-header", "page-title", "story", "carousel", "clients", "shell-footer"],
+    sectionCount: 5,
+    sourceEntry: "demo-decor-store-about.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 4,
+    formCount: 2,
+    id: "faq",
+    inputCount: 3,
+    interactions: ["faq-accordion"],
+    placeholderDimensions: shellPlaceholderDimensions,
+    regions: ["shell-header", "page-title", "faq-accordion", "shell-footer"],
+    sectionCount: 2,
+    sourceEntry: "demo-decor-store-faq.html",
+  }),
+  secondaryPageSourceContract({
+    buttonCount: 5,
+    formCount: 3,
+    id: "contact",
+    inputCount: 6,
+    interactions: ["contact-form-inert", "map-static"],
+    placeholderDimensions: [...shellPlaceholderDimensions, "1000x560"],
+    regions: [
+      "shell-header",
+      "page-title",
+      "contact-details",
+      "contact-form",
+      "map",
+      "shell-footer",
+    ],
+    sectionCount: 4,
+    sourceEntry: "demo-decor-store-contact.html",
+  }),
+] as const satisfies readonly DecorStoreSecondaryPageSourceContract[];
+
 export const decorStoreAcceptanceModes = [
   "static",
   "temporal",
