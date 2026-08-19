@@ -30,7 +30,9 @@ describe("Fashion staging U12 one-time seed plan", () => {
     expect(plan.seedSql.indexOf("INSERT OR IGNORE INTO price_lists")).toBeLessThan(
       plan.seedSql.indexOf("INSERT OR IGNORE INTO products"),
     );
-    expect(plan.seedSql).toContain("INSERT INTO catalog_releases");
+    expect(plan.seedSql).toContain("INSERT OR IGNORE INTO catalog_releases");
+    expect(plan.preflightSql).toContain("catalog_releases WHERE id");
+    expect(plan.preflightSql).toContain("AND NOT (status = 'deployed'");
     expect(plan.seedSql).not.toContain("DELETE");
     expect(plan.seedSql).not.toContain("UPDATE");
     expect(plan.verifySql).toContain("approved_snapshot_count");

@@ -181,7 +181,7 @@ function seedSql(release: CanonicalCatalogRelease): string {
       .map(sql)
       .join(", ")});`,
     ...productStatements(release),
-    `INSERT INTO catalog_releases (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at) VALUES (${[
+    `INSERT OR IGNORE INTO catalog_releases (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at) VALUES (${[
       release.releaseId,
       "deployed",
       JSON.stringify(release),
@@ -229,7 +229,7 @@ function preflightSql(release: CanonicalCatalogRelease): string {
     })
     .join("\n      OR ");
   return `SELECT
-  (SELECT COUNT(*) FROM catalog_releases WHERE id = ${sql(release.releaseId)})
+  (SELECT COUNT(*) FROM catalog_releases WHERE id = ${sql(release.releaseId)} AND NOT (status = 'deployed' AND manifest_json = ${sql(JSON.stringify(release))} AND approved_at = ${sql(CREATED_AT)} AND deployed_at = ${sql(CREATED_AT)} AND created_at = ${sql(CREATED_AT)} AND updated_at = ${sql(CREATED_AT)}))
   + (SELECT COUNT(*) FROM products WHERE id IN (${productIds}) AND NOT (
       ${productIdentity}
     ))
