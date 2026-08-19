@@ -10,6 +10,262 @@
   min-height: 1px;
 }
 
+.decor-store-secondary-main {
+  display: contents;
+}
+
+.decor-store-source-page {
+  display: contents;
+}
+
+.decor-store-source-status,
+.decor-store-source-controls {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+[data-decor-placeholder] {
+  width: 0;
+  height: 0;
+}
+
+.decor-store-source-page .grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: auto !important;
+  opacity: 1 !important;
+  overflow: visible;
+}
+
+.decor-store-source-page .grid::before,
+.decor-store-source-page .grid::after {
+  display: none !important;
+}
+
+.decor-store-source-page .grid > .grid-item {
+  position: static !important;
+  width: auto !important;
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+.decor-store-source-page .grid > .grid-sizer {
+  display: none;
+}
+
+/* Crafto's runtime turns these two source-only layouts into overlapping/animated
+   compositions. Reproduce the settled geometry without loading Crafto main.js. */
+@media (min-width: 1200px) {
+  [data-decor-section="contact-1"] {
+    min-height: 374px;
+  }
+}
+
+@media (min-width: 992px) {
+  [data-decor-section="contact-3"] .row.align-items-end {
+    height: 191px;
+  }
+
+  [data-decor-source-page="contact"]
+    [data-decor-section="contact-3"]
+    .contact-form-style-03.overlap-section-one-fourth {
+    transform: translateY(-422px);
+  }
+
+  [data-decor-section="contact-3"] .col-lg-7.align-self-start {
+    transform: translateX(54px);
+  }
+
+  [data-decor-source-page="product"] .product-info {
+    padding-top: 0;
+  }
+
+  [data-decor-section="product-3"] .tab-pane.active > .row:first-child {
+    min-height: 1144px;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  [data-decor-source-page="article"] .blog-wrapper.grid,
+  [data-decor-source-page="blog"] .blog-wrapper.grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  [data-decor-section="contact-3"] .row.align-items-end {
+    height: 175px;
+  }
+
+  [data-decor-section="shop-left-1"],
+  [data-decor-section="shop-right-1"] {
+    padding-top: 142px !important;
+  }
+
+  [data-decor-section="cart-2"]::after {
+    content: "";
+    display: block;
+    height: 20px;
+  }
+
+  [data-decor-section="product-3"] .tab-pane.active > .row:first-child {
+    min-height: 929px;
+  }
+}
+
+@media (min-width: 576px) {
+  [data-decor-section="article-10"] {
+    margin-bottom: -18px;
+  }
+}
+
+@media (min-width: 576px) and (max-width: 991px) {
+  [data-decor-section="blog-1"],
+  [data-decor-section="cart-1"],
+  [data-decor-section="contact-1"],
+  [data-decor-section="shop-left-1"],
+  [data-decor-section="shop-none-1"],
+  [data-decor-section="shop-right-1"],
+  [data-decor-section="wishlist-1"] {
+    padding-top: 126px !important;
+  }
+
+  [data-decor-section="cart-2"] {
+    padding-bottom: 204px;
+  }
+
+  [data-decor-section="shop-left-2"],
+  [data-decor-section="shop-right-2"] {
+    padding-bottom: 213px;
+  }
+
+  [data-decor-section="product-3"] .tab-pane.active > .row:first-child {
+    min-height: 2400px;
+  }
+}
+
+@media (max-width: 575px) {
+  [data-decor-section="blog-1"],
+  [data-decor-section="collection-1"],
+  [data-decor-section="shop-left-1"],
+  [data-decor-section="shop-none-1"],
+  [data-decor-section="shop-right-1"] {
+    padding-top: 81px !important;
+  }
+
+  [data-decor-section="shop-left-2"],
+  [data-decor-section="shop-right-2"] {
+    padding-bottom: 188px;
+  }
+
+  [data-decor-section="product-3"] .tab-pane.active > .row:first-child {
+    min-height: 2715px;
+  }
+
+  [data-decor-section="article-10"] {
+    margin-bottom: -9px;
+  }
+}
+
+[data-decor-section="checkout-2"]::after {
+  content: "";
+  display: block;
+  height: 14px;
+}
+
+@media (max-width: 991px) {
+  .decor-store-source-page .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575px) {
+  .decor-store-source-page .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.decor-store-secondary-main .page-title-center-alignment.top-space-padding {
+  padding-top: 0;
+}
+
+.decor-store-secondary-main .shop-wrapper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  opacity: 1 !important;
+}
+
+.decor-store-secondary-main .shop-wrapper > .grid-item {
+  width: auto !important;
+}
+
+.decor-store-secondary-main .shop-image > a > img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 6 / 7;
+  object-fit: cover;
+}
+
+.decor-store-secondary-main .shop-filter button,
+.decor-store-secondary-main .pagination-style-01 button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+.decor-store-secondary-main .shop-filter button {
+  width: calc(100% - 35px);
+  text-align: left;
+}
+
+.decor-store-secondary-main .tag-cloud span {
+  display: inline-block;
+  margin: 0 4px 5px 0;
+  border: 1px solid #e4e4e4;
+  border-radius: 4px;
+  padding: 2px 10px;
+}
+
+.decor-store-secondary-main .shop-hover {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.decor-store-secondary-main .shop-box:hover .shop-hover,
+.decor-store-secondary-main .shop-box:focus-within .shop-hover {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (max-width: 1199px) {
+  .decor-store-secondary-main .shop-wrapper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 991px) {
+  .decor-store-secondary-main .shop-wrapper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575px) {
+  .decor-store-secondary-main .shop-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
 [data-decor-store-source-parity] {
   min-height: 100vh;
   overflow-x: clip;

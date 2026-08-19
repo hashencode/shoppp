@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { decorStorePageContracts } from "../apps/storefront/app/themes/decor-store/page-contracts";
 
 export interface DecorStoreAcceptanceStep {
   command: string[];
@@ -8,60 +9,83 @@ export interface DecorStoreAcceptanceStep {
 }
 
 export interface DecorStoreAcceptancePlan {
-  pages: readonly ["home"];
+  pages: readonly string[];
   steps: DecorStoreAcceptanceStep[];
 }
 
 const STOREFRONT_ROOT = resolve(import.meta.dir, "../apps/storefront");
+const DECOR_STORE_PAGES = decorStorePageContracts.map(({ id }) => id);
+
+export function canonicalDecorStoreAcceptanceEnvironment(
+  source: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const env = { ...source };
+  delete env.STOREFRONT_DECOR_STORE_BASE_URL;
+  delete env.STOREFRONT_DECOR_STORE_SOURCE_URL;
+  delete env.STOREFRONT_PERF_BASE_URL;
+  delete env.STOREFRONT_PERF_ROOT_URL;
+  delete env.STOREFRONT_PERF_ROUTE;
+  return env;
+}
 
 export function buildDecorStoreAcceptancePlan(options: {
   page?: string;
   scope: "page" | "theme";
 }): DecorStoreAcceptancePlan {
-  if (options.scope === "page" && options.page !== "home")
-    throw new Error("Decor Store page acceptance requires --page=home");
+  if (
+    options.scope === "page" &&
+    !DECOR_STORE_PAGES.includes(options.page as (typeof DECOR_STORE_PAGES)[number])
+  )
+    throw new Error(`Decor Store page acceptance requires one of: ${DECOR_STORE_PAGES.join(", ")}`);
   if (options.scope === "theme" && options.page)
     throw new Error("Decor Store theme acceptance does not accept --page");
-  return {
-    pages: ["home"],
-    steps: [
-      {
-        command: [
-          "bun",
-          "test",
-          "scripts/generate-decor-store-source-fragments.test.ts",
-          "tests/decor-store-registration.test.ts",
-          "tests/decor-store-source-contract.test.ts",
-        ],
-        label: "home/unit",
-      },
-      {
-        command: [
-          "bunx",
-          "playwright",
-          "test",
-          "--config",
-          "playwright.decor-store.config.ts",
-          "--workers=1",
-        ],
-        label: "home/browser",
-      },
-      {
-        command: [
-          "bun",
-          "../../tools/verify-theme-behavior-execution.ts",
-          "--theme=decor-store",
-          "--page=home",
-          "--report=test-results/decor-store-behavior-results.json",
-        ],
-        label: "home/behavior-evidence",
-      },
-      {
-        command: ["bun", "run", "test:perf:decor-store", "--", "--workers=1"],
-        label: "home/performance",
-      },
-    ],
-  };
+  const pages = options.scope === "page" ? [options.page!] : [...DECOR_STORE_PAGES];
+  const steps: DecorStoreAcceptanceStep[] = [
+    {
+      command: [
+        "bun",
+        "test",
+        "scripts/generate-decor-store-source-fragments.test.ts",
+        "scripts/generate-decor-store-page-fragments.test.ts",
+        "../../tools/capture-theme-fidelity-matrix.test.ts",
+        "tests/decor-store-registration.test.ts",
+        "tests/decor-store-source-contract.test.ts",
+        "tests/decor-store-routing.test.ts",
+        "tests/decor-store-shop.test.ts",
+        "tests/decor-store-product.test.ts",
+        "tests/decor-store-cart-checkout-account.test.ts",
+        "tests/decor-store-content-pages.test.ts",
+      ],
+      label: "page-suite/unit",
+    },
+    {
+      command: [
+        "bunx",
+        "playwright",
+        "test",
+        "--config",
+        "playwright.decor-store.config.ts",
+        "--workers=1",
+      ],
+      label: "page-suite/browser",
+    },
+    ...pages.map((page) => ({
+      command: [
+        "bun",
+        "../../tools/verify-theme-behavior-execution.ts",
+        "--theme=decor-store",
+        `--page=${page}`,
+        "--report=test-results/decor-store-behavior-results.json",
+      ],
+      label: `${page}/behavior-evidence`,
+    })),
+  ];
+  if (options.scope === "theme")
+    steps.push({
+      command: ["bun", "run", "test:perf:decor-store", "--", "--workers=1"],
+      label: "page-suite/performance",
+    });
+  return { pages, steps };
 }
 
 async function availablePort(): Promise<number> {
@@ -83,7 +107,7 @@ export async function runDecorStoreAcceptancePlan(plan: DecorStoreAcceptancePlan
   const generatedThemePath = resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts");
   const originalGeneratedTheme = await readFile(generatedThemePath);
   const env = {
-    ...process.env,
+    ...canonicalDecorStoreAcceptanceEnvironment(process.env),
     PLAYWRIGHT_FORCE_ASYNC_LOADER: "1",
     STOREFRONT_DECOR_STORE_PORT: String(implementationPort),
     STOREFRONT_DECOR_STORE_SOURCE_PORT: String(sourcePort),

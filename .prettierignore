@@ -3,6 +3,7 @@ pnpm-lock.yaml
 apps/admin
 apps/api/src/generated/storefront-theme-catalog.ts
 apps/storefront/app/generated/theme-catalog.ts
+apps/storefront/app/themes/decor-store/runtime/secondary-page-fragments
 apps/storefront/app/themes/decor-store/upstream
 apps/storefront/app/themes/fashion-store/upstream
 apps/storefront/artifacts

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { chromium, expect, test, type Page } from "@playwright/test";
 
 import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
+import { decorStorePageContracts } from "../app/themes/decor-store/page-contracts";
 
 const manifest = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../app/generated/route-manifest.json"), "utf8"),
@@ -24,8 +25,13 @@ const fashionStoreRoutes = fashionStorePageContracts
 if (fashionStoreRoutes.length !== fashionStorePerformancePageIds.size) {
   throw new Error("Fashion Store performance routes are incomplete.");
 }
+const decorStoreRoutes = decorStorePageContracts.map(({ path }) => path);
+if (decorStoreRoutes.length !== 15 || new Set(decorStoreRoutes).size !== 15) {
+  throw new Error("Decor Store performance routes are incomplete.");
+}
 function performanceRoutes(): string[] {
-  if (rootUrlOverride || theme === "decor-store") return ["/"];
+  if (rootUrlOverride) return ["/"];
+  if (theme === "decor-store") return decorStoreRoutes;
   if (theme === "fashion-store") return fashionStoreRoutes;
   return [
     "/",
@@ -38,7 +44,8 @@ function performanceRoutes(): string[] {
   ].filter((route): route is string => Boolean(route));
 }
 
-const routes = performanceRoutes();
+const routeOverride = process.env.STOREFRONT_PERF_ROUTE;
+const routes = routeOverride ? [routeOverride] : performanceRoutes();
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,
@@ -66,6 +73,8 @@ const routeThresholds = (route: string) => ({
         ? 0.5
         : 1,
 });
+
+test.setTimeout(theme === "decor-store" ? 600_000 : 180_000);
 
 function lighthouseChromePath(): string {
   if (process.env.LIGHTHOUSE_CHROME_PATH) return process.env.LIGHTHOUSE_CHROME_PATH;

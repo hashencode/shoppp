@@ -640,3 +640,90 @@ export const decorStoreSecondaryPageBehaviorLedger = decorStoreSecondaryPageSour
       ...secondaryBehaviorDetails(interaction),
     })),
 );
+
+function secondaryRouteBehaviorContract(
+  pageId: DecorStoreSecondaryBehaviorLedgerRow["id"] extends `${infer Page}:${string}`
+    ? Page
+    : never,
+) {
+  const page = decorStoreSecondaryPageSourceContracts.find(({ id }) => id === pageId);
+  if (!page) throw new Error(`Missing Decor Store secondary source contract for ${pageId}.`);
+  return {
+    behaviors: [
+      {
+        actions: {
+          implementation: { kind: "observe", selector: "[data-decor-store-secondary-shell]" },
+          source: { kind: "observe", selector: "body" },
+        },
+        branches: [],
+        disposition: { kind: "reproduced" },
+        evidenceStates: [{ fidelityState: `${pageId}-ready` }],
+        fallback: {
+          outcome: "The server-rendered page remains readable.",
+          strategy: "static-html",
+        },
+        id: `${pageId}-ready`,
+        initialState: "The declared page shell and source-backed primary content are visible.",
+        modes: ["static"],
+        outcome: "The ready route renders its matching Decor page without a generic fallback.",
+        owner: "vue-browser-primitives",
+        region: "page",
+        role: "navigation",
+        sourceCandidate: "body",
+        sourceSelector: "body",
+        triggers: ["load", "resize"],
+      },
+      ...page.interactions.map((interaction) => {
+        const details = secondaryBehaviorDetails(interaction);
+        const hover = interaction.includes("hover");
+        const scroll = interaction === "scroll-progress";
+        const inert = interaction.includes("inert") || interaction === "map-static";
+        return {
+          actions: {
+            implementation: {
+              kind: inert ? "observe" : hover ? "hover" : scroll ? "scroll" : "click",
+              selector: `[data-decor-source-page='${pageId}']`,
+            },
+            source: {
+              kind: inert ? "observe" : hover ? "hover" : scroll ? "scroll" : "click",
+              selector: "body",
+            },
+          },
+          branches: [],
+          disposition: { kind: "reproduced" },
+          evidenceStates: [{ fidelityState: `${pageId}-${interaction}` }],
+          fallback: { outcome: details.initialState, strategy: "static-html" },
+          id: `${pageId}-${interaction}`,
+          initialState: details.initialState,
+          modes: ["interaction"],
+          outcome: details.visibleOutcome,
+          owner: details.implementationOwner,
+          region: "page",
+          role: scroll ? "fixed-control" : "state-control",
+          sourceCandidate: "body",
+          sourceSelector: "body",
+          triggers: [hover ? "hover" : scroll ? "scroll" : inert ? "load" : "click"],
+        } as const;
+      }),
+    ],
+    customAdapters: [],
+    routeId: `decor-store-${pageId}`,
+    suppressions: [],
+    themeId: "decor-store",
+  } as const satisfies ThemeBehaviorContract;
+}
+
+export const decorStoreShopLeftBehaviorContract = secondaryRouteBehaviorContract("shop-left");
+export const decorStoreShopNoneBehaviorContract = secondaryRouteBehaviorContract("shop-none");
+export const decorStoreShopRightBehaviorContract = secondaryRouteBehaviorContract("shop-right");
+export const decorStoreCollectionBehaviorContract = secondaryRouteBehaviorContract("collection");
+export const decorStoreProductBehaviorContract = secondaryRouteBehaviorContract("product");
+export const decorStoreWishlistBehaviorContract = secondaryRouteBehaviorContract("wishlist");
+export const decorStoreCartBehaviorContract = secondaryRouteBehaviorContract("cart");
+export const decorStoreCheckoutBehaviorContract = secondaryRouteBehaviorContract("checkout");
+export const decorStoreAccountBehaviorContract = secondaryRouteBehaviorContract("account");
+export const decorStoreBlogBehaviorContract = secondaryRouteBehaviorContract("blog");
+export const decorStoreArticleBehaviorContract = secondaryRouteBehaviorContract("article");
+export const decorStoreAboutBehaviorContract = secondaryRouteBehaviorContract("about");
+export const decorStoreFaqBehaviorContract = secondaryRouteBehaviorContract("faq");
+export const decorStoreContactBehaviorContract = secondaryRouteBehaviorContract("contact");

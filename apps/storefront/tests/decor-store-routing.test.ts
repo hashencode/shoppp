@@ -118,8 +118,10 @@ describe("Decor Store remaining-page route authority", () => {
       ),
     );
     const decor = policy.themes.find(({ id }: { id: string }) => id === "decor-store");
-    expect(decor.equivalenceScope).toEqual(["home"]);
-    expect(decor.pages.map(({ id }: { id: string }) => id)).toEqual(["home"]);
+    expect(decor.equivalenceScope).toEqual(decorStorePageContracts.map(({ id }) => id));
+    expect(decor.pages.map(({ id }: { id: string }) => id)).toEqual(
+      decorStorePageContracts.map(({ id }) => id),
+    );
     expect(decor.declaredPages).toEqual(
       decorStorePageContracts.map(({ id, pageType, path, ready, sourceEntry }) => ({
         id,

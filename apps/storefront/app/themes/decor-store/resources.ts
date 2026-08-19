@@ -104,9 +104,31 @@ import asset102 from "./upstream/images/mfg-close.png?url&no-inline";
 import asset103 from "./upstream/images/rev-trans-tile.png?url&no-inline";
 import asset106 from "./upstream/revolution/assets/loader.gif?url&no-inline";
 import placeholderAsset from "./assets/decor-store-placeholder.svg?url&no-inline";
+import americanExpressAsset from "./upstream/images/american-express.svg?url&no-inline";
+import aboutImageAsset from "./upstream/images/demo-decor-store-about-02.png?url&no-inline";
+import titleBackgroundAsset from "./upstream/images/demo-decor-store-title-bg.jpg?url&no-inline";
+import dinersClubAsset from "./upstream/images/diners-club.svg?url&no-inline";
+import discoverAsset from "./upstream/images/discover.svg?url&no-inline";
+import mastercardAsset from "./upstream/images/mastercard.svg?url&no-inline";
+import paypalLogoAsset from "./upstream/images/paypal-logo.jpg?url&no-inline";
+import shopFourColumnAsset from "./upstream/images/shop-four-column.svg?url&no-inline";
+import shopListAsset from "./upstream/images/shop-list.svg?url&no-inline";
+import shopThreeColumnAsset from "./upstream/images/shop-three-column.svg?url&no-inline";
+import shopTwoColumnAsset from "./upstream/images/shop-two-column.svg?url&no-inline";
+import unionPayAsset from "./upstream/images/union-pay.svg?url&no-inline";
+import visaAsset from "./upstream/images/visa.svg?url&no-inline";
 
 const sourceAssets = new Map<string, string>([
   ["images/decor-store-placeholder.svg", placeholderAsset],
+  ["images/american-express.svg", americanExpressAsset],
+  ["images/demo-decor-store-about-02.png", aboutImageAsset],
+  ["images/demo-decor-store-title-bg.jpg", titleBackgroundAsset],
+  ["images/diners-club.svg", dinersClubAsset],
+  ["images/discover.svg", discoverAsset],
+  ["images/mastercard.svg", mastercardAsset],
+  ["images/paypal-logo.jpg", paypalLogoAsset],
+  ["images/union-pay.svg", unionPayAsset],
+  ["images/visa.svg", visaAsset],
   ["fonts/bootstrap-icons.woff", asset0],
   ["fonts/bootstrap-icons.woff2", asset1],
   ["fonts/fa-brands-400.ttf", asset2],
@@ -211,6 +233,10 @@ const sourceAssets = new Map<string, string>([
   ["images/marker02.png", asset101],
   ["images/mfg-close.png", asset102],
   ["images/rev-trans-tile.png", asset103],
+  ["images/shop-four-column.svg", shopFourColumnAsset],
+  ["images/shop-list.svg", shopListAsset],
+  ["images/shop-three-column.svg", shopThreeColumnAsset],
+  ["images/shop-two-column.svg", shopTwoColumnAsset],
   ["js/jquery.js", "/theme-preview-generated/decor-store/js/jquery.js"],
   ["js/vendors.min.js", "/theme-preview-generated/decor-store/js/vendors.min.js"],
   ["revolution/assets/loader.gif", asset106],

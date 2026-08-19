@@ -2,7 +2,7 @@
 
 - Source identity: `templates/Crafto - The Multipurpose HTML5 Template/html/demo-decor-store.html`
 - Source revision: `sha256:90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271`
-- Imported on: 2026-08-11
+- Imported on: 2026-08-19
 - Ownership approval: Supplied Crafto package approved for repository-local Decor Store reconstruction.
 - Import policy: hash-pinned Decor Store source implementation; source-relative paths are preserved below `upstream/`.
 - Manifest: `../../../../../tools/storefront-theme-source-manifest.json`
@@ -11,52 +11,15 @@
 
 The exact declared jQuery and Revolution chain is eligible for the Decor Hero only; `js/main.js` remains a behavioral reference and is prohibited from application execution. The inactive particles add-on, PHP handlers, analytics, tracking, and remote resources are excluded.
 
-The preserved executable chain is:
-
-1. `js/jquery.js`
-2. `revolution/js/jquery.themepunch.tools.min.js`
-3. `revolution/js/jquery.themepunch.revolution.min.js`
-4. `revolution/js/extensions/revolution.extension.actions.min.js`
-5. `revolution/js/extensions/revolution.extension.layeranimation.min.js`
-6. `revolution/js/extensions/revolution.extension.navigation.min.js`
-7. `revolution/js/extensions/revolution.extension.slideanims.min.js`
-8. the source `#decor-store-slider` initializer, transcribed as `decorStoreRevolutionOptions`
-
-The initializer remains `standard`/`fullscreen`, with a `9000ms` delay, `stopLoop: on`, `stopAfterLoops: 0`, `stopAtSlide: 1`, keyboard and horizontal touch navigation, smart lazy loading, responsive levels `[1240, 1024, 778, 480]`, grid widths `[1220, 1024, 778, 480]`, grid heights `[900, 1000, 960, 720]`, visibility levels `[1240, 1024, 1024, 480]`, and the source simplify/focus fallbacks. The source particles add-on is omitted because the Hero markup and initializer do not activate it. `revkill()` plus theme-owned listener, observer, timer, and generated-state cleanup is the route-exit boundary.
-
 ## Preserved source order
 
-Styles load as Revolution settings, layers, and navigation, followed by vendors, icons, shared style, responsive style, and Decor Store style. The audited Hero chain loads jQuery, Revolution tools/core, actions, layer-animation, navigation, and slide-animation before the source inline initializer. The initializer retains the source delay, stop behavior, responsive levels, grid geometry, keyboard/touch behavior, fallback, and destroy/remount obligations.
+Styles load as Revolution settings, layers, and navigation, followed by vendors, icons, shared style, responsive style, and Decor Store style. The audited Hero chain loads jQuery, vendors, Revolution tools/core, actions, layer-animation, navigation, and slide-animation before the source inline initializer. The initializer retains the source delay, stop behavior, responsive levels, grid geometry, keyboard/touch behavior, fallback, and destroy/remount obligations.
 
 Google Fonts imports and preconnects are production-prohibited. Plus Jakarta Sans is supplied by the inspected hash-pinned local WOFF2. Secondary links and commerce actions map to existing routes or typed intents; newsletter, locale, and cookie adaptations remain truthful local state without PHP or invented success copy.
 
 Evidence uses static, temporal, interaction, scroll/fixed, and fallback modes at 1440x1000, 1024x900, 768x1024, and 390x844. Required checkpoints are header + Hero + one card, first timed body behavior, complete desktop, and mobile/fallback completion.
 
 - `js/main.js:1-3721` — adapter-reference-only: Behavioral specification for navigation, overlays, Swiper tracks, sticky controls, scroll progress, cookie dismissal, animation readiness, and teardown; prohibited from application execution.
-
-## Theme-local adaptations
-
-- The source DOM, class names, section order, Revolution markup, and source stylesheet order remain Decor-owned. Nuxt supplies only the route shell, selected-theme registry, and typed storefront intent boundary.
-- Google Fonts and preconnects are replaced by the inspected local Plus Jakarta Sans WOFF2. All source images and icon fonts are served from the hash-pinned Decor namespace.
-- Source `#` and `javascript:void(0)` action placeholders are represented as truthful local controls or the existing `/` route. Icon/image-only controls receive nonvisual accessible names, product tabs expose native tab semantics, and no unsupported action sends a request or invents success state.
-- Newsletter submission, locale persistence, cookie persistence, PHP handlers, analytics, tracking, `js/main.js`, and the inactive particles add-on remain intentionally absent.
-- Reduced motion, no JavaScript, dependency-load failure, initializer failure, and body-capability failure retain readable static content without blanking sibling regions.
-
-## Acceptance evidence and measurements
-
-The durable contract and command ledger is the Decor Store handoff section in `docs/progress/fashion-decor-source-equivalent-progress.md`. Generated browser evidence is written under `apps/storefront/test-results/decor-store/`; the four viewport source-equivalence cases contain independent `reference.png`, `implementation.png`, `diff.png`, and report attachments. The reference page and implementation run on independent origins.
-
-Final full-page four-viewport changed-pixel ratios at tolerance 16 are `0.0014924283` (1440x1000), `0.0009200516` (1024x900), `0.0010980655` (768x1024), and `0.0009467491` (390x844), all below the `0.01` source-equivalence budget. Manual side-by-side review found no unresolved P0/P1 discrepancy and uses zero visual waivers.
-
-The motion-enabled cold profile records 105 requests, 620,206 raw bytes of initial application JavaScript, 382,482 raw bytes of Decor vendor JavaScript, 1,360,713 raw bytes of CSS, 464,436 raw bytes of fonts, and 2,148,581 raw bytes of images. Hero ready was approximately 3.58s on cold navigation and 3.52s after reload; both samples recorded zero long tasks. After the source layers settled, a hidden 750ms window produced no DOM mutation. The first and second 750ms post-unmount windows in the final acceptance sample contained 26 and 59 raw document-wide callbacks respectively, both within the explicit ceiling of 80 callbacks per window, plus zero Decor-owned `requestAnimationFrame` handles, zero Decor-owned interval handles, and zero DOM mutations. Timeout residue decreased from two to one: the first window contained one Nuxt timeout and one Revolution/GSAP tools timeout; the second contained only the Nuxt timeout. This is bounded, non-accumulating owned residue, not a claim of zero callbacks; exact raw document-wide counts remain attached for every run because scheduler activity varies independently between documents.
-
-The selected Decor preview emits 116,947 gzip bytes across the complete transitive initial JavaScript closure against the existing 204,800-byte budget and passes selected-theme isolation. The reduced-motion Lighthouse gate now asserts the first cold sample as well as the existing stable-state threshold, so a warm retry cannot hide a cold regression. The recorded cold bounds are CLS at most `0.50`, LCP at most `17000ms`, and TBT at most `200ms`; the final cold sample was performance `0.49`, CLS `0.35721`, LCP `13756.39ms`, and TBT `95ms`. The reduced audit keeps the uninitialized source slide list hidden until Revolution reports ready, preventing setup geometry from contaminating the stable-state score. The same command passed the unchanged stable-state threshold at performance `0.98`, CLS `0.00087`, LCP `2240.93ms`, and TBT `69.5ms`; accessibility was `0.92`, best practices `0.96`, and SEO `0.69`. The dedicated Axe gate reports zero critical or serious violations.
-
-## Waivers, bounded residue, and deferred candidates
-
-- Approved waivers: zero. The bounded raw callback residue above is recorded explicitly and does not grow after remount.
-- There is no dormant framework Hero, partial Revolution/framework hybrid, or shared theme runtime/kernel in the Decor delivery.
-- Post-acceptance candidates only: compare duplicated lifecycle loading/disposal seams, behavior-ledger adapters, selected-theme registration declarations, and source-equivalence capture utilities across accepted themes. They remain candidates for a separate decision; this delivery intentionally performs no shared extraction or Fashion runtime migration.
 
 ## Upstream optional references
 
@@ -182,10 +145,23 @@ The selected Decor preview emits 116,947 gzip bytes across the complete transiti
 - `upstream/images/demo-decor-store-slider-03-img-08.jpg` from `images/demo-decor-store-slider-03-img-08.jpg` — image; Authorized supplied Crafto Decor Store source; SHA-256 `6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034`
 - `upstream/images/demo-decor-store-slider-03-img-09.jpg` from `images/demo-decor-store-slider-03-img-09.jpg` — image; Authorized supplied Crafto Decor Store source; SHA-256 `7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011`
 - `upstream/images/demo-decor-store-slider-03-thumb.jpg` from `images/demo-decor-store-slider-03-thumb.jpg` — image; Authorized supplied Crafto Decor Store source; SHA-256 `2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96`
+- `upstream/images/american-express.svg` from `images/american-express.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `f384a8d6e867fd76c8e7188a45d2cf899dcb6a580fa5f2d1121c2b93f5cd36f8`
+- `upstream/images/demo-decor-store-about-02.png` from `images/demo-decor-store-about-02.png` — image; Authorized supplied Crafto Decor Store source; SHA-256 `fadb8cd69ed29d96007fcb67a88436c4258cb6a8331cbc2cc762b41b1a623ad8`
+- `upstream/images/demo-decor-store-title-bg.jpg` from `images/demo-decor-store-title-bg.jpg` — image; Authorized supplied Crafto Decor Store source; SHA-256 `34bfe700f23c86a605bbf17bf2e06b3aa8cd00e06757ae6c4141be46425d55f2`
+- `upstream/images/diners-club.svg` from `images/diners-club.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `eb820013fe9e3a335eb57e9bf8369175bba67dd855db75fd86a2b595e08cae73`
+- `upstream/images/discover.svg` from `images/discover.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `b99de0a1e55d1da58da7224165946235bbbd94e788c35df76031a61fd6ca1563`
+- `upstream/images/mastercard.svg` from `images/mastercard.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `4ed69adc12ce9ff166d51b2c504f93e559babe53c60afd82662169f5df818b81`
+- `upstream/images/paypal-logo.jpg` from `images/paypal-logo.jpg` — image; Authorized supplied Crafto Decor Store source; SHA-256 `701142b5d94966aaf1a1d3ec5360eef4e673f07dabcb4db2d8ee02fa355edda6`
 - `upstream/images/favicon.png` from `images/favicon.png` — image; Authorized supplied Crafto Decor Store source; SHA-256 `d9990aa0314c5918bc0bfde3a65d19e0f616baea95e236f247e41cb467c4fb84`
 - `upstream/images/marker02.png` from `images/marker02.png` — image; Authorized supplied Crafto Decor Store source; SHA-256 `b5ee9172bae02ab88a4dbffcbe5f6889e4932e53e73c023b5cb2389a9d42887d`
 - `upstream/images/mfg-close.png` from `images/mfg-close.png` — image; Authorized supplied Crafto Decor Store source; SHA-256 `8972efa9737fa05affa933cd8a203fb11545e2ce83ad303e7da930ccd23bcf3f`
 - `upstream/images/rev-trans-tile.png` from `images/rev-trans-tile.png` — image; Authorized supplied Crafto Decor Store source; SHA-256 `3eb10792d1f0c7e07e7248273540f1952d9a5a2996f4b5df70ab026cd9f05517`
+- `upstream/images/shop-four-column.svg` from `images/shop-four-column.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `34b32e216f68a551925873dce56d628e8c8deef5829e1539130036503aa5a2b3`
+- `upstream/images/shop-list.svg` from `images/shop-list.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `3c0f69e130f1a735160e1a5be4d12e3557232ef6e3a6eadf28a0dfc8d766cd55`
+- `upstream/images/shop-three-column.svg` from `images/shop-three-column.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `0d25abffb7a187f502e9423042e4839eeaeb405c5d17b296fd0172398b86d8b1`
+- `upstream/images/shop-two-column.svg` from `images/shop-two-column.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `400e20100f415ce6e1624d487c75ac9919b37a2c4f49cc8b523061a853826c4e`
+- `upstream/images/union-pay.svg` from `images/union-pay.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `2eb9bb77171a279ec6f1376660d94ac07965052d22e12f7ce666197b7c4ae08d`
+- `upstream/images/visa.svg` from `images/visa.svg` — icon; Authorized supplied Crafto Decor Store source; SHA-256 `f01aef156fd9e7f369bd408971fd06c0de6301cebf871c255032346fa0c704d6`
 - `upstream/js/jquery.js` from `js/jquery.js` — visual-runtime; Authorized supplied Crafto Decor Store source; SHA-256 `c30b56bf74c6057c8b9104b92d33b4ade752667fe4dcc1a5d121fc4336fffdf1`
 - `upstream/js/vendors.min.js` from `js/vendors.min.js` — visual-runtime; Authorized supplied Crafto Decor Store source; SHA-256 `33ce0c0ce7512617c8b0222f7d53f41541324edcdea2e79c5eec17402132d00e`
 - `upstream/revolution/assets/loader.gif` from `revolution/assets/loader.gif` — image; Authorized supplied Crafto Decor Store source; SHA-256 `9034d5d34015e4b05d2c1d1a8dc9f6ec9d59bd96d305eb9e24e24e65c591a645`

@@ -9,7 +9,7 @@ type HeaderHandle = {
   handleKeydown(event: KeyboardEvent): void;
 };
 
-const properties = defineProps<{
+defineProps<{
   activePage: DecorStorePageId;
   announcement: string;
   resolveAsset: ThemeAssetResolver;
@@ -43,7 +43,10 @@ function scrollToTop(): void {
 
 watch(
   () => router.currentRoute.value.fullPath,
-  () => void header.value?.closeTransient(false),
+  () => {
+    cookieVisible.value = true;
+    void header.value?.closeTransient(false);
+  },
 );
 
 useHead(() => ({
@@ -73,8 +76,8 @@ onBeforeUnmount(() => {
     :resolve-asset="resolveAsset"
     @search-open-change="searchOpen = $event"
   />
-  <main id="decor-store-secondary-main"><slot /></main>
-  <DecorStoreFooter :resolve-asset="resolveAsset" />
+  <main id="decor-store-secondary-main" class="decor-store-secondary-main"><slot /></main>
+  <DecorStoreFooter :key="router.currentRoute.value.fullPath" :resolve-asset="resolveAsset" />
   <div
     v-if="cookieVisible"
     id="cookies-model"

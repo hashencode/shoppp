@@ -166,18 +166,25 @@ describe("source-equivalent theme policy", () => {
         },
       ],
     });
-    expect(policy.themes[1]).toMatchObject({
-      equivalenceScope: ["home"],
-      id: "decor-store",
-      pages: [
-        {
-          id: "home",
-          implementationRoute: "/",
-          pageType: "home",
-          sourceEntry: "demo-decor-store.html",
-        },
-      ],
-    });
+    const decorPageIds = [
+      "home",
+      "shop-left",
+      "shop-none",
+      "shop-right",
+      "collection",
+      "product",
+      "wishlist",
+      "cart",
+      "checkout",
+      "account",
+      "blog",
+      "article",
+      "about",
+      "faq",
+      "contact",
+    ];
+    expect(policy.themes[1]).toMatchObject({ equivalenceScope: decorPageIds, id: "decor-store" });
+    expect(policy.themes[1]?.pages.map(({ id }) => id)).toEqual(decorPageIds);
     expect(policy.waivers).toEqual([]);
   });
 

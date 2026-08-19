@@ -266,8 +266,8 @@ describe("Decor Store source contracts", () => {
     const intake = policy.sourceIntakes.find(({ id }: { id: string }) => id === "decor-store");
 
     expect(declaration.sourceRevision).toBe(`sha256:${decorStoreSourceContract.sourceEntrySha256}`);
-    expect(declaration.importedAt).toBe("2026-08-11");
-    expect(declaration.importedFiles).toHaveLength(122);
+    expect(declaration.importedAt).toBe("2026-08-19");
+    expect(declaration.importedFiles).toHaveLength(135);
     expect(
       declaration.importedFiles.every(
         ({ destinationPath, sha256 }: { destinationPath: string; sha256: string }) =>

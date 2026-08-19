@@ -23,6 +23,8 @@ export const decorStoreCanonicalViewports = [
   { height: 844, id: "mobile", width: 390 },
 ] as const;
 
+export const decorStoreSecondarySourceRegions = [{ id: "page", selector: "body" }] as const;
+
 export interface DecorStorePlaceholderAdaptation {
   claimExclusion: "image-content";
   localAsset: "decor-store.images-decor-store-placeholder";
@@ -578,6 +580,7 @@ export const decorStoreSourceContract = {
   homeSectionCount: 8,
   htmlClassAfterHydration: "js",
   regionOrder: decorStoreSourceRegionOrder,
+  secondaryPages: decorStoreSecondaryPageSourceContracts,
   scriptOrder: [
     "js/jquery.js",
     "js/vendors.min.js",
