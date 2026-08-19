@@ -476,6 +476,10 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("wrangler secret list --env fashion-staging --format json");
     expect(workflow).toContain("wrangler secret list --config wrangler.preview.jsonc");
     expect(workflow).toContain("--env fashion-staging --format json");
+    expect(workflow).toContain('--command "$PREFLIGHT_SQL"');
+    expect(workflow).toContain('--command "$VERIFY_SQL"');
+    expect(workflow).not.toContain("--file=../../artifacts/fashion-u12/preflight.sql");
+    expect(workflow).not.toContain("--file=../../artifacts/fashion-u12/verify.sql");
     expect(workflow).not.toContain("wrangler secret list --env fashion-staging --json");
     expect(workflow).not.toContain("wrangler secret put");
     expect(workflow).not.toContain("environment: staging\n");

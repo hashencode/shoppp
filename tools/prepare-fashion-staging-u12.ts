@@ -162,7 +162,6 @@ function productStatements(release: CanonicalCatalogRelease): string[] {
 function seedSql(release: CanonicalCatalogRelease): string {
   return [
     "PRAGMA foreign_keys = ON;",
-    "BEGIN TRANSACTION;",
     `INSERT OR IGNORE INTO price_lists (id, code, currency, status, created_at, updated_at) VALUES (${[
       PRICE_LIST_ID,
       "FASHION-STAGING-USD",
@@ -193,7 +192,6 @@ function seedSql(release: CanonicalCatalogRelease): string {
     ]
       .map(sql)
       .join(", ")});`,
-    "COMMIT;",
     "",
   ].join("\n");
 }

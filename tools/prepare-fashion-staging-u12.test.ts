@@ -25,7 +25,9 @@ describe("Fashion staging U12 one-time seed plan", () => {
 
     expect(plan.preflightSql).toContain("AS conflict_count");
     expect(plan.preflightSql).toContain("catalog_releases");
-    expect(plan.seedSql.indexOf("BEGIN TRANSACTION")).toBeLessThan(
+    expect(plan.seedSql).not.toContain("BEGIN TRANSACTION");
+    expect(plan.seedSql).not.toContain("COMMIT;");
+    expect(plan.seedSql.indexOf("INSERT OR IGNORE INTO price_lists")).toBeLessThan(
       plan.seedSql.indexOf("INSERT OR IGNORE INTO products"),
     );
     expect(plan.seedSql).toContain("INSERT INTO catalog_releases");

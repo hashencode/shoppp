@@ -190,8 +190,9 @@ jobs:
       - name: Reject seed identity collisions
         working-directory: apps/api
         run: |
+          PREFLIGHT_SQL="$(cat ../../artifacts/fashion-u12/preflight.sql)"
           bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
-            --file=../../artifacts/fashion-u12/preflight.sql \
+            --command "$PREFLIGHT_SQL" \
             > ../../artifacts/fashion-u12/seed-preflight.json
           jq --exit-status 'all(.[]?.results[]?; (.conflict_count | tonumber) == 0)' \
             ../../artifacts/fashion-u12/seed-preflight.json >/dev/null
@@ -234,8 +235,9 @@ jobs:
       - name: Verify immutable seed, snapshot, and build postconditions
         working-directory: apps/api
         run: |
+          VERIFY_SQL="$(cat ../../artifacts/fashion-u12/verify.sql)"
           bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
-            --file=../../artifacts/fashion-u12/verify.sql \
+            --command "$VERIFY_SQL" \
             > ../../artifacts/fashion-u12/seed-verification.json
           jq --exit-status 'all(.[]?.results[]?;
             .product_count == 3 and .single_variant_count == 1 and
