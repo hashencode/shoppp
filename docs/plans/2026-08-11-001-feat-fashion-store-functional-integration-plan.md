@@ -98,23 +98,23 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U12 — deploy and prove the real Fashion Store Commerce journey. U7 and the
   explicit product-level FRT interlude are complete.
-- **Current sub-stage:** U12.3 — execute and verify the governed `fashion-staging` preparation and
-  no-interception journey only after a separate exact remote-mutation authorization.
-- **Next concrete action:** Land the user-approved GitHub Free substitute on `main`, bind manual
-  preparation to `refs/heads/main` plus `PREPARE FASHION U12 <exact main commit SHA>`, then dispatch
-  that exact commit. Preserve the fixed `fashion-staging-preview` concurrency group, Fashion-only
-  allowlist, D1 backup/restore gate, and readiness evidence; stop when readiness is produced and do
-  not dispatch Preview.
-- **Blocker:** None. The user approved merging during development and replacing unavailable
-  protected-ref metadata with the exact default-branch identity plus exact-SHA confirmation. The
-  earlier GitHub Free HTTP 403 responses remain retained evidence; they created no partial rule or
-  remote preparation effect.
+- **Current sub-stage:** U12.3 — governed `fashion-staging` preparation is complete; the deployed
+  no-interception journey remains separately authorized work.
+- **Next concrete action:** After explicit Preview authorization, dispatch `preview-storefront.yml`
+  from exact commit `79fbee07f60245b036b5a4d42858227502947a5c` with readiness run
+  `32265128115`, digest `3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`,
+  build `preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1`, and approved Snapshot
+  `snapshot-approved-be895bedd71bd264a74f264144f8216e`. Retain the fixed
+  `fashion-staging-preview` concurrency group and all Fashion-only, cleanup, and evidence gates.
+- **Blocker:** Explicit user authorization to dispatch the Preview workflow. Preparation run
+  `32265128115` completed and its readiness artifact independently reverified; no Preview workflow
+  has been dispatched.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-19 in the commit containing this checkpoint; U12.3 remains in progress
-  and neither the gate landing nor its future preparation run is candidate identity.
+- **Last reviewed:** 2026-08-19 after preparation run `32265128115`; U12.3 remains in progress and
+  readiness alone is not deployed-journey or candidate identity.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The

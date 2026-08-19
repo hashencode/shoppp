@@ -1244,3 +1244,31 @@ assertions. The complete tools suite passed 223/223 tests with 715 assertions. R
 lint/import boundaries, focused Prettier, and `git diff --check` also passed. No remote workflow was
 dispatched during local validation, and no D1 migration, Worker deployment, seed, immutable build,
 or Preview action occurred.
+
+## 2026-08-19 — governed Fashion preparation readiness produced
+
+The user authorized a one-time self-hosted runner for `fashion-staging` preparation only. Ephemeral
+runner registrations used the sole custom label `fashion-staging-preparation`, had no default
+labels, and were removed automatically after every attempt. No Preview workflow run exists.
+
+Preparation exposed and retained regression fixes for portable D1 restore, Wrangler migration-state
+capture, transaction-free D1 file execution, pure JSON query output, exact-seed replay safety, and a
+Fashion-only manual build-dispatch mode. The last mode creates the `building` input needed by a
+later separately authorized Preview workflow without invoking an external build hook; API tests
+prove every other resource namespace rejects it before a build row is written.
+
+Run `32265128115` at exact `main` commit
+`79fbee07f60245b036b5a4d42858227502947a5c` passed the complete preparation sequence. It preserved
+restore-proven D1 backup artifact `9369880770`, verified migrations `0018`-`0020`, deployed only
+`shoppp-api-fashion-staging`, provisioned the least-privilege preparer, verified zero seed
+collisions, retained the exact three product archetypes, and produced the approved immutable input:
+
+- Catalog Release `fashion-staging-u12-release-2026-08-18`;
+- Snapshot `snapshot-approved-be895bedd71bd264a74f264144f8216e`;
+- build `preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1` in `building` state.
+
+Readiness artifact `9369913371` expires on 2026-08-26. Its independently reverified SHA-256 is
+`3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`; it records one available
+single variant, twelve available multi-product variants, and zero available variants for the
+unavailable archetype. The runner is deregistered. Ordinary staging and production were not
+accessed or modified, and Preview remains blocked on a separate user authorization.

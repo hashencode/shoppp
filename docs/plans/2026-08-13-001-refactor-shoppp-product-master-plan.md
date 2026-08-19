@@ -67,15 +67,13 @@ historical evidence remain unchanged inside the owning plans.
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
-- **Current child stage:** `FS-U12.3` — execute the governed isolated preparation and deployed
-  no-interception proof only after separate remote-mutation authorization.
-- **Next action:** Land the user-approved GitHub Free substitute on `main`, bind manual preparation
-  to the exact default-branch ref and SHA, dispatch that exact commit, and stop once readiness is
-  produced. Retain concurrency, Fashion-only resource, backup/restore, and evidence gates; Preview
-  remains prohibited.
-- **Blocker:** None. The user approved merging during development and the exact-main/SHA substitute
-  for unavailable branch protection. The earlier GitHub Free HTTP 403 attempts remain retained
-  evidence and caused no partial protection or remote preparation effect.
+- **Current child stage:** `FS-U12.3` — isolated preparation is complete; the deployed
+  no-interception proof remains separately authorized work.
+- **Next action:** After explicit Preview authorization, dispatch the exact `79fbee07` readiness
+  candidate from run `32265128115` with its recorded digest, build, and approved Snapshot. Retain
+  concurrency, Fashion-only resource, cleanup, and evidence gates.
+- **Blocker:** Explicit user authorization to dispatch the Preview workflow. Preparation and local
+  readiness re-verification passed; no Preview workflow has been dispatched.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
@@ -106,7 +104,7 @@ focused test alone.
 | `FS-H1` | [Fashion Store Source-Parity Home](2026-08-06-001-feat-fashion-store-source-parity-plan.md) | Fashion Store home baseline | Complete and inherited; its former only-template decision is superseded | `FS` owns current Fashion Store work |
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U12.3`; U12.2 local deployment prerequisites are green and remote execution awaits separate authorization** | This plan owns `FS-U12`, then `FS-U8`, and the remaining Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U12.3`; isolated preparation/readiness passed and Preview dispatch awaits separate authorization** | This plan owns `FS-U12`, then `FS-U8`, and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
