@@ -1209,3 +1209,38 @@ tools/capture-fashion-staging-readiness.test.ts tools/deploy-workflow.test.ts` p
 with 230 assertions. The complete tools suite passed 223/223 tests with 710 assertions, and the
 repository typecheck, lint/import-boundary, focused formatting, and `git diff --check` gates passed.
 No preparation or Preview workflow was dispatched, and no additional remote mutation occurred.
+
+## 2026-08-19 — GitHub Free blocks the protected-ref preparation path
+
+After the user authorized the exact protected-branch preparation sequence, read-only preflight
+proved that commit `148f74bdcd686cef9e95beef1668ca162428f2f1` matches the remote Fashion branch
+and that only the retained untracked `pnpm-lock.yaml` remains locally. GitHub reported the branch as
+`protected: false`.
+
+Both supported protection mechanisms were then checked. Repository rulesets returned HTTP 403, and
+the authorized minimal classic branch-protection PUT returned the same HTTP 403 response:
+`Upgrade to GitHub Pro or make this repository public to enable this feature.` A follow-up read
+confirmed that the failed request produced no partial protection and the branch remains unprotected.
+
+The preflight also proved that `.github/workflows/prepare-fashion-staging-u12.yml` is absent from
+`origin/main` and absent from GitHub's registered workflow list. The governed workflow therefore
+cannot be manually dispatched from its feature-branch-only definition. No new workflow run was
+created, and no preparation or Preview mutation occurred. Proceeding without an upgrade now needs a
+new governance decision covering both default-branch landing and an exact-default-commit substitute
+for the unavailable protected-ref signal; the prior authorization did not permit either change.
+
+## 2026-08-19 — approved exact-main preparation substitute
+
+The user approved merging during development and replacing the unavailable protected-ref signal
+with the exact default-branch identity. The preparation workflow and readiness verifier now require
+both `refs/heads/main` and `PREPARE FASHION U12 <exact main commit SHA>`. They retain the manual
+dispatch event, fixed `fashion-staging-preview` concurrency group, Fashion-only resource guards,
+D1 backup and disposable restore proof, migration order, operator/run evidence, and separate Preview
+authorization boundary. The readiness snapshot no longer records unsupported protection metadata.
+
+Test-first execution produced the expected failures while the old protected-ref gate remained.
+After implementation, the focused readiness/capture/workflow suite passed 29/29 tests with 231
+assertions. The complete tools suite passed 223/223 tests with 715 assertions. Repository typecheck,
+lint/import boundaries, focused Prettier, and `git diff --check` also passed. No remote workflow was
+dispatched during local validation, and no D1 migration, Worker deployment, seed, immutable build,
+or Preview action occurred.

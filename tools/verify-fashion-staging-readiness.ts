@@ -83,7 +83,6 @@ export interface FashionStagingReadinessSnapshot {
       confirmation: string;
       eventName: string;
       ref: string;
-      refProtected: boolean;
       runAttempt: number;
       runId: string;
       workflow: string;
@@ -288,8 +287,8 @@ export function assertFashionStagingReadiness(
     "Fashion single-operator confirmation must bind the exact commit SHA",
   );
   assert(
-    operatorGate.refProtected && /^refs\/heads\/[A-Za-z0-9._/-]+$/.test(operatorGate.ref),
-    "Fashion single-operator gate requires a protected branch ref",
+    operatorGate.ref === "refs/heads/main",
+    "Fashion single-operator gate requires the exact default branch ref",
   );
   assert(
     operatorGate.concurrencyGroup === "fashion-staging-preview",

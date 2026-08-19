@@ -251,7 +251,6 @@ if (import.meta.main) {
         confirmation,
         eventName: required("GITHUB_EVENT_NAME"),
         ref: required("GITHUB_REF"),
-        refProtected: required("GITHUB_REF_PROTECTED") === "true",
         runAttempt: number(required("GITHUB_RUN_ATTEMPT"), "GitHub run attempt"),
         runId: required("GITHUB_RUN_ID"),
         workflow: required("GITHUB_WORKFLOW"),

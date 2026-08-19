@@ -6,8 +6,9 @@ import {
 } from "./verify-fashion-staging-readiness";
 
 function snapshot(): FashionStagingReadinessSnapshot {
+  const now = Date.now();
   return {
-    capturedAt: "2026-08-18T02:00:00.000Z",
+    capturedAt: new Date(now).toISOString(),
     commitSha: "d".repeat(40),
     environment: "fashion-staging",
     cloudflare: {
@@ -47,10 +48,10 @@ function snapshot(): FashionStagingReadinessSnapshot {
       d1: {
         backup: {
           artifactName: `fashion-u12-d1-backup-${"d".repeat(40)}`,
-          createdAt: "2026-08-18T01:30:00.000Z",
+          createdAt: new Date(now - 30 * 60 * 1000).toISOString(),
           databaseId: "eb1ca4ef-3121-4d02-b20e-e619eac1cecc",
           runId: "123456789",
-          restoreVerifiedAt: "2026-08-18T01:45:00.000Z",
+          restoreVerifiedAt: new Date(now - 15 * 60 * 1000).toISOString(),
           sha256: "a".repeat(64),
         },
         id: "eb1ca4ef-3121-4d02-b20e-e619eac1cecc",
@@ -71,8 +72,7 @@ function snapshot(): FashionStagingReadinessSnapshot {
         concurrencyGroup: "fashion-staging-preview",
         confirmation: `PREPARE FASHION U12 ${"d".repeat(40)}`,
         eventName: "workflow_dispatch",
-        ref: "refs/heads/codex/feat-fashion-store-functional-integration",
-        refProtected: true,
+        ref: "refs/heads/main",
         runAttempt: 1,
         runId: "123456789",
         workflow: "Prepare governed Fashion staging U12 inputs",
@@ -147,15 +147,13 @@ function snapshot(): FashionStagingReadinessSnapshot {
 }
 
 describe("Fashion staging deployment readiness", () => {
-  test("accepts one exact protected and immutable Fashion deployment profile", () => {
-    expect(assertFashionStagingReadiness(snapshot(), new Date("2026-08-18T02:00:00.000Z"))).toEqual(
-      {
-        buildId: "preview-build-fashion-u12-1",
-        catalogReleaseId: "fashion-u12-release-2026-08-18",
-        environment: "fashion-staging",
-        experienceSnapshotId: "snapshot-fashion-u12-1",
-      },
-    );
+  test("accepts one exact default-branch and immutable Fashion deployment profile", () => {
+    expect(assertFashionStagingReadiness(snapshot())).toEqual({
+      buildId: "preview-build-fashion-u12-1",
+      catalogReleaseId: "fashion-u12-release-2026-08-18",
+      environment: "fashion-staging",
+      experienceSnapshotId: "snapshot-fashion-u12-1",
+    });
   });
 
   test("rejects unapplied migrations or an unverified backup", () => {
@@ -164,6 +162,7 @@ describe("Fashion staging deployment readiness", () => {
     expect(() => assertFashionStagingReadiness(pending)).toThrow(/pending D1 migrations/);
 
     const stale = snapshot();
+    stale.capturedAt = "2026-08-18T02:00:00.000Z";
     stale.cloudflare.d1.backup.restoreVerifiedAt = "2026-08-16T01:00:00.000Z";
     expect(() =>
       assertFashionStagingReadiness(stale, new Date("2026-08-18T02:00:00.000Z")),
@@ -239,10 +238,10 @@ describe("Fashion staging deployment readiness", () => {
   });
 
   test("rejects an incomplete single-operator gate or mismatched variables", () => {
-    const unprotected = snapshot();
-    unprotected.github.operatorGate.refProtected = false;
-    expect(() => assertFashionStagingReadiness(unprotected)).toThrow(
-      /single-operator gate requires a protected branch ref/,
+    const wrongRef = snapshot();
+    wrongRef.github.operatorGate.ref = "refs/heads/codex/feat-fashion-store-functional-integration";
+    expect(() => assertFashionStagingReadiness(wrongRef)).toThrow(
+      /single-operator gate requires the exact default branch ref/,
     );
 
     const wrongConfirmation = snapshot();

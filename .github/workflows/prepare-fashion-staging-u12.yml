@@ -35,12 +35,12 @@ jobs:
         with:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
-      - name: Require exact preparation authorization and protected ref
+      - name: Require exact preparation authorization and default branch
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"
-          test "$GITHUB_REF_PROTECTED" = "true"
+          test "$GITHUB_REF" = "refs/heads/main"
           test "$API_ORIGIN" = "https://shoppp-api-fashion-staging.hashencode.workers.dev"
           [[ "$STRIPE_SECRET_KEY" == sk_test_* ]]
           test "${#TURNSTILE_SECRET}" -ge 20
