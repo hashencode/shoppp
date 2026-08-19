@@ -9,7 +9,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 product_authority: 2026-08-13-001-refactor-shoppp-product-master-plan.md
 inherited_baseline: 2026-08-10-001-feat-decor-store-source-parity-plan.md
-current_unit: U6.1
+current_unit: U7.1
 deepened: 2026-08-19
 ---
 
@@ -179,13 +179,13 @@ This plan is the sole authority for the remaining-page queue. Decimal child stag
 | U3 | Complete | Three Shop layouts and Collections are fixture-backed, ready, buildable, responsive, and browser-verified with local-only filter, sort, pagination, and Wishlist state |
 | U4 | Complete | Product gallery/options/quantity/tabs and Wishlist removal are source-shaped, deterministic, responsive, refresh-resetting, and emit no business request |
 | U5 | Complete | Cart local totals/removal and inert Checkout/Account surfaces are responsive, refresh-resetting, secret-disabled, and browser-verified with zero business requests |
-| U6 | In progress | `U6.1` — reproduce Blog, Article, About, FAQ, and Contact with deterministic editorial fixtures and presentation-only interactions |
-| U7 | Pending | Depends on U1-U6 |
+| U6 | Complete | Blog/Article navigation, About carousel, FAQ accordion, and inert Contact presentation are responsive, locally controlled, and browser-verified without remote/form requests |
+| U7 | In progress | `U7.1` — promote all fourteen ready identities into shared acceptance, run repository and built-output gates, retain evidence, then review and close |
 
-- **Current parent unit:** U6.
-- **Current child stage:** U6.1.
+- **Current parent unit:** U7.
+- **Current child stage:** U7.1.
 - **Blocker:** None. Missing remote placeholder content is a bounded local-asset adaptation under R5/KTD8, not a blocker.
-- **Next concrete action:** Reproduce `/blog`, the frozen Article route, `/about`, `/faq`, and `/contact` with Decor-owned fixtures; verify editorial navigation, About carousel, FAQ accordion, inert Contact canary handling, responsive composition, reduced motion, and zero remote/form requests; then mark those five contracts ready.
+- **Next concrete action:** Register all fourteen ready identities in the existing shared acceptance policy/adapter/runner, run focused unit and browser suites, source/behavior/build/type/lint/format/output gates plus representative responsive/overflow checks, retain bounded placeholder evidence under `docs/progress/`, perform simplify and code review, then close this plan and DS-P1 pointer.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7.
 
 ---

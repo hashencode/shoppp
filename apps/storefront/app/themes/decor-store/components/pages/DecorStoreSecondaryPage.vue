@@ -5,8 +5,13 @@ import type { PresentationViewModel } from "../../../../theme-engine/view-models
 import { resolveDecorStorePage } from "../../page-contracts";
 import DecorStoreCollectionPage from "./DecorStoreCollectionPage.vue";
 import DecorStoreAccountPage from "./DecorStoreAccountPage.vue";
+import DecorStoreAboutPage from "./DecorStoreAboutPage.vue";
+import DecorStoreArticlePage from "./DecorStoreArticlePage.vue";
+import DecorStoreBlogPage from "./DecorStoreBlogPage.vue";
 import DecorStoreCartPage from "./DecorStoreCartPage.vue";
 import DecorStoreCheckoutPage from "./DecorStoreCheckoutPage.vue";
+import DecorStoreContactPage from "./DecorStoreContactPage.vue";
+import DecorStoreFaqPage from "./DecorStoreFaqPage.vue";
 import DecorStoreProductPage from "./DecorStoreProductPage.vue";
 import DecorStoreShopPage from "./DecorStoreShopPage.vue";
 import DecorStoreWishlistPage from "./DecorStoreWishlistPage.vue";
@@ -46,6 +51,11 @@ const announcement = computed(() =>
   <DecorStoreCartPage v-else-if="page.id === 'cart'" :resolve-asset="resolveAsset" />
   <DecorStoreCheckoutPage v-else-if="page.id === 'checkout'" :resolve-asset="resolveAsset" />
   <DecorStoreAccountPage v-else-if="page.id === 'account'" :resolve-asset="resolveAsset" />
+  <DecorStoreBlogPage v-else-if="page.id === 'blog'" :resolve-asset="resolveAsset" />
+  <DecorStoreArticlePage v-else-if="page.id === 'article'" :resolve-asset="resolveAsset" />
+  <DecorStoreAboutPage v-else-if="page.id === 'about'" :resolve-asset="resolveAsset" />
+  <DecorStoreFaqPage v-else-if="page.id === 'faq'" :resolve-asset="resolveAsset" />
+  <DecorStoreContactPage v-else-if="page.id === 'contact'" :resolve-asset="resolveAsset" />
   <DecorStoreShell
     v-else
     :active-page="page.id"

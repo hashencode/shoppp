@@ -10,10 +10,11 @@ import {
 } from "../app/themes/decor-store/page-contracts";
 
 describe("Decor Store Product and Wishlist", () => {
-  test("enables only the source-backed Product and Wishlist content in U4", () => {
+  test("keeps the source-backed Product and Wishlist routes enabled", () => {
     expect(resolveDecorStorePage("/products/minimalist-wooden-chair")?.id).toBe("product");
     expect(resolveDecorStorePage("/wishlist")?.id).toBe("wishlist");
-    expect(decorStorePageContracts.find(({ id }) => id === "blog")?.ready).toBe(false);
+    expect(decorStorePageContracts.find(({ id }) => id === "product")?.ready).toBe(true);
+    expect(decorStorePageContracts.find(({ id }) => id === "wishlist")?.ready).toBe(true);
   });
 
   test("freezes the source product gallery, options, tabs, and related products", () => {

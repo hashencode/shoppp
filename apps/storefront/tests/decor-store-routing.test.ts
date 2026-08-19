@@ -50,22 +50,7 @@ describe("Decor Store remaining-page route authority", () => {
           sourceEntry,
           ready,
         ]),
-    ).toEqual(
-      expectedSecondaryPages.map((row) => [
-        ...row,
-        [
-          "shop-left",
-          "shop-none",
-          "shop-right",
-          "collection",
-          "product",
-          "wishlist",
-          "cart",
-          "checkout",
-          "account",
-        ].includes(row[0]),
-      ]),
-    );
+    ).toEqual(expectedSecondaryPages.map((row) => [...row, true]));
     expect(decorStorePreviewRoutes).toEqual([
       "/",
       "/shop",
@@ -77,6 +62,11 @@ describe("Decor Store remaining-page route authority", () => {
       "/cart",
       "/checkout",
       "/account",
+      "/blog",
+      "/blog/best-influencers-for-decor-inspiration",
+      "/about",
+      "/faq",
+      "/contact",
     ]);
   });
 
@@ -106,9 +96,8 @@ describe("Decor Store remaining-page route authority", () => {
 
   test("rejects prematurely enabled pages without completion evidence", () => {
     const contracts = structuredClone(decorStorePageContracts) as DecorStorePageContract[];
-    const blog = contracts.find(({ id }) => id === "blog")!;
-    blog.ready = true;
-    blog.fixtureId = "decor-store-content";
+    const contact = contracts.find(({ id }) => id === "contact")!;
+    contact.readinessEvidence = [];
     expect(() =>
       assertDecorStorePageContracts(contracts, [
         "decor-store-home",
@@ -118,7 +107,7 @@ describe("Decor Store remaining-page route authority", () => {
         "decor-store-cart",
         "decor-store-checkout",
       ]),
-    ).toThrow("blog readiness evidence");
+    ).toThrow("contact readiness evidence");
   });
 
   test("keeps shared acceptance policy identity aligned without advertising unready pages", async () => {

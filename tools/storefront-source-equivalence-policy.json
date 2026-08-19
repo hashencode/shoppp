@@ -698,35 +698,35 @@
           "id": "blog",
           "implementationRoute": "/blog",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-blog.html"
         },
         {
           "id": "article",
           "implementationRoute": "/blog/best-influencers-for-decor-inspiration",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-blog-single-classic.html"
         },
         {
           "id": "about",
           "implementationRoute": "/about",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-about.html"
         },
         {
           "id": "faq",
           "implementationRoute": "/faq",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-faq.html"
         },
         {
           "id": "contact",
           "implementationRoute": "/contact",
           "pageType": "content",
-          "ready": false,
+          "ready": true,
           "sourceEntry": "demo-decor-store-contact.html"
         }
       ],

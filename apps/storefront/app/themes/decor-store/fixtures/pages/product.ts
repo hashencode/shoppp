@@ -1,5 +1,12 @@
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
 import { decorStoreShopData } from "./shop";
+import {
+  decorStoreAboutData,
+  decorStoreArticleData,
+  decorStoreBlogData,
+  decorStoreContactData,
+  decorStoreFaqData,
+} from "./content";
 
 export const decorStoreProductData = {
   announcement: decorStoreShopData.announcement,
@@ -37,7 +44,14 @@ export const decorStoreProductFixtures = {
     pageTypes: ["content"],
     viewModels: {
       content: {
-        data: { wishlist: decorStoreWishlistData },
+        data: {
+          about: decorStoreAboutData,
+          article: decorStoreArticleData,
+          blog: decorStoreBlogData,
+          contact: decorStoreContactData,
+          faq: decorStoreFaqData,
+          wishlist: decorStoreWishlistData,
+        },
         kind: "theme-section",
         state: "populated",
       },
