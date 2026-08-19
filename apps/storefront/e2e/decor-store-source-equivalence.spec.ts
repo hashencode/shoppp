@@ -103,13 +103,18 @@ function recordBehaviors(
   }
 }
 
-async function installSourceResourceGuard(page: Page): Promise<string[]> {
+async function installSourceResourceGuard(
+  page: Page,
+  options: { allowMainJs?: boolean } = {},
+): Promise<{ blocked: string[] }> {
   const blocked: string[] = [];
+  const sourceOrigin = new URL(sourceUrl).origin;
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     const forbidden =
-      url.origin !== new URL(sourceUrl).origin ||
-      /(?:main\.js|particles|\.php(?:$|\?))/i.test(url.pathname);
+      url.origin !== sourceOrigin ||
+      (!options.allowMainJs && /main\.js/i.test(url.pathname)) ||
+      /(?:particles|\.php(?:$|\?))/i.test(url.pathname);
     if (forbidden) {
       blocked.push(url.href);
       await route.abort("blockedbyclient");
@@ -117,11 +122,14 @@ async function installSourceResourceGuard(page: Page): Promise<string[]> {
     }
     await route.continue();
   });
-  return blocked;
+  return { blocked };
 }
 
-async function prepareSource(page: Page): Promise<string[]> {
-  const blocked = await installSourceResourceGuard(page);
+async function prepareSource(
+  page: Page,
+  options: { allowMainJs?: boolean } = {},
+): Promise<{ blocked: string[] }> {
+  const resourceGuard = await installSourceResourceGuard(page, options);
   await page.goto(sourceUrl, { timeout: 60_000, waitUntil: "domcontentloaded" });
   await page.locator("#decor-store-slider").waitFor({ state: "visible" });
   await page.waitForFunction(() =>
@@ -131,7 +139,7 @@ async function prepareSource(page: Page): Promise<string[]> {
     .locator("[data-accept-btn]")
     .click({ timeout: 2_000 })
     .catch(() => undefined);
-  return blocked;
+  return resourceGuard;
 }
 
 async function prepareImplementation(
@@ -150,6 +158,20 @@ async function prepareImplementation(
       .catch(() => undefined);
   }
   return root;
+}
+
+function collectForbiddenImplementationRequests(page: Page): string[] {
+  const forbidden: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (
+      !["127.0.0.1", "localhost"].includes(url.hostname) ||
+      /\.php(?:$|\?)/i.test(url.pathname) ||
+      /\/js\/main\.js$/i.test(url.pathname)
+    )
+      forbidden.push(url.href);
+  });
+  return forbidden;
 }
 
 async function acceptanceRegions(page: Page, side: "implementation" | "source") {
@@ -366,14 +388,9 @@ test("source-inventory static: independent source, implementation, and diff evid
     if (message.type() === "error") implementationErrors.push(message.text());
   });
   page.on("pageerror", (error) => implementationErrors.push(error.message));
-  const forbiddenImplementationRequests: string[] = [];
-  page.on("request", (request) => {
-    const url = new URL(request.url());
-    if (!["127.0.0.1", "localhost"].includes(url.hostname) || /\.php(?:$|\?)/i.test(url.pathname))
-      forbiddenImplementationRequests.push(url.href);
-  });
+  const forbiddenImplementationRequests = collectForbiddenImplementationRequests(page);
   try {
-    const [blockedSourceRequests] = await Promise.all([
+    const [sourceResources] = await Promise.all([
       prepareSource(source),
       prepareImplementation(page),
     ]);
@@ -407,8 +424,8 @@ test("source-inventory static: independent source, implementation, and diff evid
     );
     expect(implementationErrors).toEqual([]);
     expect(forbiddenImplementationRequests).toEqual([]);
-    expect(blockedSourceRequests.some((url) => /main\.js/.test(url))).toBe(true);
-    expect(blockedSourceRequests.some((url) => /particles/.test(url))).toBe(true);
+    expect(sourceResources.blocked.some((url) => /main\.js/.test(url))).toBe(true);
+    expect(sourceResources.blocked.some((url) => /particles/.test(url))).toBe(true);
     const difference = await captureEvidence(source, page, testInfo);
     expect(difference.dimensionsMatch).toBe(true);
     expect(difference.changedPixelRatio).toBeLessThanOrEqual(0.01);
@@ -424,6 +441,40 @@ test("source-inventory static: independent source, implementation, and diff evid
       ],
       "static",
     );
+  } finally {
+    await source.close();
+  }
+});
+
+test("initialized source and implementation align navigation with the top bar", async ({
+  browser,
+  page,
+}) => {
+  const source = await browser.newPage({ viewport: page.viewportSize()! });
+  const forbiddenImplementationRequests = collectForbiddenImplementationRequests(page);
+  try {
+    const [mainJsRequest] = await Promise.all([
+      source.waitForRequest((request) => /\/js\/main\.js(?:$|\?)/.test(request.url())),
+      prepareSource(source, { allowMainJs: true }),
+      prepareImplementation(page),
+    ]);
+    expect(mainJsRequest.url()).toMatch(/\/js\/main\.js(?:$|\?)/);
+    const geometries = await Promise.all(
+      [source, page].map((candidate) =>
+        candidate.evaluate(() => {
+          const topBar = document.querySelector<HTMLElement>("header .header-top-bar");
+          const navigation = document.querySelector<HTMLElement>("header .navbar");
+          if (!topBar || !navigation) throw new Error("Decor header geometry is missing.");
+          return {
+            navigationTop: navigation.getBoundingClientRect().top,
+            topBarBottom: topBar.getBoundingClientRect().bottom,
+          };
+        }),
+      ),
+    );
+    for (const geometry of geometries)
+      expect(Math.abs(geometry.navigationTop - geometry.topBarBottom)).toBeLessThanOrEqual(1);
+    expect(forbiddenImplementationRequests).toEqual([]);
   } finally {
     await source.close();
   }

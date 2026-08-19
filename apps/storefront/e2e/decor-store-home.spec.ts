@@ -25,6 +25,21 @@ test("reduced motion is stable when requested before the first navigation", asyn
   ).toBeVisible();
 });
 
+test("desktop navigation starts below the fixed top bar", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await prepare(page);
+  const geometry = await page.evaluate(() => {
+    const topBar = document.querySelector<HTMLElement>("header .header-top-bar");
+    const navigation = document.querySelector<HTMLElement>("header .navbar");
+    if (!topBar || !navigation) throw new Error("Decor header geometry is missing.");
+    return {
+      navigationTop: navigation.getBoundingClientRect().top,
+      topBarBottom: topBar.getBoundingClientRect().bottom,
+    };
+  });
+  expect(Math.abs(geometry.navigationTop - geometry.topBarBottom)).toBeLessThanOrEqual(1);
+});
+
 test("source footer routes are typed while newsletter remains presentation-only", async ({
   page,
 }) => {
@@ -36,8 +51,7 @@ test("source footer routes are typed while newsletter remains presentation-only"
   await expect(footer).toContainText("Categories");
   await expect(footer).toContainText("Newsletter");
   await expect(footer.locator("img")).toHaveCount(5);
-  await footer.getByRole("link", { name: "Bed room" }).click();
-  await expect(root).toHaveAttribute("data-preview-intent-count", "1");
+  await expect(footer.getByRole("link", { name: "Bed room" })).toHaveAttribute("href", "/shop");
 
   const newsletter = footer.locator("[data-decor-newsletter-form]");
   await expect(newsletter).toHaveAttribute("data-newsletter-supported", "false");
@@ -48,6 +62,8 @@ test("source footer routes are typed while newsletter remains presentation-only"
   await newsletter.evaluate((form: HTMLFormElement) => form.requestSubmit());
   await expect(newsletter.locator(".form-results")).toBeHidden();
   expect(requests.filter((url) => url.includes("subscribe-newsletter.php"))).toEqual([]);
+  await footer.getByRole("link", { name: "Bed room" }).click();
+  await expect(page).toHaveURL(/\/shop$/);
 });
 
 test("cookie choices dismiss locally without persistence or network requests", async ({ page }) => {
@@ -280,15 +296,14 @@ test("category and journal links emit typed destinations while services remain s
   page,
 }) => {
   const root = await prepare(page);
-  await page
+  const category = page
     .locator("[data-decor-region='featured-categories']")
-    .getByRole("link", { name: "Lamp" })
-    .click();
-  await page
+    .getByRole("link", { name: "Lamp" });
+  const article = page
     .locator("[data-decor-region='journal']")
-    .getByRole("link", { name: /best influencers/i })
-    .click();
-  await expect(root).toHaveAttribute("data-preview-intent-count", "2");
+    .getByRole("link", { name: /best influencers/i });
+  await expect(category).toHaveAttribute("href", "/shop");
+  await expect(article).toHaveAttribute("href", "/blog/best-influencers-for-decor-inspiration");
   await expect(
     page.locator("[data-decor-region='services'] a, [data-decor-region='services'] button"),
   ).toHaveCount(0);
@@ -296,6 +311,27 @@ test("category and journal links emit typed destinations while services remain s
   for (const label of ["Free shipping", "Store locator", "Secure payment", "Online support"]) {
     await expect(services).toContainText(label);
   }
+  const intentCount = await root.getAttribute("data-preview-intent-count");
+  await category.evaluate((anchor) => {
+    const preventNativeNavigation = (event: MouseEvent) => {
+      document.removeEventListener("click", preventNativeNavigation, true);
+      event.preventDefault();
+    };
+    document.addEventListener("click", preventNativeNavigation, true);
+    anchor.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, button: 0, cancelable: true, ctrlKey: true }),
+    );
+  });
+  await expect(page).toHaveURL(/\/$/);
+  await expect(root).toHaveAttribute("data-preview-intent-count", intentCount || "0");
+  await category.click();
+  await expect(page).toHaveURL(/\/shop$/);
+  await prepare(page);
+  await page
+    .locator("[data-decor-region='journal']")
+    .getByRole("link", { name: /best influencers/i })
+    .click();
+  await expect(page).toHaveURL(/\/blog\/best-influencers-for-decor-inspiration$/);
 });
 
 test("first timed capability moves left, loops, and pauses independently", async ({ page }) => {

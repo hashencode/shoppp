@@ -516,3 +516,9 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+@media (min-width: 768px) {
+  [data-decor-store-source-parity] header .header-top-bar + .navbar.disable-fixed {
+    top: 46px;
+  }
+}

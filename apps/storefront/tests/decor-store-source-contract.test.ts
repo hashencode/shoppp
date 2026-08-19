@@ -19,7 +19,14 @@ import {
   decorStoreSecondaryPageBehaviorLedger,
 } from "../app/themes/decor-store/behavior-contract";
 import { decorStoreAcceptanceAdapters } from "../app/themes/decor-store/acceptance-adapter";
-import { prepareDecorStoreMarkup } from "../app/themes/decor-store/runtime/source-markup";
+import { decorStorePageContracts } from "../app/themes/decor-store/page-contracts";
+import {
+  decorStoreBodySourceMarkup,
+  decorStoreHeaderSourceMarkup,
+  decorStoreHeroSourceMarkup,
+  decorStoreTailSourceMarkup,
+  prepareDecorStoreMarkup,
+} from "../app/themes/decor-store/runtime/source-markup";
 import { assertThemeBehaviorContractComplete } from "../e2e/support/theme-behavior-contract";
 import { assertCustomBehaviorAdaptersRegistered } from "../e2e/support/theme-behavior-runner";
 import {
@@ -91,6 +98,34 @@ describe("Decor Store source contracts", () => {
     expect(body).toContain(
       '<img loading="lazy" decoding="async" src="/assets/decor-store.images-body">',
     );
+  });
+
+  test("maps every contracted source entry present in frozen home markup to its route", () => {
+    const resolveAsset = (id: string) => `/assets/${id}`;
+    const sourceFragments = [
+      decorStoreHeaderSourceMarkup,
+      decorStoreHeroSourceMarkup,
+      decorStoreBodySourceMarkup,
+      decorStoreTailSourceMarkup,
+    ];
+    const frozenMarkup = sourceFragments.join("");
+    const linkedPageContracts = decorStorePageContracts.filter(({ sourceEntry }) =>
+      frozenMarkup.includes(`href="${sourceEntry}"`),
+    );
+    expect(linkedPageContracts).toHaveLength(13);
+    const markup = sourceFragments
+      .map((source) => prepareDecorStoreMarkup(source, resolveAsset))
+      .join("");
+    expect(markup).not.toMatch(/href="demo-decor-store(?:-[^"]+)?\.html"/);
+    for (const page of linkedPageContracts) {
+      expect(markup, page.id).toContain(`href="${page.path}" data-decor-route-intent="navigation"`);
+    }
+  });
+
+  test("rejects frozen Decor source routes without a page contract", () => {
+    expect(() =>
+      prepareDecorStoreMarkup('<a href="demo-decor-store-missing.html">Missing</a>', String),
+    ).toThrow("Unknown Decor Store source route: demo-decor-store-missing.html");
   });
 
   test("inventories every visible region and actionable element in source order", async () => {

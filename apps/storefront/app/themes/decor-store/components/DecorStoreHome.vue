@@ -17,6 +17,7 @@ const properties = defineProps<{
   resolveAsset: ThemeAssetResolver;
   viewModel: PresentationViewModel;
 }>();
+const router = useRouter();
 
 if (properties.viewModel.kind !== "theme-section") {
   throw new Error("Decor Store home requires a theme-section fixture.");
@@ -224,17 +225,21 @@ function handleClick(event: MouseEvent): void {
   }
   const route = target.closest<HTMLAnchorElement>("[data-decor-route-intent]");
   if (route) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
     event.preventDefault();
+    const destination = route.getAttribute("href") || "/";
     record(
       {
         id: "decor-home-navigation",
         intent: "navigation",
         label: route.textContent?.trim() || "Decor navigation",
-        target: "/",
+        target: destination,
       },
       "decor-store.home.navigation",
     );
     closeHeaderStates();
+    if (router.currentRoute.value.fullPath !== destination) void router.push(destination);
   }
 }
 

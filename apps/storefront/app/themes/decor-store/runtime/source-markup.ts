@@ -1,4 +1,5 @@
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
+import { decorStorePageContracts } from "../page-contracts";
 import { decorStoreAssetId } from "../resources";
 import {
   decorStoreBodySourceMarkup,
@@ -16,7 +17,10 @@ export {
 
 export type DecorStoreMarkupImagePriority = "default" | "deferred" | "hero";
 
-const routePattern = /href="demo-decor-store(?:-[^"]+)?\.html"/g;
+const routePattern = /href="(demo-decor-store(?:-[^"]+)?\.html)"/g;
+const routeBySourceEntry = new Map(
+  decorStorePageContracts.map(({ path, sourceEntry }) => [sourceEntry, path]),
+);
 const assetPattern = /(src|data-at2x|data-lazyload)="(images\/[^"]+)"/g;
 const backgroundAssetPattern = /url\(['"]?(images\/[^)'"]+)['"]?\)/g;
 
@@ -79,7 +83,11 @@ export function prepareDecorStoreMarkup(
     .replaceAll(backgroundAssetPattern, (_match, sourcePath: string) => {
       return `url(${resolveAsset(decorStoreAssetId(sourcePath))})`;
     })
-    .replaceAll(routePattern, 'href="/" data-decor-route-intent="navigation"')
+    .replaceAll(routePattern, (_match, sourceEntry: string) => {
+      const route = routeBySourceEntry.get(sourceEntry);
+      if (!route) throw new Error(`Unknown Decor Store source route: ${sourceEntry}`);
+      return `href="${route}" data-decor-route-intent="navigation"`;
+    })
     .replace('action="search-result.html"', 'action="/" data-decor-search-form=""')
     .replace(
       'class="search-form-icon header-search-form"',
