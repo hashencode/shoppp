@@ -110,15 +110,22 @@ jobs:
         working-directory: apps/api
         run: |
           RESTORE_STATE="$RUNNER_TEMP/fashion-u12-restore-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          RESTORE_DB="$RESTORE_STATE/fashion-d1.sqlite3"
           mkdir -p "$RESTORE_STATE"
-          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --local \
-            --persist-to "$RESTORE_STATE" \
-            --file="../../artifacts/fashion-u12/fashion-d1-before-${GITHUB_SHA}.sql"
-          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --local --json \
-            --persist-to "$RESTORE_STATE" --command "PRAGMA foreign_key_check" \
+          command -v sqlite3 >/dev/null
+          sqlite3 "$RESTORE_DB" \
+            < "../../artifacts/fashion-u12/fashion-d1-before-${GITHUB_SHA}.sql"
+          FOREIGN_KEY_ROWS="$(sqlite3 "$RESTORE_DB" 'PRAGMA foreign_key_check;')"
+          test -z "$FOREIGN_KEY_ROWS"
+          INTEGRITY_RESULT="$(sqlite3 "$RESTORE_DB" 'PRAGMA integrity_check;')"
+          test "$INTEGRITY_RESULT" = "ok"
+          TABLE_COUNT="$(sqlite3 "$RESTORE_DB" \
+            "SELECT count(*) FROM sqlite_master WHERE type='table';")"
+          test "$TABLE_COUNT" -gt 0
+          jq --null-input --arg integrity "$INTEGRITY_RESULT" \
+            --argjson tableCount "$TABLE_COUNT" \
+            '{foreignKeyViolations:[],integrity:$integrity,tableCount:$tableCount}' \
             > ../../artifacts/fashion-u12/restore-foreign-keys.json
-          jq --exit-status 'all(.[]?; ((.results // []) | length == 0))' \
-            ../../artifacts/fashion-u12/restore-foreign-keys.json >/dev/null
           BACKUP_SHA="$(sha256sum "../../artifacts/fashion-u12/fashion-d1-before-${GITHUB_SHA}.sql" | cut -d ' ' -f 1)"
           jq --null-input \
             --arg artifactName "fashion-u12-d1-backup-$GITHUB_SHA" \

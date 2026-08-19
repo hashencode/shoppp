@@ -439,8 +439,10 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}");
     expect(workflow).toContain('--confirmation="$FASHION_U12_CONFIRMATION"');
     expect(workflow).toContain("shoppp-fashion-staging --env fashion-staging --remote");
-    expect(workflow).toContain('--persist-to "$RESTORE_STATE"');
-    expect(workflow).toContain("PRAGMA foreign_key_check");
+    expect(workflow).toContain('sqlite3 "$RESTORE_DB"');
+    expect(workflow).toContain("PRAGMA foreign_key_check;");
+    expect(workflow).toContain("PRAGMA integrity_check;");
+    expect(workflow).not.toContain("PRAGMA foreign_keys=OFF");
     expect(exportD1).toBeGreaterThan(0);
     expect(restore).toBeGreaterThan(exportD1);
     expect(preserve).toBeGreaterThan(restore);
