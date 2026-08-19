@@ -425,6 +425,9 @@ describe("governed Fashion staging preparation workflow", () => {
       "Restore exported Fashion D1 into a disposable local database",
     );
     const preserve = workflow.indexOf("Preserve verified Fashion D1 backup before migration");
+    const listMigrations = workflow.indexOf(
+      "List pending Fashion D1 migrations after verified backup",
+    );
     const migrate = workflow.indexOf("Apply pending Fashion D1 migrations after verified backup");
     const seed = workflow.indexOf("Apply collision-checked three-archetype seed");
 
@@ -443,10 +446,15 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("PRAGMA foreign_key_check;");
     expect(workflow).toContain("PRAGMA integrity_check;");
     expect(workflow).not.toContain("PRAGMA foreign_keys=OFF");
+    expect(workflow).toContain("FASHION_U12_MIGRATIONS:");
+    expect(workflow).toContain("SELECT name, applied_at FROM d1_migrations ORDER BY name");
+    expect(workflow).toContain("all(.[]; .applied_at != null)");
+    expect(workflow).not.toContain("d1 migrations list");
     expect(exportD1).toBeGreaterThan(0);
     expect(restore).toBeGreaterThan(exportD1);
     expect(preserve).toBeGreaterThan(restore);
-    expect(migrate).toBeGreaterThan(preserve);
+    expect(listMigrations).toBeGreaterThan(preserve);
+    expect(migrate).toBeGreaterThan(listMigrations);
     expect(seed).toBeGreaterThan(migrate);
   });
 

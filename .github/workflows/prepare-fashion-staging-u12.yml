@@ -34,6 +34,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       FASHION_U12_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
+      FASHION_U12_MIGRATIONS: '["0018_storefront_preview_revocation.sql","0019_storefront_validation_catalog_identity.sql","0020_fashion_staging_acceptance.sql"]'
       GH_TOKEN: ${{ secrets.FASHION_U12_GITHUB_ADMIN_TOKEN }}
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
@@ -147,7 +148,18 @@ jobs:
           retention-days: 14
       - name: List pending Fashion D1 migrations after verified backup
         working-directory: apps/api
-        run: bunx wrangler d1 migrations list shoppp-fashion-staging --env fashion-staging --remote --json > ../../artifacts/fashion-u12/migrations-before.json
+        run: |
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
+            --command "SELECT name, applied_at FROM d1_migrations ORDER BY name" \
+            > ../../artifacts/fashion-u12/migration-rows-before.json
+          jq --argjson expected "$FASHION_U12_MIGRATIONS" '
+            [.. | objects |
+              select((.name? | type) == "string" and has("applied_at"))] as $applied |
+            [$expected[] as $name |
+              (($applied | map(select(.name == $name)) | first) //
+                {name:$name,applied_at:null})]
+          ' ../../artifacts/fashion-u12/migration-rows-before.json \
+            > ../../artifacts/fashion-u12/migrations-before.json
       - name: Apply pending Fashion D1 migrations after verified backup
         working-directory: apps/api
         run: bunx wrangler d1 migrations apply shoppp-fashion-staging --env fashion-staging --remote
@@ -232,8 +244,19 @@ jobs:
             .immutable_catalog_count == 1 and .approved_snapshot_count >= 1 and
             .building_build_count == 1)' \
             ../../artifacts/fashion-u12/seed-verification.json >/dev/null
-          bunx wrangler d1 migrations list shoppp-fashion-staging --env fashion-staging --remote --json \
+          bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
+            --command "SELECT name, applied_at FROM d1_migrations ORDER BY name" \
+            > ../../artifacts/fashion-u12/migration-rows-after.json
+          jq --argjson expected "$FASHION_U12_MIGRATIONS" '
+            [.. | objects |
+              select((.name? | type) == "string" and has("applied_at"))] as $applied |
+            [$expected[] as $name |
+              (($applied | map(select(.name == $name)) | first) //
+                {name:$name,applied_at:null})]
+          ' ../../artifacts/fashion-u12/migration-rows-after.json \
             > ../../artifacts/fashion-u12/migrations-after.json
+          jq --exit-status 'all(.[]; .applied_at != null)' \
+            ../../artifacts/fashion-u12/migrations-after.json >/dev/null
       - name: Capture and verify fresh deployment-readiness evidence
         env:
           FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}
