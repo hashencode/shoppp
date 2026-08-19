@@ -7,19 +7,33 @@ import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";
 import "./upstream/demos/decor-store/decor-store.css";
 import "./integration.css";
+import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
-import type { ThemeRouteContract } from "../../theme-engine/routes";
 import DecorStoreHome from "./components/DecorStoreHome.vue";
 import { decorStoreHomeFixtures } from "./fixtures/home";
+import { decorStoreSecondaryShellFixtures } from "./fixtures/pages/shell";
+import { decorStoreEnabledPageContracts } from "./page-contracts";
 import { themeAssets } from "./resources";
+
+const DecorStoreSecondaryPage = defineAsyncComponent(
+  () => import("./components/pages/DecorStoreSecondaryPage.vue"),
+);
 
 export const themeRegistry = {
   blocks: {},
-  sections: { "decor-store.home": DecorStoreHome },
+  sections: {
+    "decor-store.home": DecorStoreHome,
+    "decor-store.cart": DecorStoreSecondaryPage,
+    "decor-store.checkout": DecorStoreSecondaryPage,
+    "decor-store.collection": DecorStoreSecondaryPage,
+    "decor-store.content": DecorStoreSecondaryPage,
+    "decor-store.product": DecorStoreSecondaryPage,
+  },
 } as const satisfies ThemeRegistry;
 
 export { themeAssets };
-export const themeFixtures = decorStoreHomeFixtures;
-export const themeRoutes = [
-  { id: "decor-store-home", pageType: "home", path: "/", variant: "source-parity" },
-] as const satisfies readonly ThemeRouteContract[];
+export const themeFixtures = {
+  ...decorStoreHomeFixtures,
+  ...decorStoreSecondaryShellFixtures,
+};
+export const themeRoutes = decorStoreEnabledPageContracts;

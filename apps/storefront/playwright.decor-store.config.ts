@@ -16,6 +16,7 @@ export default defineConfig({
   testMatch: [
     "decor-store-acceptance-slice.spec.ts",
     "decor-store-home.spec.ts",
+    "decor-store-shell.spec.ts",
     "decor-store-stabilization.spec.ts",
     "decor-store-source-equivalence.spec.ts",
   ],

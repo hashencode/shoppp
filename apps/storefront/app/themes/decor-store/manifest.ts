@@ -5,14 +5,15 @@ import type {
 } from "@shoppp/contracts";
 
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
+import { decorStoreTemplatePageTypes } from "./page-contracts";
 
 const decorStoreSectionDefinitions = [
-  {
+  ...decorStoreTemplatePageTypes.map((pageType) => ({
     allowedBlockTypes: [],
     capabilities: [],
     settings: [],
-    type: "decor-store.home",
-  },
+    type: `decor-store.${pageType}`,
+  })),
 ] satisfies SectionDefinition[];
 
 export const decorStoreManifest = {
@@ -41,7 +42,7 @@ export const decorStoreManifest = {
     license: "User-authorized source-parity implementation",
     source: "local://user-supplied/demo-decor-store.html",
   },
-  supportedPageTemplates: ["home"],
+  supportedPageTemplates: [...decorStoreTemplatePageTypes],
   themeVersion: "1.0.0",
 } as const satisfies ThemeManifest;
 

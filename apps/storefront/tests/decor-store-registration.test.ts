@@ -3,7 +3,13 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { decorStoreManifest, decorStoreThemeDescriptor } from "../app/themes/decor-store/manifest";
+import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
+import {
+  themeFixtures as decorStoreFixtures,
+  themeRegistry as decorStoreRegistry,
+  themeRoutes as decorStoreRoutes,
+} from "../app/themes/decor-store/registry";
 import { decorStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import {
   assertSourceRuntimePolicy,
@@ -12,19 +18,34 @@ import {
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 
 describe("Decor Store U2 registration", () => {
-  test("advertises exactly one source-parity home template", () => {
+  test("admits the existing platform page types through Decor-owned sections", () => {
     expect(decorStoreManifest.id).toBe("decor-store");
     expect(decorStoreThemeDescriptor).toMatchObject({
       id: "decor-store",
       presets: ["source-parity"],
-      supportedPageTemplates: ["home"],
+      supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "content"],
     });
     expect(
       decorStorePreset.templates.map(({ pageType, sections }) => ({
         pageType,
         sectionType: sections[0]?.type,
       })),
-    ).toEqual([{ pageType: "home", sectionType: "decor-store.home" }]);
+    ).toEqual(
+      ["home", "collection", "product", "cart", "checkout", "content"].map((pageType) => ({
+        pageType,
+        sectionType: `decor-store.${pageType}`,
+      })),
+    );
+    expect(Object.keys(decorStoreRegistry.sections).sort()).toEqual(
+      ["home", "collection", "product", "cart", "checkout", "content"]
+        .map((pageType) => `decor-store.${pageType}`)
+        .sort(),
+    );
+    expect(
+      Object.values(decorStoreFixtures)
+        .map(({ pageTypes }) => pageTypes[0])
+        .sort(),
+    ).toEqual(["home", "collection", "product", "cart", "checkout", "content"].sort());
   });
 
   test("prepares a home-only fixture and one isolated static registry import", async () => {
@@ -42,6 +63,7 @@ describe("Decor Store U2 registration", () => {
       }),
     ]);
     expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual(["home"]);
+    expect(decorStoreRoutes).toEqual(decorStoreEnabledPageContracts);
     expect(source).toContain('from "../themes/decor-store/registry"');
     expect(source).not.toContain("themes/fashion-store/registry");
     expect(source).not.toContain("themes/fashion/registry");
@@ -74,9 +96,14 @@ describe("Decor Store U2 registration", () => {
   });
 
   test("registers dedicated commands and leaves preview prerendering selected-theme driven", async () => {
-    const [packageJson, nuxtConfig] = await Promise.all([
+    const [homeSource, packageJson, nuxtConfig, playwrightConfig] = await Promise.all([
+      readFile(
+        resolve(import.meta.dir, "../app/themes/decor-store/components/DecorStoreHome.vue"),
+        "utf8",
+      ),
       readFile(resolve(import.meta.dir, "../package.json"), "utf8"),
       readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8"),
+      readFile(resolve(import.meta.dir, "../playwright.decor-store.config.ts"), "utf8"),
     ]);
     const scripts = JSON.parse(packageJson).scripts as Record<string, string>;
 
@@ -84,7 +111,10 @@ describe("Decor Store U2 registration", () => {
     expect(scripts["dev:decor-store"]).toContain("decor-store");
     expect(scripts["test:decor-store"]).toContain("decor-store-registration.test.ts");
     expect(nuxtConfig).toContain('"/decor-store-preview-input.json"');
-    expect(nuxtConfig).toContain('? ["/"]');
+    expect(nuxtConfig).toContain("decorStorePreviewRoutes");
+    expect(playwrightConfig).toContain("decor-store-shell.spec.ts");
+    expect(homeSource).not.toContain("DecorStoreShell");
+    expect(homeSource).not.toContain("components/shared");
   });
 
   test("allows only hash-pinned Decor runtime and rejects cross-theme or main.js leakage", () => {

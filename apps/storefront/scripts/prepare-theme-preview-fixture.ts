@@ -5,6 +5,7 @@ import { fixtureBindingSchema } from "@shoppp/contracts";
 import * as z from "zod";
 
 import { decorStoreManifest } from "../app/themes/decor-store/manifest";
+import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import { decorStoreRuntimeSourceOrder } from "../app/themes/decor-store/resources";
 import { fashionStoreManifest } from "../app/themes/fashion-store/manifest";
@@ -67,6 +68,7 @@ export async function decorStorePreviewBuildInput(
       await readFile(resolve(import.meta.dir, "../fixtures/experience/decor-store.json"), "utf8"),
     ),
   );
+  const enabledPageTypes = new Set(decorStoreEnabledPageContracts.map(({ pageType }) => pageType));
   return {
     environment: "preview",
     expectedOrigin,
@@ -81,7 +83,9 @@ export async function decorStorePreviewBuildInput(
       overrides: [],
       platformContractVersion: decorStoreManifest.platformContractVersion,
       provenance: decorStoreManifest.provenance,
-      resolvedTemplates: decorStorePreset.templates,
+      resolvedTemplates: decorStorePreset.templates.filter(({ pageType }) =>
+        enabledPageTypes.has(pageType),
+      ),
       themeId: decorStoreManifest.id,
       themeVersion: decorStoreManifest.themeVersion,
       version: fixture.version,

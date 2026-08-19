@@ -1,6 +1,7 @@
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
 import { fashionStorePreviewRoutes } from "./app/themes/fashion-store/page-contracts";
+import { decorStorePreviewRoutes } from "./app/themes/decor-store/page-contracts";
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
 const fashionStoreFontImports = [
@@ -24,7 +25,7 @@ const previewPlatformRoutes = ["/checkout/complete"] as const;
 const selectedPreviewRoutes = process.env.STOREFRONT_EXPERIENCE_FILE?.includes(
   "/decor-store-preview-input.json",
 )
-  ? ["/"]
+  ? decorStorePreviewRoutes
   : fashionStorePreviewRoutes;
 const prerenderRoutes = previewBuild
   ? [...selectedPreviewRoutes, ...previewPlatformRoutes]

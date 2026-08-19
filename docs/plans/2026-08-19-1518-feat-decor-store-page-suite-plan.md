@@ -9,7 +9,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 product_authority: 2026-08-13-001-refactor-shoppp-product-master-plan.md
 inherited_baseline: 2026-08-10-001-feat-decor-store-source-parity-plan.md
-current_unit: U2.1
+current_unit: U3.1
 deepened: 2026-08-19
 ---
 
@@ -175,17 +175,17 @@ This plan is the sole authority for the remaining-page queue. Decimal child stag
 | Unit | Status | Current child stage or dependency |
 | --- | --- | --- |
 | U1 | Complete | Fourteen source/route/fixture identities, source digests, region/control inventories, behavior ownership, placeholder adaptations, and initially-unready gates are verified through the existing shared intake and policy seams |
-| U2 | In progress | `U2.1` — build the Decor-local secondary shell and internal page-type registration while keeping every unfinished route non-public |
-| U3 | Pending | Depends on U1-U2 |
+| U2 | Complete | Decor-local secondary shell, five non-home page-type registry/fixture seams, readiness-derived preview discovery, home isolation, and unready-route 404 evidence are complete |
+| U3 | In progress | `U3.1` — implement the three Shop layouts and Collections from deterministic Decor fixtures, then enable their four contracts together with focused evidence |
 | U4 | Pending | Depends on U1-U3 product-card and local-navigation patterns |
 | U5 | Pending | Depends on U1-U4 presentation-state patterns |
 | U6 | Pending | Depends on U1-U2; may follow U3-U5 to keep one implementation queue |
 | U7 | Pending | Depends on U1-U6 |
 
-- **Current parent unit:** U2.
-- **Current child stage:** U2.1.
+- **Current parent unit:** U3.
+- **Current child stage:** U3.1.
 - **Blocker:** None. Missing remote placeholder content is a bounded local-asset adaptation under R5/KTD8, not a blocker.
-- **Next concrete action:** Build the Decor-local secondary shell from the repeated non-home source surfaces, add internal page-type fixtures and registry seams, derive preview/test discovery from ready page contracts, and prove the accepted home output/runtime remains unchanged while all unfinished secondary routes stay non-public.
+- **Next concrete action:** Reproduce `/shop`, `/shop/no-sidebar`, `/shop/right-sidebar`, and `/collections` with Decor-owned fixtures and shared product-card/filter primitives; verify left/none/right layouts, local sort/filter/pagination states, responsive composition, and source-backed Collections; then mark only those four contracts ready.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7.
 
 ---
