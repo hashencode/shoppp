@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { pendingFashionMigrationNames } from "./capture-fashion-staging-readiness";
+import {
+  pendingFashionMigrationNames,
+  stripeIdentityAndSandboxMode,
+} from "./capture-fashion-staging-readiness";
 
 describe("Fashion readiness evidence capture", () => {
   test("extracts only exact pending migration names from nested Wrangler output", () => {
@@ -14,5 +17,18 @@ describe("Fashion readiness evidence capture", () => {
         ],
       }),
     ).toEqual(["0019_pending.sql", "0020_pending.sql"]);
+  });
+
+  test("uses the Stripe account identity and the balance sandbox marker", () => {
+    expect(stripeIdentityAndSandboxMode({ id: "acct_fashion" }, { livemode: false })).toEqual({
+      accountId: "acct_fashion",
+      livemode: false,
+    });
+    expect(() => stripeIdentityAndSandboxMode({ id: "acct_fashion" }, {})).toThrow(
+      "Stripe balance must explicitly report sandbox mode",
+    );
+    expect(() => stripeIdentityAndSandboxMode({ id: "acct_fashion" }, { livemode: true })).toThrow(
+      "Stripe balance must explicitly report sandbox mode",
+    );
   });
 });

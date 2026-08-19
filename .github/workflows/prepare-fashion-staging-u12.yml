@@ -77,10 +77,12 @@ jobs:
         run: |
           curl --fail --silent --show-error --user "$STRIPE_SECRET_KEY:" \
             https://api.stripe.com/v1/account > artifacts/fashion-u12/stripe-account.json
+          curl --fail --silent --show-error --user "$STRIPE_SECRET_KEY:" \
+            https://api.stripe.com/v1/balance > artifacts/fashion-u12/stripe-balance.json
           curl --fail --silent --show-error --get --user "$STRIPE_SECRET_KEY:" \
             --data-urlencode limit=100 https://api.stripe.com/v1/webhook_endpoints \
             > artifacts/fashion-u12/stripe-webhooks.json
-          jq --exit-status '.livemode == false' artifacts/fashion-u12/stripe-account.json >/dev/null
+          jq --exit-status '.livemode == false' artifacts/fashion-u12/stripe-balance.json >/dev/null
           jq --exit-status --arg url "$API_ORIGIN/webhooks/stripe" '
             any(.data[];
               .url == $url and .status == "enabled" and
