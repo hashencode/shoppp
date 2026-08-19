@@ -228,7 +228,7 @@ jobs:
           curl --fail --silent --show-error --request POST --header "$AUTHORIZATION" \
             --header "Content-Type: application/json" \
             --header "Idempotency-Key: fashion-u12-build-$GITHUB_SHA" \
-            --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" '{catalogReleaseId:$catalog}')" \
+            --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" '{catalogReleaseId:$catalog,manualDispatch:true}')" \
             "$API_ORIGIN/admin/storefront-experiences/snapshots/$SNAPSHOT_ID/build" \
             > artifacts/fashion-u12/build.json
           jq --exit-status '.data.status == "building"' artifacts/fashion-u12/build.json >/dev/null

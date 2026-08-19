@@ -717,6 +717,7 @@ export const approveStorefrontExperienceDraftRequestSchema =
 export const createStorefrontExperienceBuildRequestSchema = z
   .object({
     catalogReleaseId: z.string().trim().min(1).max(160),
+    manualDispatch: z.literal(true).optional(),
   })
   .strict();
 

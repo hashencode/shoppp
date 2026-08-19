@@ -1396,6 +1396,72 @@ describe("storefront experience API", () => {
     expect(rejected.status).toBe(409);
   });
 
+  test("defers external build dispatch only for the exact Fashion staging namespace", async () => {
+    const catalogReleaseId = "fashion-manual-build-release";
+    await seedPreviewCatalogRelease(catalogReleaseId);
+    const app = appFor();
+    const created = await createDraft(
+      app,
+      "fashion-manual-build-create-0001",
+      catalogReadyDraftInput,
+    );
+    await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "fashion-manual-build-validate-0001",
+      catalogReleaseId,
+    );
+    const approvedResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/approve`,
+        {
+          catalogReleaseId,
+          confirm: true,
+          expectedVersion: 1,
+          reason: "Freeze one manually dispatched Fashion build input",
+        },
+        "fashion-manual-build-approve-0001",
+      ),
+      env,
+    );
+    const approved = await approvedResponse.json<{ data: { id: string } }>();
+
+    const rejected = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${approved.data.id}/build`,
+        { catalogReleaseId, manualDispatch: true },
+        "fashion-manual-build-rejected-0001",
+      ),
+      env,
+    );
+    expect(rejected.status).toBe(403);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_preview_builds WHERE snapshot_id = ?",
+      )
+        .bind(approved.data.id)
+        .first(),
+    ).toEqual({ count: 0 });
+
+    const started = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${approved.data.id}/build`,
+        { catalogReleaseId, manualDispatch: true },
+        "fashion-manual-build-started-0001",
+      ),
+      { ...env, RESOURCE_NAMESPACE: "shoppp-fashion-staging" },
+    );
+    expect(started.status).toBe(202);
+    expect(await started.json()).toMatchObject({
+      data: {
+        correlationId: expect.stringContaining("manual-fashion-preparation-"),
+        snapshotId: approved.data.id,
+        status: "building",
+      },
+    });
+  });
+
   test("requires theme approval permission independently from draft write permission", async () => {
     await env.DB.batch([
       env.DB.prepare(

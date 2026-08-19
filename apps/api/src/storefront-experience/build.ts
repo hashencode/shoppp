@@ -229,6 +229,27 @@ export function defaultExperienceBuildTrigger(
   };
 }
 
+export function assertManualFashionPreparationNamespace(
+  environment: ApiEnvironment["Bindings"],
+): void {
+  if (environment.RESOURCE_NAMESPACE !== "shoppp-fashion-staging") {
+    throw new ApiError(
+      403,
+      "storefront_preview_manual_dispatch_forbidden",
+      "Manual preview dispatch preparation is restricted to the isolated Fashion staging namespace.",
+    );
+  }
+}
+
+export function manualFashionPreparationBuildTrigger(
+  environment: ApiEnvironment["Bindings"],
+): ExperienceBuildTrigger {
+  return async (input) => {
+    assertManualFashionPreparationNamespace(environment);
+    return { correlationId: `manual-fashion-preparation-${input.requestId}` };
+  };
+}
+
 export async function getStorefrontExperienceBuildManifest(
   context: Context<ApiEnvironment>,
   snapshotId: string,

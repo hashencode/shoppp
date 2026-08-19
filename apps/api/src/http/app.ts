@@ -140,11 +140,13 @@ import {
   type BuildTrigger,
 } from "../publishing/releases";
 import {
+  assertManualFashionPreparationNamespace,
   defaultExperienceBuildTrigger,
   getStorefrontExperienceBuild,
   getStorefrontExperienceBuildManifest,
   getStorefrontExperienceBuildManifestByBuild,
   getLatestDeployedStorefrontExperiencePreview,
+  manualFashionPreparationBuildTrigger,
   recordStorefrontExperienceBuildResult,
   triggerStorefrontExperienceBuild,
   type ExperienceBuildTrigger,
@@ -1323,6 +1325,7 @@ export function createApp(options: CreateAppOptions = {}) {
         id: input.catalogReleaseId,
         type: "catalog_release",
       });
+      if (input.manualDispatch) assertManualFashionPreparationNamespace(context.env);
       const snapshot = await getStorefrontExperienceSnapshot(
         context.env.DB,
         context.req.param("id"),
@@ -1339,7 +1342,9 @@ export function createApp(options: CreateAppOptions = {}) {
           data: await triggerStorefrontExperienceBuild(
             context,
             snapshot.id,
-            options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env),
+            input.manualDispatch
+              ? manualFashionPreparationBuildTrigger(context.env)
+              : (options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env)),
             input.catalogReleaseId,
           ),
           meta: { requestId: context.get("requestId") },

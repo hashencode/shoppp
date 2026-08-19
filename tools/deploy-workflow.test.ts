@@ -490,6 +490,7 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(immutable).toBeGreaterThan(seed);
     expect(readiness).toBeGreaterThan(immutable);
     expect(workflow).toContain("/snapshots/$SNAPSHOT_ID/build");
+    expect(workflow).toContain("manualDispatch:true");
     expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
   });
 });
