@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const workflowPath = resolve(import.meta.dir, "../.github/workflows/deploy.yml");
+const ciWorkflowPath = resolve(import.meta.dir, "../.github/workflows/ci.yml");
 const previewWorkflowPath = resolve(import.meta.dir, "../.github/workflows/preview-storefront.yml");
 const fashionPreparationWorkflowPath = resolve(
   import.meta.dir,
@@ -33,6 +34,15 @@ const promotionRunbookPath = resolve(
   import.meta.dir,
   "../docs/runbooks/storefront-theme-promotion.md",
 );
+
+describe("continuous integration workflow", () => {
+  test("allows the complete release gate to finish without weakening it", async () => {
+    const workflow = await readFile(ciWorkflowPath, "utf8");
+
+    expect(workflow).toContain("timeout-minutes: 45");
+    expect(workflow).toContain('bun run release:validate -- --release-id "ci-${GITHUB_SHA}"');
+  });
+});
 
 describe("production promotion workflow", () => {
   test("does not forward Playwright worker flags into the Fashion Store evidence verifier", async () => {
