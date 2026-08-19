@@ -72,6 +72,16 @@ export function pendingFashionMigrationNames(value: unknown): string[] {
   ].sort();
 }
 
+export function stripeIdentityAndSandboxMode(
+  account: JsonObject,
+  balance: JsonObject,
+): { accountId: string; livemode: false } {
+  if (balance.livemode !== false) {
+    throw new Error("Stripe balance must explicitly report sandbox mode");
+  }
+  return { accountId: String(account.id ?? ""), livemode: false };
+}
+
 function resultRows(value: unknown): JsonObject[] {
   return objects(value)
     .filter((entry) => Array.isArray(entry.results))
@@ -164,6 +174,7 @@ if (import.meta.main) {
     seedVerificationRaw,
     snapshotEnvelope,
     stripeAccount,
+    stripeBalance,
     stripeWebhooks,
   ] = await Promise.all([
     cloudflare(`/workers/scripts/${API_WORKER}/settings`),
@@ -184,6 +195,7 @@ if (import.meta.main) {
     jsonFile<unknown>(resolve(inputDirectory, "seed-verification.json")),
     jsonFile<{ data: JsonObject }>(resolve(inputDirectory, "snapshot.json")),
     jsonFile<JsonObject>(resolve(inputDirectory, "stripe-account.json")),
+    jsonFile<JsonObject>(resolve(inputDirectory, "stripe-balance.json")),
     jsonFile<JsonObject>(resolve(inputDirectory, "stripe-webhooks.json")),
   ]);
   const workerApi = bindingProfile(apiSettings);
@@ -197,6 +209,7 @@ if (import.meta.main) {
   const webhookUrl = "https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe";
   const webhook = stripeEndpoints.find(({ url }) => url === webhookUrl);
   if (!webhook) throw new Error("The exact Fashion Stripe webhook was not returned");
+  const stripeIdentity = stripeIdentityAndSandboxMode(stripeAccount, stripeBalance);
   const build = buildEnvelope.data;
   const immutableSnapshot = snapshotEnvelope.data;
   const productsById = new Map(catalogRelease.products.map((product) => [product.id, product]));
@@ -261,11 +274,11 @@ if (import.meta.main) {
     providers: {
       emailMode: protectedVariables.FASHION_U12_EMAIL_MODE ?? "",
       stripe: {
-        accountId: String(stripeAccount.id),
+        accountId: stripeIdentity.accountId,
         enabledEvents: Array.isArray(webhook.enabled_events)
           ? webhook.enabled_events.map(String)
           : [],
-        livemode: stripeAccount.livemode === true,
+        livemode: stripeIdentity.livemode,
         webhookEnabled: webhook.status === "enabled",
         webhookUrl: String(webhook.url),
       },

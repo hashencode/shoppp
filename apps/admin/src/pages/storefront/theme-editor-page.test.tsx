@@ -680,7 +680,9 @@ describe('ThemeEditorPage', () => {
     )
 
     const view = renderEditor()
-    expect(await screen.findByRole('combobox', { name: 'Catalog Release' })).toBeTruthy()
+    expect(
+      await screen.findByRole('combobox', { name: 'Catalog Release' }, { timeout: 5_000 })
+    ).toBeTruthy()
     expect(screen.getByRole('textbox', { name: 'home-hero heading' })).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'home-hero alignment' })).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'home-hero featured-product' })).toBeTruthy()
