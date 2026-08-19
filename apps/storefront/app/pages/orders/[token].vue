@@ -35,7 +35,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main id="fashion-store-main" class="commerce-shell order-page" aria-live="polite">
+  <main id="storefront-order-main" class="commerce-shell order-page" aria-live="polite">
     <p class="eyebrow">Secure guest order</p>
     <h1 v-if="access">{{ orderAccessMessage(access) }}</h1>
     <h1 v-else>Loading order</h1>

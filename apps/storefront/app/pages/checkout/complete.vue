@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main id="fashion-store-main" class="commerce-shell status-page">
+  <main id="storefront-checkout-status-main" class="commerce-shell status-page">
     <p class="eyebrow">Provider-verified status</p>
     <section role="status" aria-live="polite" aria-atomic="true">
       <h1 ref="heading" tabindex="-1">{{ message }}</h1>

@@ -29,7 +29,7 @@ useHead({ link: [{ rel: "canonical", href: canonical }] });
 </script>
 
 <template>
-  <article id="fashion-store-main" class="section">
+  <article id="storefront-policy-main" class="section">
     <p class="eyebrow">Customer information</p>
     <h1>{{ policy.title }}</h1>
     <aside v-if="presentation" data-policy-presentation>

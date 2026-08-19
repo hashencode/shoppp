@@ -241,15 +241,19 @@ describe("static generation manifest", () => {
     expect(registry).toContain("export const themeRoutes = fashionStoreThemeRoutes");
   });
 
-  test("binds live policy routes and rendering to the selected Catalog Release", async () => {
-    const policyPage = await readFile(
-      resolve(import.meta.dir, "../app/pages/policies/[slug].vue"),
-      "utf8",
-    );
+  test("keeps platform routes theme-neutral and binds live policy rendering to the selected Catalog Release", async () => {
+    const [checkoutCompletePage, orderPage, policyPage] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/pages/checkout/complete.vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/pages/orders/[token].vue"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/pages/policies/[slug].vue"), "utf8"),
+    ]);
     expect(policyPage).toContain("activeExperienceProviderInput");
     expect(policyPage).toContain('activeExperienceProviderInput.mode === "live"');
     expect(policyPage).toContain("activeExperienceProviderInput.release");
     expect(policyPage).not.toContain("catalogRelease.policies.find");
+    for (const platformPage of [checkoutCompletePage, orderPage, policyPage]) {
+      expect(platformPage).not.toContain('id="fashion-store-main"');
+    }
   });
 
   test("rejects malformed selected-release policy output during static verification", () => {
