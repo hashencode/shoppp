@@ -154,8 +154,7 @@ describe("environment isolation", () => {
         },
       },
       paymentTargets: {
-        webhookUrl:
-          "https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe",
+        webhookUrl: "https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe",
       },
       serviceBindings: {
         COMMERCE_API: { service: "shoppp-api-fashion-staging" },

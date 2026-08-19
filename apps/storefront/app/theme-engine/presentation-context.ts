@@ -1,9 +1,6 @@
 import type { ComputedRef, InjectionKey } from "vue";
 
-import type {
-  PlatformRoutePresentationViewModel,
-  PresentationShellViewModel,
-} from "./view-models";
+import type { PlatformRoutePresentationViewModel, PresentationShellViewModel } from "./view-models";
 
 export const storefrontPresentationShellKey: InjectionKey<
   ComputedRef<PresentationShellViewModel | undefined>

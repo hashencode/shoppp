@@ -6,9 +6,7 @@ const defersHomeHydration =
   import.meta.client &&
   location.pathname === "/" &&
   matchMedia("(prefers-reduced-motion: reduce)").matches;
-const earlyStorefrontInteraction = defersHomeHydration
-  ? captureStorefrontInteraction()
-  : undefined;
+const earlyStorefrontInteraction = defersHomeHydration ? captureStorefrontInteraction() : undefined;
 
 const hydrateStorefrontExperience: HydrationStrategy = (hydrate, forEachElement) => {
   if (!defersHomeHydration) {

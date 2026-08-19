@@ -45,10 +45,13 @@ function configuredLogo(): string | undefined {
             ><img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
-              v-bind:src="configuredLogo() ?? densityAsset(
+              v-bind:src="
+                configuredLogo() ??
+                densityAsset(
                   'images/demo-fashion-store-logo-white.png',
                   'images/demo-fashion-store-logo-white@2x.png',
-                )"
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-white@2x.png')"
           /></a>
         </div>
@@ -108,14 +111,22 @@ function configuredLogo(): string | undefined {
             :href="configuration.legalLink.href"
             data-fashion-store-route
             class="text-white me-15px"
-          >{{ configuration.legalLink.label }}</a>
+            >{{ configuration.legalLink.label }}</a
+          >
           <a
             v-if="configuration.socialLink"
             :href="configuration.socialLink.href"
-            :target="configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined"
-            :rel="configuration.socialLink.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
+            :target="
+              configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined
+            "
+            :rel="
+              configuration.socialLink.targetBehavior === 'new-window'
+                ? 'noopener noreferrer'
+                : undefined
+            "
             class="text-white"
-          >{{ configuration.socialLink.label }}</a>
+            >{{ configuration.socialLink.label }}</a
+          >
         </div>
       </div>
       <div class="row justify-content-center fs-15 lh-28 pb-50px xs-pb-35px">

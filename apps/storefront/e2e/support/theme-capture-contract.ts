@@ -111,10 +111,7 @@ export function resolveThemeComparison(
   if (referenceThemeId === "decor" && implementationThemeId === "decor") {
     return decorComparisonDescriptor;
   }
-  if (
-    referenceThemeId === "fashion-store-source" &&
-    implementationThemeId === "fashion-store"
-  ) {
+  if (referenceThemeId === "fashion-store-source" && implementationThemeId === "fashion-store") {
     return fashionStoreComparisonDescriptor;
   }
   throw new Error(`Unsupported theme comparison: ${referenceThemeId} -> ${implementationThemeId}.`);

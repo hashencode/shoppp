@@ -364,10 +364,7 @@ function sha256(contents: Uint8Array): string {
 }
 
 function upstreamMarkdown(source: StorefrontThemeSource): string {
-  const title =
-    source.themeId === "fashion-store"
-      ? "Fashion Store"
-      : "Decor";
+  const title = source.themeId === "fashion-store" ? "Fashion Store" : "Decor";
   if (source.themeId === "fashion-store") {
     return `# ${title} Theme Source Provenance
 

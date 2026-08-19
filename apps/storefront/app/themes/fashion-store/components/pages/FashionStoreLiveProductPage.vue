@@ -215,11 +215,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <FashionStoreShell
-    body-class=""
-    :resolve-asset="resolveAsset"
-    :show-sticky-socials="false"
-  >
+  <FashionStoreShell body-class="" :resolve-asset="resolveAsset" :show-sticky-socials="false">
     <main
       id="fashion-store-main"
       data-fashion-store-live-product
@@ -266,7 +262,8 @@ onMounted(() => {
                 :href="viewModel.relatedCollection.href"
                 data-fashion-store-route
                 class="d-inline-block text-decoration-line-bottom mt-10px"
-              >Explore {{ viewModel.relatedCollection.name }}</a>
+                >Explore {{ viewModel.relatedCollection.name }}</a
+              >
 
               <fieldset
                 v-for="group in displayedOptionGroups"

@@ -330,9 +330,9 @@ function referenceLink(
   if (!parsed.success) return undefined;
   const href = adapter?.referenceHref(release, parsed.data);
   if (!href || !adapter) return undefined;
-  const destination = adapter.destinations(release).find(
-    ({ id, kind }) => id === parsed.data.id && kind === parsed.data.kind,
-  );
+  const destination = adapter
+    .destinations(release)
+    .find(({ id, kind }) => id === parsed.data.id && kind === parsed.data.kind);
   return {
     href,
     label: destination?.name ?? parsed.data.id,
@@ -381,8 +381,7 @@ function editorMedia(
   }
   const mediaOrigin =
     resolvedCatalogOrigin === undefined ? catalogMediaOrigin(release) : resolvedCatalogOrigin;
-  const src =
-    mediaOrigin ? `${mediaOrigin}/${parsed.data.key}` : `/media/${parsed.data.key}`;
+  const src = mediaOrigin ? `${mediaOrigin}/${parsed.data.key}` : `/media/${parsed.data.key}`;
   return {
     alt: parsed.data.alt,
     height: parsed.data.height,
@@ -467,9 +466,7 @@ function homeViewModel(
     featuredProduct: featuredProductCard,
     kind: "home",
     merchandisingOrder:
-      typeof settings["merchandising-order"] === "number"
-        ? settings["merchandising-order"]
-        : 1,
+      typeof settings["merchandising-order"] === "number" ? settings["merchandising-order"] : 1,
     merchandisingTitle: requiredTextSetting(settings, "merchandising-title", "Best sellers"),
     merchandisingVisible: settings["merchandising-visible"] !== false,
     products,
@@ -544,9 +541,7 @@ export function composeExperienceShell(input: {
   if (!experience.success || !release.success || !input.adapter?.home) return undefined;
   const home = experience.data.resolvedTemplates
     .find(({ pageType }) => pageType === "home")
-    ?.sections.find(
-      ({ type, visible }) => visible && type === input.adapter?.home?.sectionType,
-    );
+    ?.sections.find(({ type, visible }) => visible && type === input.adapter?.home?.sectionType);
   return home ? shellViewModel(input.adapter, release.data, home.settings) : undefined;
 }
 
@@ -566,11 +561,7 @@ export function composePlatformRoutePresentation(input: {
   const path = normalizeThemeRoutePath(input.path);
   if (path.startsWith("/orders/")) {
     return platformRoutePresentationViewModelSchema.parse({
-      helpCopy: requiredTextSetting(
-        settings,
-        "order.help-copy",
-        "Questions about this order?",
-      ),
+      helpCopy: requiredTextSetting(settings, "order.help-copy", "Questions about this order?"),
       kind: "order-presentation",
       policyLink: editorLink(input.adapter, release.data, settings["order.policy-link"]),
     });
@@ -578,11 +569,7 @@ export function composePlatformRoutePresentation(input: {
   if (path.startsWith("/policies/")) {
     return platformRoutePresentationViewModelSchema.parse({
       documentLink: referenceLink(input.adapter, release.data, settings["policy.document"]),
-      helpCopy: requiredTextSetting(
-        settings,
-        "policy.help-copy",
-        "Questions about this policy?",
-      ),
+      helpCopy: requiredTextSetting(settings, "policy.help-copy", "Questions about this policy?"),
       kind: "policy-presentation",
       relatedLink: editorLink(input.adapter, release.data, settings["policy.related-link"]),
     });
@@ -648,7 +635,11 @@ function contentViewModel(
     configuredMessage.trim().length > 0;
   const unavailable = unavailableContent[key as keyof typeof unavailableContent];
   const linkKey =
-    key === "order" ? "order.policy-link" : key === "policy" ? "policy.related-link" : `${key}.link`;
+    key === "order"
+      ? "order.policy-link"
+      : key === "policy"
+        ? "policy.related-link"
+        : `${key}.link`;
   const configuredLink = editorLink(adapter, release, settings[linkKey]);
   const relatedReference =
     key === "magazine"
@@ -778,7 +769,8 @@ export function composeExperienceRoute(
       template.pageType === "product" ? binding : bindingForResolvedRoute(binding, input.route),
     );
     const duplicateSetting = matches.find(
-      (binding, index) => matches.findIndex(({ settingId }) => settingId === binding.settingId) !== index,
+      (binding, index) =>
+        matches.findIndex(({ settingId }) => settingId === binding.settingId) !== index,
     );
     if (duplicateSetting) {
       diagnostics.push({
@@ -816,12 +808,11 @@ export function composeExperienceRoute(
       template.pageType === "product" || (template.pageType === "home" && !requiresHomeCollection)
         ? "product"
         : "collection";
-    const primarySetting =
-      requiresHomeCollection
-        ? homeContract.featuredCollectionSettingId
-        : template.pageType === "collection"
-          ? "default-collection"
-          : undefined;
+    const primarySetting = requiresHomeCollection
+      ? homeContract.featuredCollectionSettingId
+      : template.pageType === "collection"
+        ? "default-collection"
+        : undefined;
     const routeProductId =
       template.pageType === "product" ? input.route.parameters?.productId : undefined;
     const binding =
@@ -903,25 +894,24 @@ export function composeExperienceRoute(
       const featuredProduct = featuredProductBinding
         ? productsById.get(featuredProductBinding.reference.id)
         : undefined;
-      viewModels[instance.id] =
-        requiresHomeCollection
-          ? homeViewModel(
-              input.adapter!,
-              release,
-              collection,
-              productsById,
-              release.site.defaultCurrency,
-              input.locale,
-              instance.settings,
-              featuredProduct,
-            )
-          : collectionViewModel(
-              collection,
-              productsById,
-              release.site.defaultCurrency,
-              input.locale,
-              instance.settings,
-            );
+      viewModels[instance.id] = requiresHomeCollection
+        ? homeViewModel(
+            input.adapter!,
+            release,
+            collection,
+            productsById,
+            release.site.defaultCurrency,
+            input.locale,
+            instance.settings,
+            featuredProduct,
+          )
+        : collectionViewModel(
+            collection,
+            productsById,
+            release.site.defaultCurrency,
+            input.locale,
+            instance.settings,
+          );
     }
   }
   return {

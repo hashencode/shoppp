@@ -406,7 +406,8 @@ onBeforeUnmount(() => {
                   :href="viewModel.policyLink.href"
                   data-fashion-store-route
                   class="ms-5px text-decoration-line-bottom"
-                >{{ viewModel.policyLink.label }}</a>
+                  >{{ viewModel.policyLink.label }}</a
+                >
               </p>
             </div>
             <nav

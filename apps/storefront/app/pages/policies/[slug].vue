@@ -38,29 +38,27 @@ useHead({ link: [{ rel: "canonical", href: canonical }] });
         <a
           v-if="presentation.documentLink"
           :href="presentation.documentLink.href"
-          :target="
-            presentation.documentLink.targetBehavior === 'new-window' ? '_blank' : undefined
-          "
+          :target="presentation.documentLink.targetBehavior === 'new-window' ? '_blank' : undefined"
           :rel="
             presentation.documentLink.targetBehavior === 'new-window'
               ? 'noopener noreferrer'
               : undefined
           "
           data-policy-presentation-document-link
-        >{{ presentation.documentLink.label }}</a>
+          >{{ presentation.documentLink.label }}</a
+        >
         <a
           v-if="presentation.relatedLink"
           :href="presentation.relatedLink.href"
-          :target="
-            presentation.relatedLink.targetBehavior === 'new-window' ? '_blank' : undefined
-          "
+          :target="presentation.relatedLink.targetBehavior === 'new-window' ? '_blank' : undefined"
           :rel="
             presentation.relatedLink.targetBehavior === 'new-window'
               ? 'noopener noreferrer'
               : undefined
           "
           data-policy-presentation-related-link
-        >{{ presentation.relatedLink.label }}</a>
+          >{{ presentation.relatedLink.label }}</a
+        >
       </nav>
     </aside>
     <div class="prose">

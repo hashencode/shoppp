@@ -24,10 +24,7 @@ import { resolveThemeRoute } from "./theme-engine/routes";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 import { useGuestCart } from "./features/cart/use-guest-cart";
 import { checkoutReturnCartRefreshKey, storeOrderAccess } from "./features/checkout/session";
-import {
-  storefrontActionAdapterKey,
-  type StorefrontActionAdapter,
-} from "./theme-engine/actions";
+import { storefrontActionAdapterKey, type StorefrontActionAdapter } from "./theme-engine/actions";
 import {
   storefrontCheckoutAdapterKey,
   type StorefrontCheckoutAdapter,
@@ -41,10 +38,7 @@ import {
 } from "./theme-engine/runtime-commerce";
 import { canonicalUrl, productStructuredData } from "./utils/seo";
 import { catalogSearchIndexKey } from "./theme-engine/search";
-import {
-  composeExperienceShell,
-  composePlatformRoutePresentation,
-} from "./theme-engine/composer";
+import { composeExperienceShell, composePlatformRoutePresentation } from "./theme-engine/composer";
 import {
   storefrontPlatformPresentationKey,
   storefrontPresentationShellKey,
@@ -342,7 +336,9 @@ if (import.meta.client) {
     >
       <NuxtPage />
     </component>
-    <NuxtLayout v-else-if="activeExperienceSnapshot && rendersPlatformRoute"><NuxtPage /></NuxtLayout>
+    <NuxtLayout v-else-if="activeExperienceSnapshot && rendersPlatformRoute"
+      ><NuxtPage
+    /></NuxtLayout>
     <main v-else-if="activeExperienceSnapshot">
       <h1>Preview template unavailable</h1>
       <p>The selected theme does not declare this presentation surface.</p>

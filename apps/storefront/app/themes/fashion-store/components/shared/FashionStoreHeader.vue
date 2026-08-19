@@ -125,10 +125,16 @@ defineExpose({ closeTransient });
               v-if="announcementLink || !configuration"
               :href="announcementLink?.href ?? fashionStoreRoutePaths['shop-left']"
               :target="announcementLink?.targetBehavior === 'new-window' ? '_blank' : undefined"
-              :rel="announcementLink?.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
+              :rel="
+                announcementLink?.targetBehavior === 'new-window'
+                  ? 'noopener noreferrer'
+                  : undefined
+              "
               data-fashion-store-route
               class="text-dark-gray fw-600 ms-5px text-dark-gray-hover"
-              ><span class="text-decoration-line-bottom">{{ announcementLink?.label ?? "Shop now" }}</span></a
+              ><span class="text-decoration-line-bottom">{{
+                announcementLink?.label ?? "Shop now"
+              }}</span></a
             >
           </div>
         </div>
@@ -143,17 +149,28 @@ defineExpose({ closeTransient });
               <span>{{ configuration.contactCopy }}</span>
             </div>
             <div v-if="configuration?.highlightLink" class="widget-text icon alt-font">
-              <a :href="configuration.highlightLink.href" data-fashion-store-route>{{ configuration.highlightLink.label }}</a>
+              <a :href="configuration.highlightLink.href" data-fashion-store-route>{{
+                configuration.highlightLink.label
+              }}</a>
             </div>
             <div v-if="configuration?.legalLink" class="widget-text icon alt-font">
-              <a :href="configuration.legalLink.href" data-fashion-store-route>{{ configuration.legalLink.label }}</a>
+              <a :href="configuration.legalLink.href" data-fashion-store-route>{{
+                configuration.legalLink.label
+              }}</a>
             </div>
             <div v-if="configuration?.socialLink" class="widget-text icon alt-font">
               <a
                 :href="configuration.socialLink.href"
-                :target="configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined"
-                :rel="configuration.socialLink.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
-              >{{ configuration.socialLink.label }}</a>
+                :target="
+                  configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined
+                "
+                :rel="
+                  configuration.socialLink.targetBehavior === 'new-window'
+                    ? 'noopener noreferrer'
+                    : undefined
+                "
+                >{{ configuration.socialLink.label }}</a
+              >
             </div>
             <div class="widget-text icon alt-font">
               <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
@@ -172,28 +189,37 @@ defineExpose({ closeTransient });
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
-              v-bind:src="configuredLogo() ?? densityAsset(
+              v-bind:src="
+                configuredLogo() ??
+                densityAsset(
                   'images/demo-fashion-store-logo-black.png',
                   'images/demo-fashion-store-logo-black@2x.png',
-                )"
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="alt-logo"
-              v-bind:src="configuredLogo() ?? densityAsset(
+              v-bind:src="
+                configuredLogo() ??
+                densityAsset(
                   'images/demo-fashion-store-logo-black.png',
                   'images/demo-fashion-store-logo-black@2x.png',
-                )"
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="mobile-logo"
-              v-bind:src="configuredLogo() ?? densityAsset(
+              v-bind:src="
+                configuredLogo() ??
+                densityAsset(
                   'images/demo-fashion-store-logo-black.png',
                   'images/demo-fashion-store-logo-black@2x.png',
-                )"
+                )
+              "
               v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
             />
           </a>

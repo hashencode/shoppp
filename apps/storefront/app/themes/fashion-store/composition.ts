@@ -1,8 +1,5 @@
 import type { ThemeCompositionAdapter } from "../../theme-engine/composition";
-import {
-  fashionStoreEditorDestinations,
-  fashionStoreReferenceHref,
-} from "./editor-destinations";
+import { fashionStoreEditorDestinations, fashionStoreReferenceHref } from "./editor-destinations";
 
 export const fashionStoreCompositionAdapter = {
   destinations: fashionStoreEditorDestinations,

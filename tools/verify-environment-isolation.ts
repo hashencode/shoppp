@@ -165,7 +165,9 @@ function namedResources(value: unknown, key: string): string[] {
   });
 }
 
-function checkoutRateLimit(value: JsonRecord): FashionEnvironmentProfile["checkoutProtection"]["rateLimit"] {
+function checkoutRateLimit(
+  value: JsonRecord,
+): FashionEnvironmentProfile["checkoutProtection"]["rateLimit"] {
   const limits = Array.isArray(value.ratelimits) ? value.ratelimits.filter(isRecord) : [];
   const selected = limits.find((entry) => entry.name === "CHECKOUT_RATE_LIMITER");
   const simple = selected && isRecord(selected.simple) ? selected.simple : undefined;
@@ -508,10 +510,7 @@ export function verifyFashionEnvironmentProfile(
     apiOrigin.protocol === "https:" && apiOrigin.origin === profile.origins.api,
     "Fashion API origin must be one exact HTTPS origin",
   );
-  assert(
-    profile.checkoutProtection.turnstile.required,
-    "Fashion checkout must require Turnstile",
-  );
+  assert(profile.checkoutProtection.turnstile.required, "Fashion checkout must require Turnstile");
   assert(
     profile.checkoutProtection.turnstile.testMode,
     "Fashion staging must use the Turnstile test profile",

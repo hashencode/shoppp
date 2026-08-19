@@ -70,9 +70,7 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
   if (kind === "best-sellers") return properties.viewModel.merchandisingOrder;
   const others = properties.viewModel.sections.filter((section) => section.kind !== "best-sellers");
   const naturalOrder = others.findIndex((section) => section.kind === kind) + 1;
-  return naturalOrder >= properties.viewModel.merchandisingOrder
-    ? naturalOrder + 1
-    : naturalOrder;
+  return naturalOrder >= properties.viewModel.merchandisingOrder ? naturalOrder + 1 : naturalOrder;
 }
 </script>
 
@@ -85,7 +83,12 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
     :preload-image="resolveAsset('fashion-store.slider-01')"
     :resolve-asset="resolveAsset"
   >
-    <main id="fashion-store-main" class="d-flex flex-column" data-fashion-store-live-home data-runtime-status="static">
+    <main
+      id="fashion-store-main"
+      class="d-flex flex-column"
+      data-fashion-store-live-home
+      data-runtime-status="static"
+    >
       <section
         data-home-section="hero"
         :style="{ order: sectionOrder('hero') }"
@@ -122,16 +125,28 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
                 <a
                   v-if="viewModel.hero.secondaryLink"
                   :href="viewModel.hero.secondaryLink.href"
-                  :target="viewModel.hero.secondaryLink.targetBehavior === 'new-window' ? '_blank' : undefined"
-                  :rel="viewModel.hero.secondaryLink.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
+                  :target="
+                    viewModel.hero.secondaryLink.targetBehavior === 'new-window'
+                      ? '_blank'
+                      : undefined
+                  "
+                  :rel="
+                    viewModel.hero.secondaryLink.targetBehavior === 'new-window'
+                      ? 'noopener noreferrer'
+                      : undefined
+                  "
                   data-fashion-store-route
                   class="btn btn-transparent-dark-gray btn-large ms-10px"
-                >{{ viewModel.hero.secondaryLink.label }}</a>
+                  >{{ viewModel.hero.secondaryLink.label }}</a
+                >
               </div>
             </div>
             <div class="col-lg-6">
               <img
-                :src="editorMediaSource(resolveAsset, viewModel.hero.media) ?? resolveAsset('fashion-store.slider-01')"
+                :src="
+                  editorMediaSource(resolveAsset, viewModel.hero.media) ??
+                  resolveAsset('fashion-store.slider-01')
+                "
                 :alt="viewModel.hero.media?.alt ?? viewModel.hero.heading"
                 :width="viewModel.hero.media?.width ?? 960"
                 :height="viewModel.hero.media?.height ?? 1080"
@@ -142,7 +157,11 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
         </div>
       </section>
 
-      <section data-home-section="services" :style="{ order: sectionOrder('services') }" class="half-section">
+      <section
+        data-home-section="services"
+        :style="{ order: sectionOrder('services') }"
+        class="half-section"
+      >
         <div class="container">
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4">
             <div v-for="service in services" :key="service[0]" class="col md-mb-30px">
@@ -158,7 +177,11 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
         </div>
       </section>
 
-      <section data-home-section="categories" :style="{ order: sectionOrder('categories') }" class="pt-0 pb-0 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-p-0">
+      <section
+        data-home-section="categories"
+        :style="{ order: sectionOrder('categories') }"
+        class="pt-0 pb-0 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-p-0"
+      >
         <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-0">
           <div v-for="category in categories" :key="category[0]" class="col categories-style-02">
             <a :href="viewModel.featuredCollection.href" data-fashion-store-route>
@@ -208,7 +231,11 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
         </div>
       </section>
 
-      <section data-home-section="promotion" :style="{ order: sectionOrder('promotion') }" class="p-15px bg-dark-gray text-white">
+      <section
+        data-home-section="promotion"
+        :style="{ order: sectionOrder('promotion') }"
+        class="p-15px bg-dark-gray text-white"
+      >
         <div class="container text-center">
           <p class="alt-font mb-0">
             New-season pieces are available now.
@@ -291,7 +318,9 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
             aria-label="Featured products"
           >
             <FashionStoreProductCard
-              v-for="product in viewModel.featuredProduct ? [viewModel.featuredProduct] : viewModel.products"
+              v-for="product in viewModel.featuredProduct
+                ? [viewModel.featuredProduct]
+                : viewModel.products"
               :key="`featured-${product.productId}`"
               :product="product"
               :resolve-asset="resolveAsset"
@@ -315,7 +344,11 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
         </div>
       </section>
 
-      <section data-home-section="magazine" :style="{ order: sectionOrder('magazine') }" class="pb-3 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-px-0">
+      <section
+        data-home-section="magazine"
+        :style="{ order: sectionOrder('magazine') }"
+        class="pb-3 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-px-0"
+      >
         <div class="container-fluid pt-70px">
           <div class="text-center mb-40px">
             <p class="alt-font text-uppercase fs-12 fw-600 mb-5px text-dark-gray">

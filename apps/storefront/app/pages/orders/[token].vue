@@ -51,7 +51,8 @@ onMounted(async () => {
             : undefined
         "
         data-order-presentation-policy-link
-      >{{ presentation.policyLink.label }}</a>
+        >{{ presentation.policyLink.label }}</a
+      >
     </p>
     <p v-if="error" class="form-error" role="alert">{{ error }}</p>
     <template v-else-if="access?.status === 'paid'">

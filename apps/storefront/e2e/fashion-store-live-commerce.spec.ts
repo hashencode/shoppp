@@ -291,8 +291,9 @@ test("live non-Home and platform routes share Experience presentation around aut
 
   await page.goto("/products/atlas-carry-on", { waitUntil: "networkidle" });
   await expect(page.locator(".header-top-bar")).toContainText("Live Experience announcement");
-  await expect(page.locator("[data-fashion-store-header]"))
-    .toContainText("Live Experience header support");
+  await expect(page.locator("[data-fashion-store-header]")).toContainText(
+    "Live Experience header support",
+  );
   await expect(page.locator("footer")).toContainText("Live Experience footer support");
 
   await page.goto(`/orders/${orderAccessToken}`, { waitUntil: "networkidle" });
@@ -596,9 +597,9 @@ test("live Home preserves all sections and card outcomes across input modes", as
   await installLiveCommerce(page, handleCommerce);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  expect(
-    await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches),
-  ).toBe(true);
+  expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
+    true,
+  );
   const home = page.locator("[data-fashion-store-live-home]");
   await expect(home).toHaveCount(1);
   await expect(home.locator("[data-home-section]")).toHaveCount(10);

@@ -8,18 +8,18 @@ candidate-readiness ledger.
 
 ### Retained checkout
 
-| Path | HEAD / branch | State | Disposition |
-| --- | --- | --- | --- |
+| Path                                    | HEAD / branch                                                 | State                                         | Disposition                                  |
+| --------------------------------------- | ------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------- |
 | `/Users/studio/Documents/GitHub/shoppp` | `c4ebebf5`, `codex/feat-fashion-store-functional-integration` | Dirty with the current documentation revision | Retain as the one long-lived Shoppp checkout |
 
 ### Removal targets
 
-| Exact path | HEAD / branch | Live state | Recovery evidence | Disposition |
-| --- | --- | --- | --- | --- |
-| `/private/tmp/shoppp-ce-review.2EvGZu/tree` | `8773f9e9`, detached | Clean | HEAD is contained by the retained Fashion branch and its remote | Remove |
-| `/private/tmp/shoppp-fashion-deploy` | `4c6dc554`, detached | Seven tracked modifications plus five untracked preview-artifact files | HEAD is contained by the retained Fashion branch and its remote; useful source/test outcomes are retained in later commits | Discard the audited dirty set, then remove |
-| `/private/tmp/shoppp-live-cart-proof.PRoMhj` | `8773f9e9`, detached | Two generated modifications plus three untracked source/test/config files | HEAD is contained by the retained Fashion branch and its remote; later retained files supersede the dirty versions | Discard the audited dirty set, then remove |
-| `/Users/studio/.codex/worktrees/7922/shoppp` | `0c2cdb86`, `codex/feat-decor-store-source-parity` | Clean | Local and remote branch point to the same HEAD; GitHub PR #6 is open and reported successful CI at audit time | Remove checkout only; retain branch, PR, commits, and Decor plan |
+| Exact path                                   | HEAD / branch                                      | Live state                                                                | Recovery evidence                                                                                                          | Disposition                                                      |
+| -------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `/private/tmp/shoppp-ce-review.2EvGZu/tree`  | `8773f9e9`, detached                               | Clean                                                                     | HEAD is contained by the retained Fashion branch and its remote                                                            | Remove                                                           |
+| `/private/tmp/shoppp-fashion-deploy`         | `4c6dc554`, detached                               | Seven tracked modifications plus five untracked preview-artifact files    | HEAD is contained by the retained Fashion branch and its remote; useful source/test outcomes are retained in later commits | Discard the audited dirty set, then remove                       |
+| `/private/tmp/shoppp-live-cart-proof.PRoMhj` | `8773f9e9`, detached                               | Two generated modifications plus three untracked source/test/config files | HEAD is contained by the retained Fashion branch and its remote; later retained files supersede the dirty versions         | Discard the audited dirty set, then remove                       |
+| `/Users/studio/.codex/worktrees/7922/shoppp` | `0c2cdb86`, `codex/feat-decor-store-source-parity` | Clean                                                                     | Local and remote branch point to the same HEAD; GitHub PR #6 is open and reported successful CI at audit time              | Remove checkout only; retain branch, PR, commits, and Decor plan |
 
 All four targets were ordinary directories owned by `studio`, not symbolic links, at inventory time.
 The live `git worktree list --porcelain` contained exactly the retained checkout and these four
@@ -98,14 +98,14 @@ removal command before deleting the checkout; this execution is not a reusable f
 The completion claim was withdrawn and the observable checks were rerun without deleting or changing
 any worktree, branch, ref, or file:
 
-| Check | Observed result |
-| --- | --- |
-| Live worktree enumeration | Exactly one registered worktree: `/Users/studio/Documents/GitHub/shoppp`, HEAD `8a3723d4`, branch `codex/feat-fashion-store-functional-integration` |
-| Primary checkout boundary | Ordinary directory owned by `studio`; not a symbolic link |
-| Stale worktree metadata | `git worktree prune --dry-run --verbose` reported nothing to prune |
-| Four historical target paths | All four paths are absent |
-| Decor recoverability | Local and remote `codex/feat-decor-store-source-parity` refs both resolve to `0c2cdb86`; that commit remains reachable from each ref |
-| Destructive action | None performed during this audit |
+| Check                        | Observed result                                                                                                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live worktree enumeration    | Exactly one registered worktree: `/Users/studio/Documents/GitHub/shoppp`, HEAD `8a3723d4`, branch `codex/feat-fashion-store-functional-integration` |
+| Primary checkout boundary    | Ordinary directory owned by `studio`; not a symbolic link                                                                                           |
+| Stale worktree metadata      | `git worktree prune --dry-run --verbose` reported nothing to prune                                                                                  |
+| Four historical target paths | All four paths are absent                                                                                                                           |
+| Decor recoverability         | Local and remote `codex/feat-decor-store-source-parity` refs both resolve to `0c2cdb86`; that commit remains reachable from each ref                |
+| Destructive action           | None performed during this audit                                                                                                                    |
 
 This rerun confirms the current one-worktree steady state and retained Decor history. It cannot prove
 the exact contents of the already deleted dirty worktrees immediately before removal. U1 and U2 stay
@@ -118,12 +118,12 @@ temporary targets, and the Decor checkout containing ignored generated capture o
 Git's force option after their approved live checks; the clean detached review checkout was removed
 normally. No command was retried with a stronger primitive after failure:
 
-| Removed checkout | Removal result | Recoverability after removal |
-| --- | --- | --- |
-| `/private/tmp/shoppp-ce-review.2EvGZu/tree` | Removed cleanly | HEAD `8773f9e9` remains in the retained Fashion branch history |
-| `/Users/studio/.codex/worktrees/7922/shoppp` | Checkout removed, including its reproducible ignored capture output | Local/remote branch `codex/feat-decor-store-source-parity` still points to `0c2cdb86`; PR #6 was not modified |
-| `/private/tmp/shoppp-fashion-deploy` | Audited dirty checkout and one-time preview output discarded, then removed | Base HEAD `4c6dc554` and all accepted implementation outcomes remain in the primary branch history |
-| `/private/tmp/shoppp-live-cart-proof.PRoMhj` | Audited superseded/generated content discarded, then removed | Base HEAD `8773f9e9` and later live-Commerce outcomes remain in the primary branch history |
+| Removed checkout                             | Removal result                                                             | Recoverability after removal                                                                                  |
+| -------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/private/tmp/shoppp-ce-review.2EvGZu/tree`  | Removed cleanly                                                            | HEAD `8773f9e9` remains in the retained Fashion branch history                                                |
+| `/Users/studio/.codex/worktrees/7922/shoppp` | Checkout removed, including its reproducible ignored capture output        | Local/remote branch `codex/feat-decor-store-source-parity` still points to `0c2cdb86`; PR #6 was not modified |
+| `/private/tmp/shoppp-fashion-deploy`         | Audited dirty checkout and one-time preview output discarded, then removed | Base HEAD `4c6dc554` and all accepted implementation outcomes remain in the primary branch history            |
+| `/private/tmp/shoppp-live-cart-proof.PRoMhj` | Audited superseded/generated content discarded, then removed               | Base HEAD `8773f9e9` and later live-Commerce outcomes remain in the primary branch history                    |
 
 No removal command failed, no stronger retry was used after a removal failure, and no branch, PR,
 tag, product plan, or candidate state was deleted or promoted. The discarded uncommitted/generated
@@ -133,8 +133,8 @@ and environment-bound artifacts cannot be recovered from Git.
 
 Final enumeration contains one worktree:
 
-| Path | Role |
-| --- | --- |
+| Path                                    | Role                                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `/Users/studio/Documents/GitHub/shoppp` | Long-lived checkout for Shoppp as a whole, including Fashion Store, Decor Store, and shared platform work |
 
 `AGENTS.md` now requires temporary worktrees to record a branch/ref, owner, purpose, and cleanup

@@ -1,8 +1,5 @@
 (() => {
-  if (
-    location.pathname !== "/" ||
-    !matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
+  if (location.pathname !== "/" || !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return;
   }
 

@@ -215,9 +215,9 @@ describe("theme fidelity report", () => {
     expect(await readFile(join(outputRoot, "decor-desktop-diff.json"), "utf8")).toContain(
       '"changedPixelRatio": 1',
     );
-    expect(
-      (await readFile(join(outputRoot, "decor-desktop-diff.png"))).byteLength,
-    ).toBeGreaterThan(0);
+    expect((await readFile(join(outputRoot, "decor-desktop-diff.png"))).byteLength).toBeGreaterThan(
+      0,
+    );
   });
 
   test("refuses missing, wrong-theme, or dimension-mismatched evidence", async () => {

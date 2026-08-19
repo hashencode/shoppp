@@ -20,11 +20,7 @@ function mediaSource(): string | undefined {
 </script>
 
 <template>
-  <FashionStoreShell
-    body-class=""
-    :resolve-asset="resolveAsset"
-    :show-sticky-socials="false"
-  >
+  <FashionStoreShell body-class="" :resolve-asset="resolveAsset" :show-sticky-socials="false">
     <main
       id="fashion-store-main"
       data-fashion-store-live-content
@@ -68,7 +64,8 @@ function mediaSource(): string | undefined {
               :href="viewModel.relatedAction.target"
               data-fashion-store-route
               class="btn btn-transparent-dark-gray btn-medium"
-            >{{ viewModel.relatedAction.label }}</a>
+              >{{ viewModel.relatedAction.label }}</a
+            >
             <a
               v-else-if="viewModel.kind === 'collection-grid'"
               href="/shop"

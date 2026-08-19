@@ -256,9 +256,7 @@ export function resolveFashionStoreEditorMedia(
   resolveAsset: ThemeAssetResolver,
   media: FashionStoreEditorMedia,
 ): string {
-  return media.source === "url"
-    ? media.src
-    : resolveAsset(fashionStoreAssetId(media.themePath));
+  return media.source === "url" ? media.src : resolveAsset(fashionStoreAssetId(media.themePath));
 }
 
 export const themeAssets = Object.freeze(

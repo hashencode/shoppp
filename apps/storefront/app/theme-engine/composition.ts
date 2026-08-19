@@ -1,7 +1,4 @@
-import type {
-  CanonicalCatalogRelease,
-  StorefrontResourceReference,
-} from "@shoppp/contracts";
+import type { CanonicalCatalogRelease, StorefrontResourceReference } from "@shoppp/contracts";
 
 export interface ThemeReferenceDestination {
   id: string;

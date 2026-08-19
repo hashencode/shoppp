@@ -176,7 +176,12 @@ onMounted(() => {
     <div class="elements-social social-icon-style-10">
       <ul class="fs-16">
         <li class="me-30px">
-          <a class="facebook" :href="fashionStoreDestinations.facebook" target="_blank" rel="noopener noreferrer">
+          <a
+            class="facebook"
+            :href="fashionStoreDestinations.facebook"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <i class="fa-brands fa-facebook-f me-10px"></i>
             <span class="alt-font">Facebook</span>
           </a>
@@ -185,7 +190,12 @@ onMounted(() => {
           sourceInlineGap
         }}
         <li class="me-30px">
-          <a class="dribbble" :href="fashionStoreDestinations.dribbble" target="_blank" rel="noopener noreferrer">
+          <a
+            class="dribbble"
+            :href="fashionStoreDestinations.dribbble"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <i class="fa-brands fa-dribbble me-10px"></i>
             <span class="alt-font">Dribbble</span>
           </a>
@@ -194,7 +204,12 @@ onMounted(() => {
           sourceInlineGap
         }}
         <li class="me-30px">
-          <a class="twitter" :href="fashionStoreDestinations.twitter" target="_blank" rel="noopener noreferrer">
+          <a
+            class="twitter"
+            :href="fashionStoreDestinations.twitter"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <i class="fa-brands fa-twitter me-10px"></i>
             <span class="alt-font">Twitter</span>
           </a>
@@ -203,7 +218,12 @@ onMounted(() => {
           sourceInlineGap
         }}
         <li>
-          <a class="instagram" :href="fashionStoreDestinations.instagram" target="_blank" rel="noopener noreferrer">
+          <a
+            class="instagram"
+            :href="fashionStoreDestinations.instagram"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <i class="fa-brands fa-instagram me-10px"></i>
             <span class="alt-font">Instagram</span>
           </a>
