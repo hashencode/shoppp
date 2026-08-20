@@ -120,9 +120,13 @@ export function normalizePreviewAssetPath(pathname: string): string {
   if (relativePath.startsWith("_preview-")) {
     throw new Error("Preview artifact metadata is private.");
   }
-  if (relativePath.endsWith("/")) return `${relativePath}index.html`;
-  const lastSegment = relativePath.slice(relativePath.lastIndexOf("/") + 1);
-  return lastSegment.includes(".") ? relativePath : `${relativePath}/index.html`;
+  return relativePath.endsWith("/") ? `${relativePath}index.html` : relativePath;
+}
+
+function normalizePreviewRequestAssetPath(pathname: string): string {
+  const path = normalizePreviewAssetPath(pathname);
+  const lastSegment = path.slice(path.lastIndexOf("/") + 1);
+  return lastSegment.includes(".") ? path : `${path}/index.html`;
 }
 
 function normalizeArtifactFile(file: PreviewArtifactFile): PreviewArtifactFile {
@@ -665,7 +669,7 @@ export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
     }
     let assetPath: string;
     try {
-      assetPath = normalizePreviewAssetPath(requestUrl.pathname);
+      assetPath = normalizePreviewRequestAssetPath(requestUrl.pathname);
     } catch {
       return responseWithSecurity("Preview asset path is invalid.", configuredOrigin.origin, 400);
     }

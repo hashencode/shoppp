@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   createPreviewAccessHandler,
+  normalizePreviewAssetPath,
   type PreviewAccessEnvironment,
 } from "../worker/preview-access";
 
@@ -291,6 +292,7 @@ describe("private Preview Commerce bridge", () => {
   });
 
   test("serves root and extensionless route artifacts with only the exact Turnstile origins", async () => {
+    expect(normalizePreviewAssetPath("/_headers")).toBe("_headers");
     const env = environment();
     const artifactKeys: string[] = [];
     env.PREVIEW_ARTIFACTS.get = async (key) => {
