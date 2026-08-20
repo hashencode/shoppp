@@ -98,21 +98,21 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U12 — deploy and prove the real Fashion Store Commerce journey. U7 and the
   explicit product-level FRT interlude are complete.
-- **Current sub-stage:** U12.3 — the failed first build remains immutable, and the storefront
-  `mediaOrigins` reconciliation is locally verified at `d2297f0f`. The user has replaced repeated
-  exact-SHA approvals with standing FS-U12 authority rooted at `79fbee07`: preparation may run only
-  from current `main` when every intervening commit is a `(U12)` commit and every changed path is in
-  the explicit FS-U12 allowlist. Readiness retains the baseline, scope, actor, run, build, Snapshot,
-  digest, freshness, and fixed-concurrency evidence. Ordinary staging and production remain barred.
-- **Next concrete action:** Replace the invalid `fashion-staging` GitHub environment
-  `CLOUDFLARE_API_TOKEN` under a separate credential/security decision, then register a new
-  ephemeral preparation runner and rerun exact governed preparation from current `main`. After a
-  fresh building build/readiness record exists, autonomously complete the Fashion-only Preview.
-- **Blocker:** Preparation run `32326733190` passed the standing-scope, dependency, and repository
-  environment gates, then Cloudflare rejected the configured token with authentication codes
-  `10000` and `9109` during the first read-only Worker-secret check. It stopped before Stripe, D1
-  export/migration, Worker deploy, seed, or immutable-input mutation. Token replacement is a new
-  credential/security boundary outside standing authority. The runner auto-deregistered.
+- **Current sub-stage:** U12.3 — Fashion shipping identity, Stripe API/runtime-key drift, webhook
+  signing-secret rotation, and ephemeral-runner Preview expiry portability are fixed on `main`.
+  Governed preparation `32360021689` created exact immutable inputs, and Preview `32360266387`
+  reached the real Stripe Sandbox Checkout before failing the provider's AI-agent payment steering.
+  Ordinary staging and production remain barred.
+- **Next concrete action:** After the operator explicitly opts into Stripe Link CLI authentication
+  and sandbox approval, integrate its one-time test credential without logging bearer-capable card
+  data. Rerun governed preparation from current `main`, then dispatch Preview with
+  `recovery_run_id=32360266387` so startup reconciliation resolves the failed cleanup before the
+  next acceptance lock and payment journey.
+- **Blocker:** Stripe Checkout now clears a directly automated test card after the required
+  AI-agent disclosure and instructs the agent to use Link CLI. Link account authentication and
+  purchase approval are a new user/security boundary and cannot be self-authorized. The failed
+  journey's governed cleanup also returned HTTP 500, so the next Preview must reconcile run
+  `32360266387`; its ephemeral runner auto-deregistered and the build remains immutable.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the

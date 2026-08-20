@@ -67,18 +67,16 @@ historical evidence remain unchanged inside the owning plans.
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
-- **Current child stage:** `FS-U12.3` — the failed first build remains immutable and the
-  `mediaOrigins` repair is locally verified. Standing FS-U12 authority is rooted at `79fbee07` and
-  applies only when current `main` contains exclusively allowlisted `(U12)` changes after that
-  baseline. Readiness retains baseline, scope, actor, run, build, Snapshot, digest, and freshness;
-  ordinary staging and production remain excluded.
-- **Next action:** Replace the invalid `fashion-staging` environment `CLOUDFLARE_API_TOKEN` under a
-  separate credential/security decision, then rerun ephemeral Fashion preparation and complete the
-  exact Preview under standing scope.
-- **Blocker:** Preparation run `32326733190` passed local/scope gates but Cloudflare rejected the
-  configured token with codes `10000` and `9109` at the first read-only secret inventory. No D1
-  export/migration, Worker deploy, seed, or immutable-input mutation occurred. The ephemeral runner
-  auto-deregistered; token replacement is outside the standing authority.
+- **Current child stage:** `FS-U12.3` — shipping identity, Stripe runtime credentials, webhook
+  rotation, and ephemeral Preview portability are fixed. Preview `32360266387` reached real Stripe
+  Sandbox Checkout, then failed at the provider's AI-agent payment steering; ordinary staging and
+  production remain excluded.
+- **Next action:** After explicit operator opt-in to Stripe Link CLI authentication and sandbox
+  approval, rerun governed Fashion preparation from current `main`, then Preview with
+  `recovery_run_id=32360266387` before the next acceptance lock and payment journey.
+- **Blocker:** Link account authentication and approval are a new user/security boundary that
+  cannot be self-authorized. The failed run's cleanup also returned HTTP 500 and requires governed
+  startup reconciliation; its ephemeral runner auto-deregistered and its build remains immutable.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
