@@ -336,7 +336,6 @@ jobs:
         if: ${{ steps.u13.outcome == 'success' }}
         continue-on-error: true
         env:
-          E2E_STRIPE_TEST_CARD: ${{ secrets.STRIPE_TEST_CARD }}
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
           FASHION_U12_PHASE: journey

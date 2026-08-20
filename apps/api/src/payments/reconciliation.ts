@@ -95,7 +95,7 @@ async function terminateAttempt(
 
 export async function reconcilePaymentEvent(
   db: D1Database,
-  provider: PaymentProvider,
+  provider: Pick<PaymentProvider, "name" | "retrieveSession">,
   event: VerifiedProviderEvent,
   rawPayload: string,
 ): Promise<ReconciliationResult> {

@@ -77,7 +77,7 @@ jobs:
               "FASHION_U12_ACCEPTANCE_TOKEN", "FASHION_U12_ADMIN_SERVICE_TOKEN",
               "FASHION_U12_GITHUB_ADMIN_TOKEN",
               "FASHION_U13_SERVICE_TOKEN", "PREVIEW_BUILD_TOKEN", "STRIPE_SECRET_KEY",
-              "STRIPE_TEST_CARD", "TURNSTILE_SECRET"
+              "TURNSTILE_SECRET"
             ]))' artifacts/fashion-u12/github-secrets.json >/dev/null
       - name: Verify Stripe sandbox webhook before mutation
         run: |

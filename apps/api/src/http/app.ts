@@ -105,7 +105,10 @@ import { cancelOrder } from "../orders/cancel";
 import { getOrderDetail, listOrders } from "../orders/queries";
 import { PaymentProviderError, type PaymentProvider } from "../payments/port";
 import { createHostedCheckout } from "../payments/session";
-import { createStripePaymentProvider } from "../payments/stripe-adapter";
+import {
+  createStripePaymentProvider,
+  type StripeTestSettlementProvider,
+} from "../payments/stripe-adapter";
 import { processPaymentWebhook } from "../payments/webhook";
 import {
   createPrivacyRequest,
@@ -179,6 +182,7 @@ import {
   reconcileAbandonedFashionStagingAcceptance,
   recordFashionStagingJourneyFailure,
   registerFashionStagingResource,
+  settleFashionStagingTestPayment,
   startFashionStagingAcceptance,
 } from "../testing/fashion-staging";
 import type { ApiEnvironment } from "./context";
@@ -191,6 +195,7 @@ export interface CreateAppOptions {
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
   readonly experienceBuildTrigger?: ExperienceBuildTrigger;
+  readonly fashionTestSettlementProvider?: StripeTestSettlementProvider;
   readonly storefrontExperienceServiceOptions?: StorefrontExperienceServiceOptions;
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
@@ -299,6 +304,9 @@ const fashionAcceptanceResourceSchema = fashionAcceptanceOwnerSchema
   .strict();
 const fashionAcceptanceFailureSchema = fashionAcceptanceOwnerSchema
   .extend({ failure: z.string().trim().min(1).max(500) })
+  .strict();
+const fashionAcceptanceSettlementSchema = fashionAcceptanceOwnerSchema
+  .extend({ checkoutAttemptId: stableIdentifierSchema })
   .strict();
 
 function validatedQuery<Schema extends z.ZodType>(
@@ -459,6 +467,19 @@ export function createApp(options: CreateAppOptions = {}) {
     );
     context.header("Cache-Control", "private, no-store");
     return context.body(null, 204);
+  });
+  app.post("/internal/testing/fashion-staging/runs/:id/settle", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionAcceptanceSettlementSchema);
+    const result = await settleFashionStagingTestPayment(
+      context.env.DB,
+      context.req.param("id"),
+      input.owner,
+      input.checkoutAttemptId,
+      options.fashionTestSettlementProvider ?? createStripePaymentProvider(context.env),
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
   });
   app.post("/internal/testing/fashion-staging/runs/:id/failure", async (context) => {
     requireFashionAcceptanceCredential(context);

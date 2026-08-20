@@ -98,28 +98,26 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U12 — deploy and prove the real Fashion Store Commerce journey. U7 and the
   explicit product-level FRT interlude are complete.
-- **Current sub-stage:** U12.3 — Fashion shipping identity, Stripe API/runtime-key drift, webhook
-  signing-secret rotation, and ephemeral-runner Preview expiry portability are fixed on `main`.
-  Governed preparation `32360021689` created exact immutable inputs, and Preview `32360266387`
-  reached the real Stripe Sandbox Checkout before failing the provider's AI-agent payment steering.
-  Ordinary staging and production remain barred.
-- **Next concrete action:** After the operator explicitly opts into Stripe Link CLI authentication
-  and sandbox approval, integrate its one-time test credential without logging bearer-capable card
-  data. Rerun governed preparation from current `main`, then dispatch Preview with
-  `recovery_run_id=32360266387` so startup reconciliation resolves the failed cleanup before the
-  next acceptance lock and payment journey.
-- **Blocker:** Stripe Checkout now clears a directly automated test card after the required
-  AI-agent disclosure and instructs the agent to use Link CLI. Link account authentication and
-  purchase approval are a new user/security boundary and cannot be self-authorized. The failed
-  journey's governed cleanup also returned HTTP 500, so the next Preview must reconcile run
-  `32360266387`; its ephemeral runner auto-deregistered and the build remains immutable.
+- **Current sub-stage:** U12.3 — Fashion shipping identity, Stripe runtime credentials, webhook
+  rotation, ephemeral-runner portability, and the non-Link Stripe test-mode acceptance path are
+  locally fixed and verified. The replacement path keeps the real hosted Checkout identity, uses an
+  exact protected sandbox settlement, and preserves normal payment reconciliation, paid return,
+  inventory, and cleanup behavior. Ordinary staging and production remain barred.
+- **Next concrete action:** Land the verified U12 change on `main`, rerun governed Fashion-only
+  preparation from that exact ref, then dispatch Preview with `recovery_run_id=32360266387` so
+  startup reconciliation resolves the failed cleanup before the next acceptance lock and complete
+  sandbox journey.
+- **Blocker:** None for the local implementation. The next governed Preview must still reconcile
+  failed run `32360266387`; its ephemeral runner auto-deregistered and the prior build remains
+  immutable. Fresh build/readiness creation and Preview execution remain bounded by the standing
+  FS-U12 authority and continue to exclude ordinary staging and production.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-20 after preparation run `32326733190` proved the standing gate and
-  failed safely on an invalid Cloudflare credential before remote mutation; U12.3 remains in
-  progress and is blocked only on token replacement.
+- **Last reviewed:** 2026-08-20 after the operator authorized a non-Link Stripe test-mode acceptance
+  mechanism and its guarded local implementation passed API, workflow, readiness, typecheck, lint,
+  and E2E discovery verification. U12.3 remains in progress pending governed remote proof.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   acquireFashionStagingAcceptance,
@@ -117,6 +117,175 @@ describe.sequential("Fashion staging acceptance lifecycle", () => {
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({
       data: { namespace: `fashion-u12-${value.run}`, runId: value.run },
+    });
+    await cleanupFashionStagingAcceptance(env.DB, value.run, value.owner);
+  });
+
+  test("settles only a registered Fashion checkout through the protected Stripe test boundary", async () => {
+    const value = await seedInventory("settle");
+    const settlementStartedAt = new Date();
+    const at = settlementStartedAt.toISOString();
+    const expiresAt = new Date(settlementStartedAt.getTime() + 60 * 60_000).toISOString();
+    const cart = "cart-settle";
+    const group = "reservation-group-settle";
+    const reservation = "reservation-settle";
+    const attempt = "chk_fashion_settle_001";
+    const providerSession = "cs_test_fashion_settle_001";
+    const snapshot = {
+      currency: "USD",
+      email: "settle@example.test",
+      lines: [
+        {
+          currency: "USD",
+          discountAmount: 0,
+          lineTotalAmount: 12900,
+          optionValues: { Style: "Standard" },
+          productId: value.product,
+          productName: "Atlas Carry-on",
+          quantity: 1,
+          sku: "ATLAS-SETTLE",
+          taxAmount: 0,
+          unitPriceAmount: 12900,
+          variantId: value.variant,
+          variantName: "Standard",
+        },
+      ],
+      shippingAddress: {
+        city: "San Francisco",
+        countryCode: "US",
+        line1: "100 Market Street",
+        name: "Fashion Buyer",
+        postalCode: "94105",
+        region: "CA",
+      },
+      shippingMethod: { amount: 0, id: "ship_fashion_free", name: "Free shipping" },
+      totals: {
+        discountTotal: 0,
+        grandTotal: 12900,
+        shippingTotal: 0,
+        subtotal: 12900,
+        taxTotal: 0,
+      },
+    };
+    await acquireFashionStagingAcceptance(env.DB, input(value), settlementStartedAt);
+    await startFashionStagingAcceptance(env.DB, value.run, value.owner, settlementStartedAt);
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO carts
+           (id, public_token_hash, currency, status, expires_at, created_at, updated_at)
+         VALUES (?, 'token-settle', 'USD', 'active', ?, ?, ?)`,
+      ).bind(cart, expiresAt, at, at),
+      env.DB.prepare(
+        `INSERT INTO inventory_reservation_groups
+           (id, cart_id, idempotency_key, status, expires_at, created_at, updated_at)
+         VALUES (?, ?, 'reservation-key-settle', 'active', ?, ?, ?)`,
+      ).bind(group, cart, expiresAt, at, at),
+      env.DB.prepare(
+        `INSERT INTO inventory_reservations
+           (id, group_id, cart_id, variant_id, warehouse_id, quantity, status,
+            expires_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, 'active', ?, ?, ?)`,
+      ).bind(reservation, group, cart, value.variant, value.warehouse, expiresAt, at, at),
+      env.DB.prepare(
+        `INSERT INTO checkout_attempts
+           (id, cart_id, reservation_group_id, provider, provider_session_id,
+            environment, test_mode, idempotency_key, currency, subtotal_amount,
+            discount_amount, shipping_amount, tax_amount, grand_total_amount,
+            shipping_address_json, email, snapshot_json, guest_access_token_hash,
+            guest_access_expires_at, status, created_at, updated_at)
+         VALUES (?, ?, ?, 'stripe', ?, 'staging', 1, 'checkout-key-settle', 'USD',
+                 12900, 0, 0, 0, 12900, ?, 'settle@example.test', ?, 'guest-settle',
+                 ?, 'payment_pending', ?, ?)`,
+      ).bind(
+        attempt,
+        cart,
+        group,
+        providerSession,
+        JSON.stringify(snapshot.shippingAddress),
+        JSON.stringify(snapshot),
+        expiresAt,
+        at,
+        at,
+      ),
+    ]);
+    await registerFashionStagingResource(
+      env.DB,
+      value.run,
+      value.owner,
+      "checkout_attempt",
+      attempt,
+      settlementStartedAt,
+    );
+    const settleTestSession = vi.fn(async () => ({
+      amountTotal: 12900,
+      attemptId: attempt,
+      createdAt: at,
+      currency: "USD",
+      expiresAt: "2026-08-18T10:00:00.000Z",
+      id: providerSession,
+      paymentId: "pi_fashion_settle_001",
+      paymentState: "approved" as const,
+    }));
+    const app = createApp({
+      fashionTestSettlementProvider: { settleTestSession },
+    });
+    const token = "t".repeat(40);
+    const response = await app.fetch(
+      new Request(
+        `https://api.example.test/internal/testing/fashion-staging/runs/${value.run}/settle`,
+        {
+          body: JSON.stringify({ checkoutAttemptId: attempt, owner: value.owner }),
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          method: "POST",
+        },
+      ),
+      {
+        ...env,
+        FASHION_ACCEPTANCE_TOKEN: token,
+        RESOURCE_NAMESPACE: "shoppp-fashion-staging",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: { orderReference: expect.stringMatching(/^ORD-/), replayed: false },
+    });
+    const replay = await app.fetch(
+      new Request(
+        `https://api.example.test/internal/testing/fashion-staging/runs/${value.run}/settle`,
+        {
+          body: JSON.stringify({ checkoutAttemptId: attempt, owner: value.owner }),
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          method: "POST",
+        },
+      ),
+      {
+        ...env,
+        FASHION_ACCEPTANCE_TOKEN: token,
+        RESOURCE_NAMESPACE: "shoppp-fashion-staging",
+      },
+    );
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({
+      data: { orderReference: expect.stringMatching(/^ORD-/), replayed: true },
+    });
+    expect(settleTestSession).toHaveBeenCalledWith({
+      amountTotal: 12900,
+      attemptId: attempt,
+      currency: "USD",
+      sessionId: providerSession,
+    });
+    expect(settleTestSession).toHaveBeenCalledTimes(1);
+    expect(
+      await env.DB.prepare(
+        "SELECT payment_status, order_status, provider_payment_id FROM orders WHERE checkout_attempt_id = ?",
+      )
+        .bind(attempt)
+        .first(),
+    ).toEqual({
+      order_status: "confirmed",
+      payment_status: "paid",
+      provider_payment_id: "pi_fashion_settle_001",
     });
     await cleanupFashionStagingAcceptance(env.DB, value.run, value.owner);
   });

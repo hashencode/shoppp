@@ -206,38 +206,52 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
   await expect(page.getByRole("radio").first()).toBeChecked();
   await page.locator(".your-order-box .terms-condition-box label").click();
   await expect(page.getByRole("button", { name: "Place order" })).toBeEnabled({ timeout: 60_000 });
+  const checkoutResponsePromise = page.waitForResponse((response) => {
+    const request = response.request();
+    return (
+      new URL(response.url()).pathname === "/api/checkout/sessions" && request.method() === "POST"
+    );
+  });
   await page.getByRole("button", { name: "Place order" }).click();
 
+  const checkoutResponse = await checkoutResponsePromise;
+  expect(checkoutResponse.status()).toBe(201);
+  const checkout = (await checkoutResponse.json()) as {
+    data?: { attemptId?: string; checkoutUrl?: string };
+  };
+  expect(checkout.data?.attemptId).toMatch(/^chk_[A-Za-z0-9_]+$/);
+  expect(checkout.data?.checkoutUrl).toMatch(/^https:\/\/checkout\.stripe\.com\//);
+  await Promise.all(resourceRegistrations);
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
-  await page
-    .locator('input[name="cardNumber"], input[autocomplete="cc-number"]')
-    .first()
-    .fill(requiredEnvironment("E2E_STRIPE_TEST_CARD"));
-  await page
-    .locator('input[name="cardExpiry"], input[autocomplete="cc-exp"]')
-    .first()
-    .fill("12/34");
-  await page.locator('input[name="cardCvc"], input[autocomplete="cc-csc"]').first().fill("123");
-  const billingName = page.locator('input[name="billingName"], input[autocomplete="name"]').first();
-  if (await billingName.isVisible()) await billingName.fill("Fashion U12 Buyer");
-  const postalCode = page.getByRole("textbox", { name: /ZIP|postal code/i }).first();
-  if (await postalCode.isVisible()) await postalCode.fill("94105");
-  const saveInformation = page.getByRole("checkbox", { name: /Save my information/i });
-  if ((await saveInformation.isVisible()) && (await saveInformation.isChecked()))
-    await saveInformation.uncheck();
-  const agentDisclosure = page.getByRole("checkbox", {
-    name: "I am an AI agent acting on behalf of someone else",
-  });
-  if ((await agentDisclosure.isVisible()) && !(await agentDisclosure.isChecked()))
-    await agentDisclosure.evaluate((element: HTMLInputElement) => element.click());
-  await page.getByRole("button", { name: /Pay|Complete/ }).click();
-
-  await page.waitForURL(/\/checkout\/complete/, { timeout: 120_000 });
+  await expect(page.locator("body")).toContainText(name);
+  await expect(page.locator("body")).toContainText("$129.00");
+  const settlement = await page.request.post(
+    `${requiredEnvironment("FASHION_U12_API_ORIGIN")}/internal/testing/fashion-staging/runs/${requiredEnvironment("FASHION_U12_RUN_ID")}/settle`,
+    {
+      data: {
+        checkoutAttemptId: checkout.data!.attemptId!,
+        owner: requiredEnvironment("FASHION_U12_OWNER"),
+      },
+      headers: {
+        Authorization: `Bearer ${requiredEnvironment("FASHION_U12_ACCEPTANCE_TOKEN")}`,
+      },
+    },
+  );
+  expect(settlement.ok()).toBe(true);
+  const settlementPayload = (await settlement.json()) as { data?: { orderReference?: string } };
+  expect(settlementPayload.data?.orderReference).toMatch(/^[A-Z]+-[A-Z0-9]+$/);
+  await page.goto(
+    new URL("/checkout/complete", requiredEnvironment("STOREFRONT_E2E_BASE_URL")).href,
+    {
+      waitUntil: "networkidle",
+    },
+  );
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible({
     timeout: 120_000,
   });
-  await expect(page.getByText(/order .+ is confirmed/i)).toBeVisible();
-  await Promise.all(resourceRegistrations);
+  await expect(
+    page.getByText(`Order ${settlementPayload.data!.orderReference} is confirmed.`),
+  ).toBeVisible();
   expect(commerceRequests).toEqual(
     expect.arrayContaining([
       expect.stringMatching(/^POST \/api\/cart$/),

@@ -63,7 +63,7 @@ must not be dispatched from a local-only authorization. Before dispatch, the ope
    `CLOUDFLARE_API_TOKEN`, `FASHION_U12_ACCEPTANCE_TOKEN`,
    `FASHION_U12_ADMIN_SERVICE_TOKEN`, `FASHION_U12_GITHUB_ADMIN_TOKEN`,
    `FASHION_U13_SERVICE_TOKEN`, `PREVIEW_BUILD_TOKEN`, `STRIPE_SECRET_KEY`,
-   `STRIPE_TEST_CARD`, and `TURNSTILE_SECRET`, and configure the corresponding Fashion API and
+   `TURNSTILE_SECRET`, and configure the corresponding Fashion API and
    Preview Worker secrets without reusing ordinary staging or production credentials;
 3. create or verify the enabled Stripe sandbox endpoint at
    `https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe` with
@@ -110,6 +110,16 @@ checkout); paid orders remain append-only and their public references are retain
 Inventory restoration uses an auditable manual-adjustment ledger entry and must reconcile the exact
 on-hand, reserved, backordered, and oversell baseline. A journey assertion and a cleanup failure are
 stored separately, and either fails acceptance.
+
+The browser verifies the exact hosted Stripe Checkout product and total but does not enter a card or
+interact with Stripe's region-limited agent-payment steering. The acceptance-token-protected
+`settle` action is available only on the exact Fashion namespace, during a current active lease, for
+a registered `staging`/test-mode Stripe checkout attempt. It creates and confirms an idempotent
+Stripe sandbox PaymentIntent using Stripe's test PaymentMethod, expires the unpaid hosted Session,
+and feeds the verified IDs, amount, and currency through the normal payment-reconciliation and
+order-creation path. A live key, mismatched Session, unregistered attempt, expired lease, failed test
+payment, or failed Session expiry is a hard stop. No browser card credential or `STRIPE_TEST_CARD`
+secret is used.
 
 After the main cleanup, the workflow acquires a second namespaced lock, opens a fresh browser,
 proves that the representative product can still create and add to a new cart, registers that cart,

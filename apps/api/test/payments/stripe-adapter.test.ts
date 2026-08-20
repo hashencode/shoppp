@@ -167,6 +167,87 @@ describe("Stripe hosted Checkout adapter", () => {
     });
   });
 
+  test("settles an exact hosted session with an idempotent Stripe test payment and expires checkout", async () => {
+    const requests: { body: URLSearchParams | null; method: string; url: string }[] = [];
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      const body = init?.body instanceof URLSearchParams ? init.body : null;
+      requests.push({ body, method, url });
+      if (url.endsWith("/payment_intents")) {
+        expect(body?.get("amount")).toBe("3000");
+        expect(body?.get("currency")).toBe("usd");
+        expect(body?.get("confirm")).toBe("true");
+        expect(body?.get("payment_method")).toBe("pm_card_visa");
+        expect(body?.get("payment_method_types[0]")).toBe("card");
+        expect(body?.get("metadata[checkout_attempt_id]")).toBe("chk_01J00000000000000000000000");
+        expect(body?.get("metadata[checkout_session_id]")).toBe("cs_test_checkout_001");
+        expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+          "fashion-u12-chk_01J00000000000000000000000",
+        );
+        return Response.json({
+          amount: 3000,
+          created: NOW_SECONDS,
+          currency: "usd",
+          id: "pi_fashion_u12_001",
+          livemode: false,
+          metadata: {
+            checkout_attempt_id: "chk_01J00000000000000000000000",
+            checkout_session_id: "cs_test_checkout_001",
+          },
+          status: "succeeded",
+        });
+      }
+      if (url.endsWith("/expire")) {
+        return Response.json({ ...stripeSession(), status: "expired" });
+      }
+      return Response.json(stripeSession());
+    });
+    const provider = new StripePaymentProvider({
+      fetcher: fetcher as typeof fetch,
+      now: () => NOW_SECONDS * 1_000,
+      secretKey: STRIPE_SECRET_KEY,
+      webhookSecret: WEBHOOK_SECRET,
+    });
+
+    await expect(
+      provider.settleTestSession({
+        amountTotal: 3000,
+        attemptId: "chk_01J00000000000000000000000",
+        currency: "USD",
+        sessionId: "cs_test_checkout_001",
+      }),
+    ).resolves.toMatchObject({
+      id: "cs_test_checkout_001",
+      paymentId: "pi_fashion_u12_001",
+      paymentState: "approved",
+    });
+    expect(requests.map(({ method, url }) => `${method} ${url}`)).toEqual([
+      "GET https://api.stripe.com/v1/checkout/sessions/cs_test_checkout_001",
+      "POST https://api.stripe.com/v1/payment_intents",
+      "POST https://api.stripe.com/v1/checkout/sessions/cs_test_checkout_001/expire",
+    ]);
+  });
+
+  test("refuses test settlement before network access when the Stripe key is live", async () => {
+    const fetcher = vi.fn();
+    const provider = new StripePaymentProvider({
+      fetcher: fetcher as typeof fetch,
+      secretKey: "sk_live_fixture",
+      webhookSecret: WEBHOOK_SECRET,
+    });
+
+    await expect(
+      provider.settleTestSession({
+        amountTotal: 3000,
+        attemptId: "chk_01J00000000000000000000000",
+        currency: "USD",
+        sessionId: "cs_test_checkout_001",
+      }),
+    ).rejects.toMatchObject({ code: "stripe_test_settlement_unavailable" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   test("creates and retrieves an idempotent provider refund with exact facts", async () => {
     const requests: string[] = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -1,3 +1,6 @@
+import { reconcilePaymentEvent, type ReconciliationResult } from "../payments/reconciliation";
+import type { StripeTestSettlementProvider } from "../payments/stripe-adapter";
+
 export type FashionStagingResourceType =
   "cart" | "checkout_attempt" | "order" | "reservation" | "reservation_group";
 
@@ -290,6 +293,92 @@ export async function registerFashionStagingResource(
     )
     .bind(runId, resourceType, resourceId, now.toISOString())
     .run();
+}
+
+async function orderReferenceForAttempt(
+  db: D1Database,
+  checkoutAttemptId: string,
+): Promise<string | null> {
+  const order = await db
+    .prepare("SELECT public_reference FROM orders WHERE checkout_attempt_id = ?")
+    .bind(checkoutAttemptId)
+    .first<{ public_reference: string }>();
+  return order?.public_reference ?? null;
+}
+
+export async function settleFashionStagingTestPayment(
+  db: D1Database,
+  runId: string,
+  owner: string,
+  checkoutAttemptId: string,
+  provider: StripeTestSettlementProvider,
+  now = new Date(),
+): Promise<ReconciliationResult> {
+  assertIdentifier(checkoutAttemptId, "checkoutAttemptId");
+  const attempt = await db
+    .prepare(
+      `SELECT ca.id, ca.provider_session_id, ca.currency, ca.grand_total_amount
+         FROM checkout_attempts ca
+         JOIN fashion_staging_acceptance_resources resource
+           ON resource.resource_type = 'checkout_attempt'
+          AND resource.resource_id = ca.id
+         JOIN fashion_staging_acceptance_runs run ON run.run_id = resource.run_id
+        WHERE run.run_id = ? AND run.owner = ? AND run.status = 'running'
+          AND run.lease_expires_at > ? AND ca.id = ? AND ca.provider = 'stripe'
+          AND ca.environment = 'staging' AND ca.test_mode = 1
+          AND ca.status IN ('payment_pending', 'completed')
+          AND ca.provider_session_id IS NOT NULL`,
+    )
+    .bind(runId, owner, now.toISOString(), checkoutAttemptId)
+    .first<{
+      currency: string;
+      grand_total_amount: number;
+      id: string;
+      provider_session_id: string;
+    }>();
+  if (!attempt) throw new Error("fashion_staging_test_settlement_identity_invalid");
+  const existingOrderReference = await orderReferenceForAttempt(db, attempt.id);
+  if (existingOrderReference) {
+    return { eventResult: "applied", orderReference: existingOrderReference, replayed: true };
+  }
+  const settled = await provider.settleTestSession({
+    amountTotal: attempt.grand_total_amount,
+    attemptId: attempt.id,
+    currency: attempt.currency,
+    sessionId: attempt.provider_session_id,
+  });
+  if (!settled.paymentId || settled.paymentState !== "approved") {
+    throw new Error("fashion_staging_test_settlement_not_approved");
+  }
+  const event = {
+    createdAt: now.toISOString(),
+    id: `evt_fashion_u12_${settled.paymentId}`,
+    session: settled,
+    type: "checkout.payment_succeeded" as const,
+  };
+  const result = await reconcilePaymentEvent(
+    db,
+    {
+      name: "stripe",
+      retrieveSession: async (sessionId) => {
+        if (sessionId !== settled.id) {
+          throw new Error("fashion_staging_test_settlement_session_mismatch");
+        }
+        return settled;
+      },
+    },
+    event,
+    JSON.stringify({
+      checkoutAttemptId: attempt.id,
+      paymentId: settled.paymentId,
+      providerSessionId: settled.id,
+      type: "fashion_staging_test_settlement",
+    }),
+  );
+  if (result.orderReference) return result;
+  const orderReference = await orderReferenceForAttempt(db, attempt.id);
+  if (!orderReference) throw new Error("fashion_staging_test_settlement_order_missing");
+  return { ...result, orderReference };
 }
 
 export async function recordFashionStagingJourneyFailure(

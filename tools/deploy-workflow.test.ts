@@ -9,6 +9,10 @@ const fashionPreparationWorkflowPath = resolve(
   import.meta.dir,
   "../.github/workflows/prepare-fashion-staging-u12.yml",
 );
+const fashionPurchaseJourneyPath = resolve(
+  import.meta.dir,
+  "../e2e/fashion-store-purchase.spec.ts",
+);
 const storefrontPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.config.ts",
@@ -422,6 +426,7 @@ describe("private storefront preview workflow", () => {
 
   test("locks, cleans, recovers, and fresh-session verifies the complete Fashion U12 journey", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
+    const journeySpec = await readFile(fashionPurchaseJourneyPath, "utf8");
     const isolation = workflow.indexOf(
       "Verify Fashion staging isolation and sandbox provider profile",
     );
@@ -453,6 +458,11 @@ describe("private storefront preview workflow", () => {
     expect(workflow.match(/--action=cleanup/g)?.length).toBe(2);
     expect(workflow).toContain("FASHION_U12_PHASE: journey");
     expect(workflow).toContain("FASHION_U12_PHASE: postcondition");
+    expect(journeySpec).toContain("/internal/testing/fashion-staging/runs/");
+    expect(journeySpec).toContain("/settle");
+    expect(journeySpec).not.toContain("I am an AI agent");
+    expect(journeySpec).not.toContain("cardNumber");
+    expect(workflow).not.toContain("E2E_STRIPE_TEST_CARD");
     expect(workflow).toContain("FASHION_U12_STRIPE_SECRET_KEY");
     expect(workflow).toContain("sk_test_");
     expect(workflow).toContain("FASHION_U12_TURNSTILE_SECRET");

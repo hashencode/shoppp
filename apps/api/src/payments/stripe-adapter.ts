@@ -43,6 +43,27 @@ const stripeRefundSchema = z
     status: z.enum(["pending", "succeeded", "failed", "canceled"]),
   })
   .passthrough();
+const stripeTestPaymentIntentSchema = z
+  .object({
+    amount: z.number().int().positive(),
+    currency: z.string().min(3),
+    id: z.string().min(1),
+    livemode: z.literal(false),
+    metadata: z.record(z.string(), z.string()),
+    status: z.literal("succeeded"),
+  })
+  .passthrough();
+
+export interface StripeTestSettlementInput {
+  readonly amountTotal: number;
+  readonly attemptId: string;
+  readonly currency: string;
+  readonly sessionId: string;
+}
+
+export interface StripeTestSettlementProvider {
+  settleTestSession(input: StripeTestSettlementInput): Promise<ProviderSession>;
+}
 
 interface StripeAdapterOptions {
   readonly fetcher?: typeof fetch;
@@ -319,6 +340,75 @@ export class StripePaymentProvider implements PaymentProvider {
       );
     }
     return normalizeSession(parsed.data);
+  }
+
+  async settleTestSession(input: StripeTestSettlementInput): Promise<ProviderSession> {
+    if (!this.#secretKey.startsWith("sk_test_")) {
+      throw new PaymentProviderError(
+        "stripe_test_settlement_unavailable",
+        "Stripe test settlement is unavailable.",
+        false,
+      );
+    }
+    const session = await this.retrieveSession(input.sessionId);
+    if (
+      session.attemptId !== input.attemptId ||
+      session.amountTotal !== input.amountTotal ||
+      session.currency !== input.currency ||
+      session.paymentState === "approved"
+    ) {
+      throw new PaymentProviderError(
+        "stripe_test_settlement_mismatch",
+        "Stripe test settlement identity does not match.",
+        false,
+      );
+    }
+    const body = new URLSearchParams();
+    body.set("amount", String(input.amountTotal));
+    body.set("currency", input.currency.toLowerCase());
+    body.set("payment_method", "pm_card_visa");
+    body.set("payment_method_types[0]", "card");
+    body.set("confirm", "true");
+    body.set("metadata[checkout_attempt_id]", input.attemptId);
+    body.set("metadata[checkout_session_id]", input.sessionId);
+    const payment = stripeTestPaymentIntentSchema.safeParse(
+      await this.#request("/payment_intents", {
+        body,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Idempotency-Key": `fashion-u12-${input.attemptId}`,
+        },
+        method: "POST",
+      }),
+    );
+    if (
+      !payment.success ||
+      payment.data.amount !== input.amountTotal ||
+      payment.data.currency.toUpperCase() !== input.currency ||
+      payment.data.metadata.checkout_attempt_id !== input.attemptId ||
+      payment.data.metadata.checkout_session_id !== input.sessionId
+    ) {
+      throw new PaymentProviderError(
+        "stripe_test_settlement_failed",
+        "Stripe test payment did not succeed with the exact checkout identity.",
+        false,
+      );
+    }
+    if (session.paymentState !== "expired") {
+      const expired = stripeSessionSchema.safeParse(
+        await this.#request(`/checkout/sessions/${encodeURIComponent(input.sessionId)}/expire`, {
+          method: "POST",
+        }),
+      );
+      if (!expired.success || expired.data.status !== "expired") {
+        throw new PaymentProviderError(
+          "stripe_test_session_expiry_failed",
+          "Stripe hosted Checkout could not be closed after test settlement.",
+          true,
+        );
+      }
+    }
+    return { ...session, paymentId: payment.data.id, paymentState: "approved" };
   }
 
   async verifyWebhook(rawPayload: string, signatureHeader: string): Promise<VerifiedProviderEvent> {

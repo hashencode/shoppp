@@ -87,7 +87,6 @@ function snapshot(): FashionStagingReadinessSnapshot {
         "FASHION_U13_SERVICE_TOKEN",
         "PREVIEW_BUILD_TOKEN",
         "STRIPE_SECRET_KEY",
-        "STRIPE_TEST_CARD",
         "TURNSTILE_SECRET",
       ],
       variables: {

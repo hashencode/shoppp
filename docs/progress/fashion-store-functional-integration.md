@@ -1376,3 +1376,39 @@ The ephemeral runner auto-deregistered, GitHub runner inventory returned zero, a
 directory was moved to macOS Trash for recoverable cleanup. Replacing or rotating the credential is
 a new security boundary outside standing FS-U12 retry authority. Ordinary staging and production
 were not accessed. This evidence does not complete U12 or maintain another execution queue.
+
+## 2026-08-20 — non-Link Stripe sandbox acceptance closes the regional credential blocker locally
+
+Preview `32360266387` had already proved that Shoppp creates the exact real Stripe sandbox Checkout
+Session, product, total, return identity, and registered checkout attempt. Its remaining browser
+failure came from Stripe's AI-agent steering clearing the ordinary automated test card and requiring
+Link CLI, which currently supports only United States Link accounts. The operator authorized a
+non-Link Stripe test-mode acceptance mechanism without changing the governed build/readiness or
+business acceptance goals and continued to prohibit ordinary staging and production.
+
+The replacement browser journey now verifies the real hosted Checkout product and `$129.00` total
+without entering card data or interacting with the region-limited agent steering. It then calls a
+new acceptance-token-protected settlement route that is unavailable outside the exact Fashion
+namespace and requires a current active lease, an already registered checkout attempt, Stripe,
+`environment=staging`, `test_mode=1`, and exact pending/completed attempt identity. The Stripe
+adapter separately requires an `sk_test_` key, retrieves and matches the hosted Session, creates and
+confirms one idempotent sandbox PaymentIntent with Stripe's test PaymentMethod, validates test mode,
+amount, currency, attempt and Session metadata, expires the unpaid hosted Session, and passes the
+verified result through the existing payment reconciliation and paid-order path. Retry uses the same
+PaymentIntent and provider-event identity and returns the retained order reference.
+
+The Fashion preparation/readiness contract no longer requires or forwards `STRIPE_TEST_CARD`.
+Standing-authority paths list each new API, Stripe, test, E2E, workflow, plan, progress, and runbook
+file explicitly; no wildcard scope was added. The runbook records the new fail-closed boundaries.
+
+| Local evidence                       | Result                                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Stripe adapter and Fashion lifecycle | 13 focused Worker tests passed, including the live-key guard and replay path; the complete API suite passed 187/187    |
+| Workflow/readiness/tooling           | Focused workflow batch passed 33/33; complete tools suite passed 228/228 with 794 expectations                         |
+| Repository gates                     | Full typecheck, ESLint/import boundaries, focused Prettier, and `git diff --check` passed                              |
+| E2E compilation/discovery            | Exact journey and post-cleanup phases discovered as two tests after TypeScript validation                              |
+| Remote effects                       | None; no preparation, Preview, runner registration, provider mutation, ordinary staging, or production access occurred |
+
+U12.3 remains in progress until the governed Fashion-only preparation and Preview complete. The next
+Preview must pass `recovery_run_id=32360266387` before acquiring a new acceptance lock; this evidence
+does not replace the active checkpoint or claim remote completion.

@@ -30,6 +30,19 @@ describe("Fashion U12 standing execution authority", () => {
           },
           {
             files: [
+              "apps/api/src/http/app.ts",
+              "apps/api/src/payments/reconciliation.ts",
+              "apps/api/src/payments/stripe-adapter.ts",
+              "apps/api/src/testing/fashion-staging.ts",
+              "apps/api/test/payments/stripe-adapter.test.ts",
+              "apps/api/test/testing/fashion-staging.test.ts",
+            ],
+            parentCount: 1,
+            sha: "c".repeat(40),
+            subject: "fix(payments): settle governed Stripe sandbox acceptance (U12)",
+          },
+          {
+            files: [
               "apps/api/src/settings/launch-configuration.ts",
               "apps/api/test/operations/platform-operations.test.ts",
               "packages/db/migrations/0021_fashion_shipping_method_public_id.sql",
@@ -46,7 +59,7 @@ describe("Fashion U12 standing execution authority", () => {
         head,
         isDescendant: true,
       }),
-    ).toEqual({ baseline, commitCount: 3, head });
+    ).toEqual({ baseline, commitCount: 4, head });
   });
 
   test("rejects a non-descendant, unrelated commit, or out-of-scope file", () => {
@@ -80,7 +93,7 @@ describe("Fashion U12 standing execution authority", () => {
         baseline,
         commits: [
           {
-            files: ["apps/api/src/http/app.ts"],
+            files: ["apps/api/src/orders/create-order.ts"],
             parentCount: 1,
             sha: head,
             subject: "fix(api): change an unrelated API surface (U12)",
