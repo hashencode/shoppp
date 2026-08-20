@@ -359,6 +359,13 @@ describe("private storefront preview workflow", () => {
     expect(acceptance).not.toContain("FASHION_U12_COMMIT_SHA: ${{ github.sha }}");
   });
 
+  test("computes Preview expiry portably across hosted and ephemeral runners", async () => {
+    const workflow = await readFile(previewWorkflowPath, "utf8");
+
+    expect(workflow).toContain("new Date(Date.now() + 24 * 60 * 60 * 1000)");
+    expect(workflow).not.toContain("date -u -d '+24 hours'");
+  });
+
   test("validates exact origins and configures a separate Admin handoff origin", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
 

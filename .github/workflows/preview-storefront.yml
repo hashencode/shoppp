@@ -240,7 +240,7 @@ jobs:
           CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
           FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
         run: |
-          EXPIRES_AT="$(date -u -d '+24 hours' '+%Y-%m-%dT%H:%M:%SZ')"
+          EXPIRES_AT="$(bun -e 'console.log(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z"))')"
           REPORT_BODY="$RUNNER_TEMP/preview-build-report.json"
           REPORT_STATUS="$(curl --silent --show-error --output "$REPORT_BODY" \
             --write-out '%{http_code}' \
