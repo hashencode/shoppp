@@ -28,11 +28,23 @@ describe("Fashion U12 standing execution authority", () => {
             sha: head,
             subject: "fix(storefront): accept governed Preview media origins (U12)",
           },
+          {
+            files: [
+              "packages/db/migrations/0021_fashion_shipping_method_public_id.sql",
+              "packages/db/test/apply-migrations.ts",
+              "packages/db/test/env.d.ts",
+              "packages/db/test/migrations.test.ts",
+              "packages/db/wrangler.jsonc",
+            ],
+            parentCount: 1,
+            sha: "b".repeat(40),
+            subject: "fix(db): align Fashion shipping identity (U12)",
+          },
         ],
         head,
         isDescendant: true,
       }),
-    ).toEqual({ baseline, commitCount: 2, head });
+    ).toEqual({ baseline, commitCount: 3, head });
   });
 
   test("rejects a non-descendant, unrelated commit, or out-of-scope file", () => {

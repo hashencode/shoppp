@@ -498,6 +498,7 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("PRAGMA integrity_check;");
     expect(workflow).not.toContain("PRAGMA foreign_keys=OFF");
     expect(workflow).toContain("FASHION_U12_MIGRATIONS:");
+    expect(workflow).toContain("0021_fashion_shipping_method_public_id.sql");
     expect(workflow).toContain("SELECT name, applied_at FROM d1_migrations ORDER BY name");
     expect(workflow).toContain("all(.[]; .applied_at != null)");
     expect(workflow).not.toContain("d1 migrations list");

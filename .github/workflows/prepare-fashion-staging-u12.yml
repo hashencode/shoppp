@@ -30,7 +30,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       FASHION_U12_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
-      FASHION_U12_MIGRATIONS: '["0018_storefront_preview_revocation.sql","0019_storefront_validation_catalog_identity.sql","0020_fashion_staging_acceptance.sql"]'
+      FASHION_U12_MIGRATIONS: '["0018_storefront_preview_revocation.sql","0019_storefront_validation_catalog_identity.sql","0020_fashion_staging_acceptance.sql","0021_fashion_shipping_method_public_id.sql"]'
       GH_TOKEN: ${{ secrets.FASHION_U12_GITHUB_ADMIN_TOKEN }}
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}

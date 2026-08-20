@@ -25,6 +25,63 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("upgrades the governed Fashion shipping method to a checkout-compatible public ID", async () => {
+    const db = env.FASHION_SHIPPING_ID_UPGRADE_DB;
+    const legacyId = "shipping_method_fashion_ground";
+    const publicId = "ship_01JFASHIONGROUND0000000000";
+
+    await seedLaunchFixture(db);
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO shipping_zones (id, name, status, created_at, updated_at)
+           VALUES ('zone_fashion_us', 'Fashion US', 'active', ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO shipping_methods
+           (id, zone_id, name, calculation_type, price_amount, currency,
+            free_threshold_amount, min_weight_grams, max_weight_grams, status,
+            created_at, updated_at)
+         VALUES ('shipping_method_fashion_ground', 'zone_fashion_us', 'Standard shipping',
+                 'flat', 0, 'USD', NULL, NULL, NULL, 'active', ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare("UPDATE carts SET shipping_method_id = ? WHERE id = 'cart_fixture_0001'")
+        .bind(legacyId),
+      db
+        .prepare("INSERT INTO settings (key, value_json, updated_at) VALUES (?, ?, ?)")
+        .bind(
+          "launch_configuration",
+          JSON.stringify({ shippingMethodIds: [legacyId], untouched: legacyId }),
+          NOW,
+        ),
+    ]);
+
+    await applyD1Migrations(db, env.TEST_MIGRATIONS);
+
+    expect(
+      await db
+        .prepare("SELECT id, name FROM shipping_methods WHERE id IN (?, ?) ORDER BY id")
+        .bind(legacyId, publicId)
+        .all(),
+    ).toMatchObject({ results: [{ id: publicId, name: "Standard shipping" }] });
+    expect(
+      await db
+        .prepare("SELECT shipping_method_id FROM carts WHERE id = 'cart_fixture_0001'")
+        .first(),
+    ).toEqual({ shipping_method_id: publicId });
+    const setting = await db
+      .prepare("SELECT value_json FROM settings WHERE key = 'launch_configuration'")
+      .first<{ value_json: string }>();
+    expect(JSON.parse(setting!.value_json)).toEqual({
+      shippingMethodIds: [publicId],
+      untouched: legacyId,
+    });
+  });
+
   test("upgrades referenced storefront validations through 0019 without losing legacy uniqueness", async () => {
     const db = env.STOREFRONT_VALIDATION_UPGRADE_DB;
     const migrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>

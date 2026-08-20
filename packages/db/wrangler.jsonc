@@ -32,5 +32,12 @@
       "preview_database_id": "00000000-0000-0000-0000-000000000007",
       "migrations_dir": "migrations",
     },
+    {
+      "binding": "FASHION_SHIPPING_ID_UPGRADE_DB",
+      "database_name": "shoppp-fashion-shipping-id-upgrade-test",
+      "database_id": "00000000-0000-0000-0000-000000000008",
+      "preview_database_id": "00000000-0000-0000-0000-000000000009",
+      "migrations_dir": "migrations",
+    },
   ],
 }

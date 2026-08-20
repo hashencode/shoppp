@@ -4,6 +4,7 @@ declare global {
   namespace Cloudflare {
     interface Env {
       DB: D1Database;
+      FASHION_SHIPPING_ID_UPGRADE_DB: D1Database;
       LEGACY_DB: D1Database;
       INVALID_LEGACY_DB: D1Database;
       STOREFRONT_VALIDATION_UPGRADE_DB: D1Database;
