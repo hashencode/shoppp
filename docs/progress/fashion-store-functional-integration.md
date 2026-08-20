@@ -1409,6 +1409,37 @@ file explicitly; no wildcard scope was added. The runbook records the new fail-c
 | E2E compilation/discovery            | Exact journey and post-cleanup phases discovered as two tests after TypeScript validation                              |
 | Remote effects                       | None; no preparation, Preview, runner registration, provider mutation, ordinary staging, or production access occurred |
 
-U12.3 remains in progress until the governed Fashion-only preparation and Preview complete. The next
-Preview must pass `recovery_run_id=32360266387` before acquiring a new acceptance lock; this evidence
-does not replace the active checkpoint or claim remote completion.
+U12.3 remains in progress until the governed Fashion-only preparation and Preview complete. The
+governed acceptance identity later proved to be `32360266387-1` (run plus attempt), which had to be
+reconciled before acquiring a new lock; this evidence does not replace the active checkpoint or
+claim remote completion.
+
+## 2026-08-20 — governed non-Link Preview reaches the browser capture boundary
+
+Commit `b53ea8719037e6c12a5e28f5aa7e2d7a5eeb3874` passed governed preparation run
+`32368786058` attempt 2 after a replacement ephemeral runner used a healthy bundled Node runtime;
+attempt 1 had failed before mutation because the host Homebrew Node referenced a missing simdjson
+dynamic library. Preparation created building build
+`preview-build-8906f8150dd2b297a46d2e18-f1bb77ee6f824f48-1`, approved Snapshot
+`snapshot-approved-72d9f6368906f8150dd2b297a46d2e18`, and readiness digest
+`40440023a546a5914350f28e7d6c13dc63cfff4ea8ed6cd3b452255c130f69ec`.
+
+Preview `32369403046` verified readiness, built and deployed the isolated content-addressed artifact,
+then failed before a new acceptance lock because the requested recovery value `32360266387` omitted
+the acceptance attempt suffix. The governed D1 backup proved the exact row was
+`32360266387-1`, already had released reservations and baseline inventory, and remained
+`cleanup_pending`. Equivalent Preview `32371052412` used that exact ID, completed recovery, acquired
+a new lock, passed deployed U13, installed Chromium, and reached the real Checkout 201 response.
+
+Both Playwright journey attempts then failed before settlement because the test read the Checkout
+response through CDP after Stripe navigation had already released its body. Governed failure
+recording and U12 cleanup succeeded, restoring the inventory baseline; the postcondition phase and
+accepted-build report correctly remained gated. The local fix now intercepts that exact endpoint
+with `page.route`, reads the 201 body before fulfilling it to the page, registers the captured
+checkout attempt, and continues the same real hosted Checkout navigation. Workflow contract tests
+passed 24/24, E2E TypeScript passed, both phase tests were discovered, and `git diff --check` passed.
+
+Every preparation and Preview runner auto-deregistered; runner and diagnostic directories were
+moved to macOS Trash for recoverable cleanup. Ordinary staging and production were not accessed.
+The next remote proof uses the operator-authorized new commit/readiness identity; this evidence does
+not complete U12 or maintain a second execution queue.

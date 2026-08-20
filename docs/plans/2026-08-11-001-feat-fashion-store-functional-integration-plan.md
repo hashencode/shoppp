@@ -98,26 +98,25 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U12 — deploy and prove the real Fashion Store Commerce journey. U7 and the
   explicit product-level FRT interlude are complete.
-- **Current sub-stage:** U12.3 — Fashion shipping identity, Stripe runtime credentials, webhook
-  rotation, ephemeral-runner portability, and the non-Link Stripe test-mode acceptance path are
-  locally fixed and verified. The replacement path keeps the real hosted Checkout identity, uses an
-  exact protected sandbox settlement, and preserves normal payment reconciliation, paid return,
-  inventory, and cleanup behavior. Ordinary staging and production remain barred.
-- **Next concrete action:** Land the verified U12 change on `main`, rerun governed Fashion-only
-  preparation from that exact ref, then dispatch Preview with `recovery_run_id=32360266387` so
-  startup reconciliation resolves the failed cleanup before the next acceptance lock and complete
-  sandbox journey.
-- **Blocker:** None for the local implementation. The next governed Preview must still reconcile
-  failed run `32360266387`; its ephemeral runner auto-deregistered and the prior build remains
-  immutable. Fresh build/readiness creation and Preview execution remain bounded by the standing
-  FS-U12 authority and continue to exclude ordinary staging and production.
+- **Current sub-stage:** U12.3 — preparation `32368786058` created fresh build/readiness at
+  `b53ea871`; Preview `32371052412` reconciled exact abandoned run `32360266387-1`, deployed the
+  isolated artifact, passed U13, and restored the U12 inventory baseline after the browser journey
+  hit a Checkout-response capture race before sandbox settlement. The route-level capture fix is
+  locally implemented and verified. Ordinary staging and production remain barred.
+- **Next concrete action:** Land the authorized response-capture fix, rerun governed Fashion-only
+  preparation from the resulting exact `main`, then dispatch an equivalent Preview. The prior
+  abandoned run is reconciled and run `32371052412-1` completed its governed cleanup, so no stale
+  acceptance lock remains.
+- **Blocker:** None. The operator explicitly authorized the new commit/readiness identity. All
+  ephemeral runners are deregistered; execution remains bounded to Fashion-only preparation and
+  Preview and continues to exclude ordinary staging and production.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-20 after the operator authorized a non-Link Stripe test-mode acceptance
-  mechanism and its guarded local implementation passed API, workflow, readiness, typecheck, lint,
-  and E2E discovery verification. U12.3 remains in progress pending governed remote proof.
+- **Last reviewed:** 2026-08-20 after Preview `32371052412` proved recovery, deployment, U13, and
+  governed baseline cleanup, then exposed and retained the pre-settlement Playwright response-body
+  race. U12.3 remains in progress with the new identity authorized for governed re-execution.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The

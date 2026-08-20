@@ -134,15 +134,24 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
         }),
       );
     }
-    if (path === "/api/checkout/sessions" && request.method() === "POST") {
-      resourceRegistrations.push(
-        response.json().then((payload: { data?: { attemptId?: string } }) => {
-          const id = payload.data?.attemptId;
-          if (!id) throw new Error("Checkout creation returned no stable attempt ID");
-          return registerResource(page.request, "checkout_attempt", id);
-        }),
-      );
-    }
+  });
+
+  type CheckoutCapture = {
+    payload: { data?: { attemptId?: string; checkoutUrl?: string } };
+    status: number;
+  };
+  let resolveCheckoutPayload!: (capture: CheckoutCapture) => void;
+  const checkoutPayloadPromise = new Promise<CheckoutCapture>((resolve) => {
+    resolveCheckoutPayload = resolve;
+  });
+  await page.route("**/api/checkout/sessions", async (route) => {
+    const response = await route.fetch();
+    const body = await response.body();
+    resolveCheckoutPayload({
+      payload: JSON.parse(body.toString()) as CheckoutCapture["payload"],
+      status: response.status(),
+    });
+    await route.fulfill({ body, response });
   });
 
   const slug = requiredEnvironment("FASHION_U12_PRODUCT_SLUG");
@@ -206,21 +215,15 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
   await expect(page.getByRole("radio").first()).toBeChecked();
   await page.locator(".your-order-box .terms-condition-box label").click();
   await expect(page.getByRole("button", { name: "Place order" })).toBeEnabled({ timeout: 60_000 });
-  const checkoutResponsePromise = page.waitForResponse((response) => {
-    const request = response.request();
-    return (
-      new URL(response.url()).pathname === "/api/checkout/sessions" && request.method() === "POST"
-    );
-  });
   await page.getByRole("button", { name: "Place order" }).click();
 
-  const checkoutResponse = await checkoutResponsePromise;
-  expect(checkoutResponse.status()).toBe(201);
-  const checkout = (await checkoutResponse.json()) as {
-    data?: { attemptId?: string; checkoutUrl?: string };
-  };
+  const { payload: checkout, status: checkoutStatus } = await checkoutPayloadPromise;
+  expect(checkoutStatus).toBe(201);
   expect(checkout.data?.attemptId).toMatch(/^chk_[A-Za-z0-9_]+$/);
   expect(checkout.data?.checkoutUrl).toMatch(/^https:\/\/checkout\.stripe\.com\//);
+  resourceRegistrations.push(
+    registerResource(page.request, "checkout_attempt", checkout.data!.attemptId!),
+  );
   await Promise.all(resourceRegistrations);
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
   await expect(page.locator("body")).toContainText(name);

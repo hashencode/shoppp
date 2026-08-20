@@ -460,6 +460,8 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain("FASHION_U12_PHASE: postcondition");
     expect(journeySpec).toContain("/internal/testing/fashion-staging/runs/");
     expect(journeySpec).toContain("/settle");
+    expect(journeySpec).toContain('page.route("**/api/checkout/sessions"');
+    expect(journeySpec).not.toContain("checkoutResponse.json()");
     expect(journeySpec).not.toContain("I am an AI agent");
     expect(journeySpec).not.toContain("cardNumber");
     expect(workflow).not.toContain("E2E_STRIPE_TEST_CARD");

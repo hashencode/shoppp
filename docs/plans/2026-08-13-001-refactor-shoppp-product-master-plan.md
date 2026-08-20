@@ -67,17 +67,15 @@ historical evidence remain unchanged inside the owning plans.
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
-- **Current child stage:** `FS-U12.3` — shipping identity, Stripe runtime credentials, webhook
-  rotation, ephemeral Preview portability, and the non-Link Stripe test-mode acceptance path are
-  locally fixed and verified. The replacement keeps real hosted Checkout identity and normal
-  reconciliation, paid-return, inventory, and cleanup behavior; ordinary staging and production
-  remain excluded.
-- **Next action:** Land the verified U12 change on `main`, rerun governed Fashion-only preparation
-  from that exact ref, then Preview with `recovery_run_id=32360266387` before the next acceptance
-  lock and complete sandbox journey.
-- **Blocker:** None for local implementation. Failed run `32360266387` still requires governed
-  startup reconciliation; its ephemeral runner auto-deregistered and its build remains immutable.
-  Fresh build/readiness and Preview remain bounded by standing FS-U12 authority.
+- **Current child stage:** `FS-U12.3` — preparation `32368786058` created fresh identity at
+  `b53ea871`; Preview `32371052412` reconciled abandoned run `32360266387-1`, deployed the isolated
+  artifact, passed U13, and restored the U12 baseline after a pre-settlement browser response-body
+  race. Its route-level capture fix is locally verified; ordinary staging and production remain
+  excluded.
+- **Next action:** Land the authorized capture fix, rerun Fashion-only preparation from the exact
+  resulting `main`, then dispatch an equivalent Preview.
+- **Blocker:** None. The operator explicitly authorized the new commit/readiness binding. All
+  ephemeral runners are deregistered and no stale acceptance lock remains.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
