@@ -319,6 +319,12 @@ describe("private storefront preview workflow", () => {
 
   test("uses the authoritative build manifest and preserves its exact Catalog identity", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
+    const reportStart = workflow.indexOf("Report the exact preview artifact to the authority");
+    const reportEnd = workflow.indexOf("\n      - name:", reportStart);
+    const report = workflow.slice(reportStart, reportEnd === -1 ? undefined : reportEnd);
+    const acceptance = workflow.slice(
+      workflow.indexOf("Reconcile an explicitly selected abandoned Fashion U12 run"),
+    );
 
     expect(workflow).toContain("build_id:");
     expect(workflow).toContain("snapshot_id:");
@@ -336,6 +342,18 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain("Idempotency-Key: preview-build-result-$BUILD_ID");
     expect(workflow).toContain('"status":"deployed"');
     expect(workflow).toContain('"status":"failed"');
+    expect(report).toContain("$PREVIEW_API_URL/admin/storefront-experiences/builds/$BUILD_ID");
+    expect(report).toContain("FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}");
+    expect(report).toContain('select(.data.status == "deployed")');
+    expect(report).toContain('--arg snapshot "$SNAPSHOT_ID"');
+    expect(report).toContain("printf 'digest=%s\\n'");
+    expect(report).toContain("printf 'prefix=%s\\n'");
+    expect(acceptance).toContain("FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}");
+    expect(acceptance).not.toContain(
+      "FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}",
+    );
+    expect(acceptance).toContain("FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}");
+    expect(acceptance).not.toContain("FASHION_U12_COMMIT_SHA: ${{ github.sha }}");
   });
 
   test("validates exact origins and configures a separate Admin handoff origin", async () => {
@@ -370,7 +388,7 @@ describe("private storefront preview workflow", () => {
 
     expect(workflow).toContain("group: fashion-staging-preview");
     expect(workflow).toContain("environment: fashion-staging");
-    expect(workflow.split(secretReference)).toHaveLength(4);
+    expect(workflow.split(secretReference)).toHaveLength(5);
     expect(u13Step).toContain(secretReference);
     expect(
       namedStep("Run no-interception Fashion archetype and sandbox purchase journey"),

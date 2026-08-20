@@ -220,22 +220,59 @@ jobs:
             --var "PREVIEW_ORIGIN:$PREVIEW_ORIGIN"
       - name: Report the exact preview artifact to the authority
         id: report
+        env:
+          CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
+          FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
         run: |
           EXPIRES_AT="$(date -u -d '+24 hours' '+%Y-%m-%dT%H:%M:%SZ')"
-          curl --fail --silent --show-error \
+          REPORT_BODY="$RUNNER_TEMP/preview-build-report.json"
+          REPORT_STATUS="$(curl --silent --show-error --output "$REPORT_BODY" \
+            --write-out '%{http_code}' \
             --request POST \
             --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
             --header "Content-Type: application/json" \
             --header "Idempotency-Key: preview-build-result-$BUILD_ID" \
             --data '{"artifactDigest":"${{ steps.artifact.outputs.digest }}","artifactPrefix":"${{ steps.artifact.outputs.prefix }}","expiresAt":"'"$EXPIRES_AT"'","status":"deployed"}' \
-            "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status"
+            "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status")"
+          if [[ "$REPORT_STATUS" =~ ^2[0-9][0-9]$ ]]; then
+            jq --exit-status \
+              --arg build "$BUILD_ID" \
+              --arg digest "${{ steps.artifact.outputs.digest }}" \
+              --arg prefix "${{ steps.artifact.outputs.prefix }}" \
+              --arg snapshot "$SNAPSHOT_ID" \
+              '.data.id == $build and .data.snapshotId == $snapshot and
+               .data.status == "deployed" and .data.artifactDigest == $digest and
+               .data.artifactPrefix == $prefix' "$REPORT_BODY" >/dev/null
+          elif test "$REPORT_STATUS" = 409; then
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $FASHION_U13_SERVICE_TOKEN" \
+              "$PREVIEW_API_URL/admin/storefront-experiences/builds/$BUILD_ID" \
+              > "$REPORT_BODY"
+            jq --exit-status \
+              --arg build "$BUILD_ID" \
+              --arg catalog "$CATALOG_RELEASE_ID" \
+              --arg snapshot "$SNAPSHOT_ID" \
+              'select(.data.status == "deployed") |
+               .data.id == $build and .data.snapshotId == $snapshot and
+               .data.inputIdentity.experienceSnapshotId == $snapshot and
+               .data.inputIdentity.catalogReleaseId == $catalog and
+               (.data.artifactDigest | test("^[a-f0-9]{64}$")) and
+               .data.artifactPrefix ==
+                 ("snapshots/" + $snapshot + "/" + $catalog + "/" + .data.artifactDigest) and
+               (.data.expiresAt | fromdateiso8601 > now)' "$REPORT_BODY" >/dev/null
+          else
+            printf 'Preview build report failed with HTTP %s.\n' "$REPORT_STATUS" >&2
+            exit 1
+          fi
+          printf 'digest=%s\n' "$(jq -er '.data.artifactDigest' "$REPORT_BODY")" >> "$GITHUB_OUTPUT"
+          printf 'prefix=%s\n' "$(jq -er '.data.artifactPrefix' "$REPORT_BODY")" >> "$GITHUB_OUTPUT"
       - name: Reconcile an explicitly selected abandoned Fashion U12 run
         if: ${{ inputs.recovery_run_id != '' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_RUN_ID: ${{ inputs.recovery_run_id }}
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
@@ -244,9 +281,9 @@ jobs:
         id: u12-acquire
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
         run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-acquire.json
@@ -266,9 +303,9 @@ jobs:
         if: ${{ steps.u13.outcome == 'success' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_RESOURCE_TYPE: cart
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
@@ -295,9 +332,9 @@ jobs:
         if: ${{ steps.u13.outcome == 'failure' || steps.u12-journey.outcome == 'failure' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_FAILURE: ${{ steps.u13.outcome == 'failure' && 'deployed U13 preflight failed' || 'no-interception Fashion journey failed' }}
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
@@ -308,9 +345,9 @@ jobs:
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
         run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-cleanup.json
@@ -319,9 +356,9 @@ jobs:
         if: ${{ steps.u13.outcome == 'success' && steps.u12-journey.outcome == 'success' && steps.u12-cleanup.outcome == 'success' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
@@ -343,9 +380,9 @@ jobs:
         if: ${{ steps.u12-postcondition.outcome == 'failure' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_FAILURE: fresh-session sellable postcondition failed
           FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
@@ -357,9 +394,9 @@ jobs:
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
-          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
           FASHION_U12_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
-          FASHION_U12_COMMIT_SHA: ${{ github.sha }}
+          FASHION_U12_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           FASHION_U12_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-post
           FASHION_U12_SEED_MANIFEST_DIGEST: ${{ steps.build-input.outputs.seed_manifest_digest }}
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
