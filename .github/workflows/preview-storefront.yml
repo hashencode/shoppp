@@ -443,6 +443,7 @@ jobs:
             "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID/status"
       - name: Preserve private build metadata
         if: always() && steps.validate.outcome == 'success'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: preview-build-${{ inputs.snapshot_id }}

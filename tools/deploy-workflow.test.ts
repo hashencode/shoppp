@@ -429,6 +429,8 @@ describe("private storefront preview workflow", () => {
     const postcondition = workflow.indexOf("Prove the fresh-session sellable postcondition");
     const postCleanup = workflow.indexOf("Clean the fresh-session postcondition run");
     const verdict = workflow.indexOf("Enforce the complete Fashion U12 verdict");
+    const metadataStart = workflow.indexOf("      - name: Preserve private build metadata");
+    const metadata = workflow.slice(metadataStart);
 
     expect(isolation).toBeGreaterThan(0);
     expect(upload).toBeGreaterThan(isolation);
@@ -450,6 +452,8 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain("FASHION_U12_EMAIL_MODE");
     expect(workflow).toContain("playwright-report/");
     expect(workflow).toContain("test-results/");
+    expect(metadataStart).toBeGreaterThan(verdict);
+    expect(metadata).toContain("continue-on-error: true");
   });
 });
 
