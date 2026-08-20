@@ -198,9 +198,9 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
   await page.getByLabel("First name *").fill("Ada");
   await page.getByLabel("Last name *").fill("Buyer");
   await page.getByLabel("Street address *").fill("100 Market Street");
-  await page.getByLabel("Town / City *").fill("Portland");
-  await page.getByLabel("State *").selectOption("OR");
-  await page.getByLabel("ZIP *").fill("97205");
+  await page.getByLabel("Town / City *").fill("San Francisco");
+  await page.getByLabel("State *").selectOption("CA");
+  await page.getByLabel("ZIP *").fill("94105");
   await page.getByLabel("Phone *").fill("5125550100");
   await page.getByLabel("Email address *").fill("fashion-u12@example.test");
   await expect(page.getByRole("radio").first()).toBeChecked();
@@ -221,7 +221,7 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
   const billingName = page.locator('input[name="billingName"], input[autocomplete="name"]').first();
   if (await billingName.isVisible()) await billingName.fill("Fashion U12 Buyer");
   const postalCode = page.getByRole("textbox", { name: /ZIP|postal code/i }).first();
-  if (await postalCode.isVisible()) await postalCode.fill("97205");
+  if (await postalCode.isVisible()) await postalCode.fill("94105");
   const saveInformation = page.getByRole("checkbox", { name: /Save my information/i });
   if ((await saveInformation.isVisible()) && (await saveInformation.isChecked()))
     await saveInformation.uncheck();
