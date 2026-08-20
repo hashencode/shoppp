@@ -99,9 +99,39 @@ jobs:
                 "checkout.session.expired"
               ]))
             )' artifacts/fashion-u12/stripe-webhooks.json >/dev/null
-      - name: Synchronize the Fashion API Stripe sandbox key
+      - name: Rotate and synchronize the Fashion API Stripe sandbox credentials
         working-directory: apps/api
-        run: printf '%s' "$STRIPE_SECRET_KEY" | bunx wrangler secret put STRIPE_SECRET_KEY --env fashion-staging
+        run: |
+          ROTATION_RESPONSE="$RUNNER_TEMP/fashion-u12-stripe-webhook-rotation.json"
+          curl --fail --silent --show-error --request POST --user "$STRIPE_SECRET_KEY:" \
+            --data-urlencode "url=$API_ORIGIN/webhooks/stripe" \
+            --data-urlencode "description=Shoppp governed Fashion staging U12 acceptance" \
+            --data-urlencode "enabled_events[]=checkout.session.async_payment_failed" \
+            --data-urlencode "enabled_events[]=checkout.session.async_payment_succeeded" \
+            --data-urlencode "enabled_events[]=checkout.session.completed" \
+            --data-urlencode "enabled_events[]=checkout.session.expired" \
+            https://api.stripe.com/v1/webhook_endpoints > "$ROTATION_RESPONSE"
+          ROTATED_WEBHOOK_ID="$(jq --exit-status --raw-output '.id' "$ROTATION_RESPONSE")"
+          ROTATED_WEBHOOK_SECRET="$(jq --exit-status --raw-output '.secret' "$ROTATION_RESPONSE")"
+          [[ "$ROTATED_WEBHOOK_ID" == we_* ]]
+          [[ "$ROTATED_WEBHOOK_SECRET" == whsec_* ]]
+          echo "::add-mask::$ROTATED_WEBHOOK_SECRET"
+          printf '%s' "$STRIPE_SECRET_KEY" | \
+            bunx wrangler secret put STRIPE_SECRET_KEY --env fashion-staging
+          printf '%s' "$ROTATED_WEBHOOK_SECRET" | \
+            bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env fashion-staging
+          jq --exit-status --raw-output --arg id "$ROTATED_WEBHOOK_ID" \
+            --arg url "$API_ORIGIN/webhooks/stripe" \
+            '.data[] | select(.id != $id and .url == $url) | .id' \
+            ../../artifacts/fashion-u12/stripe-webhooks.json | while read -r webhook_id; do
+              [[ "$webhook_id" == we_* ]]
+              curl --fail --silent --show-error --request DELETE \
+                --user "$STRIPE_SECRET_KEY:" \
+                "https://api.stripe.com/v1/webhook_endpoints/$webhook_id" >/dev/null
+            done
+          jq --null-input --arg id "$ROTATED_WEBHOOK_ID" \
+            '{rotatedWebhookEndpointId:$id}' \
+            > ../../artifacts/fashion-u12/stripe-webhook-rotation.json
       - name: Export exact Fashion D1 before migrations
         working-directory: apps/api
         run: |

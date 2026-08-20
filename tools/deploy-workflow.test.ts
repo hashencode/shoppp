@@ -525,8 +525,10 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("FASHION_U12_ADMIN_SERVICE_TOKEN");
     expect(workflow).toContain("FASHION_U12_GITHUB_ADMIN_TOKEN");
     expect(workflow).toContain("STRIPE_WEBHOOK_SECRET");
-    expect(workflow).toContain("Synchronize the Fashion API Stripe sandbox key");
+    expect(workflow).toContain("Rotate and synchronize the Fashion API Stripe sandbox credentials");
     expect(workflow).toContain("wrangler secret put STRIPE_SECRET_KEY --env fashion-staging");
+    expect(workflow).toContain("wrangler secret put STRIPE_WEBHOOK_SECRET --env fashion-staging");
+    expect(workflow).toContain("https://api.stripe.com/v1/webhook_endpoints/$webhook_id");
     expect(workflow).toContain("wrangler secret list --env fashion-staging --format json");
     expect(workflow).toContain("wrangler secret list --config wrangler.preview.jsonc");
     expect(workflow).toContain("--env fashion-staging --format json");
