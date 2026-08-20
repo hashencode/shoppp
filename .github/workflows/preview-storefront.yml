@@ -444,6 +444,7 @@ jobs:
       - name: Preserve private build metadata
         if: always() && steps.validate.outcome == 'success'
         continue-on-error: true
+        timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
           name: preview-build-${{ inputs.snapshot_id }}

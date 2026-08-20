@@ -454,6 +454,7 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain("test-results/");
     expect(metadataStart).toBeGreaterThan(verdict);
     expect(metadata).toContain("continue-on-error: true");
+    expect(metadata).toContain("timeout-minutes: 2");
   });
 });
 
