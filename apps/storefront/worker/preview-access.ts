@@ -250,14 +250,23 @@ function validMediaOrigins(value: unknown): value is string[] {
   });
 }
 
-function securityHeaders(origin: string, mediaOrigins: readonly string[] = []): Headers {
+function securityHeaders(
+  origin: string,
+  mediaOrigins: readonly string[] = [],
+  inlineScriptHashes: readonly string[] = [],
+): Headers {
   const imageSources = [origin, ...mediaOrigins].join(" ");
   const turnstileOrigin = "https://challenges.cloudflare.com";
+  const scriptSources = [
+    origin,
+    turnstileOrigin,
+    ...inlineScriptHashes.map((digest) => `'sha256-${digest}'`),
+  ].join(" ");
   return new Headers({
     "Cache-Control": "private, no-store",
     "Content-Security-Policy": [
       `default-src ${origin}`,
-      `script-src ${origin} ${turnstileOrigin}`,
+      `script-src ${scriptSources}`,
       `style-src ${origin} 'unsafe-inline'`,
       `img-src ${imageSources}`,
       `font-src ${origin}`,
@@ -272,6 +281,24 @@ function securityHeaders(origin: string, mediaOrigins: readonly string[] = []): 
     "X-Frame-Options": "DENY",
     "X-Robots-Tag": "noindex, nofollow",
   });
+}
+
+async function htmlInlineScriptHashes(body: Uint8Array): Promise<string[]> {
+  const html = new TextDecoder().decode(body);
+  const scripts: string[] = [];
+  const scriptPattern = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+  for (const match of html.matchAll(scriptPattern)) {
+    const attributes = match[1] ?? "";
+    const contents = match[2] ?? "";
+    if (/(?:^|\s)src\s*=/i.test(attributes)) continue;
+    scripts.push(contents);
+  }
+  return Promise.all(
+    [...new Set(scripts)].map(async (contents) => {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(contents));
+      return btoa(String.fromCharCode(...new Uint8Array(digest)));
+    }),
+  );
 }
 
 function responseWithSecurity(
@@ -679,9 +706,20 @@ export function createPreviewAccessHandler(options: { now?: () => Date } = {}) {
     if (!object) {
       return responseWithSecurity("Preview artifact not found.", configuredOrigin.origin, 404);
     }
-    const headers = securityHeaders(configuredOrigin.origin, authorization.mediaOrigins);
-    headers.set("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream");
-    return new Response(request.method === "HEAD" ? null : object.body, {
+    const contentType = object.httpMetadata?.contentType ?? "application/octet-stream";
+    let body: BodyInit = object.body;
+    let inlineScriptHashes: string[] = [];
+    if (contentType.toLowerCase().startsWith("text/html")) {
+      body = new Uint8Array(await new Response(object.body).arrayBuffer());
+      inlineScriptHashes = await htmlInlineScriptHashes(body);
+    }
+    const headers = securityHeaders(
+      configuredOrigin.origin,
+      authorization.mediaOrigins,
+      inlineScriptHashes,
+    );
+    headers.set("Content-Type", contentType);
+    return new Response(request.method === "HEAD" ? null : body, {
       headers,
       status: 200,
     });

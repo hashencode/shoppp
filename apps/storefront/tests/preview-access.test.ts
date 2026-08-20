@@ -295,10 +295,11 @@ describe("private Preview Commerce bridge", () => {
     expect(normalizePreviewAssetPath("/_headers")).toBe("_headers");
     const env = environment();
     const artifactKeys: string[] = [];
+    const inlineScript = "window.__NUXT__ = { hydrated: true };";
     env.PREVIEW_ARTIFACTS.get = async (key) => {
       artifactKeys.push(key);
       return {
-        body: "<!doctype html>",
+        body: `<!doctype html><script>${inlineScript}</script><script src="/_nuxt/entry.js"></script>`,
         httpMetadata: { contentType: "text/html; charset=utf-8" },
       };
     };
@@ -312,6 +313,21 @@ describe("private Preview Commerce bridge", () => {
       `snapshots/snapshot-fashion-1/${CATALOG_RELEASE_ID}/${"a".repeat(64)}/products/atlas-carry-on/index.html`,
     ]);
     expect(policy).toContain(`script-src ${PREVIEW_ORIGIN} https://challenges.cloudflare.com`);
+    const inlineDigest = btoa(
+      String.fromCharCode(
+        ...new Uint8Array(
+          await crypto.subtle.digest("SHA-256", new TextEncoder().encode(inlineScript)),
+        ),
+      ),
+    );
+    expect(policy).toContain(`'sha256-${inlineDigest}'`);
+    const emptyScriptDigest = btoa(
+      String.fromCharCode(
+        ...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(""))),
+      ),
+    );
+    expect(policy).not.toContain(`'sha256-${emptyScriptDigest}'`);
+    expect(policy.match(/script-src [^;]+/)?.[0]).not.toContain("'unsafe-inline'");
     expect(policy).toContain("frame-src https://challenges.cloudflare.com");
     expect(policy).toContain("connect-src 'self'");
     expect(policy).toContain("form-action 'none'");
