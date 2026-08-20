@@ -9,12 +9,94 @@ const implementedRoutes = new Set(decorStorePageContracts.map(({ path }) => path
 async function exerciseInteraction(page: Page, interaction: string): Promise<void> {
   const root = page.locator("[data-decor-source-page]");
   if (interaction === "header-navigation") {
+    const cookie = page.getByRole("button", { name: "Allow cookies" });
+    if (await cookie.isVisible()) await cookie.click();
     const toggle = page.locator("button[aria-label='Toggle navigation']");
-    const navigation = page.getByRole("navigation").getByRole("link").first();
-    if (!(await navigation.isVisible()) && (await toggle.isVisible())) await toggle.click();
-    await expect(navigation).toHaveAttribute("href");
-    await navigation.focus();
-    await expect(navigation).toBeFocused();
+    const navigation = page.getByRole("navigation");
+    const firstLink = navigation.getByRole("link").first();
+    if (!(await firstLink.isVisible()) && (await toggle.isVisible())) await toggle.click();
+    await expect(firstLink).toHaveAttribute("href");
+    await firstLink.focus();
+    await expect(firstLink).toBeFocused();
+    for (const label of ["Home", "Collections", "Pages", "Blog", "Contact"]) {
+      await expect(navigation.getByRole("link", { exact: true, name: label })).toBeVisible();
+    }
+    await expect(navigation.getByRole("link", { name: /^Shop/ })).toBeVisible();
+    const desktopNavigation = (page.viewportSize()?.width ?? 0) >= 992;
+    if (desktopNavigation) {
+      await navigation.getByRole("link", { name: /^Shop/ }).hover();
+    } else {
+      await navigation.getByRole("button", { name: "Toggle Shop menu" }).click();
+    }
+    await expect(
+      navigation.getByRole("link", { exact: true, name: "Modern chair" }).first(),
+    ).toBeVisible();
+    const shopImages = navigation.locator(".submenu-content:visible img");
+    await expect(shopImages).toHaveCount(2);
+    expect(
+      new Set(
+        await shopImages.evaluateAll((images) => images.map((image) => image.getAttribute("src"))),
+      ).size,
+    ).toBe(2);
+    if (!desktopNavigation) {
+      const shopToggle = navigation.getByRole("button", { name: "Toggle Shop menu" });
+      await shopToggle.focus();
+      await page.keyboard.press("Enter");
+      await expect(shopToggle).toHaveAttribute("aria-expanded", "false");
+    }
+    if (desktopNavigation) {
+      await navigation.getByRole("link", { exact: true, name: "Collections" }).hover();
+    } else {
+      await navigation.getByRole("button", { name: "Toggle Collections menu" }).click();
+    }
+    await expect(
+      navigation.getByRole("link", { exact: true, name: "Designer stool" }),
+    ).toBeVisible();
+    const collectionImages = navigation.locator(".submenu-content:visible img");
+    await expect(collectionImages).toHaveCount(8);
+    expect(
+      new Set(
+        await collectionImages.evaluateAll((images) =>
+          images.map((image) => image.getAttribute("src")),
+        ),
+      ).size,
+    ).toBe(8);
+    if (desktopNavigation) {
+      await page.mouse.move(0, 0);
+    } else {
+      const collectionsToggle = navigation.getByRole("button", {
+        name: "Toggle Collections menu",
+      });
+      await collectionsToggle.focus();
+      await page.keyboard.press("Enter");
+      await expect(collectionsToggle).toHaveAttribute("aria-expanded", "false");
+    }
+    await navigation.getByRole("link", { exact: true, name: "Pages" }).click();
+    for (const label of ["About", "FAQs", "Wishlist", "Account", "Cart", "Checkout"]) {
+      await expect(navigation.getByRole("link", { exact: true, name: label })).toBeVisible();
+    }
+    const language = page.getByRole("button", { name: "Toggle language menu" });
+    if (await language.isVisible()) {
+      await language.click();
+      for (const label of ["English", "France", "Russian", "Spain"])
+        await expect(page.getByRole("link", { exact: true, name: label })).toBeVisible();
+      const languageFlags = page.locator(".language-dropdown:visible .icon-country img");
+      await expect(languageFlags).toHaveCount(4);
+      expect(
+        new Set(
+          await languageFlags.evaluateAll((images) =>
+            images.map((image) => image.getAttribute("src")),
+          ),
+        ).size,
+      ).toBe(4);
+    }
+    await page.keyboard.press("Escape");
+    await expect(navigation.locator("button[aria-label='Toggle Pages menu']")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    if (await language.isVisible())
+      await expect(language).toHaveAttribute("aria-expanded", "false");
   } else if (interaction === "mobile-navigation") {
     const toggle = page.locator("button[aria-label='Toggle navigation']");
     if (await toggle.isVisible()) {
@@ -165,7 +247,27 @@ for (const { id, path: route } of pages) {
       ),
     ).toBe(true);
     expect(anchors.some(({ href }) => /demo-decor-store.*\.html/.test(href ?? ""))).toBe(false);
+    const pageTitle = page.locator("[data-decor-source-page] > section.top-space-padding").first();
+    if (await pageTitle.count()) {
+      if ((page.viewportSize()?.width ?? 0) >= 768) {
+        await expect(pageTitle).toHaveCSS("padding-top", "136px");
+      } else {
+        expect(
+          await pageTitle.evaluate((section) =>
+            Number.parseFloat(getComputedStyle(section).paddingTop),
+          ),
+        ).toBeGreaterThan(0);
+      }
+    }
     if ((page.viewportSize()?.width ?? 0) >= 768) {
+      await expect(page.getByRole("button", { name: "Open search" })).toHaveCSS(
+        "border-top-width",
+        "0px",
+      );
+      await expect(page.getByRole("button", { name: "Open cart preview" })).toHaveCSS(
+        "border-top-width",
+        "0px",
+      );
       const headerGeometry = await page
         .locator("header[data-decor-secondary-header]")
         .evaluate((header) => {

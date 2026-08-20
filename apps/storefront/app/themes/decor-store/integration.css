@@ -192,7 +192,7 @@
 }
 
 .decor-store-secondary-main .page-title-center-alignment.top-space-padding {
-  padding-top: 0;
+  padding-top: 136px;
 }
 
 .decor-store-secondary-main .shop-wrapper {
@@ -522,4 +522,32 @@
   header[data-decor-secondary-header] .header-top-bar + .navbar.disable-fixed {
     top: 46px;
   }
+}
+
+header[data-decor-secondary-header] .navbar-nav .dropdown-toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: none;
+  padding: 0;
+}
+
+@media (min-width: 992px) {
+  header[data-decor-secondary-header]
+    .navbar-nav
+    .dropdown:is(:hover, :focus-within)
+    > .dropdown-menu {
+    display: block;
+    animation: show-animation 0.5s;
+  }
+}
+
+header[data-decor-secondary-header]
+  :is(.header-language > button, .search-form-icon, .header-cart > button) {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--dark-gray);
+  padding: 0;
 }
