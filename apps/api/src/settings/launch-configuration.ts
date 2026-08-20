@@ -11,6 +11,14 @@ import { actorTypeForPrincipal } from "../iam/permissions";
 
 const SETTING_KEY = "launch_configuration";
 
+function stripeProviderConfigured(value: string | undefined): boolean {
+  return value?.startsWith("sk_") === true;
+}
+
+function stripeWebhookConfigured(value: string | undefined): boolean {
+  return value?.startsWith("whsec_") === true;
+}
+
 function defaultConfiguration(context: Context<ApiEnvironment>): LaunchConfiguration {
   const storefrontOrigin = context.env.STOREFRONT_ORIGIN.replace(/\/$/, "");
   const production = context.env.ENVIRONMENT === "production";
@@ -30,14 +38,14 @@ function defaultConfiguration(context: Context<ApiEnvironment>): LaunchConfigura
       terms: `${storefrontOrigin}/policies/terms`,
     },
     privacyContactEmail: context.env.EMAIL_FROM,
-    providerConfigured: Boolean(context.env.STRIPE_SECRET_KEY),
+    providerConfigured: stripeProviderConfigured(context.env.STRIPE_SECRET_KEY),
     reservationTtlMinutes: Number(context.env.RESERVATION_TTL_MINUTES ?? "30"),
     sellableCurrencies: ["USD"],
     shippingCountries: ["US"],
     shippingMethodIds: ["ship_01J00000000000000000000000"],
     supportEmail: context.env.EMAIL_FROM,
     taxMode: "zero",
-    webhookConfigured: Boolean(context.env.STRIPE_WEBHOOK_SECRET),
+    webhookConfigured: stripeWebhookConfigured(context.env.STRIPE_WEBHOOK_SECRET),
   };
 }
 
@@ -186,8 +194,8 @@ export async function getLaunchConfiguration(
     : defaultConfiguration(context);
   const configuration = {
     ...storedConfiguration,
-    providerConfigured: Boolean(context.env.STRIPE_SECRET_KEY),
-    webhookConfigured: Boolean(context.env.STRIPE_WEBHOOK_SECRET),
+    providerConfigured: stripeProviderConfigured(context.env.STRIPE_SECRET_KEY),
+    webhookConfigured: stripeWebhookConfigured(context.env.STRIPE_WEBHOOK_SECRET),
   };
   const issues = await readiness(
     context.env.DB,

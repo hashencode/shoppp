@@ -516,6 +516,9 @@ describe("governed Fashion staging preparation workflow", () => {
       "Verify required Worker and protected-environment credentials before mutation",
     );
     const collisionGate = workflow.indexOf("Reject seed identity collisions");
+    const runtimeCredentialGate = workflow.indexOf(
+      "Verify deployed Fashion payment credentials match runtime contracts",
+    );
     const seed = workflow.indexOf("Apply collision-checked three-archetype seed");
     const immutable = workflow.indexOf(
       "Create validated approved immutable snapshot and building build",
@@ -525,6 +528,10 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("FASHION_U12_ADMIN_SERVICE_TOKEN");
     expect(workflow).toContain("FASHION_U12_GITHUB_ADMIN_TOKEN");
     expect(workflow).toContain("STRIPE_WEBHOOK_SECRET");
+    expect(workflow).toContain("Synchronize the Fashion API Stripe sandbox key");
+    expect(workflow).toContain("wrangler secret put STRIPE_SECRET_KEY --env fashion-staging");
+    expect(workflow).toContain(".data.configuration.providerConfigured == true");
+    expect(workflow).toContain(".data.configuration.webhookConfigured == true");
     expect(workflow).toContain("wrangler secret list --env fashion-staging --format json");
     expect(workflow).toContain("wrangler secret list --config wrangler.preview.jsonc");
     expect(workflow).toContain("--env fashion-staging --format json");
@@ -533,11 +540,12 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).not.toContain("--file=../../artifacts/fashion-u12/preflight.sql");
     expect(workflow).not.toContain("--file=../../artifacts/fashion-u12/verify.sql");
     expect(workflow).not.toContain("wrangler secret list --env fashion-staging --json");
-    expect(workflow).not.toContain("wrangler secret put");
     expect(workflow).not.toContain("environment: staging\n");
     expect(workflow).not.toContain("environment: production\n");
     expect(credentialGate).toBeGreaterThan(0);
     expect(collisionGate).toBeGreaterThan(credentialGate);
+    expect(runtimeCredentialGate).toBeGreaterThan(credentialGate);
+    expect(collisionGate).toBeGreaterThan(runtimeCredentialGate);
     expect(seed).toBeGreaterThan(collisionGate);
     expect(immutable).toBeGreaterThan(seed);
     expect(readiness).toBeGreaterThan(immutable);

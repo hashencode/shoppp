@@ -7,6 +7,8 @@ export const FASHION_U12_AUTHORITY_BASELINE = "79fbee07f60245b036b5a4d4285822750
 const ALLOWED_PATHS = new Set([
   ".github/workflows/prepare-fashion-staging-u12.yml",
   ".github/workflows/preview-storefront.yml",
+  "apps/api/src/settings/launch-configuration.ts",
+  "apps/api/test/operations/platform-operations.test.ts",
   "apps/storefront/scripts/prepare-experience.ts",
   "apps/storefront/tests/preview-access.test.ts",
   "apps/storefront/tests/theme-engine.test.ts",

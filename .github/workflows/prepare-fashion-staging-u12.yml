@@ -99,6 +99,9 @@ jobs:
                 "checkout.session.expired"
               ]))
             )' artifacts/fashion-u12/stripe-webhooks.json >/dev/null
+      - name: Synchronize the Fashion API Stripe sandbox key
+        working-directory: apps/api
+        run: printf '%s' "$STRIPE_SECRET_KEY" | bunx wrangler secret put STRIPE_SECRET_KEY --env fashion-staging
       - name: Export exact Fashion D1 before migrations
         working-directory: apps/api
         run: |
@@ -184,6 +187,15 @@ jobs:
               > "$RUNNER_TEMP/fashion-u12-preparer.sql"
           bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote \
             --file="$RUNNER_TEMP/fashion-u12-preparer.sql"
+      - name: Verify deployed Fashion payment credentials match runtime contracts
+        run: |
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $FASHION_U12_ADMIN_SERVICE_TOKEN" \
+            "$API_ORIGIN/admin/settings/launch" \
+            > artifacts/fashion-u12/launch-status.json
+          jq --exit-status \
+            '.data.configuration.providerConfigured == true and .data.configuration.webhookConfigured == true' \
+            artifacts/fashion-u12/launch-status.json >/dev/null
       - name: Reject seed identity collisions
         working-directory: apps/api
         run: |

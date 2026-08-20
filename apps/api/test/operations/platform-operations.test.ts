@@ -104,6 +104,36 @@ describe("launch controls, audit, and operational health", () => {
     });
   });
 
+  test("reports Stripe credentials configured only when runtime values match provider contracts", async () => {
+    const app = createApp({ testIdentityVerifier });
+    const invalid = await app.fetch(adminRequest("/admin/settings/launch"), {
+      ...env,
+      STRIPE_SECRET_KEY: "secret://stripe/key",
+      STRIPE_WEBHOOK_SECRET: "secret://stripe/webhook",
+    });
+    const invalidBody = (await invalid.json()) as {
+      data: { configuration: LaunchConfiguration; issues: { code: string }[] };
+    };
+    expect(invalidBody.data.configuration).toMatchObject({
+      providerConfigured: false,
+      webhookConfigured: false,
+    });
+    expect(invalidBody.data.issues.map(({ code }) => code)).toEqual(
+      expect.arrayContaining(["payment_provider_missing", "payment_webhook_missing"]),
+    );
+
+    const valid = await app.fetch(adminRequest("/admin/settings/launch"), {
+      ...env,
+      STRIPE_SECRET_KEY: "sk_test_runtime_fixture",
+      STRIPE_WEBHOOK_SECRET: "whsec_runtime_fixture",
+    });
+    expect(await valid.json()).toMatchObject({
+      data: {
+        configuration: { providerConfigured: true, webhookConfigured: true },
+      },
+    });
+  });
+
   test("rejects internally inconsistent or incomplete launch configuration", async () => {
     const app = createApp({ testIdentityVerifier });
     const initial = await app.fetch(adminRequest("/admin/settings/launch"), env);

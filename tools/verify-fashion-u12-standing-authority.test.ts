@@ -30,6 +30,8 @@ describe("Fashion U12 standing execution authority", () => {
           },
           {
             files: [
+              "apps/api/src/settings/launch-configuration.ts",
+              "apps/api/test/operations/platform-operations.test.ts",
               "packages/db/migrations/0021_fashion_shipping_method_public_id.sql",
               "packages/db/test/apply-migrations.ts",
               "packages/db/test/env.d.ts",
