@@ -72,11 +72,13 @@ historical evidence remain unchanged inside the owning plans.
   applies only when current `main` contains exclusively allowlisted `(U12)` changes after that
   baseline. Readiness retains baseline, scope, actor, run, build, Snapshot, digest, and freshness;
   ordinary staging and production remain excluded.
-- **Next action:** Publish the standing-scope gate to `main`, run one ephemeral Fashion preparation
-  to create fresh building/readiness identity, then autonomously complete the exact Preview. Normal
-  in-scope failures may create a new build attempt and retry without another per-run confirmation.
-- **Blocker:** None. Pause only for a failed standing-scope check, ordinary staging/production,
-  stale-build mutation, or a new destructive/security boundary. Runner inventory is empty.
+- **Next action:** Replace the invalid `fashion-staging` environment `CLOUDFLARE_API_TOKEN` under a
+  separate credential/security decision, then rerun ephemeral Fashion preparation and complete the
+  exact Preview under standing scope.
+- **Blocker:** Preparation run `32326733190` passed local/scope gates but Cloudflare rejected the
+  configured token with codes `10000` and `9109` at the first read-only secret inventory. No D1
+  export/migration, Worker deploy, seed, or immutable-input mutation occurred. The ephemeral runner
+  auto-deregistered; token replacement is outside the standing authority.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the

@@ -1355,3 +1355,24 @@ disallowed-path fixtures. This evidence does not complete U12 or maintain anothe
 Standing authority continues to exclude ordinary staging/production, unrelated commits,
 stale-build mutation, and new destructive or security boundaries. No remote mutation occurred while
 establishing this gate; runner inventory remained empty.
+
+## 2026-08-20 — governed preparation stops on invalid Cloudflare credential
+
+Commit `8672d986` published the standing FS-U12 gate to both the governed branch and `main`; a
+post-commit verifier accepted five single-parent, allowlisted `(U12)` commits from the authority
+baseline. Official actions runner v2.336.0 was verified at SHA-256
+`8e8839c49b7060b6b2154f4931f815df330c27f167d53ef2239ee3dfce28b079`, registered only with the
+`fashion-staging-preparation` label, and proved Node 22 plus GNU `date -d` before listening.
+
+Preparation run `32326733190` at exact `main` commit `8672d986c0a44d72a4377c879a526d13b01c0ffa`
+passed checkout, the standing-scope verifier, frozen dependency installation, repository isolation,
+and deterministic input generation. The first remote prerequisite step then failed when Cloudflare
+rejected the GitHub environment's `CLOUDFLARE_API_TOKEN` with authentication error `10000` and
+invalid-token code `9109`. The failure preceded Stripe inspection, D1 export, backup, migration,
+Worker deployment, preparer provisioning, seed, Snapshot, and build creation; no governed remote
+mutation occurred.
+
+The ephemeral runner auto-deregistered, GitHub runner inventory returned zero, and its exact temp
+directory was moved to macOS Trash for recoverable cleanup. Replacing or rotating the credential is
+a new security boundary outside standing FS-U12 retry authority. Ordinary staging and production
+were not accessed. This evidence does not complete U12 or maintain another execution queue.

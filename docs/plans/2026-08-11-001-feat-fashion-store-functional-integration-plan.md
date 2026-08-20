@@ -104,21 +104,22 @@ U13 add-only probe do not establish overall completion.
   from current `main` when every intervening commit is a `(U12)` commit and every changed path is in
   the explicit FS-U12 allowlist. Readiness retains the baseline, scope, actor, run, build, Snapshot,
   digest, freshness, and fixed-concurrency evidence. Ordinary staging and production remain barred.
-- **Next concrete action:** Publish the standing-scope gate to `main`, register one ephemeral
-  preparation runner, create a fresh building build/readiness record, then autonomously dispatch and
-  complete the exact Fashion-only Preview. A retry at the same commit reuses the approved Snapshot
-  but receives a new build idempotency identity; it never mutates the terminal failed build.
-- **Blocker:** None. Normal FS-U12 failures may be diagnosed, repaired, committed, pushed, and
-  retried while the verifier continues to prove the same standing scope. Pause only if scope would
-  cross into unrelated commits, ordinary staging/production, stale-build mutation, or a new
-  destructive/security boundary. GitHub runner inventory is currently empty.
+- **Next concrete action:** Replace the invalid `fashion-staging` GitHub environment
+  `CLOUDFLARE_API_TOKEN` under a separate credential/security decision, then register a new
+  ephemeral preparation runner and rerun exact governed preparation from current `main`. After a
+  fresh building build/readiness record exists, autonomously complete the Fashion-only Preview.
+- **Blocker:** Preparation run `32326733190` passed the standing-scope, dependency, and repository
+  environment gates, then Cloudflare rejected the configured token with authentication codes
+  `10000` and `9109` during the first read-only Worker-secret check. It stopped before Stripe, D1
+  export/migration, Worker deploy, seed, or immutable-input mutation. Token replacement is a new
+  credential/security boundary outside standing authority. The runner auto-deregistered.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-20 after the standing FS-U12 authority gate and repeatable new-build
-  preparation semantics passed their focused local tests; U12.3 remains in progress with no policy
-  blocker and awaits governed remote execution.
+- **Last reviewed:** 2026-08-20 after preparation run `32326733190` proved the standing gate and
+  failed safely on an invalid Cloudflare credential before remote mutation; U12.3 remains in
+  progress and is blocked only on token replacement.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The
