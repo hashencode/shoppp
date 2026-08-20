@@ -181,7 +181,7 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
   await page.getByRole("button", { name: `Increase ${name} quantity` }).click();
   await expect(page.getByRole("spinbutton", { name: `${name} quantity` })).toHaveValue("2");
   await page
-    .getByRole("button", { name: `Remove ${name} from cart` })
+    .getByRole("button", { name: `Remove ${name}`, exact: true })
     .first()
     .click();
   await expect(page.getByRole("spinbutton", { name: `${name} quantity` })).toHaveCount(0);
