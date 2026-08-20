@@ -195,21 +195,37 @@ jobs:
           printf 'digest=%s\n' "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
       - name: Upload immutable files to the private preview bucket
         run: |
+          upload_preview_object() {
+            local OBJECT_NAME="$1"
+            local SOURCE_FILE="$2"
+            local CONTENT_TYPE="$3"
+            for ATTEMPT in 1 2 3; do
+              if bunx wrangler r2 object put \
+                "shoppp-fashion-staging-preview-artifacts/$OBJECT_NAME" \
+                --file "$SOURCE_FILE" \
+                --content-type "$CONTENT_TYPE" \
+                --remote; then
+                return 0
+              fi
+              if test "$ATTEMPT" = 3; then
+                return 1
+              fi
+              sleep "$((ATTEMPT * 2))"
+            done
+          }
           while IFS= read -r ITEM; do
             PATH_VALUE="$(jq -r '.path' <<<"$ITEM")"
             SOURCE_VALUE="$(jq -r '.sourcePath' <<<"$ITEM")"
             CONTENT_TYPE="$(jq -r '.contentType' <<<"$ITEM")"
-            bunx wrangler r2 object put \
-              "shoppp-fashion-staging-preview-artifacts/${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
-              --file "$SOURCE_VALUE" \
-              --content-type "$CONTENT_TYPE" \
-              --remote
+            upload_preview_object \
+              "${{ steps.artifact.outputs.prefix }}/$PATH_VALUE" \
+              "$SOURCE_VALUE" \
+              "$CONTENT_TYPE"
           done < <(jq -c '.files[]' artifacts/preview/deployment.json)
-          bunx wrangler r2 object put \
-            "shoppp-fashion-staging-preview-artifacts/${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
-            --file artifacts/preview/artifact-manifest.json \
-            --content-type "application/json; charset=utf-8" \
-            --remote
+          upload_preview_object \
+            "${{ steps.artifact.outputs.prefix }}/_preview-manifest.json" \
+            artifacts/preview/artifact-manifest.json \
+            "application/json; charset=utf-8"
       - name: Deploy the isolated preview access Worker
         working-directory: apps/storefront
         run: |

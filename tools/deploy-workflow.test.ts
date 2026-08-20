@@ -342,6 +342,9 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain("Idempotency-Key: preview-build-result-$BUILD_ID");
     expect(workflow).toContain('"status":"deployed"');
     expect(workflow).toContain('"status":"failed"');
+    expect(workflow).toContain("upload_preview_object() {");
+    expect(workflow).toContain("for ATTEMPT in 1 2 3; do");
+    expect(workflow).toContain('if test "$ATTEMPT" = 3; then');
     expect(report).toContain("$PREVIEW_API_URL/admin/storefront-experiences/builds/$BUILD_ID");
     expect(report).toContain("FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}");
     expect(report).toContain('select(.data.status == "deployed")');
