@@ -1443,3 +1443,24 @@ Every preparation and Preview runner auto-deregistered; runner and diagnostic di
 moved to macOS Trash for recoverable cleanup. Ordinary staging and production were not accessed.
 The next remote proof uses the operator-authorized new commit/readiness identity; this evidence does
 not complete U12 or maintain a second execution queue.
+
+## 2026-08-20 — governed Preview proves settlement and exposes stale confirmation copy
+
+Commit `dbd829bbba7a1ea5dbb05c21b4de7bc6d37fd86e` passed preparation `32376826888`,
+creating build `preview-build-a339c1af4d12ec15253bcda0-f1bb77ee6f824f48-1`, Snapshot
+`snapshot-approved-832a2fe5a339c1af4d12ec15253bcda0`, and readiness digest
+`cc593b73356211b62cf42ff8c51a1aba5c78714c5101c3951377721aa340ad5f`.
+
+Preview `32377264619` deployed and reported the exact artifact but could not acquire a lock because
+run `32371052412-1` remained `cleanup_pending`. Recovery Preview `32379174632` ran five minutes
+before that row's exact lease expiry and correctly refused to claim a non-abandoned run. After
+`2026-08-20T14:36:28.729Z`, Preview `32381219319` reconciled it, acquired a new lock, passed U13,
+captured both Checkout 201 bodies before navigation, and settled two Stripe test-mode Sessions into
+paid orders `ORD-590957CCA431` and `ORD-A0A248609AD0`.
+
+Both attempts reached the correct confirmation page, which rendered `Payment confirmed` and
+`Order reference: …`; the E2E still expected the retired sentence `Order … is confirmed.` and timed
+out. Governed cleanup retained both paid orders and restored inventory to 100/0/0/0. The assertion
+now matches the existing confirmation-page contract and passes E2E TypeScript, two-test discovery,
+Prettier, and diff checks. All ephemeral runners auto-deregistered, ordinary staging and production
+were not accessed, and U12 remains in progress pending a fresh governed proof.

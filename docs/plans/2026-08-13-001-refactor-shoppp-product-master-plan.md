@@ -67,12 +67,12 @@ historical evidence remain unchanged inside the owning plans.
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
-- **Current child stage:** `FS-U12.3` — preparation `32368786058` created fresh identity at
-  `b53ea871`; Preview `32371052412` reconciled abandoned run `32360266387-1`, deployed the isolated
-  artifact, passed U13, and restored the U12 baseline after a pre-settlement browser response-body
-  race. Its route-level capture fix is locally verified; ordinary staging and production remain
+- **Current child stage:** `FS-U12.3` — preparation `32376826888` bound identity to `dbd829bb`;
+  Preview `32381219319` recovered the prior lease, passed deployment/U13, settled real hosted
+  Checkout twice, retained paid orders, and restored baseline inventory. Its remaining failure is a
+  locally fixed stale E2E confirmation-copy assertion; ordinary staging and production remain
   excluded.
-- **Next action:** Land the authorized capture fix, rerun Fashion-only preparation from the exact
+- **Next action:** Land the authorized assertion fix, rerun Fashion-only preparation from the exact
   resulting `main`, then dispatch an equivalent Preview.
 - **Blocker:** None. The operator explicitly authorized the new commit/readiness binding. All
   ephemeral runners are deregistered and no stale acceptance lock remains.

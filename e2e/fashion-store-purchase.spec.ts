@@ -253,7 +253,7 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
     timeout: 120_000,
   });
   await expect(
-    page.getByText(`Order ${settlementPayload.data!.orderReference} is confirmed.`),
+    page.getByText(`Order reference: ${settlementPayload.data!.orderReference}.`),
   ).toBeVisible();
   expect(commerceRequests).toEqual(
     expect.arrayContaining([

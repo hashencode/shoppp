@@ -98,15 +98,14 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U12 — deploy and prove the real Fashion Store Commerce journey. U7 and the
   explicit product-level FRT interlude are complete.
-- **Current sub-stage:** U12.3 — preparation `32368786058` created fresh build/readiness at
-  `b53ea871`; Preview `32371052412` reconciled exact abandoned run `32360266387-1`, deployed the
-  isolated artifact, passed U13, and restored the U12 inventory baseline after the browser journey
-  hit a Checkout-response capture race before sandbox settlement. The route-level capture fix is
-  locally implemented and verified. Ordinary staging and production remain barred.
-- **Next concrete action:** Land the authorized response-capture fix, rerun governed Fashion-only
-  preparation from the resulting exact `main`, then dispatch an equivalent Preview. The prior
-  abandoned run is reconciled and run `32371052412-1` completed its governed cleanup, so no stale
-  acceptance lock remains.
+- **Current sub-stage:** U12.3 — preparation `32376826888` bound build/readiness to `dbd829bb`.
+  Preview `32381219319` reconciled expired run `32371052412-1`, passed deployment and U13, captured
+  and settled real hosted Checkout twice, retained two paid orders, and restored inventory to
+  100/0/0/0. It then exposed one stale E2E confirmation-copy assertion; the page correctly rendered
+  `Payment confirmed` and `Order reference: …`. The assertion fix is locally verified. Ordinary
+  staging and production remain barred.
+- **Next concrete action:** Land the authorized confirmation-copy assertion fix, rerun governed
+  Fashion-only preparation from the resulting exact `main`, then dispatch an equivalent Preview.
 - **Blocker:** None. The operator explicitly authorized the new commit/readiness identity. All
   ephemeral runners are deregistered; execution remains bounded to Fashion-only preparation and
   Preview and continues to exclude ordinary staging and production.
@@ -114,9 +113,9 @@ U13 add-only probe do not establish overall completion.
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-20 after Preview `32371052412` proved recovery, deployment, U13, and
-  governed baseline cleanup, then exposed and retained the pre-settlement Playwright response-body
-  race. U12.3 remains in progress with the new identity authorized for governed re-execution.
+- **Last reviewed:** 2026-08-20 after Preview `32381219319` proved recovery, deployment, U13,
+  Checkout capture, sandbox settlement, paid-order retention, and governed baseline cleanup, then
+  exposed the stale confirmation-copy assertion. U12.3 remains in progress.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The
