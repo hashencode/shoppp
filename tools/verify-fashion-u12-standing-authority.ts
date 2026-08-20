@@ -15,6 +15,7 @@ const ALLOWED_PATHS = new Set([
   "docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md",
   "docs/progress/fashion-store-functional-integration.md",
   "docs/runbooks/storefront-theme-testing.md",
+  "e2e/fashion-store-purchase.spec.ts",
   "tools/capture-fashion-staging-readiness.test.ts",
   "tools/capture-fashion-staging-readiness.ts",
   "tools/deploy-workflow.test.ts",

@@ -65,6 +65,21 @@ async function productById(page: Page, id: string): Promise<Record<string, unkno
   return payload.data!;
 }
 
+function productString(product: Record<string, unknown>, field: "name" | "slug"): string {
+  const value = product[field];
+  if (typeof value !== "string" || !value) throw new Error(`Product ${field} is required`);
+  return value;
+}
+
+async function openProduct(page: Page, product: Record<string, unknown>): Promise<void> {
+  const slug = productString(product, "slug");
+  await page.goto(`/products/${slug}`, { waitUntil: "networkidle" });
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    new RegExp(`/products/${slug}$`),
+  );
+}
+
 async function selectConfiguredOptions(page: Page): Promise<void> {
   const values = JSON.parse(requiredEnvironment("FASHION_U12_OPTION_VALUES")) as unknown;
   if (
@@ -132,13 +147,24 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
 
   const slug = requiredEnvironment("FASHION_U12_PRODUCT_SLUG");
   const name = requiredEnvironment("FASHION_U12_PRODUCT_NAME");
-  await page.goto(`/products/${slug}`, { waitUntil: "networkidle" });
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    "href",
-    new RegExp(`/products/${slug}$`),
-  );
+  expect(productString(single, "slug")).toBe(slug);
+  expect(productString(single, "name")).toBe(name);
+
+  await openProduct(page, multiple);
   await page.getByRole("button", { name: "Allow cookies" }).click();
   await selectConfiguredOptions(page);
+  await expect(
+    page.locator("[data-fashion-store-live-product]").getByRole("button", {
+      name: "Add to cart",
+    }),
+  ).toBeEnabled();
+
+  await openProduct(page, unavailable);
+  const unavailableProduct = page.locator("[data-fashion-store-live-product]");
+  await expect(unavailableProduct.getByRole("button", { name: "Add to cart" })).toBeDisabled();
+  await expect(unavailableProduct.getByRole("status")).toContainText("Currently unavailable.");
+
+  await openProduct(page, single);
   const product = page.locator("[data-fashion-store-live-product]");
   await product.getByRole("button", { name: "Add to cart" }).click();
   await expect(product.getByRole("status")).toContainText("was added to your cart");
@@ -160,7 +186,6 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
     .click();
   await expect(page.getByRole("spinbutton", { name: `${name} quantity` })).toHaveCount(0);
   await page.goto(`/products/${slug}`, { waitUntil: "networkidle" });
-  await selectConfiguredOptions(page);
   await page
     .locator("[data-fashion-store-live-product]")
     .getByRole("button", { name: "Add to cart" })
@@ -246,7 +271,6 @@ test("Fashion staging cleanup leaves a fresh-session sellable postcondition", as
   const slug = requiredEnvironment("FASHION_U12_PRODUCT_SLUG");
   await page.goto(`/products/${slug}`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Allow cookies" }).click();
-  await selectConfiguredOptions(page);
   const product = page.locator("[data-fashion-store-live-product]");
   await expect(product.getByRole("button", { name: "Add to cart" })).toBeEnabled();
   await product.getByRole("button", { name: "Add to cart" }).click();

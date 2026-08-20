@@ -22,6 +22,7 @@ describe("Fashion U12 standing execution authority", () => {
               "apps/storefront/scripts/prepare-experience.ts",
               "apps/storefront/tests/preview-access.test.ts",
               "apps/storefront/worker/preview-access.ts",
+              "e2e/fashion-store-purchase.spec.ts",
             ],
             parentCount: 1,
             sha: head,
