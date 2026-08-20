@@ -120,7 +120,9 @@ export function normalizePreviewAssetPath(pathname: string): string {
   if (relativePath.startsWith("_preview-")) {
     throw new Error("Preview artifact metadata is private.");
   }
-  return relativePath.endsWith("/") ? `${relativePath}index.html` : relativePath;
+  if (relativePath.endsWith("/")) return `${relativePath}index.html`;
+  const lastSegment = relativePath.slice(relativePath.lastIndexOf("/") + 1);
+  return lastSegment.includes(".") ? relativePath : `${relativePath}/index.html`;
 }
 
 function normalizeArtifactFile(file: PreviewArtifactFile): PreviewArtifactFile {

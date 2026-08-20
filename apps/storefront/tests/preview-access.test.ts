@@ -290,15 +290,25 @@ describe("private Preview Commerce bridge", () => {
     expect(commerceCalls).toBe(0);
   });
 
-  test("serves artifacts with only the exact Turnstile script and frame origin", async () => {
+  test("serves root and extensionless route artifacts with only the exact Turnstile origins", async () => {
     const env = environment();
-    env.PREVIEW_ARTIFACTS.get = async () => ({
-      body: "<!doctype html>",
-      httpMetadata: { contentType: "text/html; charset=utf-8" },
-    });
+    const artifactKeys: string[] = [];
+    env.PREVIEW_ARTIFACTS.get = async (key) => {
+      artifactKeys.push(key);
+      return {
+        body: "<!doctype html>",
+        httpMetadata: { contentType: "text/html; charset=utf-8" },
+      };
+    };
     const response = await createPreviewAccessHandler()(apiRequest("/"), env);
+    const product = await createPreviewAccessHandler()(apiRequest("/products/atlas-carry-on"), env);
     const policy = response.headers.get("Content-Security-Policy") ?? "";
     expect(response.status).toBe(200);
+    expect(product.status).toBe(200);
+    expect(artifactKeys).toEqual([
+      `snapshots/snapshot-fashion-1/${CATALOG_RELEASE_ID}/${"a".repeat(64)}/index.html`,
+      `snapshots/snapshot-fashion-1/${CATALOG_RELEASE_ID}/${"a".repeat(64)}/products/atlas-carry-on/index.html`,
+    ]);
     expect(policy).toContain(`script-src ${PREVIEW_ORIGIN} https://challenges.cloudflare.com`);
     expect(policy).toContain("frame-src https://challenges.cloudflare.com");
     expect(policy).toContain("connect-src 'self'");

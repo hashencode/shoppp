@@ -18,7 +18,11 @@ describe("Fashion U12 standing execution authority", () => {
             subject: "fix(ci): reconcile Fashion Preview readiness identity (U12)",
           },
           {
-            files: ["apps/storefront/scripts/prepare-experience.ts"],
+            files: [
+              "apps/storefront/scripts/prepare-experience.ts",
+              "apps/storefront/tests/preview-access.test.ts",
+              "apps/storefront/worker/preview-access.ts",
+            ],
             parentCount: 1,
             sha: head,
             subject: "fix(storefront): accept governed Preview media origins (U12)",
