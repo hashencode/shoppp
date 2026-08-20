@@ -98,35 +98,27 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U12 — deploy and prove the real Fashion Store Commerce journey. U7 and the
   explicit product-level FRT interlude are complete.
-- **Current sub-stage:** U12.3 — governed `fashion-staging` preparation is complete. The local
-  Preview dispatch reconciliation now separates the executing workflow SHA from the exact
-  preparation SHA, verifies the embedded preparation run/build/Snapshot/digest before mutation,
-  and permits only the dedicated `self-hosted` + `fashion-staging-preview` runner labels; it is
-  locally verified in implementation commit `38830ba6` and published on the governed branch.
-  Attempt 2 of exact run `32323200492` passed dependency installation, readiness identity and
-  freshness, Fashion isolation, sandbox-profile checks, and authoritative build-input fetch. It
-  then exposed a storefront/API contract gap: the strict live input schema rejected the governed
-  `mediaOrigins` field. No R2 upload, Preview Worker deploy, acceptance lock, journey, or U12 cleanup
-  ran. The workflow's governed failure reporter moved the exact build to terminal `failed` state.
-- **Next concrete action:** Publish the locally verified `mediaOrigins` schema correction and this
-  evidence, then stop before another remote attempt. Continuing U12.3 requires a newly authorized
-  building build and readiness identity because retained readiness commit `79fbee07`, run
-  `32265128115`, and digest `3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`
-  are immutably bound to failed build
-  `preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1` and approved Snapshot
-  `snapshot-approved-be895bedd71bd264a74f264144f8216e`. Do not rerun preparation, mutate the failed
-  build, or substitute a new build/readiness identity without a new explicit authority decision.
-- **Blocker:** The authorized build is terminal `failed`; API transition guards allow only a
-  `building` build to become `deployed`, while the retained readiness artifact rejects any different
-  build ID. A valid retry therefore crosses the separately reserved preparation/new-target-identity
-  boundary. Both ephemeral runners auto-deregistered and GitHub runner inventory is empty.
+- **Current sub-stage:** U12.3 — the failed first build remains immutable, and the storefront
+  `mediaOrigins` reconciliation is locally verified at `d2297f0f`. The user has replaced repeated
+  exact-SHA approvals with standing FS-U12 authority rooted at `79fbee07`: preparation may run only
+  from current `main` when every intervening commit is a `(U12)` commit and every changed path is in
+  the explicit FS-U12 allowlist. Readiness retains the baseline, scope, actor, run, build, Snapshot,
+  digest, freshness, and fixed-concurrency evidence. Ordinary staging and production remain barred.
+- **Next concrete action:** Publish the standing-scope gate to `main`, register one ephemeral
+  preparation runner, create a fresh building build/readiness record, then autonomously dispatch and
+  complete the exact Fashion-only Preview. A retry at the same commit reuses the approved Snapshot
+  but receives a new build idempotency identity; it never mutates the terminal failed build.
+- **Blocker:** None. Normal FS-U12 failures may be diagnosed, repaired, committed, pushed, and
+  retried while the verifier continues to prove the same standing scope. Pause only if scope would
+  cross into unrelated commits, ordinary staging/production, stale-build mutation, or a new
+  destructive/security boundary. GitHub runner inventory is currently empty.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-20 after attempt 2 of Preview run `32323200492` proved readiness and
-  local-build reconciliation but terminally failed the bound build before deployment or acceptance;
-  U12.3 remains in progress and is blocked at the new-build/readiness authority boundary.
+- **Last reviewed:** 2026-08-20 after the standing FS-U12 authority gate and repeatable new-build
+  preparation semantics passed their focused local tests; U12.3 remains in progress with no policy
+  blocker and awaits governed remote execution.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The
@@ -169,7 +161,7 @@ without renumbering requirements, discarding prior work, or creating separate DC
 | U11 — full-site interaction migration     | Complete                              | U11.3 proves exact Home and cross-page destinations, semantic local/unavailable controls, component-owned transient UI, shared Product Card reuse including Wishlist recovery, distinct choose-options navigation and cart dispositions, a bidirectional 15-route ownership ledger with one reasoned fixture-only exception, truthful no-JavaScript recovery, and full Fashion Store regression. | Retain as a dependency baseline; reopen only if governed interaction ownership, destinations, shared-card behavior, or full-route evidence changes. |
 | U4 — routes and truthful page states      | Complete                              | U4.3 proves the 15-route fixture matrix and live route-state contract, Account/Wishlist unavailability and recovery, selected-release policy content and canonicals, aliases and 404s, zero unsupported mutations, accessibility, no-JavaScript behavior, source parity, SEO, first-paint theme CSS, static output, bundle isolation, lint, boundaries, and type safety. | Retain as a dependency baseline; reopen only if governed route ownership, truthful page states, policy authority, first-paint styling, or verification evidence changes. |
 | U7 — bounded Experience editing           | Complete                              | U7.3 proves the complete bounded editor and immutable preview lifecycle plus deterministic cold-load first-interaction preservation. Focused contracts and Admin coverage, live-Commerce 14/14, repository tests/Workers/lint/boundaries/type safety, the complete Fashion Store matrix and behavior evidence, and a fresh static preview all pass. | Retain as the U12 dependency baseline; reopen only if governed editor, preview, Catalog identity, or hydration behavior changes. |
-| U12 — complete deployed Commerce journey  | Local deployment prerequisites complete — remote execution not authorized | The fail-closed Turnstile/rate-limit/payment profile, exact readiness capture and verifier, three-archetype collision-checked seed, least-privilege preparer, backup/restore-first migration workflow, approved immutable Catalog/Snapshot/build path, preview readiness gate, repository suites, dry-run packaging, and production/preview static gates pass locally. | With separate exact authorization, provision only the isolated Fashion prerequisites, back up and restore-verify D1 before applying the migration chain, deploy, seed, create the approved immutable input/build, and record the no-interception journey, cleanup, recovery, paid-order retention, exact input identity, and fresh-session postcondition. |
+| U12 — complete deployed Commerce journey  | Local deployment prerequisites complete — standing scoped remote execution authorized | The fail-closed Turnstile/rate-limit/payment profile, exact readiness capture and verifier, three-archetype collision-checked seed, least-privilege preparer, backup/restore-first migration workflow, approved immutable Catalog/Snapshot/build path, preview readiness gate, repository suites, dry-run packaging, production/preview static gates, and FS-U12 standing-scope verifier pass locally. | Under the standing FS-U12 gate, provision only the isolated Fashion prerequisites, back up and restore-verify D1 before applying the migration chain, deploy, seed, create the approved immutable input/build, and record the no-interception journey, cleanup, recovery, paid-order retention, exact input identity, and fresh-session postcondition. |
 | U8 — complete test-environment acceptance | Initial implementation                | Local page, Admin, accessibility, performance, scale, and staging foundations exist.                                                                                                                          | Run the complete route, Admin, security, responsive, accessibility, no-JavaScript, recovery, latency, scale, and live-Commerce matrix against exact approved inputs after U12 completes.                                                                                                      |
 
 ### Checkpoint update discipline
@@ -556,7 +548,7 @@ The current milestone is functional completion, not production release. It must 
 - KTD27. Make staging setup and teardown idempotent and run-namespaced. One environment-level acceptance lock serializes destructive runs; startup reconciliation restores or verifies the recorded baseline after interruption, and paid orders are never cleanup targets. Governs R7, R37, R42, R43, R66.
 - KTD28. Give Fashion Store Home an explicit live page ViewModel composed from its complete section schema. Do not route `collection-grid` directly to `FashionStoreLiveCatalog` as the accepted Home implementation. Governs R3, R6, R9, R40, R44.
 - KTD29. Reuse `useGuestCart` as the single reactive cart-state authority behind an injected theme-neutral port. Mutation adapters publish the returned server Cart; Product, MiniCart, Cart, Checkout, and header consumers do not maintain independent authoritative copies. Governs R1, R4, R7, R8, R28, R39, R45.
-- KTD30. Provision a dedicated `fashion-staging` Commerce/API environment paired with the private Fashion Store acceptance origin, while reusing the repository's current deployment, migration, secret, and environment-verification mechanisms. Do not repoint legacy staging or create a new release protocol; only `COMMERCE_API` binds the preview origin to this distinct service. For this single-operator private repository, preparation authorization uses a manual workflow dispatch from `refs/heads/main` bound to its exact commit SHA, the fixed Fashion concurrency group, and retained operator/run readiness evidence; this is the approved substitute for unavailable GitHub required reviewers and protected-ref metadata and does not relax resource identity, backup/restore, or separate Preview authorization. (session-settled: user-approved — chosen over upgrading GitHub or introducing local CD.) Governs R25, R35, R37, R42, R43, R46, R47, R56.
+- KTD30. Provision a dedicated `fashion-staging` Commerce/API environment paired with the private Fashion Store acceptance origin, while reusing the repository's current deployment, migration, secret, and environment-verification mechanisms. Do not repoint legacy staging or create a new release protocol; only `COMMERCE_API` binds the preview origin to this distinct service. For this single-operator private repository, a standing FS-U12 authority permits manual preparation and Preview dispatch from current `refs/heads/main` without a per-run confirmation only when `79fbee07f60245b036b5a4d42858227502947a5c` is an ancestor, every later commit subject ends in `(U12)`, and every changed path is in the explicit FS-U12 allowlist. The fixed Fashion concurrency group and readiness evidence retain actor, run, baseline, scope, build, Snapshot, digest, and freshness. Ordinary staging/production, unrelated commits, stale-build mutation, and new destructive/security boundaries still require a new decision. (session-settled: user-approved — chosen to remove repetitive exact-SHA prompts while preserving a fail-closed scope.) Governs R25, R35, R37, R42, R43, R46, R47, R56.
 - KTD31. Separate static card purchase routing from mutable runtime action state. Direct-add routing requires exactly one selectable variant, while current availability comes only from hydrated Commerce state and is revalidated before mutation. Multiple or unresolved variants navigate to the typed product-page selector, and hover-only affordances never own the first touch. Governs R4, R7, R28, R39, R40, R49-R51.
 - KTD32. Treat the preview transaction bridge as a narrow security boundary: deny by default, allow only the storefront route and method pairs needed by the accepted journey, forward no Preview credentials, and keep API responses non-cacheable. Focused tests cover the bridge contract; the feature plan does not create a parallel generalized API gateway policy. Governs R25, R42, R46, R47, R52.
 - KTD34. Prove the transaction topology immediately after the Composer/provider boundary, before broad card or page migration. U13 is an add-only acceptance probe: workflow concurrency serializes it, a unique run creates a fresh cart, one real stable-ID cart add proves the bridge, and existing cart expiry handles abandonment. U13 creates no reservation, payment, or order state and adds no persistent acceptance-run record, inventory baseline, cleanup scheduler, startup reconciliation, or per-resource fence. Checkout return, payment states, destructive cleanup, webhook behavior, and the complete bridge matrix remain in U12. Governs R25, R35, R37, R42, R46, R47, R52.

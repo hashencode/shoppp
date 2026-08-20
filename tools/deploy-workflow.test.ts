@@ -446,16 +446,26 @@ describe("governed Fashion staging preparation workflow", () => {
     const migrate = workflow.indexOf("Apply pending Fashion D1 migrations after verified backup");
     const seed = workflow.indexOf("Apply collision-checked three-archetype seed");
 
-    expect(workflow).toContain('test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"');
+    expect(workflow).not.toContain("confirmation:");
     expect(workflow).toContain('test "$GITHUB_REF" = "refs/heads/main"');
+    expect(workflow).toContain("Verify standing FS-U12 execution authority");
+    expect(workflow).toContain("fetch-depth: 0");
+    expect(workflow).toContain("bun tools/verify-fashion-u12-standing-authority.ts");
+    expect(workflow).toContain(
+      '--baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"',
+    );
     expect(workflow).toContain("runner:");
     expect(workflow).toContain("default: ubuntu-latest");
     expect(workflow).toContain("- fashion-staging-preparation");
     expect(workflow).toContain("runs-on: ${{ inputs.runner }}");
     expect(workflow).not.toContain("GITHUB_REF_PROTECTED");
     expect(workflow).toContain("group: fashion-staging-preview");
-    expect(workflow).toContain("FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}");
-    expect(workflow).toContain('--confirmation="$FASHION_U12_CONFIRMATION"');
+    expect(workflow.indexOf("Verify standing FS-U12 execution authority")).toBeLessThan(
+      workflow.indexOf("bun install --frozen-lockfile"),
+    );
+    expect(workflow).toContain(
+      '--authority-baseline-sha="79fbee07f60245b036b5a4d42858227502947a5c"',
+    );
     expect(workflow).toContain("shoppp-fashion-staging --env fashion-staging --remote");
     expect(workflow).toContain('sqlite3 "$RESTORE_DB"');
     expect(workflow).toContain("PRAGMA foreign_key_check;");
@@ -505,6 +515,9 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(immutable).toBeGreaterThan(seed);
     expect(readiness).toBeGreaterThan(immutable);
     expect(workflow).toContain("/snapshots/$SNAPSHOT_ID/build");
+    expect(workflow).toContain(
+      "Idempotency-Key: fashion-u12-build-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT",
+    );
     expect(workflow).toContain("manualDispatch:true");
     expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
   });

@@ -68,9 +68,10 @@ function snapshot(): FashionStagingReadinessSnapshot {
       environment: "fashion-staging",
       operatorGate: {
         actor: "studio",
-        authorizationMode: "single-operator-exact-sha",
+        authorityBaselineSha: "79fbee07f60245b036b5a4d42858227502947a5c",
+        authorityScope: "FS-U12",
+        authorizationMode: "single-operator-standing-scope",
         concurrencyGroup: "fashion-staging-preview",
-        confirmation: `PREPARE FASHION U12 ${"d".repeat(40)}`,
         eventName: "workflow_dispatch",
         ref: "refs/heads/main",
         runAttempt: 1,
@@ -244,10 +245,16 @@ describe("Fashion staging deployment readiness", () => {
       /single-operator gate requires the exact default branch ref/,
     );
 
-    const wrongConfirmation = snapshot();
-    wrongConfirmation.github.operatorGate.confirmation = "PREPARE FASHION U12 wrong-sha";
-    expect(() => assertFashionStagingReadiness(wrongConfirmation)).toThrow(
-      /confirmation must bind the exact commit SHA/,
+    const wrongBaseline = snapshot();
+    wrongBaseline.github.operatorGate.authorityBaselineSha = "e".repeat(40);
+    expect(() => assertFashionStagingReadiness(wrongBaseline)).toThrow(
+      /standing authority baseline is incorrect/,
+    );
+
+    const wrongScope = snapshot();
+    wrongScope.github.operatorGate.authorityScope = "FS-U8";
+    expect(() => assertFashionStagingReadiness(wrongScope)).toThrow(
+      /standing authority scope is incorrect/,
     );
 
     const wrongEvent = snapshot();

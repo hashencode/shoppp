@@ -1334,3 +1334,24 @@ GB directory was moved to the macOS Trash after exit; it remains recoverable. Th
 downloaded evidence directory was likewise trashed. Ordinary staging and production were not
 accessed. U12.3 remains incomplete and pauses at the separately reserved new-build/readiness or
 preparation authority boundary.
+
+## 2026-08-20 — standing FS-U12 execution authority replaces per-run prompts
+
+The user superseded the separate preparation/new-identity prompt with a standing authority limited
+to FS-U12. The preparation workflow now fails closed unless current `main` descends from baseline
+`79fbee07f60245b036b5a4d42858227502947a5c`, every intervening commit subject ends in `(U12)`, and
+every changed path belongs to the explicit FS-U12 allowlist. Readiness records the baseline and
+scope alongside the existing actor, run, commit, build, Snapshot, digest, freshness, isolation, and
+fixed-concurrency evidence. The workflow no longer accepts a self-asserted confirmation string.
+
+A repeated preparation run at the same scoped commit keeps the approved Snapshot lineage but uses
+the GitHub run identity in the build idempotency key, so an ordinary Preview failure can receive a
+new `building` attempt without reopening or modifying a terminal build. Focused test-first evidence
+passed 31 tests and 274 expectations across the standing-authority verifier, readiness verifier, and
+deployment-workflow contracts. A direct history check accepted the four scoped commits from the
+baseline through `d2297f0f` and rejected non-descendant, merge, unrelated-subject, and
+disallowed-path fixtures. This evidence does not complete U12 or maintain another execution queue.
+
+Standing authority continues to exclude ordinary staging/production, unrelated commits,
+stale-build mutation, and new destructive or security boundaries. No remote mutation occurred while
+establishing this gate; runner inventory remained empty.

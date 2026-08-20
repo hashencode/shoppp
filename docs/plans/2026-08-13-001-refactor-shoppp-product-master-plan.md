@@ -67,21 +67,16 @@ historical evidence remain unchanged inside the owning plans.
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
-- **Current child stage:** `FS-U12.3` — isolated preparation is complete; the local Preview
-  reconciliation now binds its artifact to the separately supplied preparation SHA and run and
-  requires the dedicated one-time self-hosted Preview label. Implementation commit `38830ba6` is
-  published on the governed branch. Attempt 2 of run `32323200492` passed the exact readiness,
-  Fashion isolation, sandbox profile, and build-input gates, then failed because storefront's strict
-  live schema omitted the authority's governed `mediaOrigins` field. Deployment and acceptance did
-  not begin; the normal failure reporter moved the bound build to terminal `failed` state.
-- **Next action:** Publish the locally verified schema correction and retained evidence, then stop.
-  A further Preview attempt needs a new explicit authority decision for a newly building build and
-  matching readiness identity; do not replay preparation, mutate the failed build, or substitute a
-  new target under the prior authorization.
-- **Blocker:** Retained readiness `79fbee07` / run `32265128115` is immutably bound to the failed
-  build, and the API permits deployment reporting only from `building`. Both ephemeral runners are
-  deregistered and runner inventory is empty; a valid retry now crosses the reserved new-identity or
-  preparation boundary.
+- **Current child stage:** `FS-U12.3` — the failed first build remains immutable and the
+  `mediaOrigins` repair is locally verified. Standing FS-U12 authority is rooted at `79fbee07` and
+  applies only when current `main` contains exclusively allowlisted `(U12)` changes after that
+  baseline. Readiness retains baseline, scope, actor, run, build, Snapshot, digest, and freshness;
+  ordinary staging and production remain excluded.
+- **Next action:** Publish the standing-scope gate to `main`, run one ephemeral Fashion preparation
+  to create fresh building/readiness identity, then autonomously complete the exact Preview. Normal
+  in-scope failures may create a new build attempt and retry without another per-run confirmation.
+- **Blocker:** None. Pause only for a failed standing-scope check, ordinary staging/production,
+  stale-build mutation, or a new destructive/security boundary. Runner inventory is empty.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
@@ -112,7 +107,7 @@ focused test alone.
 | `FS-H1` | [Fashion Store Source-Parity Home](2026-08-06-001-feat-fashion-store-source-parity-plan.md) | Fashion Store home baseline | Complete and inherited; its former only-template decision is superseded | `FS` owns current Fashion Store work |
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U12.3`; isolated preparation/readiness passed and Preview dispatch awaits separate authorization** | This plan owns `FS-U12`, then `FS-U8`, and the remaining Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U12.3`; standing scoped preparation and Preview execution authorized** | This plan owns `FS-U12`, then `FS-U8`, and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |

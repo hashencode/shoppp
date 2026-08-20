@@ -47,10 +47,11 @@ secret into logs or artifacts:
   Catalog Release, Experience Snapshot, artifact, commit, and canonical Catalog digest variables
   all resolve to the approved Fashion seed lineage.
 
-A repository change does not satisfy these deployed prerequisites. Applying the D1 migration,
-deploying either Worker, setting or rotating secrets, and dispatching the workflow are external
-changes and require the applicable explicit authorization. Never fall back to ordinary staging or
-production when a Fashion prerequisite is missing.
+A repository change does not satisfy these deployed prerequisites. The user-approved standing
+FS-U12 authority covers only the governed Fashion preparation and Preview operations below when the
+repository scope verifier passes. Setting or rotating secrets, touching unrelated resources, and
+ordinary staging or production remain outside that authority. Never substitute those environments
+when a Fashion prerequisite is missing.
 
 The governed remote preparation path is
 `.github/workflows/prepare-fashion-staging-u12.yml`. It is not an ordinary preview workflow and it
@@ -68,20 +69,24 @@ must not be dispatched from a local-only authorization. Before dispatch, the ope
    `https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe` with
    `checkout.session.completed`, `checkout.session.expired`,
    `checkout.session.async_payment_succeeded`, and `checkout.session.async_payment_failed`;
-4. require at least one reviewer and protected-branch deployment policy on the `fashion-staging`
-   GitHub environment; and
-5. obtain separate authorization for the exact remote migration, Worker deployment, durable seed,
-   Catalog/Experience/build creation, GitHub-environment change, provider change, and workflow
-   dispatch being proposed.
+4. verify the exact `fashion-staging` GitHub environment, actor/run evidence, and fixed
+   `fashion-staging-preview` concurrency group without relying on unavailable reviewer metadata; and
+5. verify that current `main` descends from authority baseline
+   `79fbee07f60245b036b5a4d42858227502947a5c`, every later commit subject ends in `(U12)`, and every
+   changed path is in the workflow's explicit FS-U12 allowlist. A failing scope check requires a new
+   authority decision before any mutation.
 
-The preparation dispatch requires the literal confirmation `PREPARE FASHION U12 <commit-sha>`.
-It only proceeds after Worker/GitHub credential-name checks and sandbox-provider checks. It exports
+The preparation dispatch has no per-run confirmation string. It first proves the standing scope,
+then proceeds only after Worker/GitHub credential-name checks and sandbox-provider checks. It exports
 the exact Fashion D1, restores that export into a disposable local database, runs a foreign-key
 check, and uploads `fashion-u12-d1-backup-<commit-sha>` before applying any migration. It then
 applies only the collision-free, deterministic three-archetype seed, creates and validates a
 Catalog-bound draft, approves an immutable Experience Snapshot, starts a build from that approved
 snapshot, and records fresh Cloudflare, GitHub, Stripe, migration, schema, seed, and build evidence.
 The workflow does not set or rotate a secret and fails if a prerequisite is absent.
+Re-running preparation at the same authorized commit reuses the approved Snapshot lineage while a
+run-specific build idempotency key creates a new build attempt; it never reopens or mutates a
+terminal failed build.
 
 Retain both the preparation run ID and the SHA-256 printed for `readiness.json`. Dispatch
 `.github/workflows/preview-storefront.yml` with the exact `build_id`, `snapshot_id`,

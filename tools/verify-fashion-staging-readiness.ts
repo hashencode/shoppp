@@ -78,9 +78,10 @@ export interface FashionStagingReadinessSnapshot {
     environment: string;
     operatorGate: {
       actor: string;
+      authorityBaselineSha: string;
+      authorityScope: string;
       authorizationMode: string;
       concurrencyGroup: string;
-      confirmation: string;
       eventName: string;
       ref: string;
       runAttempt: number;
@@ -275,7 +276,7 @@ export function assertFashionStagingReadiness(
   );
   const { operatorGate } = snapshot.github;
   assert(
-    operatorGate.authorizationMode === "single-operator-exact-sha",
+    operatorGate.authorizationMode === "single-operator-standing-scope",
     "Fashion single-operator authorization mode is incorrect",
   );
   assert(
@@ -283,9 +284,10 @@ export function assertFashionStagingReadiness(
     "Fashion single-operator gate requires a manual workflow dispatch",
   );
   assert(
-    operatorGate.confirmation === `PREPARE FASHION U12 ${snapshot.commitSha}`,
-    "Fashion single-operator confirmation must bind the exact commit SHA",
+    operatorGate.authorityBaselineSha === "79fbee07f60245b036b5a4d42858227502947a5c",
+    "Fashion standing authority baseline is incorrect",
   );
+  assert(operatorGate.authorityScope === "FS-U12", "Fashion standing authority scope is incorrect");
   assert(
     operatorGate.ref === "refs/heads/main",
     "Fashion single-operator gate requires the exact default branch ref",

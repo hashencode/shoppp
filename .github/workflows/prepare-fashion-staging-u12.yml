@@ -3,10 +3,6 @@ name: Prepare governed Fashion staging U12 inputs
 on:
   workflow_dispatch:
     inputs:
-      confirmation:
-        description: Type PREPARE FASHION U12 followed by the exact commit SHA
-        required: true
-        type: string
       runner:
         description: Select the dedicated one-time runner only for an explicitly authorized preparation
         required: true
@@ -40,21 +36,22 @@ jobs:
       TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
-      - run: bun install --frozen-lockfile
-      - name: Require exact preparation authorization and default branch
-        env:
-          CONFIRMATION: ${{ inputs.confirmation }}
+      - name: Verify standing FS-U12 execution authority
         run: |
-          test "$CONFIRMATION" = "PREPARE FASHION U12 $GITHUB_SHA"
           test "$GITHUB_REF" = "refs/heads/main"
+          bun tools/verify-fashion-u12-standing-authority.ts \
+            --baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"
           test "$API_ORIGIN" = "https://shoppp-api-fashion-staging.hashencode.workers.dev"
           [[ "$STRIPE_SECRET_KEY" == sk_test_* ]]
           test "${#TURNSTILE_SECRET}" -ge 20
           test "${#FASHION_U12_ADMIN_SERVICE_TOKEN}" -ge 32
-          bun run verify:environment
+      - run: bun install --frozen-lockfile
+      - run: bun run verify:environment
       - name: Generate deterministic three-archetype and immutable-input plan
         run: bun run prepare:fashion-staging-u12 --output-dir=artifacts/fashion-u12
       - name: Verify required Worker and protected-environment credentials before mutation
@@ -227,7 +224,7 @@ jobs:
           SNAPSHOT_ID="$(jq -er 'select(.data.kind == "approved") | .data.id' artifacts/fashion-u12/snapshot.json)"
           curl --fail --silent --show-error --request POST --header "$AUTHORIZATION" \
             --header "Content-Type: application/json" \
-            --header "Idempotency-Key: fashion-u12-build-$GITHUB_SHA" \
+            --header "Idempotency-Key: fashion-u12-build-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" '{catalogReleaseId:$catalog,manualDispatch:true}')" \
             "$API_ORIGIN/admin/storefront-experiences/snapshots/$SNAPSHOT_ID/build" \
             > artifacts/fashion-u12/build.json
@@ -260,13 +257,12 @@ jobs:
           jq --exit-status 'all(.[]; .applied_at != null)' \
             ../../artifacts/fashion-u12/migrations-after.json >/dev/null
       - name: Capture and verify fresh deployment-readiness evidence
-        env:
-          FASHION_U12_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           bun tools/capture-fashion-staging-readiness.ts \
             --input-dir=artifacts/fashion-u12 \
             --output=artifacts/fashion-u12/readiness.json \
-            --commit-sha="$GITHUB_SHA" --confirmation="$FASHION_U12_CONFIRMATION" \
+            --commit-sha="$GITHUB_SHA" \
+            --authority-baseline-sha="79fbee07f60245b036b5a4d42858227502947a5c" \
             --repository="$GITHUB_REPOSITORY"
           bun tools/verify-fashion-staging-readiness.ts \
             --snapshot=artifacts/fashion-u12/readiness.json \

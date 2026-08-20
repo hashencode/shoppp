@@ -144,7 +144,7 @@ if (import.meta.main) {
   const inputDirectory = resolve(argument("input-dir"));
   const output = resolve(argument("output"));
   const commitSha = argument("commit-sha");
-  const confirmation = argument("confirmation");
+  const authorityBaselineSha = argument("authority-baseline-sha");
   const repository = argument("repository");
   const cloudflareToken = required("CLOUDFLARE_API_TOKEN");
   const githubToken = required("GH_TOKEN");
@@ -259,9 +259,10 @@ if (import.meta.main) {
       environment: String(githubEnvironment.name),
       operatorGate: {
         actor: required("GITHUB_ACTOR"),
-        authorizationMode: "single-operator-exact-sha",
+        authorityBaselineSha,
+        authorityScope: "FS-U12",
+        authorizationMode: "single-operator-standing-scope",
         concurrencyGroup: "fashion-staging-preview",
-        confirmation,
         eventName: required("GITHUB_EVENT_NAME"),
         ref: required("GITHUB_REF"),
         runAttempt: number(required("GITHUB_RUN_ATTEMPT"), "GitHub run attempt"),
