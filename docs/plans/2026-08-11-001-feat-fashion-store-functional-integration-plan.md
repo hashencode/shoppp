@@ -102,19 +102,20 @@ U13 add-only probe do not establish overall completion.
   Preview dispatch reconciliation now separates the executing workflow SHA from the exact
   preparation SHA, verifies the embedded preparation run/build/Snapshot/digest before mutation,
   and permits only the dedicated `self-hosted` + `fashion-staging-preview` runner labels; it is
-  locally verified and authorized for commit/push, but remains undispatched.
-- **Next concrete action:** Commit and push only the local Preview reconciliation while preserving
-  the readiness identity
+  locally verified in implementation commit `38830ba6` and published on the governed branch, but
+  remains undispatched.
+- **Next concrete action:** Stop for separate authorization before registering a fresh ephemeral
+  runner or dispatching Preview. That authorization must bind the exact post-checkpoint workflow
+  ref plus readiness identity
   `79fbee07f60245b036b5a4d42858227502947a5c`, run `32265128115`, digest
   `3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`, build
   `preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1`, and approved Snapshot
-  `snapshot-approved-be895bedd71bd264a74f264144f8216e`. Stop again for separate authorization
-  before registering a fresh ephemeral runner or dispatching Preview. The retained readiness must
-  still pass its 24-hour freshness gate, which closes around `2026-08-20T14:39:08Z`; expiry does
-  not authorize preparation replay or stale-build mutation.
-- **Blocker:** None for the authorized commit/push. Runner registration and Preview dispatch remain
-  separate later authorization gates. Preparation run `32265128115` completed and its readiness
-  artifact independently reverified; no Preview workflow has been dispatched.
+  `snapshot-approved-be895bedd71bd264a74f264144f8216e`. The retained readiness must still pass its
+  24-hour freshness gate, which closes around `2026-08-20T14:39:08Z`; expiry does not authorize
+  preparation replay or stale-build mutation.
+- **Blocker:** Explicit user authorization to register the one-time runner and dispatch the exact
+  Preview workflow. Preparation run `32265128115` completed and its readiness artifact
+  independently reverified; no Preview workflow has been dispatched.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
