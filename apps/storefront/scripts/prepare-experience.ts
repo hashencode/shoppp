@@ -56,6 +56,12 @@ const livePreviewBuildInputSchema = z
     environment: z.literal("preview"),
     expectedOrigin: exactHttpsOriginSchema,
     inputIdentity: previewInputIdentitySchema,
+    mediaOrigins: z
+      .array(exactHttpsOriginSchema)
+      .max(8)
+      .refine((origins) => new Set(origins).size === origins.length, {
+        message: "Preview media origins must be unique.",
+      }),
     presentationMode: z.literal("live"),
     snapshot: experienceSnapshotSchema,
     themeId: z.string().regex(/^[a-z][a-z0-9-]*$/),

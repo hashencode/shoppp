@@ -295,6 +295,7 @@ describe("selected storefront theme generation", () => {
         themeId: liveSnapshot.themeId,
         themeVersion: liveSnapshot.themeVersion,
       },
+      mediaOrigins: ["https://media.example.test"],
       presentationMode: "live",
       snapshot: liveSnapshot,
       themeId: "synthetic",

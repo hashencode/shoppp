@@ -1272,3 +1272,65 @@ Readiness artifact `9369913371` expires on 2026-08-26. Its independently reverif
 single variant, twelve available multi-product variants, and zero available variants for the
 unavailable archetype. The runner is deregistered. Ordinary staging and production were not
 accessed or modified, and Preview remains blocked on a separate user authorization.
+
+## 2026-08-20 — first authorized Preview attempt fails before readiness
+
+The user authorized one ephemeral Preview runner and one exact dispatch from workflow ref
+`15fb2f160374935ce2a7b94ae8ab4f6e35cd2524`. Runner
+`shoppp-preview-20260820-15fb2f16` registered with the required `self-hosted` and
+`fashion-staging-preview` labels, accepted only run `32323200492`, and auto-deregistered after that
+job. GitHub runner inventory was then confirmed empty.
+
+The run passed its exact dispatch-input gate, checkout, and Bun setup, then failed at
+`bun install --frozen-lockfile` with exit 134. The `workerd` postinstall selected the runner's
+captured `/opt/homebrew/bin/node` 24.4.1, whose dynamic linker could not load
+`libsimdjson.26.dylib`. The captured PATH placed Homebrew before the working NVM Node 22 install.
+Readiness download and verification, isolated environment validation, build-input fetch, R2 upload,
+Preview Worker deployment, build reporting, acceptance locking, browser journeys, and cleanup were
+all skipped. Preparation, `fashion-staging`, ordinary staging, and production were not modified.
+
+The failed runner's official v2.336.0 archive matched published SHA-256
+`8e8839c49b7060b6b2154f4931f815df330c27f167d53ef2239ee3dfce28b079`. Its 1.8 GB local directory
+was moved to the macOS Trash after automatic deregistration because permanent removal was rejected
+by the execution environment; it is recoverable there. A retry needs a newly authorized ephemeral
+runner configured with NVM Node 22 and GNU coreutils first in the PATH captured at registration,
+plus pre-listen `node` and `date -d` probes. The failed dispatch is not automatic retry authority.
+
+## 2026-08-20 — replacement runner proves readiness and exposes build-input drift
+
+The user's bounded continuous authorization permitted ordinary Preview failures to be diagnosed,
+fixed, and retried while preserving the exact readiness/build/Snapshot identity. Replacement runner
+`shoppp-preview-retry-20260820-15fb2f16` captured NVM Node 22 and GNU coreutils before Homebrew,
+proved `node` and `date -d` before listening, and accepted only attempt 2 of run `32323200492` at
+exact workflow SHA `15fb2f160374935ce2a7b94ae8ab4f6e35cd2524`.
+
+Attempt 2 passed frozen dependency installation; readiness commit
+`79fbee07f60245b036b5a4d42858227502947a5c`, preparation run `32265128115`, digest
+`3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`, build
+`preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1`, and Snapshot
+`snapshot-approved-be895bedd71bd264a74f264144f8216e`; fixed Fashion isolation and sandbox-provider
+validation; and authoritative build-input fetch. The static build then failed before generation
+because `apps/storefront/scripts/prepare-experience.ts` used a strict live-input schema that omitted
+the API manifest's immutable `mediaOrigins` field. The API has emitted and tested that field since
+the governed Catalog-origin work, but the storefront test used a narrower hand-written input.
+
+The failure occurred before artifact description, R2 upload, Preview Worker deployment, deployed
+reporting, acceptance locking, U13 acceptance, no-interception journeys, fresh-session proof, and
+all U12 cleanup. The workflow's existing failure reporter did run and returned the exact build with
+`status=failed`, `failureCode=preview.build-failed`, and no artifact identity. API transition guards
+permit only a `building` build to transition to `deployed`; retained readiness is immutably bound to
+this now-failed build, so another valid remote attempt requires a new build/readiness authority and
+cannot continue under the retained identity.
+
+Test-first local repair added the real `mediaOrigins` field to the existing live-input regression,
+reproducing the same Zod rejection, then extended only the live schema with the API's bounded,
+unique, exact credential-free HTTPS-origin contract. The focused suite passed 35/35 tests with 169
+expectations; storefront typecheck and Prettier passed. A complete local static build and
+`verify:static` using the exact retained build-input then passed for the approved Fashion Snapshot,
+including Wrangler dry-run only. No remote environment was contacted by that local proof.
+
+The replacement runner auto-deregistered, GitHub runner inventory was confirmed empty, and its 1.9
+GB directory was moved to the macOS Trash after exit; it remains recoverable. The retained 16 KB
+downloaded evidence directory was likewise trashed. Ordinary staging and production were not
+accessed. U12.3 remains incomplete and pauses at the separately reserved new-build/readiness or
+preparation authority boundary.

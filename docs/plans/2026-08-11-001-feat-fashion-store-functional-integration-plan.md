@@ -102,26 +102,31 @@ U13 add-only probe do not establish overall completion.
   Preview dispatch reconciliation now separates the executing workflow SHA from the exact
   preparation SHA, verifies the embedded preparation run/build/Snapshot/digest before mutation,
   and permits only the dedicated `self-hosted` + `fashion-staging-preview` runner labels; it is
-  locally verified in implementation commit `38830ba6` and published on the governed branch, but
-  remains undispatched.
-- **Next concrete action:** Stop for separate authorization before registering a fresh ephemeral
-  runner or dispatching Preview. That authorization must bind the exact post-checkpoint workflow
-  ref plus readiness identity
-  `79fbee07f60245b036b5a4d42858227502947a5c`, run `32265128115`, digest
-  `3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`, build
-  `preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1`, and approved Snapshot
-  `snapshot-approved-be895bedd71bd264a74f264144f8216e`. The retained readiness must still pass its
-  24-hour freshness gate, which closes around `2026-08-20T14:39:08Z`; expiry does not authorize
-  preparation replay or stale-build mutation.
-- **Blocker:** Explicit user authorization to register the one-time runner and dispatch the exact
-  Preview workflow. Preparation run `32265128115` completed and its readiness artifact
-  independently reverified; no Preview workflow has been dispatched.
+  locally verified in implementation commit `38830ba6` and published on the governed branch.
+  Attempt 2 of exact run `32323200492` passed dependency installation, readiness identity and
+  freshness, Fashion isolation, sandbox-profile checks, and authoritative build-input fetch. It
+  then exposed a storefront/API contract gap: the strict live input schema rejected the governed
+  `mediaOrigins` field. No R2 upload, Preview Worker deploy, acceptance lock, journey, or U12 cleanup
+  ran. The workflow's governed failure reporter moved the exact build to terminal `failed` state.
+- **Next concrete action:** Publish the locally verified `mediaOrigins` schema correction and this
+  evidence, then stop before another remote attempt. Continuing U12.3 requires a newly authorized
+  building build and readiness identity because retained readiness commit `79fbee07`, run
+  `32265128115`, and digest `3df043bc341fef6d441a74bd07ef6c05669294f6fc340d398678c2f81f46cee2`
+  are immutably bound to failed build
+  `preview-build-d71bd264a74f264144f8216e-f1bb77ee6f824f48-1` and approved Snapshot
+  `snapshot-approved-be895bedd71bd264a74f264144f8216e`. Do not rerun preparation, mutate the failed
+  build, or substitute a new build/readiness identity without a new explicit authority decision.
+- **Blocker:** The authorized build is terminal `failed`; API transition guards allow only a
+  `building` build to become `deployed`, while the retained readiness artifact rejects any different
+  build ID. A valid retry therefore crosses the separately reserved preparation/new-target-identity
+  boundary. Both ephemeral runners auto-deregistered and GitHub runner inventory is empty.
 - **Next unit:** U8 after U12. U3, U4, U7, U10, U11, and U13 remain completed dependency baselines
   rather than queued units.
 - **Implementation tail:** Complete U12, then U8. Only after every required unit is complete may the
   selected product scope enter DC1.
-- **Last reviewed:** 2026-08-20 after local Preview reconciliation and focused contract verification;
-  U12.3 remains in progress and readiness alone is not deployed-journey or candidate identity.
+- **Last reviewed:** 2026-08-20 after attempt 2 of Preview run `32323200492` proved readiness and
+  local-build reconciliation but terminally failed the bound build before deployment or acceptance;
+  U12.3 remains in progress and is blocked at the new-build/readiness authority boundary.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The
