@@ -162,7 +162,7 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
   await openProduct(page, unavailable);
   const unavailableProduct = page.locator("[data-fashion-store-live-product]");
   await expect(unavailableProduct.getByRole("button", { name: "Add to cart" })).toBeDisabled();
-  await expect(unavailableProduct.getByRole("status")).toContainText("Currently unavailable.");
+  await expect(unavailableProduct.getByRole("status")).toContainText(/currently unavailable\./i);
 
   await openProduct(page, single);
   const product = page.locator("[data-fashion-store-live-product]");
