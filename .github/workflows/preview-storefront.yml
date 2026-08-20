@@ -11,6 +11,10 @@ on:
         description: Approved immutable experience snapshot ID
         required: true
         type: string
+      readiness_commit_sha:
+        description: Exact preparation commit bound to the verified readiness artifact
+        required: true
+        type: string
       readiness_run_id:
         description: Preparation workflow run containing the verified readiness artifact
         required: true
@@ -34,7 +38,7 @@ permissions:
 
 jobs:
   build-preview:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, fashion-staging-preview]
     timeout-minutes: 55
     environment: fashion-staging
     env:
@@ -70,6 +74,19 @@ jobs:
       STOREFRONT_BUILD_MODE: preview
       STOREFRONT_EXPERIENCE_FILE: ${{ github.workspace }}/artifacts/preview/build-input.json
     steps:
+      - name: Validate governed Preview dispatch inputs
+        env:
+          READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
+          READINESS_DIGEST: ${{ inputs.readiness_digest }}
+          READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+        run: |
+          [[ "$READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$SNAPSHOT_ID" =~ ^[a-z][a-z0-9-]{2,99}$ ]]
+          [[ "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]
+          test -z "$RECOVERY_RUN_ID" || [[ "$RECOVERY_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
@@ -78,37 +95,29 @@ jobs:
       - name: Download the governed Fashion readiness snapshot
         uses: actions/download-artifact@v4
         with:
-          name: fashion-u12-readiness-${{ github.sha }}
+          name: fashion-u12-readiness-${{ inputs.readiness_commit_sha }}
           path: artifacts/readiness
           github-token: ${{ github.token }}
           run-id: ${{ inputs.readiness_run_id }}
       - name: Verify fresh pre-deployment readiness before any mutation
         env:
+          READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           READINESS_DIGEST: ${{ inputs.readiness_digest }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
         run: |
-          [[ "$READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-          [[ "$READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]
           test "$(sha256sum artifacts/readiness/readiness.json | cut -d ' ' -f 1)" = "$READINESS_DIGEST"
           bun tools/verify-fashion-staging-readiness.ts \
             --snapshot=artifacts/readiness/readiness.json > artifacts/readiness/verified.json
           jq --exit-status \
             --arg build "$BUILD_ID" \
-            --arg commit "$GITHUB_SHA" \
+            --arg commit "$READINESS_COMMIT_SHA" \
+            --arg run "$READINESS_RUN_ID" \
             --arg snapshot "$SNAPSHOT_ID" \
-            '.commitSha == $commit and .seed.buildId == $build and .seed.experienceSnapshotId == $snapshot' \
+            '.commitSha == $commit and .github.operatorGate.runId == $run and .seed.buildId == $build and .seed.experienceSnapshotId == $snapshot' \
             artifacts/readiness/readiness.json >/dev/null
-      - name: Validate fixed build inputs
+      - name: Validate fixed environment inputs
         id: validate
         run: |
-          if [[ ! "$SNAPSHOT_ID" =~ ^[a-z][a-z0-9-]{2,99}$ ]]; then
-            echo "Invalid immutable snapshot identifier." >&2
-            exit 1
-          fi
-          if [[ ! "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]; then
-            echo "Invalid preview build identifier." >&2
-            exit 1
-          fi
           node - <<'NODE'
           for (const name of ["PREVIEW_API_URL", "PREVIEW_HANDOFF_ORIGIN", "PREVIEW_ORIGIN"]) {
             const value = process.env[name] ?? "";

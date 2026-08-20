@@ -67,13 +67,18 @@ historical evidence remain unchanged inside the owning plans.
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
 - **Current parent unit:** `FS-U12` — deploy and prove the real Fashion Store Commerce journey.
-- **Current child stage:** `FS-U12.3` — isolated preparation is complete; the deployed
-  no-interception proof remains separately authorized work.
-- **Next action:** After explicit Preview authorization, dispatch the exact `79fbee07` readiness
-  candidate from run `32265128115` with its recorded digest, build, and approved Snapshot. Retain
-  concurrency, Fashion-only resource, cleanup, and evidence gates.
-- **Blocker:** Explicit user authorization to dispatch the Preview workflow. Preparation and local
-  readiness re-verification passed; no Preview workflow has been dispatched.
+- **Current child stage:** `FS-U12.3` — isolated preparation is complete; the local Preview
+  reconciliation now binds its artifact to the separately supplied preparation SHA and run and
+  requires the dedicated one-time self-hosted Preview label. It is locally verified and authorized
+  for commit/push, but remains undispatched.
+- **Next action:** Commit and push only the locally verified Preview reconciliation and bind the
+  next execution gate to that exact workflow commit plus the retained
+  `79fbee07` readiness candidate from run `32265128115`. Stop again before registering a fresh
+  ephemeral runner or dispatching Preview. The existing readiness freshness gate closes around
+  `2026-08-20T14:39:08Z`; expiry does not authorize preparation replay or stale-build mutation.
+- **Blocker:** None for the authorized commit/push. Runner registration and Preview dispatch remain
+  separately authorized. Preparation and local readiness re-verification passed; no Preview
+  workflow has been dispatched.
 - **Following sequence:** Complete `FS-U12`, then `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`,
   `FS-U10`, `FS-U11`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the

@@ -288,15 +288,30 @@ describe("source-equivalence documentation authority", () => {
 describe("private storefront preview workflow", () => {
   test("requires a fresh governed readiness artifact before any deployment mutation", async () => {
     const workflow = await readFile(previewWorkflowPath, "utf8");
+    const inputValidation = workflow.indexOf("Validate governed Preview dispatch inputs");
+    const download = workflow.indexOf("Download the governed Fashion readiness snapshot");
     const readiness = workflow.indexOf("Verify fresh pre-deployment readiness before any mutation");
     const upload = workflow.indexOf("Upload immutable files to the private preview bucket");
     const deploy = workflow.indexOf("Deploy the isolated preview access Worker");
 
+    expect(workflow).toContain("readiness_commit_sha:");
     expect(workflow).toContain("readiness_run_id:");
     expect(workflow).toContain("readiness_digest:");
+    expect(workflow).toContain("name: fashion-u12-readiness-${{ inputs.readiness_commit_sha }}");
     expect(workflow).toContain("run-id: ${{ inputs.readiness_run_id }}");
     expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
+    expect(workflow).toContain('[[ "$READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]');
+    expect(workflow).toContain('[[ "$READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]');
+    expect(workflow).toContain('[[ "$READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]');
+    expect(workflow).toContain('--arg commit "$READINESS_COMMIT_SHA"');
+    expect(workflow).toContain('--arg run "$READINESS_RUN_ID"');
     expect(workflow).toContain(".commitSha == $commit");
+    expect(workflow).toContain(".github.operatorGate.runId == $run");
+    expect(workflow).toContain("runs-on: [self-hosted, fashion-staging-preview]");
+    expect(workflow).not.toContain("runs-on: ubuntu-latest");
+    expect(inputValidation).toBeGreaterThan(0);
+    expect(download).toBeGreaterThan(inputValidation);
+    expect(readiness).toBeGreaterThan(download);
     expect(readiness).toBeGreaterThan(0);
     expect(upload).toBeGreaterThan(readiness);
     expect(deploy).toBeGreaterThan(readiness);
