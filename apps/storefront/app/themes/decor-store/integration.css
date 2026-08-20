@@ -518,7 +518,8 @@
 }
 
 @media (min-width: 768px) {
-  [data-decor-store-source-parity] header .header-top-bar + .navbar.disable-fixed {
+  [data-decor-store-source-parity] header .header-top-bar + .navbar.disable-fixed,
+  header[data-decor-secondary-header] .header-top-bar + .navbar.disable-fixed {
     top: 46px;
   }
 }

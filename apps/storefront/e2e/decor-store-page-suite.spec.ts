@@ -4,6 +4,7 @@ import { decorStoreSecondaryPageSourceContracts } from "../app/themes/decor-stor
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 
 const pages = decorStorePageContracts.filter(({ id }) => id !== "home");
+const implementedRoutes = new Set(decorStorePageContracts.map(({ path }) => path));
 
 async function exerciseInteraction(page: Page, interaction: string): Promise<void> {
   const root = page.locator("[data-decor-source-page]");
@@ -150,6 +151,34 @@ for (const { id, path: route } of pages) {
     const response = await page.goto(route);
     expect(response?.status()).toBe(200);
     await expect(page.locator("[data-decor-store-secondary-shell]")).toHaveCount(1);
+    const anchors = await page.locator("a").evaluateAll((links) =>
+      links.map((link) => ({
+        href: link.getAttribute("href"),
+        route: link.hasAttribute("data-decor-store-route"),
+      })),
+    );
+    const internalLinks = anchors.filter(({ href }) => href?.startsWith("/"));
+    expect(internalLinks.length).toBeGreaterThan(0);
+    expect(
+      internalLinks.every(({ href, route: isRoute }) =>
+        Boolean(isRoute && href && implementedRoutes.has(href)),
+      ),
+    ).toBe(true);
+    expect(anchors.some(({ href }) => /demo-decor-store.*\.html/.test(href ?? ""))).toBe(false);
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      const headerGeometry = await page
+        .locator("header[data-decor-secondary-header]")
+        .evaluate((header) => {
+          const topBar = header.querySelector<HTMLElement>(".header-top-bar");
+          const navigation = header.querySelector<HTMLElement>(".navbar.disable-fixed");
+          if (!topBar || !navigation) throw new Error("Decor Store secondary header is incomplete");
+          return {
+            navigationTop: navigation.getBoundingClientRect().top,
+            topBarBottom: topBar.getBoundingClientRect().bottom,
+          };
+        });
+      expect(headerGeometry.navigationTop).toBeCloseTo(headerGeometry.topBarBottom, 0);
+    }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     expect(overflow).toBeLessThanOrEqual(1);
     expect(diagnostics).toEqual([]);
