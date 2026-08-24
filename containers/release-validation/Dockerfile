@@ -3,6 +3,7 @@ FROM oven/bun@sha256:7985c11f2d6f8b3cd67cfe6e4da08151102a63db596b79bcaed5e9a5096
 FROM mcr.microsoft.com/playwright@sha256:02bbb2155cd7109e3e9c741941097ed1608cf8b6fa44ee2595896da2bdc1f471 AS base
 
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx
 
 RUN apt-get update \
   && apt-get install --yes --no-install-recommends \
@@ -11,7 +12,8 @@ RUN apt-get update \
     python3=3.12.3-0ubuntu2.1 \
     woff2=1.0.2-2build1 \
   && rm -rf /var/lib/apt/lists/* \
-  && test "$(bun --version)" = "1.3.5"
+  && test "$(bun --version)" = "1.3.5" \
+  && test "$(bunx --version)" = "1.3.5"
 
 ENV CI=true PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 

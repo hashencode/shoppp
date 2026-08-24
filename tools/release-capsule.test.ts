@@ -125,6 +125,10 @@ describe("provider-neutral release capsule", () => {
       browserEntries: expect.arrayContaining(["chromium-1234", "webkit-2336"]),
       browserExecutables: expect.any(Object),
     });
+    expect(RELEASE_CAPSULE_MANIFEST.toolchain.systemCommands).toHaveProperty("bunx", {
+      path: "/usr/local/bin/bunx",
+      sha256: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
   });
 
   test("builds and runs only the exact source through a bounded Docker interface", () => {

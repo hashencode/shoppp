@@ -6,6 +6,10 @@
     "playwright": "1.62.0",
     "platform": "linux/amd64",
     "systemCommands": {
+      "bunx": {
+        "path": "/usr/local/bin/bunx",
+        "sha256": "sha256:bbc0e1396336c4b6980bacc87747ea45dd733ce31321f3ba5c00a023aa035e69"
+      },
       "git": {
         "path": "/usr/bin/git",
         "sha256": "sha256:2a8c18fbf43da9f692d75474c72bea9dfd796c260b0f3dfe456376abc3bbd668"
