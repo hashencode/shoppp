@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const workflowPath = resolve(import.meta.dir, "../.github/workflows/deploy.yml");
-const ciWorkflowPath = resolve(import.meta.dir, "../.github/workflows/full-validation.yml");
+const fullValidationWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/full-validation.yml",
+);
 const previewWorkflowPath = resolve(import.meta.dir, "../.github/workflows/preview-storefront.yml");
 const fashionPreparationWorkflowPath = resolve(
   import.meta.dir,
@@ -47,9 +50,9 @@ const promotionRunbookPath = resolve(
   "../docs/runbooks/storefront-theme-promotion.md",
 );
 
-describe("continuous integration workflow", () => {
+describe("hosted full validation workflow", () => {
   test("allows the complete release gate to finish without weakening it", async () => {
-    const workflow = await readFile(ciWorkflowPath, "utf8");
+    const workflow = await readFile(fullValidationWorkflowPath, "utf8");
 
     expect(workflow).toContain("timeout-minutes: 45");
     expect(workflow).toContain('bun run release:validate -- --release-id "ci-${GITHUB_SHA}"');
