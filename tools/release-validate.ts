@@ -78,8 +78,8 @@ function releaseTarget(value: string | undefined): ReleaseTarget {
   return target;
 }
 
-function safeReleaseId(value: string): string {
-  assert(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value), "release ID contains unsafe characters");
+export function safeReleaseId(value: string, label = "release ID"): string {
+  assert(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value), `${label} contains unsafe characters`);
   return value;
 }
 
@@ -94,6 +94,30 @@ async function git(...arguments_: string[]): Promise<string> {
   const exitCode = await process.exited;
   if (exitCode !== 0) throw new Error(error.trim() || `git ${arguments_.join(" ")} failed`);
   return output.trim();
+}
+
+async function releaseSourceCommit(): Promise<string> {
+  if (process.env.RELEASE_SOURCE_MODE === "capsule") {
+    const source = JSON.parse(await readFile(resolve(ROOT, ".release-source.json"), "utf8")) as {
+      schemaVersion?: unknown;
+      commit?: unknown;
+      tree?: unknown;
+    };
+    assert(source.schemaVersion === 1, "release capsule source schema is invalid");
+    assert(
+      typeof source.commit === "string" && /^[a-f0-9]{40}$/.test(source.commit),
+      "release capsule source commit is invalid",
+    );
+    assert(
+      typeof source.tree === "string" && /^[a-f0-9]{40}$/.test(source.tree),
+      "release capsule source tree is invalid",
+    );
+    return source.commit;
+  }
+  const commit = await git("rev-parse", "HEAD");
+  const trackedChanges = await git("status", "--porcelain", "--untracked-files=no");
+  assert(!trackedChanges, "release validation requires a clean tracked working tree");
+  return commit;
 }
 
 async function allFiles(path: string): Promise<string[]> {
@@ -254,15 +278,12 @@ export async function validateRelease(options: {
   strictEnvironment?: boolean;
   promotion?: boolean;
 }): Promise<{ report: ReleaseReport; reportPath: string }> {
-  const commit = await git("rev-parse", "HEAD");
+  const commit = await releaseSourceCommit();
   const strictEnvironment = options.strictEnvironment ?? false;
   const releaseId = safeReleaseId(
     options.releaseId ??
       `${commit.slice(0, 12)}-${new Date().toISOString().replaceAll(/[:.]/g, "-")}`,
   );
-  const trackedChanges = await git("status", "--porcelain", "--untracked-files=no");
-  assert(!trackedChanges, "release validation requires a clean tracked working tree");
-
   const stagingEvidence = await assertProductionApproval({
     target: options.target,
     commit,

@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "toolchain": {
+    "bun": "1.3.5",
+    "node": "v24.18.0",
+    "playwright": "1.62.0",
+    "platform": "linux/amd64",
+    "systemCommands": {
+      "git": {
+        "path": "/usr/bin/git",
+        "sha256": "sha256:2a8c18fbf43da9f692d75474c72bea9dfd796c260b0f3dfe456376abc3bbd668"
+      },
+      "python3": {
+        "path": "/usr/bin/python3",
+        "sha256": "sha256:1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118"
+      },
+      "woff2_decompress": {
+        "path": "/usr/bin/woff2_decompress",
+        "sha256": "sha256:3467c6fc6a08db57a584d2326440dc8dc3498f58b0b311c0aed3f8121b967274"
+      }
+    },
+    "browserEntries": [
+      ".docker-info",
+      ".links",
+      "chromium-1234",
+      "chromium_headless_shell-1234",
+      "ffmpeg-1011",
+      "firefox-1538",
+      "webkit-2336"
+    ],
+    "browserExecutables": {
+      "/ms-playwright/chromium-1234/chrome-linux64/chrome": "sha256:0b20b130e7edd9dd51873be867761295fe0cfad490c2b9a64f95bd3cfc08fa71",
+      "/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell": "sha256:e11fc9ce65c96313476f7ee9844b6fb6a9220fb048693cfe9eee00acf4170a9f",
+      "/ms-playwright/ffmpeg-1011/ffmpeg-linux": "sha256:460d44f3416005662f528d4b92e7b94ace924e8a0288106d3803b73c56eaadc8",
+      "/ms-playwright/firefox-1538/firefox/firefox": "sha256:26e4198abe0dfb93c339239297008b1319711575d8cbae8e2d5122d2017b29a1",
+      "/ms-playwright/webkit-2336/pw_run.sh": "sha256:a85baad3d8c07173ac387a59b41500c382b21ed692afe0964d29aac247ccc63b"
+    }
+  },
+  "baseImages": {
+    "bun": "oven/bun@sha256:7985c11f2d6f8b3cd67cfe6e4da08151102a63db596b79bcaed5e9a50965276e",
+    "playwright": "mcr.microsoft.com/playwright@sha256:02bbb2155cd7109e3e9c741941097ed1608cf8b6fa44ee2595896da2bdc1f471"
+  },
+  "systemPackages": {
+    "ca-certificates": "20260601~24.04.1",
+    "git": "1:2.43.0-1ubuntu7.3",
+    "python3": "3.12.3-0ubuntu2.1",
+    "woff2": "1.0.2-2build1"
+  },
+  "gates": [
+    {
+      "name": "reproducible-install",
+      "dependencies": ["Bun", "bun.lock", "build-time package cache"],
+      "credentials": []
+    },
+    { "name": "format", "dependencies": ["Bun", "Prettier", "tracked source"], "credentials": [] },
+    { "name": "lint", "dependencies": ["Bun", "ESLint", "workspace manifests"], "credentials": [] },
+    {
+      "name": "types",
+      "dependencies": ["Bun", "Node.js", "TypeScript", "Nuxt type generation"],
+      "credentials": []
+    },
+    {
+      "name": "source-equivalence",
+      "dependencies": ["Bun", "woff2_decompress", "Sharp linux-amd64", "local fixtures"],
+      "credentials": []
+    },
+    {
+      "name": "theme-contracts",
+      "dependencies": ["Bun", "generated theme catalogs", "local fixtures"],
+      "credentials": []
+    },
+    {
+      "name": "fidelity-contract",
+      "dependencies": ["Bun", "Sharp linux-amd64", "local image fixtures"],
+      "credentials": []
+    },
+    {
+      "name": "unit-contract",
+      "dependencies": ["Bun", "Node.js", "workspace packages", "temporary filesystem"],
+      "credentials": []
+    },
+    {
+      "name": "worker-integration",
+      "dependencies": ["Bun", "Vitest", "workerd linux-amd64", "loopback network"],
+      "credentials": []
+    },
+    {
+      "name": "admin-browser",
+      "dependencies": ["Chromium", "Playwright", "font set", "loopback web server"],
+      "credentials": []
+    },
+    {
+      "name": "representative-catalog",
+      "dependencies": ["Bun", "Nuxt", "local 1000-product fixture", "temporary filesystem"],
+      "credentials": []
+    },
+    {
+      "name": "theme-matrix",
+      "dependencies": [
+        "Chromium",
+        "Playwright",
+        "Python 3 static server",
+        "font set",
+        "local source fixtures"
+      ],
+      "credentials": []
+    },
+    {
+      "name": "production-builds",
+      "dependencies": ["Bun", "Nuxt", "Wrangler linux-amd64", "local catalog fixture"],
+      "credentials": []
+    },
+    {
+      "name": "static-output",
+      "dependencies": ["Bun", "generated production outputs"],
+      "credentials": []
+    },
+    {
+      "name": "browser-journeys",
+      "dependencies": ["Chromium", "Playwright", "font set", "loopback web servers"],
+      "credentials": []
+    },
+    {
+      "name": "accessibility",
+      "dependencies": ["Chromium", "Playwright", "axe-core", "loopback web server"],
+      "credentials": []
+    },
+    {
+      "name": "performance",
+      "dependencies": ["Chromium", "Playwright", "font set", "loopback web server"],
+      "credentials": []
+    }
+  ]
+}

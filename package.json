@@ -28,6 +28,7 @@
     "lint": "eslint . && bun run check:boundaries && bun tools/run-workspace-script.ts lint --if-present",
     "report:theme-fidelity": "bun tools/theme-fidelity-report.ts",
     "release:validate": "bun tools/release-validate.ts",
+    "release:validate:capsule": "bun tools/release-capsule.ts",
     "recover:admin-password": "bun tools/recover-admin-password.ts",
     "provision:admin-service": "bun tools/provision-admin-service.ts",
     "prepare:fashion-staging-u12": "bun tools/prepare-fashion-staging-u12.ts",

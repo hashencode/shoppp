@@ -52,6 +52,65 @@ After the entry conditions pass, every candidate starts from a clean commit and 
 bun run release:validate -- --release-id <release-id>
 ```
 
+### Provider-neutral full-validation capsule
+
+Native macOS output is useful developer feedback but is not candidate authority. The provider-neutral
+path builds the exact clean committed source into a `linux/amd64` capsule and invokes the unchanged
+17-gate `release:validate` contract without GitHub Actions, its API, or its artifact store:
+
+```sh
+bun run release:validate:capsule -- --probe
+SHOPPP_RELEASE_OPERATOR_CONTEXT=approved \
+  bun run release:validate:capsule -- \
+  --release-id <release-id> \
+  --output-directory <absolute-empty-evidence-directory>
+```
+
+The `approved` marker records that the command is running in the dedicated release-operator context;
+it does not grant product, candidate, DC, PG, deployment, or production authority. Do not set it in
+ordinary developer or persistent-runner profiles. The entry point rejects any populated `GITHUB_*`
+identity or ambient token, secret, password, private-key, or credential variable. Structural full
+validation needs no Catalog or deployment credential. A later strict candidate run may receive only
+the separately authorized read-only, candidate-scoped Catalog input defined by the candidate policy;
+that credential path is not enabled by this command yet.
+
+The build context is produced by `git archive` from `HEAD`, includes a generated commit/tree identity,
+and rejects tracked and untracked checkout changes before Docker starts; ignored-material candidate
+identity remains governed by the later REL/CI-U7 source-input policy. The
+Dockerfile binds that identity into the image and fails if the archive identity and build arguments
+differ. It uses the amd64 platform manifests for Bun 1.3.5
+(`sha256:7985c11f2d6f8b3cd67cfe6e4da08151102a63db596b79bcaed5e9a50965276e`) and Playwright
+1.62.0 (`sha256:02bbb2155cd7109e3e9c741941097ed1608cf8b6fa44ee2595896da2bdc1f471`). The declared
+gate/tool dependencies live in `containers/release-validation/manifest.json`.
+
+The host Docker socket is used only to build and start the ephemeral capsule and is never mounted
+inside it. The image build uses network access to populate only the lockfile-governed Bun package
+cache; it proves that no `node_modules` tree enters the runtime image. The unchanged
+reproducible-install gate therefore rebuilds a clean install tree from that cache while the 17-gate
+runtime uses `--network none`. Direct Ubuntu packages are exact-version pinned, and the image build
+fails unless the declared Bun, Playwright, platform, package, command, and browser inventory matches.
+The container drops Linux capabilities, enables `no-new-privileges`, has
+bounded process and shared-memory settings, and receives only `CI`, `RELEASE_ID`, and one evidence
+bind mount. The report is finalized with no overwrite. Missing
+Docker/OrbStack service, amd64 emulation, registry/bootstrap network, image, tool, browser, font,
+workspace cleanliness, or evidence finalization is an infrastructure failure and never a pass.
+
+Before capsule output becomes formal candidate evidence, compare a same-source capsule run with the
+hosted Ubuntu adapter: exact commit/tree, the 17 selected gate names and commands, Bun/Playwright
+versions, final status, report schema, and every required artifact digest must match. Timestamps,
+durations, execution IDs, and attempt lineage may differ but must be explicitly classified rather
+than removed silently. Any unexplained gate, toolchain, report, or artifact drift invalidates the
+capsule result. Updating either base digest, Bun, Playwright, system packages, lockfiles, or the gate
+manifest requires a clean rebuild, negative preflight checks, and a new same-source parity record.
+The release report is accompanied by `<release-id>.capsule.json`, which retains source commit/tree,
+immutable image ID, capsule-manifest digest, actual tool/package/browser inventory, report digest,
+exit code, and failure class. The builder reuses the single local tag
+`shoppp-release-capsule:local-cache` for layer caching, then runs by the inspected immutable image ID.
+After finalizing a passing new receipt it attempts to remove only the exact previous capsule image ID;
+failed or infrastructure-classified runs retain that previous replay image.
+Docker safely refuses if another tag or container still references it. Never use broad image or
+system pruning as capsule cleanup.
+
 This command contributes DC1 local evidence. It does not by itself satisfy the deployed-commerce,
 template-compatibility, activation-target, recovery, or production-authorization gates. Before
 running it for a formal

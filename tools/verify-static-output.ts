@@ -77,7 +77,20 @@ export async function verifyNoSensitiveBuildArtifacts(
   }
 }
 
-async function verifyTrackedSourceSafety(root: string): Promise<void> {
+export async function trackedSourcePaths(
+  root: string,
+  environment: Record<string, string | undefined> = process.env,
+): Promise<string[]> {
+  if (environment.RELEASE_SOURCE_MODE === "capsule") {
+    const entries = (await readFile(resolve(root, ".release-tracked-files"), "utf8"))
+      .split("\0")
+      .filter(Boolean)
+      .map((path) => path.replace(/^\.\//, ""));
+    if (entries.some((path) => !path || path.startsWith("../") || path.startsWith("/"))) {
+      throw new Error("release capsule tracked-source manifest contains an unsafe path");
+    }
+    return entries;
+  }
   const git = Bun.spawn(["git", "ls-files", "-z"], {
     cwd: root,
     stdout: "pipe",
@@ -86,8 +99,11 @@ async function verifyTrackedSourceSafety(root: string): Promise<void> {
   const paths = (await new Response(git.stdout).text()).split("\0").filter(Boolean);
   const error = await new Response(git.stderr).text();
   if ((await git.exited) !== 0) throw new Error(error || "could not enumerate tracked source");
+  return paths;
+}
 
-  for (const relativePath of paths) {
+async function verifyTrackedSourceSafety(root: string): Promise<void> {
+  for (const relativePath of await trackedSourcePaths(root)) {
     if (!TEXT_EXTENSIONS.has(extname(relativePath))) continue;
     let content: string;
     try {
