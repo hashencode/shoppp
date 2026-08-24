@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { catalogFixtureEnvironment, representativeCatalog } from "./verify-catalog-scale";
+import {
+  catalogFixtureEnvironment,
+  representativeCatalog,
+  restoreCatalogScaleSelection,
+} from "./verify-catalog-scale";
 
 describe("representative catalog fixture", () => {
   test("contains the release-contract scale with unique routes and identifiers", () => {
@@ -21,5 +25,17 @@ describe("representative catalog fixture", () => {
       NUXT_CATALOG_RELEASE_TOKEN: "",
       NUXT_CATALOG_RELEASE_URL: "",
     });
+  });
+
+  test("restores both generated release and experience selection before the next gate", async () => {
+    const commands: string[][] = [];
+    await restoreCatalogScaleSelection(async (command) => {
+      commands.push(command);
+    });
+
+    expect(commands).toEqual([
+      ["bun", "run", "--cwd", "apps/storefront", "prepare:release"],
+      ["bun", "run", "--cwd", "apps/storefront", "prepare:experience"],
+    ]);
   });
 });

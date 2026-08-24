@@ -85,6 +85,13 @@ async function run(command: string[], options: RunOptions = {}): Promise<void> {
   if (exitCode !== 0) throw new Error(`${command.join(" ")} failed with exit code ${exitCode}.`);
 }
 
+export async function restoreCatalogScaleSelection(
+  runner: (command: string[], options?: RunOptions) => Promise<void> = run,
+): Promise<void> {
+  await runner(["bun", "run", "--cwd", "apps/storefront", "prepare:release"]);
+  await runner(["bun", "run", "--cwd", "apps/storefront", "prepare:experience"]);
+}
+
 async function verifyOutput(): Promise<void> {
   const manifest = JSON.parse(
     await readFile(resolve(STOREFRONT, "app/generated/route-manifest.json"), "utf8"),
@@ -145,6 +152,6 @@ if (import.meta.main) {
     );
   } finally {
     await rm(temporaryRoot, { force: true, recursive: true });
-    await run(["bun", "run", "--cwd", "apps/storefront", "prepare:release"]);
+    await restoreCatalogScaleSelection();
   }
 }
