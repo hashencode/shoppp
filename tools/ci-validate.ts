@@ -6,9 +6,9 @@ export type CiTier = "fast" | "post-commit";
 export type FailureClassification = "test" | "infrastructure";
 
 export interface GateDefinition {
-  name: string;
-  command: string[];
-  nonzeroFailureClassification: FailureClassification;
+  readonly name: string;
+  readonly command: readonly string[];
+  readonly nonzeroFailureClassification: FailureClassification;
 }
 
 export interface GitIdentity {
@@ -39,7 +39,7 @@ export interface CiIdentity extends GitIdentity {
 
 export interface GateResult {
   name: string;
-  command: string[];
+  command: readonly string[];
   durationMs: number;
   status: "passed" | "failed";
   exitCode: number;
@@ -72,7 +72,7 @@ export interface CiReport extends CiIdentity {
 const ROOT = resolve(import.meta.dir, "..");
 const DEFAULT_REPORT_DIRECTORY = resolve(ROOT, "artifacts/ci");
 
-const FAST_GATES: GateDefinition[] = [
+const FAST_GATES: readonly GateDefinition[] = [
   {
     name: "reproducible-install",
     command: ["bun", "install", "--frozen-lockfile"],
@@ -100,7 +100,7 @@ const FAST_GATES: GateDefinition[] = [
   },
 ];
 
-export const CI_TIERS: Record<CiTier, GateDefinition[]> = {
+export const CI_TIERS: Readonly<Record<CiTier, readonly GateDefinition[]>> = {
   fast: FAST_GATES,
   "post-commit": [
     ...FAST_GATES,
@@ -143,19 +143,22 @@ async function git(...arguments_: string[]): Promise<string> {
     stdout: "pipe",
     stderr: "pipe",
   });
-  const output = await new Response(child.stdout).text();
-  const error = await new Response(child.stderr).text();
-  if ((await child.exited) !== 0) {
+  const [output, error, exitCode] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  if (exitCode !== 0) {
     throw new Error(error.trim() || `git ${arguments_.join(" ")} failed`);
   }
   return output.trim();
 }
 
 async function observeGitIdentity(): Promise<GitIdentity> {
-  const [testedSha, testedTree] = await Promise.all([
-    git("rev-parse", "HEAD"),
-    git("rev-parse", "HEAD^{tree}"),
-  ]);
+  const identities = (await git("rev-parse", "HEAD", "HEAD^{tree}")).split("\n");
+  assert(identities.length === 2, "git rev-parse returned an unexpected identity count");
+  const testedSha = identities[0]!;
+  const testedTree = identities[1]!;
   return { testedSha, testedTree };
 }
 
@@ -218,7 +221,7 @@ export function resolveCiIdentity(options: {
 
 async function executeGate(gate: GateDefinition): Promise<number> {
   console.log(`\n[ci] ${gate.name}: ${gate.command.join(" ")}`);
-  const child = Bun.spawn(gate.command, {
+  const child = Bun.spawn([...gate.command], {
     cwd: ROOT,
     env: process.env,
     stdin: "inherit",
@@ -267,9 +270,13 @@ export async function validateCi(options: {
   createdAt?: () => string;
   toolVersions?: Record<string, string>;
 }): Promise<{ report: CiReport; reportPath: string; exitCode: number }> {
-  const observedGit = await observeGitIdentity();
+  const [observedGit, workspaceChanges] = await Promise.all([
+    observeGitIdentity(),
+    options.workspaceChanges === undefined
+      ? observeWorkspaceChanges()
+      : Promise.resolve(options.workspaceChanges),
+  ]);
   const identity = options.identity ?? resolveCiIdentity({ observedGit });
-  const workspaceChanges = options.workspaceChanges ?? (await observeWorkspaceChanges());
   const workspace = {
     requiredClean: options.tier === "post-commit",
     clean: workspaceChanges.length === 0,
@@ -306,39 +313,41 @@ export async function validateCi(options: {
     error = identityErrors.join("; ");
   }
 
-  for (const gate of failureClassification ? [] : CI_TIERS[options.tier]) {
-    const gateStarted = nowMs();
-    try {
-      const exitCode = await run(gate);
-      const failed = exitCode !== 0;
-      gates.push({
-        name: gate.name,
-        command: gate.command,
-        durationMs: Math.max(0, Math.round(nowMs() - gateStarted)),
-        status: failed ? "failed" : "passed",
-        exitCode,
-        failureClassification: failed ? gate.nonzeroFailureClassification : null,
-      });
-      if (failed) {
-        failureClassification = gate.nonzeroFailureClassification;
+  if (!failureClassification) {
+    for (const gate of CI_TIERS[options.tier]) {
+      const gateStarted = nowMs();
+      try {
+        const exitCode = await run(gate);
+        const failed = exitCode !== 0;
+        gates.push({
+          name: gate.name,
+          command: gate.command,
+          durationMs: Math.max(0, Math.round(nowMs() - gateStarted)),
+          status: failed ? "failed" : "passed",
+          exitCode,
+          failureClassification: failed ? gate.nonzeroFailureClassification : null,
+        });
+        if (failed) {
+          failureClassification = gate.nonzeroFailureClassification;
+          failedGate = gate.name;
+          processExitCode = exitCode;
+          break;
+        }
+      } catch (gateError) {
+        gates.push({
+          name: gate.name,
+          command: gate.command,
+          durationMs: Math.max(0, Math.round(nowMs() - gateStarted)),
+          status: "failed",
+          exitCode: 1,
+          failureClassification: "infrastructure",
+          error: errorMessage(gateError),
+        });
+        failureClassification = "infrastructure";
         failedGate = gate.name;
-        processExitCode = exitCode;
+        processExitCode = 1;
         break;
       }
-    } catch (gateError) {
-      gates.push({
-        name: gate.name,
-        command: gate.command,
-        durationMs: Math.max(0, Math.round(nowMs() - gateStarted)),
-        status: "failed",
-        exitCode: 1,
-        failureClassification: "infrastructure",
-        error: errorMessage(gateError),
-      });
-      failureClassification = "infrastructure";
-      failedGate = gate.name;
-      processExitCode = 1;
-      break;
     }
   }
 
