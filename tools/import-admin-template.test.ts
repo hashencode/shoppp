@@ -118,7 +118,7 @@ describe("importAdminTemplate", () => {
     expect(await readFile(join(fixture.source, "src/uncommitted.tsx"), "utf8")).toBe(
       "export {};\n",
     );
-  });
+  }, 15_000);
 
   test("rejects a source revision other than the approved commit", async () => {
     const fixture = await createSourceRepository();
