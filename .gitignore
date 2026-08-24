@@ -18,6 +18,7 @@ apps/storefront/public/theme-preview-generated/
 node_modules/
 playwright-report/
 test-results/
+artifacts/ci/
 artifacts/releases/
 artifacts/source-equivalence/
 artifacts/theme-fidelity/

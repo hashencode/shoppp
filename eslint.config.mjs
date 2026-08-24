@@ -9,6 +9,7 @@ export default tseslint.config(
     ignores: [
       "**/.nuxt/**",
       "**/.output/**",
+      "**/.worktrees/**",
       "**/.wrangler/**",
       "apps/admin/**",
       "apps/storefront/app/themes/fashion-store/upstream/**",

@@ -17,6 +17,8 @@
     "capture:theme-fidelity-matrix": "bun tools/capture-theme-fidelity-matrix.ts",
     "capture:theme-route-region": "bun tools/capture-theme-route-region.ts",
     "check:boundaries": "bun tools/check-boundaries.ts",
+    "ci:fast": "bun tools/ci-validate.ts fast",
+    "ci:post-commit": "bun tools/ci-validate.ts post-commit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "inspect:theme-fonts": "bun tools/inspect-theme-fonts.ts apps/storefront/app/themes/fashion-store/upstream/fonts/figtree-latin.woff2 apps/storefront/app/themes/fashion-store/upstream/fonts/outfit-latin.woff2",

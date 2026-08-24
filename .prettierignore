@@ -1,5 +1,6 @@
 bun.lock
 pnpm-lock.yaml
+.worktrees/
 apps/admin
 apps/api/src/generated/storefront-theme-catalog.ts
 apps/storefront/app/generated/theme-catalog.ts
