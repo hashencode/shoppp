@@ -164,6 +164,7 @@ export function fashionStoreLiveBuildInput(
       themeId: snapshot.themeId,
       themeVersion: snapshot.themeVersion,
     },
+    mediaOrigins: [],
     presentationMode: "live" as const,
     snapshot,
     themeId: fixtureInput.themeId,

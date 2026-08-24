@@ -7,6 +7,7 @@ import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capabi
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
+import { experienceBuildInputSchema } from "../scripts/prepare-experience";
 
 const appRoot = resolve(import.meta.dir, "../app");
 
@@ -29,6 +30,8 @@ describe("Fashion Store live commerce boundary", () => {
       "https://shoppp-storefront-fashion-preview.example.test",
     );
 
+    expect(input.mediaOrigins).toEqual([]);
+    expect(experienceBuildInputSchema.parse(input)).toEqual(input);
     expect(input.snapshot.bindings).toEqual([
       expect.objectContaining({ instanceId: "fashion-store-home", kind: "catalog" }),
       expect.objectContaining({ instanceId: "fashion-store-collection", kind: "catalog" }),
