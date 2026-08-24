@@ -12,7 +12,7 @@ import {
 import { isAbsolute, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import manifest from "../containers/release-validation/manifest.json";
-import { safeReleaseId } from "./release-validate";
+import { RELEASE_ARTIFACT_PATHS, RELEASE_GATES, safeReleaseId } from "./release-validate";
 
 type Environment = Record<string, string | undefined>;
 
@@ -22,7 +22,7 @@ interface CapsuleRunOptions {
   releaseId: string;
 }
 
-interface BuiltCapsule {
+export interface BuiltCapsule {
   image: string;
   previousImage?: string;
   source: { commit: string; tree: string };
@@ -212,27 +212,34 @@ async function isFile(path: string): Promise<boolean> {
   }
 }
 
-async function writeCapsuleReceipt(options: {
-  built: BuiltCapsule;
-  containerExitCode: number;
-  outputDirectory: string;
-  releaseId: string;
-}): Promise<boolean> {
+export async function writeCapsuleReceipt(
+  options: {
+    built: BuiltCapsule;
+    containerExitCode: number;
+    outputDirectory: string;
+    releaseId: string;
+  },
+  dependencies: { readToolchain?: () => Promise<unknown> } = {},
+): Promise<boolean> {
   const reportPath = resolve(options.outputDirectory, `${options.releaseId}.json`);
-  const toolchain = JSON.parse(
-    await output([
-      "docker",
-      "run",
-      "--rm",
-      "--platform",
-      CAPSULE_PLATFORM,
-      "--network",
-      "none",
-      "--entrypoint",
-      "cat",
-      options.built.image,
-      "/usr/local/share/shoppp-release-toolchain.json",
-    ]),
+  const toolchain = (
+    dependencies.readToolchain
+      ? await dependencies.readToolchain()
+      : JSON.parse(
+          await output([
+            "docker",
+            "run",
+            "--rm",
+            "--platform",
+            CAPSULE_PLATFORM,
+            "--network",
+            "none",
+            "--entrypoint",
+            "cat",
+            options.built.image,
+            "/usr/local/share/shoppp-release-toolchain.json",
+          ]),
+        )
   ) as { manifestDigest?: unknown };
   assert(
     typeof toolchain.manifestDigest === "string" && PINNED_IMAGE.test(toolchain.manifestDigest),
@@ -242,6 +249,7 @@ async function writeCapsuleReceipt(options: {
     containerExitCode: options.containerExitCode,
     releaseId: options.releaseId,
     reportPath,
+    expectedCommit: options.built.source.commit,
   });
   const receipt = {
     schemaVersion: 1,
@@ -275,21 +283,70 @@ export async function classifyCapsuleResult(options: {
   containerExitCode: number;
   releaseId: string;
   reportPath: string;
+  expectedCommit: string;
 }): Promise<{ kind: "validation" | "infrastructure"; reportValid: boolean }> {
   if (![0, 1].includes(options.containerExitCode) || !(await isFile(options.reportPath))) {
     return { kind: "infrastructure", reportValid: false };
   }
   try {
-    const report = JSON.parse(await readFile(options.reportPath, "utf8")) as {
-      schemaVersion?: unknown;
-      releaseId?: unknown;
-      status?: unknown;
-    };
+    const report = JSON.parse(await readFile(options.reportPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
     const expectedStatus = options.containerExitCode === 0 ? "passed" : "failed";
+    const gates = Array.isArray(report.gates) ? report.gates : [];
+    const gateResultsValid =
+      gates.length > 0 &&
+      gates.every((candidate, index) => {
+        const gate = candidate as Record<string, unknown>;
+        const expected = RELEASE_GATES[index];
+        const expectedGateStatus =
+          index === gates.length - 1 && expectedStatus === "failed" ? "failed" : "passed";
+        return (
+          expected !== undefined &&
+          gate.name === expected.name &&
+          JSON.stringify(gate.command) === JSON.stringify(expected.command) &&
+          typeof gate.durationMs === "number" &&
+          Number.isFinite(gate.durationMs) &&
+          gate.durationMs >= 0 &&
+          gate.status === expectedGateStatus &&
+          typeof gate.exitCode === "number" &&
+          Number.isInteger(gate.exitCode) &&
+          (expectedGateStatus === "passed" ? gate.exitCode === 0 : gate.exitCode !== 0)
+        );
+      });
+    const artifactDigests =
+      report.artifactDigests && typeof report.artifactDigests === "object"
+        ? (report.artifactDigests as Record<string, unknown>)
+        : {};
+    const artifactKeys = Object.keys(artifactDigests).sort();
+    const expectedArtifactKeys = [...RELEASE_ARTIFACT_PATHS].sort();
+    const artifactsValid =
+      expectedStatus === "passed"
+        ? JSON.stringify(artifactKeys) === JSON.stringify(expectedArtifactKeys) &&
+          Object.values(artifactDigests).every(
+            (digest) => typeof digest === "string" && /^sha256:[a-f0-9]{64}$/.test(digest),
+          )
+        : artifactKeys.length === 0;
+    const gateSequenceValid =
+      expectedStatus === "passed"
+        ? gates.length === RELEASE_GATES.length
+        : gates.length <= RELEASE_GATES.length;
+    const isolation = report.environmentIsolation as Record<string, unknown> | undefined;
     const reportValid =
       report.schemaVersion === 1 &&
       report.releaseId === options.releaseId &&
-      report.status === expectedStatus;
+      report.target === "staging" &&
+      report.commit === options.expectedCommit &&
+      report.status === expectedStatus &&
+      typeof report.createdAt === "string" &&
+      !Number.isNaN(Date.parse(report.createdAt)) &&
+      gateSequenceValid &&
+      gateResultsValid &&
+      artifactsValid &&
+      isolation?.mode === "structural" &&
+      Array.isArray(isolation.environments) &&
+      isolation.environments.every((environment) => typeof environment === "string");
     return { kind: reportValid ? "validation" : "infrastructure", reportValid };
   } catch {
     return { kind: "infrastructure", reportValid: false };
@@ -309,6 +366,27 @@ async function removePreviousCapsuleImage(built: BuiltCapsule): Promise<void> {
   }
 }
 
+export async function finalizeCapsuleRun(
+  options: {
+    built: BuiltCapsule;
+    containerExitCode: number;
+    outputDirectory: string;
+    releaseId: string;
+  },
+  dependencies: {
+    writeReceipt?: typeof writeCapsuleReceipt;
+    removePreviousImage?: (built: BuiltCapsule) => Promise<void>;
+  } = {},
+): Promise<void> {
+  const passed = await (dependencies.writeReceipt ?? writeCapsuleReceipt)(options);
+  if (passed) await (dependencies.removePreviousImage ?? removePreviousCapsuleImage)(options.built);
+  assert(
+    options.containerExitCode === 0,
+    `release capsule failed with exit ${options.containerExitCode}`,
+  );
+  assert(passed, "release capsule produced invalid validation evidence");
+}
+
 export async function runReleaseCapsule(options: {
   outputDirectory: string;
   releaseId: string;
@@ -321,14 +399,12 @@ export async function runReleaseCapsule(options: {
     "docker",
     ...capsuleRunArguments({ ...options, image: built.image, outputDirectory }),
   ]);
-  const passed = await writeCapsuleReceipt({
+  await finalizeCapsuleRun({
     built,
     containerExitCode,
     outputDirectory,
     releaseId: options.releaseId,
   });
-  if (passed) await removePreviousCapsuleImage(built);
-  assert(containerExitCode === 0, `release capsule failed with exit ${containerExitCode}`);
 }
 
 export async function prepareCapsuleEvidenceDirectory(directory: string): Promise<string> {

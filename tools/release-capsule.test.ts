@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import packageManifest from "../package.json";
-import { RELEASE_GATES } from "./release-validate";
+import { RELEASE_ARTIFACT_PATHS, RELEASE_GATES } from "./release-validate";
 import { trackedSourcePaths } from "./verify-static-output";
 import {
   CAPSULE_PLATFORM,
@@ -20,8 +20,10 @@ import {
   assertReleaseCapsuleEnvironment,
   capsuleRunArguments,
   classifyCapsuleResult,
+  finalizeCapsuleRun,
   prepareCapsuleEvidenceDirectory,
   sourceTreeRevision,
+  writeCapsuleReceipt,
 } from "./release-capsule";
 
 const dockerfile = readFile(
@@ -32,6 +34,34 @@ const containerEntrypoint = readFile(
   resolve(import.meta.dir, "../containers/release-validation/run.sh"),
   "utf8",
 );
+
+const sourceCommit = "c".repeat(40);
+const sourceTree = "d".repeat(40);
+
+function releaseReport(status: "passed" | "failed") {
+  const gates = status === "passed" ? RELEASE_GATES : [RELEASE_GATES[0]!];
+  return {
+    schemaVersion: 1,
+    releaseId: "release-1",
+    target: "staging",
+    commit: sourceCommit,
+    createdAt: "2026-08-24T10:00:00.000Z",
+    status,
+    gates: gates.map((gate, index) => ({
+      ...gate,
+      durationMs: 1,
+      status: status === "failed" && index === gates.length - 1 ? "failed" : "passed",
+      exitCode: status === "failed" && index === gates.length - 1 ? 1 : 0,
+    })),
+    artifactDigests:
+      status === "passed"
+        ? Object.fromEntries(
+            RELEASE_ARTIFACT_PATHS.map((path) => [path, `sha256:${"e".repeat(64)}`]),
+          )
+        : {},
+    environmentIsolation: { mode: "structural", environments: [] },
+  };
+}
 
 describe("provider-neutral release capsule", () => {
   test("pins the Linux amd64 browser and Bun images by platform manifest digest", async () => {
@@ -207,15 +237,13 @@ describe("provider-neutral release capsule", () => {
     const root = await mkdtemp(resolve(tmpdir(), "shoppp-release-classification-"));
     const report = resolve(root, "release.json");
     try {
-      await writeFile(
-        report,
-        JSON.stringify({ schemaVersion: 1, releaseId: "release-1", status: "failed" }),
-      );
+      await writeFile(report, JSON.stringify(releaseReport("failed")));
       expect(
         await classifyCapsuleResult({
           containerExitCode: 1,
           releaseId: "release-1",
           reportPath: report,
+          expectedCommit: sourceCommit,
         }),
       ).toEqual({ kind: "validation", reportValid: true });
       expect(
@@ -223,6 +251,7 @@ describe("provider-neutral release capsule", () => {
           containerExitCode: 69,
           releaseId: "release-1",
           reportPath: report,
+          expectedCommit: sourceCommit,
         }),
       ).toEqual({ kind: "infrastructure", reportValid: false });
       expect(
@@ -230,6 +259,32 @@ describe("provider-neutral release capsule", () => {
           containerExitCode: 0,
           releaseId: "release-1",
           reportPath: report,
+          expectedCommit: sourceCommit,
+        }),
+      ).toEqual({ kind: "infrastructure", reportValid: false });
+
+      await writeFile(
+        report,
+        JSON.stringify({ schemaVersion: 1, releaseId: "release-1", status: "passed" }),
+      );
+      expect(
+        await classifyCapsuleResult({
+          containerExitCode: 0,
+          releaseId: "release-1",
+          reportPath: report,
+          expectedCommit: sourceCommit,
+        }),
+      ).toEqual({ kind: "infrastructure", reportValid: false });
+
+      const reordered = releaseReport("passed");
+      [reordered.gates[0], reordered.gates[1]] = [reordered.gates[1]!, reordered.gates[0]!];
+      await writeFile(report, JSON.stringify(reordered));
+      expect(
+        await classifyCapsuleResult({
+          containerExitCode: 0,
+          releaseId: "release-1",
+          reportPath: report,
+          expectedCommit: sourceCommit,
         }),
       ).toEqual({ kind: "infrastructure", reportValid: false });
     } finally {
@@ -237,13 +292,60 @@ describe("provider-neutral release capsule", () => {
     }
   });
 
-  test("binds receipts and retention to the immutable image result", async () => {
-    const contents = await readFile(resolve(import.meta.dir, "release-capsule.ts"), "utf8");
-    expect(contents).toContain("manifestDigest: toolchain.manifestDigest");
-    expect(contents).toContain("if (passed) await removePreviousCapsuleImage(built)");
-    expect(contents).not.toContain(
-      'fileDigest(resolve(ROOT, "containers/release-validation/manifest.json"))',
-    );
+  test("writes immutable receipts and removes only the previous image after valid evidence", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "shoppp-release-receipt-"));
+    try {
+      await writeFile(resolve(root, "release-1.json"), JSON.stringify(releaseReport("passed")));
+      const built = {
+        image: `sha256:${"a".repeat(64)}`,
+        previousImage: `sha256:${"b".repeat(64)}`,
+        source: { commit: sourceCommit, tree: sourceTree },
+      };
+      expect(
+        await writeCapsuleReceipt(
+          { built, containerExitCode: 0, outputDirectory: root, releaseId: "release-1" },
+          { readToolchain: async () => ({ manifestDigest: `sha256:${"f".repeat(64)}` }) },
+        ),
+      ).toBe(true);
+      const receipt = JSON.parse(await readFile(resolve(root, "release-1.capsule.json"), "utf8"));
+      expect(receipt).toMatchObject({
+        source: built.source,
+        imageId: built.image,
+        classification: "validation",
+        manifestDigest: `sha256:${"f".repeat(64)}`,
+      });
+      await expect(
+        writeCapsuleReceipt(
+          { built, containerExitCode: 0, outputDirectory: root, releaseId: "release-1" },
+          { readToolchain: async () => ({ manifestDigest: `sha256:${"f".repeat(64)}` }) },
+        ),
+      ).rejects.toThrow();
+
+      const removed: string[] = [];
+      await finalizeCapsuleRun(
+        { built, containerExitCode: 0, outputDirectory: root, releaseId: "release-1" },
+        {
+          writeReceipt: async () => true,
+          removePreviousImage: async (candidate) => {
+            removed.push(candidate.previousImage!);
+          },
+        },
+      );
+      expect(removed).toEqual([built.previousImage]);
+      await expect(
+        finalizeCapsuleRun(
+          { built, containerExitCode: 0, outputDirectory: root, releaseId: "release-1" },
+          {
+            writeReceipt: async () => false,
+            removePreviousImage: async () => {
+              throw new Error("must not remove");
+            },
+          },
+        ),
+      ).rejects.toThrow(/invalid validation evidence/);
+    } finally {
+      await rm(root, { recursive: true });
+    }
   });
 
   test("rejects ordinary shells, GitHub identity, secrets, and an unpinned image", () => {

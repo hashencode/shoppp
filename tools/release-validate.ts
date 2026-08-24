@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { readReleaseSourceIdentity } from "./release-source-identity";
 import { verifyEnvironmentIsolation } from "./verify-environment-isolation";
 
 type ReleaseTarget = "staging" | "production";
@@ -65,6 +66,18 @@ export const RELEASE_GATES: GateDefinition[] = [
   { name: "performance", command: ["bun", "run", "test:perf"] },
 ];
 
+export const RELEASE_ARTIFACT_PATHS = [
+  "apps/storefront/.output/public",
+  "apps/storefront/worker-dist",
+  "apps/storefront/wrangler.jsonc",
+  "apps/admin/dist",
+  "apps/admin/worker-dist",
+  "apps/admin/wrangler.jsonc",
+  "apps/api/dist",
+  "apps/api/wrangler.jsonc",
+  "packages/db/migrations",
+] as const;
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
@@ -97,23 +110,8 @@ async function git(...arguments_: string[]): Promise<string> {
 }
 
 async function releaseSourceCommit(): Promise<string> {
-  if (process.env.RELEASE_SOURCE_MODE === "capsule") {
-    const source = JSON.parse(await readFile(resolve(ROOT, ".release-source.json"), "utf8")) as {
-      schemaVersion?: unknown;
-      commit?: unknown;
-      tree?: unknown;
-    };
-    assert(source.schemaVersion === 1, "release capsule source schema is invalid");
-    assert(
-      typeof source.commit === "string" && /^[a-f0-9]{40}$/.test(source.commit),
-      "release capsule source commit is invalid",
-    );
-    assert(
-      typeof source.tree === "string" && /^[a-f0-9]{40}$/.test(source.tree),
-      "release capsule source tree is invalid",
-    );
-    return source.commit;
-  }
+  const source = await readReleaseSourceIdentity(ROOT);
+  if (source) return source.commit;
   const commit = await git("rev-parse", "HEAD");
   const trackedChanges = await git("status", "--porcelain", "--untracked-files=no");
   assert(!trackedChanges, "release validation requires a clean tracked working tree");
@@ -144,20 +142,11 @@ export async function digestArtifact(path: string, root = ROOT): Promise<string>
 }
 
 async function artifactDigests(): Promise<Record<string, string>> {
-  const paths = [
-    "apps/storefront/.output/public",
-    "apps/storefront/worker-dist",
-    "apps/storefront/wrangler.jsonc",
-    "apps/admin/dist",
-    "apps/admin/worker-dist",
-    "apps/admin/wrangler.jsonc",
-    "apps/api/dist",
-    "apps/api/wrangler.jsonc",
-    "packages/db/migrations",
-  ];
   return Object.fromEntries(
     await Promise.all(
-      paths.map(async (path) => [path, await digestArtifact(resolve(ROOT, path))] as const),
+      RELEASE_ARTIFACT_PATHS.map(
+        async (path) => [path, await digestArtifact(resolve(ROOT, path))] as const,
+      ),
     ),
   );
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { link, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { readReleaseSourceIdentity } from "./release-source-identity";
 
 export type CiTier = "fast" | "post-commit";
 export type FailureClassification = "test" | "infrastructure";
@@ -183,26 +184,8 @@ async function git(...arguments_: string[]): Promise<string> {
 }
 
 async function releaseSourceIdentity(): Promise<GitIdentity | undefined> {
-  try {
-    const source = JSON.parse(await readFile(resolve(ROOT, ".release-source.json"), "utf8")) as {
-      schemaVersion?: unknown;
-      commit?: unknown;
-      tree?: unknown;
-    };
-    assert(source.schemaVersion === 1, "release source identity has an unsupported schema");
-    assert(
-      typeof source.commit === "string" && /^[a-f0-9]{40}$/.test(source.commit),
-      "release source commit is invalid",
-    );
-    assert(
-      typeof source.tree === "string" && /^[a-f0-9]{40}$/.test(source.tree),
-      "release source tree is invalid",
-    );
-    return { testedSha: source.commit, testedTree: source.tree };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    throw error;
-  }
+  const source = await readReleaseSourceIdentity(ROOT);
+  return source ? { testedSha: source.commit, testedTree: source.tree } : undefined;
 }
 
 async function observeGitIdentity(): Promise<GitIdentity> {
