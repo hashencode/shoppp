@@ -3,7 +3,13 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import packageManifest from "../package.json";
-import { CI_TIERS, resolveCiIdentity, validateCi, type CiIdentity } from "./ci-validate";
+import {
+  CI_TIERS,
+  resolveCiIdentity,
+  validateCi,
+  type CiIdentity,
+  type GitIdentity,
+} from "./ci-validate";
 
 const temporaryDirectories: string[] = [];
 const repositoryRoot = resolve(import.meta.dir, "..");
@@ -23,10 +29,30 @@ async function git(argument: string): Promise<string> {
   return output;
 }
 
-const observedGit = {
-  testedSha: await git("HEAD"),
-  testedTree: await git("HEAD^{tree}"),
-};
+async function observedSourceIdentity(): Promise<GitIdentity> {
+  try {
+    const source = JSON.parse(
+      await readFile(resolve(repositoryRoot, ".release-source.json"), "utf8"),
+    ) as { commit?: unknown; tree?: unknown };
+    if (
+      typeof source.commit === "string" &&
+      /^[a-f0-9]{40}$/.test(source.commit) &&
+      typeof source.tree === "string" &&
+      /^[a-f0-9]{40}$/.test(source.tree)
+    ) {
+      return { testedSha: source.commit, testedTree: source.tree };
+    }
+    throw new Error("release source identity is invalid");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return {
+      testedSha: await git("HEAD"),
+      testedTree: await git("HEAD^{tree}"),
+    };
+  }
+}
+
+const observedGit = await observedSourceIdentity();
 
 afterEach(async () => {
   await Promise.all(
