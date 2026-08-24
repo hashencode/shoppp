@@ -49,7 +49,12 @@
   "gates": [
     {
       "name": "reproducible-install",
-      "dependencies": ["Bun", "bun.lock", "build-time package cache"],
+      "dependencies": [
+        "Bun",
+        "bun.lock",
+        "build-time package cache",
+        "build-time native prebuild cache"
+      ],
       "credentials": []
     },
     { "name": "format", "dependencies": ["Bun", "Prettier", "tracked source"], "credentials": [] },

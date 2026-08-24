@@ -85,7 +85,8 @@ gate/tool dependencies live in `containers/release-validation/manifest.json`.
 
 The host Docker socket is used only to build and start the ephemeral capsule and is never mounted
 inside it. The image build uses network access to populate only the lockfile-governed Bun package
-cache; it proves that no `node_modules` tree enters the runtime image. The unchanged
+cache and native prebuild download cache; it proves that no `node_modules` tree enters the runtime
+image. The unchanged
 reproducible-install gate therefore rebuilds a clean install tree from that cache while the 17-gate
 runtime uses `--network none`. Direct Ubuntu packages are exact-version pinned, and the image build
 fails unless the declared Bun, Playwright, platform, package, command, and browser inventory matches.

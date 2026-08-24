@@ -50,6 +50,7 @@ describe("provider-neutral release capsule", () => {
     expect(contents).toContain(".release-tracked-files");
     expect(contents).toContain("FROM base AS dependency-cache");
     expect(contents).toContain("COPY --from=dependency-cache /root/.bun/install/cache");
+    expect(contents).toContain("COPY --from=dependency-cache /root/.npm/_prebuilds");
     expect(contents).toContain("! find /workspace -type d -name node_modules");
     expect(contents).toContain("ca-certificates=20260601~24.04.1");
     expect(contents).toContain("git=1:2.43.0-1ubuntu7.3");

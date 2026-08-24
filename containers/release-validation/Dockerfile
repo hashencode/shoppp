@@ -48,6 +48,7 @@ RUN find . \( -type f -o -type l \) ! -name .release-source.json ! -name .releas
   | LC_ALL=C sort -z > /workspace/.release-tracked-files
 RUN ! find /workspace -type d -name node_modules -print -quit | grep -q .
 COPY --from=dependency-cache /root/.bun/install/cache /root/.bun/install/cache
+COPY --from=dependency-cache /root/.npm/_prebuilds /root/.npm/_prebuilds
 RUN bun tools/inspect-release-capsule.ts --verify > /usr/local/share/shoppp-release-toolchain.json
 RUN chmod 0555 /workspace/containers/release-validation/run.sh
 
