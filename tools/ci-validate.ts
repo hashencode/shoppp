@@ -182,7 +182,32 @@ async function git(...arguments_: string[]): Promise<string> {
   return output.trim();
 }
 
+async function releaseSourceIdentity(): Promise<GitIdentity | undefined> {
+  try {
+    const source = JSON.parse(await readFile(resolve(ROOT, ".release-source.json"), "utf8")) as {
+      schemaVersion?: unknown;
+      commit?: unknown;
+      tree?: unknown;
+    };
+    assert(source.schemaVersion === 1, "release source identity has an unsupported schema");
+    assert(
+      typeof source.commit === "string" && /^[a-f0-9]{40}$/.test(source.commit),
+      "release source commit is invalid",
+    );
+    assert(
+      typeof source.tree === "string" && /^[a-f0-9]{40}$/.test(source.tree),
+      "release source tree is invalid",
+    );
+    return { testedSha: source.commit, testedTree: source.tree };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
 async function observeGitIdentity(): Promise<GitIdentity> {
+  const releaseSource = await releaseSourceIdentity();
+  if (releaseSource) return releaseSource;
   const identities = (await git("rev-parse", "HEAD", "HEAD^{tree}")).split("\n");
   assert(identities.length === 2, "git rev-parse returned an unexpected identity count");
   const testedSha = identities[0]!;
@@ -191,6 +216,7 @@ async function observeGitIdentity(): Promise<GitIdentity> {
 }
 
 async function observeWorkspaceChanges(): Promise<string[]> {
+  if (await releaseSourceIdentity()) return [];
   const status = await git("status", "--porcelain=v1", "--untracked-files=all");
   return status ? status.split("\n") : [];
 }
