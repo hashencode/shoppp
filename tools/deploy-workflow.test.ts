@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const workflowPath = resolve(import.meta.dir, "../.github/workflows/deploy.yml");
-const ciWorkflowPath = resolve(import.meta.dir, "../.github/workflows/ci.yml");
+const ciWorkflowPath = resolve(import.meta.dir, "../.github/workflows/full-validation.yml");
 const previewWorkflowPath = resolve(import.meta.dir, "../.github/workflows/preview-storefront.yml");
 const fashionPreparationWorkflowPath = resolve(
   import.meta.dir,

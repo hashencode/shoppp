@@ -1,0 +1,58 @@
+name: Advisory post-commit CI
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# GitHub keeps at most one pending run in this group. The running exact-SHA
+# validation finishes, while a newer main tip supersedes an older pending tip.
+concurrency:
+  group: post-commit-main
+  cancel-in-progress: false
+
+jobs:
+  post-commit:
+    if: github.event.deleted == false && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, macOS, ARM64, shoppp-main-nonsecret]
+    timeout-minutes: 45
+    steps:
+      - name: Check out the immutable main commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - name: Verify checkout identity
+        id: identity
+        shell: bash
+        run: |
+          actual_sha="$(git rev-parse HEAD)"
+          test "$actual_sha" = "$GITHUB_SHA"
+          tree="$(git rev-parse 'HEAD^{tree}')"
+          printf 'tree=%s\n' "$tree" >> "$GITHUB_OUTPUT"
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Validate the advisory post-commit tier
+        env:
+          SHOPPP_CI_TESTED_SHA: ${{ github.sha }}
+          SHOPPP_CI_TESTED_TREE: ${{ steps.identity.outputs.tree }}
+          SHOPPP_CI_EXECUTION_ID: github-${{ github.run_id }}
+          SHOPPP_CI_ATTEMPT: ${{ github.run_attempt }}
+          SHOPPP_CI_TRIGGER: github-main-push
+          SHOPPP_CI_EXECUTOR_CLASS: self-hosted-macos-arm64-shoppp-main-nonsecret
+        run: bun run ci:post-commit
+      - name: Preserve the exact advisory report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-report-${{ github.sha }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: artifacts/ci/${{ github.sha }}-${{ steps.identity.outputs.tree }}-github-${{ github.run_id }}-attempt-${{ github.run_attempt }}-post-commit.json
+          if-no-files-found: error
+          retention-days: 14
