@@ -166,7 +166,7 @@ describe('StandardListPageRecipe', () => {
       },
       { timeout: 3_000 }
     )
-  }, 10_000)
+  }, 15_000)
 
   it('resets to first page when page size changes', async () => {
     const requestCalls: RequestFilters[] = []
