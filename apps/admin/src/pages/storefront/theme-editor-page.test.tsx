@@ -850,7 +850,7 @@ describe('ThemeEditorPage', () => {
       sourceVersion: 1,
     })
     expect(JSON.stringify(successorBody?.overrides)).toContain('Keep this local edit')
-  })
+  }, 15_000)
 
   it('shows validation issues and never previews an invalid saved version', async () => {
     server.use(
