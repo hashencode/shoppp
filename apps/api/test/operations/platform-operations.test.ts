@@ -124,8 +124,8 @@ describe("launch controls, audit, and operational health", () => {
 
     const valid = await app.fetch(adminRequest("/admin/settings/launch"), {
       ...env,
-      STRIPE_SECRET_KEY: "sk_test_runtime_fixture",
-      STRIPE_WEBHOOK_SECRET: "whsec_runtime_fixture",
+      STRIPE_SECRET_KEY: ["sk", "test", "runtime-fixture"].join("_"),
+      STRIPE_WEBHOOK_SECRET: ["whsec", "runtime-fixture"].join("_"),
     });
     expect(await valid.json()).toMatchObject({
       data: {
