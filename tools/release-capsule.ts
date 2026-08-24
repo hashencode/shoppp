@@ -153,7 +153,7 @@ async function exactSourceIdentity(): Promise<{ commit: string; tree: string }> 
 
 async function buildReleaseCapsule(): Promise<BuiltCapsule> {
   const source = await exactSourceIdentity();
-  const identity = JSON.stringify({ schemaVersion: 1, ...source });
+  const identity = `${JSON.stringify({ schemaVersion: 1, ...source }, null, 2)}\n`;
   const archive = Bun.spawn(
     [
       "git",
