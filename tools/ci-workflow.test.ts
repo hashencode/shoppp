@@ -11,6 +11,9 @@ async function workflow(path: string): Promise<string> {
   return readFile(path, "utf8");
 }
 
+const postCommitWorkflow = workflow(postCommitWorkflowPath);
+const fullValidationWorkflow = workflow(fullValidationWorkflowPath);
+
 function expectActionsPinnedToFullShas(contents: string): void {
   const actionReferences = [...contents.matchAll(/^\s+(?:- )?uses: ([^\s]+)$/gm)].map(
     (match) => match[1],
@@ -24,8 +27,8 @@ function expectActionsPinnedToFullShas(contents: string): void {
 describe("local-first CI workflow contracts", () => {
   test("retires mixed PR/main/scheduled orchestration without adding PR automation", async () => {
     const [postCommit, fullValidation] = await Promise.all([
-      workflow(postCommitWorkflowPath),
-      workflow(fullValidationWorkflowPath),
+      postCommitWorkflow,
+      fullValidationWorkflow,
     ]);
 
     for (const contents of [postCommit, fullValidation]) {
@@ -35,7 +38,7 @@ describe("local-first CI workflow contracts", () => {
   });
 
   test("routes only a non-deletion main push to the non-secret advisory tier", async () => {
-    const contents = await workflow(postCommitWorkflowPath);
+    const contents = await postCommitWorkflow;
 
     expect(contents).toMatch(/^\s+push:\n\s+branches:\n\s+- main$/m);
     expect(contents).not.toMatch(/^\s+(?:workflow_dispatch|schedule):/m);
@@ -48,7 +51,7 @@ describe("local-first CI workflow contracts", () => {
   });
 
   test("finishes the running main validation while GitHub coalesces pending tips", async () => {
-    const contents = await workflow(postCommitWorkflowPath);
+    const contents = await postCommitWorkflow;
 
     expect(contents).toMatch(
       /concurrency:\n\s+group: post-commit-main\n\s+cancel-in-progress: false/,
@@ -56,7 +59,7 @@ describe("local-first CI workflow contracts", () => {
   });
 
   test("binds exact checkout and report identity to the immutable event SHA", async () => {
-    const contents = await workflow(postCommitWorkflowPath);
+    const contents = await postCommitWorkflow;
 
     expect(contents).toContain("ref: ${{ github.sha }}");
     expect(contents).toContain('test "$actual_sha" = "$GITHUB_SHA"');
@@ -71,7 +74,7 @@ describe("local-first CI workflow contracts", () => {
   });
 
   test("keeps manual and scheduled full validation hosted with unchanged release semantics", async () => {
-    const contents = await workflow(fullValidationWorkflowPath);
+    const contents = await fullValidationWorkflow;
 
     expect(contents).toMatch(/^\s+workflow_dispatch:$/m);
     expect(contents).toMatch(/^\s+schedule:\n\s+- cron: "17 3 \* \* 2"$/m);
@@ -86,8 +89,8 @@ describe("local-first CI workflow contracts", () => {
 
   test("uses read-only checkout and immutable bounded dependencies", async () => {
     const [postCommit, fullValidation] = await Promise.all([
-      workflow(postCommitWorkflowPath),
-      workflow(fullValidationWorkflowPath),
+      postCommitWorkflow,
+      fullValidationWorkflow,
     ]);
 
     for (const contents of [postCommit, fullValidation]) {
@@ -100,15 +103,17 @@ describe("local-first CI workflow contracts", () => {
   });
 
   test("does not reuse or reinterpret Fashion U8 workflow boundaries", async () => {
-    const postCommit = await workflow(postCommitWorkflowPath);
+    const postCommit = await postCommitWorkflow;
     expect(postCommit).not.toMatch(/fashion|preview|acceptance/i);
 
     const featureWorkflowNames = (await readdir(workflowsDirectory)).filter((name) =>
       /fashion|preview/.test(name),
     );
     expect(featureWorkflowNames.length).toBeGreaterThan(0);
-    for (const name of featureWorkflowNames) {
-      const contents = await workflow(resolve(workflowsDirectory, name));
+    const featureWorkflows = await Promise.all(
+      featureWorkflowNames.map((name) => workflow(resolve(workflowsDirectory, name))),
+    );
+    for (const contents of featureWorkflows) {
       expect(contents).not.toContain("shoppp-main-nonsecret");
       expect(contents).not.toContain("bun run ci:post-commit");
     }
