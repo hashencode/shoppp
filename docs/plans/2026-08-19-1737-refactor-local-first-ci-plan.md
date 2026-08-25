@@ -59,7 +59,11 @@ dedicated-account isolation, exact-SHA pre-job admission, fail-closed cleanup, r
 deregistration without reusing FS-U8 authority. No runner was registered and no credential was
 handled; those remain human-only operations.
 
-- **Current parent/child stage:** CI-U7.2 — build and verify portable candidate evidence. CI-U7.1
+- **Current parent/child stage:** CI-U7.2 — operationally prove portable candidate evidence. The
+  repository implementation and local verification completed through `6cf0cd69`: the bundle now
+  binds the complete passing capsule report, archived Git tree, declared toolchain and external
+  digest; signing authority fails closed; `2/2` projection publishes signed quorum witnesses only
+  after both read-backs; and either surviving domain can restore exact bytes atomically. CI-U7.1
   completed on 2026-08-25 when the operator approved the REL source-input, Ed25519 signing,
   two-domain `2/2` retention, and artifact-class audit/retention policy recorded in
   `docs/architecture/ci-evidence-trust-and-retention.md`. CI-U12 is
@@ -67,14 +71,16 @@ handled; those remain human-only operations.
   capsule on the independent Intel executor, with a validation-class receipt and retained transfer,
   report, image-role, and toolchain digests. The optional 14-day CI-U4 runner pilot still awaits
   human adoption.
-- **Next concrete action:** Implement CI-U7.2's provider-neutral bundle builder/verifier, offline-root
-  signer certificate validation, atomic local spool, `2/2` independent projection, exact-byte
-  restore, redaction, and negative-path tests. Separately run the
+- **Next concrete action:** Land the verified CI-U7.2 tree on `main` and run the Intel Jenkins
+  post-commit lane against that exact SHA. Then provision the approved offline root/signer/trust
+  files and two genuinely independent retention endpoints, and retain one live signed `2/2`
+  build/verify plus single-survivor restore exercise. Separately run the
   hosted Ubuntu adapter when GitHub Actions billing permits; that compatibility evidence is not
   CI-U12 completion authority.
-- **Current blockers:** None for CI-U7.2 contract implementation. Operational completion still
-  requires provisioned signer/trust files and both approved retention domains; repository code must
-  fail closed while any is absent. GitHub billing blocks only the optional hosted-adapter
+- **Current blockers:** None for repository implementation or Intel Jenkins validation. CI-U7.2
+  operational completion requires provisioned offline-root/signer/trust files and two approved,
+  administratively independent retention domains; repository code fails closed while any is absent.
+  The second VPS endpoint has not yet been supplied. GitHub billing blocks only the optional hosted-adapter
   compatibility check. CI-U4 also cannot complete until a human adopts and operates the optional
   runner for the bounded 14-day sample.
 - **Tail:** CI-U7–CI-U11 is the active provider-resilience track; CI-U4/CI-U6 remains the

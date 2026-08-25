@@ -115,15 +115,19 @@ Parallel Decor execution is complete without replacing the product-level Fashion
 Parallel CI infrastructure planning is registered without replacing either implementation pointer:
 
 - **Parallel plan:** `CI` — Long-Term CI Resilience and Provider-Independent Delivery.
-- **Current parent/child stage:** `CI-U7.2` — the operator approved CI-U7.1's source-input, Ed25519
-  signing, independent `2/2` retention, and artifact audit/retention policy on 2026-08-25. CI-U12 is
+- **Current parent/child stage:** `CI-U7.2` — repository implementation and local verification are
+  complete through `6cf0cd69`; live operational proof remains open. The operator approved
+  CI-U7.1's source-input, Ed25519 signing, independent `2/2` retention, and artifact audit/retention
+  policy on 2026-08-25. CI-U12 is
   complete on exact commit `47b6b340`: all 17
   unchanged gates passed in the pinned `linux/amd64` capsule on the independent Intel executor and
   produced retained validation-class evidence. Registration and the CI-U4 14-day pilot remain
   human-operated and pending.
-- **Next action:** Implement and verify CI-U7.2's portable candidate bundle, signer/verifier, atomic
-  spool, independent projection/restore, redaction, and negative paths. GitHub Actions billing
-  blocks only optional hosted-adapter compatibility.
+- **Next action:** Land the verified tree on `main`, run its exact SHA on Intel Jenkins, then
+  provision the approved offline signing authority and two independent retention endpoints for one
+  live signed `2/2` build/verify and single-survivor restore. The unsupplied second VPS endpoint is
+  the only external input for that storage proof; GitHub Actions billing blocks only optional
+  hosted-adapter compatibility.
 - **Tail:** The CI plan owns local validation authority, optional non-secret mirror operations,
   a pinned provider-neutral full-validation capsule, portable evidence, provider
   degradation/recovery, thin GitHub adapters, a
