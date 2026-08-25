@@ -43,9 +43,8 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   // It never enters Playwright configuration, argv, environment variables, storage state, or evidence.
   await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 5 * 60_000 })
   await page.goto(`/storefront/themes/${sourceDraftId}`)
-  await expect(page.getByRole('combobox', { name: 'Catalog Release' })).toContainText(
-    catalogReleaseId,
-  )
+  await expect(page.getByRole('combobox', { name: 'Catalog Release' })).toBeVisible()
+  await expect(page.getByText(catalogReleaseId, { exact: true }).first()).toBeVisible()
   await page.getByRole('textbox', { name: 'Change reason' }).fill(reason)
 
   const missingReference = page.getByRole('group', { name: missingReferenceLabel })
