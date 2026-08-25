@@ -28,9 +28,9 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   const catalogReleaseId = required('FASHION_U8_CATALOG_RELEASE_ID')
   expect(manifest.catalogReleaseId).toBe(catalogReleaseId)
   expect(manifest.sourceDraftId).toBe(sourceDraftId)
-  const missingReferenceLabel = required('FASHION_U8_MISSING_REFERENCE_LABEL')
+  const missingReferenceLabel = 'fashion-store-home featured-collection'
   const replacementReferenceName = required('FASHION_U8_REPLACEMENT_REFERENCE_NAME')
-  const editableHeadingLabel = required('FASHION_U8_EDITABLE_HEADING_LABEL')
+  const editableHeadingLabel = 'fashion-store-home merchandising-title'
   const reason = `Fashion U8 ${manifest.runId} ${manifestDigest}`
 
   await page.goto('/login')
