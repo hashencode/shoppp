@@ -138,10 +138,7 @@ describe("staging latency verifier", () => {
           events.push(`create:${key}`);
           if (createCount === 1) throw new Error("response lost after cart creation");
           if (createCount === 2) {
-            return Response.json(
-              { error: { code: "idempotency_in_progress" } },
-              { status: 409 },
-            );
+            return Response.json({ error: { code: "idempotency_in_progress" } }, { status: 409 });
           }
           return Response.json({
             data: { cart: { id: "cart-recovered" }, token: "token-recovered" },
@@ -200,10 +197,7 @@ describe("staging latency verifier", () => {
         async () => {
           createCount += 1;
           if (createCount === 1) throw new Error("response lost after cart creation");
-          return Response.json(
-            { error: { code: "idempotency_in_progress" } },
-            { status: 409 },
-          );
+          return Response.json({ error: { code: "idempotency_in_progress" } }, { status: 409 });
         },
         {
           cleanup: async () => {
