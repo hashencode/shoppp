@@ -8,12 +8,14 @@ import {
   readFile,
   readdir,
   rename,
+  rm,
   stat,
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
 import { parseArgs } from "node:util";
-import { CAPSULE_PLATFORM } from "./release-capsule";
+import { CAPSULE_PLATFORM, parsePassingReleaseReport } from "./release-capsule";
 import { safeReleaseId } from "./release-validate";
 
 const POLICY_VERSION = "2026-08-25";
@@ -115,6 +117,18 @@ interface CapsuleReceipt {
   platform: typeof CAPSULE_PLATFORM;
   report: { digest: string; path: string };
   source: { commit: string; tree: string };
+  toolchain: {
+    baseImages: Record<string, string>;
+    browserEntries: string[];
+    browserExecutables: Record<string, string>;
+    bun: string;
+    commands: Record<string, { path: string; sha256: string }>;
+    manifestDigest: string;
+    node: string;
+    packages: Record<string, string>;
+    platform: typeof CAPSULE_PLATFORM;
+    playwright: string;
+  };
 }
 
 interface PreparedAuditEvent {
@@ -137,6 +151,26 @@ interface AddressedAuditEvent {
 }
 
 type AuditEvent = PreparedAuditEvent | AddressedAuditEvent;
+
+interface QuorumWitnessPayload {
+  at: string;
+  bundleDigest: string;
+  manifestDigest: string;
+  provenanceDigest: string;
+  retentionTargets: Array<{
+    administrativeDomain: string;
+    id: string;
+    retentionClass: RetentionClass;
+  }>;
+  schemaVersion: 1;
+}
+
+interface QuorumWitness {
+  algorithm: "Ed25519";
+  certificate: SignerCertificate;
+  payload: QuorumWitnessPayload;
+  signature: string;
+}
 
 interface RetentionTarget {
   administrativeDomain: string;
@@ -165,6 +199,7 @@ interface BuildOptions {
 
 interface VerifyOptions {
   bundlePath: string;
+  expectedBundleDigest: string;
   now?: string;
   trustStorePath: string;
 }
@@ -179,6 +214,22 @@ function record(value: unknown, label: string): Record<string, unknown> {
     `${label} is invalid`,
   );
   return value as Record<string, unknown>;
+}
+
+function exactRecord(value: unknown, keys: string[], label: string): Record<string, unknown> {
+  const candidate = record(value, label);
+  assert(
+    JSON.stringify(Object.keys(candidate).sort()) === JSON.stringify([...keys].sort()),
+    `${label} has unknown or missing fields`,
+  );
+  return candidate;
+}
+
+function canonicalDocument<T>(bytes: Uint8Array, label: string, parse: (value: unknown) => T): T {
+  const text = new TextDecoder().decode(bytes);
+  const parsed = parse(JSON.parse(text));
+  assert(text === `${canonicalJson(parsed)}\n`, `${label} is not canonical JSON`);
+  return parsed;
 }
 
 function string(value: unknown, label: string): string {
@@ -262,6 +313,43 @@ async function gitText(repository: string, ...args: string[]): Promise<string> {
   return new TextDecoder().decode(await git(repository, ...args)).trim();
 }
 
+export async function deriveGitTreeFromArchive(bytes: Uint8Array): Promise<string> {
+  const temporary = await mkdtemp(join(tmpdir(), "shoppp-evidence-archive-"));
+  try {
+    const archive = join(temporary, "source.tar");
+    const checkout = join(temporary, "checkout");
+    await writeFile(archive, bytes, { flag: "wx" });
+    const listing = Bun.spawn(["tar", "-tf", archive], { stdout: "pipe", stderr: "pipe" });
+    const [entries, listingError, listingExit] = await Promise.all([
+      new Response(listing.stdout).text(),
+      new Response(listing.stderr).text(),
+      listing.exited,
+    ]);
+    assert(listingExit === 0, listingError.trim() || "source archive inventory is invalid");
+    for (const entry of entries.split("\n").filter(Boolean)) {
+      assert(
+        !entry.startsWith("/") && !entry.split("/").includes(".."),
+        `source archive contains an unsafe path: ${entry}`,
+      );
+    }
+    await mkdir(checkout);
+    const extraction = Bun.spawn(["tar", "-xf", archive, "-C", checkout], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const extractionError = await new Response(extraction.stderr).text();
+    assert(
+      (await extraction.exited) === 0,
+      extractionError.trim() || "source archive extraction failed",
+    );
+    await gitText(checkout, "init", "--quiet");
+    await gitText(checkout, "add", "-f", "--", ".");
+    return await gitText(checkout, "write-tree");
+  } finally {
+    await rm(temporary, { force: true, recursive: true });
+  }
+}
+
 function repositoryPath(repository: string, path: string): string {
   const root = resolve(repository);
   const absolute = resolve(root, path);
@@ -298,7 +386,7 @@ function assertNoSecrets(bytes: Uint8Array, label: string, canarySecrets: string
     assert(!canary || !text.includes(canary), `canary secret found in ${label}`);
   }
   const prohibited = [
-    /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
+    /-----BEGIN [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----/,
     /authorization["':=\s]+bearer\s+[A-Za-z0-9._~+/-]{12,}/i,
     /\bAKIA[0-9A-Z]{16}\b/,
     /\bgrant_[A-Za-z0-9_-]{16,}\b/,
@@ -313,8 +401,13 @@ async function writeCanonical(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${canonicalJson(value)}\n`, { flag: "wx" });
 }
 
-async function appendAudit(path: string | undefined, event: AuditEvent): Promise<void> {
+async function appendAudit(
+  path: string | undefined,
+  event: AuditEvent,
+  canarySecrets: string[] = [],
+): Promise<void> {
   if (!path) return;
+  assertNoSecrets(Buffer.from(canonicalJson(event)), "external audit event", canarySecrets);
   await mkdir(dirname(path), { recursive: true });
   await appendFile(path, `${canonicalJson(event)}\n`, { mode: 0o600 });
 }
@@ -356,12 +449,20 @@ export function createSignerCertificate(options: {
 }
 
 function validateTrustStore(value: unknown): EvidenceTrustStore {
-  const store = record(value, "evidence trust store");
+  const store = exactRecord(
+    value,
+    ["revokedSignerKeyIds", "roots", "schemaVersion"],
+    "evidence trust store",
+  );
   assert(store.schemaVersion === 1, "unsupported evidence trust-store schema");
   assert(Array.isArray(store.roots), "evidence trust store roots are missing");
   assert(Array.isArray(store.revokedSignerKeyIds), "revoked signer list is missing");
   const roots = store.roots.map((candidate) => {
-    const root = record(candidate, "trust root");
+    const root = exactRecord(
+      candidate,
+      ["algorithm", "keyId", "publicKeyPem", "status"],
+      "trust root",
+    );
     assert(root.algorithm === "Ed25519", "unsupported trust-root algorithm");
     assert(root.status === "trusted" || root.status === "revoked", "invalid trust-root status");
     const publicKeyPem = string(root.publicKeyPem, "root public key");
@@ -383,8 +484,21 @@ function validateTrustStore(value: unknown): EvidenceTrustStore {
 }
 
 function parseSignerCertificate(value: unknown): SignerCertificate {
-  const certificate = record(value, "signer certificate");
-  const candidate = record(certificate.payload, "signer certificate payload");
+  const certificate = exactRecord(value, ["payload", "rootSignature"], "signer certificate");
+  const candidate = exactRecord(
+    certificate.payload,
+    [
+      "algorithm",
+      "notAfter",
+      "notBefore",
+      "rootKeyId",
+      "schemaVersion",
+      "signerKeyId",
+      "signerPublicKeyPem",
+      "usage",
+    ],
+    "signer certificate payload",
+  );
   assert(candidate.schemaVersion === 1, "unsupported signer certificate schema");
   assert(candidate.algorithm === "Ed25519", "unsupported signer algorithm");
   assert(candidate.usage === "candidate-evidence", "signer certificate has the wrong usage");
@@ -446,39 +560,23 @@ async function verifyCertificate(
   );
 }
 
-function parseReleaseReport(value: unknown): {
-  artifactDigests: Record<string, string>;
-  commit: string;
-  releaseId: string;
-  status: string;
-  target: string;
-} {
-  const report = record(value, "release report");
-  assert(report.status === "passed", "candidate evidence requires a passing release report");
-  assert(
-    report.target === "staging" || report.target === "production",
-    "release target is invalid",
-  );
-  assert(
-    report.artifactDigests && typeof report.artifactDigests === "object",
-    "artifact digests are missing",
-  );
-  const artifactDigests: Record<string, string> = {};
-  for (const [path, value] of Object.entries(report.artifactDigests)) {
-    const safePath = relativeArtifactPath(path, "artifact path");
-    artifactDigests[safePath] = digest(value, `artifact digest: ${path}`);
-  }
-  return {
-    artifactDigests,
-    commit: sha(report.commit, "release commit"),
-    releaseId: safeId(report.releaseId, "release ID"),
-    status: "passed",
-    target: report.target,
-  };
-}
-
 function parseCapsuleReceipt(value: unknown): CapsuleReceipt {
-  const receipt = record(value, "release capsule receipt");
+  const receipt = exactRecord(
+    value,
+    [
+      "classification",
+      "containerExitCode",
+      "createdAt",
+      "imageId",
+      "manifestDigest",
+      "platform",
+      "report",
+      "schemaVersion",
+      "source",
+      "toolchain",
+    ],
+    "release capsule receipt",
+  );
   assert(receipt.schemaVersion === 1, "unsupported release capsule receipt schema");
   assert(
     receipt.classification === "validation",
@@ -489,8 +587,51 @@ function parseCapsuleReceipt(value: unknown): CapsuleReceipt {
     receipt.platform === CAPSULE_PLATFORM,
     `candidate evidence requires the approved ${CAPSULE_PLATFORM} capsule`,
   );
-  const source = record(receipt.source, "capsule source identity");
-  const report = record(receipt.report, "capsule report identity");
+  const createdAt = string(receipt.createdAt, "capsule creation time");
+  assert(Number.isFinite(Date.parse(createdAt)), "capsule creation time is invalid");
+  const source = exactRecord(receipt.source, ["commit", "tree"], "capsule source identity");
+  const report = exactRecord(receipt.report, ["digest", "path"], "capsule report identity");
+  const toolchain = exactRecord(
+    receipt.toolchain,
+    [
+      "baseImages",
+      "browserEntries",
+      "browserExecutables",
+      "bun",
+      "commands",
+      "manifestDigest",
+      "node",
+      "osRelease",
+      "packages",
+      "platform",
+      "playwright",
+      "schemaVersion",
+    ],
+    "capsule toolchain",
+  );
+  assert(toolchain.schemaVersion === 1, "capsule toolchain schema is invalid");
+  assert(toolchain.platform === CAPSULE_PLATFORM, "capsule toolchain platform is invalid");
+  string(toolchain.osRelease, "capsule operating-system release");
+  const stringMap = (value: unknown, label: string): Record<string, string> =>
+    Object.fromEntries(
+      Object.entries(record(value, label)).map(([key, entry]) => [
+        key,
+        string(entry, `${label}: ${key}`),
+      ]),
+    );
+  assert(Array.isArray(toolchain.browserEntries), "capsule browser inventory is invalid");
+  const commands = Object.fromEntries(
+    Object.entries(record(toolchain.commands, "capsule command inventory")).map(([name, value]) => {
+      const command = exactRecord(value, ["path", "sha256"], `capsule command: ${name}`);
+      return [
+        name,
+        {
+          path: string(command.path, `capsule command path: ${name}`),
+          sha256: digest(command.sha256, `capsule command digest: ${name}`),
+        },
+      ];
+    }),
+  );
   return {
     classification: "validation",
     containerExitCode: 0,
@@ -505,7 +646,54 @@ function parseCapsuleReceipt(value: unknown): CapsuleReceipt {
       commit: sha(source.commit, "capsule source commit"),
       tree: sha(source.tree, "capsule source tree"),
     },
+    toolchain: {
+      baseImages: stringMap(toolchain.baseImages, "capsule base images"),
+      browserEntries: toolchain.browserEntries.map((entry) =>
+        string(entry, "capsule browser inventory entry"),
+      ),
+      browserExecutables: stringMap(toolchain.browserExecutables, "capsule browser executables"),
+      bun: string(toolchain.bun, "capsule Bun version"),
+      commands,
+      manifestDigest: digest(toolchain.manifestDigest, "capsule toolchain manifest digest"),
+      node: string(toolchain.node, "capsule Node.js version"),
+      packages: stringMap(toolchain.packages, "capsule package inventory"),
+      platform: CAPSULE_PLATFORM,
+      playwright: string(toolchain.playwright, "capsule Playwright version"),
+    },
   };
+}
+
+function assertToolchainMatchesManifest(receipt: CapsuleReceipt, manifestBytes: Uint8Array): void {
+  const manifest = record(JSON.parse(new TextDecoder().decode(manifestBytes)), "release manifest");
+  const toolchain = record(manifest.toolchain, "release manifest toolchain");
+  assert(
+    receipt.toolchain.manifestDigest === sha256(manifestBytes),
+    "capsule toolchain manifest linkage mismatch",
+  );
+  for (const key of ["bun", "node", "playwright", "platform"] as const) {
+    assert(receipt.toolchain[key] === toolchain[key], `capsule toolchain ${key} drifted`);
+  }
+  assert(
+    canonicalJson(receipt.toolchain.commands) === canonicalJson(toolchain.systemCommands),
+    "capsule command inventory drifted",
+  );
+  assert(
+    canonicalJson(receipt.toolchain.browserEntries) === canonicalJson(toolchain.browserEntries),
+    "capsule browser inventory drifted",
+  );
+  assert(
+    canonicalJson(receipt.toolchain.browserExecutables) ===
+      canonicalJson(toolchain.browserExecutables),
+    "capsule browser executable inventory drifted",
+  );
+  assert(
+    canonicalJson(receipt.toolchain.baseImages) === canonicalJson(manifest.baseImages),
+    "capsule base-image inventory drifted",
+  );
+  const packages = record(manifest.systemPackages, "release manifest packages");
+  for (const [name, version] of Object.entries(packages)) {
+    assert(receipt.toolchain.packages[name] === version, `capsule package drifted: ${name}`);
+  }
 }
 
 function assertRetentionTargets(targets: RetentionTarget[]): void {
@@ -534,6 +722,106 @@ function assertRetentionTargets(targets: RetentionTarget[]): void {
     administrativeDomains.size === 2,
     "retention targets require separate administrative domains",
   );
+}
+
+function witnessTargets(targets: RetentionTarget[]): QuorumWitnessPayload["retentionTargets"] {
+  return targets
+    .map(({ administrativeDomain, id, retentionClass }) => ({
+      administrativeDomain,
+      id,
+      retentionClass,
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function parseQuorumWitness(value: unknown): QuorumWitness {
+  const witness = exactRecord(
+    value,
+    ["algorithm", "certificate", "payload", "signature"],
+    "quorum witness",
+  );
+  assert(witness.algorithm === "Ed25519", "quorum witness algorithm is invalid");
+  const payload = exactRecord(
+    witness.payload,
+    [
+      "at",
+      "bundleDigest",
+      "manifestDigest",
+      "provenanceDigest",
+      "retentionTargets",
+      "schemaVersion",
+    ],
+    "quorum witness payload",
+  );
+  assert(payload.schemaVersion === 1, "quorum witness schema is invalid");
+  const at = string(payload.at, "quorum witness time");
+  assert(Number.isFinite(Date.parse(at)), "quorum witness time is invalid");
+  assert(Array.isArray(payload.retentionTargets), "quorum witness targets are invalid");
+  const retentionTargets = payload.retentionTargets.map((candidate) => {
+    const target = exactRecord(
+      candidate,
+      ["administrativeDomain", "id", "retentionClass"],
+      "quorum witness target",
+    );
+    assert(
+      target.retentionClass === "intel-append-only" ||
+        target.retentionClass === "operator-vps-object-lock",
+      "quorum witness retention class is invalid",
+    );
+    return {
+      administrativeDomain: safeId(target.administrativeDomain, "retention administrative domain"),
+      id: safeId(target.id, "retention target ID"),
+      retentionClass: target.retentionClass as RetentionClass,
+    };
+  });
+  return {
+    algorithm: "Ed25519",
+    certificate: parseSignerCertificate(witness.certificate),
+    payload: {
+      at,
+      bundleDigest: digest(payload.bundleDigest, "quorum witness bundle digest"),
+      manifestDigest: digest(payload.manifestDigest, "quorum witness manifest digest"),
+      provenanceDigest: digest(payload.provenanceDigest, "quorum witness provenance digest"),
+      retentionTargets,
+      schemaVersion: 1,
+    },
+    signature: base64(witness.signature, "quorum witness signature"),
+  };
+}
+
+async function verifyQuorumWitness(options: {
+  bundleDigest: string;
+  now?: string;
+  retentionTargets: RetentionTarget[];
+  trustStorePath: string;
+  witnessPath: string;
+}): Promise<QuorumWitness> {
+  const witness = canonicalDocument(
+    await readFile(options.witnessPath),
+    "quorum witness",
+    parseQuorumWitness,
+  );
+  assert(witness.payload.bundleDigest === options.bundleDigest, "quorum witness bundle mismatch");
+  assert(
+    canonicalJson(witness.payload.retentionTargets) ===
+      canonicalJson(witnessTargets(options.retentionTargets)),
+    "quorum witness target identities mismatch",
+  );
+  await verifyCertificate(
+    witness.certificate,
+    options.trustStorePath,
+    options.now ?? new Date().toISOString(),
+  );
+  assert(
+    verify(
+      null,
+      Buffer.from(canonicalJson(witness.payload)),
+      createPublicKey(witness.certificate.payload.signerPublicKeyPem),
+      Buffer.from(witness.signature, "base64"),
+    ),
+    "quorum witness signature is invalid",
+  );
+  return witness;
 }
 
 async function bundleInventoryDigest(
@@ -626,217 +914,340 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   await mkdir(options.spoolRoot, { recursive: true });
   const staging = await mkdtemp(join(options.spoolRoot, `.tmp-${options.attemptId}-`));
   const canarySecrets = (options.canarySecrets ?? []).filter(Boolean);
-  const objects: EvidenceObject[] = [];
-  const sourceArchive = await git(repository, "archive", "--format=tar", commit);
-  const sourceObject = await addObject(
-    staging,
-    sourceArchive,
-    { role: "source-archive", sourcePath: `git:${commit}` },
-    canarySecrets,
-  );
-  objects.push(sourceObject);
-
-  const declaredInputs = ["bun.lock", "containers/release-validation/manifest.json"];
-  for (const path of declaredInputs) {
-    const bytes = await readFile(repositoryPath(repository, path));
-    objects.push(
-      await addObject(staging, bytes, { role: "declared-input", sourcePath: path }, canarySecrets),
+  try {
+    const objects: EvidenceObject[] = [];
+    const sourceArchive = await git(repository, "archive", "--format=tar", commit);
+    const sourceObject = await addObject(
+      staging,
+      sourceArchive,
+      { role: "source-archive", sourcePath: `git:${commit}` },
+      canarySecrets,
     );
-  }
+    objects.push(sourceObject);
 
-  const reportPath = resolve(options.releaseReportPath);
-  assert(!(await lstat(reportPath)).isSymbolicLink(), "release report must not be a symbolic link");
-  const reportBytes = await readFile(reportPath);
-  const reportLabel = `release-report/${basename(reportPath)}`;
-  assertNoSecrets(reportBytes, reportLabel, canarySecrets);
-  const releaseReport = parseReleaseReport(JSON.parse(new TextDecoder().decode(reportBytes)));
-  assert(releaseReport.commit === commit, "release report commit differs from approved source");
-  const reportObject = await addObject(
-    staging,
-    reportBytes,
-    { role: "release-report", sourcePath: reportLabel },
-    canarySecrets,
-  );
-  objects.push(reportObject);
+    const declaredInputs = ["bun.lock", "containers/release-validation/manifest.json"];
+    const declaredInputBytes = new Map<string, Uint8Array>();
+    for (const path of declaredInputs) {
+      const bytes = await readFile(repositoryPath(repository, path));
+      declaredInputBytes.set(path, bytes);
+      objects.push(
+        await addObject(
+          staging,
+          bytes,
+          { role: "declared-input", sourcePath: path },
+          canarySecrets,
+        ),
+      );
+    }
 
-  const capsuleReceiptPath = resolve(options.capsuleReceiptPath);
-  assert(
-    !(await lstat(capsuleReceiptPath)).isSymbolicLink(),
-    "release capsule receipt must not be a symbolic link",
-  );
-  const capsuleReceiptBytes = await readFile(capsuleReceiptPath);
-  const capsuleReceiptLabel = `capsule-receipt/${basename(capsuleReceiptPath)}`;
-  const capsuleReceipt = parseCapsuleReceipt(
-    JSON.parse(new TextDecoder().decode(capsuleReceiptBytes)),
-  );
-  assert(
-    capsuleReceipt.source.commit === commit,
-    "capsule receipt commit differs from approved source",
-  );
-  assert(capsuleReceipt.source.tree === tree, "capsule receipt tree differs from approved source");
-  assert(
-    capsuleReceipt.report.path === basename(reportPath),
-    "capsule receipt names a different release report",
-  );
-  assert(
-    capsuleReceipt.report.digest === sha256(reportBytes),
-    "capsule receipt report digest mismatch",
-  );
-  const capsuleReceiptObject = await addObject(
-    staging,
-    capsuleReceiptBytes,
-    { role: "capsule-receipt", sourcePath: capsuleReceiptLabel },
-    canarySecrets,
-  );
-  objects.push(capsuleReceiptObject);
+    const reportPath = resolve(options.releaseReportPath);
+    assert(
+      !(await lstat(reportPath)).isSymbolicLink(),
+      "release report must not be a symbolic link",
+    );
+    const reportBytes = await readFile(reportPath);
+    const reportLabel = `release-report/${basename(reportPath)}`;
+    assertNoSecrets(reportBytes, reportLabel, canarySecrets);
+    const reportFile = basename(reportPath);
+    assert(reportFile.endsWith(".json"), "release report must use its release ID as a .json name");
+    const releaseReport = parsePassingReleaseReport(
+      JSON.parse(new TextDecoder().decode(reportBytes)),
+      { expectedCommit: commit, releaseId: reportFile.slice(0, -".json".length) },
+    );
+    const reportObject = await addObject(
+      staging,
+      reportBytes,
+      { role: "release-report", sourcePath: reportLabel },
+      canarySecrets,
+    );
+    objects.push(reportObject);
 
-  const artifacts: EvidenceArtifact[] = [];
-  for (const [path, expectedDigest] of Object.entries(releaseReport.artifactDigests).sort(
-    ([a], [b]) => a.localeCompare(b),
-  )) {
-    artifacts.push({ digest: expectedDigest, path });
-  }
+    const capsuleReceiptPath = resolve(options.capsuleReceiptPath);
+    assert(
+      !(await lstat(capsuleReceiptPath)).isSymbolicLink(),
+      "release capsule receipt must not be a symbolic link",
+    );
+    const capsuleReceiptBytes = await readFile(capsuleReceiptPath);
+    const capsuleReceiptLabel = `capsule-receipt/${basename(capsuleReceiptPath)}`;
+    const capsuleReceipt = parseCapsuleReceipt(
+      JSON.parse(new TextDecoder().decode(capsuleReceiptBytes)),
+    );
+    assert(
+      capsuleReceipt.source.commit === commit,
+      "capsule receipt commit differs from approved source",
+    );
+    assert(
+      capsuleReceipt.source.tree === tree,
+      "capsule receipt tree differs from approved source",
+    );
+    assert(
+      capsuleReceipt.report.path === basename(reportPath),
+      "capsule receipt names a different release report",
+    );
+    assert(
+      capsuleReceipt.report.digest === sha256(reportBytes),
+      "capsule receipt report digest mismatch",
+    );
+    const releaseManifestDigest = sha256(
+      declaredInputBytes.get("containers/release-validation/manifest.json")!,
+    );
+    assert(
+      capsuleReceipt.manifestDigest === releaseManifestDigest &&
+        capsuleReceipt.toolchain.manifestDigest === releaseManifestDigest,
+      "capsule receipt toolchain manifest linkage mismatch",
+    );
+    assertToolchainMatchesManifest(
+      capsuleReceipt,
+      declaredInputBytes.get("containers/release-validation/manifest.json")!,
+    );
+    const capsuleReceiptObject = await addObject(
+      staging,
+      capsuleReceiptBytes,
+      { role: "capsule-receipt", sourcePath: capsuleReceiptLabel },
+      canarySecrets,
+    );
+    objects.push(capsuleReceiptObject);
 
-  objects.sort((left, right) =>
-    `${left.role}:${left.sourcePath}`.localeCompare(`${right.role}:${right.sourcePath}`),
-  );
-  const manifest: CandidateEvidenceManifest = {
-    artifacts,
-    capsuleReceipt: {
-      digest: capsuleReceiptObject.digest,
-      imageId: capsuleReceipt.imageId,
-      manifestDigest: capsuleReceipt.manifestDigest,
-      path: capsuleReceiptObject.sourcePath,
-      platform: CAPSULE_PLATFORM,
-    },
-    declaredInputs,
-    objects,
-    policyVersion: POLICY_VERSION,
-    releaseReport: {
-      digest: reportObject.digest,
-      path: reportObject.sourcePath,
-      releaseId: releaseReport.releaseId,
-      target: releaseReport.target,
-    },
-    schemaVersion: 1,
-    source: { archiveDigest: sourceObject.digest, commit, tree },
-  };
-  const provenance: EvidenceProvenance = {
-    adapterIdentity: options.adapterIdentity,
-    attemptId: options.attemptId,
-    executorIdentity: options.executorIdentity,
-    issuedAt,
-    schemaVersion: 1,
-  };
-  const manifestDigest = sha256(canonicalJson(manifest));
-  const provenanceDigest = sha256(canonicalJson(provenance));
-  const signed = canonicalJson({ manifestDigest, provenanceDigest });
-  const signature: EvidenceSignature = {
-    algorithm: "Ed25519",
-    certificate,
-    manifestDigest,
-    provenanceDigest,
-    schemaVersion: 1,
-    signature: sign(null, Buffer.from(signed), signerPrivateKey).toString("base64"),
-  };
-  const audit: PreparedAuditEvent[] = [
-    {
-      action: "bundle-prepared",
+    const artifacts: EvidenceArtifact[] = [];
+    for (const [path, expectedDigest] of Object.entries(releaseReport.artifactDigests).sort(
+      ([a], [b]) => a.localeCompare(b),
+    )) {
+      artifacts.push({ digest: expectedDigest, path });
+    }
+
+    objects.sort((left, right) =>
+      `${left.role}:${left.sourcePath}`.localeCompare(`${right.role}:${right.sourcePath}`),
+    );
+    const manifest: CandidateEvidenceManifest = {
+      artifacts,
+      capsuleReceipt: {
+        digest: capsuleReceiptObject.digest,
+        imageId: capsuleReceipt.imageId,
+        manifestDigest: capsuleReceipt.manifestDigest,
+        path: capsuleReceiptObject.sourcePath,
+        platform: CAPSULE_PLATFORM,
+      },
+      declaredInputs,
+      objects,
+      policyVersion: POLICY_VERSION,
+      releaseReport: {
+        digest: reportObject.digest,
+        path: reportObject.sourcePath,
+        releaseId: releaseReport.releaseId,
+        target: releaseReport.target,
+      },
+      schemaVersion: 1,
+      source: { archiveDigest: sourceObject.digest, commit, tree },
+    };
+    const provenance: EvidenceProvenance = {
       adapterIdentity: options.adapterIdentity,
-      at: issuedAt,
+      attemptId: options.attemptId,
+      executorIdentity: options.executorIdentity,
+      issuedAt,
+      schemaVersion: 1,
+    };
+    const manifestDigest = sha256(canonicalJson(manifest));
+    const provenanceDigest = sha256(canonicalJson(provenance));
+    const signed = canonicalJson({ manifestDigest, provenanceDigest });
+    const signature: EvidenceSignature = {
+      algorithm: "Ed25519",
+      certificate,
       manifestDigest,
       provenanceDigest,
-      result: "passed",
-    },
-  ];
-  await writeCanonical(join(staging, "manifest.json"), manifest);
-  await writeCanonical(join(staging, "provenance.json"), provenance);
-  await writeCanonical(join(staging, "signature.json"), signature);
-  await writeCanonical(join(staging, "audit.json"), audit);
-  const bundleDigest = await bundleInventoryDigest(staging);
-  await writeFile(join(staging, "bundle-digest.txt"), `${bundleDigest}\n`, { flag: "wx" });
-  const bundlePath = join(options.spoolRoot, bundleDigest);
-  await rename(staging, bundlePath);
-  await verifyCandidateEvidenceBundle({
-    bundlePath,
-    now: issuedAt,
-    trustStorePath: options.trustStorePath,
-  });
-  await appendAudit(options.auditLogPath, {
-    action: "bundle-finalized",
-    adapterIdentity: options.adapterIdentity,
-    at: issuedAt,
-    bundleDigest,
-    result: "passed",
-  });
-
-  const projectionResults = await Promise.allSettled(
-    options.retentionTargets.map(async (target) => {
-      await mkdir(target.root, { recursive: true });
-      const path = join(target.root, bundleDigest);
-      await cp(bundlePath, path, { recursive: true, errorOnExist: true, force: false });
-      await verifyCandidateEvidenceBundle({
-        bundlePath: path,
-        now: issuedAt,
-        trustStorePath: options.trustStorePath,
-      });
-      const event: AddressedAuditEvent = {
-        action: "projection-verified",
+      schemaVersion: 1,
+      signature: sign(null, Buffer.from(signed), signerPrivateKey).toString("base64"),
+    };
+    const audit: PreparedAuditEvent[] = [
+      {
+        action: "bundle-prepared",
         adapterIdentity: options.adapterIdentity,
         at: issuedAt,
-        bundleDigest,
+        manifestDigest,
+        provenanceDigest,
         result: "passed",
-        retentionClass: target.retentionClass,
-        retentionId: target.id,
-      };
-      await writeCanonical(
-        join(target.root, `${bundleDigest}.${target.id}.projection.json`),
-        event,
-      );
-      return { ...target, event, path, status: "verified" as const };
-    }),
-  );
-  const failedProjection = projectionResults.find(
-    (result): result is PromiseRejectedResult => result.status === "rejected",
-  );
-  if (failedProjection) {
-    const failure = failedProjection.reason;
-    throw new Error(
-      `2/2 retention quorum was not reached: ${failure instanceof Error ? failure.message : String(failure)}`,
-      { cause: failure },
+      },
+    ];
+    for (const [label, value] of [
+      ["manifest metadata", manifest],
+      ["provenance metadata", provenance],
+      ["signature metadata", signature],
+      ["bundle audit metadata", audit],
+    ] as const) {
+      assertNoSecrets(Buffer.from(canonicalJson(value)), label, canarySecrets);
+    }
+    await writeCanonical(join(staging, "manifest.json"), manifest);
+    await writeCanonical(join(staging, "provenance.json"), provenance);
+    await writeCanonical(join(staging, "signature.json"), signature);
+    await writeCanonical(join(staging, "audit.json"), audit);
+    const bundleDigest = await bundleInventoryDigest(staging);
+    await writeFile(join(staging, "bundle-digest.txt"), `${bundleDigest}\n`, { flag: "wx" });
+    const bundlePath = join(options.spoolRoot, bundleDigest);
+    await rename(staging, bundlePath);
+    await verifyCandidateEvidenceBundle({
+      bundlePath,
+      expectedBundleDigest: bundleDigest,
+      now: issuedAt,
+      trustStorePath: options.trustStorePath,
+    });
+
+    const projectionResults = await Promise.allSettled(
+      options.retentionTargets.map(async (target) => {
+        await mkdir(target.root, { recursive: true });
+        const path = join(target.root, `${bundleDigest}.staging-${options.attemptId}`);
+        await cp(bundlePath, path, { recursive: true, errorOnExist: true, force: false });
+        await verifyCandidateEvidenceBundle({
+          bundlePath: path,
+          expectedBundleDigest: bundleDigest,
+          now: issuedAt,
+          trustStorePath: options.trustStorePath,
+        });
+        const event: AddressedAuditEvent = {
+          action: "projection-verified",
+          adapterIdentity: options.adapterIdentity,
+          at: issuedAt,
+          bundleDigest,
+          result: "passed",
+          retentionClass: target.retentionClass,
+          retentionId: target.id,
+        };
+        return { ...target, event, path, status: "verified" as const };
+      }),
     );
+    const failedProjection = projectionResults.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failedProjection) {
+      await Promise.allSettled(
+        options.retentionTargets.map((target) =>
+          rm(join(target.root, `${bundleDigest}.staging-${options.attemptId}`), {
+            force: true,
+            recursive: true,
+          }),
+        ),
+      );
+      const failure = failedProjection.reason;
+      throw new Error(
+        `2/2 retention quorum was not reached: ${failure instanceof Error ? failure.message : String(failure)}`,
+        { cause: failure },
+      );
+    }
+    const retentionCopies = projectionResults.map(
+      (result) =>
+        (
+          result as PromiseFulfilledResult<
+            RetentionTarget & {
+              event: AddressedAuditEvent;
+              path: string;
+              status: "verified";
+            }
+          >
+        ).value,
+    );
+    assert(retentionCopies.length === 2, "2/2 retention quorum was not reached");
+    for (const copy of retentionCopies) {
+      const finalPath = join(copy.root, bundleDigest);
+      await rename(copy.path, finalPath);
+      copy.path = finalPath;
+    }
+    const witnessPayload: QuorumWitnessPayload = {
+      at: issuedAt,
+      bundleDigest,
+      manifestDigest,
+      provenanceDigest,
+      retentionTargets: witnessTargets(options.retentionTargets),
+      schemaVersion: 1,
+    };
+    const witness: QuorumWitness = {
+      algorithm: "Ed25519",
+      certificate,
+      payload: witnessPayload,
+      signature: sign(null, Buffer.from(canonicalJson(witnessPayload)), signerPrivateKey).toString(
+        "base64",
+      ),
+    };
+    assertNoSecrets(Buffer.from(canonicalJson(witness)), "quorum witness", canarySecrets);
+    await Promise.all(
+      retentionCopies.map((copy) =>
+        writeCanonical(join(copy.root, `${bundleDigest}.quorum.json`), witness),
+      ),
+    );
+    const verifiedWitnesses = await Promise.all(
+      retentionCopies.map((copy) =>
+        verifyQuorumWitness({
+          bundleDigest,
+          now: issuedAt,
+          retentionTargets: options.retentionTargets,
+          trustStorePath: options.trustStorePath,
+          witnessPath: join(copy.root, `${bundleDigest}.quorum.json`),
+        }),
+      ),
+    );
+    assert(
+      canonicalJson(verifiedWitnesses[0]) === canonicalJson(verifiedWitnesses[1]),
+      "retention quorum witnesses differ",
+    );
+    const finalizedEvent: AddressedAuditEvent = {
+      action: "bundle-finalized",
+      adapterIdentity: options.adapterIdentity,
+      at: issuedAt,
+      bundleDigest,
+      result: "passed",
+    };
+    await appendAudit(options.auditLogPath, finalizedEvent, canarySecrets);
+    for (const copy of retentionCopies) {
+      assertNoSecrets(Buffer.from(canonicalJson(copy.event)), "projection marker", canarySecrets);
+      await writeCanonical(
+        join(copy.root, `${bundleDigest}.${copy.id}.projection.json`),
+        copy.event,
+      );
+      await appendAudit(options.auditLogPath, copy.event, canarySecrets);
+    }
+    return {
+      bundleDigest,
+      bundlePath,
+      manifest,
+      manifestDigest,
+      provenance,
+      retentionCopies: retentionCopies.map(({ event: _, ...copy }) => copy),
+    };
+  } catch (error) {
+    await rm(staging, { force: true, recursive: true });
+    throw error;
   }
-  const retentionCopies = projectionResults.map(
-    (result) =>
-      (
-        result as PromiseFulfilledResult<
-          RetentionTarget & {
-            event: AddressedAuditEvent;
-            path: string;
-            status: "verified";
-          }
-        >
-      ).value,
-  );
-  assert(retentionCopies.length === 2, "2/2 retention quorum was not reached");
-  for (const copy of retentionCopies) await appendAudit(options.auditLogPath, copy.event);
-  return {
-    bundleDigest,
-    bundlePath,
-    manifest,
-    manifestDigest,
-    provenance,
-    retentionCopies: retentionCopies.map(({ event: _, ...copy }) => copy),
-  };
 }
 
 function parseManifest(value: unknown): CandidateEvidenceManifest {
-  const manifest = record(value, "candidate evidence manifest");
+  const manifest = exactRecord(
+    value,
+    [
+      "artifacts",
+      "capsuleReceipt",
+      "declaredInputs",
+      "objects",
+      "policyVersion",
+      "releaseReport",
+      "schemaVersion",
+      "source",
+    ],
+    "candidate evidence manifest",
+  );
   assert(manifest.schemaVersion === 1, "unsupported candidate evidence manifest schema");
   assert(manifest.policyVersion === POLICY_VERSION, "unsupported candidate evidence policy");
-  const source = record(manifest.source, "candidate source");
-  const capsuleReceipt = record(manifest.capsuleReceipt, "candidate capsule receipt");
-  const releaseReport = record(manifest.releaseReport, "candidate release report");
+  const source = exactRecord(
+    manifest.source,
+    ["archiveDigest", "commit", "tree"],
+    "candidate source",
+  );
+  const capsuleReceipt = exactRecord(
+    manifest.capsuleReceipt,
+    ["digest", "imageId", "manifestDigest", "path", "platform"],
+    "candidate capsule receipt",
+  );
+  const releaseReport = exactRecord(
+    manifest.releaseReport,
+    ["digest", "path", "releaseId", "target"],
+    "candidate release report",
+  );
   assert(capsuleReceipt.platform === CAPSULE_PLATFORM, "candidate capsule platform is invalid");
   assert(
     releaseReport.target === "staging" || releaseReport.target === "production",
@@ -852,7 +1263,7 @@ function parseManifest(value: unknown): CandidateEvidenceManifest {
     relativeArtifactPath(path, "declared input path"),
   );
   const artifacts = manifest.artifacts.map((candidate) => {
-    const artifact = record(candidate, "evidence artifact");
+    const artifact = exactRecord(candidate, ["digest", "path"], "evidence artifact");
     return {
       digest: digest(artifact.digest, "artifact digest"),
       path: relativeArtifactPath(artifact.path, "artifact path"),
@@ -865,7 +1276,11 @@ function parseManifest(value: unknown): CandidateEvidenceManifest {
     "capsule-receipt",
   ]);
   const objects = manifest.objects.map((candidate) => {
-    const object = record(candidate, "evidence object");
+    const object = exactRecord(
+      candidate,
+      ["digest", "objectName", "role", "size", "sourcePath"],
+      "evidence object",
+    );
     assert(roles.has(object.role as EvidenceObject["role"]), "evidence object role is invalid");
     assert(
       typeof object.size === "number" && Number.isSafeInteger(object.size) && object.size >= 0,
@@ -909,7 +1324,11 @@ function parseManifest(value: unknown): CandidateEvidenceManifest {
 }
 
 function parseProvenance(value: unknown): EvidenceProvenance {
-  const provenance = record(value, "evidence provenance");
+  const provenance = exactRecord(
+    value,
+    ["adapterIdentity", "attemptId", "executorIdentity", "issuedAt", "schemaVersion"],
+    "evidence provenance",
+  );
   assert(provenance.schemaVersion === 1, "unsupported evidence provenance schema");
   const issuedAt = string(provenance.issuedAt, "bundle issue time");
   assert(Number.isFinite(Date.parse(issuedAt)), "bundle issue time is invalid");
@@ -923,7 +1342,18 @@ function parseProvenance(value: unknown): EvidenceProvenance {
 }
 
 function parseSignature(value: unknown): EvidenceSignature {
-  const signature = record(value, "evidence signature");
+  const signature = exactRecord(
+    value,
+    [
+      "algorithm",
+      "certificate",
+      "manifestDigest",
+      "provenanceDigest",
+      "schemaVersion",
+      "signature",
+    ],
+    "evidence signature",
+  );
   assert(
     signature.schemaVersion === 1 && signature.algorithm === "Ed25519",
     "invalid bundle signature schema",
@@ -944,21 +1374,26 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
   signerKeyId: string;
 }> {
   const bundlePath = resolve(options.bundlePath);
-  let expectedBundleDigest: string;
+  assert(DIGEST.test(options.expectedBundleDigest), "expected bundle digest is invalid");
+  let declaredBundleDigest: string;
   try {
-    expectedBundleDigest = (await readFile(join(bundlePath, "bundle-digest.txt"), "utf8")).trim();
+    declaredBundleDigest = (await readFile(join(bundlePath, "bundle-digest.txt"), "utf8")).trim();
   } catch {
     throw new Error("bundle digest is missing");
   }
-  assert(DIGEST.test(expectedBundleDigest), "bundle digest is missing or invalid");
+  assert(DIGEST.test(declaredBundleDigest), "bundle digest is missing or invalid");
+  assert(
+    declaredBundleDigest === options.expectedBundleDigest,
+    "bundle address does not match expected digest",
+  );
   const [manifestBytes, provenanceBytes, signatureBytes] = await Promise.all([
     readFile(join(bundlePath, "manifest.json")),
     readFile(join(bundlePath, "provenance.json")),
     readFile(join(bundlePath, "signature.json")),
   ]);
-  const manifest = parseManifest(JSON.parse(manifestBytes.toString("utf8")));
-  const provenance = parseProvenance(JSON.parse(provenanceBytes.toString("utf8")));
-  const signature = parseSignature(JSON.parse(signatureBytes.toString("utf8")));
+  const manifest = canonicalDocument(manifestBytes, "manifest", parseManifest);
+  const provenance = canonicalDocument(provenanceBytes, "provenance", parseProvenance);
+  const signature = canonicalDocument(signatureBytes, "signature", parseSignature);
   const manifestDigest = sha256(canonicalJson(manifest));
   const provenanceDigest = sha256(canonicalJson(provenance));
   assert(signature.manifestDigest === manifestDigest, "manifest digest mismatch");
@@ -1001,27 +1436,84 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
     assert(bytes.byteLength === object.size, `object size mismatch: ${object.sourcePath}`);
     assert(sha256(bytes) === object.digest, `object digest mismatch: ${object.sourcePath}`);
   }
-  const sourceObject = manifest.objects.find((object) => object.role === "source-archive");
+  const objectsWithRole = (role: EvidenceObject["role"]): EvidenceObject[] =>
+    manifest.objects.filter((object) => object.role === role);
+  const sourceObjects = objectsWithRole("source-archive");
+  const reportObjects = objectsWithRole("release-report");
+  const capsuleReceiptObjects = objectsWithRole("capsule-receipt");
+  assert(sourceObjects.length === 1, "candidate evidence requires one source archive");
+  assert(reportObjects.length === 1, "candidate evidence requires one release report");
+  assert(capsuleReceiptObjects.length === 1, "candidate evidence requires one capsule receipt");
+  const sourceObject = sourceObjects[0]!;
   assert(sourceObject?.digest === manifest.source.archiveDigest, "source archive object mismatch");
-  const reportObject = manifest.objects.find((object) => object.role === "release-report");
+  const reportObject = reportObjects[0]!;
   assert(reportObject?.digest === manifest.releaseReport.digest, "release report object mismatch");
-  const capsuleReceiptObject = manifest.objects.find((object) => object.role === "capsule-receipt");
+  const capsuleReceiptObject = capsuleReceiptObjects[0]!;
   assert(
     capsuleReceiptObject?.digest === manifest.capsuleReceipt.digest,
     "capsule receipt object mismatch",
   );
-  for (const artifact of manifest.artifacts) {
-    assert(
-      artifact.path && DIGEST.test(artifact.digest),
-      `artifact digest is invalid: ${artifact.path}`,
-    );
-  }
+  const objectBytes = (object: EvidenceObject): Uint8Array =>
+    verifiedBytes.get(join(bundlePath, object.objectName))!;
   assert(
-    (await bundleInventoryDigest(bundlePath, verifiedBytes)) === expectedBundleDigest,
+    (await deriveGitTreeFromArchive(objectBytes(sourceObject))) === manifest.source.tree,
+    "source archive tree mismatch",
+  );
+  const report = parsePassingReleaseReport(
+    JSON.parse(new TextDecoder().decode(objectBytes(reportObject))),
+    { expectedCommit: manifest.source.commit, releaseId: manifest.releaseReport.releaseId },
+  );
+  assert(
+    canonicalJson(manifest.artifacts) ===
+      canonicalJson(
+        Object.entries(report.artifactDigests)
+          .map(([path, digest]) => ({ digest, path }))
+          .sort((left, right) => left.path.localeCompare(right.path)),
+      ),
+    "signed artifact inventory differs from the passing release report",
+  );
+  const receipt = parseCapsuleReceipt(
+    JSON.parse(new TextDecoder().decode(objectBytes(capsuleReceiptObject))),
+  );
+  assert(
+    receipt.source.commit === manifest.source.commit &&
+      receipt.source.tree === manifest.source.tree,
+    "capsule receipt source linkage mismatch",
+  );
+  assert(
+    receipt.report.digest === reportObject.digest &&
+      receipt.report.path === basename(manifest.releaseReport.path),
+    "capsule receipt report linkage mismatch",
+  );
+  assert(
+    receipt.imageId === manifest.capsuleReceipt.imageId &&
+      receipt.manifestDigest === manifest.capsuleReceipt.manifestDigest,
+    "capsule receipt identity linkage mismatch",
+  );
+  const releaseManifestObject = manifest.objects.find(
+    (object) =>
+      object.role === "declared-input" &&
+      object.sourcePath === "containers/release-validation/manifest.json",
+  );
+  assert(releaseManifestObject, "release capsule manifest object is missing");
+  assert(
+    receipt.manifestDigest === sha256(objectBytes(releaseManifestObject)) &&
+      receipt.toolchain.manifestDigest === receipt.manifestDigest,
+    "capsule toolchain manifest linkage mismatch",
+  );
+  assertToolchainMatchesManifest(receipt, objectBytes(releaseManifestObject));
+  assert(
+    manifest.declaredInputs.length === 2 &&
+      manifest.declaredInputs.includes("bun.lock") &&
+      manifest.declaredInputs.includes("containers/release-validation/manifest.json"),
+    "declared input inventory is invalid",
+  );
+  assert(
+    (await bundleInventoryDigest(bundlePath, verifiedBytes)) === options.expectedBundleDigest,
     "bundle digest mismatch",
   );
   return {
-    bundleDigest: expectedBundleDigest,
+    bundleDigest: options.expectedBundleDigest,
     manifest,
     signerKeyId: signature.certificate.payload.signerKeyId,
   };
@@ -1037,20 +1529,49 @@ export async function restoreCandidateEvidenceBundle(options: {
 }): Promise<{ bundleDigest: string; destination: string; sourceRetentionId: string }> {
   assert(DIGEST.test(options.bundleDigest), "restore bundle digest is invalid");
   assertRetentionTargets(options.retentionTargets);
+  try {
+    await lstat(options.destination);
+    throw new Error("restore destination already exists");
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") throw error;
+  }
+  await mkdir(dirname(resolve(options.destination)), { recursive: true });
   for (const target of options.retentionTargets) {
     const source = join(target.root, options.bundleDigest);
+    const temporaryParent = await mkdtemp(
+      join(dirname(resolve(options.destination)), `.${basename(options.destination)}.restore-`),
+    );
+    const temporaryDestination = join(temporaryParent, "bundle");
+    let published = false;
     try {
+      await verifyQuorumWitness({
+        bundleDigest: options.bundleDigest,
+        retentionTargets: options.retentionTargets,
+        trustStorePath: options.trustStorePath,
+        witnessPath: join(target.root, `${options.bundleDigest}.quorum.json`),
+        ...(options.now ? { now: options.now } : {}),
+      });
       await verifyCandidateEvidenceBundle({
         bundlePath: source,
+        expectedBundleDigest: options.bundleDigest,
         trustStorePath: options.trustStorePath,
         ...(options.now ? { now: options.now } : {}),
       });
-      await cp(source, options.destination, { recursive: true, errorOnExist: true, force: false });
+      await cp(source, temporaryDestination, {
+        recursive: true,
+        errorOnExist: true,
+        force: false,
+      });
       await verifyCandidateEvidenceBundle({
-        bundlePath: options.destination,
+        bundlePath: temporaryDestination,
+        expectedBundleDigest: options.bundleDigest,
         trustStorePath: options.trustStorePath,
         ...(options.now ? { now: options.now } : {}),
       });
+      await rename(temporaryDestination, options.destination);
+      published = true;
+      await rm(temporaryParent, { force: true, recursive: true });
       await appendAudit(options.auditLogPath, {
         action: "restore-verified",
         adapterIdentity: "candidate-evidence-restore",
@@ -1065,7 +1586,9 @@ export async function restoreCandidateEvidenceBundle(options: {
         destination: options.destination,
         sourceRetentionId: target.id,
       };
-    } catch {
+    } catch (error) {
+      await rm(temporaryParent, { force: true, recursive: true });
+      if (published) throw error;
       continue;
     }
   }
@@ -1172,11 +1695,15 @@ if (import.meta.main) {
     await writeCanonical(values.output, trustStore);
     console.log(canonicalJson({ output: values.output, rootKeyId: values["root-key-id"] }));
   } else if (command === "verify") {
-    assert(values.bundle && values["trust-store"], "verify requires --bundle and --trust-store");
+    assert(
+      values.bundle && values.digest && values["trust-store"],
+      "verify requires --bundle, --digest, and --trust-store",
+    );
     console.log(
       canonicalJson(
         await verifyCandidateEvidenceBundle({
           bundlePath: values.bundle,
+          expectedBundleDigest: values.digest,
           trustStorePath: values["trust-store"],
         }),
       ),

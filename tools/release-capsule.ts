@@ -31,12 +31,144 @@ export interface BuiltCapsule {
 export const CAPSULE_PLATFORM = "linux/amd64" as const;
 export const RELEASE_CAPSULE_MANIFEST = manifest;
 
+export interface PassingReleaseReport {
+  artifactDigests: Record<string, string>;
+  commit: string;
+  createdAt: string;
+  environmentIsolation: { environments: string[]; mode: "structural" };
+  gates: Array<{
+    command: string[];
+    durationMs: number;
+    exitCode: 0;
+    name: string;
+    status: "passed";
+  }>;
+  releaseId: string;
+  schemaVersion: 1;
+  status: "passed";
+  target: "staging";
+}
+
 const ROOT = resolve(import.meta.dir, "..");
 const PINNED_IMAGE = /^(?:[A-Za-z0-9./_-]+@)?sha256:[a-f0-9]{64}$/;
 const FORBIDDEN_CREDENTIAL = /(TOKEN|SECRET|PASSWORD|PRIVATE_KEY|CREDENTIAL)/i;
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
+}
+
+function exactRecord(value: unknown, keys: string[], label: string): Record<string, unknown> {
+  assert(
+    value !== null && typeof value === "object" && !Array.isArray(value),
+    `${label} is invalid`,
+  );
+  const candidate = value as Record<string, unknown>;
+  assert(
+    JSON.stringify(Object.keys(candidate).sort()) === JSON.stringify([...keys].sort()),
+    `${label} has unknown or missing fields`,
+  );
+  return candidate;
+}
+
+export function parsePassingReleaseReport(
+  value: unknown,
+  options: { expectedCommit: string; releaseId: string },
+): PassingReleaseReport {
+  const report = exactRecord(
+    value,
+    [
+      "artifactDigests",
+      "commit",
+      "createdAt",
+      "environmentIsolation",
+      "gates",
+      "releaseId",
+      "schemaVersion",
+      "status",
+      "target",
+    ],
+    "passing release report",
+  );
+  assert(report.schemaVersion === 1, "release report schema is invalid");
+  assert(report.releaseId === options.releaseId, "release report ID is invalid");
+  assert(report.target === "staging", "release report target is invalid");
+  assert(report.commit === options.expectedCommit, "release report commit is invalid");
+  assert(report.status === "passed", "release report status is invalid");
+  assert(
+    typeof report.createdAt === "string" &&
+      Number.isFinite(Date.parse(report.createdAt)) &&
+      new Date(report.createdAt).toISOString() === report.createdAt,
+    "release report timestamp is invalid",
+  );
+  assert(Array.isArray(report.gates), "release report gates are invalid");
+  assert(report.gates.length === RELEASE_GATES.length, "release report gate count is invalid");
+  const gates = report.gates.map((value, index) => {
+    const gate = exactRecord(
+      value,
+      ["command", "durationMs", "exitCode", "name", "status"],
+      `release gate ${index}`,
+    );
+    const expected = RELEASE_GATES[index]!;
+    assert(gate.name === expected.name, `release gate ${index} name is invalid`);
+    assert(
+      JSON.stringify(gate.command) === JSON.stringify(expected.command),
+      `release gate ${index} command is invalid`,
+    );
+    assert(
+      typeof gate.durationMs === "number" &&
+        Number.isFinite(gate.durationMs) &&
+        gate.durationMs >= 0,
+      `release gate ${index} duration is invalid`,
+    );
+    assert(gate.status === "passed" && gate.exitCode === 0, `release gate ${index} did not pass`);
+    return {
+      command: [...expected.command],
+      durationMs: gate.durationMs,
+      exitCode: 0 as const,
+      name: expected.name,
+      status: "passed" as const,
+    };
+  });
+  const artifactDigests = exactRecord(
+    report.artifactDigests,
+    [...RELEASE_ARTIFACT_PATHS],
+    "release artifact digests",
+  );
+  const parsedArtifacts = Object.fromEntries(
+    RELEASE_ARTIFACT_PATHS.map((path) => {
+      const digest = artifactDigests[path];
+      assert(
+        typeof digest === "string" && /^sha256:[a-f0-9]{64}$/.test(digest),
+        `release artifact digest is invalid: ${path}`,
+      );
+      return [path, digest];
+    }),
+  );
+  const isolation = exactRecord(
+    report.environmentIsolation,
+    ["environments", "mode"],
+    "release environment isolation",
+  );
+  assert(isolation.mode === "structural", "release environment isolation mode is invalid");
+  assert(
+    Array.isArray(isolation.environments) &&
+      isolation.environments.every((environment) => typeof environment === "string"),
+    "release environment isolation inventory is invalid",
+  );
+  return {
+    artifactDigests: parsedArtifacts,
+    commit: options.expectedCommit,
+    createdAt: report.createdAt,
+    environmentIsolation: {
+      environments: [...isolation.environments] as string[],
+      mode: "structural",
+    },
+    gates,
+    releaseId: options.releaseId,
+    schemaVersion: 1,
+    status: "passed",
+    target: "staging",
+  };
 }
 
 export function assertReleaseCapsuleEnvironment(environment: Environment): void {
@@ -285,6 +417,13 @@ export async function classifyCapsuleResult(options: {
       string,
       unknown
     >;
+    if (options.containerExitCode === 0) {
+      parsePassingReleaseReport(report, {
+        expectedCommit: options.expectedCommit,
+        releaseId: options.releaseId,
+      });
+      return { kind: "validation", reportValid: true };
+    }
     const expectedStatus = options.containerExitCode === 0 ? "passed" : "failed";
     const gates = Array.isArray(report.gates) ? report.gates : [];
     const gateResultsValid =

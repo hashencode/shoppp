@@ -43,12 +43,17 @@ inside a finalized bundle would change its content address.
 
 The verifier fails closed and names the earliest invalid component:
 
-1. require supported schemas, safe identities, and the approved policy version;
-2. validate the root signature, usage, 90-day maximum signer lifetime, current validity, and
+1. require the operator-supplied expected digest to match both `bundle-digest.txt` and the
+   recomputed inventory; the directory name is never authority;
+2. require supported schemas, exact fields, canonical signed JSON, safe identities, and the
+   approved policy version;
+3. validate the root signature, usage, 90-day maximum signer lifetime, current validity, and
    revocation status;
-3. verify manifest/provenance digests and the bundle signature;
-4. verify every content-addressed object, source/report/capsule binding, and artifact-digest syntax;
-5. verify the whole-directory content address.
+4. verify manifest/provenance digests and the bundle signature;
+5. verify every content-addressed object, the complete 17-gate passing report, receipt/toolchain
+   linkage, artifact inventory, and the Git tree derived from the archived source bytes;
+6. for restore, require the surviving domain's signed quorum witness to bind both configured
+   administrative domains, copy through a temporary sibling, reverify, and atomically rename.
 
 Unknown roots, revoked or expired signers, mismatched source/report/capsule identities, missing
 objects, altered bytes, renamed objects, and a wrong directory inventory all fail verification.
@@ -56,12 +61,15 @@ objects, altered bytes, renamed objects, and a wrong directory inventory all fai
 ## Retention and recovery
 
 Authoritative finalization requires exactly the two approved retention classes in different
-declared administrative domains and a `2/2` copy plus read-back verification. The repository tool
+declared administrative domains and a `2/2` copy plus read-back verification followed by a signed
+quorum witness published to both stores. The repository tool
 accepts filesystem roots so the operator can expose an encrypted append-only Intel store and an
 independently authenticated VPS/object-lock store through host-controlled mounts. Repository code
 does not receive storage credentials and cannot prove administrative separation merely from path
 names; the operator must establish and audit that external control.
 
-Restore accepts the immutable bundle digest, verifies a surviving source copy, copies exact bytes
-to a new destination, verifies the destination, and records new restore metadata. It never changes
+Restore accepts the immutable bundle digest, verifies the surviving domain's signed witness binds
+the original `2/2` quorum and target identities, verifies that source copy, copies exact bytes
+through a unique temporary sibling, verifies it, atomically renames it to the destination, and
+records new restore metadata. It never changes
 or fabricates the original execution provenance.

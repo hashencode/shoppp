@@ -166,13 +166,16 @@ SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
 The build refuses a dirty or untracked non-ignored checkout, a non-exact HEAD, a non-validation
 capsule, source/report mismatch, permissive signer-key permissions, symlinked evidence, an unknown,
 expired, or revoked signer, secret-shaped content, duplicate management domains, or less than a
-`2/2` verified copy quorum. It emits only allowlisted structured audit fields. A successful bundle
+`2/2` verified copy quorum. Both copies are staged and verified before a signed quorum witness is
+published to both administrative domains. Either surviving domain can restore independently when
+its signed witness binds the requested digest and both original target identities. It emits only
+allowlisted structured audit fields. A successful bundle
 remains evidence preparation, not candidate selection or deployment authorization.
 
 Verification uses no GitHub API or artifact URL:
 
 ```sh
-bun run evidence:verify -- --bundle <bundle-directory> --trust-store <trust-store.json>
+bun run evidence:verify -- --bundle <bundle-directory> --digest <sha256:bundle-digest> --trust-store <trust-store.json>
 ```
 
 If one retention class is unavailable or corrupt, restore tries each declared class, verifies the
