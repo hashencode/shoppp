@@ -82,7 +82,7 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await expect(page.locator('.sr-only[aria-live="polite"]')).toContainText(
     'Reference changed. Validation is required again.',
   )
-  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('Saved', { exact: true })).toBeVisible()
 
   const stalePage = await context.newPage()
@@ -93,11 +93,11 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await page
     .getByRole('textbox', { name: editableHeadingLabel })
     .fill(`Competing U8 edit ${manifest.runId}`)
-  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await stalePage
     .getByRole('textbox', { name: editableHeadingLabel })
     .fill(`Accepted U8 successor ${manifest.runId}`)
-  await stalePage.getByRole('button', { name: 'Save' }).click()
+  await stalePage.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(
     stalePage.getByText('The saved draft changed while local edits were open'),
   ).toBeVisible()
