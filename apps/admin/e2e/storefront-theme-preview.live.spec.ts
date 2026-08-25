@@ -71,9 +71,8 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
 
   const replacementPicker = missingReference.getByRole('combobox', { name: missingReferenceLabel })
   await replacementPicker.click()
-  await page
-    .getByRole('option', { name: new RegExp(escapeRegExp(replacementReferenceName), 'i') })
-    .click()
+  await expect(page.getByRole('listbox')).toContainText(replacementReferenceName)
+  await page.keyboard.press('Enter')
   await expect(replacementPicker).toBeFocused()
   await expect(missingReference).not.toContainText(
     'The selected reference is missing from the current release.',

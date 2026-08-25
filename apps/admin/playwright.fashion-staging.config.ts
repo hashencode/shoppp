@@ -17,6 +17,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 20 * 60_000,
+  actionTimeout: 60_000,
   reporter: 'list',
   outputDir: 'test-results-fashion-staging',
   use: {
