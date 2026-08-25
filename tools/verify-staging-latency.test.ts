@@ -1,6 +1,25 @@
 import { describe, expect, test } from "bun:test";
 
-import { mapWithConcurrency, percentile95, runStagingLatencyProbe } from "./verify-staging-latency";
+import {
+  mapWithConcurrency,
+  percentile95,
+  runStagingLatencyProbe,
+  type StagingLatencyConfig,
+} from "./verify-staging-latency";
+
+function stagingLatencyConfig(runId: string): StagingLatencyConfig {
+  return {
+    catalogReleaseId: "fashion-release",
+    currency: "USD",
+    previewCookie: "__Host-shoppp-preview=session-secret",
+    previewOrigin: "https://shoppp-storefront-fashion-preview.example.com",
+    productId: "product-stable",
+    runId,
+    sampleCount: 20,
+    shippingConcurrency: 4,
+    timeoutMs: 1_000,
+  };
+}
 
 describe("staging latency verifier", () => {
   test("calculates p95 without treating the sample count as concurrency", () => {
@@ -34,17 +53,7 @@ describe("staging latency verifier", () => {
     const registered: string[] = [];
     let cleaned = false;
     const report = await runStagingLatencyProbe(
-      {
-        catalogReleaseId: "fashion-release",
-        currency: "USD",
-        previewCookie: "__Host-shoppp-preview=session-secret",
-        previewOrigin: "https://shoppp-storefront-fashion-preview.example.com",
-        productId: "product-stable",
-        runId: "fashion-u8-run",
-        sampleCount: 20,
-        shippingConcurrency: 4,
-        timeoutMs: 1_000,
-      },
+      stagingLatencyConfig("fashion-u8-run"),
       async (input, init) => {
         const url = String(input);
         calls.push({ init, url });
@@ -94,17 +103,7 @@ describe("staging latency verifier", () => {
     let cleanupCount = 0;
     await expect(
       runStagingLatencyProbe(
-        {
-          catalogReleaseId: "fashion-release",
-          currency: "USD",
-          previewCookie: "__Host-shoppp-preview=session-secret",
-          previewOrigin: "https://shoppp-storefront-fashion-preview.example.com",
-          productId: "product-stable",
-          runId: "fashion-u8-run",
-          sampleCount: 20,
-          shippingConcurrency: 4,
-          timeoutMs: 1_000,
-        },
+        stagingLatencyConfig("fashion-u8-run"),
         async (input, init) => {
           calls += 1;
           if (String(input).endsWith("/api/cart") && init?.method === "POST") {
@@ -126,23 +125,105 @@ describe("staging latency verifier", () => {
     expect(cleanupCount).toBe(1);
   });
 
+  test("waits through in-progress replay and registers the original cart after a lost response", async () => {
+    const events: string[] = [];
+    let cleanupCount = 0;
+    let createCount = 0;
+    await expect(
+      runStagingLatencyProbe(
+        stagingLatencyConfig("fashion-u8-lost-response"),
+        async (_input, init) => {
+          createCount += 1;
+          const key = String(new Headers(init?.headers).get("Idempotency-Key"));
+          events.push(`create:${key}`);
+          if (createCount === 1) throw new Error("response lost after cart creation");
+          if (createCount === 2) {
+            return Response.json(
+              { error: { code: "idempotency_in_progress" } },
+              { status: 409 },
+            );
+          }
+          return Response.json({
+            data: { cart: { id: "cart-recovered" }, token: "token-recovered" },
+          });
+        },
+        {
+          cleanup: async () => {
+            cleanupCount += 1;
+          },
+          registerCart: async (cartId) => {
+            events.push(`register:${cartId}`);
+          },
+        },
+      ),
+    ).rejects.toThrow(/response lost after cart creation/);
+    expect(events).toEqual([
+      "create:fashion-u8-latency-cart-fashion-u8-lost-response-0",
+      "create:fashion-u8-latency-cart-fashion-u8-lost-response-0",
+      "create:fashion-u8-latency-cart-fashion-u8-lost-response-0",
+      "register:cart-recovered",
+    ]);
+    expect(cleanupCount).toBe(1);
+  });
+
+  test("repeats an idempotent cart registration once for cleanup after its response is lost", async () => {
+    let cleanupCount = 0;
+    let registrationCount = 0;
+    await expect(
+      runStagingLatencyProbe(
+        stagingLatencyConfig("fashion-u8-lost-registration"),
+        async () =>
+          Response.json({
+            data: { cart: { id: "cart-registration-lost" }, token: "token-private" },
+          }),
+        {
+          cleanup: async () => {
+            cleanupCount += 1;
+          },
+          registerCart: async () => {
+            registrationCount += 1;
+            if (registrationCount === 1) throw new Error("registration response lost");
+          },
+        },
+      ),
+    ).rejects.toThrow(/registration response lost/);
+    expect(registrationCount).toBe(2);
+    expect(cleanupCount).toBe(1);
+  });
+
+  test("bounds in-progress cart recovery and still runs cleanup", async () => {
+    let createCount = 0;
+    let cleanupCount = 0;
+    await expect(
+      runStagingLatencyProbe(
+        stagingLatencyConfig("fashion-u8-stuck-claim"),
+        async () => {
+          createCount += 1;
+          if (createCount === 1) throw new Error("response lost after cart creation");
+          return Response.json(
+            { error: { code: "idempotency_in_progress" } },
+            { status: 409 },
+          );
+        },
+        {
+          cleanup: async () => {
+            cleanupCount += 1;
+          },
+          registerCart: async () => undefined,
+        },
+      ),
+    ).rejects.toThrow(/cart creation and cleanup registration recovery both failed/);
+    expect(createCount).toBe(4);
+    expect(cleanupCount).toBe(1);
+  });
+
   test("rejects read and shipping p95 values above their exact thresholds", async () => {
     const run = async (durations: { catalog: number; cart: number; shipping: number }) => {
       let clock = 0;
       let cartNumber = 0;
       let cleanupCount = 0;
       const promise = runStagingLatencyProbe(
-        {
-          catalogReleaseId: "fashion-release",
-          currency: "USD",
-          previewCookie: "__Host-shoppp-preview=session-secret",
-          previewOrigin: "https://shoppp-storefront-fashion-preview.example.com",
-          productId: "product-stable",
-          runId: "fashion-u8-thresholds",
-          sampleCount: 20,
-          shippingConcurrency: 4,
-          timeoutMs: 1_000,
-        },
+        stagingLatencyConfig("fashion-u8-thresholds"),
         async (input, init) => {
           const url = String(input);
           if (url.endsWith("/api/cart") && init?.method === "POST") {

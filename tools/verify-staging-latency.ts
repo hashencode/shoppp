@@ -1,5 +1,17 @@
 const SAMPLE_COUNT = 20;
 const DEFAULT_CHECKOUT_CONCURRENCY = 4;
+const CART_RECOVERY_ATTEMPTS = 3;
+const CART_RECOVERY_BACKOFF_MS = 50;
+
+class CartFixtureCreationError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(`cart fixture creation failed with ${status}`);
+    this.name = "CartFixtureCreationError";
+  }
+}
 
 export interface StagingLatencyConfig {
   catalogReleaseId: string;
@@ -119,18 +131,27 @@ export async function runStagingLatencyProbe(
   assertConfig(config);
   const commonHeaders = { Cookie: config.previewCookie, Origin: config.previewOrigin };
   const cartTokens: string[] = [];
-  const createCart = async (index: number): Promise<void> => {
+  const requestCart = async (idempotencyKey: string) => {
     const response = await fetcher(`${config.previewOrigin}/api/cart`, {
       body: JSON.stringify({ currency: config.currency }),
       headers: {
         ...commonHeaders,
         "Content-Type": "application/json",
-        "Idempotency-Key": `fashion-u8-latency-cart-${config.runId}-${index}`,
+        "Idempotency-Key": idempotencyKey,
       },
       method: "POST",
       signal: AbortSignal.timeout(config.timeoutMs),
     });
-    if (!response.ok) throw new Error(`cart fixture creation failed with ${response.status}`);
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: { code?: unknown };
+      } | null;
+      const code = payload?.error?.code;
+      throw new CartFixtureCreationError(
+        response.status,
+        typeof code === "string" ? code : undefined,
+      );
+    }
     const payload = (await response.json()) as {
       data?: { cart?: { id?: unknown }; token?: unknown };
     };
@@ -139,8 +160,65 @@ export async function runStagingLatencyProbe(
     if (typeof cartId !== "string" || typeof token !== "string") {
       throw new Error("cart fixture creation returned invalid private evidence");
     }
-    await lifecycle.registerCart(cartId);
-    cartTokens.push(token);
+    return { cartId, token };
+  };
+  const recoverCart = async (idempotencyKey: string) => {
+    for (let attempt = 0; attempt < CART_RECOVERY_ATTEMPTS; attempt += 1) {
+      try {
+        return await requestCart(idempotencyKey);
+      } catch (error) {
+        const retryable =
+          error instanceof CartFixtureCreationError &&
+          error.status === 409 &&
+          error.code === "idempotency_in_progress";
+        if (!retryable || attempt === CART_RECOVERY_ATTEMPTS - 1) throw error;
+        await new Promise((resolve) =>
+          setTimeout(resolve, CART_RECOVERY_BACKOFF_MS * 2 ** attempt),
+        );
+      }
+    }
+    throw new Error("cart recovery attempt bound was not enforced");
+  };
+  const registerCart = async (
+    cartId: string,
+  ): Promise<{ recovered: false } | { initialError: unknown; recovered: true }> => {
+    try {
+      await lifecycle.registerCart(cartId);
+      return { recovered: false };
+    } catch (registrationError) {
+      try {
+        await lifecycle.registerCart(cartId);
+      } catch (recoveryError) {
+        throw new AggregateError(
+          [registrationError, recoveryError],
+          "cart registration and cleanup recovery both failed",
+          { cause: recoveryError },
+        );
+      }
+      return { initialError: registrationError, recovered: true };
+    }
+  };
+  const createCart = async (index: number): Promise<void> => {
+    const idempotencyKey = `fashion-u8-latency-cart-${config.runId}-${index}`;
+    let cart: { cartId: string; token: string };
+    try {
+      cart = await requestCart(idempotencyKey);
+    } catch (creationError) {
+      try {
+        cart = await recoverCart(idempotencyKey);
+        await registerCart(cart.cartId);
+      } catch (recoveryError) {
+        throw new AggregateError(
+          [creationError, recoveryError],
+          "cart creation and cleanup registration recovery both failed",
+          { cause: recoveryError },
+        );
+      }
+      throw creationError;
+    }
+    const registration = await registerCart(cart.cartId);
+    if (registration.recovered) throw registration.initialError;
+    cartTokens.push(cart.token);
   };
 
   try {
