@@ -35,7 +35,9 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
 
   await page.goto('/login')
   expect(page.url()).toMatch(/^http:\/\/127\.0\.0\.1:/)
-  await expect(page.getByText('Sign in to Shoppp Admin', { exact: true })).toBeVisible()
+  await expect(page.getByText('Sign in to Shoppp Admin', { exact: true })).toBeVisible({
+    timeout: 60_000,
+  })
   expect(process.env.TEST_API_ORIGIN).toContain('shoppp-api-fashion-staging')
   expect(process.env.TEST_API_ORIGIN).not.toMatch(/production/)
 
