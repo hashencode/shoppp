@@ -59,18 +59,22 @@ dedicated-account isolation, exact-SHA pre-job admission, fail-closed cleanup, r
 deregistration without reusing FS-U8 authority. No runner was registered and no credential was
 handled; those remain human-only operations.
 
-- **Current parent/child stage:** CI-U7.1 — settle portable-evidence trust and retention. CI-U12 is
+- **Current parent/child stage:** CI-U7.2 — build and verify portable candidate evidence. CI-U7.1
+  completed on 2026-08-25 when the operator approved the REL source-input, Ed25519 signing,
+  two-domain `2/2` retention, and artifact-class audit/retention policy recorded in
+  `docs/architecture/ci-evidence-trust-and-retention.md`. CI-U12 is
   complete on exact commit `47b6b340`: all 17 unchanged gates passed in the pinned `linux/amd64`
   capsule on the independent Intel executor, with a validation-class receipt and retained transfer,
   report, image-role, and toolchain digests. The optional 14-day CI-U4 runner pilot still awaits
   human adoption.
-- **Next concrete action:** REL and the operator name and accept CI-U7's executable source-input
-  policy, signing trust-root/key lifecycle, two administratively independent retention classes,
-  copy quorum, and artifact logging/retention policy. Only then implement CI-U7.2. Separately run the
+- **Next concrete action:** Implement CI-U7.2's provider-neutral bundle builder/verifier, offline-root
+  signer certificate validation, atomic local spool, `2/2` independent projection, exact-byte
+  restore, redaction, and negative-path tests. Separately run the
   hosted Ubuntu adapter when GitHub Actions billing permits; that compatibility evidence is not
   CI-U12 completion authority.
-- **Current blockers:** CI-U7.1 requires human security and retention authority that an
-  implementation agent may not invent. GitHub billing blocks only the optional hosted-adapter
+- **Current blockers:** None for CI-U7.2 contract implementation. Operational completion still
+  requires provisioned signer/trust files and both approved retention domains; repository code must
+  fail closed while any is absent. GitHub billing blocks only the optional hosted-adapter
   compatibility check. CI-U4 also cannot complete until a human adopts and operates the optional
   runner for the bounded 14-day sample.
 - **Tail:** CI-U7–CI-U11 is the active provider-resilience track; CI-U4/CI-U6 remains the
@@ -78,11 +82,12 @@ handled; those remain human-only operations.
   CI-U5 is retained as a stable deferred ID for optional future PR automation. CI-U6 and CI-U11 may record governed CI operating
   decisions, but they cannot change upstream product, release, candidate, or production policy or
   promote production automatically.
-- **Temporary isolation:** Worktree `.worktrees/ci-u12-native-gate-isolation` on branch
-  `codex/ci-u12-native-gate-isolation`, owned by CI-U12, contains only the native gate-isolation
-  repair. Its retained-result cleanup condition is now met; the checkout is eligible for governed
-  removal after exact-path/dirty-state validation. Removing it does not delete its branch, commits,
-  images, or evidence.
+- **Temporary isolation:** Worktree `.worktrees/ci-u7-portable-evidence` on branch
+  `codex/ci-u7-portable-evidence` owns CI-U7.1 policy capture and CI-U7.2 implementation because the
+  primary checkout contains concurrent FS-U8 work. Remove this checkout only after the exact
+  integrated tree is landed on `main`, mirrored to the Intel executor, and its provider-neutral
+  Jenkins job passes. Removing it never deletes its branch, commits, keys, retained bundles, or
+  evidence.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
   `docs/progress/` may retain results but must not become a second current-unit queue.
 

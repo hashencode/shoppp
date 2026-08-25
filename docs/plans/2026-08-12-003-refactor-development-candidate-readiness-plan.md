@@ -93,6 +93,22 @@ execution checkpoint, and candidate-identity fields not yet enforced by `release
 Existing U13 evidence proves only the narrow deployed product lookup, fresh-cart, and stable-variant
 add topology.
 
+### Executable source-input authority
+
+The release operator approved this REL-owned policy on 2026-08-25 for CI-U7 portable evidence:
+
+- the only executable candidate input is a clean `git archive` produced from one approved exact
+  commit object and bound to that commit's tree SHA;
+- candidate preparation rejects tracked changes and every untracked non-ignored path before
+  finalization, even though those bytes are excluded from the archive;
+- ignored, generated, cached, downloaded, or caller-selected workspace bytes are never executable
+  candidate input; a future exception requires a versioned REL policy and an exact-byte manifest,
+  and none is approved by this decision;
+- the source archive, commit, tree, lockfile, execution-capsule manifest, release report, and every
+  retained deployable artifact are digest-bound in the signed evidence bundle; and
+- a locally verified bundle prepares evidence only. It does not select a candidate, complete DC/PG,
+  or authorize staging or production mutation.
+
 ## Candidate selection
 
 Before DC1 begins, the release owner records:
