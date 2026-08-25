@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { link, mkdir, rm, writeFile } from "node:fs/promises";
+import { link, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 export type CiTier = "fast" | "post-commit";
@@ -9,6 +9,7 @@ export interface GateDefinition {
   readonly name: string;
   readonly command: readonly string[];
   readonly nonzeroFailureClassification: FailureClassification;
+  readonly transientPaths?: readonly string[];
 }
 
 export interface GitIdentity {
@@ -113,6 +114,10 @@ export const CI_TIERS: Readonly<Record<CiTier, readonly GateDefinition[]>> = {
       name: "production-builds",
       command: ["bun", "run", "build"],
       nonzeroFailureClassification: "test",
+      transientPaths: [
+        "apps/storefront/app/generated/active-experience.ts",
+        "apps/storefront/app/generated/active-theme.ts",
+      ],
     },
   ],
 };
@@ -141,6 +146,23 @@ function classifyGateFailure(gate: GateDefinition, exitCode: number): FailureCla
   return exitCode === 126 || exitCode === 127 || exitCode >= 128
     ? "infrastructure"
     : gate.nonzeroFailureClassification;
+}
+
+async function runGateWithTransientRestore(
+  gate: GateDefinition,
+  run: (gate: GateDefinition) => Promise<number>,
+): Promise<number> {
+  const snapshots = await Promise.all(
+    (gate.transientPaths ?? []).map(async (path) => ({
+      path: resolve(ROOT, path),
+      contents: await readFile(resolve(ROOT, path)),
+    })),
+  );
+  try {
+    return await run(gate);
+  } finally {
+    await Promise.all(snapshots.map(({ path, contents }) => writeFile(path, contents)));
+  }
 }
 
 async function git(...arguments_: string[]): Promise<string> {
@@ -326,7 +348,7 @@ export async function validateCi(options: {
     for (const gate of CI_TIERS[options.tier]) {
       const gateStarted = nowMs();
       try {
-        const exitCode = await run(gate);
+        const exitCode = await runGateWithTransientRestore(gate, run);
         const failed = exitCode !== 0;
         const gateFailureClassification = failed ? classifyGateFailure(gate, exitCode) : null;
 

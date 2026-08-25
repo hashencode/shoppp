@@ -72,6 +72,10 @@ describe("repository-owned CI validation", () => {
       "worker-integration",
       "production-builds",
     ]);
+    expect(CI_TIERS["post-commit"].at(-1)?.transientPaths).toEqual([
+      "apps/storefront/app/generated/active-experience.ts",
+      "apps/storefront/app/generated/active-theme.ts",
+    ]);
   });
 
   test("writes a successful provider-neutral report and removes its temporary file", async () => {
