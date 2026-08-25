@@ -43,8 +43,11 @@ describe("password-authenticated admin development preflight", () => {
     expect(() => resolveAdminDevelopmentConfig(shared)).toThrow(/database/i);
   });
 
-  test("forwards the isolated acceptance port to Rsbuild", () => {
-    expect(createAdminDevelopmentCommand({ E2E_PORT: "3418" })).toEqual([
+  test("defaults and forwards the isolated acceptance port to Rsbuild", () => {
+    expect(resolveAdminDevelopmentConfig(environment()).adminDevelopmentOrigin).toBe(
+      "http://127.0.0.1:3418",
+    );
+    expect(createAdminDevelopmentCommand(3418)).toEqual([
       "bun",
       "x",
       "rsbuild",
@@ -56,8 +59,12 @@ describe("password-authenticated admin development preflight", () => {
       "--port",
       "3418",
     ]);
-    expect(() => createAdminDevelopmentCommand({ E2E_PORT: "0" })).toThrow(/E2E_PORT/);
-    expect(() => createAdminDevelopmentCommand({ E2E_PORT: "not-a-port" })).toThrow(/E2E_PORT/);
+    expect(() => resolveAdminDevelopmentConfig({ ...environment(), E2E_PORT: "0" })).toThrow(
+      /E2E_PORT/,
+    );
+    expect(() =>
+      resolveAdminDevelopmentConfig({ ...environment(), E2E_PORT: "not-a-port" }),
+    ).toThrow(/E2E_PORT/);
   });
 
   test("binds local development only to the repository test API and D1", async () => {

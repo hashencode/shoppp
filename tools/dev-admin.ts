@@ -5,6 +5,8 @@ import { parseJsonc } from "./lib/jsonc";
 type Environment = Record<string, string | undefined>;
 
 export interface AdminDevelopmentConfig {
+  readonly adminDevelopmentOrigin: string;
+  readonly adminPort: number;
   readonly apiProxyTarget: string;
   readonly databaseId: string;
   readonly profile: "fashion-staging";
@@ -57,7 +59,18 @@ export function resolveAdminDevelopmentConfig(environment: Environment): AdminDe
   if (databaseId === productionDatabaseId) {
     throw new Error("Test and production database identifiers must be distinct.");
   }
-  return { apiProxyTarget: apiUrl.origin, databaseId, profile };
+  const rawPort = environment.E2E_PORT?.trim() || "3418";
+  const adminPort = Number(rawPort);
+  if (!Number.isInteger(adminPort) || adminPort < 1 || adminPort > 65_535) {
+    throw new Error("E2E_PORT must be an integer between 1 and 65535.");
+  }
+  return {
+    adminDevelopmentOrigin: `http://127.0.0.1:${adminPort}`,
+    adminPort,
+    apiProxyTarget: apiUrl.origin,
+    databaseId,
+    profile,
+  };
 }
 
 export async function verifyAdminDevelopmentContract(
@@ -87,23 +100,22 @@ export async function verifyAdminDevelopmentContract(
   if (config.apiProxyTarget !== variables.PUBLIC_ORIGIN) {
     throw new Error("TEST_API_ORIGIN must equal the fashion-staging API PUBLIC_ORIGIN.");
   }
+  if (config.adminDevelopmentOrigin !== variables.ADMIN_DEVELOPMENT_ORIGIN) {
+    throw new Error(
+      "The local Admin origin must equal the fashion-staging API ADMIN_DEVELOPMENT_ORIGIN.",
+    );
+  }
 }
 
-export function createAdminDevelopmentCommand(environment: Environment): string[] {
+export function createAdminDevelopmentCommand(adminPort: number): string[] {
   const command = ["bun", "x", "rsbuild", "dev", "--env-mode", "test", "--host", "127.0.0.1"];
-  const rawPort = environment.E2E_PORT?.trim();
-  if (!rawPort) return command;
-  const port = Number(rawPort);
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error("E2E_PORT must be an integer between 1 and 65535.");
-  }
-  return [...command, "--port", String(port)];
+  return [...command, "--port", String(adminPort)];
 }
 
 export async function runAdminDevelopment(environment: Environment = process.env): Promise<number> {
   const config = resolveAdminDevelopmentConfig(environment);
   await verifyAdminDevelopmentContract(config);
-  const child = Bun.spawn(createAdminDevelopmentCommand(environment), {
+  const child = Bun.spawn(createAdminDevelopmentCommand(config.adminPort), {
     cwd: resolve(ROOT, "apps/admin"),
     env: { ...process.env, ...environment, API_PROXY_TARGET: config.apiProxyTarget },
     stderr: "inherit",

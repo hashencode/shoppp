@@ -38,6 +38,7 @@ export const FASHION_U8_SECURITY_SENSITIVE_PATHS = [
   "apps/api/test/iam/password-auth.test.ts",
   "apps/api/test/middleware/auth-expiry.test.ts",
   "apps/api/test/storefront-experience/experience-api.test.ts",
+  "apps/api/wrangler.jsonc",
   "packages/db/migrations/0022_admin_identity_expiry.sql",
   "packages/db/src/schema/index.ts",
   "packages/db/test/migrations.test.ts",

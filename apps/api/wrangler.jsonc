@@ -133,7 +133,7 @@
         "PUBLIC_ORIGIN": "https://shoppp-api-fashion-staging.hashencode.workers.dev",
         "SERVICE_CREDENTIAL_REF": "secret://shoppp/fashion-staging/u13-service",
         "ADMIN_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
-        "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3000",
+        "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3418",
         "PREVIEW_ORIGIN": "https://shoppp-storefront-fashion-preview.hashencode.workers.dev",
         "MEDIA_PUBLIC_ORIGIN": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev",
         "STOREFRONT_ORIGIN": "https://shoppp-storefront-fashion-preview.hashencode.workers.dev",
