@@ -95,7 +95,14 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await page
     .getByRole('textbox', { name: editableHeadingLabel })
     .fill(`Competing U8 edit ${manifest.runId}`)
+  const competingSaveResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/admin/storefront-experiences/drafts/${sourceDraftId}`) &&
+      response.request().method() === 'PUT'
+  )
   await page.getByRole('button', { name: 'Save', exact: true }).click()
+  const competingSaveResponse = await competingSaveResponsePromise
+  expect(competingSaveResponse.status()).toBe(200)
   await stalePage
     .getByRole('textbox', { name: editableHeadingLabel })
     .fill(`Accepted U8 successor ${manifest.runId}`)

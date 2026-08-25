@@ -37,6 +37,7 @@ describe('Playwright config', () => {
     expect(liveSpec).toContain("'fashion-store-home featured-collection'")
     expect(liveSpec).toContain("'fashion-store-home merchandising-title'")
     expect(liveSpec).toContain('waitForResponse')
+    expect(liveSpec).toContain('expect(competingSaveResponse.status()).toBe(200)')
     expect(liveSpec).toContain('expect(staleSaveResponse.status()).toBe(409)')
     expect(liveSpec).toContain('toBeVisible({ timeout: 60_000 })')
     expect(source).toContain("trace: 'off'")
