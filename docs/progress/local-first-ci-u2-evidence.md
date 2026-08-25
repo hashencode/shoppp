@@ -1,7 +1,7 @@
 # Local-First CI-U2 Evidence
 
-Date: 2026-08-24  
-Unit: `CI-U2`  
+Date: 2026-08-24
+Unit: `CI-U2`
 Final commit: `bca6fede118dbcc8200f20ea3e857e5b6178c72f`
 
 This file retains focused implementation and verification evidence only. Current-unit and next-action

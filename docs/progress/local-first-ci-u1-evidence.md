@@ -1,8 +1,8 @@
 # Local-First CI-U1 Evidence
 
-Date: 2026-08-24  
-Unit: `CI-U1`  
-Final commit: `d10278413c054a0f7233e8fe9ea5b0862dabce1e`  
+Date: 2026-08-24
+Unit: `CI-U1`
+Final commit: `d10278413c054a0f7233e8fe9ea5b0862dabce1e`
 Final tree: `29652160b4bde1a6260b4bc9919851913ea8d2ae`
 
 This file retains focused implementation and verification evidence only. Current-unit and next-action

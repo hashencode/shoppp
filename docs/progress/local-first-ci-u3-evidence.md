@@ -1,8 +1,8 @@
 # Local-First CI U3 Evidence
 
-Date: 2026-08-24  
-Unit: CI-U3  
-Implementation commit: `93b3f88f056865a1c504b33f19f1f924aa015a66`  
+Date: 2026-08-24
+Unit: CI-U3
+Implementation commit: `93b3f88f056865a1c504b33f19f1f924aa015a66`
 Tree: `44dbbe7e482b94135d5ad3f87739dd719dc6161f`
 
 CI-U3 added the checked optional-runner operations contract without registering a runner, changing a
