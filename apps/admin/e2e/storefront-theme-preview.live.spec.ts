@@ -106,6 +106,10 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await expect(stalePage.locator('.sr-only[aria-live="polite"]')).toContainText(
     'Local edits were saved as successor draft',
   )
+  await stalePage.waitForURL(
+    (url) => url.pathname.split('/').at(-1) !== sourceDraftId,
+    { timeout: 60_000 },
+  )
   const successorDraftId = new URL(stalePage.url()).pathname.split('/').at(-1)
   expect(successorDraftId).toBeTruthy()
   expect(successorDraftId).not.toBe(sourceDraftId)
