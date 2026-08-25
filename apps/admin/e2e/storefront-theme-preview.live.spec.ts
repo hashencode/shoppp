@@ -45,7 +45,9 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await page.goto(`/storefront/themes/${sourceDraftId}`)
   await expect(page.getByRole('combobox', { name: 'Catalog Release' })).toBeVisible()
   await expect(
-    page.getByText(new RegExp(`^Live preview context ${escapeRegExp(catalogReleaseId)}`)),
+    page
+      .locator('.ant-select-selection-item')
+      .filter({ hasText: new RegExp(`^${escapeRegExp(catalogReleaseId)}$`) }),
   ).toBeVisible()
   await page.getByRole('textbox', { name: 'Change reason' }).fill(reason)
 
