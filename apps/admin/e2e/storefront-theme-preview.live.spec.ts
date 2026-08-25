@@ -54,14 +54,16 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
 
   const missingReference = page.getByRole('group', { name: missingReferenceLabel })
   const missingReferenceTarget = await missingReference.evaluate(
-    (element) => element.parentElement?.id,
+    (element) => element.parentElement?.id
   )
   expect(missingReferenceTarget).toMatch(/^experience-field-/)
   await expect(
-    missingReference.getByText('The selected reference is missing from the current release.'),
+    missingReference.getByText('The selected reference is missing from the current release.')
   ).toBeVisible()
   await page.getByRole('button', { name: 'Save and preview' }).click()
-  const validationSummary = page.locator('[aria-labelledby="experience-validation-summary-heading"]')
+  const validationSummary = page.locator(
+    '[aria-labelledby="experience-validation-summary-heading"]'
+  )
   await expect(validationSummary).toBeFocused()
   const affectedFieldLink = validationSummary.locator(`a[href="#${missingReferenceTarget}"]`)
   const affectedFieldTarget = await affectedFieldLink.getAttribute('href')
@@ -72,15 +74,15 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   const replacementPicker = missingReference.getByRole('combobox', { name: missingReferenceLabel })
   await replacementPicker.click()
   await expect(
-    page.getByRole('option', { name: new RegExp(escapeRegExp(replacementReferenceName), 'i') }),
+    page.getByRole('option', { name: new RegExp(escapeRegExp(replacementReferenceName), 'i') })
   ).toHaveCount(1)
   await page.keyboard.press('Enter')
   await expect(replacementPicker).toBeFocused()
   await expect(missingReference).not.toContainText(
-    'The selected reference is missing from the current release.',
+    'The selected reference is missing from the current release.'
   )
   await expect(page.locator('.sr-only[aria-live="polite"]')).toContainText(
-    'Reference changed. Validation is required again.',
+    'Reference changed. Validation is required again.'
   )
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('Saved', { exact: true })).toBeVisible()
@@ -97,51 +99,64 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await stalePage
     .getByRole('textbox', { name: editableHeadingLabel })
     .fill(`Accepted U8 successor ${manifest.runId}`)
+  const staleSaveResponsePromise = stalePage.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/admin/storefront-experiences/drafts/${sourceDraftId}`) &&
+      response.request().method() === 'PUT'
+  )
   await stalePage.getByRole('button', { name: 'Save', exact: true }).click()
+  const staleSaveResponse = await staleSaveResponsePromise
+  expect(staleSaveResponse.status()).toBe(409)
   await expect(
-    stalePage.getByText('The saved draft changed while local edits were open'),
-  ).toBeVisible()
+    stalePage.getByText('The saved draft changed while local edits were open')
+  ).toBeVisible({ timeout: 60_000 })
   await expect(stalePage.getByRole('button', { name: 'Keep local edits' })).toBeFocused()
   await stalePage.getByRole('button', { name: 'Save local edits as successor' }).click()
   await expect(stalePage.locator('.sr-only[aria-live="polite"]')).toContainText(
-    'Local edits were saved as successor draft',
+    'Local edits were saved as successor draft'
   )
-  await stalePage.waitForURL(
-    (url) => url.pathname.split('/').at(-1) !== sourceDraftId,
-    { timeout: 60_000 },
-  )
+  await stalePage.waitForURL((url) => url.pathname.split('/').at(-1) !== sourceDraftId, {
+    timeout: 60_000,
+  })
   const successorDraftId = new URL(stalePage.url()).pathname.split('/').at(-1)
   expect(successorDraftId).toBeTruthy()
   expect(successorDraftId).not.toBe(sourceDraftId)
 
   await stalePage.getByRole('button', { name: 'Save and preview' }).click()
   await expect(stalePage.getByText('Ready', { exact: true })).toBeVisible({ timeout: 10 * 60_000 })
-  const buildId = (await stalePage.getByText(/^preview-build-/).first().textContent())?.trim()
+  const buildId = (
+    await stalePage
+      .getByText(/^preview-build-/)
+      .first()
+      .textContent()
+  )?.trim()
   expect(buildId).toBeTruthy()
   await expect(stalePage.getByText(catalogReleaseId, { exact: true })).toBeVisible()
 
   const popupPromise = context.waitForEvent('page')
   await stalePage.getByRole('button', { name: 'Open authenticated preview' }).click()
   const preview = await popupPromise
-  await expect(preview.getByRole('complementary', { name: 'Private preview context' })).toContainText(
-    catalogReleaseId,
-  )
+  await expect(
+    preview.getByRole('complementary', { name: 'Private preview context' })
+  ).toContainText(catalogReleaseId)
   await preview.getByRole('link', { name: 'Return to editor' }).click()
   await expect(preview.getByRole('button', { name: 'Open authenticated preview' })).toBeFocused({
     timeout: 60_000,
   })
   await expect(preview.locator('.sr-only[aria-live="polite"]')).toContainText(
-    'Returned from private preview.',
+    'Returned from private preview.'
   )
 
   await stalePage.getByRole('textbox', { name: 'Approval reason' }).fill(reason)
   const approvalResponsePromise = stalePage.waitForResponse(
-    (response) => response.url().endsWith('/approve') && response.request().method() === 'POST',
+    (response) => response.url().endsWith('/approve') && response.request().method() === 'POST'
   )
   await stalePage.getByRole('button', { name: /^Approve exact draft v\d+$/ }).click()
   const approvalResponse = await approvalResponsePromise
   expect(approvalResponse.ok()).toBe(true)
-  const approval = (await approvalResponse.json()) as { data: { contentDigest: string; id: string } }
+  const approval = (await approvalResponse.json()) as {
+    data: { contentDigest: string; id: string }
+  }
   await expect(stalePage.getByText(new RegExp(escapeRegExp(approval.data.id)))).toBeVisible()
 
   const voiceOverPath = required('FASHION_U8_VOICEOVER_RECORD_FILE')
@@ -157,7 +172,7 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
           return 0
         }
       },
-      { timeout: 5 * 60_000 },
+      { timeout: 5 * 60_000 }
     )
     .toBeGreaterThanOrEqual(6)
   const voiceOver = JSON.parse(await readFile(voiceOverPath, 'utf8')) as Record<string, unknown>
@@ -189,23 +204,23 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   }
   expect((await stat(voiceOverPath)).mtimeMs).toBeGreaterThanOrEqual(runStartedAt)
   expect(JSON.stringify(voiceOver)).not.toMatch(
-    /authorization|bearer|cart.?token|cookie|grant|password|session|storage.?state/i,
+    /authorization|bearer|cart.?token|cookie|grant|password|session|storage.?state/i
   )
 
   const humanEvidence = {
-        approvalAuditId: `audit-${approval.data.id}`,
-        buildId,
-        candidateSha: manifest.candidateSha,
-        catalogReleaseId,
-        harnessSha: manifest.harnessSha,
-        manifestDigest,
-        runId: manifest.runId,
-        sourceDraftId,
-        successorContentDigest: approval.data.contentDigest,
-        successorDraftId,
-        successorSnapshotId: approval.data.id,
-        voiceOver,
-      }
+    approvalAuditId: `audit-${approval.data.id}`,
+    buildId,
+    candidateSha: manifest.candidateSha,
+    catalogReleaseId,
+    harnessSha: manifest.harnessSha,
+    manifestDigest,
+    runId: manifest.runId,
+    sourceDraftId,
+    successorContentDigest: approval.data.contentDigest,
+    successorDraftId,
+    successorSnapshotId: approval.data.id,
+    voiceOver,
+  }
   const humanEvidenceBytes = Buffer.from(JSON.stringify(humanEvidence))
   await writeFile(required('FASHION_U8_HUMAN_EVIDENCE_FILE'), humanEvidenceBytes, { flag: 'wx' })
   await testInfo.attach('fashion-u8-human-evidence.json', {
