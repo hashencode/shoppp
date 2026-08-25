@@ -89,19 +89,27 @@ export async function verifyAdminDevelopmentContract(
   }
 }
 
+export function createAdminDevelopmentCommand(environment: Environment): string[] {
+  const command = ["bun", "x", "rsbuild", "dev", "--env-mode", "test", "--host", "127.0.0.1"];
+  const rawPort = environment.E2E_PORT?.trim();
+  if (!rawPort) return command;
+  const port = Number(rawPort);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error("E2E_PORT must be an integer between 1 and 65535.");
+  }
+  return [...command, "--port", String(port)];
+}
+
 export async function runAdminDevelopment(environment: Environment = process.env): Promise<number> {
   const config = resolveAdminDevelopmentConfig(environment);
   await verifyAdminDevelopmentContract(config);
-  const child = Bun.spawn(
-    ["bun", "x", "rsbuild", "dev", "--env-mode", "test", "--host", "127.0.0.1"],
-    {
-      cwd: resolve(ROOT, "apps/admin"),
-      env: { ...process.env, API_PROXY_TARGET: config.apiProxyTarget },
-      stderr: "inherit",
-      stdin: "inherit",
-      stdout: "inherit",
-    },
-  );
+  const child = Bun.spawn(createAdminDevelopmentCommand(environment), {
+    cwd: resolve(ROOT, "apps/admin"),
+    env: { ...process.env, ...environment, API_PROXY_TARGET: config.apiProxyTarget },
+    stderr: "inherit",
+    stdin: "inherit",
+    stdout: "inherit",
+  });
   return child.exited;
 }
 

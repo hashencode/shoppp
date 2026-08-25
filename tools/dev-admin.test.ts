@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { resolveAdminDevelopmentConfig, verifyAdminDevelopmentContract } from "./dev-admin";
+import {
+  createAdminDevelopmentCommand,
+  resolveAdminDevelopmentConfig,
+  verifyAdminDevelopmentContract,
+} from "./dev-admin";
 
 const environment = (): Record<string, string | undefined> => ({
   ADMIN_DEVELOPMENT_PROFILE: "fashion-staging",
@@ -37,6 +41,23 @@ describe("password-authenticated admin development preflight", () => {
     const shared = environment();
     shared.TEST_D1_DATABASE_ID = shared.PRODUCTION_D1_DATABASE_ID;
     expect(() => resolveAdminDevelopmentConfig(shared)).toThrow(/database/i);
+  });
+
+  test("forwards the isolated acceptance port to Rsbuild", () => {
+    expect(createAdminDevelopmentCommand({ E2E_PORT: "3418" })).toEqual([
+      "bun",
+      "x",
+      "rsbuild",
+      "dev",
+      "--env-mode",
+      "test",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "3418",
+    ]);
+    expect(() => createAdminDevelopmentCommand({ E2E_PORT: "0" })).toThrow(/E2E_PORT/);
+    expect(() => createAdminDevelopmentCommand({ E2E_PORT: "not-a-port" })).toThrow(/E2E_PORT/);
   });
 
   test("binds local development only to the repository test API and D1", async () => {
