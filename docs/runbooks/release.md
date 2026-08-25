@@ -112,6 +112,87 @@ failed or infrastructure-classified runs retain that previous replay image.
 Docker safely refuses if another tag or container still references it. Never use broad image or
 system pruning as capsule cleanup.
 
+### Signed portable candidate evidence
+
+CI-U7 portable evidence wraps a passing capsule report and receipt without changing the 17 release
+gates. The format and trust checks are defined in
+[`candidate-evidence-bundle.md`](../reference/candidate-evidence-bundle.md); the approved security
+policy is
+[`ci-evidence-trust-and-retention.md`](../architecture/ci-evidence-trust-and-retention.md).
+
+The offline root operator creates the public trust store and signs a short-lived online signer
+certificate. These commands run outside Jenkins and ordinary developer shells. The root private key
+must never be copied to the Jenkins host:
+
+```sh
+bun tools/candidate-evidence.ts create-trust-store \
+  --root-key-id <root-key-id> \
+  --root-public-key <offline-root-public.pem> \
+  --output <trust-store.json>
+
+bun tools/candidate-evidence.ts issue-certificate \
+  --root-key <offline-root-private.pem> \
+  --root-key-id <root-key-id> \
+  --signer-public-key <jenkins-signer-public.pem> \
+  --signer-key-id <short-lived-signer-id> \
+  --not-before <ISO-8601> \
+  --not-after <ISO-8601-within-90-days> \
+  --output <signer-certificate.json>
+```
+
+After a passing capsule run, the dedicated release-operator context builds and independently
+projects the bundle. Both retention roots must already be encrypted, separately administered,
+write-once/versioned mounts; two ordinary directories do not satisfy the policy:
+
+```sh
+SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
+  bun run evidence:build -- \
+  --repository "$(pwd)" \
+  --approved-commit <exact-commit> \
+  --release-report <capsule-output>/<release-id>.json \
+  --capsule-receipt <capsule-output>/<release-id>.capsule.json \
+  --certificate <signer-certificate.json> \
+  --signer-key <host-owned-signer-private.pem> \
+  --trust-store <trust-store.json> \
+  --spool <atomic-local-spool> \
+  --attempt-id <provider-neutral-attempt-id> \
+  --executor-id <executor-id> \
+  --adapter-id <adapter-id> \
+  --audit-log <append-only-audit.jsonl> \
+  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence \
+  --retention vps:operator-vps-object-lock:operator-vps:<independent-mounted-root>
+```
+
+The build refuses a dirty or untracked non-ignored checkout, a non-exact HEAD, a non-validation
+capsule, source/report mismatch, permissive signer-key permissions, symlinked evidence, an unknown,
+expired, or revoked signer, secret-shaped content, duplicate management domains, or less than a
+`2/2` verified copy quorum. It emits only allowlisted structured audit fields. A successful bundle
+remains evidence preparation, not candidate selection or deployment authorization.
+
+Verification uses no GitHub API or artifact URL:
+
+```sh
+bun run evidence:verify -- --bundle <bundle-directory> --trust-store <trust-store.json>
+```
+
+If one retention class is unavailable or corrupt, restore tries each declared class, verifies the
+source copy before reading, copies exact bytes into a new destination, and verifies again:
+
+```sh
+bun run evidence:restore -- \
+  --digest <sha256:bundle-digest> \
+  --destination <new-empty-restore-path> \
+  --trust-store <trust-store.json> \
+  --audit-log <append-only-audit.jsonl> \
+  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence \
+  --retention vps:operator-vps-object-lock:operator-vps:<independent-mounted-root>
+```
+
+An expired or revoked signer is refused during current verification. Compromise response revokes
+the signer ID in both independently distributed trust stores, stops finalization, provisions a new
+short-lived signer from the offline root, and reruns the exact source in a clean capsule; historical
+bytes are never silently re-signed.
+
 This command contributes DC1 local evidence. It does not by itself satisfy the deployed-commerce,
 template-compatibility, activation-target, recovery, or production-authorization gates. Before
 running it for a formal

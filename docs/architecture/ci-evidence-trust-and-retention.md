@@ -51,11 +51,11 @@ restore creates new recovery metadata and never fabricates original execution me
 
 ## Artifact classes, access, and retention
 
-| Class | Examples | Retention | Read/delete authority |
-| --- | --- | --- | --- |
-| Validation | gate reports, failed diagnostics, ordinary CI bundles | 180 days | release operators read; retention administrators delete after expiry |
-| Candidate/release | passed full-validation bundles, signatures, restore records | 7 years | REL/release operators read; separate retention administrators approve deletion |
-| Security/audit | trust records, revocations, write/read/delete/restore/key events | 7 years | security/release authority read; separate retention administrators approve deletion |
+| Class             | Examples                                                         | Retention | Read/delete authority                                                               |
+| ----------------- | ---------------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------- |
+| Validation        | gate reports, failed diagnostics, ordinary CI bundles            | 180 days  | release operators read; retention administrators delete after expiry                |
+| Candidate/release | passed full-validation bundles, signatures, restore records      | 7 years   | REL/release operators read; separate retention administrators approve deletion      |
+| Security/audit    | trust records, revocations, write/read/delete/restore/key events | 7 years   | security/release authority read; separate retention administrators approve deletion |
 
 All retained data uses encryption in transit and at rest. Logs use allowlisted structured fields and
 must not contain raw environment values, credentials, authorization headers, secret-bearing command

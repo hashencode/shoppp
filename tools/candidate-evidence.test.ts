@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { generateKeyPairSync, type KeyObject } from "node:crypto";
-import { chmod, cp, mkdir, mkdtemp, readFile, rm, symlink, unlink, writeFile } from "node:fs/promises";
+import { createHash, generateKeyPairSync, type KeyObject } from "node:crypto";
+import {
+  chmod,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -70,7 +80,7 @@ async function fixture() {
   const artifactDirectory = join(repository, "artifacts/build");
   await mkdir(artifactDirectory, { recursive: true });
   await writeFile(join(artifactDirectory, "worker.js"), "export default {};\n");
-  const reportPath = join(repository, "artifacts/releases/release-fixture.json");
+  const reportPath = join(operator, "release-fixture.json");
   await mkdir(resolve(reportPath, ".."), { recursive: true });
   await writeFile(
     reportPath,
@@ -85,6 +95,25 @@ async function fixture() {
       schemaVersion: 1,
       status: "passed",
       target: "staging",
+    })}\n`,
+  );
+  const reportBytes = await readFile(reportPath);
+  const capsuleReceiptPath = join(operator, "release-fixture.capsule.json");
+  await writeFile(
+    capsuleReceiptPath,
+    `${canonicalJson({
+      classification: "validation",
+      containerExitCode: 0,
+      imageId: `sha256:${"c".repeat(64)}`,
+      manifestDigest: `sha256:${"d".repeat(64)}`,
+      platform: "linux/amd64",
+      report: {
+        digest: `sha256:${createHash("sha256").update(reportBytes).digest("hex")}`,
+        path: "release-fixture.json",
+      },
+      schemaVersion: 1,
+      source: { commit, tree },
+      toolchain: { bun: "1.3.5", manifestDigest: `sha256:${"d".repeat(64)}` },
     })}\n`,
   );
 
@@ -122,6 +151,7 @@ async function fixture() {
   const options = {
     adapterIdentity: "fixture-adapter",
     approvedCommit: commit,
+    capsuleReceiptPath,
     certificatePath,
     executorIdentity: "fixture-linux-amd64",
     issuedAt: "2026-08-25T01:00:00.000Z",
@@ -177,7 +207,10 @@ describe("portable candidate evidence", () => {
         now: "2026-08-25T01:05:00.000Z",
         trustStorePath: value.trustStorePath,
       }),
-    ).resolves.toMatchObject({ bundleDigest: first.bundleDigest, signerKeyId: "jenkins-evidence-2026-08" });
+    ).resolves.toMatchObject({
+      bundleDigest: first.bundleDigest,
+      signerKeyId: "jenkins-evidence-2026-08",
+    });
   });
 
   test("rejects dirty and untracked source before finalization", async () => {
@@ -190,7 +223,10 @@ describe("portable candidate evidence", () => {
 
   test("fails closed when an object byte or bundle signature changes", async () => {
     const value = await fixture();
-    const built = await buildCandidateEvidenceBundle({ ...value.options, attemptId: "tamper-object" });
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "tamper-object",
+    });
     const objectPath = join(built.bundlePath, built.manifest.objects[0]!.objectName);
     const objectBytes = await readFile(objectPath);
     objectBytes[0] = objectBytes[0] === 0 ? 1 : objectBytes[0]! - 1;
@@ -203,7 +239,10 @@ describe("portable candidate evidence", () => {
       }),
     ).rejects.toThrow(/object.*digest mismatch/i);
 
-    const signed = await buildCandidateEvidenceBundle({ ...value.options, attemptId: "tamper-signature" });
+    const signed = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "tamper-signature",
+    });
     const signaturePath = join(signed.bundlePath, "signature.json");
     const signature = JSON.parse(await readFile(signaturePath, "utf8"));
     signature.signature = `${signature.signature.slice(0, -4)}AAAA`;
@@ -232,7 +271,10 @@ describe("portable candidate evidence", () => {
       }),
     ).rejects.toThrow(/2\/2 retention quorum/);
 
-    const built = await buildCandidateEvidenceBundle({ ...value.options, attemptId: "restore-copy" });
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "restore-copy",
+    });
     await rm(join(value.retentionA, built.bundleDigest), { recursive: true });
     const destination = join(value.root, "restored");
     const restored = await restoreCandidateEvidenceBundle({
@@ -262,7 +304,7 @@ describe("portable candidate evidence", () => {
     ).rejects.toThrow(/administrative domains/);
   });
 
-  test("rejects permissive signer-key custody and artifact symlinks", async () => {
+  test("rejects permissive signer-key custody and symlinked capsule evidence", async () => {
     const value = await fixture();
     await chmod(value.signerPrivateKeyPath, 0o644);
     await expect(
@@ -270,17 +312,24 @@ describe("portable candidate evidence", () => {
     ).rejects.toThrow(/signer private key.*permissions/);
 
     await chmod(value.signerPrivateKeyPath, 0o600);
-    const external = join(value.root, "external-secret.txt");
-    await writeFile(external, "outside repository\n");
-    await symlink(external, join(value.repository, "artifacts/build/external-link"));
+    const realReceipt = value.options.capsuleReceiptPath;
+    const linkedReceipt = join(value.root, "linked-capsule-receipt.json");
+    await symlink(realReceipt, linkedReceipt);
     await expect(
-      buildCandidateEvidenceBundle({ ...value.options, attemptId: "artifact-symlink" }),
+      buildCandidateEvidenceBundle({
+        ...value.options,
+        attemptId: "capsule-symlink",
+        capsuleReceiptPath: linkedReceipt,
+      }),
     ).rejects.toThrow(/symbolic link/);
   });
 
   test("rejects unknown, expired, and revoked signer authority", async () => {
     const value = await fixture();
-    const built = await buildCandidateEvidenceBundle({ ...value.options, attemptId: "trust-check" });
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "trust-check",
+    });
     await expect(
       verifyCandidateEvidenceBundle({
         bundlePath: built.bundlePath,
@@ -334,7 +383,10 @@ describe("portable candidate evidence", () => {
 
   test("does not treat a copied directory as valid when its content-address is wrong", async () => {
     const value = await fixture();
-    const built = await buildCandidateEvidenceBundle({ ...value.options, attemptId: "wrong-address" });
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "wrong-address",
+    });
     const copied = join(value.root, "copied-bundle");
     await cp(built.bundlePath, copied, { recursive: true });
     await unlink(join(copied, "bundle-digest.txt"));

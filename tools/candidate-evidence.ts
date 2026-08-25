@@ -1,10 +1,4 @@
-import {
-  createHash,
-  createPrivateKey,
-  createPublicKey,
-  sign,
-  verify,
-} from "node:crypto";
+import { createHash, createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 import {
   appendFile,
   cp,
@@ -20,7 +14,6 @@ import {
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
-import { digestArtifact } from "./release-validate";
 
 const POLICY_VERSION = "2026-08-25";
 const MAX_CERTIFICATE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
@@ -61,14 +54,13 @@ export interface SignerCertificate {
 interface EvidenceObject {
   digest: string;
   objectName: string;
-  role: "source-archive" | "declared-input" | "release-report" | "artifact-file";
+  role: "source-archive" | "declared-input" | "release-report" | "capsule-receipt";
   size: number;
   sourcePath: string;
 }
 
 interface EvidenceArtifact {
   digest: string;
-  objectDigests: string[];
   path: string;
 }
 
@@ -79,6 +71,13 @@ export interface CandidateEvidenceManifest {
     archiveDigest: string;
     commit: string;
     tree: string;
+  };
+  capsuleReceipt: {
+    digest: string;
+    imageId: string;
+    manifestDigest: string;
+    path: string;
+    platform: "linux/amd64";
   };
   declaredInputs: string[];
   releaseReport: {
@@ -131,6 +130,7 @@ interface BuildOptions {
   approvedCommit: string;
   attemptId: string;
   canarySecrets?: string[];
+  capsuleReceiptPath: string;
   certificatePath: string;
   executorIdentity: string;
   issuedAt?: string;
@@ -241,7 +241,10 @@ function assertNoSecrets(bytes: Uint8Array, label: string, canarySecrets: string
     /\bAKIA[0-9A-Z]{16}\b/,
     /\bgrant_[A-Za-z0-9_-]{16,}\b/,
   ];
-  assert(!prohibited.some((pattern) => pattern.test(text)), `credential material found in ${label}`);
+  assert(
+    !prohibited.some((pattern) => pattern.test(text)),
+    `credential material found in ${label}`,
+  );
 }
 
 async function writeCanonical(path: string, value: unknown): Promise<void> {
@@ -360,13 +363,52 @@ function parseReleaseReport(value: unknown): {
   assert(typeof report.commit === "string" && SHA.test(report.commit), "release commit is invalid");
   assert(typeof report.releaseId === "string", "release ID is missing");
   assertSafeId(report.releaseId, "release ID");
-  assert(report.target === "staging" || report.target === "production", "release target is invalid");
-  assert(report.artifactDigests && typeof report.artifactDigests === "object", "artifact digests are missing");
+  assert(
+    report.target === "staging" || report.target === "production",
+    "release target is invalid",
+  );
+  assert(
+    report.artifactDigests && typeof report.artifactDigests === "object",
+    "artifact digests are missing",
+  );
   for (const [path, digest] of Object.entries(report.artifactDigests)) {
     assert(path && !resolve(path).startsWith(".."), `artifact path is invalid: ${path}`);
     assert(DIGEST.test(digest), `artifact digest is invalid: ${path}`);
   }
   return report as ReturnType<typeof parseReleaseReport>;
+}
+
+function parseCapsuleReceipt(value: unknown): {
+  classification: string;
+  containerExitCode: number;
+  imageId: string;
+  manifestDigest: string;
+  platform: string;
+  report: { digest: string; path: string };
+  source: { commit: string; tree: string };
+} {
+  const receipt = value as ReturnType<typeof parseCapsuleReceipt> & { schemaVersion?: number };
+  assert(receipt?.schemaVersion === 1, "unsupported release capsule receipt schema");
+  assert(
+    receipt.classification === "validation",
+    "candidate evidence requires validation-class capsule evidence",
+  );
+  assert(receipt.containerExitCode === 0, "candidate evidence requires a passing release capsule");
+  assert(
+    receipt.platform === "linux/amd64",
+    "candidate evidence requires the approved linux/amd64 capsule",
+  );
+  assert(DIGEST.test(receipt.imageId), "capsule image identity is invalid");
+  assert(DIGEST.test(receipt.manifestDigest), "capsule manifest digest is invalid");
+  assert(
+    SHA.test(receipt.source?.commit) && SHA.test(receipt.source?.tree),
+    "capsule source identity is invalid",
+  );
+  assert(
+    DIGEST.test(receipt.report?.digest) && typeof receipt.report.path === "string",
+    "capsule report identity is invalid",
+  );
+  return receipt;
 }
 
 function assertRetentionTargets(targets: RetentionTarget[]): void {
@@ -391,13 +433,18 @@ function assertRetentionTargets(targets: RetentionTarget[]): void {
     roots.add(root);
     administrativeDomains.add(target.administrativeDomain);
   }
-  assert(administrativeDomains.size === 2, "retention targets require separate administrative domains");
+  assert(
+    administrativeDomains.size === 2,
+    "retention targets require separate administrative domains",
+  );
 }
 
 async function bundleInventoryDigest(bundlePath: string): Promise<string> {
   const files = (await filesUnder(bundlePath))
     .filter((path) => basename(path) !== "bundle-digest.txt")
-    .sort((left, right) => relativePath(bundlePath, left).localeCompare(relativePath(bundlePath, right)));
+    .sort((left, right) =>
+      relativePath(bundlePath, left).localeCompare(relativePath(bundlePath, right)),
+    );
   const hash = createHash("sha256");
   for (const file of files) {
     hash.update(relativePath(bundlePath, file));
@@ -444,14 +491,19 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   assertRetentionTargets(options.retentionTargets);
   const repository = resolve(options.repository);
   const status = await gitText(repository, "status", "--porcelain=v1", "--untracked-files=all");
-  assert(!status, `observed source changes:\n${status}\ncandidate evidence requires clean source input`);
+  assert(
+    !status,
+    `observed source changes:\n${status}\ncandidate evidence requires clean source input`,
+  );
   const commit = await gitText(repository, "rev-parse", `${options.approvedCommit}^{commit}`);
   assert(commit === options.approvedCommit, "approved commit must be the exact executable commit");
   const head = await gitText(repository, "rev-parse", "HEAD");
   assert(head === commit, "approved commit must equal checkout HEAD");
   const tree = await gitText(repository, "rev-parse", `${commit}^{tree}`);
   const issuedAt = new Date(options.issuedAt ?? new Date().toISOString()).toISOString();
-  const certificate = JSON.parse(await readFile(options.certificatePath, "utf8")) as SignerCertificate;
+  const certificate = JSON.parse(
+    await readFile(options.certificatePath, "utf8"),
+  ) as SignerCertificate;
   await verifyCertificate(certificate, options.trustStorePath, issuedAt);
   const signerKeyMetadata = await stat(options.signerPrivateKeyPath);
   assert(
@@ -461,7 +513,8 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   const signerPrivateKey = createPrivateKey(await readFile(options.signerPrivateKeyPath, "utf8"));
   const signerPublicKey = createPublicKey(certificate.payload.signerPublicKeyPem);
   assert(
-    signerPrivateKey.asymmetricKeyType === "ed25519" && signerPublicKey.asymmetricKeyType === "ed25519",
+    signerPrivateKey.asymmetricKeyType === "ed25519" &&
+      signerPublicKey.asymmetricKeyType === "ed25519",
     "candidate evidence requires Ed25519 signer keys",
   );
   assert(
@@ -492,46 +545,56 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   }
 
   const reportPath = resolve(options.releaseReportPath);
-  assert(
-    reportPath.startsWith(`${repository}${sep}`),
-    "release report must be inside the candidate repository",
-  );
+  assert(!(await lstat(reportPath)).isSymbolicLink(), "release report must not be a symbolic link");
   const reportBytes = await readFile(reportPath);
-  assertNoSecrets(reportBytes, relativePath(repository, reportPath), canarySecrets);
+  const reportLabel = `release-report/${basename(reportPath)}`;
+  assertNoSecrets(reportBytes, reportLabel, canarySecrets);
   const releaseReport = parseReleaseReport(JSON.parse(new TextDecoder().decode(reportBytes)));
   assert(releaseReport.commit === commit, "release report commit differs from approved source");
   const reportObject = await addObject(
     staging,
     reportBytes,
-    { role: "release-report", sourcePath: relativePath(repository, reportPath) },
+    { role: "release-report", sourcePath: reportLabel },
     canarySecrets,
   );
   objects.push(reportObject);
 
+  const capsuleReceiptPath = resolve(options.capsuleReceiptPath);
+  assert(
+    !(await lstat(capsuleReceiptPath)).isSymbolicLink(),
+    "release capsule receipt must not be a symbolic link",
+  );
+  const capsuleReceiptBytes = await readFile(capsuleReceiptPath);
+  const capsuleReceiptLabel = `capsule-receipt/${basename(capsuleReceiptPath)}`;
+  const capsuleReceipt = parseCapsuleReceipt(
+    JSON.parse(new TextDecoder().decode(capsuleReceiptBytes)),
+  );
+  assert(
+    capsuleReceipt.source.commit === commit,
+    "capsule receipt commit differs from approved source",
+  );
+  assert(capsuleReceipt.source.tree === tree, "capsule receipt tree differs from approved source");
+  assert(
+    capsuleReceipt.report.path === basename(reportPath),
+    "capsule receipt names a different release report",
+  );
+  assert(
+    capsuleReceipt.report.digest === sha256(reportBytes),
+    "capsule receipt report digest mismatch",
+  );
+  const capsuleReceiptObject = await addObject(
+    staging,
+    capsuleReceiptBytes,
+    { role: "capsule-receipt", sourcePath: capsuleReceiptLabel },
+    canarySecrets,
+  );
+  objects.push(capsuleReceiptObject);
+
   const artifacts: EvidenceArtifact[] = [];
-  for (const [path, expectedDigest] of Object.entries(releaseReport.artifactDigests).sort(([a], [b]) =>
-    a.localeCompare(b),
+  for (const [path, expectedDigest] of Object.entries(releaseReport.artifactDigests).sort(
+    ([a], [b]) => a.localeCompare(b),
   )) {
-    const absolute = repositoryPath(repository, path);
-    const artifactFiles = await filesUnder(absolute);
-    assert((await digestArtifact(absolute, repository)) === expectedDigest, `artifact digest mismatch: ${path}`);
-    const artifactObjects: EvidenceObject[] = [];
-    for (const file of artifactFiles) {
-      artifactObjects.push(
-        await addObject(
-          staging,
-          await readFile(file),
-          { role: "artifact-file", sourcePath: relativePath(repository, file) },
-          canarySecrets,
-        ),
-      );
-    }
-    objects.push(...artifactObjects);
-    artifacts.push({
-      digest: expectedDigest,
-      objectDigests: artifactObjects.map((object) => object.digest),
-      path,
-    });
+    artifacts.push({ digest: expectedDigest, path });
   }
 
   objects.sort((left, right) =>
@@ -539,6 +602,13 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   );
   const manifest: CandidateEvidenceManifest = {
     artifacts,
+    capsuleReceipt: {
+      digest: capsuleReceiptObject.digest,
+      imageId: capsuleReceipt.imageId,
+      manifestDigest: capsuleReceipt.manifestDigest,
+      path: capsuleReceiptObject.sourcePath,
+      platform: "linux/amd64",
+    },
     declaredInputs,
     objects,
     policyVersion: POLICY_VERSION,
@@ -613,7 +683,10 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
         retentionClass: target.retentionClass,
         retentionId: target.id,
       };
-      await writeCanonical(join(target.root, `${bundleDigest}.${target.id}.projection.json`), event);
+      await writeCanonical(
+        join(target.root, `${bundleDigest}.${target.id}.projection.json`),
+        event,
+      );
       await appendAudit(options.auditLogPath, event);
       retentionCopies.push({ ...target, path, status: "verified" });
     }
@@ -631,7 +704,10 @@ function parseManifest(value: unknown): CandidateEvidenceManifest {
   assert(SHA.test(manifest.source?.commit), "candidate commit is invalid");
   assert(SHA.test(manifest.source?.tree), "candidate tree is invalid");
   assert(DIGEST.test(manifest.source?.archiveDigest), "source archive digest is invalid");
-  assert(Array.isArray(manifest.objects) && manifest.objects.length > 0, "evidence objects are missing");
+  assert(
+    Array.isArray(manifest.objects) && manifest.objects.length > 0,
+    "evidence objects are missing",
+  );
   assert(Array.isArray(manifest.artifacts), "evidence artifacts are missing");
   return manifest;
 }
@@ -661,12 +737,19 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
   assertSafeId(provenance.attemptId, "attempt ID");
   assertSafeId(provenance.adapterIdentity, "adapter identity");
   assertSafeId(provenance.executorIdentity, "executor identity");
-  assert(signature?.schemaVersion === 1 && signature.algorithm === "Ed25519", "invalid bundle signature schema");
+  assert(
+    signature?.schemaVersion === 1 && signature.algorithm === "Ed25519",
+    "invalid bundle signature schema",
+  );
   const manifestDigest = sha256(canonicalJson(manifest));
   const provenanceDigest = sha256(canonicalJson(provenance));
   assert(signature.manifestDigest === manifestDigest, "manifest digest mismatch");
   assert(signature.provenanceDigest === provenanceDigest, "provenance digest mismatch");
-  await verifyCertificate(signature.certificate, options.trustStorePath, options.now ?? new Date().toISOString());
+  await verifyCertificate(
+    signature.certificate,
+    options.trustStorePath,
+    options.now ?? new Date().toISOString(),
+  );
   const issuedAt = Date.parse(provenance.issuedAt);
   assert(
     issuedAt >= Date.parse(signature.certificate.payload.notBefore) &&
@@ -685,7 +768,10 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
   for (const object of manifest.objects) {
     assert(DIGEST.test(object.digest), `object digest is invalid: ${object.sourcePath}`);
     const match = OBJECT_NAME.exec(object.objectName);
-    assert(match && `sha256:${match[1]}` === object.digest, `object name is invalid: ${object.sourcePath}`);
+    assert(
+      match && `sha256:${match[1]}` === object.digest,
+      `object name is invalid: ${object.sourcePath}`,
+    );
     const bytes = await readFile(join(bundlePath, object.objectName));
     assert(bytes.byteLength === object.size, `object size mismatch: ${object.sourcePath}`);
     assert(sha256(bytes) === object.digest, `object digest mismatch: ${object.sourcePath}`);
@@ -694,28 +780,21 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
   assert(sourceObject?.digest === manifest.source.archiveDigest, "source archive object mismatch");
   const reportObject = manifest.objects.find((object) => object.role === "release-report");
   assert(reportObject?.digest === manifest.releaseReport.digest, "release report object mismatch");
+  const capsuleReceiptObject = manifest.objects.find((object) => object.role === "capsule-receipt");
+  assert(
+    capsuleReceiptObject?.digest === manifest.capsuleReceipt.digest,
+    "capsule receipt object mismatch",
+  );
   for (const artifact of manifest.artifacts) {
-    const files = manifest.objects
-      .filter(
-        (object) =>
-          object.role === "artifact-file" &&
-          (object.sourcePath === artifact.path || object.sourcePath.startsWith(`${artifact.path}/`)),
-      )
-      .sort((left, right) => left.sourcePath.localeCompare(right.sourcePath));
     assert(
-      canonicalJson(files.map((file) => file.digest)) === canonicalJson(artifact.objectDigests),
-      `artifact object inventory mismatch: ${artifact.path}`,
+      artifact.path && DIGEST.test(artifact.digest),
+      `artifact digest is invalid: ${artifact.path}`,
     );
-    const hash = createHash("sha256");
-    for (const file of files) {
-      hash.update(file.sourcePath);
-      hash.update("\0");
-      hash.update(await readFile(join(bundlePath, file.objectName)));
-      hash.update("\0");
-    }
-    assert(`sha256:${hash.digest("hex")}` === artifact.digest, `artifact digest mismatch: ${artifact.path}`);
   }
-  assert((await bundleInventoryDigest(bundlePath)) === expectedBundleDigest, "bundle digest mismatch");
+  assert(
+    (await bundleInventoryDigest(bundlePath)) === expectedBundleDigest,
+    "bundle digest mismatch",
+  );
   return {
     bundleDigest: expectedBundleDigest,
     manifest,
@@ -791,6 +870,7 @@ if (import.meta.main) {
       "attempt-id": { type: "string" },
       "audit-log": { type: "string" },
       bundle: { type: "string" },
+      "capsule-receipt": { type: "string" },
       certificate: { type: "string" },
       destination: { type: "string" },
       digest: { type: "string" },
@@ -837,7 +917,9 @@ if (import.meta.main) {
     });
     await mkdir(dirname(values.output), { recursive: true });
     await writeCanonical(values.output, certificate);
-    console.log(canonicalJson({ output: values.output, signerKeyId: certificate.payload.signerKeyId }));
+    console.log(
+      canonicalJson({ output: values.output, signerKeyId: certificate.payload.signerKeyId }),
+    );
   } else if (command === "create-trust-store") {
     assert(
       values["root-key-id"] && values["root-public-key"] && values.output,
@@ -845,7 +927,10 @@ if (import.meta.main) {
     );
     assertSafeId(values["root-key-id"], "root key ID");
     const publicKeyPem = await readFile(values["root-public-key"], "utf8");
-    assert(createPublicKey(publicKeyPem).asymmetricKeyType === "ed25519", "trust root must be Ed25519");
+    assert(
+      createPublicKey(publicKeyPem).asymmetricKeyType === "ed25519",
+      "trust root must be Ed25519",
+    );
     const trustStore: EvidenceTrustStore = {
       revokedSignerKeyIds: [],
       roots: [
@@ -891,6 +976,7 @@ if (import.meta.main) {
     assert(
       values.repository &&
         values["approved-commit"] &&
+        values["capsule-receipt"] &&
         values["release-report"] &&
         values.certificate &&
         values["signer-key"] &&
@@ -905,6 +991,10 @@ if (import.meta.main) {
       adapterIdentity: values["adapter-id"],
       approvedCommit: values["approved-commit"],
       attemptId: values["attempt-id"],
+      ...(process.env.SHOPPP_EVIDENCE_CANARY
+        ? { canarySecrets: [process.env.SHOPPP_EVIDENCE_CANARY] }
+        : {}),
+      capsuleReceiptPath: values["capsule-receipt"],
       certificatePath: values.certificate,
       executorIdentity: values["executor-id"],
       releaseReportPath: values["release-report"],
@@ -915,7 +1005,9 @@ if (import.meta.main) {
       trustStorePath: values["trust-store"],
       ...(values["audit-log"] ? { auditLogPath: values["audit-log"] } : {}),
     });
-    console.log(canonicalJson({ bundleDigest: result.bundleDigest, bundlePath: result.bundlePath }));
+    console.log(
+      canonicalJson({ bundleDigest: result.bundleDigest, bundlePath: result.bundlePath }),
+    );
   } else {
     throw new Error(
       "candidate-evidence command must be issue-certificate, create-trust-store, build, verify, or restore",
