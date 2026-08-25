@@ -122,9 +122,9 @@ Parallel CI infrastructure planning is registered without replacing either imple
   complete on exact commit `47b6b340`: all 17
   unchanged gates passed in the pinned `linux/amd64` capsule on the independent Intel executor and
   produced retained validation-class evidence. Registration and the CI-U4 14-day pilot remain
-  human-operated and pending.
-- **Next action:** Land the verified tree on `main`, run its exact SHA on Intel Jenkins, then
-  provision the approved offline signing authority and two independent retention endpoints for one
+  human-operated and pending. Intel Jenkins build `shoppp-main#15` also passed the provider-neutral
+  post-commit lane against exact integrated SHA `72cc2bdf`.
+- **Next action:** Provision the approved offline signing authority and two independent retention endpoints for one
   live signed `2/2` build/verify and single-survivor restore. The unsupplied second VPS endpoint is
   the only external input for that storage proof; GitHub Actions billing blocks only optional
   hosted-adapter compatibility.

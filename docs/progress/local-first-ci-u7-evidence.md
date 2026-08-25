@@ -40,3 +40,14 @@ This file retains focused CI-U7 evidence and does not own the current-unit queue
   evidence of a functional or maintainability defect.
 - This is repository evidence only. CI-U7.2 stays open until the exact integrated `main` SHA passes
   Intel Jenkins and a real offline-signed two-domain build/restore exercise is retained.
+
+## Intel Jenkins integration proof — 2026-08-25
+
+- `shoppp-main#14` was deliberately aborted after its checkout log exposed a stale local mirror at
+  `e77187b6`; it is not acceptance evidence.
+- After synchronizing the host-local mirror, `shoppp-main#15` checked out exact integrated SHA
+  `72cc2bdf`, passed the complete provider-neutral post-commit lane in 176.547 seconds, archived the
+  report with Jenkins fingerprints, and retained it under
+  `/srv/shoppp-evidence/72cc2bdf0b4241a3dccd0f707c6aebe9833609e2/15/`.
+- This closes the repository implementation and independent Intel mirror portion of CI-U7.2. It
+  does not substitute for the still-required offline-signed two-domain build and restore proof.

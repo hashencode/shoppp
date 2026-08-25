@@ -70,15 +70,16 @@ handled; those remain human-only operations.
   complete on exact commit `47b6b340`: all 17 unchanged gates passed in the pinned `linux/amd64`
   capsule on the independent Intel executor, with a validation-class receipt and retained transfer,
   report, image-role, and toolchain digests. The optional 14-day CI-U4 runner pilot still awaits
-  human adoption.
-- **Next concrete action:** Land the verified CI-U7.2 tree on `main` and run the Intel Jenkins
-  post-commit lane against that exact SHA. Then provision the approved offline root/signer/trust
-  files and two genuinely independent retention endpoints, and retain one live signed `2/2`
-  build/verify plus single-survivor restore exercise. Separately run the
+  human adoption. Intel Jenkins build `shoppp-main#15` independently passed the provider-neutral
+  post-commit lane against exact integrated SHA `72cc2bdf` in 176.547 seconds and retained its
+  machine-readable report under the host-controlled evidence root.
+- **Next concrete action:** Provision the approved offline root/signer/trust files and two genuinely
+  independent retention endpoints, then retain one live signed `2/2` build/verify plus
+  single-survivor restore exercise. Separately run the
   hosted Ubuntu adapter when GitHub Actions billing permits; that compatibility evidence is not
   CI-U12 completion authority.
-- **Current blockers:** None for repository implementation or Intel Jenkins validation. CI-U7.2
-  operational completion requires provisioned offline-root/signer/trust files and two approved,
+- **Current blockers:** CI-U7.2 operational completion requires provisioned offline-root/signer/trust
+  files and two approved,
   administratively independent retention domains; repository code fails closed while any is absent.
   The second VPS endpoint has not yet been supplied. GitHub billing blocks only the optional hosted-adapter
   compatibility check. CI-U4 also cannot complete until a human adopts and operates the optional
