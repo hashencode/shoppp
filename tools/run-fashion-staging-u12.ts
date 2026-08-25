@@ -152,6 +152,7 @@ export async function runFashionStagingU12(
       "X-Request-Id": `fashion-u12-${config.action}-${config.runId}`,
     },
     method: "POST",
+    signal: AbortSignal.timeout(10_000),
   });
   return responseData(response, config.action);
 }

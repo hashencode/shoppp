@@ -14,11 +14,23 @@ import {
   createThemeOverrides,
   previewBuildStatus,
   resolveDraftTemplates,
+  resolveValidationFieldPath,
   ThemeEditorPage,
 } from './theme-editor-page'
 import { ThemesPage } from './themes-page'
 
 void React
+
+describe('validation field paths', () => {
+  it('preserves dotted setting identifiers', () => {
+    expect(
+      resolveValidationFieldPath({
+        instanceId: 'fashion-store-content',
+        path: 'fashion-store-content.policy.document',
+      })
+    ).toEqual({ instanceId: 'fashion-store-content', settingId: 'policy.document' })
+  })
+})
 
 if (!window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
@@ -477,6 +489,7 @@ afterEach(() => {
   successorBody = null
   buildStatus = 'building'
   window.sessionStorage.clear()
+  window.history.replaceState(null, '', '/')
   server.resetHandlers()
 })
 afterAll(async () => {
@@ -850,6 +863,7 @@ describe('ThemeEditorPage', () => {
               {
                 code: 'required_capability_missing',
                 message: 'Required navigation capability is missing.',
+                path: 'home-hero.heading',
                 templateId: 'synthetic-home',
               },
             ],
@@ -870,6 +884,17 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
 
     await screen.findByText('required_capability_missing')
+    const summary = screen.getByText(/Validation validation-synthetic-invalid-2/).closest('[tabindex]')
+    await waitFor(() => expect(document.activeElement).toBe(summary))
+    const issueLink = screen.getByRole('link', {
+      name: /Review affected field.*home.*home-hero.*heading/,
+    })
+    fireEvent.click(issueLink)
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById('experience-field-synthetic-home-home-hero-heading')
+      )
+    )
     expect(previewBody).toBeNull()
     expect(screen.queryByText('Building')).toBeNull()
   })
@@ -1093,6 +1118,7 @@ describe('ThemeEditorPage', () => {
   })
 
   it('hydrates the exact deployed preview so an approver without draft-write access can approve', async () => {
+    window.history.replaceState(null, '', '/?preview-return=1')
     const releaseId = 'release-approver-hydration'
     const validation = {
       ...validValidation,
@@ -1130,6 +1156,13 @@ describe('ThemeEditorPage', () => {
       'catalog.read',
     ])
     await screen.findByText('Ready')
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Open authenticated preview' })
+      )
+    )
+    expect(screen.getByText('Returned from private preview.')).toBeTruthy()
+    expect(window.location.search).toBe('')
     expect(previewContextQuery).toContain('draftVersion=1')
     expect(previewContextQuery).toContain(`catalogReleaseId=${releaseId}`)
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()

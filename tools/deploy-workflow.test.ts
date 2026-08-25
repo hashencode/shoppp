@@ -9,6 +9,14 @@ const fashionPreparationWorkflowPath = resolve(
   import.meta.dir,
   "../.github/workflows/prepare-fashion-staging-u12.yml",
 );
+const fashionU8PreparationWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/prepare-fashion-staging-u8.yml",
+);
+const fashionU8AcceptanceWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/accept-fashion-staging-u8.yml",
+);
 const fashionPurchaseJourneyPath = resolve(
   import.meta.dir,
   "../e2e/fashion-store-purchase.spec.ts",
@@ -311,7 +319,7 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain('--arg run "$READINESS_RUN_ID"');
     expect(workflow).toContain(".commitSha == $commit");
     expect(workflow).toContain(".github.operatorGate.runId == $run");
-    expect(workflow).toContain("runs-on: [self-hosted, fashion-staging-preview]");
+    expect(workflow).toContain("      - self-hosted\n      - fashion-staging-preview");
     expect(workflow).not.toContain("runs-on: ubuntu-latest");
     expect(inputValidation).toBeGreaterThan(0);
     expect(download).toBeGreaterThan(inputValidation);
@@ -569,6 +577,103 @@ describe("governed Fashion staging preparation workflow", () => {
     );
     expect(workflow).toContain("manualDispatch:true");
     expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
+  });
+});
+
+describe("governed Fashion U8 acceptance workflows", () => {
+  test("prepares refresh before acceptance and never waits for Preview while holding its group", async () => {
+    const [preparation, acceptance] = await Promise.all([
+      readFile(fashionU8PreparationWorkflowPath, "utf8"),
+      readFile(fashionU8AcceptanceWorkflowPath, "utf8"),
+    ]);
+    expect(preparation).toContain("group: fashion-staging-u8-preparation");
+    expect(preparation).toContain("workflow_dispatch");
+    expect(preparation).toContain("actions: write");
+    expect(preparation).toContain("Create U8 refresh attestation");
+    expect(preparation).toContain("Start append-only U8 preparation attempt");
+    expect(preparation).toContain("Start append-only U8 build attempt");
+    expect(preparation).toContain("Preserve append-only U8 preparation ledger");
+    expect(preparation).toContain("harness_manifest_digest:");
+    expect(preparation).toContain("Verify canonical reviewed U8 harness before package execution");
+    expect(preparation).toContain("vars.FASHION_U8_HARNESS_MANIFEST_DIGEST");
+    expect(preparation).toContain('test "$GITHUB_SHA" = "$HARNESS_SHA"');
+    expect(preparation).toContain("verify-fashion-u8-standing-authority.ts");
+    expect(preparation).toContain("Download exact historical U12 readiness evidence");
+    expect(preparation).toContain("fashion-u12-readiness-${{ inputs.candidate_sha }}");
+    expect(preparation).toContain("Verify historical readiness and frozen U8 lineage");
+    expect(preparation).toContain(".seed.catalogReleaseId == $catalog");
+    expect(preparation).toContain("/admin/storefront-experiences/builds/$U12_BUILD_ID");
+    expect(preparation).toContain(".data.artifactDigest");
+    expect(preparation).toContain("/admin/storefront-experiences/snapshots/$SUCCESSOR_SNAPSHOT_ID");
+    expect(preparation).toContain("/snapshots/$SUCCESSOR_SNAPSHOT_ID/build");
+    expect(preparation).toContain("newBuildId");
+    expect(preparation).toContain("gh workflow run preview-storefront.yml");
+    expect(preparation).toContain("refresh_run_id=$GITHUB_RUN_ID");
+    expect(preparation).not.toContain("gh run watch");
+    expect(preparation).toContain('.approvalAuditId == ("audit-" + .successorSnapshotId)');
+    expect(preparation).toContain("run_manifest_base64:");
+    expect(preparation).toContain("human_evidence_base64:");
+    expect(preparation).toContain("Verify exact successful U12 readiness workflow provenance");
+    expect(preparation).toContain("--connect-timeout 10 --max-time 60");
+    expect(acceptance).toContain("Verify exact successful preparation workflow provenance");
+    expect(acceptance).toContain("humanEvidenceDigest");
+    expect(preparation).toContain("retention-days: 7");
+    expect(preparation).not.toContain("group: fashion-staging-preview");
+    expect(acceptance).toContain("group: fashion-staging-preview");
+    expect(acceptance).not.toContain("workflow run preview-storefront.yml");
+    expect(acceptance).not.toContain("actions: write");
+    expect(acceptance).toContain(".buildId");
+    expect(acceptance).toContain(".experienceVersion");
+    expect(acceptance).not.toContain("vars.FASHION_U8_SUCCESSOR_BUILD_ID");
+    expect(acceptance).not.toContain("vars.FASHION_U8_SUCCESSOR_EXPERIENCE_VERSION");
+    expect(acceptance).not.toContain("vars.FASHION_U8_THEME_ARTIFACT_DIGEST");
+  });
+
+  test("lets Preview deploy a refresh successor without equating it to the historical seed build", async () => {
+    const preview = await readFile(previewWorkflowPath, "utf8");
+    expect(preview).toContain("refresh_run_id:");
+    expect(preview).toContain("refresh_artifact_name:");
+    expect(preview).toContain("refresh_digest:");
+    expect(preview).toContain("harness_sha:");
+    expect(preview).toContain("Download exact U8 refresh attestation");
+    expect(preview).toContain("Verify U8 refresh attestation before deployment mutation");
+    expect(preview).toContain("current-harness-manifest.json");
+    expect(preview).toContain("'fashion-staging-u8'");
+    expect(preview).toContain(".newBuildId == $build");
+    expect(preview).toContain(".successorSnapshotId == $snapshot");
+    expect(preview).toContain(".u12ReadinessDigest == $readiness");
+    expect(preview).toContain(".harnessSha == $harness");
+    expect(preview).toContain("inputs.refresh_run_id == ''");
+    expect(preview).toContain("--snapshot=artifacts/readiness/readiness.json");
+    expect(preview).not.toContain(
+      ".seed.buildId == $build and .seed.experienceSnapshotId == $snapshot or",
+    );
+  });
+
+  test("uses the protected U8 runner contract and always preserves cleanup evidence", async () => {
+    const acceptance = await readFile(fashionU8AcceptanceWorkflowPath, "utf8");
+    expect(acceptance).toContain(
+      "runs-on: [self-hosted, fashion-staging-preview, fashion-staging-u8]",
+    );
+    expect(acceptance).toContain("environment: fashion-staging");
+    expect(acceptance).toContain("timeout-minutes: 30");
+    expect(acceptance).toContain("permissions:\n  contents: read");
+    expect(acceptance).toContain("if: ${{ always() }}");
+    expect(acceptance).toContain("retention-days: 7");
+    expect(acceptance).toContain("bun tools/run-fashion-staging-u8.ts");
+    expect(acceptance).toContain("Start append-only U8 machine attempt");
+    expect(acceptance).toContain("Preserve append-only U8 machine ledger");
+    expect(acceptance).toContain("current-harness-manifest.json");
+    expect(acceptance).toContain("FASHION_U12_ACCEPTANCE_TOKEN");
+    expect(acceptance).toContain("FASHION_U8_ADMIN_SERVICE_TOKEN");
+    expect(acceptance).toContain("artifacts/fashion-u8/terminal-report.json");
+    expect(acceptance).toContain("artifacts/fashion-u8/deployed-build.json");
+    expect(acceptance).toContain("successorArtifactDigest:$build[0].data.artifactDigest");
+    expect(acceptance).not.toContain("vars.FASHION_U8_SUCCESSOR_ARTIFACT_DIGEST");
+    expect(acceptance).toContain(".passed == true and .cleanup.passed == true");
+    expect(acceptance).not.toContain("remote-proof-not-run");
+    expect(acceptance).not.toContain("pull_request:");
+    expect(acceptance).not.toMatch(/API_E2E_BASE_URL|\/catalog\/products\/\$\{?\w*slug/i);
   });
 });
 

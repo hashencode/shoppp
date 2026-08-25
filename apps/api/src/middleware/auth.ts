@@ -5,6 +5,7 @@ import { ADMIN_PERMISSION_KEYS, type AdminPermission } from "@shoppp/contracts";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { isAdminIdentityExpired } from "../iam/identity-expiry";
 import type { Principal } from "../iam/permissions";
 import { hashOpaqueToken } from "../iam/passwords";
 import { safeRequestPath } from "../security/redaction";
@@ -23,6 +24,7 @@ interface PrincipalRow {
   readonly access_subject: string;
   readonly display_name: string;
   readonly enabled: number;
+  readonly expires_at: string | null;
   readonly id: string;
   readonly normalized_email: string | null;
   readonly principal_kind: string;
@@ -80,6 +82,7 @@ export async function resolvePrincipal(
   const row = await context.env.DB.prepare(
     `SELECT identity.id, identity.principal_kind, identity.access_subject,
             identity.normalized_email, identity.display_name, identity.enabled,
+            identity.expires_at,
             role.id AS role_id, role.key AS role_key, role.name AS role_name,
             role.protected AS role_protected, role.system AS role_system,
             role.enabled AS role_enabled, role.version AS role_version
@@ -94,6 +97,10 @@ export async function resolvePrincipal(
   if (row.enabled !== 1 || row.role_enabled !== 1) {
     await auditMappedDenial(context, row, "identity_or_role_disabled");
     throw new ApiError(401, "identity_not_enabled", "The administrator identity is not enabled.");
+  }
+  if (isAdminIdentityExpired(row.expires_at)) {
+    await auditMappedDenial(context, row, "identity_expired");
+    throw new ApiError(401, "identity_expired", "The administrator identity has expired.");
   }
   if (row.principal_kind !== identity.principalKind) {
     await auditMappedDenial(context, row, "principal_kind_mismatch");

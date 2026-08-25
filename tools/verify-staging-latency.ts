@@ -1,10 +1,37 @@
 const SAMPLE_COUNT = 20;
 const DEFAULT_CHECKOUT_CONCURRENCY = 4;
 
-function required(name: string): string {
-  const value = process.env[name]?.trim().replace(/\/$/, "");
-  if (!value) throw new Error(`${name} is required for staging latency verification.`);
-  return value;
+export interface StagingLatencyConfig {
+  catalogReleaseId: string;
+  currency: string;
+  previewCookie: string;
+  previewOrigin: string;
+  productId: string;
+  runId: string;
+  sampleCount: 20;
+  shippingConcurrency: 4;
+  timeoutMs: number;
+}
+
+export interface StagingLatencyLifecycle {
+  cleanup(): Promise<void>;
+  registerCart(cartId: string): Promise<void>;
+}
+
+export type StagingLatencyFetch = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+
+export interface StagingLatencyReport {
+  catalogDurationsMs: number[];
+  catalogReadP95Ms: number;
+  cartDurationsMs: number[];
+  cartReadP95Ms: number;
+  sampleCount: 20;
+  shippingConcurrency: 4;
+  shippingDurationsMs: number[];
+  shippingMutationP95Ms: number;
 }
 
 export function percentile95(samples: number[]): number {
@@ -32,115 +59,204 @@ export async function mapWithConcurrency<T, TResult>(
   return results;
 }
 
-async function expectSuccess(label: string, sample: Promise<Response>): Promise<number> {
-  const started = performance.now();
-  const response = await sample;
-  const duration = performance.now() - started;
+async function timedRequest(
+  label: string,
+  fetcher: StagingLatencyFetch,
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+  now: () => number,
+): Promise<number> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(new Error(`${label} timed out`)), timeoutMs);
+  const started = now();
+  let response: Response;
+  try {
+    response = await fetcher(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+  const duration = now() - started;
   if (!response.ok) {
-    throw new Error(`${label} failed with ${response.status}: ${await response.text()}`);
+    throw new Error(`${label} failed with ${response.status}`);
   }
   return duration;
 }
 
-async function main(): Promise<void> {
-  const api = required("API_E2E_BASE_URL");
-  const storefront = required("STOREFRONT_E2E_BASE_URL");
-  const slug = required("E2E_PRODUCT_SLUG");
-  const configuredConcurrency = Number(
-    process.env.STAGING_CHECKOUT_CONCURRENCY ?? DEFAULT_CHECKOUT_CONCURRENCY,
-  );
-  if (
-    !Number.isInteger(configuredConcurrency) ||
-    configuredConcurrency < 1 ||
-    configuredConcurrency > SAMPLE_COUNT
-  ) {
-    throw new Error(
-      `STAGING_CHECKOUT_CONCURRENCY must be an integer between 1 and ${SAMPLE_COUNT}.`,
-    );
+function assertConfig(config: StagingLatencyConfig): void {
+  const preview = new URL(config.previewOrigin);
+  if (preview.protocol !== "https:" || preview.origin !== config.previewOrigin) {
+    throw new Error("previewOrigin must be one exact HTTPS origin");
   }
-  const publicHeaders = { Origin: storefront };
-  const runId = Date.now();
+  if (config.sampleCount !== SAMPLE_COUNT) throw new Error("sampleCount must be exactly 20");
+  if (config.shippingConcurrency !== DEFAULT_CHECKOUT_CONCURRENCY) {
+    throw new Error("shippingConcurrency must be exactly 4");
+  }
+  if (!Number.isSafeInteger(config.timeoutMs) || config.timeoutMs < 1) {
+    throw new Error("timeoutMs must be a positive integer");
+  }
+  if (!/^__Host-shoppp-preview=[A-Za-z0-9_-]{8,256}$/.test(config.previewCookie)) {
+    throw new Error("previewCookie must be one private Preview session cookie");
+  }
+  for (const [name, value] of Object.entries({
+    catalogReleaseId: config.catalogReleaseId,
+    productId: config.productId,
+    runId: config.runId,
+  })) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/.test(value)) {
+      throw new Error(`${name} must be a stable identifier`);
+    }
+  }
+  if (!/^[A-Z]{3}$/.test(config.currency)) throw new Error("currency must be uppercase ISO-4217");
+}
 
-  const carts = await Promise.all(
-    Array.from({ length: SAMPLE_COUNT }, async (_, index) => {
-      const response = await fetch(`${api}/cart`, {
-        method: "POST",
-        headers: {
-          ...publicHeaders,
-          "Content-Type": "application/json",
-          "Idempotency-Key": `latency-cart-${runId}-${index}`,
-        },
-        body: JSON.stringify({ currency: "USD" }),
-      });
-      if (!response.ok) throw new Error(`cart fixture creation failed with ${response.status}`);
-      const payload = (await response.json()) as { data: { token: string } };
-      return payload.data.token;
-    }),
-  );
-
-  const catalogSamples = await Promise.all(
-    Array.from({ length: SAMPLE_COUNT }, () =>
-      expectSuccess(
-        "catalog read",
-        fetch(`${api}/catalog/products/${slug}/live?currency=USD`, { headers: publicHeaders }),
-      ),
-    ),
-  );
-  const cartSamples = await Promise.all(
-    carts.map((token) =>
-      expectSuccess(
-        "cart read",
-        fetch(`${api}/cart`, {
-          headers: { ...publicHeaders, Authorization: `CartToken ${token}` },
-        }),
-      ),
-    ),
-  );
-  const checkoutMutationSamples = await mapWithConcurrency(
-    carts,
-    configuredConcurrency,
-    (token, index) =>
-      expectSuccess(
-        "checkout shipping mutation",
-        fetch(`${api}/cart/shipping`, {
-          method: "PUT",
-          headers: {
-            ...publicHeaders,
-            Authorization: `CartToken ${token}`,
-            "Content-Type": "application/json",
-            "Idempotency-Key": `latency-shipping-${runId}-${index}`,
-          },
-          body: JSON.stringify({
-            shippingAddress: {
-              city: "Portland",
-              countryCode: "US",
-              line1: "100 Market Street",
-              name: "Latency Probe",
-              postalCode: "97205",
-              region: "OR",
-            },
-          }),
-        }),
-      ),
-  );
-
-  const results = {
-    catalogReadP95Ms: Math.round(percentile95(catalogSamples)),
-    cartReadP95Ms: Math.round(percentile95(cartSamples)),
-    checkoutMutationP95Ms: Math.round(percentile95(checkoutMutationSamples)),
-    checkoutConcurrency: configuredConcurrency,
-    sampleCount: SAMPLE_COUNT,
+export async function runStagingLatencyProbe(
+  config: StagingLatencyConfig,
+  fetcher: StagingLatencyFetch = fetch,
+  lifecycle: StagingLatencyLifecycle,
+  now: () => number = performance.now.bind(performance),
+): Promise<StagingLatencyReport> {
+  assertConfig(config);
+  const commonHeaders = { Cookie: config.previewCookie, Origin: config.previewOrigin };
+  const cartTokens: string[] = [];
+  const createCart = async (index: number): Promise<void> => {
+    const response = await fetcher(`${config.previewOrigin}/api/cart`, {
+      body: JSON.stringify({ currency: config.currency }),
+      headers: {
+        ...commonHeaders,
+        "Content-Type": "application/json",
+        "Idempotency-Key": `fashion-u8-latency-cart-${config.runId}-${index}`,
+      },
+      method: "POST",
+      signal: AbortSignal.timeout(config.timeoutMs),
+    });
+    if (!response.ok) throw new Error(`cart fixture creation failed with ${response.status}`);
+    const payload = (await response.json()) as {
+      data?: { cart?: { id?: unknown }; token?: unknown };
+    };
+    const cartId = payload.data?.cart?.id;
+    const token = payload.data?.token;
+    if (typeof cartId !== "string" || typeof token !== "string") {
+      throw new Error("cart fixture creation returned invalid private evidence");
+    }
+    await lifecycle.registerCart(cartId);
+    cartTokens.push(token);
   };
 
-  if (results.catalogReadP95Ms > 500 || results.cartReadP95Ms > 500) {
-    throw new Error(`staging read p95 exceeds 500 ms: ${JSON.stringify(results)}`);
+  try {
+    for (let index = 0; index <= SAMPLE_COUNT; index += 1) await createCart(index);
+    const catalogUrl = `${config.previewOrigin}/api/catalog/products/by-id/${config.productId}/live?currency=${config.currency}`;
+    const cartInit = (token: string): RequestInit => ({
+      headers: { ...commonHeaders, Authorization: `CartToken ${token}` },
+    });
+    const shippingInit = (token: string, index: number): RequestInit => ({
+      body: JSON.stringify({
+        shippingAddress: {
+          city: "Portland",
+          countryCode: "US",
+          line1: "100 Market Street",
+          name: "Latency Probe",
+          postalCode: "97205",
+          region: "OR",
+        },
+      }),
+      headers: {
+        ...commonHeaders,
+        Authorization: `CartToken ${token}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": `fashion-u8-latency-shipping-${config.runId}-${index}`,
+      },
+      method: "PUT",
+    });
+
+    const warmupToken = cartTokens[0]!;
+    await timedRequest(
+      "catalog read",
+      fetcher,
+      catalogUrl,
+      { headers: commonHeaders },
+      config.timeoutMs,
+      now,
+    );
+    await timedRequest(
+      "cart read",
+      fetcher,
+      `${config.previewOrigin}/api/cart`,
+      cartInit(warmupToken),
+      config.timeoutMs,
+      now,
+    );
+    await timedRequest(
+      "shipping mutation",
+      fetcher,
+      `${config.previewOrigin}/api/cart/shipping`,
+      shippingInit(warmupToken, 0),
+      config.timeoutMs,
+      now,
+    );
+
+    const measuredTokens = cartTokens.slice(1);
+    const catalogDurationsMs: number[] = [];
+    const cartDurationsMs: number[] = [];
+    for (const token of measuredTokens) {
+      catalogDurationsMs.push(
+        await timedRequest(
+          "catalog read",
+          fetcher,
+          catalogUrl,
+          { headers: commonHeaders },
+          config.timeoutMs,
+          now,
+        ),
+      );
+      cartDurationsMs.push(
+        await timedRequest(
+          "cart read",
+          fetcher,
+          `${config.previewOrigin}/api/cart`,
+          cartInit(token),
+          config.timeoutMs,
+          now,
+        ),
+      );
+    }
+    const shippingDurationsMs = await mapWithConcurrency(
+      measuredTokens,
+      config.shippingConcurrency,
+      (token, index) =>
+        timedRequest(
+          "shipping mutation",
+          fetcher,
+          `${config.previewOrigin}/api/cart/shipping`,
+          shippingInit(token, index + 1),
+          config.timeoutMs,
+          now,
+        ),
+    );
+    const report: StagingLatencyReport = {
+      catalogDurationsMs,
+      catalogReadP95Ms: percentile95(catalogDurationsMs),
+      cartDurationsMs,
+      cartReadP95Ms: percentile95(cartDurationsMs),
+      sampleCount: SAMPLE_COUNT,
+      shippingConcurrency: DEFAULT_CHECKOUT_CONCURRENCY,
+      shippingDurationsMs,
+      shippingMutationP95Ms: percentile95(shippingDurationsMs),
+    };
+    if (report.catalogReadP95Ms > 500 || report.cartReadP95Ms > 500) {
+      throw new Error(`staging read p95 exceeds 500 ms: ${JSON.stringify(report)}`);
+    }
+    if (report.shippingMutationP95Ms > 800) {
+      throw new Error(`staging shipping mutation p95 exceeds 800 ms: ${JSON.stringify(report)}`);
+    }
+    return report;
+  } finally {
+    await lifecycle.cleanup();
   }
-  if (results.checkoutMutationP95Ms > 800) {
-    throw new Error(`staging checkout mutation p95 exceeds 800 ms: ${JSON.stringify(results)}`);
-  }
-  console.log(`Staging API latency passed: ${JSON.stringify(results)}`);
 }
 
 if (import.meta.main) {
-  await main();
+  throw new Error(
+    "Run the authenticated U8 orchestrator; direct staging API latency execution is prohibited.",
+  );
 }

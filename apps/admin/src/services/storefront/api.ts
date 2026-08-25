@@ -10,7 +10,13 @@ export type StorefrontExperienceValidation = {
   createdAt: string
   draftVersion: number
   id: string
-  issues: Array<{ code: string; instanceId?: string; message: string; templateId?: string }>
+  issues: Array<{
+    code: string
+    instanceId?: string
+    message: string
+    path?: string
+    templateId?: string
+  }>
   status: 'invalid' | 'valid'
   validatedBy: string
 }

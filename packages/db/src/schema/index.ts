@@ -76,6 +76,7 @@ export const adminIdentities = sqliteTable(
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     version: integer("version").notNull().default(1),
     lastSeenAt: text("last_seen_at"),
+    expiresAt: text("expires_at"),
     ...timestamps,
   },
   (table) => [
@@ -83,6 +84,7 @@ export const adminIdentities = sqliteTable(
       .on(table.normalizedEmail)
       .where(sql`${table.principalKind} = 'human'`),
     index("admin_identities_role_enabled_idx").on(table.roleId, table.enabled, table.principalKind),
+    index("admin_identities_expiry_idx").on(table.expiresAt, table.enabled),
   ],
 );
 

@@ -27,6 +27,22 @@ on:
         description: Expired Fashion U12 run to reconcile before acquiring a new lock
         required: false
         type: string
+      refresh_run_id:
+        description: U8 preparation run containing the protected refresh attestation
+        required: false
+        type: string
+      refresh_artifact_name:
+        description: Exact U8 refresh attestation artifact name
+        required: false
+        type: string
+      refresh_digest:
+        description: SHA-256 of the exact U8 refresh attestation
+        required: false
+        type: string
+      harness_sha:
+        description: Exact reviewed U8 harness commit used for refresh deployment
+        required: false
+        type: string
 
 concurrency:
   group: fashion-staging-preview
@@ -38,13 +54,13 @@ permissions:
 
 jobs:
   build-preview:
-    runs-on: [self-hosted, fashion-staging-preview]
+    runs-on:
+      - self-hosted
+      - fashion-staging-preview
+      - ${{ inputs.refresh_run_id != '' && 'fashion-staging-u8' || 'fashion-staging-preview' }}
     timeout-minutes: 55
     environment: fashion-staging
     env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      PREVIEW_API_TOKEN: ${{ secrets.PREVIEW_BUILD_TOKEN }}
       PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}
       PREVIEW_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
       PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
@@ -80,6 +96,10 @@ jobs:
           READINESS_DIGEST: ${{ inputs.readiness_digest }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
           RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          REFRESH_RUN_ID: ${{ inputs.refresh_run_id }}
+          REFRESH_ARTIFACT_NAME: ${{ inputs.refresh_artifact_name }}
+          REFRESH_DIGEST: ${{ inputs.refresh_digest }}
+          HARNESS_SHA: ${{ inputs.harness_sha }}
         run: |
           [[ "$READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "$READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
@@ -87,11 +107,50 @@ jobs:
           [[ "$SNAPSHOT_ID" =~ ^[a-z][a-z0-9-]{2,99}$ ]]
           [[ "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]
           test -z "$RECOVERY_RUN_ID" || [[ "$RECOVERY_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
+          if test -n "$REFRESH_RUN_ID"; then
+            [[ "$REFRESH_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            [[ "$REFRESH_ARTIFACT_NAME" =~ ^fashion-u8-refresh-[1-9][0-9]*-[1-9][0-9]*$ ]]
+            [[ "$REFRESH_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+            [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
+            test "$HARNESS_SHA" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
+            test -z "$RECOVERY_RUN_ID"
+          else
+            test -z "$REFRESH_ARTIFACT_NAME"
+            test -z "$REFRESH_DIGEST"
+            test -z "$HARNESS_SHA"
+          fi
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.refresh_run_id != '' && inputs.harness_sha || github.sha }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
-      - run: bun install --frozen-lockfile
+      - name: Verify exact successful evidence workflow provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HARNESS_SHA: ${{ inputs.harness_sha }}
+          READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
+          READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
+          REFRESH_ARTIFACT_NAME: ${{ inputs.refresh_artifact_name }}
+          REFRESH_RUN_ID: ${{ inputs.refresh_run_id }}
+        run: |
+          mkdir -p artifacts/provenance
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$READINESS_RUN_ID" > artifacts/provenance/readiness-run.json
+          jq --exit-status --arg candidate "$READINESS_COMMIT_SHA" \
+            '.path == ".github/workflows/prepare-fashion-staging-u12.yml" and
+             .event == "workflow_dispatch" and .head_sha == $candidate and
+             .status == "completed" and .conclusion == "success"' \
+            artifacts/provenance/readiness-run.json >/dev/null
+          if test -n "$REFRESH_RUN_ID"; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REFRESH_RUN_ID" > artifacts/provenance/refresh-run.json
+            jq --exit-status --arg harness "$HARNESS_SHA" --arg artifact "$REFRESH_ARTIFACT_NAME" \
+              '.path == ".github/workflows/prepare-fashion-staging-u8.yml" and
+               .event == "workflow_dispatch" and .head_sha == $harness and
+               .status == "completed" and .conclusion == "success" and
+               $artifact == ("fashion-u8-refresh-" + (.id | tostring) + "-" + (.run_attempt | tostring))' \
+              artifacts/provenance/refresh-run.json >/dev/null
+          fi
       - name: Download the governed Fashion readiness snapshot
         uses: actions/download-artifact@v4
         with:
@@ -99,22 +158,80 @@ jobs:
           path: artifacts/readiness
           github-token: ${{ github.token }}
           run-id: ${{ inputs.readiness_run_id }}
+      - name: Download exact U8 refresh attestation
+        if: ${{ inputs.refresh_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.refresh_artifact_name }}
+          path: artifacts/refresh
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.refresh_run_id }}
       - name: Verify fresh pre-deployment readiness before any mutation
         env:
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           READINESS_DIGEST: ${{ inputs.readiness_digest }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
+          REFRESH_RUN_ID: ${{ inputs.refresh_run_id }}
         run: |
-          test "$(sha256sum artifacts/readiness/readiness.json | cut -d ' ' -f 1)" = "$READINESS_DIGEST"
-          bun tools/verify-fashion-staging-readiness.ts \
-            --snapshot=artifacts/readiness/readiness.json > artifacts/readiness/verified.json
+          ACTUAL_READINESS_DIGEST="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/readiness/readiness.json)"
+          test "$ACTUAL_READINESS_DIGEST" = "$READINESS_DIGEST"
+          if test -z "$REFRESH_RUN_ID"; then
+            bun tools/verify-fashion-staging-readiness.ts \
+              --snapshot=artifacts/readiness/readiness.json > artifacts/readiness/verified.json
+            jq --exit-status \
+              --arg build "$BUILD_ID" \
+              --arg commit "$READINESS_COMMIT_SHA" \
+              --arg run "$READINESS_RUN_ID" \
+              --arg snapshot "$SNAPSHOT_ID" \
+              '.commitSha == $commit and .github.operatorGate.runId == $run and .seed.buildId == $build and .seed.experienceSnapshotId == $snapshot' \
+              artifacts/readiness/readiness.json >/dev/null
+          else
+            jq --exit-status \
+              --arg commit "$READINESS_COMMIT_SHA" \
+              --arg run "$READINESS_RUN_ID" \
+              '.commitSha == $commit and .github.operatorGate.runId == $run and
+               (.seed.buildId | type == "string") and
+               (.seed.experienceSnapshotId | type == "string")' \
+              artifacts/readiness/readiness.json >/dev/null
+          fi
+      - name: Verify U8 refresh attestation before deployment mutation
+        if: ${{ inputs.refresh_run_id != '' }}
+        env:
+          HARNESS_SHA: ${{ inputs.harness_sha }}
+          READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
+          READINESS_DIGEST: ${{ inputs.readiness_digest }}
+          READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
+          REFRESH_DIGEST: ${{ inputs.refresh_digest }}
+          REFRESH_RUN_ID: ${{ inputs.refresh_run_id }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          ACTUAL_REFRESH_DIGEST="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/refresh/refresh-attestation.json)"
+          test "$ACTUAL_REFRESH_DIGEST" = "$REFRESH_DIGEST"
           jq --exit-status \
             --arg build "$BUILD_ID" \
-            --arg commit "$READINESS_COMMIT_SHA" \
+            --arg candidate "$READINESS_COMMIT_SHA" \
+            --arg harness "$HARNESS_SHA" \
+            --arg readiness "$READINESS_DIGEST" \
             --arg run "$READINESS_RUN_ID" \
             --arg snapshot "$SNAPSHOT_ID" \
-            '.commitSha == $commit and .github.operatorGate.runId == $run and .seed.buildId == $build and .seed.experienceSnapshotId == $snapshot' \
-            artifacts/readiness/readiness.json >/dev/null
+            '.schemaVersion == 1 and .newBuildId == $build and
+             .successorSnapshotId == $snapshot and .candidateSha == $candidate and
+             .u12ReadinessRunId == $run and .u12ReadinessDigest == $readiness and
+             .harnessSha == $harness and (.runManifestDigest | test("^[a-f0-9]{64}$")) and
+             (.harnessManifestDigest | test("^[a-f0-9]{64}$")) and
+             (.contractTestDigest | test("^[a-f0-9]{64}$")) and
+             (.u12ArtifactDigest | test("^[a-f0-9]{64}$")) and
+             (.successorContentDigest | test("^[a-f0-9]{64}$")) and
+             (.successorAuditId | type == "string")' \
+            artifacts/refresh/refresh-attestation.json >/dev/null
+          FASHION_U8_CANDIDATE_SHA="$READINESS_COMMIT_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
+            bun tools/create-fashion-u8-harness-manifest.ts \
+            > artifacts/refresh/current-harness-manifest.json
+          test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/refresh/current-harness-manifest.json)" = \
+            "$(jq -er '.harnessManifestDigest' artifacts/refresh/refresh-attestation.json)"
+          bun tools/verify-fashion-u8-standing-authority.ts \
+            artifacts/refresh/current-harness-manifest.json >/dev/null
+      - run: bun install --frozen-lockfile
       - name: Validate fixed environment inputs
         id: validate
         run: |
@@ -156,9 +273,11 @@ jobs:
           NODE
       - name: Fetch fixed build input from the preview authority
         id: build-input
+        env:
+          PREVIEW_API_TOKEN: ${{ secrets.PREVIEW_BUILD_TOKEN }}
         run: |
           mkdir -p artifacts/preview
-          curl --fail --silent --show-error \
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
             --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
             "$PREVIEW_API_URL/build/storefront-experiences/builds/$BUILD_ID" \
             --output "$STOREFRONT_EXPERIENCE_FILE"
@@ -167,6 +286,16 @@ jobs:
             --arg snapshot "$SNAPSHOT_ID" \
             '.environment == "preview" and .expectedOrigin == $origin and .snapshot.id == $snapshot and (.inputIdentity | type == "object") and .catalogRelease.releaseId == .inputIdentity.catalogReleaseId' \
             "$STOREFRONT_EXPERIENCE_FILE" >/dev/null
+          if test -n "${{ inputs.refresh_run_id }}"; then
+            jq --exit-status --slurpfile attestation artifacts/refresh/refresh-attestation.json \
+              '.inputIdentity.experienceSnapshotId == $attestation[0].successorSnapshotId and
+               .inputIdentity.catalogReleaseId == $attestation[0].catalogReleaseId and
+               .inputIdentity.experienceVersion == $attestation[0].experienceVersion and
+               .inputIdentity.platformContractVersion == $attestation[0].platformContractVersion and
+               .inputIdentity.themeId == $attestation[0].themeId and
+               .inputIdentity.themeVersion == $attestation[0].themeVersion' \
+              "$STOREFRONT_EXPERIENCE_FILE" >/dev/null
+          fi
           CATALOG_RELEASE_ID="$(jq -er '.catalogRelease.releaseId' "$STOREFRONT_EXPERIENCE_FILE")"
           printf 'catalog_release_id=%s\n' "$CATALOG_RELEASE_ID" >> "$GITHUB_OUTPUT"
           printf 'experience_version=%s\n' "$(jq -er '.inputIdentity.experienceVersion' "$STOREFRONT_EXPERIENCE_FILE")" >> "$GITHUB_OUTPUT"
@@ -194,6 +323,9 @@ jobs:
           printf 'prefix=%s\n' "$(jq -r '.prefix' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
           printf 'digest=%s\n' "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" >> "$GITHUB_OUTPUT"
       - name: Upload immutable files to the private preview bucket
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           upload_preview_object() {
             local OBJECT_NAME="$1"
@@ -228,6 +360,9 @@ jobs:
             "application/json; charset=utf-8"
       - name: Deploy the isolated preview access Worker
         working-directory: apps/storefront
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           bunx wrangler deploy \
             --config wrangler.preview.jsonc \
@@ -239,10 +374,11 @@ jobs:
         env:
           CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
           FASHION_U13_SERVICE_TOKEN: ${{ secrets.FASHION_U13_SERVICE_TOKEN }}
+          PREVIEW_API_TOKEN: ${{ secrets.PREVIEW_BUILD_TOKEN }}
         run: |
           EXPIRES_AT="$(bun -e 'console.log(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z"))')"
           REPORT_BODY="$RUNNER_TEMP/preview-build-report.json"
-          REPORT_STATUS="$(curl --silent --show-error --output "$REPORT_BODY" \
+          REPORT_STATUS="$(curl --connect-timeout 10 --max-time 60 --silent --show-error --output "$REPORT_BODY" \
             --write-out '%{http_code}' \
             --request POST \
             --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
@@ -260,7 +396,7 @@ jobs:
                .data.status == "deployed" and .data.artifactDigest == $digest and
                .data.artifactPrefix == $prefix' "$REPORT_BODY" >/dev/null
           elif test "$REPORT_STATUS" = 409; then
-            curl --fail --silent --show-error \
+            curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
               --header "Authorization: Bearer $FASHION_U13_SERVICE_TOKEN" \
               "$PREVIEW_API_URL/admin/storefront-experiences/builds/$BUILD_ID" \
               > "$REPORT_BODY"
@@ -283,7 +419,7 @@ jobs:
           printf 'digest=%s\n' "$(jq -er '.data.artifactDigest' "$REPORT_BODY")" >> "$GITHUB_OUTPUT"
           printf 'prefix=%s\n' "$(jq -er '.data.artifactPrefix' "$REPORT_BODY")" >> "$GITHUB_OUTPUT"
       - name: Reconcile an explicitly selected abandoned Fashion U12 run
-        if: ${{ inputs.recovery_run_id != '' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.recovery_run_id != '' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -295,6 +431,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=reconcile > artifacts/preview/u12-recovery.json
       - name: Acquire Fashion U12 acceptance lock and inventory baseline
         id: u12-acquire
+        if: ${{ inputs.refresh_run_id == '' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -305,6 +442,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-acquire.json
       - name: Run deployed Fashion U13 acceptance
         id: u13
+        if: ${{ inputs.refresh_run_id == '' }}
         continue-on-error: true
         env:
           FASHION_U13_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
@@ -316,7 +454,7 @@ jobs:
           FASHION_U13_THEME_VERSION: ${{ steps.build-input.outputs.theme_version }}
         run: bun tools/run-fashion-staging-u13.ts > artifacts/preview/u13-report.json
       - name: Register the U13 cart with the U12 cleanup owner
-        if: ${{ steps.u13.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -329,11 +467,11 @@ jobs:
           export FASHION_U12_RESOURCE_ID="$(jq -er '.cartId' artifacts/preview/u13-report.json)"
           bun tools/run-fashion-staging-u12.ts --action=register
       - name: Install Chromium for the no-interception Fashion journey
-        if: ${{ steps.u13.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' }}
         run: bunx playwright install --with-deps chromium
       - name: Run no-interception Fashion archetype and sandbox purchase journey
         id: u12-journey
-        if: ${{ steps.u13.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -344,7 +482,7 @@ jobs:
           STOREFRONT_E2E_BASE_URL: ${{ vars.PREVIEW_ORIGIN }}
         run: bunx playwright test --config e2e/playwright.config.ts --project=fashion-provider-purchase --grep="no-interception archetype"
       - name: Preserve the original Fashion journey failure
-        if: ${{ steps.u13.outcome == 'failure' || steps.u12-journey.outcome == 'failure' }}
+        if: ${{ inputs.refresh_run_id == '' && (steps.u13.outcome == 'failure' || steps.u12-journey.outcome == 'failure') }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -356,7 +494,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=failure
       - name: Restore the Fashion U12 baseline and retain paid-order evidence
         id: u12-cleanup
-        if: ${{ always() && steps.u12-acquire.outcome == 'success' }}
+        if: ${{ always() && inputs.refresh_run_id == '' && steps.u12-acquire.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -368,7 +506,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-cleanup.json
       - name: Acquire an isolated fresh-session postcondition run
         id: u12-post-acquire
-        if: ${{ steps.u13.outcome == 'success' && steps.u12-journey.outcome == 'success' && steps.u12-cleanup.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' && steps.u12-journey.outcome == 'success' && steps.u12-cleanup.outcome == 'success' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -380,7 +518,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-post-acquire.json
       - name: Prove the fresh-session sellable postcondition
         id: u12-postcondition
-        if: ${{ steps.u12-post-acquire.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && steps.u12-post-acquire.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -392,7 +530,7 @@ jobs:
           STOREFRONT_E2E_BASE_URL: ${{ vars.PREVIEW_ORIGIN }}
         run: bunx playwright test --config e2e/playwright.config.ts --project=fashion-provider-purchase --grep="fresh-session sellable"
       - name: Preserve a failed fresh-session postcondition
-        if: ${{ steps.u12-postcondition.outcome == 'failure' }}
+        if: ${{ inputs.refresh_run_id == '' && steps.u12-postcondition.outcome == 'failure' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -405,7 +543,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=failure
       - name: Clean the fresh-session postcondition run
         id: u12-post-cleanup
-        if: ${{ always() && steps.u12-post-acquire.outcome == 'success' }}
+        if: ${{ always() && inputs.refresh_run_id == '' && steps.u12-post-acquire.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -417,6 +555,7 @@ jobs:
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
         run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-post-cleanup.json
       - name: Enforce the complete Fashion U12 verdict
+        if: ${{ inputs.refresh_run_id == '' }}
         run: |
           test "${{ steps.u13.outcome }}" = success
           test "${{ steps.u12-journey.outcome }}" = success
@@ -424,16 +563,30 @@ jobs:
           test "${{ steps.u12-postcondition.outcome }}" = success
           test "${{ steps.u12-post-cleanup.outcome }}" = success
       - name: Report Fashion preview accepted
+        if: ${{ inputs.refresh_run_id == '' }}
         run: |
           jq -e '.passed == true and .runId == "${{ github.run_id }}-${{ github.run_attempt }}"' \
             artifacts/preview/u13-report.json >/dev/null
           jq -e '.status == "completed"' artifacts/preview/u12-cleanup.json >/dev/null
           jq -e '.status == "completed"' artifacts/preview/u12-post-cleanup.json >/dev/null
           printf 'Fashion preview accepted by deployed U13 and complete U12 lifecycle proof.\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve exact U8 refresh deployment evidence
+        if: ${{ inputs.refresh_run_id != '' }}
+        run: |
+          jq --exit-status --slurpfile attestation artifacts/refresh/refresh-attestation.json \
+            --arg build "$BUILD_ID" \
+            --arg digest "${{ steps.report.outputs.digest }}" \
+            '.data.id == $build and .data.snapshotId == $attestation[0].successorSnapshotId and
+             .data.artifactDigest == $digest and .data.status == "deployed"' \
+            "$RUNNER_TEMP/preview-build-report.json" >/dev/null
+          cp artifacts/refresh/refresh-attestation.json artifacts/preview/refresh-attestation.json
+          printf 'U8 successor %s deployed from verified refresh attestation.\n' "$BUILD_ID" >> "$GITHUB_STEP_SUMMARY"
       - name: Report a failed preview build
         if: failure() && steps.validate.outcome == 'success' && steps.report.outcome != 'success'
+        env:
+          PREVIEW_API_TOKEN: ${{ secrets.PREVIEW_BUILD_TOKEN }}
         run: |
-          curl --fail --silent --show-error \
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
             --request POST \
             --header "Authorization: Bearer $PREVIEW_API_TOKEN" \
             --header "Content-Type: application/json" \

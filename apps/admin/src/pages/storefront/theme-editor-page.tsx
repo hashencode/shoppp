@@ -92,6 +92,22 @@ const cloneTemplates = (templates: readonly PageTemplate[]): PageTemplate[] =>
 
 const equalValue = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right)
 
+const experienceFieldId = (templateId: string, instanceId: string, settingId: string): string =>
+  `experience-field-${templateId}-${instanceId}-${settingId}`
+
+export const resolveValidationFieldPath = (issue: {
+  instanceId?: string | null
+  path?: string | null
+}): { instanceId?: string; settingId?: string } => {
+  const pathParts = issue.path?.split('.') ?? []
+  const instanceId = issue.instanceId ?? pathParts[0]
+  const settingId =
+    issue.path && instanceId && issue.path.startsWith(`${instanceId}.`)
+      ? issue.path.slice(instanceId.length + 1)
+      : pathParts[1]
+  return { instanceId, settingId }
+}
+
 const missingReferenceCount = (
   release: StorefrontCatalogRelease,
   templates: readonly PageTemplate[],
@@ -348,6 +364,8 @@ export const ThemeEditorPage = ({
   const loadRequest = useRef(0)
   const previewContextRequest = useRef(0)
   const conflictActionRef = useRef<HTMLButtonElement>(null)
+  const previewLaunchRef = useRef<HTMLButtonElement>(null)
+  const validationSummaryRef = useRef<HTMLDivElement>(null)
   const dirty = useMemo(
     () => !equalValue(templates, savedTemplates) || !equalValue(bindings, savedBindings),
     [bindings, savedBindings, savedTemplates, templates]
@@ -693,6 +711,11 @@ export const ThemeEditorPage = ({
   const currentValidation = draft?.validations.find(
     ({ catalogReleaseId }) => catalogReleaseId === (selectedReleaseId || null)
   )
+  useEffect(() => {
+    if (currentValidation?.status !== 'invalid' || currentValidation.issues.length === 0) return
+    const frame = window.requestAnimationFrame(() => validationSummaryRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [currentValidation?.id, currentValidation?.issues.length, currentValidation?.status])
   const validationCurrent =
     currentValidation?.status === 'valid' && currentValidation.draftVersion === draft?.version
   const previewContextCurrent =
@@ -703,6 +726,19 @@ export const ThemeEditorPage = ({
         previewSnapshot.sourceDraftVersion === draft?.version &&
         build.inputIdentity?.catalogReleaseId === selectedReleaseId &&
         build.inputIdentity.experienceVersion === draft?.version))
+
+  useEffect(() => {
+    if (!previewContextCurrent || !previewLaunchRef.current) return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('preview-return') !== '1') return
+    const timer = window.setTimeout(() => {
+      url.searchParams.delete('preview-return')
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+      setAnnouncement(t('Returned from private preview.'))
+      previewLaunchRef.current?.focus()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [previewContextCurrent, t])
 
   const startPreview = async (
     target: StorefrontExperienceDraft,
@@ -1168,7 +1204,11 @@ export const ThemeEditorPage = ({
                                   )
                                   if (definition.kind === 'text') {
                                     return (
-                                      <label key={definition.id}>
+                                      <label
+                                        key={definition.id}
+                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        tabIndex={-1}
+                                      >
                                         {fieldCopy}
                                         <Input.TextArea
                                           aria-label={label}
@@ -1187,7 +1227,11 @@ export const ThemeEditorPage = ({
                                   }
                                   if (definition.kind === 'number') {
                                     return (
-                                      <label key={definition.id}>
+                                      <label
+                                        key={definition.id}
+                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        tabIndex={-1}
+                                      >
                                         {fieldCopy}
                                         <InputNumber
                                           aria-label={label}
@@ -1211,7 +1255,11 @@ export const ThemeEditorPage = ({
                                   }
                                   if (definition.kind === 'boolean') {
                                     return (
-                                      <label key={definition.id}>
+                                      <label
+                                        key={definition.id}
+                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        tabIndex={-1}
+                                      >
                                         <Space>
                                           {fieldCopy}
                                           <Switch
@@ -1234,7 +1282,11 @@ export const ThemeEditorPage = ({
                                   }
                                   if (definition.kind === 'select') {
                                     return (
-                                      <label key={definition.id}>
+                                      <label
+                                        key={definition.id}
+                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        tabIndex={-1}
+                                      >
                                         {fieldCopy}
                                         <Select
                                           aria-label={label}
@@ -1292,7 +1344,12 @@ export const ThemeEditorPage = ({
                                       Boolean(selectedId) &&
                                       !resources.some(({ id }) => id === selectedId)
                                     return (
-                                      <div key={definition.id} className="min-w-0">
+                                      <div
+                                        key={definition.id}
+                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        className="min-w-0"
+                                        tabIndex={-1}
+                                      >
                                         <Typography.Text>
                                           {definition.label ?? definition.id}
                                         </Typography.Text>
@@ -1346,6 +1403,9 @@ export const ThemeEditorPage = ({
                                                 }
                                               )
                                             }
+                                            setAnnouncement(
+                                              t('Reference changed. Validation is required again.')
+                                            )
                                           }}
                                         />
                                       </div>
@@ -1475,23 +1535,66 @@ export const ThemeEditorPage = ({
 
       <Card title={t('Validation')}>
         {currentValidation ? (
-          <Space orientation="vertical" className="w-full">
+          <div
+            ref={validationSummaryRef}
+            aria-labelledby="experience-validation-summary-heading"
+            className="w-full rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            tabIndex={currentValidation.status === 'invalid' ? -1 : undefined}
+          >
             <Space>
               <Tag color={validationCurrent ? 'success' : 'warning'}>{currentValidation.status}</Tag>
-              <span>
+              <span id="experience-validation-summary-heading">
                 {t('Validation')} {currentValidation.id} · {t('draft')} v{currentValidation.draftVersion}
               </span>
             </Space>
-            {currentValidation.issues.map((issue) => (
-              <Alert
-                key={`${issue.code}-${issue.templateId ?? ''}-${issue.instanceId ?? ''}`}
-                type="error"
-                showIcon
-                title={issue.code}
-                description={issue.message}
-              />
-            ))}
-          </Space>
+            <div className="mt-3 space-y-2">
+              {currentValidation.issues.map((issue) => {
+                const { instanceId, settingId } = resolveValidationFieldPath(issue)
+                const template =
+                  templates.find(({ id }) => id === issue.templateId) ??
+                  templates.find((candidate) =>
+                    candidate.sections.some(({ id }) => id === instanceId)
+                  )
+                const targetId =
+                  template && instanceId && settingId
+                    ? experienceFieldId(template.id, instanceId, settingId)
+                    : undefined
+                const location = [template?.pageType, instanceId, settingId]
+                  .filter(Boolean)
+                  .join(' · ')
+                return (
+                  <Alert
+                    key={`${issue.code}-${issue.path ?? issue.templateId ?? ''}-${issue.instanceId ?? ''}`}
+                    type="error"
+                    showIcon
+                    title={issue.code}
+                    description={
+                      <Space orientation="vertical" size={2}>
+                        <span>{issue.message}</span>
+                        {targetId ? (
+                          <a
+                            href={`#${targetId}`}
+                            onClick={(event) => {
+                              event.preventDefault()
+                              const target = document.getElementById(targetId)
+                              if (target) {
+                                target.focus()
+                              } else {
+                                setActiveTemplateId(template!.id)
+                                window.setTimeout(() => document.getElementById(targetId)?.focus(), 0)
+                              }
+                            }}
+                          >
+                            {t('Review affected field')}: {location}
+                          </a>
+                        ) : null}
+                      </Space>
+                    }
+                  />
+                )
+              })}
+            </div>
+          </div>
         ) : (
           <Typography.Text type="secondary">
             {t('Save and validate the exact draft version before preview or approval.')}
@@ -1626,6 +1729,7 @@ export const ThemeEditorPage = ({
           )}
           {previewContextCurrent && previewSnapshot ? (
             <Button
+              ref={previewLaunchRef}
               icon={<EyeOutlined aria-hidden />}
               disabled={
                 !previewOrigin || busy || revokedPreviewSnapshotId === previewSnapshot.id

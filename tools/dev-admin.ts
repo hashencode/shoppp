@@ -7,13 +7,14 @@ type Environment = Record<string, string | undefined>;
 export interface AdminDevelopmentConfig {
   readonly apiProxyTarget: string;
   readonly databaseId: string;
+  readonly profile: "fashion-staging";
 }
 
 const ROOT = resolve(import.meta.dir, "..");
 
 interface ApiWranglerConfig {
   readonly env?: {
-    readonly staging?: {
+    readonly "fashion-staging"?: {
       readonly d1_databases?: readonly {
         readonly database_id?: string;
         readonly database_name?: string;
@@ -30,6 +31,10 @@ function required(environment: Environment, name: string): string {
 }
 
 export function resolveAdminDevelopmentConfig(environment: Environment): AdminDevelopmentConfig {
+  const profile = required(environment, "ADMIN_DEVELOPMENT_PROFILE");
+  if (profile !== "fashion-staging") {
+    throw new Error("ADMIN_DEVELOPMENT_PROFILE must be exactly fashion-staging for U8 acceptance.");
+  }
   const apiProxyTarget = required(environment, "TEST_API_ORIGIN");
   const databaseId = required(environment, "TEST_D1_DATABASE_ID");
   const productionDatabaseId = required(environment, "PRODUCTION_D1_DATABASE_ID");
@@ -52,7 +57,7 @@ export function resolveAdminDevelopmentConfig(environment: Environment): AdminDe
   if (databaseId === productionDatabaseId) {
     throw new Error("Test and production database identifiers must be distinct.");
   }
-  return { apiProxyTarget: apiUrl.origin, databaseId };
+  return { apiProxyTarget: apiUrl.origin, databaseId, profile };
 }
 
 export async function verifyAdminDevelopmentContract(
@@ -60,24 +65,27 @@ export async function verifyAdminDevelopmentContract(
   root = ROOT,
 ): Promise<void> {
   const source = await readFile(resolve(root, "apps/api/wrangler.jsonc"), "utf8");
-  const staging = parseJsonc<ApiWranglerConfig>(source).env?.staging;
-  if (!staging) throw new Error("The API Wrangler config is missing env.staging.");
-  const databases = staging.d1_databases ?? [];
-  if (databases.length !== 1) throw new Error("The staging API must bind exactly one test D1.");
+  const parsed = parseJsonc<ApiWranglerConfig>(source);
+  const fashionStaging = parsed.env?.[config.profile];
+  if (!fashionStaging) throw new Error("The API Wrangler config is missing env.fashion-staging.");
+  const databases = fashionStaging.d1_databases ?? [];
+  if (databases.length !== 1) {
+    throw new Error("The fashion-staging API must bind exactly one test D1.");
+  }
   const database = databases[0];
-  const variables = staging.vars ?? {};
+  const variables = fashionStaging.vars ?? {};
   if (
     !database?.database_id ||
     database.database_id !== variables.D1_DATABASE_ID ||
     config.databaseId !== database.database_id
   ) {
-    throw new Error("TEST_D1_DATABASE_ID must equal the staging API test D1 binding.");
+    throw new Error("TEST_D1_DATABASE_ID must equal the fashion-staging API test D1 binding.");
   }
-  if (database.database_name !== "shoppp-staging") {
-    throw new Error("Admin development requires the named shoppp-staging test D1.");
+  if (database.database_name !== "shoppp-fashion-staging") {
+    throw new Error("Admin development requires the named shoppp-fashion-staging test D1.");
   }
   if (config.apiProxyTarget !== variables.PUBLIC_ORIGIN) {
-    throw new Error("TEST_API_ORIGIN must equal the staging API PUBLIC_ORIGIN.");
+    throw new Error("TEST_API_ORIGIN must equal the fashion-staging API PUBLIC_ORIGIN.");
   }
 }
 

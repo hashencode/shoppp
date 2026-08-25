@@ -13,6 +13,7 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { ADMIN_SESSION_COOKIE, resolvePrincipalById } from "../middleware/auth";
 import { prepareConditionalAuditEvent, recordAuditEvent } from "./audit";
+import { isAdminIdentityExpired } from "./identity-expiry";
 import {
   createSignedResetToken,
   hashOpaqueToken,
@@ -36,6 +37,7 @@ const THROTTLE_RETENTION_SECONDS = 24 * 60 * 60;
 
 interface CredentialRow {
   readonly enabled: number;
+  readonly expires_at: string | null;
   readonly identity_id: string;
   readonly password_hash: string;
   readonly password_iterations: number;
@@ -227,6 +229,7 @@ async function credentialForEmail(db: D1Database, email: string): Promise<Creden
   return db
     .prepare(
       `SELECT identity.id AS identity_id, identity.principal_kind, identity.enabled,
+              identity.expires_at,
               role.enabled AS role_enabled, role.protected AS role_protected,
               credential.password_hash, credential.password_salt,
               credential.password_iterations, credential.password_version
@@ -282,6 +285,7 @@ export async function loginWithPassword(
     !credential ||
     !passwordValid ||
     credential.enabled !== 1 ||
+    isAdminIdentityExpired(credential.expires_at, now) ||
     credential.role_enabled !== 1 ||
     credential.principal_kind !== "human"
   ) {
@@ -302,9 +306,14 @@ export async function loginWithPassword(
     throw new ApiError(401, "invalid_admin_credentials", "The email or password is incorrect.");
   }
   const currentCredential = {
-    bindings: [credential.identity_id, credential.password_version],
-    sql: `SELECT 1 FROM admin_password_credentials
-           WHERE identity_id = ? AND password_version = ?`,
+    bindings: [credential.identity_id, credential.password_version, now.toISOString()],
+    sql: `SELECT 1 FROM admin_password_credentials credential
+           JOIN admin_identities identity ON identity.id = credential.identity_id
+          WHERE credential.identity_id = ? AND credential.password_version = ?
+            AND identity.enabled = 1
+            AND (identity.expires_at IS NULL OR
+                 (julianday(identity.expires_at) IS NOT NULL AND
+                  julianday(identity.expires_at) > julianday(?)))`,
   } as const;
   const session = await prepareSession(
     context.env.DB,

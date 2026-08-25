@@ -1,4 +1,5 @@
 import { Alert, Button, Input, Select, Space, Spin, Typography } from 'antd'
+import type { GetRef } from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import {
@@ -29,6 +30,7 @@ export const StorefrontResourcePicker = ({
   selected?: StorefrontCatalogResource
   value?: string
 }) => {
+  const selectRef = React.useRef<GetRef<typeof Select>>(null)
   const [items, setItems] = useState<StorefrontCatalogResource[]>([])
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
@@ -85,6 +87,7 @@ export const StorefrontResourcePicker = ({
           placeholder={`Search ${kind}`}
         />
         <Select
+          ref={selectRef}
           aria-label={label}
           allowClear
           className="w-full"
@@ -96,7 +99,10 @@ export const StorefrontResourcePicker = ({
             label: `${resource.name} · ${resource.path}`,
             value: resource.id,
           }))}
-          onChange={onChange}
+          onChange={(next) => {
+            onChange(next)
+            window.requestAnimationFrame(() => selectRef.current?.focus())
+          }}
         />
         {loading ? (
           <Space><Spin size="small" /><span>Loading references…</span></Space>

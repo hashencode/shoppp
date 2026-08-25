@@ -49,6 +49,7 @@ describe("Fashion staging U12 lifecycle client", () => {
     expect(requests[0]!.headers.get("Authorization")).toBe(
       `Bearer ${environment.FASHION_U12_ACCEPTANCE_TOKEN}`,
     );
+    expect(requests[0]!.signal).toBeInstanceOf(AbortSignal);
     const body = await requests[0]!.json();
     expect(body).toMatchObject({
       artifactDigest: environment.FASHION_U12_ARTIFACT_DIGEST,

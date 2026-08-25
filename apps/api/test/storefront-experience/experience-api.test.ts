@@ -2651,7 +2651,7 @@ describe("storefront experience API", () => {
       previewContext: {
         environment: "private-preview",
         expiresAt: sessionValue.data.expiresAt,
-        returnUrl: `${env.ADMIN_ORIGIN}/storefront/themes/${draftId}`,
+        returnUrl: `${env.ADMIN_ORIGIN}/storefront/themes/${draftId}?preview-return=1`,
         snapshotId: previewValue.data.snapshot.id,
       },
     });

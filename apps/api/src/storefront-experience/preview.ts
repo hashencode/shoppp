@@ -325,7 +325,7 @@ export async function authorizeStorefrontPreviewSession(
       environment: "private-preview" as const,
       expiresAt,
       generatedAt: row.completed_at,
-      returnUrl: `${context.env.ADMIN_ORIGIN.replace(/\/$/, "")}/storefront/themes/${row.source_draft_id}`,
+      returnUrl: `${context.env.ADMIN_ORIGIN.replace(/\/$/, "")}/storefront/themes/${row.source_draft_id}?preview-return=1`,
       snapshotId: row.snapshot_id,
     },
     snapshotId: row.snapshot_id,

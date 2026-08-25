@@ -1,0 +1,259 @@
+name: Accept governed Fashion staging U8 successor
+
+on:
+  workflow_dispatch:
+    inputs:
+      preparation_run_id:
+        description: Completed U8 refresh-preparation workflow run
+        required: true
+      refresh_artifact_name:
+        description: Exact protected refresh-attestation artifact
+        required: true
+      harness_sha:
+        description: Reviewed U8 harness commit
+        required: true
+      recovery_run_id:
+        description: Optional interrupted Fashion U8 run to reconcile before acquiring the lock
+        required: false
+      prior_ledger_run_id:
+        description: Optional prior U8 machine run whose append-only ledger must be continued
+        required: false
+      corrective_reason:
+        description: Required corrective reason when continuing a failed machine ledger
+        required: false
+
+concurrency:
+  group: fashion-staging-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  accept:
+    runs-on: [self-hosted, fashion-staging-preview, fashion-staging-u8]
+    timeout-minutes: 30
+    environment: fashion-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.harness_sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - name: Verify exact successful preparation workflow provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/fashion-u8
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/${{ inputs.preparation_run_id }}" \
+            > artifacts/fashion-u8/preparation-run.json
+          jq --exit-status --arg harness "${{ inputs.harness_sha }}" \
+            --arg artifact "${{ inputs.refresh_artifact_name }}" \
+            '.path == ".github/workflows/prepare-fashion-staging-u8.yml" and
+             .event == "workflow_dispatch" and .head_sha == $harness and
+             .status == "completed" and .conclusion == "success" and
+             $artifact == ("fashion-u8-refresh-" + (.id | tostring) + "-" + (.run_attempt | tostring))' \
+            artifacts/fashion-u8/preparation-run.json >/dev/null
+      - name: Download exact completed refresh attestation
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          name: ${{ inputs.refresh_artifact_name }}
+          path: artifacts/fashion-u8
+          run-id: ${{ inputs.preparation_run_id }}
+      - name: Verify U8 acceptance harness before remote execution
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$(git rev-parse HEAD)" = "${{ inputs.harness_sha }}"
+          test "$GITHUB_SHA" = "${{ inputs.harness_sha }}"
+          test "${{ inputs.harness_sha }}" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
+          jq --exit-status '.schemaVersion == 1 and .harnessSha == "${{ inputs.harness_sha }}" and
+            (.harnessManifestDigest | test("^[a-f0-9]{64}$")) and
+            (.contractTestDigest | test("^[a-f0-9]{64}$"))' \
+            artifacts/fashion-u8/refresh-attestation.json >/dev/null
+          FASHION_U8_CANDIDATE_SHA="$(jq -er '.candidateSha' artifacts/fashion-u8/refresh-attestation.json)" \
+            FASHION_U8_HARNESS_SHA="${{ inputs.harness_sha }}" \
+            bun tools/create-fashion-u8-harness-manifest.ts \
+            > artifacts/fashion-u8/current-harness-manifest.json
+          test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/current-harness-manifest.json)" = \
+            "$(jq -er '.harnessManifestDigest' artifacts/fashion-u8/refresh-attestation.json)"
+          bun tools/verify-fashion-u8-standing-authority.ts \
+            artifacts/fashion-u8/current-harness-manifest.json >/dev/null
+          test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/run-manifest.json)" = \
+            "$(jq -er '.runManifestDigest' artifacts/fashion-u8/refresh-attestation.json)"
+          test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/human-evidence.json)" = \
+            "$(jq -er '.humanEvidenceDigest' artifacts/fashion-u8/refresh-attestation.json)"
+          jq --exit-status --slurpfile attestation artifacts/fashion-u8/refresh-attestation.json \
+            '.candidateSha == $attestation[0].candidateSha and
+             .harnessSha == $attestation[0].harnessSha and
+             .catalogReleaseId == $attestation[0].catalogReleaseId and
+             .u12SnapshotId == $attestation[0].u12SnapshotId' \
+            artifacts/fashion-u8/run-manifest.json >/dev/null
+          jq --exit-status --slurpfile attestation artifacts/fashion-u8/refresh-attestation.json \
+            '.manifestDigest == $attestation[0].runManifestDigest and
+             .candidateSha == $attestation[0].candidateSha and
+             .harnessSha == $attestation[0].harnessSha and
+             .catalogReleaseId == $attestation[0].catalogReleaseId and
+             .successorSnapshotId == $attestation[0].successorSnapshotId and
+             .successorContentDigest == $attestation[0].successorContentDigest and
+             .approvalAuditId == $attestation[0].successorAuditId' \
+            artifacts/fashion-u8/human-evidence.json >/dev/null
+      - name: Restore the append-only predecessor machine ledger
+        if: ${{ inputs.prior_ledger_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_LEDGER_RUN_ID: ${{ inputs.prior_ledger_run_id }}
+          CORRECTIVE_REASON: ${{ inputs.corrective_reason }}
+        run: |
+          [[ "$PRIOR_LEDGER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          test -n "$CORRECTIVE_REASON"
+          ARTIFACT_NAME="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_LEDGER_RUN_ID/artifacts" --jq '.artifacts | map(select(.name | startswith("fashion-u8-machine-ledger-"))) | sort_by(.created_at) | last | .name')"
+          test -n "$ARTIFACT_NAME"
+          gh run download "$PRIOR_LEDGER_RUN_ID" --name "$ARTIFACT_NAME" --dir artifacts/fashion-u8/prior-ledger
+          cp artifacts/fashion-u8/prior-ledger/attempt-ledger.json artifacts/fashion-u8/attempt-ledger.json
+          jq --exit-status 'last.status == "failed"' artifacts/fashion-u8/attempt-ledger.json >/dev/null
+      - name: Start append-only U8 machine attempt
+        env:
+          PRIOR_LEDGER_RUN_ID: ${{ inputs.prior_ledger_run_id }}
+          CORRECTIVE_REASON: ${{ inputs.corrective_reason }}
+        run: |
+          if test -z "$PRIOR_LEDGER_RUN_ID"; then test -z "$CORRECTIVE_REASON"; fi
+          node - <<'NODE'
+          const fs = require("fs");
+          const attestation = JSON.parse(fs.readFileSync("artifacts/fashion-u8/refresh-attestation.json", "utf8"));
+          fs.writeFileSync("artifacts/fashion-u8/attempt-event.json", JSON.stringify({
+            attemptId: `machine-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`,
+            kind: "machine",
+            manifestDigest: attestation.runManifestDigest,
+            startedAt: new Date().toISOString(),
+            status: "started",
+            ...(process.env.CORRECTIVE_REASON ? {correctiveReason: process.env.CORRECTIVE_REASON} : {})
+          }));
+          NODE
+          bun tools/run-fashion-staging-u8.ts \
+            --ledger=artifacts/fashion-u8/attempt-ledger.json \
+            --attempt=artifacts/fashion-u8/attempt-event.json >/dev/null
+      - run: bun install --frozen-lockfile
+      - name: Verify frozen U8 acceptance contracts
+        run: |
+          bun test tools/verify-staging-latency.test.ts \
+            tools/run-fashion-staging-u8.test.ts \
+            tools/verify-fashion-u8-standing-authority.test.ts tools/deploy-workflow.test.ts
+      - name: Assemble exact deployed U8 terminal manifest
+        env:
+          API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+        run: |
+          REFRESH_DIGEST="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/refresh-attestation.json)"
+          BUILD_ID="$(jq -er '.newBuildId' artifacts/fashion-u8/refresh-attestation.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$API_ORIGIN/admin/storefront-experiences/builds/$BUILD_ID" \
+            --output artifacts/fashion-u8/deployed-build.json
+          jq --exit-status --slurpfile attestation artifacts/fashion-u8/refresh-attestation.json \
+            '.data.id == $attestation[0].newBuildId and .data.status == "deployed" and
+             .data.snapshotId == $attestation[0].successorSnapshotId and
+             .data.inputIdentity.catalogReleaseId == $attestation[0].catalogReleaseId and
+             .data.inputIdentity.experienceVersion == $attestation[0].experienceVersion and
+             .data.inputIdentity.platformContractVersion == $attestation[0].platformContractVersion and
+             .data.inputIdentity.themeId == $attestation[0].themeId and
+             .data.inputIdentity.themeVersion == $attestation[0].themeVersion and
+             (.data.artifactDigest | test("^[a-f0-9]{64}$"))' \
+            artifacts/fashion-u8/deployed-build.json >/dev/null
+          jq --exit-status \
+            --arg currency "${{ vars.FASHION_U13_CURRENCY }}" \
+            --arg productId "${{ vars.FASHION_U13_PRODUCT_ID }}" \
+            --arg refreshAttestationDigest "$REFRESH_DIGEST" \
+            --arg acceptanceRunId "fashion-u8-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --slurpfile build artifacts/fashion-u8/deployed-build.json \
+            '. + {
+              acceptanceRunId:$acceptanceRunId,
+              buildId:.newBuildId,
+              catalogReleaseId:.catalogReleaseId,
+              currency:$currency,
+              experienceVersion:.experienceVersion,
+              harnessManifestDigest:.harnessManifestDigest,
+              platformContractVersion:.platformContractVersion,
+              productId:$productId,
+              refreshAttestationDigest:$refreshAttestationDigest,
+              schemaVersion:1,
+              successorArtifactDigest:$build[0].data.artifactDigest,
+              themeId:.themeId,
+              themeVersion:.themeVersion,
+              u12SnapshotId:.u12SnapshotId
+            }' artifacts/fashion-u8/refresh-attestation.json \
+            > artifacts/fashion-u8/terminal-manifest.json
+          jq --exit-status \
+            '.buildId == .newBuildId and (.experienceVersion | type == "number") and
+             (.catalogReleaseId | type == "string") and (.u12SnapshotId | type == "string")' \
+            artifacts/fashion-u8/terminal-manifest.json >/dev/null
+      - name: Run authenticated Preview API terminal p95
+        id: terminal-u8
+        continue-on-error: true
+        env:
+          FASHION_U8_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+          FASHION_U8_AUTHORITY_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+          FASHION_U8_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
+          FASHION_U8_PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
+          FASHION_U8_RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          FASHION_U12_API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+          FASHION_U12_SEED_MANIFEST_DIGEST: ${{ vars.FASHION_U12_SEED_MANIFEST_DIGEST }}
+          FASHION_U12_VARIANT_ID: ${{ vars.FASHION_U13_VARIANT_ID }}
+          FASHION_U12_WAREHOUSE_ID: ${{ vars.FASHION_U12_WAREHOUSE_ID }}
+        run: |
+          bun tools/run-fashion-staging-u8.ts \
+            --manifest=artifacts/fashion-u8/terminal-manifest.json \
+            > artifacts/fashion-u8/terminal-report.json
+      - name: Preserve real U8 p95 and cleanup evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fashion-u8-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/fashion-u8/refresh-attestation.json
+            artifacts/fashion-u8/deployed-build.json
+            artifacts/fashion-u8/terminal-manifest.json
+            artifacts/fashion-u8/terminal-report.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce terminal U8 p95 and cleanup verdict
+        if: ${{ always() }}
+        run: |
+          test "${{ steps.terminal-u8.outcome }}" = success
+          jq --exit-status '.passed == true and .cleanup.passed == true' \
+            artifacts/fashion-u8/terminal-report.json >/dev/null
+      - name: Classify the U8 machine attempt
+        if: ${{ always() }}
+        env:
+          ATTEMPT_OUTCOME: ${{ job.status }}
+        run: |
+          node - <<'NODE'
+          const fs = require("fs");
+          const ledger = JSON.parse(fs.readFileSync("artifacts/fashion-u8/attempt-ledger.json", "utf8"));
+          const started = ledger[0];
+          let report;
+          try { report = JSON.parse(fs.readFileSync("artifacts/fashion-u8/terminal-report.json", "utf8")); } catch {}
+          const cleanup = report?.cleanup?.passed ? "complete" : report?.cleanup?.attempted ? "failed" : "not-required";
+          fs.writeFileSync("artifacts/fashion-u8/attempt-event.json", JSON.stringify({
+            ...started,
+            cleanup,
+            ...(process.env.ATTEMPT_OUTCOME === "success" ? {} : {failureClass: report?.proofFailure ?? "machine_workflow_failed"}),
+            finishedAt: new Date().toISOString(),
+            status: process.env.ATTEMPT_OUTCOME === "success" ? "passed" : "failed"
+          }));
+          NODE
+          bun tools/run-fashion-staging-u8.ts \
+            --ledger=artifacts/fashion-u8/attempt-ledger.json \
+            --attempt=artifacts/fashion-u8/attempt-event.json >/dev/null
+      - name: Preserve append-only U8 machine ledger
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fashion-u8-machine-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/fashion-u8/attempt-ledger.json
+          if-no-files-found: error
+          retention-days: 7

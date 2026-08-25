@@ -230,6 +230,9 @@ export const zhCNMessages: Record<string, string> = {
   '{id} is managed as a validated {kind} reference.': '{id} 作为已验证的 {kind} 引用管理。',
   '{count} bounded blocks': '{count} 个受限区块',
   Validation: '验证',
+  'Review affected field': '检查受影响字段',
+  'Reference changed. Validation is required again.': '引用已更改，需要重新验证。',
+  'Returned from private preview.': '已从私有预览返回。',
   draft: '草稿',
   'Save and validate the exact draft version before preview or approval.':
     '预览或批准前，请先保存并验证对应的草稿版本。',

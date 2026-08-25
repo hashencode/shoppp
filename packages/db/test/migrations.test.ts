@@ -25,6 +25,31 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("adds nullable administrator identity expiry without changing existing identities", async () => {
+    const columns = await env.DB.prepare("PRAGMA table_info(admin_identities)").all<{
+      name: string;
+      notnull: number;
+    }>();
+    expect(columns.results).toContainEqual(
+      expect.objectContaining({ name: "expires_at", notnull: 0 }),
+    );
+
+    await env.DB.prepare(
+      `INSERT INTO admin_identities
+         (id, principal_kind, access_subject, normalized_email, display_name, role_id,
+          enabled, version, created_at, updated_at)
+       VALUES ('identity-expiry-null', 'human', 'password:identity-expiry-null',
+               'expiry-null@example.test', 'Expiry null', 'role_admin', 1, 1, ?, ?)`,
+    )
+      .bind(NOW, NOW)
+      .run();
+    expect(
+      await env.DB.prepare(
+        "SELECT expires_at FROM admin_identities WHERE id = 'identity-expiry-null'",
+      ).first(),
+    ).toEqual({ expires_at: null });
+  });
+
   test("upgrades the governed Fashion shipping method to a checkout-compatible public ID", async () => {
     const db = env.FASHION_SHIPPING_ID_UPGRADE_DB;
     const legacyId = "shipping_method_fashion_ground";

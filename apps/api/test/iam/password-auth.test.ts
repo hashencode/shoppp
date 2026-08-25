@@ -240,6 +240,98 @@ describe("administrator password authentication", () => {
     });
   });
 
+  test("rejects an expired human identity at login and invalidates its existing session", async () => {
+    await seedPasswordUser({
+      email: "expiring-operator@example.test",
+      id: "identity-password-expiring",
+      roleId: ADMIN_ROLE_IDS.operations,
+    });
+    const app = createApp();
+    const initialLogin = await app.fetch(
+      request("/admin/auth/login", {
+        email: "expiring-operator@example.test",
+        password: PASSWORD,
+      }),
+      env,
+    );
+    expect(initialLogin.status).toBe(200);
+    const cookie = initialLogin.headers.get("set-cookie")!.split(";")[0]!;
+
+    await env.DB.prepare(
+      "UPDATE admin_identities SET expires_at = ? WHERE id = 'identity-password-expiring'",
+    )
+      .bind("2020-01-01T00:00:00.000Z")
+      .run();
+
+    const relogin = await app.fetch(
+      request("/admin/auth/login", {
+        email: "expiring-operator@example.test",
+        password: PASSWORD,
+      }),
+      env,
+    );
+    expect(relogin.status).toBe(401);
+    expect(await relogin.json()).toMatchObject({ error: { code: "invalid_admin_credentials" } });
+
+    const existingSession = await app.fetch(
+      new Request("https://api.example.test/admin/session", { headers: { Cookie: cookie } }),
+      env,
+    );
+    expect(existingSession.status).toBe(401);
+  });
+
+  test("rejects malformed identity expiry without creating a login session", async () => {
+    await seedPasswordUser({
+      email: "malformed-expiry@example.test",
+      id: "identity-password-malformed-expiry",
+      roleId: ADMIN_ROLE_IDS.operations,
+    });
+    await env.DB.prepare(
+      "UPDATE admin_identities SET expires_at = 'not-a-timestamp' WHERE id = 'identity-password-malformed-expiry'",
+    ).run();
+
+    const response = await createApp().fetch(
+      request("/admin/auth/login", {
+        email: "malformed-expiry@example.test",
+        password: PASSWORD,
+      }),
+      env,
+    );
+    expect(response.status).toBe(401);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM admin_sessions WHERE identity_id = 'identity-password-malformed-expiry'",
+      ).first<{ count: number }>(),
+    ).toEqual({ count: 0 });
+  });
+
+  test("rejects a service credential when its owning identity is expired", async () => {
+    await seedServiceAdmin(env.DB, {
+      id: "identity-expired-service",
+      roleId: ADMIN_ROLE_IDS.operations,
+      subject: "expired-service",
+    });
+    const token = "expired_service_token_that_is_long_enough_for_testing";
+    await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE admin_identities SET expires_at = ? WHERE id = 'identity-expired-service'",
+      ).bind("2020-01-01T00:00:00.000Z"),
+      env.DB.prepare(
+        `INSERT INTO admin_service_credentials
+           (id, identity_id, name, token_hash, enabled, created_at)
+         VALUES ('credential-expired-service', 'identity-expired-service', 'Expired service', ?, 1, ?)`,
+      ).bind(await hashOpaqueToken(token), new Date().toISOString()),
+    ]);
+
+    const response = await createApp().fetch(
+      new Request("https://api.example.test/admin/orders", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      env,
+    );
+    expect(response.status).toBe(401);
+  });
+
   test("does not commit a login session when its success audit fails", async () => {
     await seedPasswordUser({
       email: "audit-failure@example.test",
