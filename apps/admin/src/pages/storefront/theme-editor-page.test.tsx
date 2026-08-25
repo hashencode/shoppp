@@ -820,7 +820,7 @@ describe('ThemeEditorPage', () => {
         )
       )
     )
-    renderEditor()
+    const { router } = renderEditor()
     await screen.findByDisplayValue('Existing headline')
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Keep this local edit' },
@@ -842,6 +842,9 @@ describe('ThemeEditorPage', () => {
     expect(screen.getByRole('button', { name: 'Reload and discard local edits' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Save local edits as successor' }))
     await screen.findByText('draft-successor-1')
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe('/storefront/themes/draft-successor-1')
+    )
     expect(successorBody).toMatchObject({
       reason: 'Attempt an optimistic save',
       sourceVersion: 1,

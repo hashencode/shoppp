@@ -374,6 +374,11 @@ export const ThemeEditorPage = ({
   const blocker = useBlocker(dirty)
 
   useEffect(() => {
+    if (!draft?.id || draft.id === draftId || dirty) return
+    navigate(`/storefront/themes/${draft.id}`, { replace: true })
+  }, [draft?.id, draftId, dirty, navigate])
+
+  useEffect(() => {
     if (!conflict) return
     const frame = window.requestAnimationFrame(() => conflictActionRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
@@ -980,7 +985,6 @@ export const ThemeEditorPage = ({
                     setBindings(structuredClone(successor.bindings))
                     setSavedBindings(structuredClone(successor.bindings))
                     setAnnouncement(t('Local edits were saved as successor draft {id}.', { id: successor.id }))
-                    navigate(`/storefront/themes/${successor.id}`, { replace: true })
                   })
                 }
               >
