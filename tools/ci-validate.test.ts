@@ -163,6 +163,31 @@ describe("repository-owned CI validation", () => {
     });
   });
 
+  test("classifies signal-style gate exits as infrastructure failures", async () => {
+    const directory = await reportDirectory();
+
+    const result = await validateCi({
+      tier: "post-commit",
+      reportDirectory: directory,
+      identity: fixedIdentity(),
+      workspaceChanges: [],
+      executeGate: async (gate) => (gate.name === "format" ? 137 : 0),
+      toolVersions: { bun: "test", bunNodeCompatibility: "test" },
+    });
+
+    expect(result.exitCode).toBe(137);
+    expect(result.report).toMatchObject({
+      result: "failed",
+      failureClassification: "infrastructure",
+      failedGate: "format",
+      processExitCode: 137,
+    });
+    expect(result.report.gates.at(-1)).toMatchObject({
+      name: "format",
+      failureClassification: "infrastructure",
+    });
+  });
+
   test("rejects SHA and tree mismatches before running gates", async () => {
     const directory = await reportDirectory();
     const observed: string[] = [];
@@ -340,6 +365,39 @@ describe("repository-owned CI validation", () => {
       },
     });
     expect(result.report.error).toContain("post-commit validation requires a clean worktree");
+  });
+
+  test("stops when a successful post-commit gate changes the worktree", async () => {
+    const directory = await reportDirectory();
+    const observed: string[] = [];
+    let workspaceObservation = 0;
+
+    const result = await validateCi({
+      tier: "post-commit",
+      reportDirectory: directory,
+      identity: fixedIdentity(),
+      observeWorkspaceChanges: async () =>
+        workspaceObservation++ === 0 ? [] : [" M apps/storefront/generated.ts"],
+      executeGate: async (gate) => {
+        observed.push(gate.name);
+        return 0;
+      },
+      toolVersions: { bun: "test", bunNodeCompatibility: "test" },
+    });
+
+    expect(observed).toEqual(["reproducible-install"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.report).toMatchObject({
+      result: "failed",
+      failureClassification: "infrastructure",
+      failedGate: "reproducible-install",
+      workspace: {
+        requiredClean: true,
+        clean: false,
+        changes: [" M apps/storefront/generated.ts"],
+      },
+    });
+    expect(result.report.error).toContain("changed the worktree");
   });
 
   test("ignores generated CI reports", async () => {

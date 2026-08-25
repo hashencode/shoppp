@@ -15,11 +15,12 @@ const postCommitWorkflow = workflow(postCommitWorkflowPath);
 const fullValidationWorkflow = workflow(fullValidationWorkflowPath);
 
 function expectActionsPinnedToFullShas(contents: string): void {
-  const actionReferences = [...contents.matchAll(/^\s+(?:- )?uses: ([^\s]+)$/gm)].map(
-    (match) => match[1],
-  );
-  expect(actionReferences.length).toBeGreaterThan(0);
-  for (const reference of actionReferences) {
+  const actionLines = contents.match(/^\s+(?:-\s+)?uses:\s+.*$/gm) ?? [];
+  expect(actionLines.length).toBeGreaterThan(0);
+  for (const line of actionLines) {
+    const match = line.match(/uses:\s+([^\s#]+)(?:\s+#.*)?\s*$/);
+    expect(match).not.toBeNull();
+    const reference = match![1]!;
     expect(reference).toMatch(/^[^@\s]+@[0-9a-f]{40}$/);
   }
 }
@@ -100,6 +101,12 @@ describe("local-first CI workflow contracts", () => {
       expect(contents).toMatch(/timeout-minutes: \d+/);
       expectActionsPinnedToFullShas(contents);
     }
+  });
+
+  test("rejects an unpinned action hidden by an inline comment", () => {
+    expect(() =>
+      expectActionsPinnedToFullShas("steps:\n  - uses: owner/action@main # explain why"),
+    ).toThrow();
   });
 
   test("does not reuse or reinterpret Fashion U8 workflow boundaries", async () => {

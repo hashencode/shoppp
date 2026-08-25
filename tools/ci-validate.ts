@@ -137,6 +137,12 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function classifyGateFailure(gate: GateDefinition, exitCode: number): FailureClassification {
+  return exitCode === 126 || exitCode === 127 || exitCode >= 128
+    ? "infrastructure"
+    : gate.nonzeroFailureClassification;
+}
+
 async function git(...arguments_: string[]): Promise<string> {
   const child = Bun.spawn(["git", ...arguments_], {
     cwd: ROOT,
@@ -265,19 +271,22 @@ export async function validateCi(options: {
   reportDirectory?: string;
   identity?: CiIdentity;
   workspaceChanges?: string[];
+  observeGitIdentity?: () => Promise<GitIdentity>;
+  observeWorkspaceChanges?: () => Promise<string[]>;
   executeGate?: (gate: GateDefinition) => Promise<number>;
   nowMs?: () => number;
   createdAt?: () => string;
   toolVersions?: Record<string, string>;
 }): Promise<{ report: CiReport; reportPath: string; exitCode: number }> {
-  const [observedGit, workspaceChanges] = await Promise.all([
-    observeGitIdentity(),
-    options.workspaceChanges === undefined
-      ? observeWorkspaceChanges()
-      : Promise.resolve(options.workspaceChanges),
-  ]);
+  const observeGit = options.observeGitIdentity ?? observeGitIdentity;
+  const observeChanges =
+    options.observeWorkspaceChanges ??
+    (options.workspaceChanges === undefined
+      ? observeWorkspaceChanges
+      : async () => options.workspaceChanges!);
+  let [observedGit, workspaceChanges] = await Promise.all([observeGit(), observeChanges()]);
   const identity = options.identity ?? resolveCiIdentity({ observedGit });
-  const workspace = {
+  let workspace = {
     requiredClean: options.tier === "post-commit",
     clean: workspaceChanges.length === 0,
     changes: workspaceChanges,
@@ -319,16 +328,60 @@ export async function validateCi(options: {
       try {
         const exitCode = await run(gate);
         const failed = exitCode !== 0;
+        const gateFailureClassification = failed ? classifyGateFailure(gate, exitCode) : null;
+
+        if (!failed && options.tier === "post-commit") {
+          [observedGit, workspaceChanges] = await Promise.all([observeGit(), observeChanges()]);
+          workspace = {
+            requiredClean: true,
+            clean: workspaceChanges.length === 0,
+            changes: workspaceChanges,
+          };
+          const driftErrors: string[] = [];
+          if (identity.testedSha !== observedGit.testedSha) {
+            driftErrors.push(
+              `tested SHA ${identity.testedSha} no longer matches checkout HEAD ${observedGit.testedSha}`,
+            );
+          }
+          if (identity.testedTree !== observedGit.testedTree) {
+            driftErrors.push(
+              `tested tree ${identity.testedTree} no longer matches checkout tree ${observedGit.testedTree}`,
+            );
+          }
+          if (!workspace.clean) {
+            driftErrors.push(
+              `post-commit gate ${gate.name} changed the worktree; observed ${workspace.changes.length} change(s)`,
+            );
+          }
+          if (driftErrors.length > 0) {
+            const driftError = driftErrors.join("; ");
+            gates.push({
+              name: gate.name,
+              command: gate.command,
+              durationMs: Math.max(0, Math.round(nowMs() - gateStarted)),
+              status: "failed",
+              exitCode: 1,
+              failureClassification: "infrastructure",
+              error: driftError,
+            });
+            failureClassification = "infrastructure";
+            failedGate = gate.name;
+            processExitCode = 1;
+            error = driftError;
+            break;
+          }
+        }
+
         gates.push({
           name: gate.name,
           command: gate.command,
           durationMs: Math.max(0, Math.round(nowMs() - gateStarted)),
           status: failed ? "failed" : "passed",
           exitCode,
-          failureClassification: failed ? gate.nonzeroFailureClassification : null,
+          failureClassification: gateFailureClassification,
         });
         if (failed) {
-          failureClassification = gate.nonzeroFailureClassification;
+          failureClassification = gateFailureClassification;
           failedGate = gate.name;
           processExitCode = exitCode;
           break;
