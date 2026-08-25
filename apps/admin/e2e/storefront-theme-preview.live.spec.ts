@@ -79,7 +79,7 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await expect(missingReference).not.toContainText(
     'The selected reference is missing from the current release.',
   )
-  await expect(page.locator('[aria-live="polite"]')).toContainText(
+  await expect(page.locator('.sr-only[aria-live="polite"]')).toContainText(
     'Reference changed. Validation is required again.',
   )
   await page.getByRole('button', { name: 'Save' }).click()
@@ -103,7 +103,7 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   ).toBeVisible()
   await expect(stalePage.getByRole('button', { name: 'Keep local edits' })).toBeFocused()
   await stalePage.getByRole('button', { name: 'Save local edits as successor' }).click()
-  await expect(stalePage.locator('[aria-live="polite"]')).toContainText(
+  await expect(stalePage.locator('.sr-only[aria-live="polite"]')).toContainText(
     'Local edits were saved as successor draft',
   )
   const successorDraftId = new URL(stalePage.url()).pathname.split('/').at(-1)
@@ -126,7 +126,7 @@ test('completes the real invalid-reference, conflict, preview-return, and approv
   await expect(preview.getByRole('button', { name: 'Open authenticated preview' })).toBeFocused({
     timeout: 60_000,
   })
-  await expect(preview.locator('[aria-live="polite"]')).toContainText(
+  await expect(preview.locator('.sr-only[aria-live="polite"]')).toContainText(
     'Returned from private preview.',
   )
 
