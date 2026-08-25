@@ -361,6 +361,7 @@ export const ThemeEditorPage = ({
   const [migration, setMigration] = useState<StorefrontExperienceMigration | null>(null)
   const [conflict, setConflict] = useState<DraftConflict | null>(null)
   const [upgradeThemeKey, setUpgradeThemeKey] = useState('')
+  const [validationFocusRequest, setValidationFocusRequest] = useState(0)
   const loadRequest = useRef(0)
   const previewContextRequest = useRef(0)
   const conflictActionRef = useRef<HTMLButtonElement>(null)
@@ -687,6 +688,9 @@ export const ThemeEditorPage = ({
       validations,
     }
     setDraft(validated)
+    if (validation.status === 'invalid' && validation.issues.length > 0) {
+      setValidationFocusRequest((request) => request + 1)
+    }
     return validated
   }
 
@@ -715,7 +719,12 @@ export const ThemeEditorPage = ({
     if (currentValidation?.status !== 'invalid' || currentValidation.issues.length === 0) return
     const frame = window.requestAnimationFrame(() => validationSummaryRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
-  }, [currentValidation?.id, currentValidation?.issues.length, currentValidation?.status])
+  }, [
+    currentValidation?.id,
+    currentValidation?.issues.length,
+    currentValidation?.status,
+    validationFocusRequest,
+  ])
   const validationCurrent =
     currentValidation?.status === 'valid' && currentValidation.draftVersion === draft?.version
   const previewContextCurrent =

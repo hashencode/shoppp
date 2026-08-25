@@ -899,6 +899,48 @@ describe('ThemeEditorPage', () => {
     expect(screen.queryByText('Building')).toBeNull()
   })
 
+  it('refocuses a persisted invalid summary when revalidation returns the same record', async () => {
+    const invalidValidation = {
+      catalogReleaseId: null,
+      createdAt: '2026-07-30T00:10:00.000Z',
+      draftVersion: 1,
+      id: 'validation-synthetic-invalid-1',
+      issues: [
+        {
+          code: 'required_capability_missing',
+          message: 'Required navigation capability is missing.',
+          path: 'home-hero.heading',
+          templateId: 'synthetic-home',
+        },
+      ],
+      status: 'invalid' as const,
+      validatedBy: 'theme-admin',
+    }
+    currentDraft = {
+      ...structuredClone(baseDraft),
+      validation: invalidValidation,
+      validations: [invalidValidation],
+    }
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+        validationBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: invalidValidation })
+      })
+    )
+
+    renderEditor()
+    const summary = (await screen.findByText(/Validation validation-synthetic-invalid-1/)).closest(
+      '[tabindex]'
+    )
+    const reason = screen.getByRole('textbox', { name: 'Change reason' })
+    fireEvent.change(reason, { target: { value: 'Repeat persisted validation' } })
+    reason.focus()
+    fireEvent.click(screen.getByRole('button', { name: 'Validate saved version' }))
+
+    await waitFor(() => expect(validationBody).toMatchObject({ expectedVersion: 1 }))
+    await waitFor(() => expect(document.activeElement).toBe(summary))
+  })
+
   it('surfaces deterministic package upgrade conflicts without mutating the draft', async () => {
     const upgradeTheme: AdminStorefrontTheme = {
       ...structuredClone(theme),
