@@ -11,13 +11,13 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
+import { CAPSULE_PLATFORM } from "./release-capsule";
+import { safeReleaseId } from "./release-validate";
 
 const POLICY_VERSION = "2026-08-25";
 const MAX_CERTIFICATE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
-const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SHA = /^[0-9a-f]{40,64}$/;
 const DIGEST = /^sha256:([0-9a-f]{64})$/;
 const OBJECT_NAME = /^objects\/([0-9a-f]{64})$/;
@@ -77,7 +77,7 @@ export interface CandidateEvidenceManifest {
     imageId: string;
     manifestDigest: string;
     path: string;
-    platform: "linux/amd64";
+    platform: typeof CAPSULE_PLATFORM;
   };
   declaredInputs: string[];
   releaseReport: {
@@ -107,16 +107,36 @@ interface EvidenceSignature {
   signature: string;
 }
 
-interface AuditEvent {
+interface CapsuleReceipt {
+  classification: "validation";
+  containerExitCode: 0;
+  imageId: string;
+  manifestDigest: string;
+  platform: typeof CAPSULE_PLATFORM;
+  report: { digest: string; path: string };
+  source: { commit: string; tree: string };
+}
+
+interface PreparedAuditEvent {
+  action: "bundle-prepared";
+  adapterIdentity: string;
+  at: string;
+  manifestDigest: string;
+  provenanceDigest: string;
+  result: "passed";
+}
+
+interface AddressedAuditEvent {
   action: "bundle-finalized" | "projection-verified" | "restore-verified";
   adapterIdentity: string;
   at: string;
   bundleDigest: string;
-  objectDigest?: string;
   result: "passed";
   retentionClass?: RetentionClass;
   retentionId?: string;
 }
+
+type AuditEvent = PreparedAuditEvent | AddressedAuditEvent;
 
 interface RetentionTarget {
   administrativeDomain: string;
@@ -153,8 +173,50 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-function assertSafeId(value: string, label: string): void {
-  assert(SAFE_ID.test(value), `${label} contains unsafe characters`);
+function record(value: unknown, label: string): Record<string, unknown> {
+  assert(
+    value !== null && typeof value === "object" && !Array.isArray(value),
+    `${label} is invalid`,
+  );
+  return value as Record<string, unknown>;
+}
+
+function string(value: unknown, label: string): string {
+  assert(typeof value === "string" && value.length > 0, `${label} is invalid`);
+  return value;
+}
+
+function digest(value: unknown, label: string): string {
+  const result = string(value, label);
+  assert(DIGEST.test(result), `${label} is invalid`);
+  return result;
+}
+
+function sha(value: unknown, label: string): string {
+  const result = string(value, label);
+  assert(SHA.test(result), `${label} is invalid`);
+  return result;
+}
+
+function safeId(value: unknown, label: string): string {
+  const result = string(value, label);
+  safeReleaseId(result, label);
+  return result;
+}
+
+function relativeArtifactPath(value: unknown, label: string): string {
+  const result = string(value, label);
+  assert(!result.startsWith("/") && !result.split(/[\\/]/).includes(".."), `${label} is invalid`);
+  return result;
+}
+
+function base64(value: unknown, label: string): string {
+  const result = string(value, label);
+  assert(
+    /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(result),
+    `${label} is invalid`,
+  );
+  return result;
 }
 
 function normalize(value: unknown): unknown {
@@ -265,8 +327,8 @@ export function createSignerCertificate(options: {
   signerKeyId: string;
   signerPublicKeyPem: string;
 }): SignerCertificate {
-  assertSafeId(options.rootKeyId, "root key ID");
-  assertSafeId(options.signerKeyId, "signer key ID");
+  safeReleaseId(options.rootKeyId, "root key ID");
+  safeReleaseId(options.signerKeyId, "signer key ID");
   const notBefore = Date.parse(options.notBefore);
   const notAfter = Date.parse(options.notAfter);
   assert(Number.isFinite(notBefore) && Number.isFinite(notAfter), "certificate dates are invalid");
@@ -294,17 +356,62 @@ export function createSignerCertificate(options: {
 }
 
 function validateTrustStore(value: unknown): EvidenceTrustStore {
-  const store = value as EvidenceTrustStore;
-  assert(store?.schemaVersion === 1, "unsupported evidence trust-store schema");
+  const store = record(value, "evidence trust store");
+  assert(store.schemaVersion === 1, "unsupported evidence trust-store schema");
   assert(Array.isArray(store.roots), "evidence trust store roots are missing");
   assert(Array.isArray(store.revokedSignerKeyIds), "revoked signer list is missing");
-  for (const root of store.roots) {
+  const roots = store.roots.map((candidate) => {
+    const root = record(candidate, "trust root");
     assert(root.algorithm === "Ed25519", "unsupported trust-root algorithm");
-    assertSafeId(root.keyId, "root key ID");
     assert(root.status === "trusted" || root.status === "revoked", "invalid trust-root status");
-  }
-  for (const keyId of store.revokedSignerKeyIds) assertSafeId(keyId, "revoked signer key ID");
-  return store;
+    const publicKeyPem = string(root.publicKeyPem, "root public key");
+    assert(
+      createPublicKey(publicKeyPem).asymmetricKeyType === "ed25519",
+      "trust root is not Ed25519",
+    );
+    return {
+      algorithm: "Ed25519" as const,
+      keyId: safeId(root.keyId, "root key ID"),
+      publicKeyPem,
+      status: root.status as "trusted" | "revoked",
+    };
+  });
+  const revokedSignerKeyIds = store.revokedSignerKeyIds.map((keyId) =>
+    safeId(keyId, "revoked signer key ID"),
+  );
+  return { schemaVersion: 1, roots, revokedSignerKeyIds };
+}
+
+function parseSignerCertificate(value: unknown): SignerCertificate {
+  const certificate = record(value, "signer certificate");
+  const candidate = record(certificate.payload, "signer certificate payload");
+  assert(candidate.schemaVersion === 1, "unsupported signer certificate schema");
+  assert(candidate.algorithm === "Ed25519", "unsupported signer algorithm");
+  assert(candidate.usage === "candidate-evidence", "signer certificate has the wrong usage");
+  const signerPublicKeyPem = string(candidate.signerPublicKeyPem, "signer public key");
+  assert(
+    createPublicKey(signerPublicKeyPem).asymmetricKeyType === "ed25519",
+    "signer key is not Ed25519",
+  );
+  const notBefore = string(candidate.notBefore, "certificate start time");
+  const notAfter = string(candidate.notAfter, "certificate expiry time");
+  assert(
+    Number.isFinite(Date.parse(notBefore)) && Number.isFinite(Date.parse(notAfter)),
+    "certificate dates are invalid",
+  );
+  return {
+    payload: {
+      algorithm: "Ed25519",
+      notAfter,
+      notBefore,
+      rootKeyId: safeId(candidate.rootKeyId, "root key ID"),
+      schemaVersion: 1,
+      signerKeyId: safeId(candidate.signerKeyId, "signer key ID"),
+      signerPublicKeyPem,
+      usage: "candidate-evidence",
+    },
+    rootSignature: base64(certificate.rootSignature, "certificate root signature"),
+  };
 }
 
 async function verifyCertificate(
@@ -313,12 +420,7 @@ async function verifyCertificate(
   now: string,
 ): Promise<void> {
   const trustStore = validateTrustStore(JSON.parse(await readFile(trustStorePath, "utf8")));
-  const payload = certificate?.payload;
-  assert(payload?.schemaVersion === 1, "unsupported signer certificate schema");
-  assert(payload.algorithm === "Ed25519", "unsupported signer algorithm");
-  assert(payload.usage === "candidate-evidence", "signer certificate has the wrong usage");
-  assertSafeId(payload.rootKeyId, "root key ID");
-  assertSafeId(payload.signerKeyId, "signer key ID");
+  const payload = certificate.payload;
   const root = trustStore.roots.find((entry) => entry.keyId === payload.rootKeyId);
   assert(root, `unknown root key: ${payload.rootKeyId}`);
   assert(root.status === "trusted", `root key is revoked: ${payload.rootKeyId}`);
@@ -351,18 +453,8 @@ function parseReleaseReport(value: unknown): {
   status: string;
   target: string;
 } {
-  const report = value as {
-    artifactDigests?: Record<string, string>;
-    commit?: string;
-    releaseId?: string;
-    status?: string;
-    target?: string;
-  };
-  assert(report && typeof report === "object", "release report is invalid");
+  const report = record(value, "release report");
   assert(report.status === "passed", "candidate evidence requires a passing release report");
-  assert(typeof report.commit === "string" && SHA.test(report.commit), "release commit is invalid");
-  assert(typeof report.releaseId === "string", "release ID is missing");
-  assertSafeId(report.releaseId, "release ID");
   assert(
     report.target === "staging" || report.target === "production",
     "release target is invalid",
@@ -371,44 +463,49 @@ function parseReleaseReport(value: unknown): {
     report.artifactDigests && typeof report.artifactDigests === "object",
     "artifact digests are missing",
   );
-  for (const [path, digest] of Object.entries(report.artifactDigests)) {
-    assert(path && !resolve(path).startsWith(".."), `artifact path is invalid: ${path}`);
-    assert(DIGEST.test(digest), `artifact digest is invalid: ${path}`);
+  const artifactDigests: Record<string, string> = {};
+  for (const [path, value] of Object.entries(report.artifactDigests)) {
+    const safePath = relativeArtifactPath(path, "artifact path");
+    artifactDigests[safePath] = digest(value, `artifact digest: ${path}`);
   }
-  return report as ReturnType<typeof parseReleaseReport>;
+  return {
+    artifactDigests,
+    commit: sha(report.commit, "release commit"),
+    releaseId: safeId(report.releaseId, "release ID"),
+    status: "passed",
+    target: report.target,
+  };
 }
 
-function parseCapsuleReceipt(value: unknown): {
-  classification: string;
-  containerExitCode: number;
-  imageId: string;
-  manifestDigest: string;
-  platform: string;
-  report: { digest: string; path: string };
-  source: { commit: string; tree: string };
-} {
-  const receipt = value as ReturnType<typeof parseCapsuleReceipt> & { schemaVersion?: number };
-  assert(receipt?.schemaVersion === 1, "unsupported release capsule receipt schema");
+function parseCapsuleReceipt(value: unknown): CapsuleReceipt {
+  const receipt = record(value, "release capsule receipt");
+  assert(receipt.schemaVersion === 1, "unsupported release capsule receipt schema");
   assert(
     receipt.classification === "validation",
     "candidate evidence requires validation-class capsule evidence",
   );
   assert(receipt.containerExitCode === 0, "candidate evidence requires a passing release capsule");
   assert(
-    receipt.platform === "linux/amd64",
-    "candidate evidence requires the approved linux/amd64 capsule",
+    receipt.platform === CAPSULE_PLATFORM,
+    `candidate evidence requires the approved ${CAPSULE_PLATFORM} capsule`,
   );
-  assert(DIGEST.test(receipt.imageId), "capsule image identity is invalid");
-  assert(DIGEST.test(receipt.manifestDigest), "capsule manifest digest is invalid");
-  assert(
-    SHA.test(receipt.source?.commit) && SHA.test(receipt.source?.tree),
-    "capsule source identity is invalid",
-  );
-  assert(
-    DIGEST.test(receipt.report?.digest) && typeof receipt.report.path === "string",
-    "capsule report identity is invalid",
-  );
-  return receipt;
+  const source = record(receipt.source, "capsule source identity");
+  const report = record(receipt.report, "capsule report identity");
+  return {
+    classification: "validation",
+    containerExitCode: 0,
+    imageId: digest(receipt.imageId, "capsule image identity"),
+    manifestDigest: digest(receipt.manifestDigest, "capsule manifest digest"),
+    platform: CAPSULE_PLATFORM,
+    report: {
+      digest: digest(report.digest, "capsule report digest"),
+      path: relativeArtifactPath(report.path, "capsule report path"),
+    },
+    source: {
+      commit: sha(source.commit, "capsule source commit"),
+      tree: sha(source.tree, "capsule source tree"),
+    },
+  };
 }
 
 function assertRetentionTargets(targets: RetentionTarget[]): void {
@@ -424,8 +521,8 @@ function assertRetentionTargets(targets: RetentionTarget[]): void {
   const roots = new Set<string>();
   const administrativeDomains = new Set<string>();
   for (const target of targets) {
-    assertSafeId(target.id, "retention target ID");
-    assertSafeId(target.administrativeDomain, "retention administrative domain");
+    safeReleaseId(target.id, "retention target ID");
+    safeReleaseId(target.administrativeDomain, "retention administrative domain");
     assert(!ids.has(target.id), "retention target IDs must be unique");
     ids.add(target.id);
     const root = resolve(target.root);
@@ -439,7 +536,10 @@ function assertRetentionTargets(targets: RetentionTarget[]): void {
   );
 }
 
-async function bundleInventoryDigest(bundlePath: string): Promise<string> {
+async function bundleInventoryDigest(
+  bundlePath: string,
+  knownBytes: ReadonlyMap<string, Uint8Array> = new Map(),
+): Promise<string> {
   const files = (await filesUnder(bundlePath))
     .filter((path) => basename(path) !== "bundle-digest.txt")
     .sort((left, right) =>
@@ -449,7 +549,7 @@ async function bundleInventoryDigest(bundlePath: string): Promise<string> {
   for (const file of files) {
     hash.update(relativePath(bundlePath, file));
     hash.update("\0");
-    hash.update(await readFile(file));
+    hash.update(knownBytes.get(file) ?? (await readFile(file)));
     hash.update("\0");
   }
   return `sha256:${hash.digest("hex")}`;
@@ -484,9 +584,9 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   provenance: EvidenceProvenance;
   retentionCopies: Array<RetentionTarget & { path: string; status: "verified" }>;
 }> {
-  assertSafeId(options.attemptId, "attempt ID");
-  assertSafeId(options.adapterIdentity, "adapter identity");
-  assertSafeId(options.executorIdentity, "executor identity");
+  safeReleaseId(options.attemptId, "attempt ID");
+  safeReleaseId(options.adapterIdentity, "adapter identity");
+  safeReleaseId(options.executorIdentity, "executor identity");
   assert(SHA.test(options.approvedCommit), "approved commit is invalid");
   assertRetentionTargets(options.retentionTargets);
   const repository = resolve(options.repository);
@@ -501,9 +601,9 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
   assert(head === commit, "approved commit must equal checkout HEAD");
   const tree = await gitText(repository, "rev-parse", `${commit}^{tree}`);
   const issuedAt = new Date(options.issuedAt ?? new Date().toISOString()).toISOString();
-  const certificate = JSON.parse(
-    await readFile(options.certificatePath, "utf8"),
-  ) as SignerCertificate;
+  const certificate = parseSignerCertificate(
+    JSON.parse(await readFile(options.certificatePath, "utf8")),
+  );
   await verifyCertificate(certificate, options.trustStorePath, issuedAt);
   const signerKeyMetadata = await stat(options.signerPrivateKeyPath);
   assert(
@@ -607,7 +707,7 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
       imageId: capsuleReceipt.imageId,
       manifestDigest: capsuleReceipt.manifestDigest,
       path: capsuleReceiptObject.sourcePath,
-      platform: "linux/amd64",
+      platform: CAPSULE_PLATFORM,
     },
     declaredInputs,
     objects,
@@ -639,12 +739,13 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
     schemaVersion: 1,
     signature: sign(null, Buffer.from(signed), signerPrivateKey).toString("base64"),
   };
-  const audit: AuditEvent[] = [
+  const audit: PreparedAuditEvent[] = [
     {
-      action: "bundle-finalized",
+      action: "bundle-prepared",
       adapterIdentity: options.adapterIdentity,
       at: issuedAt,
-      bundleDigest: "computed-after-local-finalization",
+      manifestDigest,
+      provenanceDigest,
       result: "passed",
     },
   ];
@@ -661,11 +762,16 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
     now: issuedAt,
     trustStorePath: options.trustStorePath,
   });
-  await appendAudit(options.auditLogPath, { ...audit[0]!, bundleDigest });
+  await appendAudit(options.auditLogPath, {
+    action: "bundle-finalized",
+    adapterIdentity: options.adapterIdentity,
+    at: issuedAt,
+    bundleDigest,
+    result: "passed",
+  });
 
-  const retentionCopies: Array<RetentionTarget & { path: string; status: "verified" }> = [];
-  try {
-    for (const target of options.retentionTargets) {
+  const projectionResults = await Promise.allSettled(
+    options.retentionTargets.map(async (target) => {
       await mkdir(target.root, { recursive: true });
       const path = join(target.root, bundleDigest);
       await cp(bundlePath, path, { recursive: true, errorOnExist: true, force: false });
@@ -674,7 +780,7 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
         now: issuedAt,
         trustStorePath: options.trustStorePath,
       });
-      const event: AuditEvent = {
+      const event: AddressedAuditEvent = {
         action: "projection-verified",
         adapterIdentity: options.adapterIdentity,
         at: issuedAt,
@@ -687,29 +793,149 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
         join(target.root, `${bundleDigest}.${target.id}.projection.json`),
         event,
       );
-      await appendAudit(options.auditLogPath, event);
-      retentionCopies.push({ ...target, path, status: "verified" });
-    }
-  } catch (error) {
-    throw new Error(`2/2 retention quorum was not reached: ${(error as Error).message}`);
+      return { ...target, event, path, status: "verified" as const };
+    }),
+  );
+  const failedProjection = projectionResults.find(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (failedProjection) {
+    const failure = failedProjection.reason;
+    throw new Error(
+      `2/2 retention quorum was not reached: ${failure instanceof Error ? failure.message : String(failure)}`,
+      { cause: failure },
+    );
   }
+  const retentionCopies = projectionResults.map(
+    (result) =>
+      (
+        result as PromiseFulfilledResult<
+          RetentionTarget & {
+            event: AddressedAuditEvent;
+            path: string;
+            status: "verified";
+          }
+        >
+      ).value,
+  );
   assert(retentionCopies.length === 2, "2/2 retention quorum was not reached");
-  return { bundleDigest, bundlePath, manifest, manifestDigest, provenance, retentionCopies };
+  for (const copy of retentionCopies) await appendAudit(options.auditLogPath, copy.event);
+  return {
+    bundleDigest,
+    bundlePath,
+    manifest,
+    manifestDigest,
+    provenance,
+    retentionCopies: retentionCopies.map(({ event: _, ...copy }) => copy),
+  };
 }
 
 function parseManifest(value: unknown): CandidateEvidenceManifest {
-  const manifest = value as CandidateEvidenceManifest;
-  assert(manifest?.schemaVersion === 1, "unsupported candidate evidence manifest schema");
+  const manifest = record(value, "candidate evidence manifest");
+  assert(manifest.schemaVersion === 1, "unsupported candidate evidence manifest schema");
   assert(manifest.policyVersion === POLICY_VERSION, "unsupported candidate evidence policy");
-  assert(SHA.test(manifest.source?.commit), "candidate commit is invalid");
-  assert(SHA.test(manifest.source?.tree), "candidate tree is invalid");
-  assert(DIGEST.test(manifest.source?.archiveDigest), "source archive digest is invalid");
+  const source = record(manifest.source, "candidate source");
+  const capsuleReceipt = record(manifest.capsuleReceipt, "candidate capsule receipt");
+  const releaseReport = record(manifest.releaseReport, "candidate release report");
+  assert(capsuleReceipt.platform === CAPSULE_PLATFORM, "candidate capsule platform is invalid");
+  assert(
+    releaseReport.target === "staging" || releaseReport.target === "production",
+    "candidate release target is invalid",
+  );
+  assert(Array.isArray(manifest.declaredInputs), "declared inputs are missing");
   assert(
     Array.isArray(manifest.objects) && manifest.objects.length > 0,
     "evidence objects are missing",
   );
   assert(Array.isArray(manifest.artifacts), "evidence artifacts are missing");
-  return manifest;
+  const declaredInputs = manifest.declaredInputs.map((path) =>
+    relativeArtifactPath(path, "declared input path"),
+  );
+  const artifacts = manifest.artifacts.map((candidate) => {
+    const artifact = record(candidate, "evidence artifact");
+    return {
+      digest: digest(artifact.digest, "artifact digest"),
+      path: relativeArtifactPath(artifact.path, "artifact path"),
+    };
+  });
+  const roles = new Set<EvidenceObject["role"]>([
+    "source-archive",
+    "declared-input",
+    "release-report",
+    "capsule-receipt",
+  ]);
+  const objects = manifest.objects.map((candidate) => {
+    const object = record(candidate, "evidence object");
+    assert(roles.has(object.role as EvidenceObject["role"]), "evidence object role is invalid");
+    assert(
+      typeof object.size === "number" && Number.isSafeInteger(object.size) && object.size >= 0,
+      "evidence object size is invalid",
+    );
+    const objectName = string(object.objectName, "evidence object name");
+    assert(OBJECT_NAME.test(objectName), "evidence object name is invalid");
+    return {
+      digest: digest(object.digest, "evidence object digest"),
+      objectName,
+      role: object.role as EvidenceObject["role"],
+      size: object.size,
+      sourcePath: string(object.sourcePath, "evidence object source path"),
+    };
+  });
+  return {
+    artifacts,
+    capsuleReceipt: {
+      digest: digest(capsuleReceipt.digest, "candidate capsule receipt digest"),
+      imageId: digest(capsuleReceipt.imageId, "candidate capsule image identity"),
+      manifestDigest: digest(capsuleReceipt.manifestDigest, "candidate capsule manifest digest"),
+      path: relativeArtifactPath(capsuleReceipt.path, "candidate capsule receipt path"),
+      platform: CAPSULE_PLATFORM,
+    },
+    declaredInputs,
+    objects,
+    policyVersion: POLICY_VERSION,
+    releaseReport: {
+      digest: digest(releaseReport.digest, "candidate release report digest"),
+      path: relativeArtifactPath(releaseReport.path, "candidate release report path"),
+      releaseId: safeId(releaseReport.releaseId, "release ID"),
+      target: releaseReport.target,
+    },
+    schemaVersion: 1,
+    source: {
+      archiveDigest: digest(source.archiveDigest, "source archive digest"),
+      commit: sha(source.commit, "candidate commit"),
+      tree: sha(source.tree, "candidate tree"),
+    },
+  };
+}
+
+function parseProvenance(value: unknown): EvidenceProvenance {
+  const provenance = record(value, "evidence provenance");
+  assert(provenance.schemaVersion === 1, "unsupported evidence provenance schema");
+  const issuedAt = string(provenance.issuedAt, "bundle issue time");
+  assert(Number.isFinite(Date.parse(issuedAt)), "bundle issue time is invalid");
+  return {
+    adapterIdentity: safeId(provenance.adapterIdentity, "adapter identity"),
+    attemptId: safeId(provenance.attemptId, "attempt ID"),
+    executorIdentity: safeId(provenance.executorIdentity, "executor identity"),
+    issuedAt,
+    schemaVersion: 1,
+  };
+}
+
+function parseSignature(value: unknown): EvidenceSignature {
+  const signature = record(value, "evidence signature");
+  assert(
+    signature.schemaVersion === 1 && signature.algorithm === "Ed25519",
+    "invalid bundle signature schema",
+  );
+  return {
+    algorithm: "Ed25519",
+    certificate: parseSignerCertificate(signature.certificate),
+    manifestDigest: digest(signature.manifestDigest, "signed manifest digest"),
+    provenanceDigest: digest(signature.provenanceDigest, "signed provenance digest"),
+    schemaVersion: 1,
+    signature: base64(signature.signature, "bundle signature"),
+  };
 }
 
 export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Promise<{
@@ -731,16 +957,8 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
     readFile(join(bundlePath, "signature.json")),
   ]);
   const manifest = parseManifest(JSON.parse(manifestBytes.toString("utf8")));
-  const provenance = JSON.parse(provenanceBytes.toString("utf8")) as EvidenceProvenance;
-  const signature = JSON.parse(signatureBytes.toString("utf8")) as EvidenceSignature;
-  assert(provenance?.schemaVersion === 1, "unsupported evidence provenance schema");
-  assertSafeId(provenance.attemptId, "attempt ID");
-  assertSafeId(provenance.adapterIdentity, "adapter identity");
-  assertSafeId(provenance.executorIdentity, "executor identity");
-  assert(
-    signature?.schemaVersion === 1 && signature.algorithm === "Ed25519",
-    "invalid bundle signature schema",
-  );
+  const provenance = parseProvenance(JSON.parse(provenanceBytes.toString("utf8")));
+  const signature = parseSignature(JSON.parse(signatureBytes.toString("utf8")));
   const manifestDigest = sha256(canonicalJson(manifest));
   const provenanceDigest = sha256(canonicalJson(provenance));
   assert(signature.manifestDigest === manifestDigest, "manifest digest mismatch");
@@ -765,6 +983,11 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
     ),
     "bundle signature is invalid",
   );
+  const verifiedBytes = new Map<string, Uint8Array>([
+    [join(bundlePath, "manifest.json"), manifestBytes],
+    [join(bundlePath, "provenance.json"), provenanceBytes],
+    [join(bundlePath, "signature.json"), signatureBytes],
+  ]);
   for (const object of manifest.objects) {
     assert(DIGEST.test(object.digest), `object digest is invalid: ${object.sourcePath}`);
     const match = OBJECT_NAME.exec(object.objectName);
@@ -772,7 +995,9 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
       match && `sha256:${match[1]}` === object.digest,
       `object name is invalid: ${object.sourcePath}`,
     );
-    const bytes = await readFile(join(bundlePath, object.objectName));
+    const objectPath = join(bundlePath, object.objectName);
+    const bytes = await readFile(objectPath);
+    verifiedBytes.set(objectPath, bytes);
     assert(bytes.byteLength === object.size, `object size mismatch: ${object.sourcePath}`);
     assert(sha256(bytes) === object.digest, `object digest mismatch: ${object.sourcePath}`);
   }
@@ -792,7 +1017,7 @@ export async function verifyCandidateEvidenceBundle(options: VerifyOptions): Pro
     );
   }
   assert(
-    (await bundleInventoryDigest(bundlePath)) === expectedBundleDigest,
+    (await bundleInventoryDigest(bundlePath, verifiedBytes)) === expectedBundleDigest,
     "bundle digest mismatch",
   );
   return {
@@ -925,7 +1150,7 @@ if (import.meta.main) {
       values["root-key-id"] && values["root-public-key"] && values.output,
       "create-trust-store requires --root-key-id, --root-public-key, and --output",
     );
-    assertSafeId(values["root-key-id"], "root key ID");
+    safeReleaseId(values["root-key-id"], "root key ID");
     const publicKeyPem = await readFile(values["root-public-key"], "utf8");
     assert(
       createPublicKey(publicKeyPem).asymmetricKeyType === "ed25519",

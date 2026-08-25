@@ -204,14 +204,6 @@ async function fileDigest(path: string): Promise<string> {
     .digest("hex")}`;
 }
 
-async function isFile(path: string): Promise<boolean> {
-  try {
-    return (await lstat(path)).isFile();
-  } catch {
-    return false;
-  }
-}
-
 export async function writeCapsuleReceipt(
   options: {
     built: BuiltCapsule;
@@ -285,7 +277,7 @@ export async function classifyCapsuleResult(options: {
   reportPath: string;
   expectedCommit: string;
 }): Promise<{ kind: "validation" | "infrastructure"; reportValid: boolean }> {
-  if (![0, 1].includes(options.containerExitCode) || !(await isFile(options.reportPath))) {
+  if (![0, 1].includes(options.containerExitCode)) {
     return { kind: "infrastructure", reportValid: false };
   }
   try {

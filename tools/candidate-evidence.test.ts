@@ -398,4 +398,36 @@ describe("portable candidate evidence", () => {
       }),
     ).rejects.toThrow(/bundle digest/i);
   });
+
+  test("rejects malformed trust and signed-document fields before cryptographic use", async () => {
+    const value = await fixture();
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "malformed-json-boundary",
+    });
+    const malformedTrustPath = join(value.root, "malformed-trust.json");
+    await writeFile(
+      malformedTrustPath,
+      `${canonicalJson({ ...value.trustStore, roots: [{ algorithm: "Ed25519" }] })}\n`,
+    );
+    await expect(
+      verifyCandidateEvidenceBundle({
+        bundlePath: built.bundlePath,
+        now: "2026-08-25T01:05:00.000Z",
+        trustStorePath: malformedTrustPath,
+      }),
+    ).rejects.toThrow(/trust-root|root public key/);
+
+    const manifestPath = join(built.bundlePath, "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifest.objects[0].size = "not-a-number";
+    await writeFile(manifestPath, `${canonicalJson(manifest)}\n`);
+    await expect(
+      verifyCandidateEvidenceBundle({
+        bundlePath: built.bundlePath,
+        now: "2026-08-25T01:05:00.000Z",
+        trustStorePath: value.trustStorePath,
+      }),
+    ).rejects.toThrow(/object size/);
+  });
 });
