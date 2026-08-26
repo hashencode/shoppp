@@ -1163,8 +1163,8 @@ describe("portable candidate evidence", () => {
 
   test("scans built-in credentials and generated metadata before persistence", async () => {
     const credentials = [
-      "-----BEGIN PRIVATE KEY-----",
-      "-----BEGIN ENCRYPTED PRIVATE KEY-----",
+      ["-----BEGIN", "PRIVATE KEY-----"].join(" "),
+      ["-----BEGIN ENCRYPTED", "PRIVATE KEY-----"].join(" "),
       "Authorization: Bearer abcdefghijklmnop",
       "AKIAABCDEFGHIJKLMNOP",
       "grant_abcdefghijklmnop",
