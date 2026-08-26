@@ -115,21 +115,21 @@ Parallel Decor execution is complete without replacing the product-level Fashion
 Parallel CI infrastructure planning is registered without replacing either implementation pointer:
 
 - **Parallel plan:** `CI` — Long-Term CI Resilience and Provider-Independent Delivery.
-- **Current parent/child stage:** `CI-U7.2` — repository implementation and local verification of
-  the operator-approved single-target retention contract are complete; landing and live operational
-  proof remain open. On 2026-08-26 the operator replaced CI-U7.1's mandatory independent `2/2` retention
-  with one required durable target and an optional recommended replica. Source-input, Ed25519
-  signing, artifact audit/retention, exact verification, and restore requirements remain. CI-U12 is
+- **Current parent/child stage:** `CI-U7.3` — CI-U7.2 completed the optional high-assurance signed
+  profile, but parent CI-U7 remains open until the repository provides and proves the executable
+  solo-developer no-PKI baseline. On 2026-08-26 the operator retained exact source, full capsule
+  validation, artifact digests, secret scanning, one durable read-back-verified target, and a
+  practical restore check while making offline-root signing and signed witnesses an optional
+  high-assurance profile rather than a CI or launch blocker. CI-U12 is
   complete on exact commit `47b6b340`: all 17
   unchanged gates passed in the pinned `linux/amd64` capsule on the independent Intel executor and
   produced retained validation-class evidence. Registration and the CI-U4 14-day pilot remain
-  human-operated and pending. Intel Jenkins build `shoppp-main#15` also passed the provider-neutral
-  post-commit lane against exact integrated SHA `72cc2bdf`.
-- **Next action:** Land the verified single-target implementation on `main`, mirror the exact tree
-  to Intel Jenkins, and require the provider-neutral post-commit job to pass. Then provision the approved
-  offline signing authority and run one live signed build/verify plus exact-byte restore against the
-  Intel `/srv/shoppp-evidence` target. A second VPS is not required; GitHub Actions billing blocks
-  only optional hosted-adapter compatibility.
+  human-operated and pending. Intel Jenkins builds through `shoppp-main#17` passed the
+  provider-neutral post-commit lane, including exact integrated SHA `63b71c82`.
+- **Next action:** Implement the repository-owned no-PKI build/verify/retain/restore path, prove
+  signed/unsigned profile isolation, and retain one practical Intel-target restore. This is a
+  repository implementation gap, not a GitHub, PKI-provisioning, or human-operation blocker. Then
+  advance to CI-U8.1; GitHub Actions billing blocks only optional hosted-adapter compatibility.
 - **Tail:** The CI plan owns local validation authority, optional non-secret mirror operations,
   a pinned provider-neutral full-validation capsule, portable evidence, provider
   degradation/recovery, thin GitHub adapters, a
@@ -170,7 +170,7 @@ focused test alone.
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
-| `CI` | [Long-Term CI Resilience and Provider-Independent Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Parallel validation and release-resilience infrastructure | **Active — CI-U1–U3, CI-U7.1, and CI-U12 complete; current `CI-U7.2`; optional runner pilot pending human operation; optional PR automation remains deferred** | Owns repository validation commands, optional mirror/runner operation, the pinned full-validation capsule, portable candidate evidence, provider degradation/recovery, remote-CD adapter extraction, the alternate-CD go/no-go and any admitted non-production drill, and steady-state review; it does not own product completion, candidate selection, DC/PG, or production promotion |
+| `CI` | [Long-Term CI Resilience and Provider-Independent Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Parallel validation and release-resilience infrastructure | **Active — CI-U1–U3, CI-U7.1–U7.2, and CI-U12 complete; current `CI-U7.3`; parent CI-U7 remains open; optional runner pilot pending human operation; optional PR automation remains deferred** | Owns repository validation commands, optional mirror/runner operation, the pinned full-validation capsule, portable candidate evidence, provider degradation/recovery, remote-CD adapter extraction, the alternate-CD go/no-go and any admitted non-production drill, and steady-state review; it does not own product completion, candidate selection, DC/PG, or production promotion |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions

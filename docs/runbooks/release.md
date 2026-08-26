@@ -112,10 +112,24 @@ failed or infrastructure-classified runs retain that previous replay image.
 Docker safely refuses if another tag or container still references it. Never use broad image or
 system pruning as capsule cleanup.
 
-### Signed portable candidate evidence
+### Optional high-assurance signed candidate evidence
 
-CI-U7 portable evidence wraps a passing capsule report and receipt without changing the 17 release
-gates. The format and trust checks are defined in
+The default solo-developer release baseline does not require an offline root, signer certificate, or
+signed witness. It still requires a clean exact commit, a passing validation-class capsule report and
+receipt, SHA-256 toolchain/artifact digests, secret scanning, one encrypted versioned or append-only
+durable copy, digest read-back, and a practical restore check when the storage target is adopted or
+materially changed and before first production reliance.
+
+The repository does not yet expose the executable no-PKI build/verify/retain/restore entry point for
+that baseline; CI-U7.3 owns that implementation, profile-isolation tests, and one practical restore
+against the adopted Intel target. Until CI-U7.3 closes, do not treat an ad-hoc copy, a Jenkins archive,
+or a passing post-commit lane as baseline candidate evidence. This is a repository implementation
+gap, not a requirement to provision signing keys or wait for GitHub or another operator.
+
+The current `evidence:build`, `evidence:verify`, and `evidence:restore` commands are
+signed-profile-only. Use the commands below only when a later REL/security decision explicitly activates the optional
+high-assurance signed profile for a named candidate. This profile wraps a passing capsule report and
+receipt without changing the 17 release gates. Its format and trust checks are defined in
 [`candidate-evidence-bundle.md`](../reference/candidate-evidence-bundle.md); the approved security
 policy is
 [`ci-evidence-trust-and-retention.md`](../architecture/ci-evidence-trust-and-retention.md).
@@ -172,7 +186,7 @@ emits only allowlisted structured audit fields. A successful bundle remains evid
 not candidate selection or deployment authorization.
 
 A second independently administered VPS/object-lock target is recommended for disaster recovery,
-but it is not required for CI-U7 acceptance. To use one, add another `--retention` argument. Every
+but it is not required for either the baseline or signed profile. To use one, add another `--retention` argument. Every
 target declared in that invocation becomes required for that invocation; omit an unavailable
 optional target rather than treating a failed backup as successful redundancy.
 
@@ -195,7 +209,7 @@ bun run evidence:restore -- \
   --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
 ```
 
-An expired or revoked signer is refused during current verification. Compromise response revokes
+While the signed profile is active, an expired or revoked signer is refused during verification. Compromise response revokes
 the signer ID in the required trust store and operator recovery copy, stops finalization, provisions a new
 short-lived signer from the offline root, and reruns the exact source in a clean capsule; historical
 bytes are never silently re-signed.

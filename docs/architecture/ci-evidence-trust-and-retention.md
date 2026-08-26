@@ -1,7 +1,8 @@
 # CI Evidence Trust and Retention Policy
 
-Status: approved by the Shoppp operator on 2026-08-25 for CI-U7.1 and amended by the operator on
-2026-08-26 to require one durable retention target instead of two administrative domains.
+Status: approved by the Shoppp operator on 2026-08-25 for CI-U7.1 and amended twice on 2026-08-26:
+first to require one durable target instead of two administrative domains, then to make independent
+cryptographic signing an optional high-assurance profile rather than a CI or launch blocker.
 
 This policy governs portable full-validation evidence. It does not select a development candidate,
 complete DC/PG, authorize deployment, or place production credentials in ordinary CI.
@@ -13,43 +14,63 @@ binds both commit and tree SHA. Tracked changes or untracked non-ignored paths s
 Ignored, generated, cached, downloaded, and caller-selected workspace bytes are excluded and cannot
 be promoted into executable input without a later versioned REL decision and exact-byte manifest.
 
-## Signing trust and key lifecycle
+## Required personal-project baseline
 
-- Algorithm: Ed25519. Every key has a stable safe key ID; SHA-256 identifies certificates and signed
-  bytes.
-- Root custody: the root private key is offline and outside GitHub, Jenkins, persistent runners, and
-  ordinary developer shells. Its public trust record is distributed through the required retention
-  target and operator-controlled recovery media; distribution to an optional replica is recommended.
-- Online signer: the offline root signs a short-lived Jenkins signer certificate bound to key ID,
-  public key, issue time, expiry time, and `candidate-evidence` usage. The signer private key is a
-  host-owned credential file readable only in the dedicated release-operator context.
-- Validity: certificates must be currently valid and may not exceed 90 days. Bundle provenance has
-  an issue time and is rejected outside the certificate interval. Unknown, malformed, expired, or
-  revoked roots/signers fail closed.
-- Rotation and compromise: rotate the online signer before expiry. On suspected compromise, revoke
-  its key ID in the independently distributed trust record, stop finalization, rebuild a clean
-  signer from the offline root, and replay the exact source through full validation. Existing
-  evidence remains labeled by its historical verification time; it is never silently re-signed.
+Shoppp currently has one developer/operator and no recorded regulatory, external-audit, independent
+consumer-verification, or separation-of-duties requirement. The default evidence baseline therefore
+requires integrity and recoverability without requiring a private PKI ceremony:
+
+- accept only a clean archive from an approved exact commit and bind commit/tree SHA;
+- retain the complete passing release report, validation-class capsule receipt, toolchain identity,
+  deployable-artifact inventory, and SHA-256 digests;
+- write those bytes to at least one operator-approved encrypted, versioned or append-only durable
+  target outside the transient runner workspace, then read them back and compare their digests;
+- keep allowlisted audit metadata and scan retained output for secret-shaped content; and
+- prove one practical restore when a retention target is first adopted or materially changed, and
+  before relying on it for the first production release. A quarterly ceremony is not required.
+
+The exact expected digest is supplied outside the retained directory when verification or restore is
+performed. This detects accidental or unauthorized byte changes but does not claim independent
+non-repudiation when the same operator controls source, CI, storage, and deployment.
+
+This is the approved policy baseline, but its repository-owned executable path is not yet complete.
+CI-U7.3 owns no-PKI build, verification, durable retention/read-back, restore, signed/unsigned
+profile-isolation tests, and one practical restore against the adopted Intel target. The current
+`evidence:build`, `evidence:verify`, and `evidence:restore` commands remain signed-profile-only;
+neither their availability nor a retained post-commit report closes parent CI-U7.
+
+## Optional high-assurance signing profile
+
+The existing Ed25519 offline-root, short-lived signer-certificate, signed-bundle, revocation, and
+signed-retention-witness implementation is retained as an opt-in profile. It is not required for
+CI-U7 completion, candidate preparation, or production readiness unless a later REL/security
+decision explicitly activates it for a named candidate.
+
+When activated, the existing fail-closed rules still apply: the root stays outside GitHub, Jenkins,
+persistent runners, and ordinary developer shells; signer certificates may not exceed 90 days;
+unknown, malformed, expired, or revoked keys are refused; and compromise requires revocation plus a
+clean replay. GitHub Artifact Attestations may instead be adopted by a later policy that explicitly
+accepts GitHub/Sigstore as the trust anchor and requires verification. Ordinary GitHub artifacts,
+Jenkins archives, and Jenkins fingerprints do not implicitly activate or satisfy this profile.
 
 Private keys, storage credentials, trust-store locations, and retention endpoints are operational
 configuration and must never enter repository content or bundle logs.
 
 ## Required retention and optional redundancy
 
-Every authoritative bundle requires at least one successful exact-byte write and read-back
-verification to an operator-approved durable target. The current required target is
+Every baseline evidence set requires at least one successful exact-byte write and digest read-back
+verification to an operator-approved durable target. The current target is
 `intel-append-only`: encrypted Intel Jenkins evidence storage rooted operationally under
 `/srv/shoppp-evidence`, with the Jenkins release writer able to create but not delete retained
 versions.
 
 An `operator-vps-object-lock` replica in a separate credential and administrative domain remains
-recommended for disaster recovery, but it is not required for CI-U7 acceptance. A runner workspace,
-ordinary Jenkins build artifact, or GitHub artifact does not satisfy the durable target. If an
-operator declares multiple targets in one build invocation, every declared target must pass its
-write and read-back verification; an unavailable optional replica must be omitted rather than
-silently reported as protected. Every verified target receives the signed retention witness and may
-restore the exact bytes. Restore creates new recovery metadata and never fabricates original
-execution metadata.
+recommended for disaster recovery, but it is not required for CI-U7 acceptance. A runner workspace
+alone does not satisfy the durable target. If an operator declares multiple targets in one
+invocation, every declared target must pass its write and read-back verification; an unavailable
+optional replica must be omitted rather than silently reported as protected. The optional signed
+profile additionally publishes its signed retention witness. Restore creates new recovery metadata
+and never fabricates original execution metadata.
 
 The accepted single-target baseline has a known correlated-loss risk: host loss, administrative
 compromise, or destructive storage failure can remove the only retained copy. The operator accepts
@@ -58,15 +79,24 @@ bundle or verifier semantics.
 
 ## Artifact classes, access, and retention
 
-| Class             | Examples                                                         | Retention | Read/delete authority                                                               |
-| ----------------- | ---------------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------- |
-| Validation        | gate reports, failed diagnostics, ordinary CI bundles            | 180 days  | release operators read; retention administrators delete after expiry                |
-| Candidate/release | passed full-validation bundles, signatures, restore records      | 7 years   | REL/release operators read; separate retention administrators approve deletion      |
-| Security/audit    | trust records, revocations, write/read/delete/restore/key events | 7 years   | security/release authority read; separate retention administrators approve deletion |
+| Class             | Examples                                                    | Retention                                                                         | Read/delete authority                   |
+| ----------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------- |
+| Validation        | gate reports, failed diagnostics, ordinary CI bundles       | 30 days by default                                                                | operator reads and deletes after expiry |
+| Candidate/release | passed full-validation evidence, manifests, restore records | 1 year by default; retain current production rollback evidence longer when needed | operator controls retention             |
+| Security/audit    | optional signing trust, revocation, and key events          | 1 year after the profile or key is retired                                        | operator controls retention             |
 
 All retained data uses encryption in transit and at rest. Logs use allowlisted structured fields and
 must not contain raw environment values, credentials, authorization headers, secret-bearing command
 output, private-key paths, or storage credentials. Redaction and canary-secret scanning run before
-finalization and projection. Every write, read-back, verification, restore, deletion authorization,
-key issuance, rotation, and revocation records actor/adapter identity, time, object digest, result,
-and applicable reason without secret material. Exact-byte restoration is tested quarterly.
+finalization and projection. Every required write, read-back, verification, restore, and deletion
+records actor/adapter identity, time, object digest, result, and applicable reason without secret
+material. Key issuance, rotation, and revocation are recorded only while the optional signing
+profile is active.
+
+## Re-entry triggers
+
+Independent signing becomes a candidate hard gate only through an explicit later policy decision
+after one or more of these conditions appears: multiple release operators, external artifact
+consumers, regulatory or contractual audit, shared or untrusted runners, cross-provider deployment
+that needs portable provenance, or an observed tampering/credential-compromise event. Changing CI
+providers by itself is not a trigger.

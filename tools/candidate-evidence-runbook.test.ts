@@ -3,18 +3,53 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("candidate evidence operating contract", () => {
-  test("documents GitHub-independent verification and the required single-domain command", async () => {
-    const runbook = await readFile(resolve(import.meta.dir, "../docs/runbooks/release.md"), "utf8");
-    const reference = await readFile(
-      resolve(import.meta.dir, "../docs/reference/candidate-evidence-bundle.md"),
-      "utf8",
+  test("keeps the solo baseline separate from the optional signed profile", async () => {
+    const [policy, plan, masterPlan, runbook, reference] = await Promise.all(
+      [
+        "../docs/architecture/ci-evidence-trust-and-retention.md",
+        "../docs/plans/2026-08-19-1737-refactor-local-first-ci-plan.md",
+        "../docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md",
+        "../docs/runbooks/release.md",
+        "../docs/reference/candidate-evidence-bundle.md",
+      ].map((path) => readFile(resolve(import.meta.dir, path), "utf8")),
     );
+
+    expect(policy).toMatch(/required personal-project baseline/is);
+    expect(policy).toMatch(/default evidence baseline.*without requiring a private PKI ceremony/is);
+    expect(policy).toMatch(/optional high-assurance signing profile/is);
+
+    expect(plan).toMatch(/\*\*Current parent\/child stage:\*\* CI-U7\.3\b/);
+    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* `CI-U7\.3`/);
+    expect(plan).toMatch(
+      /CI-U7\.2 is complete only for the optional high-assurance signed profile/is,
+    );
+    expect(plan).toMatch(
+      /CI-U7\.2 — Implement optional signed profile:[\s\S]{0,300}high-assurance profile is complete/is,
+    );
+    expect(plan).toMatch(
+      /\*\*Next concrete action:\*\*[\s\S]{0,220}CI-U7\.3[\s\S]{0,220}no-PKI baseline[\s\S]{0,220}build\/verify\/retain\/restore/is,
+    );
+    expect(masterPlan).toMatch(
+      /\*\*Next action:\*\*[\s\S]{0,220}no-PKI build\/verify\/retain\/restore path/is,
+    );
+
     expect(runbook).toContain("--capsule-receipt");
     expect(runbook).toContain("intel:intel-append-only:intel-jenkins");
-    expect(runbook).toMatch(/one declared.*verified retention target/is);
+    expect(runbook).toMatch(
+      /default solo-developer release baseline.*does not require.*offline root/is,
+    );
+    expect(runbook).toMatch(/one encrypted.*durable copy.*digest read-back/is);
     expect(runbook).toMatch(/second.*recommended.*not required/is);
-    expect(reference).toMatch(/needs local bytes.*GitHub metadata/s);
+    expect(reference).toMatch(/signed profile.*needs local bytes.*GitHub metadata/s);
     expect(reference).toMatch(/offline Ed25519 root.*short-lived signer/s);
-    expect(reference).toMatch(/one successfully written and read-back-verified target/s);
+    expect(reference).toMatch(
+      /signed-profile finalization.*one successfully written and read-back-verified target/is,
+    );
+    expect(runbook).toMatch(
+      /current `evidence:build`, `evidence:verify`, and `evidence:restore` commands are\s+signed-profile-only/is,
+    );
+    expect(runbook).toMatch(
+      /Use the commands below only when a later REL\/security decision explicitly activates the optional\s+high-assurance signed profile/is,
+    );
   });
 });

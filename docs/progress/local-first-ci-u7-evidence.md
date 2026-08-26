@@ -94,3 +94,36 @@ This file retains focused CI-U7 evidence and does not own the current-unit queue
 - The full structured review used correctness, standards, testing, maintainability, security,
   reliability, performance, API-contract, and adversarial lenses. Four findings were applied and a
   fresh validator confirmed all four resolved.
+
+## CI-U7 solo-developer policy amendment and U7.3 gap — 2026-08-26
+
+- The operator explicitly accepted a proportionate personal-project baseline and removed live
+  offline-root, short-lived signer, signed-witness, and recurring signing/restore ceremony from CI,
+  candidate, and launch completion authority.
+- Exact clean source identity, the complete validation-class capsule report and receipt, toolchain
+  and artifact SHA-256 digests, secret scanning, one encrypted versioned/append-only durable target,
+  digest read-back, and a practical restore check at target adoption/material change remain the
+  required baseline.
+- The existing Ed25519 implementation and its negative-path tests remain available as an optional
+  high-assurance profile. No unsigned result is relabeled as signed, and no signing key or trust file
+  is claimed to have been provisioned.
+- Intel Jenkins `shoppp-main#17` passed the provider-neutral post-commit lane against exact integrated
+  SHA `63b71c82` and retained its machine-readable report. That result does not exercise the amended
+  no-PKI build/verify/retain/restore baseline and does not close parent CI-U7.
+- The existing `evidence:build`, `evidence:verify`, and `evidence:restore` commands still require the
+  signed-profile certificate/signer/trust inputs. The correctness review therefore reopened the
+  parent tail: the active plan owns CI-U7.3 for an executable unsigned path, profile-isolation tests,
+  and one practical Intel-target restore. This file records that gap but does not own its queue.
+- Re-entry triggers are multiple release operators, external artifact consumers, regulatory or
+  contractual audit, shared/untrusted runners, cross-provider provenance requirements, or an
+  observed tampering or credential-compromise event.
+
+## Temporary worktree — solo-developer signing amendment
+
+- Path: `.worktrees/relax-ci-u7-signing`
+- Branch: `codex/relax-ci-u7-signing`
+- Owner/purpose: amend CI-U7 signing authority and downstream documentation without touching the
+  concurrent dirty FS-U8 primary checkout.
+- Cleanup condition: remove the checkout after the exact amendment commit is integrated. Its branch,
+  commit, historical signed-profile implementation, and retained evidence are not deleted by
+  worktree cleanup.

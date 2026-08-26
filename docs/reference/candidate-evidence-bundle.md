@@ -1,8 +1,19 @@
-# Candidate evidence bundle contract
+# Optional signed candidate evidence bundle profile
 
-The CI-U7 bundle is a provider-neutral, content-addressed directory. Its verifier needs local bytes
-and an independently distributed trust store; GitHub metadata, APIs, checks, releases, and artifact
-URLs are optional projections and are not inputs.
+This document describes CI-U7's implemented high-assurance signed profile. The current
+solo-developer baseline does not require this profile, an offline root, a signer certificate, or a
+signed retention witness. Baseline authority is defined by
+`docs/architecture/ci-evidence-trust-and-retention.md` and retains exact source, full validation,
+SHA-256 digests, secret scanning, durable read-back, and practical restore requirements.
+
+The current `evidence:build`, `evidence:verify`, and `evidence:restore` entry points implement only
+this signed profile. CI-U7.3 remains open to add the repository-owned no-PKI baseline commands,
+signed/unsigned profile-isolation tests, and one practical restore against the adopted Intel target;
+an ad-hoc copy or retained post-commit report is not a substitute.
+
+When explicitly activated, the signed bundle is a provider-neutral, content-addressed directory. Its
+verifier needs local bytes and an independently distributed trust store; GitHub metadata, APIs,
+checks, releases, and artifact URLs are optional projections and are not inputs.
 
 ## Layout
 
@@ -60,8 +71,8 @@ objects, altered bytes, renamed objects, and a wrong directory inventory all fai
 
 ## Retention and recovery
 
-Authoritative finalization requires one successfully written and read-back-verified target followed
-by a signed retention witness. The current baseline requires that target set to include the
+Signed-profile finalization requires one successfully written and read-back-verified target followed
+by a signed retention witness. The implemented profile requires that target set to include the
 `intel-append-only` class; a VPS/object-lock target is not a substitute for the approved Intel
 baseline. A second independently
 administered VPS/object-lock target is recommended for disaster recovery but is not required. If
