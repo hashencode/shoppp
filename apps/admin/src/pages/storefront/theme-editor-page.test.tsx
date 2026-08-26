@@ -1201,12 +1201,10 @@ describe('ThemeEditorPage', () => {
       'catalog.read',
     ])
     await screen.findByText('Ready')
-    await waitFor(() =>
-      expect(document.activeElement).toBe(
-        screen.getByRole('button', { name: 'Open authenticated preview' })
-      )
+    expect(await screen.findByText('Returned from private preview.')).toBeTruthy()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Open authenticated preview' })
     )
-    expect(screen.getByText('Returned from private preview.')).toBeTruthy()
     expect(window.location.search).toBe('')
     expect(previewContextQuery).toContain('draftVersion=1')
     expect(previewContextQuery).toContain(`catalogReleaseId=${releaseId}`)

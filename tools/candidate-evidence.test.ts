@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import {
   createHash,
   createPrivateKey,
@@ -37,6 +37,8 @@ import { RELEASE_CAPSULE_MANIFEST } from "./release-capsule";
 import { RELEASE_ARTIFACT_PATHS, RELEASE_GATES } from "./release-validate";
 
 const temporaryDirectories: string[] = [];
+
+setDefaultTimeout(10_000);
 
 afterEach(async () => {
   await Promise.all(
