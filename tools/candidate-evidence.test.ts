@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createHash, generateKeyPairSync, type KeyObject } from "node:crypto";
+import {
+  createHash,
+  createPrivateKey,
+  generateKeyPairSync,
+  sign,
+  type KeyObject,
+} from "node:crypto";
 import {
   chmod,
   cp,
@@ -7,6 +13,7 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  rename,
   rm,
   symlink,
   unlink,
@@ -343,35 +350,150 @@ describe("portable candidate evidence", () => {
     ).rejects.toThrow(/bundle signature/i);
   });
 
-  test("requires both retention classes but restores exact bytes from either surviving copy", async () => {
+  test("finalizes and restores from one required retention target", async () => {
+    const value = await fixture();
+    const retentionTargets = [value.options.retentionTargets[0]!];
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "single-retention-copy",
+      retentionTargets,
+    });
+    expect(built.retentionCopies).toHaveLength(1);
+    expect(built.retentionCopies[0]).toMatchObject({ id: "intel", status: "verified" });
+    const destination = join(value.root, "single-retention-restore");
+    await expect(
+      restoreCandidateEvidenceBundle({
+        bundleDigest: built.bundleDigest,
+        destination,
+        now: "2026-08-25T01:05:00.000Z",
+        retentionTargets,
+        trustStorePath: value.trustStorePath,
+      }),
+    ).resolves.toMatchObject({ sourceRetentionId: "intel" });
+    expect(await readFile(join(destination, "manifest.json"), "utf8")).toBe(
+      await readFile(join(built.bundlePath, "manifest.json"), "utf8"),
+    );
+  });
+
+  test("verifies and restores signed bundles from the superseded policy", async () => {
+    const value = await fixture();
+    const built = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "legacy-policy",
+    });
+    const signerPrivateKey = createPrivateKey(await readFile(value.signerPrivateKeyPath));
+    let legacyBundleDigest = "";
+    for (const retentionRoot of [value.retentionA, value.retentionB]) {
+      const retainedBundle = join(retentionRoot, built.bundleDigest);
+      const manifestPath = join(retainedBundle, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      manifest.policyVersion = "2026-08-25";
+      await writeFile(manifestPath, `${canonicalJson(manifest)}\n`);
+
+      const signaturePath = join(retainedBundle, "signature.json");
+      const bundleSignature = JSON.parse(await readFile(signaturePath, "utf8"));
+      bundleSignature.manifestDigest = `sha256:${createHash("sha256")
+        .update(canonicalJson(manifest))
+        .digest("hex")}`;
+      bundleSignature.signature = sign(
+        null,
+        Buffer.from(
+          canonicalJson({
+            manifestDigest: bundleSignature.manifestDigest,
+            provenanceDigest: bundleSignature.provenanceDigest,
+          }),
+        ),
+        signerPrivateKey,
+      ).toString("base64");
+      await writeFile(signaturePath, `${canonicalJson(bundleSignature)}\n`);
+
+      const copyDigest = await rewriteBundleDigest(retainedBundle);
+      if (legacyBundleDigest) expect(copyDigest).toBe(legacyBundleDigest);
+      legacyBundleDigest = copyDigest;
+      await rename(retainedBundle, join(retentionRoot, legacyBundleDigest));
+      const oldWitnessPath = join(retentionRoot, `${built.bundleDigest}.quorum.json`);
+      const witness = JSON.parse(await readFile(oldWitnessPath, "utf8"));
+      witness.payload.bundleDigest = legacyBundleDigest;
+      witness.signature = sign(
+        null,
+        Buffer.from(canonicalJson(witness.payload)),
+        signerPrivateKey,
+      ).toString("base64");
+      await writeFile(
+        join(retentionRoot, `${legacyBundleDigest}.quorum.json`),
+        `${canonicalJson(witness)}\n`,
+      );
+      await unlink(oldWitnessPath);
+    }
+
+    const legacyBundle = join(value.retentionA, legacyBundleDigest);
+
+    await expect(
+      verifyCandidateEvidenceBundle({
+        bundlePath: legacyBundle,
+        expectedBundleDigest: legacyBundleDigest,
+        now: "2026-08-25T01:05:00.000Z",
+        trustStorePath: value.trustStorePath,
+      }),
+    ).resolves.toMatchObject({ manifest: { policyVersion: "2026-08-25" } });
+    await expect(
+      restoreCandidateEvidenceBundle({
+        bundleDigest: legacyBundleDigest,
+        destination: join(value.root, "legacy-policy-restore"),
+        now: "2026-08-25T01:05:00.000Z",
+        retentionTargets: value.options.retentionTargets,
+        trustStorePath: value.trustStorePath,
+      }),
+    ).resolves.toMatchObject({ sourceRetentionId: "intel" });
+    await rm(value.retentionA, { recursive: true });
+    await expect(
+      restoreCandidateEvidenceBundle({
+        bundleDigest: legacyBundleDigest,
+        destination: join(value.root, "legacy-policy-fallback-restore"),
+        now: "2026-08-25T01:05:00.000Z",
+        retentionTargets: value.options.retentionTargets,
+        trustStorePath: value.trustStorePath,
+      }),
+    ).resolves.toMatchObject({ sourceRetentionId: "vps" });
+
+    const vpsWitnessPath = join(value.retentionB, `${legacyBundleDigest}.quorum.json`);
+    const downgradedWitness = JSON.parse(await readFile(vpsWitnessPath, "utf8"));
+    downgradedWitness.payload.retentionTargets = [
+      downgradedWitness.payload.retentionTargets.find(
+        (target: { id: string }) => target.id === "intel",
+      ),
+    ];
+    downgradedWitness.signature = sign(
+      null,
+      Buffer.from(canonicalJson(downgradedWitness.payload)),
+      signerPrivateKey,
+    ).toString("base64");
+    await writeFile(vpsWitnessPath, `${canonicalJson(downgradedWitness)}\n`);
+    await expect(
+      restoreCandidateEvidenceBundle({
+        bundleDigest: legacyBundleDigest,
+        destination: join(value.root, "legacy-policy-downgrade-restore"),
+        now: "2026-08-25T01:05:00.000Z",
+        retentionTargets: [{ ...value.options.retentionTargets[0]!, root: value.retentionB }],
+        trustStorePath: value.trustStorePath,
+      }),
+    ).rejects.toThrow(/no valid retention copy/);
+  });
+
+  test("requires every declared retention target but can restore from a surviving copy", async () => {
     const value = await fixture();
     const unavailable = join(value.root, "not-a-directory");
     await writeFile(unavailable, "occupied\n");
     await expect(
       buildCandidateEvidenceBundle({
         ...value.options,
-        attemptId: "missing-copy",
+        attemptId: "missing-declared-copy",
         retentionTargets: [
           value.options.retentionTargets[0]!,
           { ...value.options.retentionTargets[1]!, root: unavailable },
         ],
       }),
-    ).rejects.toThrow(/2\/2 retention quorum/);
-    const partialDigest = (await readdir(value.spool)).find((name) => name.startsWith("sha256:"));
-    expect(partialDigest).toBeDefined();
-    expect(await readdir(value.retentionA)).toEqual([]);
-    await expect(
-      restoreCandidateEvidenceBundle({
-        bundleDigest: partialDigest!,
-        destination: join(value.root, "partial-restore"),
-        now: "2026-08-25T01:05:00.000Z",
-        retentionTargets: [
-          value.options.retentionTargets[0]!,
-          { ...value.options.retentionTargets[1]!, root: unavailable },
-        ],
-        trustStorePath: value.trustStorePath,
-      }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/declared retention target/);
 
     const built = await buildCandidateEvidenceBundle({
       ...value.options,
@@ -414,18 +536,74 @@ describe("portable candidate evidence", () => {
     ).resolves.toMatchObject({ sourceRetentionId: "vps" });
   });
 
-  test("rejects retention targets that claim separate classes inside one administrative domain", async () => {
+  test("removes partially published witnesses when a declared target rejects publication", async () => {
     const value = await fixture();
+    const attemptId = "witness-publication-failure";
+    const built = await buildCandidateEvidenceBundle({ ...value.options, attemptId });
+    const firstWitness = join(value.retentionA, `${built.bundleDigest}.quorum.json`);
+    await Promise.all([
+      rm(built.bundlePath, { recursive: true }),
+      rm(join(value.retentionA, built.bundleDigest), { recursive: true }),
+      rm(join(value.retentionB, built.bundleDigest), { recursive: true }),
+      rm(firstWitness),
+    ]);
+
+    await expect(buildCandidateEvidenceBundle({ ...value.options, attemptId })).rejects.toThrow();
+    await expect(readFile(firstWitness)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  test("allows same-domain optional copies but rejects duplicate target identities and roots", async () => {
+    const value = await fixture();
+    const sameDomainTargets = value.options.retentionTargets.map((target) => ({
+      ...target,
+      administrativeDomain: "shared-admin",
+    }));
     await expect(
       buildCandidateEvidenceBundle({
         ...value.options,
         attemptId: "same-domain",
-        retentionTargets: value.options.retentionTargets.map((target) => ({
+        retentionTargets: sameDomainTargets,
+      }),
+    ).resolves.toMatchObject({ retentionCopies: [{ status: "verified" }, { status: "verified" }] });
+    await expect(
+      buildCandidateEvidenceBundle({
+        ...value.options,
+        attemptId: "vps-only",
+        retentionTargets: [value.options.retentionTargets[1]!],
+      }),
+    ).rejects.toThrow(/requires an Intel append-only retention target/);
+    await expect(
+      buildCandidateEvidenceBundle({
+        ...value.options,
+        attemptId: "too-many-targets",
+        retentionTargets: [
+          ...sameDomainTargets,
+          {
+            administrativeDomain: "shared-admin",
+            id: "third",
+            retentionClass: "intel-append-only",
+            root: join(value.root, "retention-c"),
+          },
+        ],
+      }),
+    ).rejects.toThrow(/at most two retention targets/);
+    await expect(
+      buildCandidateEvidenceBundle({
+        ...value.options,
+        attemptId: "duplicate-id",
+        retentionTargets: sameDomainTargets.map((target) => ({ ...target, id: "duplicate" })),
+      }),
+    ).rejects.toThrow(/IDs must be unique/);
+    await expect(
+      buildCandidateEvidenceBundle({
+        ...value.options,
+        attemptId: "duplicate-root",
+        retentionTargets: sameDomainTargets.map((target) => ({
           ...target,
-          administrativeDomain: "shared-admin",
+          root: value.retentionA,
         })),
       }),
-    ).rejects.toThrow(/administrative domains/);
+    ).rejects.toThrow(/roots must be distinct/);
   });
 
   test("rejects permissive signer-key custody and symlinked capsule evidence", async () => {

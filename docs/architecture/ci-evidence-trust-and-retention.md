@@ -1,6 +1,7 @@
 # CI Evidence Trust and Retention Policy
 
-Status: approved by the Shoppp operator on 2026-08-25 for CI-U7.1.
+Status: approved by the Shoppp operator on 2026-08-25 for CI-U7.1 and amended by the operator on
+2026-08-26 to require one durable retention target instead of two administrative domains.
 
 This policy governs portable full-validation evidence. It does not select a development candidate,
 complete DC/PG, authorize deployment, or place production credentials in ordinary CI.
@@ -17,8 +18,8 @@ be promoted into executable input without a later versioned REL decision and exa
 - Algorithm: Ed25519. Every key has a stable safe key ID; SHA-256 identifies certificates and signed
   bytes.
 - Root custody: the root private key is offline and outside GitHub, Jenkins, persistent runners, and
-  ordinary developer shells. Its public trust record is distributed through both retention domains
-  and operator-controlled recovery media.
+  ordinary developer shells. Its public trust record is distributed through the required retention
+  target and operator-controlled recovery media; distribution to an optional replica is recommended.
 - Online signer: the offline root signs a short-lived Jenkins signer certificate bound to key ID,
   public key, issue time, expiry time, and `candidate-evidence` usage. The signer private key is a
   host-owned credential file readable only in the dedicated release-operator context.
@@ -33,21 +34,27 @@ be promoted into executable input without a later versioned REL decision and exa
 Private keys, storage credentials, trust-store locations, and retention endpoints are operational
 configuration and must never enter repository content or bundle logs.
 
-## Independent retention and quorum
+## Required retention and optional redundancy
 
-Every authoritative bundle requires a `2/2` successful exact-byte write and read-back verification:
+Every authoritative bundle requires at least one successful exact-byte write and read-back
+verification to an operator-approved durable target. The current required target is
+`intel-append-only`: encrypted Intel Jenkins evidence storage rooted operationally under
+`/srv/shoppp-evidence`, with the Jenkins release writer able to create but not delete retained
+versions.
 
-1. `intel-append-only`: encrypted Intel Jenkins evidence storage rooted operationally under
-   `/srv/shoppp-evidence`, with the Jenkins release writer able to create but not delete retained
-   versions.
-2. `operator-vps-object-lock`: encrypted transport to an operator-controlled VPS or S3-compatible
-   object store in a separate credential and administrative domain, with versioning or immutable
-   retention and separate deletion authority.
+An `operator-vps-object-lock` replica in a separate credential and administrative domain remains
+recommended for disaster recovery, but it is not required for CI-U7 acceptance. A runner workspace,
+ordinary Jenkins build artifact, or GitHub artifact does not satisfy the durable target. If an
+operator declares multiple targets in one build invocation, every declared target must pass its
+write and read-back verification; an unavailable optional replica must be omitted rather than
+silently reported as protected. Every verified target receives the signed retention witness and may
+restore the exact bytes. Restore creates new recovery metadata and never fabricates original
+execution metadata.
 
-A runner workspace, Jenkins build artifact, GitHub artifact, or two directories under one
-credential domain never satisfies the two classes. Missing projection, read-back mismatch, or an
-undeclared class prevents authoritative finalization. Either class may restore the exact bytes;
-restore creates new recovery metadata and never fabricates original execution metadata.
+The accepted single-target baseline has a known correlated-loss risk: host loss, administrative
+compromise, or destructive storage failure can remove the only retained copy. The operator accepts
+that risk in exchange for simpler operation and may add a second target later without changing
+bundle or verifier semantics.
 
 ## Artifact classes, access, and retention
 

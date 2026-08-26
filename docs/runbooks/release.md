@@ -140,9 +140,9 @@ bun tools/candidate-evidence.ts issue-certificate \
   --output <signer-certificate.json>
 ```
 
-After a passing capsule run, the dedicated release-operator context builds and independently
-projects the bundle. Both retention roots must already be encrypted, separately administered,
-write-once/versioned mounts; two ordinary directories do not satisfy the policy:
+After a passing capsule run, the dedicated release-operator context builds and projects the bundle
+to one declared, operator-approved durable target. That target must be encrypted and
+write-once/versioned outside the transient workspace:
 
 ```sh
 SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
@@ -159,18 +159,22 @@ SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
   --executor-id <executor-id> \
   --adapter-id <adapter-id> \
   --audit-log <append-only-audit.jsonl> \
-  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence \
-  --retention vps:operator-vps-object-lock:operator-vps:<independent-mounted-root>
+  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
 ```
 
 The build refuses a dirty or untracked non-ignored checkout, a non-exact HEAD, a non-validation
 capsule, source/report mismatch, permissive signer-key permissions, symlinked evidence, an unknown,
-expired, or revoked signer, secret-shaped content, duplicate management domains, or less than a
-`2/2` verified copy quorum. Both copies are staged and verified before a signed quorum witness is
-published to both administrative domains. Either surviving domain can restore independently when
-its signed witness binds the requested digest and both original target identities. It emits only
-allowlisted structured audit fields. A successful bundle
-remains evidence preparation, not candidate selection or deployment authorization.
+expired, or revoked signer, secret-shaped content, no retention target, duplicate target IDs/roots,
+no `intel-append-only` target, more than two targets, or any declared target that cannot be written
+and read-back verified. The verified retention target
+receives a signed witness that binds the requested digest and all targets declared by that build. It
+emits only allowlisted structured audit fields. A successful bundle remains evidence preparation,
+not candidate selection or deployment authorization.
+
+A second independently administered VPS/object-lock target is recommended for disaster recovery,
+but it is not required for CI-U7 acceptance. To use one, add another `--retention` argument. Every
+target declared in that invocation becomes required for that invocation; omit an unavailable
+optional target rather than treating a failed backup as successful redundancy.
 
 Verification uses no GitHub API or artifact URL:
 
@@ -178,8 +182,9 @@ Verification uses no GitHub API or artifact URL:
 bun run evidence:verify -- --bundle <bundle-directory> --digest <sha256:bundle-digest> --trust-store <trust-store.json>
 ```
 
-If one retention class is unavailable or corrupt, restore tries each declared class, verifies the
-source copy before reading, copies exact bytes into a new destination, and verifies again:
+Restore verifies the declared source copy before reading, copies exact bytes into a new destination,
+and verifies again. When the original build declared more than one target, provide the same target
+list and restore will try them in order:
 
 ```sh
 bun run evidence:restore -- \
@@ -187,12 +192,11 @@ bun run evidence:restore -- \
   --destination <new-empty-restore-path> \
   --trust-store <trust-store.json> \
   --audit-log <append-only-audit.jsonl> \
-  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence \
-  --retention vps:operator-vps-object-lock:operator-vps:<independent-mounted-root>
+  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
 ```
 
 An expired or revoked signer is refused during current verification. Compromise response revokes
-the signer ID in both independently distributed trust stores, stops finalization, provisions a new
+the signer ID in the required trust store and operator recovery copy, stops finalization, provisions a new
 short-lived signer from the offline root, and reruns the exact source in a clean capsule; historical
 bytes are never silently re-signed.
 

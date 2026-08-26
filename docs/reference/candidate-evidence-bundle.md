@@ -52,24 +52,27 @@ The verifier fails closed and names the earliest invalid component:
 4. verify manifest/provenance digests and the bundle signature;
 5. verify every content-addressed object, the complete 17-gate passing report, receipt/toolchain
    linkage, artifact inventory, and the Git tree derived from the archived source bytes;
-6. for restore, require the surviving domain's signed quorum witness to bind both configured
-   administrative domains, copy through a temporary sibling, reverify, and atomically rename.
+6. for restore, require the source target's signed retention witness to bind every target declared
+   by that build, copy through a temporary sibling, reverify, and atomically rename.
 
 Unknown roots, revoked or expired signers, mismatched source/report/capsule identities, missing
 objects, altered bytes, renamed objects, and a wrong directory inventory all fail verification.
 
 ## Retention and recovery
 
-Authoritative finalization requires exactly the two approved retention classes in different
-declared administrative domains and a `2/2` copy plus read-back verification followed by a signed
-quorum witness published to both stores. The repository tool
-accepts filesystem roots so the operator can expose an encrypted append-only Intel store and an
-independently authenticated VPS/object-lock store through host-controlled mounts. Repository code
-does not receive storage credentials and cannot prove administrative separation merely from path
-names; the operator must establish and audit that external control.
+Authoritative finalization requires one successfully written and read-back-verified target followed
+by a signed retention witness. The current baseline requires that target set to include the
+`intel-append-only` class; a VPS/object-lock target is not a substitute for the approved Intel
+baseline. A second independently
+administered VPS/object-lock target is recommended for disaster recovery but is not required. If
+multiple targets are declared in one build, every declared target must verify before finalization;
+the tool never silently ignores a failed configured replica. Repository code does not receive
+storage credentials and cannot prove encryption, immutability, or administrative control merely
+from path names, so the operator must establish and audit those properties externally.
 
-Restore accepts the immutable bundle digest, verifies the surviving domain's signed witness binds
-the original `2/2` quorum and target identities, verifies that source copy, copies exact bytes
-through a unique temporary sibling, verifies it, atomically renames it to the destination, and
-records new restore metadata. It never changes
-or fabricates the original execution provenance.
+Restore accepts the immutable bundle digest, verifies the source target's signed witness binds the
+requested digest and the original declared target identities, verifies that source copy, copies
+exact bytes through a unique temporary sibling, verifies it, atomically renames it to the
+destination, and records new restore metadata. It never changes or fabricates the original
+execution provenance. A single retained target is sufficient for this operation; when several were
+declared, restore tries them in order and can recover from any surviving valid copy.

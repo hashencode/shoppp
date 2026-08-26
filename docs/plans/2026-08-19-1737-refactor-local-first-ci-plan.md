@@ -59,13 +59,13 @@ dedicated-account isolation, exact-SHA pre-job admission, fail-closed cleanup, r
 deregistration without reusing FS-U8 authority. No runner was registered and no credential was
 handled; those remain human-only operations.
 
-- **Current parent/child stage:** CI-U7.2 — operationally prove portable candidate evidence. The
-  repository implementation and local verification completed through `6cf0cd69`: the bundle now
-  binds the complete passing capsule report, archived Git tree, declared toolchain and external
-  digest; signing authority fails closed; `2/2` projection publishes signed quorum witnesses only
-  after both read-backs; and either surviving domain can restore exact bytes atomically. CI-U7.1
-  completed on 2026-08-25 when the operator approved the REL source-input, Ed25519 signing,
-  two-domain `2/2` retention, and artifact-class audit/retention policy recorded in
+- **Current parent/child stage:** CI-U7.2 — the amended portable candidate-evidence repository
+  implementation and local verification are complete; landing and live operational proof remain.
+  On 2026-08-26 the operator explicitly replaced mandatory two-domain
+  `2/2` retention with one required durable target; a second independent replica remains
+  recommended but is no longer acceptance authority. Existing source/report/toolchain/digest,
+  signing, redaction, atomic-write, and exact-restore requirements remain unchanged. CI-U7.1
+  originally completed on 2026-08-25 and is amended by this operator decision in
   `docs/architecture/ci-evidence-trust-and-retention.md`. CI-U12 is
   complete on exact commit `47b6b340`: all 17 unchanged gates passed in the pinned `linux/amd64`
   capsule on the independent Intel executor, with a validation-class receipt and retained transfer,
@@ -73,15 +73,15 @@ handled; those remain human-only operations.
   human adoption. Intel Jenkins build `shoppp-main#15` independently passed the provider-neutral
   post-commit lane against exact integrated SHA `72cc2bdf` in 176.547 seconds and retained its
   machine-readable report under the host-controlled evidence root.
-- **Next concrete action:** Provision the approved offline root/signer/trust files and two genuinely
-  independent retention endpoints, then retain one live signed `2/2` build/verify plus
-  single-survivor restore exercise. Separately run the
+- **Next concrete action:** Land the verified single-target implementation on `main`, mirror that
+  exact tree to Intel Jenkins, and require the provider-neutral post-commit job to pass. Then provision the
+  approved offline root/signer/trust files and retain one live signed build/verify plus exact-byte
+  restore against `/srv/shoppp-evidence` on the Intel server. Separately run the
   hosted Ubuntu adapter when GitHub Actions billing permits; that compatibility evidence is not
   CI-U12 completion authority.
 - **Current blockers:** CI-U7.2 operational completion requires provisioned offline-root/signer/trust
-  files and two approved,
-  administratively independent retention domains; repository code fails closed while any is absent.
-  The second VPS endpoint has not yet been supplied. GitHub billing blocks only the optional hosted-adapter
+  files and one approved durable retention target; repository code fails closed while any is absent.
+  A second VPS is not required. GitHub billing blocks only the optional hosted-adapter
   compatibility check. CI-U4 also cannot complete until a human adopts and operates the optional
   runner for the bounded 14-day sample.
 - **Tail:** CI-U7–CI-U11 is the active provider-resilience track; CI-U4/CI-U6 remains the
@@ -89,12 +89,12 @@ handled; those remain human-only operations.
   CI-U5 is retained as a stable deferred ID for optional future PR automation. CI-U6 and CI-U11 may record governed CI operating
   decisions, but they cannot change upstream product, release, candidate, or production policy or
   promote production automatically.
-- **Temporary isolation:** Worktree `.worktrees/ci-u7-portable-evidence` on branch
-  `codex/ci-u7-portable-evidence` owns CI-U7.1 policy capture and CI-U7.2 implementation because the
-  primary checkout contains concurrent FS-U8 work. Remove this checkout only after the exact
-  integrated tree is landed on `main`, mirrored to the Intel executor, and its provider-neutral
-  Jenkins job passes. Removing it never deletes its branch, commits, keys, retained bundles, or
-  evidence.
+- **Temporary isolation:** Worktree `.worktrees/relax-ci-u7-retention` on branch
+  `codex/relax-ci-u7-retention` owns the 2026-08-26 single-target policy amendment and implementation
+  because the primary checkout contains concurrent FS-U8 work. Remove this checkout only after the
+  exact integrated tree is landed on `main`, mirrored to the Intel executor, and its
+  provider-neutral Jenkins job passes. The earlier `.worktrees/ci-u7-portable-evidence` checkout was
+  removed after its recorded cleanup condition passed; its branch and evidence remain retained.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
   `docs/progress/` may retain results but must not become a second current-unit queue.
 
@@ -227,9 +227,9 @@ handled; those remain human-only operations.
   timestamps, and signer/provenance metadata. The bundle shall be verifiable and replayable without
   a GitHub API call or GitHub artifact URL.
 - **R20:** The canonical evidence bundle shall be retained outside transient runner workspaces and
-  any single CI provider. Retention shall use at least two independently recoverable copies, one of
-  which may be an encrypted operator-controlled archive; storage credentials and locations are
-  operational configuration, not repository data.
+  any single CI provider. Retention shall use at least one operator-approved, encrypted,
+  read-back-verified durable target. A second independently recoverable copy is recommended but not
+  required; storage credentials and locations are operational configuration, not repository data.
 - **R21:** GitHub degradation states shall be explicit: `normal`, `actions-degraded`,
   `github-unavailable`, and `recovery-audit`. Routine development may continue through local gates in
   every state; production promotion shall fail closed unless the default protected CD adapter or a
@@ -280,10 +280,12 @@ handled; those remain human-only operations.
   are mandatory. The default GitHub adapter preserves its existing protected-environment,
   actor/approval, exact-confirmation, and run-attempt semantics and maps them directly into the
   driver context; it does not claim this alternate-envelope contract.
-- **R31:** Evidence copies shall be in separate administrative and credential domains with encrypted
-  transport/storage, versioning or immutable retention, separate write/delete authority, declared
-  retention/deletion periods, auditable deletion and restore authorization, and periodic exact-byte
-  restoration tests. CI-U7.1 must name two concrete retention classes before bundle implementation starts.
+- **R31:** The required evidence target shall use encrypted transport/storage, versioning or
+  immutable retention, separated write/delete authority where the selected backend supports it,
+  declared retention/deletion periods, auditable deletion and restore authorization, and periodic
+  exact-byte restoration tests. CI-U7.1 must name at least one concrete retention class. Additional
+  targets may share an administrative domain, but duplicate IDs and roots are refused and every
+  target declared for a build must verify.
 - **R32:** Reports, bundles, receipts, adapter logs, and recovery exports shall use allowlisted
   structured fields; prohibit raw environment/credential-bearing command output; run redaction and
   canary-secret scanning before finalization/projection; and declare least-privilege read access,
@@ -298,7 +300,8 @@ handled; those remain human-only operations.
   retained. Bind them to authorization nonce, bundle digest, target, operation, adapter identity,
   idempotency key, observed remote state, predecessor receipt, and phase result; sign/MAC with an
   independently trusted adapter identity, hash-chain partial-mutation phases, retain exact bytes in
-  the two R31 domains, and fail closed when receipt integrity or recovery quorum is unavailable.
+  at least one R31 target, and fail closed when receipt integrity or the required retained copy is
+  unavailable. A second receipt target remains recommended but optional.
 - **R35:** Provider-neutral full validation shall run in a repository-defined, image-digest-pinned
   `linux/amd64` execution capsule containing the declared Bun, browser, font, and system toolchain.
   The current ARM64 Mac may execute it through the installed Docker/OrbStack runtime, but native
@@ -350,10 +353,12 @@ handled; those remain human-only operations.
    alternate is optional and must first beat the fail-closed baseline on measured release urgency,
    correlated-failure reduction, setup/quarterly cost, recovery time, and reversal cost. Governs
    R17, R21, R24–R25, R28, R30, and R33–R34.
-9. **KTD9 — Use content-addressed, independently retained evidence.**
-   An atomic local spool is finalized before projection, and at least two recoverable copies prevent
-   a CI control plane or artifact store from becoming the evidence authority. Late projection is
-   labeled as projection, not execution. Governs R5, R8, R19–R20, R26, R29, and R31–R34.
+9. **KTD9 — Use content-addressed, durably retained evidence.**
+   `(session-settled: user-directed — amended on 2026-08-26: one durable target is sufficient;
+   independent redundancy is recommended rather than mandatory.)` An atomic local spool is finalized
+   before projection, and at least one operator-approved retained copy prevents transient runner or
+   provider artifacts from becoming the evidence authority. Late projection is labeled as
+   projection, not execution. Governs R5, R8, R19–R20, R26, R29, and R31–R34.
 10. **KTD10 — Treat the historical CI branch as a prototype, not completion evidence.**
     The isolated `codex/refactor-local-first-ci` implementation is reconciled file-by-file against
     current `HEAD`; its commits may inform CI-U1–CI-U3 but shall not be merged wholesale or used to
@@ -626,7 +631,7 @@ stateDiagram-v2
   - Docker/OrbStack, network bootstrap, read-only Catalog credential, or required cache is absent;
     the result is an infrastructure failure and never a passing candidate bundle.
 
-### CI-U7 — Produce and independently retain portable candidate evidence
+### CI-U7 — Produce and durably retain portable candidate evidence
 
 - **Requirements:** R4–R5, R8, R18–R20, R23, R26, R29, R31–R32; KTD1, KTD7, KTD9.
 - **Depends on:** CI-U12 and an executable REL-owned source-input policy accepted by REL as
@@ -638,14 +643,16 @@ stateDiagram-v2
 - **Approach:** Add a provider-neutral bundle builder/verifier around existing release outputs. Bind
   source commit and tree, dirty/untracked observation, lockfile/tier-manifest/toolchain digests,
   reports, artifact digests, timestamps, provenance, and attempt lineage. Store exact bytes in an
-  atomic local spool and two independently recoverable retention locations. Do not silently close
+  atomic local spool and at least one durable retention location. An independent second location is
+  optional. Do not silently close
   REL's known untracked-file/candidate-identity gap; cite and coordinate it.
 - **Likely files:** `tools/release-validate.ts`, focused bundle builder/verifier and tests,
   `docs/runbooks/release.md`, provider-neutral evidence schema documentation.
 - **Child stages:**
   - **CI-U7.1 — Settle trust and retention:** a human records the concrete signing trust root/key
-    lifecycle, two administratively independent retention classes, copy quorum, and artifact-class
-    logging/retention policy. Implementation agents may not invent these security authorities.
+    lifecycle, at least one approved durable retention class, declared-target success rule, and
+    artifact-class logging/retention policy. Implementation agents may not invent these security
+    authorities.
   - **CI-U7.2 — Build and verify:** implement the provider-neutral bundle, signer/verifier, atomic
     spool, replication, restore, and negative-path contract after CI-U7.1 and the REL entry criterion.
 - **Test scenarios:**
@@ -657,8 +664,9 @@ stateDiagram-v2
     verifier fails closed and names the mismatched component.
   - Dirty tracked content, an untracked source, generated output, ignored material input, or an empty
     allowlist violates the REL policy; bundle finalization fails before artifact authority exists.
-  - One retention copy is unavailable or corrupt; the second restores exact bytes, and replay never
-    fabricates original execution metadata.
+  - One configured retention target finalizes and restores exact bytes. If several targets were
+    declared and one later becomes unavailable or corrupt, another restores exact bytes; replay
+    never fabricates original execution metadata.
   - A signer is unknown, expired, or revoked, or a seeded canary secret reaches any report/bundle;
     finalization or verification fails closed and produces only a redacted diagnostic.
 
@@ -734,8 +742,9 @@ stateDiagram-v2
     use limit, outside clock tolerance, or bound to another adapter; secret issuance and mutation
     both fail closed. Otherwise tests prove no alternate envelope/issuer path exists.
   - An issuer key is substituted/revoked mid-window, a phase receipt is deleted/reordered/altered, or
-    one receipt store loses quorum; verification and further mutation fail closed with recoverable
-    exact-state diagnostics.
+    the required receipt target loses integrity; verification and further mutation fail closed with
+    recoverable exact-state diagnostics. If optional replicas were declared, any valid surviving
+    copy can supply recovery.
   - The alternate adapter has no credentials while disabled and cannot run from the non-secret
     persistent runner or ordinary development shell.
   - Adapter-side upload/status failure cannot rewrite a successful or failed deployment receipt.
@@ -806,7 +815,8 @@ stateDiagram-v2
   FS-U8 preparation/acceptance/preview retain their feature-owned temporary-runner boundary and are
   not selectable by the normal non-secret CI runner.
 - Bundle tests prove exact source/toolchain/input/report/artifact/provenance binding, independent
-  verification, two-copy recovery, and rejection of any altered byte or missing authority.
+  verification, single-target finalization/restore, optional multi-copy fallback, and rejection of
+  any altered byte or missing authority.
 - Deployment-adapter contracts prove GitHub remains a thin default caller. If CI-U9.5 admits an
   alternate caller, it cannot acquire credentials or mutate a target without exact evidence and
   explicit authorization; on no-go, tests prove the path is absent/disabled and credential-free.
@@ -848,7 +858,8 @@ stateDiagram-v2
 | Tier drift | Local and remote results mean different things | One code-owned tier definition, stable scripts, membership/order tests, workflow wiring tests |
 | False release confidence | Short checks pass while release behavior fails | Preserve `release:validate` and hosted sensitive workflows; label CI reports advisory |
 | Billing remains blocked | GitHub-hosted mirror or CD cannot execute | Continue repository-owned local validation and candidate-bundle preparation; pause remote promotion unless a separately production-approved alternate exists |
-| Provider metadata/artifact is the only evidence | Outage destroys or blocks proof | Atomic provider-neutral spool, content-addressed bundle, two recoverable copies, replay/projection distinction |
+| Provider metadata/artifact is the only evidence | Outage destroys or blocks proof | Atomic provider-neutral spool, content-addressed bundle, one required durable copy, optional independent replica, replay/projection distinction |
+| Single retained target is destroyed or compromised | The only authoritative bundle copy is lost | Accepted operator tradeoff; immutable/versioned Intel storage, recovery media for trust, periodic exact-byte restore, and a recommended optional independent replica |
 | GitHub Actions/control plane unavailable | Routine work or candidate preparation stops | Local fast/post-commit/full commands continue; remote promotion fails closed unless a separately production-approved alternate exists |
 | Alternate CD weakens controls | Outage path bypasses secrets, approval, or rollback policy | Disabled-by-default isolated remote adapter, short-lived scoped credentials, exact bundle/target/authority binding, dry-run and rotation drill |
 | Active-plan interference | CI work mutates or reinterprets FS-U8 state or its temporary runner | Re-read current checkpoints before landing; contract-test separate labels/environments; no FS pointer edits |

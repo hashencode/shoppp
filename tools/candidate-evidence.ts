@@ -18,7 +18,9 @@ import { parseArgs } from "node:util";
 import { CAPSULE_PLATFORM, parsePassingReleaseReport } from "./release-capsule";
 import { safeReleaseId } from "./release-validate";
 
-const POLICY_VERSION = "2026-08-25";
+const CURRENT_POLICY_VERSION = "2026-08-26";
+const SUPPORTED_POLICY_VERSIONS = ["2026-08-25", CURRENT_POLICY_VERSION] as const;
+type EvidencePolicyVersion = (typeof SUPPORTED_POLICY_VERSIONS)[number];
 const MAX_CERTIFICATE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
 const SHA = /^[0-9a-f]{40,64}$/;
 const DIGEST = /^sha256:([0-9a-f]{64})$/;
@@ -68,7 +70,7 @@ interface EvidenceArtifact {
 
 export interface CandidateEvidenceManifest {
   schemaVersion: 1;
-  policyVersion: typeof POLICY_VERSION;
+  policyVersion: EvidencePolicyVersion;
   source: {
     archiveDigest: string;
     commit: string;
@@ -152,7 +154,7 @@ interface AddressedAuditEvent {
 
 type AuditEvent = PreparedAuditEvent | AddressedAuditEvent;
 
-interface QuorumWitnessPayload {
+interface RetentionWitnessPayload {
   at: string;
   bundleDigest: string;
   manifestDigest: string;
@@ -165,10 +167,10 @@ interface QuorumWitnessPayload {
   schemaVersion: 1;
 }
 
-interface QuorumWitness {
+interface RetentionWitness {
   algorithm: "Ed25519";
   certificate: SignerCertificate;
-  payload: QuorumWitnessPayload;
+  payload: RetentionWitnessPayload;
   signature: string;
 }
 
@@ -206,6 +208,10 @@ interface VerifyOptions {
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
+}
+
+function isEvidencePolicyVersion(value: unknown): value is EvidencePolicyVersion {
+  return SUPPORTED_POLICY_VERSIONS.some((version) => version === value);
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -697,18 +703,16 @@ function assertToolchainMatchesManifest(receipt: CapsuleReceipt, manifestBytes: 
 }
 
 function assertRetentionTargets(targets: RetentionTarget[]): void {
-  assert(targets.length === 2, "candidate evidence requires exactly two retention targets");
-  const classes = new Set(targets.map((target) => target.retentionClass));
-  assert(
-    classes.size === 2 &&
-      classes.has("intel-append-only") &&
-      classes.has("operator-vps-object-lock"),
-    "candidate evidence requires both approved retention classes",
-  );
+  assert(targets.length >= 1, "candidate evidence requires at least one retention target");
+  assert(targets.length <= 2, "candidate evidence supports at most two retention targets");
   const ids = new Set<string>();
   const roots = new Set<string>();
-  const administrativeDomains = new Set<string>();
   for (const target of targets) {
+    assert(
+      target.retentionClass === "intel-append-only" ||
+        target.retentionClass === "operator-vps-object-lock",
+      "retention class is invalid",
+    );
     safeReleaseId(target.id, "retention target ID");
     safeReleaseId(target.administrativeDomain, "retention administrative domain");
     assert(!ids.has(target.id), "retention target IDs must be unique");
@@ -716,15 +720,27 @@ function assertRetentionTargets(targets: RetentionTarget[]): void {
     const root = resolve(target.root);
     assert(!roots.has(root), "retention roots must be distinct");
     roots.add(root);
-    administrativeDomains.add(target.administrativeDomain);
   }
   assert(
-    administrativeDomains.size === 2,
-    "retention targets require separate administrative domains",
+    targets.some((target) => target.retentionClass === "intel-append-only"),
+    "candidate evidence requires an Intel append-only retention target",
   );
 }
 
-function witnessTargets(targets: RetentionTarget[]): QuorumWitnessPayload["retentionTargets"] {
+function assertRetentionPolicyTargets(
+  policyVersion: EvidencePolicyVersion,
+  targets: RetentionTarget[],
+): void {
+  if (policyVersion !== "2026-08-25") return;
+  assert(
+    targets.length === 2 &&
+      new Set(targets.map((target) => target.administrativeDomain)).size === 2 &&
+      new Set(targets.map((target) => target.retentionClass)).size === 2,
+    "legacy retention policy requires two independent targets",
+  );
+}
+
+function witnessTargets(targets: RetentionTarget[]): RetentionWitnessPayload["retentionTargets"] {
   return targets
     .map(({ administrativeDomain, id, retentionClass }) => ({
       administrativeDomain,
@@ -734,13 +750,13 @@ function witnessTargets(targets: RetentionTarget[]): QuorumWitnessPayload["reten
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 
-function parseQuorumWitness(value: unknown): QuorumWitness {
+function parseRetentionWitness(value: unknown): RetentionWitness {
   const witness = exactRecord(
     value,
     ["algorithm", "certificate", "payload", "signature"],
-    "quorum witness",
+    "retention witness",
   );
-  assert(witness.algorithm === "Ed25519", "quorum witness algorithm is invalid");
+  assert(witness.algorithm === "Ed25519", "retention witness algorithm is invalid");
   const payload = exactRecord(
     witness.payload,
     [
@@ -751,22 +767,22 @@ function parseQuorumWitness(value: unknown): QuorumWitness {
       "retentionTargets",
       "schemaVersion",
     ],
-    "quorum witness payload",
+    "retention witness payload",
   );
-  assert(payload.schemaVersion === 1, "quorum witness schema is invalid");
-  const at = string(payload.at, "quorum witness time");
-  assert(Number.isFinite(Date.parse(at)), "quorum witness time is invalid");
-  assert(Array.isArray(payload.retentionTargets), "quorum witness targets are invalid");
+  assert(payload.schemaVersion === 1, "retention witness schema is invalid");
+  const at = string(payload.at, "retention witness time");
+  assert(Number.isFinite(Date.parse(at)), "retention witness time is invalid");
+  assert(Array.isArray(payload.retentionTargets), "retention witness targets are invalid");
   const retentionTargets = payload.retentionTargets.map((candidate) => {
     const target = exactRecord(
       candidate,
       ["administrativeDomain", "id", "retentionClass"],
-      "quorum witness target",
+      "retention witness target",
     );
     assert(
       target.retentionClass === "intel-append-only" ||
         target.retentionClass === "operator-vps-object-lock",
-      "quorum witness retention class is invalid",
+      "retention witness retention class is invalid",
     );
     return {
       administrativeDomain: safeId(target.administrativeDomain, "retention administrative domain"),
@@ -779,34 +795,39 @@ function parseQuorumWitness(value: unknown): QuorumWitness {
     certificate: parseSignerCertificate(witness.certificate),
     payload: {
       at,
-      bundleDigest: digest(payload.bundleDigest, "quorum witness bundle digest"),
-      manifestDigest: digest(payload.manifestDigest, "quorum witness manifest digest"),
-      provenanceDigest: digest(payload.provenanceDigest, "quorum witness provenance digest"),
+      bundleDigest: digest(payload.bundleDigest, "retention witness bundle digest"),
+      manifestDigest: digest(payload.manifestDigest, "retention witness manifest digest"),
+      provenanceDigest: digest(payload.provenanceDigest, "retention witness provenance digest"),
       retentionTargets,
       schemaVersion: 1,
     },
-    signature: base64(witness.signature, "quorum witness signature"),
+    signature: base64(witness.signature, "retention witness signature"),
   };
 }
 
-async function verifyQuorumWitness(options: {
+async function verifyRetentionWitness(options: {
   bundleDigest: string;
   now?: string;
+  policyVersion: EvidencePolicyVersion;
   retentionTargets: RetentionTarget[];
   trustStorePath: string;
   witnessPath: string;
-}): Promise<QuorumWitness> {
+}): Promise<RetentionWitness> {
   const witness = canonicalDocument(
     await readFile(options.witnessPath),
-    "quorum witness",
-    parseQuorumWitness,
+    "retention witness",
+    parseRetentionWitness,
   );
-  assert(witness.payload.bundleDigest === options.bundleDigest, "quorum witness bundle mismatch");
+  assert(
+    witness.payload.bundleDigest === options.bundleDigest,
+    "retention witness bundle mismatch",
+  );
   assert(
     canonicalJson(witness.payload.retentionTargets) ===
       canonicalJson(witnessTargets(options.retentionTargets)),
-    "quorum witness target identities mismatch",
+    "retention witness target identities mismatch",
   );
+  assertRetentionPolicyTargets(options.policyVersion, options.retentionTargets);
   await verifyCertificate(
     witness.certificate,
     options.trustStorePath,
@@ -819,7 +840,7 @@ async function verifyQuorumWitness(options: {
       createPublicKey(witness.certificate.payload.signerPublicKeyPem),
       Buffer.from(witness.signature, "base64"),
     ),
-    "quorum witness signature is invalid",
+    "retention witness signature is invalid",
   );
   return witness;
 }
@@ -1029,7 +1050,7 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
       },
       declaredInputs,
       objects,
-      policyVersion: POLICY_VERSION,
+      policyVersion: CURRENT_POLICY_VERSION,
       releaseReport: {
         digest: reportObject.digest,
         path: reportObject.sourcePath,
@@ -1127,29 +1148,20 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
       );
       const failure = failedProjection.reason;
       throw new Error(
-        `2/2 retention quorum was not reached: ${failure instanceof Error ? failure.message : String(failure)}`,
+        `a declared retention target was not verified: ${failure instanceof Error ? failure.message : String(failure)}`,
         { cause: failure },
       );
     }
-    const retentionCopies = projectionResults.map(
-      (result) =>
-        (
-          result as PromiseFulfilledResult<
-            RetentionTarget & {
-              event: AddressedAuditEvent;
-              path: string;
-              status: "verified";
-            }
-          >
-        ).value,
-    );
-    assert(retentionCopies.length === 2, "2/2 retention quorum was not reached");
+    const retentionCopies = projectionResults.map((result) => {
+      assert(result.status === "fulfilled", "not every declared retention target was verified");
+      return result.value;
+    });
     for (const copy of retentionCopies) {
       const finalPath = join(copy.root, bundleDigest);
       await rename(copy.path, finalPath);
       copy.path = finalPath;
     }
-    const witnessPayload: QuorumWitnessPayload = {
+    const witnessPayload: RetentionWitnessPayload = {
       at: issuedAt,
       bundleDigest,
       manifestDigest,
@@ -1157,7 +1169,7 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
       retentionTargets: witnessTargets(options.retentionTargets),
       schemaVersion: 1,
     };
-    const witness: QuorumWitness = {
+    const witness: RetentionWitness = {
       algorithm: "Ed25519",
       certificate,
       payload: witnessPayload,
@@ -1165,27 +1177,56 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
         "base64",
       ),
     };
-    assertNoSecrets(Buffer.from(canonicalJson(witness)), "quorum witness", canarySecrets);
-    await Promise.all(
-      retentionCopies.map((copy) =>
-        writeCanonical(join(copy.root, `${bundleDigest}.quorum.json`), witness),
-      ),
-    );
-    const verifiedWitnesses = await Promise.all(
-      retentionCopies.map((copy) =>
-        verifyQuorumWitness({
-          bundleDigest,
-          now: issuedAt,
-          retentionTargets: options.retentionTargets,
-          trustStorePath: options.trustStorePath,
-          witnessPath: join(copy.root, `${bundleDigest}.quorum.json`),
-        }),
-      ),
-    );
-    assert(
-      canonicalJson(verifiedWitnesses[0]) === canonicalJson(verifiedWitnesses[1]),
-      "retention quorum witnesses differ",
-    );
+    assertNoSecrets(Buffer.from(canonicalJson(witness)), "retention witness", canarySecrets);
+    const witnessCopies = retentionCopies.map((copy) => ({
+      finalPath: join(copy.root, `${bundleDigest}.quorum.json`),
+      stagingPath: join(copy.root, `${bundleDigest}.quorum.staging-${options.attemptId}.json`),
+    }));
+    try {
+      await Promise.all(witnessCopies.map((copy) => writeCanonical(copy.stagingPath, witness)));
+      const verifiedWitnesses = await Promise.all(
+        witnessCopies.map((copy) =>
+          verifyRetentionWitness({
+            bundleDigest,
+            now: issuedAt,
+            policyVersion: CURRENT_POLICY_VERSION,
+            retentionTargets: options.retentionTargets,
+            trustStorePath: options.trustStorePath,
+            witnessPath: copy.stagingPath,
+          }),
+        ),
+      );
+      const firstWitness = verifiedWitnesses[0];
+      assert(firstWitness, "retention witness is missing");
+      const firstWitnessJson = canonicalJson(firstWitness);
+      assert(
+        verifiedWitnesses
+          .slice(1)
+          .every((candidate) => canonicalJson(candidate) === firstWitnessJson),
+        "retention witnesses differ",
+      );
+      const publicationResults = await Promise.allSettled(
+        witnessCopies.map((copy) => writeCanonical(copy.finalPath, witness)),
+      );
+      const failedPublication = publicationResults.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failedPublication) {
+        await Promise.allSettled(
+          publicationResults.map((result, index) =>
+            result.status === "fulfilled"
+              ? rm(witnessCopies[index]!.finalPath, { force: true })
+              : Promise.resolve(),
+          ),
+        );
+        throw new Error(
+          `a declared retention witness was not published: ${failedPublication.reason instanceof Error ? failedPublication.reason.message : String(failedPublication.reason)}`,
+          { cause: failedPublication.reason },
+        );
+      }
+    } finally {
+      await Promise.allSettled(witnessCopies.map((copy) => rm(copy.stagingPath, { force: true })));
+    }
     const finalizedEvent: AddressedAuditEvent = {
       action: "bundle-finalized",
       adapterIdentity: options.adapterIdentity,
@@ -1232,7 +1273,7 @@ function parseManifest(value: unknown): CandidateEvidenceManifest {
     "candidate evidence manifest",
   );
   assert(manifest.schemaVersion === 1, "unsupported candidate evidence manifest schema");
-  assert(manifest.policyVersion === POLICY_VERSION, "unsupported candidate evidence policy");
+  assert(isEvidencePolicyVersion(manifest.policyVersion), "unsupported candidate evidence policy");
   const source = exactRecord(
     manifest.source,
     ["archiveDigest", "commit", "tree"],
@@ -1307,7 +1348,7 @@ function parseManifest(value: unknown): CandidateEvidenceManifest {
     },
     declaredInputs,
     objects,
-    policyVersion: POLICY_VERSION,
+    policyVersion: manifest.policyVersion,
     releaseReport: {
       digest: digest(releaseReport.digest, "candidate release report digest"),
       path: relativeArtifactPath(releaseReport.path, "candidate release report path"),
@@ -1545,17 +1586,18 @@ export async function restoreCandidateEvidenceBundle(options: {
     const temporaryDestination = join(temporaryParent, "bundle");
     let published = false;
     try {
-      await verifyQuorumWitness({
-        bundleDigest: options.bundleDigest,
-        retentionTargets: options.retentionTargets,
-        trustStorePath: options.trustStorePath,
-        witnessPath: join(target.root, `${options.bundleDigest}.quorum.json`),
-        ...(options.now ? { now: options.now } : {}),
-      });
-      await verifyCandidateEvidenceBundle({
+      const verifiedBundle = await verifyCandidateEvidenceBundle({
         bundlePath: source,
         expectedBundleDigest: options.bundleDigest,
         trustStorePath: options.trustStorePath,
+        ...(options.now ? { now: options.now } : {}),
+      });
+      await verifyRetentionWitness({
+        bundleDigest: options.bundleDigest,
+        policyVersion: verifiedBundle.manifest.policyVersion,
+        retentionTargets: options.retentionTargets,
+        trustStorePath: options.trustStorePath,
+        witnessPath: join(target.root, `${options.bundleDigest}.quorum.json`),
         ...(options.now ? { now: options.now } : {}),
       });
       await cp(source, temporaryDestination, {
