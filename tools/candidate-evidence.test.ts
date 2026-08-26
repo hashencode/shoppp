@@ -22,11 +22,14 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, relative, resolve } from "node:path";
 import {
+  buildBaselineCandidateEvidenceBundle,
   buildCandidateEvidenceBundle,
   canonicalJson,
   createSignerCertificate,
   deriveGitTreeFromArchive,
+  restoreBaselineCandidateEvidenceBundle,
   restoreCandidateEvidenceBundle,
+  verifyBaselineCandidateEvidenceBundle,
   verifyCandidateEvidenceBundle,
   type EvidenceTrustStore,
 } from "./candidate-evidence";
@@ -252,6 +255,164 @@ async function fixture() {
 }
 
 describe("portable candidate evidence", () => {
+  test("builds, reads back, and restores a no-PKI baseline from one target", async () => {
+    const value = await fixture();
+    const retentionTargets = [value.options.retentionTargets[0]!];
+    const built = await buildBaselineCandidateEvidenceBundle({
+      adapterIdentity: value.options.adapterIdentity,
+      approvedCommit: value.commit,
+      attemptId: "baseline-happy",
+      capsuleReceiptPath: value.options.capsuleReceiptPath,
+      executorIdentity: value.options.executorIdentity,
+      issuedAt: value.options.issuedAt,
+      releaseReportPath: value.options.releaseReportPath,
+      repository: value.repository,
+      retentionTargets,
+      spoolRoot: value.spool,
+    });
+
+    expect(built.manifest.source).toEqual({
+      archiveDigest: expect.stringMatching(/^sha256:/),
+      commit: value.commit,
+      tree: value.tree,
+    });
+    expect(built.retentionCopies).toHaveLength(1);
+    expect(await readdir(built.bundlePath)).not.toContain("signature.json");
+    const destination = join(value.root, "baseline-restore");
+    await expect(
+      restoreBaselineCandidateEvidenceBundle({
+        bundleDigest: built.bundleDigest,
+        destination,
+        retentionTargets,
+      }),
+    ).resolves.toMatchObject({ sourceRetentionId: "intel" });
+    expect(await readFile(join(destination, "manifest.json"), "utf8")).toBe(
+      await readFile(join(built.bundlePath, "manifest.json"), "utf8"),
+    );
+  });
+
+  test("baseline verification rejects altered bytes and a wrong external digest", async () => {
+    const value = await fixture();
+    const built = await buildBaselineCandidateEvidenceBundle({
+      adapterIdentity: value.options.adapterIdentity,
+      approvedCommit: value.commit,
+      attemptId: "baseline-tamper",
+      capsuleReceiptPath: value.options.capsuleReceiptPath,
+      executorIdentity: value.options.executorIdentity,
+      issuedAt: value.options.issuedAt,
+      releaseReportPath: value.options.releaseReportPath,
+      repository: value.repository,
+      retentionTargets: [value.options.retentionTargets[0]!],
+      spoolRoot: value.spool,
+    });
+    await expect(
+      verifyBaselineCandidateEvidenceBundle({
+        bundlePath: built.bundlePath,
+        expectedBundleDigest: `sha256:${"0".repeat(64)}`,
+      }),
+    ).rejects.toThrow(/expected digest/);
+
+    const objectPath = join(built.bundlePath, built.manifest.objects[0]!.objectName);
+    const bytes = await readFile(objectPath);
+    bytes[0] = bytes[0] === 0 ? 1 : bytes[0]! - 1;
+    await writeFile(objectPath, bytes);
+    await expect(
+      verifyBaselineCandidateEvidenceBundle({
+        bundlePath: built.bundlePath,
+        expectedBundleDigest: built.bundleDigest,
+      }),
+    ).rejects.toThrow(/object.*digest mismatch/i);
+  });
+
+  test("baseline refuses secrets before publishing evidence", async () => {
+    const value = await fixture();
+    const canary = "SHOPPP-BASELINE-CANARY-DO-NOT-RETAIN";
+    const report = JSON.parse(await readFile(value.options.releaseReportPath, "utf8"));
+    report.diagnostic = canary;
+    await writeFile(value.options.releaseReportPath, `${canonicalJson(report)}\n`);
+    await expect(
+      buildBaselineCandidateEvidenceBundle({
+        adapterIdentity: value.options.adapterIdentity,
+        approvedCommit: value.commit,
+        attemptId: "baseline-secret",
+        canarySecrets: [canary],
+        capsuleReceiptPath: value.options.capsuleReceiptPath,
+        executorIdentity: value.options.executorIdentity,
+        issuedAt: value.options.issuedAt,
+        releaseReportPath: value.options.releaseReportPath,
+        repository: value.repository,
+        retentionTargets: [value.options.retentionTargets[0]!],
+        spoolRoot: value.spool,
+      }),
+    ).rejects.toThrow(/canary secret/);
+    expect((await readdir(value.spool)).some((name) => name.startsWith(".tmp-"))).toBe(false);
+  });
+
+  test("signed and baseline verifiers reject the opposite profile", async () => {
+    const value = await fixture();
+    const signed = await buildCandidateEvidenceBundle({
+      ...value.options,
+      attemptId: "signed-isolation",
+    });
+    await expect(
+      verifyBaselineCandidateEvidenceBundle({
+        bundlePath: signed.bundlePath,
+        expectedBundleDigest: signed.bundleDigest,
+      }),
+    ).rejects.toThrow(/signed profile/i);
+
+    await writeFile(
+      join(signed.bundlePath, "profile.json"),
+      `${canonicalJson({ profile: "solo-developer-baseline", schemaVersion: 1 })}\n`,
+    );
+    const hybridDigest = await rewriteBundleDigest(signed.bundlePath);
+    await expect(
+      verifyCandidateEvidenceBundle({
+        bundlePath: signed.bundlePath,
+        expectedBundleDigest: hybridDigest,
+        now: value.options.issuedAt,
+        trustStorePath: value.trustStorePath,
+      }),
+    ).rejects.toThrow(/baseline profile/i);
+
+    const baseline = await buildBaselineCandidateEvidenceBundle({
+      adapterIdentity: value.options.adapterIdentity,
+      approvedCommit: value.commit,
+      attemptId: "baseline-isolation",
+      capsuleReceiptPath: value.options.capsuleReceiptPath,
+      executorIdentity: value.options.executorIdentity,
+      issuedAt: value.options.issuedAt,
+      releaseReportPath: value.options.releaseReportPath,
+      repository: value.repository,
+      retentionTargets: [value.options.retentionTargets[0]!],
+      spoolRoot: value.spool,
+    });
+    await expect(
+      verifyCandidateEvidenceBundle({
+        bundlePath: baseline.bundlePath,
+        expectedBundleDigest: baseline.bundleDigest,
+        now: value.options.issuedAt,
+        trustStorePath: value.trustStorePath,
+      }),
+    ).rejects.toThrow(/signed profile|signature/i);
+
+    await expect(
+      buildBaselineCandidateEvidenceBundle({
+        adapterIdentity: value.options.adapterIdentity,
+        approvedCommit: value.commit,
+        attemptId: "baseline-runtime-option-isolation",
+        capsuleReceiptPath: value.options.capsuleReceiptPath,
+        certificatePath: value.options.certificatePath,
+        executorIdentity: value.options.executorIdentity,
+        issuedAt: value.options.issuedAt,
+        releaseReportPath: value.options.releaseReportPath,
+        repository: value.repository,
+        retentionTargets: [value.options.retentionTargets[0]!],
+        spoolRoot: value.spool,
+      } as Parameters<typeof buildBaselineCandidateEvidenceBundle>[0]),
+    ).rejects.toThrow(/signing options/i);
+  });
+
   test("builds deterministic candidate manifests with unique signed attempts and two verified copies", async () => {
     const value = await fixture();
     const first = await buildCandidateEvidenceBundle({ ...value.options, attemptId: "attempt-1" });

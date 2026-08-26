@@ -1,4 +1,4 @@
-# Optional signed candidate evidence bundle profile
+# Candidate evidence bundle profiles
 
 This document describes CI-U7's implemented high-assurance signed profile. The current
 solo-developer baseline does not require this profile, an offline root, a signer certificate, or a
@@ -6,10 +6,15 @@ signed retention witness. Baseline authority is defined by
 `docs/architecture/ci-evidence-trust-and-retention.md` and retains exact source, full validation,
 SHA-256 digests, secret scanning, durable read-back, and practical restore requirements.
 
-The current `evidence:build`, `evidence:verify`, and `evidence:restore` entry points implement only
-this signed profile. CI-U7.3 remains open to add the repository-owned no-PKI baseline commands,
-signed/unsigned profile-isolation tests, and one practical restore against the adopted Intel target;
-an ad-hoc copy or retained post-commit report is not a substitute.
+The default profile uses `evidence:baseline:build`, `evidence:baseline:verify`, and
+`evidence:baseline:restore`. It replaces `signature.json` with canonical `profile.json` containing
+only schema version `1` and profile `solo-developer-baseline`. Its verifier requires an externally
+supplied bundle digest, rejects signature/trust material and unknown files, and applies the same
+source, report, capsule, toolchain, artifact, object, secret-scan, durable read-back, and restore
+checks as the signed profile. The signed verifier rejects baseline profile material in return.
+
+CI-U7.3 remains open only for one practical restore against the adopted Intel target; an ad-hoc copy
+or retained post-commit report is not a substitute.
 
 When explicitly activated, the signed bundle is a provider-neutral, content-addressed directory. Its
 verifier needs local bytes and an independently distributed trust store; GitHub metadata, APIs,

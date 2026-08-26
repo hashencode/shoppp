@@ -59,15 +59,16 @@ dedicated-account isolation, exact-SHA pre-job admission, fail-closed cleanup, r
 deregistration without reusing FS-U8 authority. No runner was registered and no credential was
 handled; those remain human-only operations.
 
-- **Current parent/child stage:** CI-U7.3 — implement and operationally prove the executable no-PKI
-  baseline. CI-U7.2 is complete only for the optional high-assurance signed profile. On 2026-08-26
+- **Current parent/child stage:** CI-U7.3 — operationally prove the executable no-PKI baseline.
+  Repository-owned baseline build/verify/retain/restore commands and profile-isolation tests are
+  implemented and locally verified. CI-U7.2 is complete only for the optional high-assurance signed profile. On 2026-08-26
   the operator accepted a proportionate solo-developer baseline:
   exact source/report/toolchain/artifact digests, secret scanning, one durable read-back-verified
   target, and a practical restore remain required, while offline-root signing, short-lived signer
   certificates, signed witnesses, and recurring signing/restore ceremonies are an optional
   high-assurance profile. The implemented signed profile remains available and tested but its live
-  provisioning is not CI, candidate, or launch completion authority. The repository does not yet
-  expose an unsigned baseline build/verify/retain/restore entry point, so parent CI-U7 remains open.
+  provisioning is not CI, candidate, or launch completion authority. Parent CI-U7 remains open only
+  for one practical restore against the adopted Intel target.
   CI-U12 is
   complete on exact commit `47b6b340`: all 17 unchanged gates passed in the pinned `linux/amd64`
   capsule on the independent Intel executor, with a validation-class receipt and retained transfer,
@@ -75,12 +76,12 @@ handled; those remain human-only operations.
   human adoption. Intel Jenkins builds through `shoppp-main#17` independently passed the
   provider-neutral post-commit lane, including exact integrated SHA `63b71c82`, and retained their
   machine-readable reports under the host-controlled evidence root.
-- **Next concrete action:** Complete CI-U7.3 by adding repository-owned no-PKI baseline
-  build/verify/retain/restore commands, proving signed and unsigned profile isolation, and retaining
-  one practical restore against the adopted Intel target. Then advance to CI-U8.1.
-- **Current blockers:** No external, GitHub, signing-key, or human-operation blocker applies to
-  CI-U7.3; the remaining gap is repository implementation and verification. GitHub billing blocks
-  only the optional hosted-adapter compatibility check. CI-U4 also cannot complete until a human
+- **Next concrete action:** Commit the verified CI-U7.3 implementation, then run and retain one
+  practical restore against the adopted Intel target. Advance to CI-U8.1 only after that restore.
+- **Current blockers:** The Intel host `192.168.1.250` is currently unreachable from the development
+  Mac (`Host is down` on SSH and Jenkins ports), so the practical restore cannot yet run. GitHub,
+  signing keys, and a second operator are not CI-U7.3 blockers. GitHub billing blocks only the
+  optional hosted-adapter compatibility check. CI-U4 also cannot complete until a human
   adopts and operates the optional runner for the bounded 14-day sample.
 - **Tail:** CI-U7.3 followed by CI-U8–CI-U11 is the active provider-resilience track; CI-U4/CI-U6 remains the
   parallel optional-runner pilot and decision track.
@@ -88,9 +89,9 @@ handled; those remain human-only operations.
   decisions, but they cannot change upstream product, release, candidate, or production policy or
   promote production automatically.
 - **Temporary isolation:** Worktree `.worktrees/relax-ci-u7-signing` on branch
-  `codex/relax-ci-u7-signing` owns the 2026-08-26 solo-developer signing-policy amendment because the
+  `codex/relax-ci-u7-signing` owns the 2026-08-26 solo-developer signing-policy amendment and CI-U7.3 implementation because the
   primary checkout contains concurrent FS-U8 work and stale CI plan bytes. Remove this checkout only
-  after the exact policy amendment is committed and integrated; removal retains its branch and
+  after the exact CI-U7.3 work is committed and integrated; removal retains its branch and
   commit. Earlier CI-U7 temporary checkouts have met their cleanup conditions and are not current
   execution authority.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under

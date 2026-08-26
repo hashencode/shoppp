@@ -33,11 +33,11 @@ The exact expected digest is supplied outside the retained directory when verifi
 performed. This detects accidental or unauthorized byte changes but does not claim independent
 non-repudiation when the same operator controls source, CI, storage, and deployment.
 
-This is the approved policy baseline, but its repository-owned executable path is not yet complete.
-CI-U7.3 owns no-PKI build, verification, durable retention/read-back, restore, signed/unsigned
-profile-isolation tests, and one practical restore against the adopted Intel target. The current
-`evidence:build`, `evidence:verify`, and `evidence:restore` commands remain signed-profile-only;
-neither their availability nor a retained post-commit report closes parent CI-U7.
+The repository implements this policy through `evidence:baseline:build`,
+`evidence:baseline:verify`, and `evidence:baseline:restore`. These commands reject signing and trust
+inputs, require the expected bundle digest from outside the retained directory, and refuse signed or
+unknown profile material. CI-U7.3 remains open only for one practical restore against the adopted
+Intel target; a retained post-commit report alone does not close parent CI-U7.
 
 ## Optional high-assurance signing profile
 

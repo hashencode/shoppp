@@ -27,10 +27,10 @@ describe("candidate evidence operating contract", () => {
       /CI-U7\.2 — Implement optional signed profile:[\s\S]{0,300}high-assurance profile is complete/is,
     );
     expect(plan).toMatch(
-      /\*\*Next concrete action:\*\*[\s\S]{0,220}CI-U7\.3[\s\S]{0,220}no-PKI baseline[\s\S]{0,220}build\/verify\/retain\/restore/is,
+      /\*\*Next concrete action:\*\*[\s\S]{0,240}practical restore[\s\S]{0,180}Intel target/is,
     );
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\*[\s\S]{0,220}no-PKI build\/verify\/retain\/restore path/is,
+      /\*\*Next action:\*\*[\s\S]{0,240}practical Intel-target\s+restore/is,
     );
 
     expect(runbook).toContain("--capsule-receipt");
@@ -46,8 +46,9 @@ describe("candidate evidence operating contract", () => {
       /signed-profile finalization.*one successfully written and read-back-verified target/is,
     );
     expect(runbook).toMatch(
-      /current `evidence:build`, `evidence:verify`, and `evidence:restore` commands are\s+signed-profile-only/is,
+      /`evidence:baseline:build`,\s+`evidence:baseline:verify`, and\s+`evidence:baseline:restore`/is,
     );
+    expect(runbook).toMatch(/baseline commands.*do not accept.*certificate.*signer.*trust-store/is);
     expect(runbook).toMatch(
       /Use the commands below only when a later REL\/security decision explicitly activates the optional\s+high-assurance signed profile/is,
     );

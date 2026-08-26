@@ -112,7 +112,7 @@ failed or infrastructure-classified runs retain that previous replay image.
 Docker safely refuses if another tag or container still references it. Never use broad image or
 system pruning as capsule cleanup.
 
-### Optional high-assurance signed candidate evidence
+### Solo-developer candidate evidence baseline
 
 The default solo-developer release baseline does not require an offline root, signer certificate, or
 signed witness. It still requires a clean exact commit, a passing validation-class capsule report and
@@ -120,11 +120,43 @@ receipt, SHA-256 toolchain/artifact digests, secret scanning, one encrypted vers
 durable copy, digest read-back, and a practical restore check when the storage target is adopted or
 materially changed and before first production reliance.
 
-The repository does not yet expose the executable no-PKI build/verify/retain/restore entry point for
-that baseline; CI-U7.3 owns that implementation, profile-isolation tests, and one practical restore
-against the adopted Intel target. Until CI-U7.3 closes, do not treat an ad-hoc copy, a Jenkins archive,
-or a passing post-commit lane as baseline candidate evidence. This is a repository implementation
-gap, not a requirement to provision signing keys or wait for GitHub or another operator.
+The repository exposes `evidence:baseline:build`, `evidence:baseline:verify`, and
+`evidence:baseline:restore`. The baseline commands do not accept certificate, signer-key, or
+trust-store inputs. They reject signed-profile material and require the expected bundle digest from
+outside the retained directory.
+
+```sh
+SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
+  bun run evidence:baseline:build -- \
+  --repository "$(pwd)" \
+  --approved-commit <exact-commit> \
+  --release-report <capsule-output>/<release-id>.json \
+  --capsule-receipt <capsule-output>/<release-id>.capsule.json \
+  --spool <atomic-local-spool> \
+  --attempt-id <provider-neutral-attempt-id> \
+  --executor-id <executor-id> \
+  --adapter-id <adapter-id> \
+  --audit-log <append-only-audit.jsonl> \
+  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
+
+bun run evidence:baseline:verify -- \
+  --bundle <bundle-directory> \
+  --digest <sha256:bundle-digest>
+
+bun run evidence:baseline:restore -- \
+  --digest <sha256:bundle-digest> \
+  --destination <new-empty-restore-path> \
+  --audit-log <append-only-audit.jsonl> \
+  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
+```
+
+Build refuses dirty or untracked source, incomplete or mismatched capsule/report evidence, secret
+content, missing retention, or any failed write/read-back verification. Restore verifies the retained
+source, copies to a temporary path, verifies the copy, and atomically publishes a new destination.
+Until the practical Intel restore is retained, do not treat an ad-hoc copy, Jenkins archive, or
+passing post-commit lane as completed CI-U7 evidence.
+
+### Optional high-assurance signed candidate evidence
 
 The current `evidence:build`, `evidence:verify`, and `evidence:restore` commands are
 signed-profile-only. Use the commands below only when a later REL/security decision explicitly activates the optional

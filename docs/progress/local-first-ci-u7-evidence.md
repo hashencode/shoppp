@@ -114,6 +114,14 @@ This file retains focused CI-U7 evidence and does not own the current-unit queue
   signed-profile certificate/signer/trust inputs. The correctness review therefore reopened the
   parent tail: the active plan owns CI-U7.3 for an executable unsigned path, profile-isolation tests,
   and one practical Intel-target restore. This file records that gap but does not own its queue.
+- CI-U7.3 now adds `evidence:baseline:build`, `evidence:baseline:verify`, and
+  `evidence:baseline:restore`. Focused tests prove one-target build/read-back/restore, altered-byte
+  and wrong-external-digest refusal, secret refusal, runtime signing-option refusal, and bidirectional
+  signed/baseline profile isolation. The candidate-evidence and runbook suites pass 24 tests with 90
+  expectations; focused ESLint and strict TypeScript checks also pass.
+- The only remaining CI-U7.3 evidence is one practical restore against the adopted Intel target.
+  On 2026-08-26 the development Mac could not reach `192.168.1.250` on SSH or Jenkins ports and
+  received `Host is down`; no restore result is fabricated from that outage.
 - Re-entry triggers are multiple release operators, external artifact consumers, regulatory or
   contractual audit, shared/untrusted runners, cross-provider provenance requirements, or an
   observed tampering or credential-compromise event.

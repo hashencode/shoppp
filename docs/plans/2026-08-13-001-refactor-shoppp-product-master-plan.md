@@ -116,8 +116,9 @@ Parallel CI infrastructure planning is registered without replacing either imple
 
 - **Parallel plan:** `CI` — Long-Term CI Resilience and Provider-Independent Delivery.
 - **Current parent/child stage:** `CI-U7.3` — CI-U7.2 completed the optional high-assurance signed
-  profile, but parent CI-U7 remains open until the repository provides and proves the executable
-  solo-developer no-PKI baseline. On 2026-08-26 the operator retained exact source, full capsule
+  profile. The repository-owned solo-developer no-PKI build/verify/retain/restore path and
+  profile-isolation tests are implemented and locally verified; parent CI-U7 remains open only for
+  one practical Intel-target restore. On 2026-08-26 the operator retained exact source, full capsule
   validation, artifact digests, secret scanning, one durable read-back-verified target, and a
   practical restore check while making offline-root signing and signed witnesses an optional
   high-assurance profile rather than a CI or launch blocker. CI-U12 is
@@ -126,10 +127,10 @@ Parallel CI infrastructure planning is registered without replacing either imple
   produced retained validation-class evidence. Registration and the CI-U4 14-day pilot remain
   human-operated and pending. Intel Jenkins builds through `shoppp-main#17` passed the
   provider-neutral post-commit lane, including exact integrated SHA `63b71c82`.
-- **Next action:** Implement the repository-owned no-PKI build/verify/retain/restore path, prove
-  signed/unsigned profile isolation, and retain one practical Intel-target restore. This is a
-  repository implementation gap, not a GitHub, PKI-provisioning, or human-operation blocker. Then
-  advance to CI-U8.1; GitHub Actions billing blocks only optional hosted-adapter compatibility.
+- **Next action:** Commit the verified CI-U7.3 implementation and retain one practical Intel-target
+  restore. The Intel host is currently unreachable from the development Mac; GitHub, PKI
+  provisioning, and a second operator are not blockers. Then advance to CI-U8.1; GitHub Actions
+  billing blocks only optional hosted-adapter compatibility.
 - **Tail:** The CI plan owns local validation authority, optional non-secret mirror operations,
   a pinned provider-neutral full-validation capsule, portable evidence, provider
   degradation/recovery, thin GitHub adapters, a
