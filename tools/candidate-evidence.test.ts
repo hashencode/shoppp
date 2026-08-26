@@ -53,6 +53,13 @@ async function run(cwd: string, ...args: string[]): Promise<string> {
   return output.trim();
 }
 
+async function runFailure(cwd: string, ...args: string[]): Promise<string> {
+  const child = Bun.spawn(args, { cwd, stdout: "pipe", stderr: "pipe" });
+  const error = await new Response(child.stderr).text();
+  expect(await child.exited).not.toBe(0);
+  return error;
+}
+
 function pem(key: KeyObject): string {
   return key.export({
     format: "pem",
@@ -410,7 +417,219 @@ describe("portable candidate evidence", () => {
         retentionTargets: [value.options.retentionTargets[0]!],
         spoolRoot: value.spool,
       } as Parameters<typeof buildBaselineCandidateEvidenceBundle>[0]),
-    ).rejects.toThrow(/signing options/i);
+    ).rejects.toThrow(/rejects certificatePath/i);
+  });
+
+  test("rejects every signing option at baseline API and CLI boundaries", async () => {
+    const value = await fixture();
+    const signingOptions = ["certificatePath", "signerPrivateKeyPath", "trustStorePath"] as const;
+    for (const option of signingOptions) {
+      await expect(
+        verifyBaselineCandidateEvidenceBundle({
+          bundlePath: value.spool,
+          expectedBundleDigest: `sha256:${"0".repeat(64)}`,
+          [option]: "ignored",
+        } as Parameters<typeof verifyBaselineCandidateEvidenceBundle>[0]),
+      ).rejects.toThrow(/rejects certificatePath/);
+      await expect(
+        restoreBaselineCandidateEvidenceBundle({
+          bundleDigest: `sha256:${"0".repeat(64)}`,
+          destination: join(value.root, `restore-${option}`),
+          retentionTargets: [value.options.retentionTargets[0]!],
+          [option]: "ignored",
+        } as Parameters<typeof restoreBaselineCandidateEvidenceBundle>[0]),
+      ).rejects.toThrow(/rejects certificatePath/);
+    }
+    for (const command of ["baseline-verify", "baseline-restore", "baseline-build"] as const) {
+      for (const flag of ["--certificate", "--signer-key", "--trust-store"]) {
+        const required =
+          command === "baseline-verify"
+            ? ["--bundle", value.spool, "--digest", `sha256:${"0".repeat(64)}`]
+            : command === "baseline-restore"
+              ? [
+                  "--digest",
+                  `sha256:${"0".repeat(64)}`,
+                  "--destination",
+                  join(value.root, "cli-restore"),
+                ]
+              : [
+                  "--repository",
+                  value.repository,
+                  "--approved-commit",
+                  value.commit,
+                  "--capsule-receipt",
+                  value.options.capsuleReceiptPath,
+                  "--release-report",
+                  value.options.releaseReportPath,
+                  "--spool",
+                  value.spool,
+                  "--attempt-id",
+                  "cli",
+                  "--executor-id",
+                  "cli",
+                  "--adapter-id",
+                  "cli",
+                ];
+        expect(
+          await runFailure(
+            value.repository,
+            "bun",
+            resolve(import.meta.dir, "candidate-evidence.ts"),
+            command,
+            ...required,
+            flag,
+            "ignored",
+          ),
+        ).toMatch(/reject certificate, signer-key, and trust-store/);
+      }
+    }
+  });
+
+  test("baseline metadata and unknown files fail closed after outer digest recomputation", async () => {
+    for (const mutation of ["profile", "audit", "unknown"] as const) {
+      const value = await fixture();
+      const built = await buildBaselineCandidateEvidenceBundle({
+        adapterIdentity: value.options.adapterIdentity,
+        approvedCommit: value.commit,
+        attemptId: `metadata-${mutation}`,
+        capsuleReceiptPath: value.options.capsuleReceiptPath,
+        executorIdentity: value.options.executorIdentity,
+        issuedAt: value.options.issuedAt,
+        releaseReportPath: value.options.releaseReportPath,
+        repository: value.repository,
+        retentionTargets: [value.options.retentionTargets[0]!],
+        spoolRoot: value.spool,
+      });
+      if (mutation === "profile")
+        await writeFile(
+          join(built.bundlePath, "profile.json"),
+          `${canonicalJson({ profile: "wrong", schemaVersion: 1 })}\n`,
+        );
+      if (mutation === "audit") {
+        const audit = JSON.parse(await readFile(join(built.bundlePath, "audit.json"), "utf8"));
+        audit[0].manifestDigest = `sha256:${"0".repeat(64)}`;
+        await writeFile(join(built.bundlePath, "audit.json"), `${canonicalJson(audit)}\n`);
+      }
+      if (mutation === "unknown")
+        await writeFile(join(built.bundlePath, "unknown.txt"), "unsigned\n");
+      const recomputed = await rewriteBundleDigest(built.bundlePath);
+      await expect(
+        verifyBaselineCandidateEvidenceBundle({
+          bundlePath: built.bundlePath,
+          expectedBundleDigest: recomputed,
+        }),
+      ).rejects.toThrow();
+    }
+  });
+
+  test("restore rejects nested audit paths and removes publication when audit append fails", async () => {
+    const value = await fixture();
+    const targets = [value.options.retentionTargets[0]!];
+    const built = await buildBaselineCandidateEvidenceBundle({
+      adapterIdentity: value.options.adapterIdentity,
+      approvedCommit: value.commit,
+      attemptId: "audit-restore",
+      capsuleReceiptPath: value.options.capsuleReceiptPath,
+      executorIdentity: value.options.executorIdentity,
+      issuedAt: value.options.issuedAt,
+      releaseReportPath: value.options.releaseReportPath,
+      repository: value.repository,
+      retentionTargets: targets,
+      spoolRoot: value.spool,
+    });
+    const nested = join(value.root, "nested-destination");
+    await expect(
+      restoreBaselineCandidateEvidenceBundle({
+        bundleDigest: built.bundleDigest,
+        destination: nested,
+        retentionTargets: targets,
+        auditLogPath: join(nested, "audit.jsonl"),
+      }),
+    ).rejects.toThrow(/outside/);
+    await expect(readFile(join(nested, "manifest.json"))).rejects.toMatchObject({ code: "ENOENT" });
+    const blockedAudit = join(value.root, "audit-directory");
+    await mkdir(blockedAudit);
+    const destination = join(value.root, "rollback-destination");
+    await expect(
+      restoreBaselineCandidateEvidenceBundle({
+        bundleDigest: built.bundleDigest,
+        destination,
+        retentionTargets: targets,
+        auditLogPath: blockedAudit,
+      }),
+    ).rejects.toThrow();
+    await expect(readFile(join(destination, "manifest.json"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  test("preflights every final retention path and removes attempt staging on failure", async () => {
+    const value = await fixture();
+    const options = {
+      adapterIdentity: value.options.adapterIdentity,
+      approvedCommit: value.commit,
+      attemptId: "publish-rollback",
+      capsuleReceiptPath: value.options.capsuleReceiptPath,
+      executorIdentity: value.options.executorIdentity,
+      issuedAt: value.options.issuedAt,
+      releaseReportPath: value.options.releaseReportPath,
+      repository: value.repository,
+      retentionTargets: value.options.retentionTargets,
+      spoolRoot: value.spool,
+    };
+    const built = await buildBaselineCandidateEvidenceBundle(options);
+    await Promise.all([
+      rm(built.bundlePath, { recursive: true }),
+      rm(value.retentionA, { recursive: true }),
+      rm(value.retentionB, { recursive: true }),
+    ]);
+    await Promise.all([mkdir(value.retentionA), mkdir(value.retentionB)]);
+    await writeFile(join(value.retentionB, built.bundleDigest), "occupied\n");
+    await expect(buildBaselineCandidateEvidenceBundle(options)).rejects.toThrow(/already exists/);
+    await expect(readFile(join(value.retentionA, built.bundleDigest))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect((await readdir(value.retentionA)).some((name) => name.includes(".staging-"))).toBe(
+      false,
+    );
+    expect((await readdir(value.retentionB)).some((name) => name.includes(".staging-"))).toBe(
+      false,
+    );
+  });
+
+  test("reads declared inputs from the approved commit during a concurrent checkout edit", async () => {
+    const value = await fixture();
+    const wrapperDirectory = join(value.root, "git-wrapper");
+    await mkdir(wrapperDirectory);
+    const realGit = await run(value.repository, "which", "git");
+    const wrapper = join(wrapperDirectory, "git");
+    await writeFile(
+      wrapper,
+      `#!/bin/sh\nif [ "$1" = "rev-parse" ] && [ "$2" = "${value.commit}^{commit}" ]; then printf 'mutated-after-status\\n' > "${join(value.repository, "bun.lock")}"; fi\nexec "${realGit}" "$@"\n`,
+    );
+    await chmod(wrapper, 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${wrapperDirectory}:${previousPath}`;
+    try {
+      const built = await buildBaselineCandidateEvidenceBundle({
+        adapterIdentity: value.options.adapterIdentity,
+        approvedCommit: value.commit,
+        attemptId: "committed-input",
+        capsuleReceiptPath: value.options.capsuleReceiptPath,
+        executorIdentity: value.options.executorIdentity,
+        issuedAt: value.options.issuedAt,
+        releaseReportPath: value.options.releaseReportPath,
+        repository: value.repository,
+        retentionTargets: [value.options.retentionTargets[0]!],
+        spoolRoot: value.spool,
+      });
+      const lockObject = built.manifest.objects.find((object) => object.sourcePath === "bun.lock")!;
+      expect(await readFile(join(built.bundlePath, lockObject.objectName), "utf8")).toBe(
+        "fixture-lock\n",
+      );
+    } finally {
+      process.env.PATH = previousPath;
+    }
   });
 
   test("builds deterministic candidate manifests with unique signed attempts and two verified copies", async () => {
@@ -773,8 +992,20 @@ describe("portable candidate evidence", () => {
     await expect(
       buildCandidateEvidenceBundle({ ...value.options, attemptId: "permissive-key" }),
     ).rejects.toThrow(/signer private key.*permissions/);
+    expect((await readdir(value.spool)).some((name) => name.startsWith(".tmp-"))).toBe(false);
 
     await chmod(value.signerPrivateKeyPath, 0o600);
+    const invalidTrust = join(value.root, "invalid-build-trust.json");
+    await writeFile(invalidTrust, `${canonicalJson({ ...value.trustStore, roots: [] })}\n`);
+    await expect(
+      buildCandidateEvidenceBundle({
+        ...value.options,
+        attemptId: "invalid-build-trust",
+        trustStorePath: invalidTrust,
+      }),
+    ).rejects.toThrow(/unknown root/);
+    expect((await readdir(value.spool)).some((name) => name.startsWith(".tmp-"))).toBe(false);
+
     const realReceipt = value.options.capsuleReceiptPath;
     const linkedReceipt = join(value.root, "linked-capsule-receipt.json");
     await symlink(realReceipt, linkedReceipt);

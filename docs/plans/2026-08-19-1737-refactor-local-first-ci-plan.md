@@ -76,8 +76,7 @@ handled; those remain human-only operations.
   human adoption. Intel Jenkins builds through `shoppp-main#17` independently passed the
   provider-neutral post-commit lane, including exact integrated SHA `63b71c82`, and retained their
   machine-readable reports under the host-controlled evidence root.
-- **Next concrete action:** Commit the verified CI-U7.3 implementation, then run and retain one
-  practical restore against the adopted Intel target. Advance to CI-U8.1 only after that restore.
+- **Next concrete action:** Run and retain one practical restore against the adopted Intel target.
 - **Current blockers:** The Intel host `192.168.1.250` is currently unreachable from the development
   Mac (`Host is down` on SSH and Jenkins ports), so the practical restore cannot yet run. GitHub,
   signing keys, and a second operator are not CI-U7.3 blockers. GitHub billing blocks only the

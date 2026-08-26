@@ -150,6 +150,11 @@ bun run evidence:baseline:restore -- \
   --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
 ```
 
+Retention roots are paths local to the environment where the command runs. Therefore, the
+`/srv/shoppp-evidence` Intel example must run on the Intel Jenkins host or against an explicitly
+mounted Intel filesystem. Retention metadata identifies and audits the target; it does not establish
+a remote connection.
+
 Build refuses dirty or untracked source, incomplete or mismatched capsule/report evidence, secret
 content, missing retention, or any failed write/read-back verification. Restore verifies the retained
 source, copies to a temporary path, verifies the copy, and atomically publishes a new destination.

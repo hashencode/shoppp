@@ -216,6 +216,15 @@ interface BaselineProfile {
   schemaVersion: 1;
 }
 
+function assertNoBaselineSigningOptions(options: Record<string, unknown>): void {
+  assert(
+    !("certificatePath" in options) &&
+      !("signerPrivateKeyPath" in options) &&
+      !("trustStorePath" in options),
+    "no-PKI baseline rejects certificatePath, signerPrivateKeyPath, and trustStorePath",
+  );
+}
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
@@ -956,7 +965,8 @@ async function prepareEvidencePayload(
   const declaredInputs = ["bun.lock", "containers/release-validation/manifest.json"];
   const declaredInputBytes = new Map<string, Uint8Array>();
   for (const path of declaredInputs) {
-    const bytes = await readFile(repositoryPath(repository, path));
+    repositoryPath(repository, path);
+    const bytes = await git(repository, "show", `${commit}:${path}`);
     declaredInputBytes.set(path, bytes);
     objects.push(
       await addObject(staging, bytes, { role: "declared-input", sourcePath: path }, canarySecrets),
@@ -1101,10 +1111,28 @@ async function publishRetentionCopies(options: {
     assert(result.status === "fulfilled", "not every declared retention target was verified");
     return result.value;
   });
-  for (const copy of retentionCopies) {
-    const finalPath = join(copy.root, options.bundleDigest);
-    await rename(copy.path, finalPath);
-    copy.path = finalPath;
+  const finalPaths = retentionCopies.map((copy) => join(copy.root, options.bundleDigest));
+  const publishedFinals: string[] = [];
+  try {
+    for (const finalPath of finalPaths) {
+      try {
+        await lstat(finalPath);
+        throw new Error(`retention final path already exists: ${finalPath}`);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
+    for (const [index, copy] of retentionCopies.entries()) {
+      await rename(copy.path, finalPaths[index]!);
+      publishedFinals.push(finalPaths[index]!);
+      copy.path = finalPaths[index]!;
+    }
+  } catch (error) {
+    await Promise.allSettled([
+      ...publishedFinals.map((path) => rm(path, { force: true, recursive: true })),
+      ...retentionCopies.map((copy) => rm(copy.path, { force: true, recursive: true })),
+    ]);
+    throw error;
   }
   return retentionCopies;
 }
@@ -1119,28 +1147,28 @@ export async function buildCandidateEvidenceBundle(options: BuildOptions): Promi
 }> {
   const context = await prepareBuildContext(options);
   const { canarySecrets, issuedAt, staging } = context;
-  const certificate = parseSignerCertificate(
-    JSON.parse(await readFile(options.certificatePath, "utf8")),
-  );
-  await verifyCertificate(certificate, options.trustStorePath, issuedAt);
-  const signerKeyMetadata = await stat(options.signerPrivateKeyPath);
-  assert(
-    (signerKeyMetadata.mode & 0o077) === 0,
-    "signer private key permissions must deny group and other access",
-  );
-  const signerPrivateKey = createPrivateKey(await readFile(options.signerPrivateKeyPath, "utf8"));
-  const signerPublicKey = createPublicKey(certificate.payload.signerPublicKeyPem);
-  assert(
-    signerPrivateKey.asymmetricKeyType === "ed25519" &&
-      signerPublicKey.asymmetricKeyType === "ed25519",
-    "candidate evidence requires Ed25519 signer keys",
-  );
-  assert(
-    createPublicKey(signerPrivateKey).export({ format: "pem", type: "spki" }) ===
-      signerPublicKey.export({ format: "pem", type: "spki" }),
-    "signer private key does not match its certificate",
-  );
   try {
+    const certificate = parseSignerCertificate(
+      JSON.parse(await readFile(options.certificatePath, "utf8")),
+    );
+    await verifyCertificate(certificate, options.trustStorePath, issuedAt);
+    const signerKeyMetadata = await stat(options.signerPrivateKeyPath);
+    assert(
+      (signerKeyMetadata.mode & 0o077) === 0,
+      "signer private key permissions must deny group and other access",
+    );
+    const signerPrivateKey = createPrivateKey(await readFile(options.signerPrivateKeyPath, "utf8"));
+    const signerPublicKey = createPublicKey(certificate.payload.signerPublicKeyPem);
+    assert(
+      signerPrivateKey.asymmetricKeyType === "ed25519" &&
+        signerPublicKey.asymmetricKeyType === "ed25519",
+      "candidate evidence requires Ed25519 signer keys",
+    );
+    assert(
+      createPublicKey(signerPrivateKey).export({ format: "pem", type: "spki" }) ===
+        signerPublicKey.export({ format: "pem", type: "spki" }),
+      "signer private key does not match its certificate",
+    );
     const { manifest, manifestDigest, provenance, provenanceDigest } = await prepareEvidencePayload(
       options,
       context,
@@ -1653,6 +1681,7 @@ export async function verifyBaselineCandidateEvidenceBundle(options: {
   manifest: CandidateEvidenceManifest;
   profile: BaselineProfile;
 }> {
+  assertNoBaselineSigningOptions(options as typeof options & Record<string, unknown>);
   const bundlePath = resolve(options.bundlePath);
   assert(DIGEST.test(options.expectedBundleDigest), "expected bundle digest is invalid");
   let declaredBundleDigest: string;
@@ -1744,13 +1773,7 @@ export async function buildBaselineCandidateEvidenceBundle(options: BaselineBuil
   provenance: EvidenceProvenance;
   retentionCopies: Array<RetentionTarget & { path: string; status: "verified" }>;
 }> {
-  const runtimeOptions = options as BaselineBuildOptions & Record<string, unknown>;
-  assert(
-    !("certificatePath" in runtimeOptions) &&
-      !("signerPrivateKeyPath" in runtimeOptions) &&
-      !("trustStorePath" in runtimeOptions),
-    "no-PKI baseline rejects signing options",
-  );
+  assertNoBaselineSigningOptions(options as BaselineBuildOptions & Record<string, unknown>);
   const context = await prepareBuildContext(options);
   const { canarySecrets, issuedAt, staging } = context;
   try {
@@ -1843,6 +1866,14 @@ async function restoreEvidenceBundle(options: {
 }): Promise<{ bundleDigest: string; destination: string; sourceRetentionId: string }> {
   assert(DIGEST.test(options.bundleDigest), "restore bundle digest is invalid");
   assertRetentionTargets(options.retentionTargets);
+  const destination = resolve(options.destination);
+  if (options.auditLogPath) {
+    const auditLogPath = resolve(options.auditLogPath);
+    assert(
+      auditLogPath !== destination && !auditLogPath.startsWith(`${destination}${sep}`),
+      "restore audit log must be outside the immutable destination",
+    );
+  }
   try {
     await lstat(options.destination);
     throw new Error("restore destination already exists");
@@ -1882,6 +1913,9 @@ async function restoreEvidenceBundle(options: {
         sourceRetentionId: target.id,
       };
     } catch (error) {
+      if (published) {
+        await rm(options.destination, { force: true, recursive: true });
+      }
       await rm(temporaryParent, { force: true, recursive: true });
       if (published) throw error;
     }
@@ -1895,10 +1929,7 @@ export async function restoreBaselineCandidateEvidenceBundle(options: {
   retentionTargets: RetentionTarget[];
   auditLogPath?: string;
 }): Promise<{ bundleDigest: string; destination: string; sourceRetentionId: string }> {
-  assert(
-    !("trustStorePath" in (options as typeof options & Record<string, unknown>)),
-    "no-PKI baseline restore rejects signed-profile trust options",
-  );
+  assertNoBaselineSigningOptions(options as typeof options & Record<string, unknown>);
   const verifyCopy = (bundlePath: string) =>
     verifyBaselineCandidateEvidenceBundle({
       bundlePath,
@@ -1966,6 +1997,17 @@ function parseRetention(value: string): RetentionTarget {
     "retention class is invalid",
   );
   return { administrativeDomain, id, retentionClass, root: root.join(":") };
+}
+
+function assertNoBaselineCliSigningOptions(values: {
+  certificate?: string;
+  "signer-key"?: string;
+  "trust-store"?: string;
+}): void {
+  assert(
+    !values.certificate && !values["signer-key"] && !values["trust-store"],
+    "baseline commands reject certificate, signer-key, and trust-store options",
+  );
 }
 
 if (import.meta.main) {
@@ -2056,7 +2098,7 @@ if (import.meta.main) {
     console.log(canonicalJson({ output: values.output, rootKeyId: values["root-key-id"] }));
   } else if (command === "baseline-verify") {
     assert(values.bundle && values.digest, "baseline-verify requires --bundle and --digest");
-    assert(!values["trust-store"], "baseline-verify rejects signed-profile trust options");
+    assertNoBaselineCliSigningOptions(values);
     console.log(
       canonicalJson(
         await verifyBaselineCandidateEvidenceBundle({
@@ -2070,7 +2112,7 @@ if (import.meta.main) {
       values.digest && values.destination,
       "baseline-restore requires --digest and --destination",
     );
-    assert(!values["trust-store"], "baseline-restore rejects signed-profile trust options");
+    assertNoBaselineCliSigningOptions(values);
     console.log(
       canonicalJson(
         await restoreBaselineCandidateEvidenceBundle({
@@ -2093,10 +2135,7 @@ if (import.meta.main) {
         values["adapter-id"],
       "baseline-build is missing required evidence options",
     );
-    assert(
-      !values.certificate && !values["signer-key"] && !values["trust-store"],
-      "baseline-build rejects certificate, signer-key, and trust-store options",
-    );
+    assertNoBaselineCliSigningOptions(values);
     const result = await buildBaselineCandidateEvidenceBundle({
       adapterIdentity: values["adapter-id"],
       approvedCommit: values["approved-commit"],

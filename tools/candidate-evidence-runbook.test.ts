@@ -32,6 +32,8 @@ describe("candidate evidence operating contract", () => {
     expect(masterPlan).toMatch(
       /\*\*Next action:\*\*[\s\S]{0,240}practical Intel-target\s+restore/is,
     );
+    expect(plan).not.toMatch(/\*\*Next concrete action:\*\*[^\n]*commit/is);
+    expect(masterPlan).not.toMatch(/\*\*Next action:\*\*[^\n]*commit/is);
 
     expect(runbook).toContain("--capsule-receipt");
     expect(runbook).toContain("intel:intel-append-only:intel-jenkins");
@@ -49,6 +51,13 @@ describe("candidate evidence operating contract", () => {
       /`evidence:baseline:build`,\s+`evidence:baseline:verify`, and\s+`evidence:baseline:restore`/is,
     );
     expect(runbook).toMatch(/baseline commands.*do not accept.*certificate.*signer.*trust-store/is);
+    expect(runbook).toMatch(
+      /Retention roots are paths local to the environment where the command runs/is,
+    );
+    expect(runbook).toMatch(
+      /\/srv\/shoppp-evidence.*must run on the Intel Jenkins host or against an explicitly\s+mounted Intel filesystem/is,
+    );
+    expect(runbook).toMatch(/Retention metadata.*does not establish\s+a remote connection/is);
     expect(runbook).toMatch(
       /Use the commands below only when a later REL\/security decision explicitly activates the optional\s+high-assurance signed profile/is,
     );

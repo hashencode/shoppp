@@ -127,10 +127,9 @@ Parallel CI infrastructure planning is registered without replacing either imple
   produced retained validation-class evidence. Registration and the CI-U4 14-day pilot remain
   human-operated and pending. Intel Jenkins builds through `shoppp-main#17` passed the
   provider-neutral post-commit lane, including exact integrated SHA `63b71c82`.
-- **Next action:** Commit the verified CI-U7.3 implementation and retain one practical Intel-target
-  restore. The Intel host is currently unreachable from the development Mac; GitHub, PKI
-  provisioning, and a second operator are not blockers. Then advance to CI-U8.1; GitHub Actions
-  billing blocks only optional hosted-adapter compatibility.
+- **Next action:** Retain one practical Intel-target restore. The Intel host is currently unreachable
+  from the development Mac; GitHub, PKI provisioning, and a second operator are not blockers.
+  GitHub Actions billing blocks only optional hosted-adapter compatibility.
 - **Tail:** The CI plan owns local validation authority, optional non-secret mirror operations,
   a pinned provider-neutral full-validation capsule, portable evidence, provider
   degradation/recovery, thin GitHub adapters, a
