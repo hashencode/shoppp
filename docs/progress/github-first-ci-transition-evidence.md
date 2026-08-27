@@ -48,3 +48,24 @@ reconciliation, and verification of the restored safe staging state. The billing
 protected-default integration are blocker evidence, not substitutes for those results. CI-GH-U5 is
 therefore not authorized, and no Docker, Intel, capsule, candidate-evidence, signing, retention, or
 restore implementation was removed. No staging or production mutation occurred.
+
+## Local review remediation — 2026-08-27
+
+Commit `57ce4d9e` applies the actionable findings from the structured local review without changing
+the bridge checkpoint or crossing the CI-GH-U4 dependency boundary. The remediation moves deploy
+credentials behind a protected-code, same-run artifact verification job; restores the idempotent
+validation-failure callback in the protected `staging` environment; makes scheduled validation
+fail closed without an approved immutable Catalog release ID; limits the Catalog credential to the
+release-validation step and gate; validates report and attestation JSON at runtime; and verifies
+the complete nine-artifact inventory plus refusal cases.
+
+After remediation, the focused workflow and verifier suite passed with 84 tests and 599
+expectations, the complete `tools` suite passed with 367 tests and 1,534 expectations, TypeScript
+tool checking and repository lint passed, both workflow YAML files parsed, boundary checking and
+`git diff --check` passed, and every external Action reference in the maintained workflows remained
+pinned to a full commit SHA. The release contract still contains exactly 17 gates and the existing
+Lighthouse thresholds were not changed.
+
+These are local implementation and review results only. They do not prove a GitHub-hosted run,
+staging deployment, rollback/reconciliation, Intel execution, retention, restoration, signing, or
+production behavior, and they do not relax the CI-GH-U4 blocker recorded above.
