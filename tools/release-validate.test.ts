@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
@@ -158,15 +158,36 @@ afterEach(async () => {
 });
 
 describe("release validation", () => {
-  test("exposes catalog credentials only to the production build gate", () => {
+  test("exposes catalog credentials only to the production build and reuses it for browser gates", async () => {
     const environment = {
       PATH: "/usr/bin",
       NUXT_CATALOG_RELEASE_TOKEN: "catalog-token",
       NUXT_CATALOG_RELEASE_URL: "https://staging.example.test/build/catalog/releases/release-1",
     };
 
-    expect(releaseGateEnvironment("unit-tests", environment)).toEqual({ PATH: "/usr/bin" });
-    expect(releaseGateEnvironment("production-builds", environment)).toEqual(environment);
+    for (const gate of RELEASE_GATES) {
+      if (gate.name === "production-builds") {
+        expect(releaseGateEnvironment(gate.name, environment)).toEqual(environment);
+      } else if (["browser-journeys", "accessibility", "performance"].includes(gate.name)) {
+        expect(releaseGateEnvironment(gate.name, environment)).toEqual({
+          PATH: "/usr/bin",
+          STOREFRONT_REUSE_VALIDATED_BUILD: "1",
+        });
+      } else {
+        expect(releaseGateEnvironment(gate.name, environment)).toEqual({ PATH: "/usr/bin" });
+      }
+    }
+
+    const configs = await Promise.all(
+      [
+        "../apps/storefront/playwright.config.ts",
+        "../apps/storefront/playwright.a11y.config.ts",
+        "../apps/storefront/playwright.performance.config.ts",
+      ].map((path) => readFile(resolve(import.meta.dir, path), "utf8")),
+    );
+    for (const config of configs) {
+      expect(config).toContain("STOREFRONT_REUSE_VALIDATED_BUILD");
+    }
   });
 
   test("aggregates every verification-contract gate", () => {

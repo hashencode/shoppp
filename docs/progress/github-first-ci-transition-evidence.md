@@ -336,3 +336,52 @@ This new successor is valid input for the missing exact-source rollback rehearsa
 not substitute for its 17-gate validation, exact deployment binding, staging proof, Worker
 restoration, D1 reconciliation, or restored-state evidence. CI-GH-U4 and the U5 dependency boundary
 remain open until that exercise passes.
+
+## Exact-artifact overwrite refusal and safe restoration — 2026-08-27
+
+Exact-source rollback rehearsal run `33053216917` used protected-default source
+`34905ccef3b16b807c3c4e5c6788548a75c9f008`, successor
+`staging-canonical-2026-08-27-ci-gh-u4-b`, rollback rehearsal enabled, and production promotion
+disabled. Both credential-free preflights passed. GitHub-hosted quality job `98453615902` passed all
+17 unchanged release gates and retained exact validation artifact `9639060520`, named
+`validated-release-34905ccef3b16b807c3c4e5c6788548a75c9f008-33053216917-attempt-1`, with
+digest `sha256:8f2ea783ef5193e37c8d0731f7f5e101f3dbe4b389bc528e09eaf4d8637b8d37` and
+expiry `2026-09-26T08:34:59Z`. Same-run deployment-input verification job `98458368020` passed.
+
+Protected deploy job `98458429826` captured and retained exact Worker/D1 baseline artifact
+`9639081309` with digest
+`sha256:7a7e7f0c5ef67ca47bb049c108ae42cab4253c60ce43259f46fe9ff1e3f8f14b` and
+expiry `2026-11-25T08:15:14Z`. It exported D1 artifact `9639084029` with digest
+`sha256:77eb6687ca70d11818498a7279c4c2433d0ae7062f156d1d00c6127c17fef75e` and
+expiry `2026-09-03T08:35:46Z`, found no pending migration, passed protected-administrator and D1
+integrity checks, and deployed all three exact validated Worker versions to staging.
+
+Staging proof job `98458690018` passed credential provisioning, administrator secret verification,
+inventory/fixture preparation, and service-principal access. The public purchase journey created a
+cart but its cart-line request carried predecessor `representative-release-2026-07-30`; the API
+correctly returned HTTP 422 `catalog_release_invalid`, and navigation remained on the product page.
+The retained staging evidence is artifact `9639142127` with digest
+`sha256:d722abe0911d89c58985554acff2bd9cfc4d8eaa52adce16a62b482cd47bb5cf` and
+expiry `2026-11-25T08:15:14Z`. Transient proof cleanup passed; latency and success callbacks were
+skipped.
+
+The trace confirmed an exact-artifact construction bug rather than a flaky click or successor
+defect. `production-builds` fetched and built the selected successor, but the later
+`browser-journeys`, `accessibility`, and `performance` gates each started a local web server by
+running storefront build again. Catalog URL/token were correctly absent outside the production-build
+gate, so those later builds selected the default legacy fixture and the last one overwrote the
+deployable `.output`. Artifact binding then faithfully retained that wrong final bundle. The fix
+keeps Catalog read credentials exclusive to `production-builds` and makes the three later browser
+gates serve and test that already validated build through a non-secret reuse marker instead of
+rebuilding it.
+
+Recovery job `98459034561` validated the captured baseline, restored all three exact Worker versions,
+reconciled run-scoped D1 proof data, verified restored Worker and D1 safe state, recorded the failed
+rehearsal, and retained restoration artifact `9639162753` with digest
+`sha256:f20fdb2bac2821520d9e50f924cf583c664c5e699f57438088309c3a70ab242c` and
+expiry `2026-11-25T08:15:14Z`. Human access, production approval, and production promotion were all
+skipped. The failed callback made the immutable successor terminal; it will not be reused.
+
+CI-GH-U4 remains open and U5 remains unauthorized. The next hosted sequence is to integrate the
+exact-artifact reuse correction, prepare another immutable canonical staging successor, and run the
+new successor through the full rollback rehearsal with production disabled.

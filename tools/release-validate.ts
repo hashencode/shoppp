@@ -241,9 +241,13 @@ export function releaseGateEnvironment(
   environment: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const scopedEnvironment = { ...environment };
+  delete scopedEnvironment.STOREFRONT_REUSE_VALIDATED_BUILD;
   if (gateName !== "production-builds") {
     delete scopedEnvironment.NUXT_CATALOG_RELEASE_TOKEN;
     delete scopedEnvironment.NUXT_CATALOG_RELEASE_URL;
+  }
+  if (["browser-journeys", "accessibility", "performance"].includes(gateName)) {
+    scopedEnvironment.STOREFRONT_REUSE_VALIDATED_BUILD = "1";
   }
   return scopedEnvironment;
 }
