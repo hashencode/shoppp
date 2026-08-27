@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
@@ -9,6 +10,7 @@ import {
   assertReleaseReportContainsNoPreviewSecrets,
   createValidationAttestation,
   digestArtifact,
+  verifyValidationAttestation,
 } from "./release-validate";
 
 const temporaryDirectories: string[] = [];
@@ -220,5 +222,94 @@ describe("release validation", () => {
     expect(() => createValidationAttestation({ ...base, artifactDigests: {} })).toThrow(
       "attestation requires deployable artifact digests",
     );
+  });
+
+  test("deployment evidence verification rejects altered artifacts and run identity", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "shoppp-validation-attestation-"));
+    temporaryDirectories.push(root);
+    const artifactPath = "apps/storefront/.output/public";
+    const artifactRoot = resolve(root, artifactPath);
+    await mkdir(artifactRoot, { recursive: true });
+    await mkdir(resolve(root, "artifacts/releases"), { recursive: true });
+    await mkdir(resolve(root, "artifacts/validation-attestations"), { recursive: true });
+    await writeFile(resolve(artifactRoot, "index.html"), "validated");
+    const artifactDigest = await digestArtifact(artifactRoot, root);
+    const commit = "a".repeat(40);
+    const tree = "b".repeat(40);
+    const releaseId = "release-2026-08-27";
+    const reportPath = resolve(root, `artifacts/releases/${releaseId}.json`);
+    const report = {
+      schemaVersion: 1 as const,
+      releaseId,
+      target: "staging" as const,
+      commit,
+      createdAt: "2026-08-27T00:00:00.000Z",
+      status: "passed" as const,
+      gates: RELEASE_GATES.map((gate) => ({
+        ...gate,
+        durationMs: 1,
+        status: "passed" as const,
+        exitCode: 0,
+      })),
+      artifactDigests: { [artifactPath]: artifactDigest },
+      environmentIsolation: { mode: "strict" as const, environments: ["staging", "production"] },
+    };
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+    const reportDigest = `sha256:${createHash("sha256")
+      .update(await readFile(reportPath))
+      .digest("hex")}`;
+    const attestation = createValidationAttestation({
+      releaseId,
+      source: { commit, tree },
+      report: { commit, digest: reportDigest, path: `artifacts/releases/${releaseId}.json` },
+      artifactDigests: report.artifactDigests,
+      github: {
+        repository: "hashencode/shoppp",
+        workflowRef: "hashencode/shoppp/.github/workflows/deploy.yml@refs/heads/main",
+        runId: "12345",
+        runAttempt: "2",
+      },
+      toolchain: {
+        runnerOs: "Linux",
+        runnerArch: "X64",
+        runnerImage: "ubuntu24/20260820.1",
+        bun: "1.3.5",
+        playwright: "1.62.0",
+        chromium: "Chromium 140.0.0.0",
+        woff2: "1.0.2",
+        system: "Linux runner 6.11 x86_64",
+      },
+    });
+    const attestationPath = resolve(
+      root,
+      `artifacts/validation-attestations/${releaseId}-12345-attempt-2.json`,
+    );
+    await writeFile(attestationPath, `${JSON.stringify(attestation, null, 2)}\n`);
+    const attestationDigest = `sha256:${createHash("sha256")
+      .update(await readFile(attestationPath))
+      .digest("hex")}`;
+    const deployableDigest = `sha256:${createHash("sha256")
+      .update(`${JSON.stringify(report.artifactDigests)}\n`)
+      .digest("hex")}`;
+    const expected = {
+      root,
+      reportPath,
+      attestationPath,
+      sourceCommit: commit,
+      sourceTree: tree,
+      releaseId,
+      runId: "12345",
+      runAttempt: "2",
+      reportDigest,
+      attestationDigest,
+      deployableDigest,
+    };
+
+    await expect(verifyValidationAttestation(expected)).resolves.toBeUndefined();
+    await expect(verifyValidationAttestation({ ...expected, runAttempt: "3" })).rejects.toThrow(
+      "run attempt",
+    );
+    await writeFile(resolve(artifactRoot, "index.html"), "altered");
+    await expect(verifyValidationAttestation(expected)).rejects.toThrow("artifact digest");
   });
 });

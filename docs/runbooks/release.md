@@ -52,6 +52,45 @@ After the entry conditions pass, every candidate starts from a clean commit and 
 bun run release:validate -- --release-id <release-id>
 ```
 
+### GitHub-first release authority
+
+The maintained replacement path dispatches `Deploy immutable commerce release` from the protected
+default-branch workflow with an exact full `source_sha`, optional governed `source_ref`, and immutable
+`release_id`. A credential-free job first verifies the workflow ref, authorized actor, and input
+syntax. The reusable hosted validator then independently proves that the exact source is reachable
+from the protected default branch or equals the repository-configured frozen-candidate ref before
+the `staging` environment exposes its Catalog read credential.
+
+Full validation runs the unchanged 17-gate `release:validate` contract on GitHub-hosted Linux x64.
+The resulting validation attestation binds commit/tree, GitHub run and attempt, hosted toolchain,
+unchanged release-report digest, and every deployable-artifact digest. Only the artifact uniquely
+named for that source and the same caller run and attempt is downloaded. Staging and production
+recompute the report, attestation, deployable-map, and individual artifact digests before the first
+Cloudflare or D1 operation. Missing, expired, altered, cross-run, rebuilt, or branch-tip-substituted
+input stops deployment. GitHub Actions, billing, protected-environment, or artifact failure pauses
+formal release; local and historical Intel output cannot substitute for this proof.
+
+The static contract does not by itself satisfy CI-GH-U4 operational proof. Keep the capsule and
+portable-evidence implementation intact until the bridge retains a real hosted validation, staging
+deployment, post-deployment check, and rollback/reconciliation exercise. No step in this transition
+authorizes production mutation.
+
+Credential ownership is role-based and environment-specific:
+
+- the **staging read credential owner** maintains and rotates only the staging
+  `BUILD_MANIFEST_TOKEN` used by strict validation and authenticated status callbacks;
+- the **staging deployment credential owner** maintains a least-privileged Cloudflare credential
+  scoped to staging Workers and `shoppp-staging` D1; and
+- the **production deployment credential owner** separately maintains a least-privileged Cloudflare
+  credential scoped to production Workers and `shoppp-production` D1.
+
+The three values must be distinct, environment-owned, absent from repository content and artifacts,
+and rotated after operator turnover, suspected disclosure, provider policy change, or scope change.
+Record only the rotation date, owner role, and affected environment outside workflow logs. **Emergency
+revocation:** disable the affected GitHub environment secret and revoke the provider credential
+before rerunning any job; preserve the failed run identity, rotate the credential, re-check scope,
+and start a new exact-SHA caller run rather than resuming a credential-exposed attempt.
+
 ### Provider-neutral full-validation capsule
 
 Native macOS output is useful developer feedback but is not candidate authority. The provider-neutral
@@ -351,8 +390,9 @@ human password-login proof and pass it as `human_access_evidence_id`. The record
 before dispatch, but it is not complete until the reviewer appends the results described in
 `admin-access.md`. The workflow:
 
-1. fetches the approved catalog manifest, builds and hashes one clean candidate including each
-   prebundled Worker;
+1. runs credential-free trusted-source preflight, calls the reusable hosted validator, and downloads
+   only its same-run exact-source report, attestation, migrations, and prebundled Workers; it
+   re-verifies every bound digest without rebuilding deployment output;
 2. exports the test D1 into a short-retention workflow artifact, lists pending migrations, uploads
    the already validated tagged Cloudflare Versions without sending them traffic, and verifies at
    least one enabled protected human against either the legacy or dynamic IAM schema;

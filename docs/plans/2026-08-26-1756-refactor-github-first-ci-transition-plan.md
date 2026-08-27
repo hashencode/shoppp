@@ -52,20 +52,24 @@ plan_role: temporary-ci-bridge
 
 ## Execution Checkpoint
 
-- **Current parent/child stage:** `CI-GH-U3` — bind protected deployment to the exact source and
-  outputs accepted by full validation. `CI-GH-U2` is complete in repository implementation: the
-  reusable hosted workflow has a credential-free trusted-source preflight, staging-scoped read
-  credential, exact commit/tree and run/attempt identity, full-SHA action pins, success/failure
-  artifact separation, and a toolchain/report/artifact validation attestation around the unchanged
-  17-gate contract.
-- **Next concrete action:** Add deployment refusal tests first, then make `deploy.yml` call the
-  reusable validator and consume only its same-run exact-SHA artifact after verifying source, tree,
-  release ID, report digest, attestation digest, deployable digest, run, and attempt. Preserve all
-  staging/production environment, confirmation, backup, human-access, receipt, and rollback gates.
-- **Current blockers:** None for `CI-GH-U3` repository implementation. The first required
-  GitHub-hosted proof in `CI-GH-U4` cannot complete while GitHub Actions billing prevents hosted jobs;
-  that state must be recorded as a blocker rather than replaced by local or Codex Cloud output.
-- **Tail:** `CI-GH-U3` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
+- **Current parent/child stage:** `CI-GH-U4` — prove the replacement on a real GitHub-hosted run and
+  protected staging exercise before removal. `CI-GH-U3` is complete in repository implementation:
+  `deploy.yml` begins credential-free, calls the reusable validator, pins every external action,
+  verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
+  remote operation, and preserves protected environments, confirmation, backup, human-access,
+  receipt, rollback, and production-off-by-default gates.
+- **Next concrete action:** After the exact CI-GH-U1–U3 implementation is integrated into the
+  protected default branch and GitHub hosted execution is available, dispatch a staging-only exact
+  clean SHA. Retain its pre-mutation Worker/D1 baseline, passing 17-gate attestation and artifact
+  identities, controlled mismatch refusal, deploy/post-deploy result, rollback/reconciliation, and
+  restored safe state. Do not trigger production.
+- **Current blockers:** `origin/main` is still `63b71c82` and does not contain the bridge workflow,
+  so the protected-default-branch preflight cannot yet authorize it. GitHub Actions is also
+  operationally blocked: run `32830213920` had zero steps and its job annotation states that recent
+  account payments failed or the spending limit must be increased. No hosted `full-validation.yml`
+  run exists. These are real U4 blockers; local tests, historical Intel evidence, and Codex Cloud
+  output are not substitutes, and U5 is not authorized.
+- **Tail:** `CI-GH-U4` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
   `CI-U11.1`.
 - **Temporary isolation:** Work only in `.worktrees/relax-ci-u7-signing` on
   `codex/relax-ci-u7-signing`. The worktree cleanup condition becomes: the exact bridge changes are

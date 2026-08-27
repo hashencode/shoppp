@@ -63,18 +63,18 @@ CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remai
 commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
 Intel restore never ran, and no outage result is reclassified as passing evidence.
 
-- **Current parent/child stage:** Execution is temporarily handed to `CI-GH-U3` in the
+- **Current parent/child stage:** Execution is temporarily handed to blocked `CI-GH-U4` in the
   [GitHub-First CI/CD Transition plan](2026-08-26-1756-refactor-github-first-ci-transition-plan.md).
   CI-GH-U1 reconciled future authority; CI-GH-U2 implemented the reusable exact-source hosted
-  validation and attestation contract without changing the 17 gates or Lighthouse thresholds.
-  CI-U7.3 remains incomplete and superseded as the current stage, not marked complete.
-- **Next concrete action:** Execute `CI-GH-U3`: make protected deployment call the reusable validator
-  and fail closed unless the same-run source/report/attestation/deployable identity matches.
-- **Current blockers:** None for the bridge's repository work. GitHub Actions billing may block the
-  first live hosted validation and staging proof required by `CI-GH-U4`; if so, the bridge remains
-  open and no old release implementation is removed.
-  The Intel host is no longer the current execution dependency.
-- **Tail:** `CI-GH-U3` through `CI-GH-U7`, then hand back to this plan at `CI-U8.3` — publish and
+  validation and attestation contract; CI-GH-U3 bound protected deployment to those exact same-run
+  outputs. CI-U7.3 remains incomplete and superseded as the current stage, not marked complete.
+- **Next concrete action:** Integrate the exact bridge implementation into the protected default
+  branch, resolve GitHub Actions billing, and run the non-production CI-GH-U4 hosted validation plus
+  staging rollback/reconciliation proof. Do not remove old implementation or trigger production.
+- **Current blockers:** `origin/main` does not yet contain CI-GH-U1–U3, and GitHub run `32830213920`
+  proves hosted jobs are billing-blocked before their first step. The Intel host is no longer the
+  execution dependency, and its history cannot substitute for U4.
+- **Tail:** `CI-GH-U4` through `CI-GH-U7`, then hand back to this plan at `CI-U8.3` — publish and
   verify the GitHub-first release-availability and recovery boundary — followed by the revised
   `CI-U11.1` steady-state review. CI-U4/CI-U6 remain an optional non-secret-runner pilot/decision
   track rather than a release dependency. CI-U5 remains the stable deferred ID for optional future

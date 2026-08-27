@@ -98,6 +98,8 @@ jobs:
           if ! git merge-base --is-ancestor "$SOURCE_SHA" "origin/$DEFAULT_BRANCH"; then
             [[ -n "$FROZEN_CANDIDATE_REF" ]]
             [[ "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
+            git check-ref-format "$FROZEN_CANDIDATE_REF"
+            [[ "$FROZEN_CANDIDATE_REF" == refs/heads/* || "$FROZEN_CANDIDATE_REF" == refs/tags/* ]]
             git fetch --no-tags origin "+$FROZEN_CANDIDATE_REF:$FROZEN_CANDIDATE_REF"
             candidate_sha="$(git rev-parse "$FROZEN_CANDIDATE_REF^{commit}")"
             test "$candidate_sha" = "$SOURCE_SHA"
@@ -221,9 +223,12 @@ jobs:
           path: |
             apps/admin/dist/
             apps/admin/worker-dist/
+            apps/admin/wrangler.jsonc
             apps/api/dist/
+            apps/api/wrangler.jsonc
             apps/storefront/.output/public/
             apps/storefront/worker-dist/
+            apps/storefront/wrangler.jsonc
             artifacts/releases/${{ needs.preflight.outputs.release_id }}.json
             artifacts/validation-attestations/${{ needs.preflight.outputs.release_id }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}.json
             packages/db/migrations/

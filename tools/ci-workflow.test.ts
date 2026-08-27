@@ -110,6 +110,7 @@ describe("local-first CI workflow contracts", () => {
       'git merge-base --is-ancestor "$SOURCE_SHA" "origin/$DEFAULT_BRANCH"',
     );
     expect(preflight).toContain("FROZEN_CANDIDATE_REF");
+    expect(preflight).toContain('git check-ref-format "$FROZEN_CANDIDATE_REF"');
     expect(preflight).toContain('test "$candidate_sha" = "$SOURCE_SHA"');
 
     expect(quality).toContain("needs: preflight");

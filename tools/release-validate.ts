@@ -391,6 +391,119 @@ async function fileDigest(path: string): Promise<string> {
     .digest("hex")}`;
 }
 
+function artifactMapDigest(artifactDigests: Record<string, string>): string {
+  const ordered = Object.fromEntries(
+    Object.entries(artifactDigests).sort(([left], [right]) =>
+      left < right ? -1 : left > right ? 1 : 0,
+    ),
+  );
+  return `sha256:${createHash("sha256")
+    .update(`${JSON.stringify(ordered)}\n`)
+    .digest("hex")}`;
+}
+
+export async function verifyValidationAttestation(options: {
+  root?: string;
+  reportPath: string;
+  attestationPath: string;
+  sourceCommit: string;
+  sourceTree: string;
+  releaseId: string;
+  runId: string;
+  runAttempt: string;
+  reportDigest: string;
+  attestationDigest: string;
+  deployableDigest: string;
+}): Promise<void> {
+  const root = resolve(options.root ?? ROOT);
+  const releaseId = safeReleaseId(options.releaseId);
+  assert(FULL_SHA.test(options.sourceCommit), "expected source commit is invalid");
+  assert(FULL_SHA.test(options.sourceTree), "expected source tree is invalid");
+  assert(/^[1-9][0-9]*$/.test(options.runId), "expected run ID is invalid");
+  assert(/^[1-9][0-9]*$/.test(options.runAttempt), "expected run attempt is invalid");
+  for (const [label, digest] of [
+    ["report", options.reportDigest],
+    ["attestation", options.attestationDigest],
+    ["deployable", options.deployableDigest],
+  ] as const) {
+    assert(SHA256_DIGEST.test(digest), `expected ${label} digest is invalid`);
+  }
+  const reportPath = resolve(options.reportPath);
+  const attestationPath = resolve(options.attestationPath);
+  assert(
+    reportPath.startsWith(`${root}/`) && attestationPath.startsWith(`${root}/`),
+    "validation evidence path escapes the checkout",
+  );
+  assert(
+    (await fileDigest(attestationPath)) === options.attestationDigest,
+    "attestation digest mismatch",
+  );
+  assert((await fileDigest(reportPath)) === options.reportDigest, "release report digest mismatch");
+  const report = JSON.parse(await readFile(reportPath, "utf8")) as ReleaseReport;
+  const attestation = JSON.parse(await readFile(attestationPath, "utf8")) as ValidationAttestation;
+  assert(report.schemaVersion === 1, "release report schema is invalid");
+  assert(report.releaseId === releaseId, "release report ID mismatch");
+  assert(
+    report.target === "staging" && report.status === "passed",
+    "release report did not pass staging",
+  );
+  assert(report.commit === options.sourceCommit, "release report source commit mismatch");
+  assert(report.gates.length === RELEASE_GATES.length, "release report gate count mismatch");
+  for (const [index, gate] of RELEASE_GATES.entries()) {
+    const result = report.gates[index];
+    assert(
+      result?.name === gate.name &&
+        JSON.stringify(result.command) === JSON.stringify(gate.command) &&
+        result.status === "passed" &&
+        result.exitCode === 0,
+      `release report gate ${gate.name} is invalid`,
+    );
+  }
+  assert(attestation.schemaVersion === 1, "validation attestation schema is invalid");
+  assert(attestation.releaseId === releaseId, "validation attestation release ID mismatch");
+  assert(
+    attestation.source.commit === options.sourceCommit,
+    "validation attestation source commit mismatch",
+  );
+  assert(
+    attestation.source.tree === options.sourceTree,
+    "validation attestation source tree mismatch",
+  );
+  assert(attestation.report.commit === options.sourceCommit, "attestation report source mismatch");
+  assert(attestation.report.digest === options.reportDigest, "attestation report digest mismatch");
+  assert(
+    attestation.report.path === relative(root, reportPath),
+    "attestation release report path mismatch",
+  );
+  assert(attestation.github.runId === options.runId, "validation attestation run ID mismatch");
+  assert(
+    attestation.github.runAttempt === Number(options.runAttempt),
+    "validation attestation run attempt mismatch",
+  );
+  assert(
+    JSON.stringify(attestation.artifactDigests) === JSON.stringify(report.artifactDigests),
+    "attestation artifact map differs from release report",
+  );
+  assert(
+    artifactMapDigest(attestation.artifactDigests) === options.deployableDigest,
+    "deployable artifact map digest mismatch",
+  );
+  for (const [artifactPath, expectedDigest] of Object.entries(attestation.artifactDigests)) {
+    assert(
+      RELEASE_ARTIFACT_PATHS.includes(artifactPath as (typeof RELEASE_ARTIFACT_PATHS)[number]),
+      "attestation contains an unknown deployable artifact path",
+    );
+    const absolutePath = resolve(root, artifactPath);
+    assert(absolutePath.startsWith(`${root}/`), "deployable artifact path escapes the checkout");
+    assert(
+      (await digestArtifact(absolutePath, root)) === expectedDigest,
+      `deployable artifact digest mismatch: ${artifactPath}`,
+    );
+  }
+  assertReleaseReportContainsNoPreviewSecrets(report);
+  assertReleaseReportContainsNoPreviewSecrets(attestation);
+}
+
 async function writeValidationAttestation(options: {
   report: ReleaseReport;
   reportPath: string;
@@ -548,8 +661,32 @@ if (import.meta.main) {
       "strict-environment": { type: "boolean", default: false },
       promotion: { type: "boolean", default: false },
       "write-attestation": { type: "boolean", default: false },
+      "verify-attestation": { type: "boolean", default: false },
     },
   });
+  if (values["verify-attestation"]) {
+    const releaseId = safeReleaseId(process.env.RELEASE_ID ?? "");
+    const runId = process.env.RELEASE_GITHUB_RUN_ID ?? process.env.GITHUB_RUN_ID ?? "";
+    const runAttempt =
+      process.env.RELEASE_GITHUB_RUN_ATTEMPT ?? process.env.GITHUB_RUN_ATTEMPT ?? "";
+    await verifyValidationAttestation({
+      reportPath: resolve(REPORT_DIRECTORY, `${releaseId}.json`),
+      attestationPath: resolve(
+        ATTESTATION_DIRECTORY,
+        `${releaseId}-${runId}-attempt-${runAttempt}.json`,
+      ),
+      sourceCommit: process.env.RELEASE_EXPECTED_COMMIT ?? "",
+      sourceTree: process.env.RELEASE_EXPECTED_TREE ?? "",
+      releaseId,
+      runId,
+      runAttempt,
+      reportDigest: process.env.EXPECTED_REPORT_DIGEST ?? "",
+      attestationDigest: process.env.EXPECTED_ATTESTATION_DIGEST ?? "",
+      deployableDigest: process.env.EXPECTED_DEPLOYABLE_DIGEST ?? "",
+    });
+    console.log("Validation attestation and deployable artifacts verified");
+    process.exit(0);
+  }
   const releaseId = values["release-id"] ?? process.env.RELEASE_ID;
   const result = await validateRelease({
     target: releaseTarget(values.env ?? values.target ?? process.env.RELEASE_TARGET),

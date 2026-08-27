@@ -3,6 +3,14 @@ name: Deploy immutable commerce release
 on:
   workflow_dispatch:
     inputs:
+      source_sha:
+        description: Exact source commit to validate and deploy; defaults to this protected workflow commit
+        required: false
+        type: string
+      source_ref:
+        description: Governed frozen-candidate ref when the source is not on the default branch
+        required: false
+        type: string
       release_id:
         description: Approved immutable catalog release ID
         required: true
@@ -30,79 +38,104 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: read
-  contents: read
+  actions: none
+  contents: none
 
 env:
   RELEASE_ID: ${{ inputs.release_id }}
-  RELEASE_TAG: release-${{ github.sha }}
+  RELEASE_TAG: release-${{ inputs.source_sha || github.sha }}
 
 jobs:
-  validate:
+  preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-    environment: staging
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      source_sha: ${{ steps.request.outputs.source_sha }}
     env:
-      NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
-      NUXT_CATALOG_RELEASE_URL: ${{ vars.API_URL }}/build/catalog/releases/${{ inputs.release_id }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      FROZEN_CANDIDATE_REF: ${{ vars.FROZEN_CANDIDATE_REF }}
+      GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
+      RELEASE_OPERATORS: ${{ vars.RELEASE_OPERATORS }}
+      REQUESTED_SOURCE_REF: ${{ inputs.source_ref }}
+      REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.5
-      - name: Install browser runtime
-        run: bunx playwright install --with-deps chromium
-      - name: Install font inspection runtime
-        run: sudo apt-get install --yes woff2
-      - name: Validate locked staging candidate
+      - name: Verify trusted deployment request before credentials
+        id: request
+        shell: bash
         env:
-          RELEASE_STRICT_ENVIRONMENT: "true"
-          RELEASE_TARGET: staging
-        run: bun run release:validate -- --release-id "$RELEASE_ID"
-      - name: Package the validated workspace and report
-        uses: actions/upload-artifact@v4
-        with:
-          name: validated-${{ inputs.release_id }}
-          retention-days: 30
-          if-no-files-found: error
-          path: |
-            apps/admin/dist/
-            apps/admin/worker-dist/
-            apps/api/dist/
-            apps/storefront/.output/public/
-            apps/storefront/worker-dist/
-            artifacts/releases/${{ inputs.release_id }}.json
-            packages/db/migrations/
-      - name: Record failed candidate validation
-        if: failure()
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          WORKFLOW_ACTOR: ${{ github.actor }}
         run: |
-          curl --fail --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer $NUXT_CATALOG_RELEASE_TOKEN" \
-            --header "Content-Type: application/json" \
-            --header "Idempotency-Key: catalog-build-$RELEASE_ID-validation-failed" \
-            --data '{"status":"failed","failureCode":"candidate_validation_failed"}' \
-            "$NUXT_CATALOG_RELEASE_URL/status"
+          set -euo pipefail
+          [[ -n "$DEFAULT_BRANCH" ]]
+          case "$GITHUB_WORKFLOW_REF" in
+            "$GITHUB_REPOSITORY/.github/workflows/deploy.yml@refs/heads/$DEFAULT_BRANCH") ;;
+            *) echo "deployment workflow must come from the protected default branch" >&2; exit 1 ;;
+          esac
+          normalized_operators=",${RELEASE_OPERATORS//[[:space:]]/},"
+          if [[ "$WORKFLOW_ACTOR" != "$REPOSITORY_OWNER" && "$normalized_operators" != *",$WORKFLOW_ACTOR,"* ]]; then
+            echo "workflow actor is not an authorized release operator" >&2
+            exit 1
+          fi
+          source_sha="${REQUESTED_SOURCE_SHA:-$GITHUB_SHA}"
+          [[ "$source_sha" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
+          if [[ -n "$REQUESTED_SOURCE_REF" ]]; then
+            [[ -n "$FROZEN_CANDIDATE_REF" && "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
+            git check-ref-format "$FROZEN_CANDIDATE_REF"
+            [[ "$FROZEN_CANDIDATE_REF" == refs/heads/* || "$FROZEN_CANDIDATE_REF" == refs/tags/* ]]
+          fi
+          printf 'source_sha=%s\n' "$source_sha" >> "$GITHUB_OUTPUT"
+
+  validate:
+    needs: preflight
+    permissions:
+      contents: read
+    uses: ./.github/workflows/full-validation.yml
+    with:
+      source_sha: ${{ needs.preflight.outputs.source_sha }}
+      source_ref: ${{ inputs.source_ref }}
+      release_id: ${{ inputs.release_id }}
 
   deploy-staging:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: staging
+    permissions:
+      actions: read
+      contents: read
     env:
       API_URL: ${{ vars.API_URL }}
       BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: validated-${{ inputs.release_id }}
+          name: ${{ needs.validate.outputs.artifact_name }}
+      - name: Verify exact validated deployment inputs
+        id: validated-inputs
+        env:
+          EXPECTED_ATTESTATION_DIGEST: ${{ needs.validate.outputs.attestation_digest }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          RELEASE_EXPECTED_COMMIT: ${{ needs.validate.outputs.source_sha }}
+          RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}
+          RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun tools/release-validate.ts --verify-attestation
       - name: Export test D1 before staging migration
         working-directory: apps/api
         run: |
@@ -110,7 +143,7 @@ jobs:
           bunx wrangler d1 export shoppp-staging --env staging --remote \
             --output="../../artifacts/d1-backups/test-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.sql"
       - name: Preserve the pre-migration test D1 export
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: test-d1-backup-${{ inputs.release_id }}
           retention-days: 7
@@ -186,7 +219,7 @@ jobs:
           (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
           (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
       - name: Record failed staging deployment
-        if: failure()
+        if: ${{ failure() && steps.validated-inputs.outcome == 'success' }}
         run: |
           curl --fail --silent --show-error \
             --request POST \
@@ -197,10 +230,12 @@ jobs:
             "$API_URL/build/catalog/releases/$RELEASE_ID/status"
 
   prove-staging:
-    needs: deploy-staging
+    needs: [validate, deploy-staging]
     runs-on: ubuntu-latest
     timeout-minutes: 55
     environment: staging
+    permissions:
+      contents: read
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -223,8 +258,13 @@ jobs:
       E2E_ADMIN_ACCESS_PROOF_ID: access-proof-${{ github.run_id }}-${{ github.run_attempt }}
       E2E_ADMIN_ACCESS_PROOF_EMAIL: admin-proof+${{ github.run_id }}-${{ github.run_attempt }}@example.test
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
@@ -355,7 +395,7 @@ jobs:
             "$API_E2E_BASE_URL/build/catalog/releases/$RELEASE_ID/status"
       - name: Preserve staging journey evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: staging-evidence-${{ inputs.release_id }}
           path: |
@@ -369,6 +409,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging-human-access
+    permissions:
+      actions: read
+      contents: none
     outputs:
       approved_by: ${{ steps.human-access.outputs.approved_by }}
       evidence_id: ${{ steps.human-access.outputs.evidence_id }}
@@ -408,7 +451,7 @@ jobs:
           printf 'approved_by=%s\n' "$approved_by" >> "$GITHUB_OUTPUT"
           printf 'evidence_id=%s\n' "$HUMAN_ACCESS_EVIDENCE_ID" >> "$GITHUB_OUTPUT"
       - name: Preserve human access evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: human-access-evidence-${{ inputs.release_id }}
           retention-days: 90
@@ -420,6 +463,7 @@ jobs:
     if: ${{ inputs.promote_production }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions: {}
     outputs:
       approved_by: ${{ steps.approval.outputs.approved_by }}
       backup_id: ${{ steps.approval.outputs.backup_id }}
@@ -451,21 +495,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: production
+    permissions:
+      actions: read
+      contents: read
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
       - name: Install font inspection runtime
         run: sudo apt-get install --yes woff2
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: validated-${{ inputs.release_id }}
+          name: ${{ needs.validate.outputs.artifact_name }}
+      - name: Verify exact validated production inputs
+        env:
+          EXPECTED_ATTESTATION_DIGEST: ${{ needs.validate.outputs.attestation_digest }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          RELEASE_EXPECTED_COMMIT: ${{ needs.validate.outputs.source_sha }}
+          RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}
+          RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun tools/release-validate.ts --verify-attestation
       - name: Verify recent production backup before migration
         env:
           PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}

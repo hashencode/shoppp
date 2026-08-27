@@ -49,6 +49,17 @@ const promotionRunbookPath = resolve(
   import.meta.dir,
   "../docs/runbooks/storefront-theme-promotion.md",
 );
+const releaseRunbookPath = resolve(import.meta.dir, "../docs/runbooks/release.md");
+
+function expectExternalActionsPinnedToFullShas(contents: string): void {
+  const references = contents.match(/^\s+(?:-\s+)?uses:\s+[^\s#]+/gm) ?? [];
+  for (const reference of references) {
+    const action = reference.match(/uses:\s+([^\s#]+)/)?.[1];
+    expect(action).toBeDefined();
+    if (action!.startsWith("./")) continue;
+    expect(action).toMatch(/^[^@\s]+@[0-9a-f]{40}$/);
+  }
+}
 
 describe("hosted full validation workflow", () => {
   test("allows the complete release gate to finish without weakening it", async () => {
@@ -62,6 +73,79 @@ describe("hosted full validation workflow", () => {
 });
 
 describe("production promotion workflow", () => {
+  test("runs credential-free dispatch preflight before reusable hosted validation", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const preflight = workflow.slice(
+      workflow.indexOf("  preflight:"),
+      workflow.indexOf("  validate:"),
+    );
+    const validation = workflow.slice(
+      workflow.indexOf("  validate:"),
+      workflow.indexOf("  deploy-staging:"),
+    );
+
+    expect(workflow).toContain("source_sha:");
+    expect(workflow).toContain("source_ref:");
+    expect(workflow).toMatch(/^permissions:\n  actions: none\n  contents: none$/m);
+    expect(preflight).toContain("permissions: {}");
+    expect(preflight).not.toContain("environment:");
+    expect(preflight).not.toMatch(/secrets\.|CLOUDFLARE|BUILD_MANIFEST_TOKEN/);
+    expect(preflight).toContain("GITHUB_WORKFLOW_REF");
+    expect(preflight).toContain("RELEASE_OPERATORS");
+    expect(preflight).toContain('git check-ref-format "$FROZEN_CANDIDATE_REF"');
+    expect(validation).toContain("needs: preflight");
+    expect(validation).toContain("uses: ./.github/workflows/full-validation.yml");
+    expect(validation).toContain("source_sha: ${{ needs.preflight.outputs.source_sha }}");
+    expect(validation).toContain("release_id: ${{ inputs.release_id }}");
+    expect(validation).not.toContain("secrets: inherit");
+  });
+
+  test("verifies same-run source and digests before staging mutation", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const staging = workflow.slice(
+      workflow.indexOf("  deploy-staging:"),
+      workflow.indexOf("  prove-staging:"),
+    );
+    const verification = staging.indexOf("Verify exact validated deployment inputs");
+    const firstRemoteRead = staging.indexOf("Export test D1 before staging migration");
+    const firstMutation = staging.indexOf("Upload saved staging versions before migration");
+
+    expect(staging).toContain("needs: validate");
+    expect(staging).toContain("ref: ${{ needs.validate.outputs.source_sha }}");
+    expect(staging).toContain("name: ${{ needs.validate.outputs.artifact_name }}");
+    expect(staging).toContain("RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}");
+    expect(staging).toContain(
+      "EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}",
+    );
+    expect(staging).toContain(
+      "EXPECTED_ATTESTATION_DIGEST: ${{ needs.validate.outputs.attestation_digest }}",
+    );
+    expect(staging).toContain(
+      "EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}",
+    );
+    expect(staging).toContain("bun tools/release-validate.ts --verify-attestation");
+    expect(verification).toBeGreaterThan(0);
+    expect(firstRemoteRead).toBeGreaterThan(verification);
+    expect(firstMutation).toBeGreaterThan(firstRemoteRead);
+    expect(staging).toContain("failure() && steps.validated-inputs.outcome == 'success'");
+    expect(staging).not.toContain("bun run build");
+  });
+
+  test("pins every maintained deployment action to a full commit SHA", async () => {
+    expectExternalActionsPinnedToFullShas(await readFile(workflowPath, "utf8"));
+  });
+
+  test("documents distinct credential ownership, rotation, and emergency revocation", async () => {
+    const runbook = await readFile(releaseRunbookPath, "utf8");
+
+    expect(runbook).toContain("GitHub-first release authority");
+    expect(runbook).toContain("staging read credential owner");
+    expect(runbook).toContain("staging deployment credential owner");
+    expect(runbook).toContain("production deployment credential owner");
+    expect(runbook).toMatch(/Emergency\s+revocation/);
+    expect(runbook).toContain("same caller run and attempt");
+  });
+
   test("does not forward Playwright worker flags into the Fashion Store evidence verifier", async () => {
     const packageJson = JSON.parse(await readFile(storefrontPackagePath, "utf8")) as {
       scripts: Record<string, string>;
