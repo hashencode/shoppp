@@ -58,12 +58,12 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the exact-artifact browser-gate reuse correction, then use that
-  exact clean protected-default source to prepare a new immutable ordinary-staging successor. Run
-  that new successor through `deploy.yml` with staging rollback rehearsal enabled and production
+- **Next concrete action:** Commit and push the retained successor-preparation evidence, then run the
+  resulting exact clean protected-default source through `deploy.yml` for immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-c`, with staging rollback rehearsal enabled and production
   promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker restoration, D1 reconciliation checks, and
-  restored safe state. Do not reuse the terminal failed successor or trigger production.
+  restored safe state. Do not reuse either terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -111,9 +111,12 @@ plan_role: temporary-ci-bridge
   Catalog credentials were intentionally absent from those later gates. Exact captured Worker
   restoration, run-scoped D1 reconciliation, and restored safe-state verification all passed; no
   production job ran. The failed rehearsal transitioned that immutable successor to terminal
-  `failed`. The current blocker is integration of the correction that makes browser gates exercise
-  the already validated exact storefront artifact without rebuilding or widening Catalog credential
-  exposure, followed by a new immutable successor and exact-source rehearsal.
+  `failed`. Exact-artifact reuse correction `7730951f` is integrated without widening Catalog
+  credential exposure. Protected preparation run `33055956466` then passed its D1 backup, collision
+  refusal, canonical projection, immutable insertion, protected endpoint read-back, exact D1 state
+  verification, and receipt retention for successor
+  `staging-canonical-2026-08-27-ci-gh-u4-c`. The current blocker is only its exact-source
+  hosted/staging rollback rehearsal and retained evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

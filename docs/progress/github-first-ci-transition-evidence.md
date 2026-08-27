@@ -385,3 +385,33 @@ skipped. The failed callback made the immutable successor terminal; it will not 
 CI-GH-U4 remains open and U5 remains unauthorized. The next hosted sequence is to integrate the
 exact-artifact reuse correction, prepare another immutable canonical staging successor, and run the
 new successor through the full rollback rehearsal with production disabled.
+
+## Exact-artifact correction and replacement successor — 2026-08-27
+
+Commit `7730951f35fb9cf81b3a3e346d9638370ab92945` keeps Catalog URL/token exposure exclusive to
+`production-builds`. It gives only the non-secret `STOREFRONT_REUSE_VALIDATED_BUILD=1` marker to the
+`browser-journeys`, `accessibility`, and `performance` gates, causing their Playwright servers to
+exercise the already validated storefront output without rebuilding it. The complete local tools
+suite passed 377 tests with 1,654 expectations; focused governance/release tests, tools TypeScript,
+ESLint, import boundaries, configuration imports, formatting, and diff checks also passed. These
+local checks are implementation evidence only and do not replace GitHub-hosted proof.
+
+Protected preparation run `33055956466`, job `98462680378`, used exact protected-default source
+`7730951f35fb9cf81b3a3e346d9638370ab92945` to create immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-c`. It passed the staging-only request guard, retained the
+pre-insertion D1 export, fetched the predecessor, projected exact staging identities, refused
+collisions, generated the canonical successor, inserted it immutably, read it back through the
+protected build endpoint, and verified its exact D1 state.
+
+The pre-insertion D1 export is official artifact `9639597171`, named
+`staging-catalog-successor-d1-before-33055956466-attempt-1`, with digest
+`sha256:b15f68267d97f8723636a260dedc95cbf87f038f9c1ecf180376a4c1fb7cc44d` and expiry
+`2026-09-03T08:52:46Z`. The canonical manifest/receipt is official artifact `9639601822`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-c-33055956466-attempt-1`, with
+digest `sha256:cae0ce814027efe54d984b9411f39f75b07c8dd8fbf2213f7e08a72b640318d9` and expiry
+`2026-11-25T08:52:23Z`. No predecessor was rewritten and no production job or resource ran.
+
+Preparation is not CI-GH-U4 completion. U5 remains unauthorized until an exact clean source runs
+this successor through all 17 unchanged hosted gates, same-run artifact binding, staging proof,
+exact Worker restoration, D1 reconciliation, and restored safe-state verification with production
+disabled.
