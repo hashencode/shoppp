@@ -52,23 +52,17 @@ plan_role: temporary-ci-bridge
 
 ## Execution Checkpoint
 
-- **Current parent/child stage:** `CI-GH-U7` — re-prove the post-removal exact GitHub-hosted and
-  protected staging path, then hand the remaining CI tail back to parent `CI-U8.3`. `CI-GH-U5` and
-  `CI-GH-U6` are complete: their exact consumer scan found no maintained capsule/evidence caller,
-  the superseded runtime and portable-evidence implementation are absent, and direct exact-source,
-  digest, report, artifact, static-output, secret-refusal, deployment-receipt, and rollback behavior
-  remains owned by the GitHub/Cloudflare path.
-- **Next concrete action:** Run the same protected non-production deployment workflow from the exact
-  checkpoint SHA with immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k`, rollback
-  rehearsal enabled and production disabled. Retain official run/artifact identities and close the
-  bridge only if all 17 gates, Lighthouse budgets, exact binding, staging proof, p95 thresholds,
-  Worker/proof-marker restoration, D1 reconciliation, and restored safe state pass.
-- **Current blockers:** None for U7. GitHub Actions billing is no longer blocking execution.
-  Protected preparation run `33073448872`, job `98521379512`, passed from post-removal source
-  `2972a090c225a8482c5d5ecc50c5d41d0b7ea5d6`; it retained pre-insertion D1 artifact `9646795381`
-  and canonical successor receipt `9646800676` for new immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u7-k`. The only current action is its exact-checkpoint
-  hosted/staging rollback rehearsal and retained evidence.
+- **Current parent/child stage:** Complete — `CI-GH-U1` through `CI-GH-U7` are complete and current
+  CI authority is handed back to parent `CI-U8.3`. Post-removal non-production run `33073613728`
+  passed both preflights, all 17 unchanged gates and Lighthouse budgets, exact same-run binding,
+  protected staging deploy/proof, unchanged p95 thresholds, exact Worker/proof-marker restoration,
+  D1 reconciliation, and restored safe state from source
+  `40cfdec8021aca5b7e78fc9be27553ba620d0511`; human access and production were skipped.
+- **Next concrete action:** None in this bridge. Parent CI owns the current `CI-U8.3` action to
+  publish and verify the GitHub-first release-availability and recovery boundary.
+- **Current blockers:** None. GitHub Actions billing is no longer blocking execution. Protected
+  preparation run `33073448872` and retained proof run `33073613728` completed the post-removal
+  dependency boundary without candidate, DC, PG, human-access, or production authority.
   Historical U4 execution follows. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -219,20 +213,18 @@ plan_role: temporary-ci-bridge
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
-  and Linux X64 toolchain evidence. CI-GH-U4 nevertheless remains incomplete because that source did
-  not yet implement or execute the required exact pre-mutation Worker capture and safe staging
-  restoration. The replacement workflow must pass its local contract gates and a new exact-source
-  hosted/staging exercise before U5 is authorized; the earlier billing failure, local tests,
-  historical Intel evidence, and Codex Cloud output remain non-substitutes.
-- **Tail:** `CI-GH-U4` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
+  and Linux X64 toolchain evidence. That earlier source alone did not complete CI-GH-U4 because it
+  lacked exact pre-mutation Worker capture and safe staging restoration; later retained run
+  `33070432378` supplied the required proof and authorized U5. The earlier billing failure, local
+  tests, historical Intel evidence, and Codex Cloud output remain non-substitutes.
+- **Tail:** None in this completed bridge. Parent CI owns current `CI-U8.3`, followed by
   `CI-U11.1`.
 - **Temporary isolation:** Work only in `.worktrees/relax-ci-u7-signing` on
   `codex/relax-ci-u7-signing`. The worktree cleanup condition becomes: the exact bridge changes are
   integrated, the hand-back checkpoint is recorded, no writer remains, and the required dirty and
   untracked manifests are retained before removal.
-- **Status rule:** This plan is the only current-unit queue for the CI transition. Parent CI and
-  progress documents retain history and the eventual tail but do not maintain a competing bridge
-  queue.
+- **Status rule:** This completed plan retains bridge history but no current-unit queue. Parent CI is
+  the sole authority for current `CI-U8.3`; progress documents remain evidence only.
 
 ---
 

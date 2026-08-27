@@ -45,7 +45,7 @@ Shoppp is one cross-border DTC commerce product with these product areas:
 | `FS` | The `fashion-store` product template | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) |
 | `DS` | The `decor-store` product template | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) for home correction; branch-qualified `codex/feat-decor-store-source-parity:docs/plans/2026-08-19-1518-feat-decor-store-page-suite-plan.md` for the remaining-page tail |
 | `REL` | Candidate proof and production-promotion policy | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) |
-| `CI` | Repository validation plus GitHub-first release delivery | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) while the temporary bridge is active; [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) after hand-back |
+| `CI` | Repository validation plus GitHub-first release delivery | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md); the completed [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) retains bridge history |
 
 `fashion-store` and `decor-store` are templates in the same product and shared theme platform. The
 older `fashion` reimplementation is retired and is not a third product template. The existing code
@@ -112,22 +112,20 @@ Parallel Decor execution is complete without replacing the product-level Fashion
   concurrent checkout until the page-suite work is merged or explicitly abandoned; its lifecycle
   record is retained in shared Git metadata.
 
-Parallel CI infrastructure planning is temporarily routed through a bounded bridge without replacing
-either product implementation pointer:
+CI infrastructure execution has returned from its completed bounded bridge without replacing either
+product implementation pointer:
 
-- **Parallel plan:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
-- **Current parent/child stage:** Active `CI-GH-U7` — re-prove the post-removal exact GitHub-hosted
-  and protected staging path, then hand back to parent `CI-U8.3`. CI-GH-U1–U6 are complete without
-  changing the 17 gates or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing
-  Intel restore remains missing historical evidence rather than a current action.
-- **Next action:** Run the protected non-production rollback rehearsal from the exact checkpoint SHA
-  with immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k` and production disabled. Close
-  the bridge only after retained
-  post-removal evidence proves all 17 gates, exact binding, staging proof, recovery, and safe state.
-- **Blocker:** None for U7. No external billing blocker remains. Protected preparation run
-  `33073448872` passed from post-removal source `2972a090`, retained its D1 backup and canonical
-  receipt, and created immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k`; only its exact
-  checkpoint hosted/staging/recovery proof remains. Historical U4 execution follows.
+- **Completed bridge:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
+- **Current parent/child stage:** Active parent `CI-U8.3` — publish and verify the GitHub-first
+  release-availability and recovery boundary. CI-GH-U1–U7 are complete without changing the 17
+  gates or Lighthouse thresholds. `CI-U7.3` remains incomplete historical work, and its missing
+  Intel restore is not reclassified as passing evidence.
+- **Next action:** Update the provider dependency inventory, current CI/release runbooks, and
+  contract tests with the GitHub-first pause/fail-closed/recovery boundary, then verify the retained
+  staging rollback/reconciliation recipe without production mutation.
+- **Blocker:** None for `CI-U8.3`. Retained post-removal run `33073613728` passed all 17 gates, exact
+  same-run binding, protected staging proof, p95 budgets, exact restoration, D1 reconciliation, and
+  restored safe state with human access and production skipped. Historical U4 execution follows.
   Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
@@ -267,8 +265,8 @@ either product implementation pointer:
   missing pre-mutation Worker capture or restored staging state. That earlier run alone did not
   satisfy U4; retained run `33070432378` later supplied the required rollback-capable exact-source
   proof. Local, historical Intel, and Codex Cloud output remain non-substitutes.
-- **Tail:** `CI-GH-U7`, then return to `CI-U8.3` for the GitHub-first
-  release-availability/recovery boundary, followed by `CI-U11.1` steady-state review. The transition
+- **Tail:** `CI-U8.3` for the GitHub-first release-availability/recovery boundary, followed by
+  `CI-U11.1` steady-state review. The completed transition
   preserves all 17 release gates, Lighthouse thresholds, exact-SHA binding, protected deployment,
   rollback, and REL/DC/PG authority while removing future Docker/Intel/provider-independent release
   obligations.
@@ -305,8 +303,8 @@ focused test alone.
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
-| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Temporarily paused at incomplete `CI-U7.3`; CI-U1–U3, CI-U7.1–U7.2, and CI-U12 remain complete; resumes at `CI-U8.3` only after CI-GH hand-back** | Retains completed CI history, then owns the GitHub-first availability boundary and `CI-U11.1` review; it does not own the current transition unit while the bridge is active |
-| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Active — CI-GH-U1–U6 are complete; current `CI-GH-U7` must retain the post-removal exact hosted/staging/recovery proof before hand-back** | Owns CI-GH-U1–U7, exact transition supersessions, pre-removal and post-removal non-production hosted/staging proof, and hand-back to `CI-U8.3`; no product, candidate, DC/PG, or production-promotion authority |
+| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Active at `CI-U8.3`; CI-U1–U3, CI-U7.1–U7.2, and CI-U12 remain complete; incomplete historical CI-U7.3 is not reclassified** | Owns the current GitHub-first availability boundary and subsequent `CI-U11.1` review |
+| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions

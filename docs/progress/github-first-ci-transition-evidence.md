@@ -870,3 +870,43 @@ digest `sha256:60518455a55e860fe1a4ba1c73c73f5bd856df5e0d5d14a6c1a8014836463c8e`
 Preparation does not complete CI-GH-U7 or substitute for its pending exact-checkpoint 17-gate
 hosted validation, same-run artifact binding, protected staging proof, exact Worker/proof-marker
 restoration, D1 reconciliation, and restored safe-state evidence.
+
+## Successful post-removal GitHub/staging proof and hand-back — 2026-08-27
+
+Exact-source run `33073613728` bound source `40cfdec8021aca5b7e78fc9be27553ba620d0511` to immutable
+successor `staging-canonical-2026-08-27-ci-gh-u7-k`, with rollback rehearsal enabled and production
+promotion disabled. Preflight jobs `98521969247` and `98522007838` passed. Hosted quality job
+`98522064251` passed all 17 unchanged gates and Lighthouse budgets. Official validation artifact
+`9647589810`, named
+`validated-release-40cfdec8021aca5b7e78fc9be27553ba620d0511-33073613728-attempt-1`, has digest
+`sha256:ab7962b2853f5972c1de1f92f3f19616cc69bfea4a5d739a6e0e936d7b1c72cf` and expiry
+`2026-09-26T13:09:09Z`. Its attestation binds source tree
+`6616552e5f079bd45d4f94ecd4aec6f95e07ec32`, report digest
+`sha256:d630682e7d107bf8bc03d2433cecf5c763bd8dbb3199b3f43bc36fc51274cd32`, run/attempt, Linux X64
+toolchain, and the validated deployable artifacts. Same-run deployment-input job `98527985337`
+passed.
+
+Protected deployment job `98528114752` passed baseline capture, D1 backup and migration safety,
+protected administrator checks, integrity checks, and all three staging Worker deployments.
+Baseline artifact `9647619915` has digest
+`sha256:4802083bc0c9fe79a5e94bd012b1d6fb17e84bf6bef928feb3797fcb8266397b`; D1 backup artifact
+`9647623150` has digest `sha256:fcac7b3c778bf8999c7a525364b6da8a054ecf3ea9e86d5d313684470d0c6028`
+and expiry `2026-09-03T13:10:06Z`.
+
+Public proof job `98528414893` passed every release-operation journey and the protected CI-GH p95
+entry. The retained measurements were catalog-read p95 297 ms, cart-read p95 416 ms, and
+shipping-mutation p95 531 ms across 20 samples with concurrency 4, all within the unchanged
+500/500/800 ms thresholds. Staging evidence artifact `9647708396` has digest
+`sha256:f033f03d061f9afe6e9cae14972c6bbd6a5cbee6c33c48f792a4275eae35a938` and expiry
+`2026-11-25T12:48:12Z`. No trace contents were inspected.
+
+Recovery job `98528962337` restored all three exact Worker versions and the proof marker, reconciled
+run-scoped D1 data, passed the foreign-key check, and verified the restored safety projection. The
+restored API, Admin, and Storefront versions each returned at 100 percent. Restoration artifact
+`9647733730` has digest `sha256:82c495512d3d6e18d7b3f8e97eaa64aa466ae7fe3dda546f3e36ed72505ccf99`
+and expiry `2026-11-25T12:48:12Z`. Human access, production approval, and production promotion were
+all skipped.
+
+This retained non-production run completes CI-GH-U7 and the CI-GH bridge, and hands current CI
+authority back to parent `CI-U8.3`. It does not establish candidate, DC, PG, human-access, or
+production authority.

@@ -63,20 +63,23 @@ CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remai
 commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
 Intel restore never ran, and no outage result is reclassified as passing evidence.
 
-- **Bridge handoff:** Current transition execution is handed to the
-  [GitHub-First CI/CD Transition plan](2026-08-26-1756-refactor-github-first-ci-transition-plan.md).
-  Its execution checkpoint exclusively owns the current bridge unit, status, blocker, next concrete
-  action, implementation order, isolation, and bridge tail. CI-U7.3 remains incomplete historical
-  work and is not reclassified as complete by the handoff.
-- **Post-handback tail:** When the bridge records hand-back, this plan resumes at `CI-U8.3` — publish
-  and verify the GitHub-first release-availability and recovery boundary — followed by `CI-U11.1`
-  steady-state review. CI-U4/CI-U6 remain an optional non-secret-runner pilot/decision track rather
-  than a release dependency. CI-U5 remains the stable deferred ID for optional future PR automation.
-  Completed CI-U7/CI-U12 history remains retained even where its future authority is superseded.
+- **Current parent/child stage:** `CI-U8.3` — publish and verify the GitHub-first
+  release-availability and recovery boundary. The temporary CI-GH bridge completed U1–U7 and handed
+  current CI authority back after retained post-removal non-production run `33073613728` passed all
+  17 gates, exact binding, staging proof, recovery, and safe-state verification with production
+  disabled. CI-U7.3 remains incomplete historical work and is not reclassified as complete.
+- **Next concrete action:** Update the provider dependency inventory, current CI/release runbooks,
+  and their contract tests with the four GitHub availability states: local development may
+  continue, formal release pauses when hosted authority or retained artifacts are unavailable,
+  missing/expired artifacts fail closed, and recovery starts with a new exact-SHA hosted run. Verify
+  the retained staging rollback/reconciliation recipe without production mutation.
+- **Current blockers:** None for `CI-U8.3`. CI-U4/CI-U6 remain an optional non-secret-runner
+  pilot/decision track rather than a release dependency. CI-U5 remains the stable deferred ID for
+  optional future PR automation. Completed CI-U7/CI-U12 history remains retained even where its
+  future authority is superseded.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
-  `docs/progress/` may retain results but must not become a second current-unit queue. While the
-  bridge is active, its checkpoint is the only authority for the current transition unit; this plan
-  owns the preserved CI history and eventual post-bridge tail.
+  `docs/progress/` may retain results but must not become a second current-unit queue. The bridge is
+  complete, so this plan owns the current CI unit and remaining tail.
 
 ## Context and Evidence
 
