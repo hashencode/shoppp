@@ -385,10 +385,12 @@ export function createValidationAttestation(
   return attestation;
 }
 
+function contentsDigest(contents: Uint8Array): string {
+  return `sha256:${createHash("sha256").update(contents).digest("hex")}`;
+}
+
 async function fileDigest(path: string): Promise<string> {
-  return `sha256:${createHash("sha256")
-    .update(await readFile(path))
-    .digest("hex")}`;
+  return contentsDigest(await readFile(path));
 }
 
 function artifactMapDigest(artifactDigests: Record<string, string>): string {
@@ -434,13 +436,17 @@ export async function verifyValidationAttestation(options: {
     reportPath.startsWith(`${root}/`) && attestationPath.startsWith(`${root}/`),
     "validation evidence path escapes the checkout",
   );
+  const [attestationContents, reportContents] = await Promise.all([
+    readFile(attestationPath),
+    readFile(reportPath),
+  ]);
   assert(
-    (await fileDigest(attestationPath)) === options.attestationDigest,
+    contentsDigest(attestationContents) === options.attestationDigest,
     "attestation digest mismatch",
   );
-  assert((await fileDigest(reportPath)) === options.reportDigest, "release report digest mismatch");
-  const report = JSON.parse(await readFile(reportPath, "utf8")) as ReleaseReport;
-  const attestation = JSON.parse(await readFile(attestationPath, "utf8")) as ValidationAttestation;
+  assert(contentsDigest(reportContents) === options.reportDigest, "release report digest mismatch");
+  const report = JSON.parse(reportContents.toString("utf8")) as ReleaseReport;
+  const attestation = JSON.parse(attestationContents.toString("utf8")) as ValidationAttestation;
   assert(report.schemaVersion === 1, "release report schema is invalid");
   assert(report.releaseId === releaseId, "release report ID mismatch");
   assert(
@@ -488,17 +494,23 @@ export async function verifyValidationAttestation(options: {
     artifactMapDigest(attestation.artifactDigests) === options.deployableDigest,
     "deployable artifact map digest mismatch",
   );
-  for (const [artifactPath, expectedDigest] of Object.entries(attestation.artifactDigests)) {
+  const artifactEntries = Object.entries(attestation.artifactDigests);
+  const artifactPaths = artifactEntries.map(([artifactPath]) => {
     assert(
       RELEASE_ARTIFACT_PATHS.includes(artifactPath as (typeof RELEASE_ARTIFACT_PATHS)[number]),
       "attestation contains an unknown deployable artifact path",
     );
     const absolutePath = resolve(root, artifactPath);
     assert(absolutePath.startsWith(`${root}/`), "deployable artifact path escapes the checkout");
-    assert(
-      (await digestArtifact(absolutePath, root)) === expectedDigest,
-      `deployable artifact digest mismatch: ${artifactPath}`,
-    );
+    return absolutePath;
+  });
+  const artifactResults = await Promise.allSettled(
+    artifactPaths.map((absolutePath) => digestArtifact(absolutePath, root)),
+  );
+  for (const [index, [artifactPath, expectedDigest]] of artifactEntries.entries()) {
+    const result = artifactResults[index]!;
+    if (result.status === "rejected") throw result.reason;
+    assert(result.value === expectedDigest, `deployable artifact digest mismatch: ${artifactPath}`);
   }
   assertReleaseReportContainsNoPreviewSecrets(report);
   assertReleaseReportContainsNoPreviewSecrets(attestation);
