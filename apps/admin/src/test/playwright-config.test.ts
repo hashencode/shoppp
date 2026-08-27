@@ -22,6 +22,7 @@ describe('Playwright config', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('scaffold-smoke.spec.ts')
     expect(result.stdout).not.toContain('templates/new-flow')
+    expect(result.stdout).not.toContain('storefront-theme-preview.live.spec.ts')
   })
 
   it('keeps live Fashion acceptance serial, headed-capable, and free of retained browser state', () => {
