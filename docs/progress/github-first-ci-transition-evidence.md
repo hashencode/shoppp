@@ -510,3 +510,24 @@ the existing authenticated callback records `deployed` or `failed`. Rollback reh
 marker before that same terminal callback after exact Worker/D1 safe-state verification. CI-GH-U4
 remains open and U5 remains unauthorized pending integration, another immutable successor, and a
 complete rehearsal.
+
+## Proof-marker replacement successor — 2026-08-27
+
+Commit `91f1b8387ece3cbdd30686152e40ae988d72109a` integrates the staging-only proof marker without a
+database migration or new Catalog lifecycle state. Protected preparation run `33061325008`, job
+`98480534185`, used that exact protected-default source to create immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-e`. It passed the protected staging-only request guard,
+pre-insertion D1 export, predecessor fetch, exact staging identity projection, collision refusal,
+canonical generation, immutable insertion, protected endpoint read-back, and exact D1 state check.
+
+The pre-insertion D1 export is official artifact `9641821513`, named
+`staging-catalog-successor-d1-before-33061325008-attempt-1`, with digest
+`sha256:54758ffaed66b81646fd68ae6813f54c6fdcd8b59c02fcb0dbffc3306198324c` and expiry
+`2026-09-03T10:03:31Z`. The canonical manifest/receipt is official artifact `9641825290`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-e-33061325008-attempt-1`, with
+digest `sha256:fc2cf6e993fb6ee2ab460f2ce5684f550a372c76071ae73cbd58e65afcfc4781` and expiry
+`2026-11-25T10:03:04Z`. No predecessor was rewritten and no production job or resource ran.
+
+CI-GH-U4 remains open and U5 remains unauthorized. This preparation does not substitute for all 17
+unchanged hosted gates, same-run artifact binding, staging proof, exact Worker/proof-marker
+restoration, D1 reconciliation, or restored safe-state evidence.

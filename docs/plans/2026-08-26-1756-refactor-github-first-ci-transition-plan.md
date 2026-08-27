@@ -58,12 +58,12 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the staging-only proof-marker lifecycle correction, then use that
-  exact clean protected-default source to prepare a new immutable ordinary-staging successor. Run
-  that successor through `deploy.yml` with staging rollback rehearsal enabled and production
+- **Next concrete action:** Commit and push the retained successor-preparation evidence, then run the
+  resulting exact clean protected-default source through `deploy.yml` for immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-e`, with staging rollback rehearsal enabled and production
   promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
-  deployment binding, staging proof, exact Worker/lifecycle restoration, D1 reconciliation checks,
-  and restored safe state. Do not reuse any terminal failed successor or trigger production.
+  deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
+  checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -137,6 +137,11 @@ plan_role: temporary-ci-bridge
   terminal failed. The current blocker is integration of a staging-only correlation marker that
   preserves `building`, is removed before the existing terminal callback during rehearsal, and is
   never accepted by production, followed by a new immutable successor and exact-source rehearsal.
+  Proof-marker correction `91f1b838` is integrated without a migration or lifecycle-state change.
+  Protected preparation run `33061325008` passed its D1 backup, collision refusal, canonical
+  projection, immutable insertion, protected endpoint read-back, exact D1 state verification, and
+  receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-e`. The current blocker is
+  only its exact-source hosted/staging rollback rehearsal and retained evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
