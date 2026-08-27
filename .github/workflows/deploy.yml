@@ -452,6 +452,18 @@ jobs:
           "
       - name: Prove service-principal admin access
         run: bunx playwright test e2e/admin-access.spec.ts
+      - name: Activate staging proof Catalog Release
+        working-directory: apps/api
+        run: |
+          result="$(bunx wrangler d1 execute shoppp-staging --env staging --remote --json --command "
+            UPDATE catalog_releases
+               SET build_correlation_id = 'staging-proof:' || build_correlation_id,
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE id = '$RELEASE_ID' AND status = 'building'
+               AND build_correlation_id NOT LIKE 'staging-proof:%';
+            SELECT status, build_correlation_id FROM catalog_releases WHERE id = '$RELEASE_ID';
+          ")"
+          jq -e 'any(.[]?.results[]?; .status == "building" and (.build_correlation_id | startswith("staging-proof:")))' <<<"$result" >/dev/null
       - name: Verify public and protected deployment boundaries
         run: bunx playwright test --config e2e/playwright.config.ts
       - name: Remove transient staging proof fixtures
@@ -577,9 +589,29 @@ jobs:
             fi
           done
           test "$restore_failed" -eq 0
+      - name: Restore rehearsal Catalog Release lifecycle
+        id: release-lifecycle-restoration
+        if: ${{ always() && steps.baseline-validation.outcome == 'success' }}
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          result="$(bunx wrangler d1 execute shoppp-staging --env staging --remote --json --command "
+            UPDATE catalog_releases
+               SET build_correlation_id = substr(build_correlation_id, length('staging-proof:') + 1),
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE id = '$RELEASE_ID' AND status = 'building'
+               AND build_correlation_id LIKE 'staging-proof:%';
+            SELECT status, build_correlation_id FROM catalog_releases WHERE id = '$RELEASE_ID';
+          ")"
+          jq -e 'any(.[]?.results[]?; .status == "building" and (.build_correlation_id | startswith("staging-proof:") | not))' <<<"$result" >/dev/null
+          mkdir -p ../../artifacts/staging-restoration
+          printf 'release=%s\nstatus=building\nstagingProofMarker=false\n' "$RELEASE_ID" > \
+            ../../artifacts/staging-restoration/release-lifecycle-restore.txt
       - name: Reconcile run-scoped staging proof data
         id: d1-reconciliation
-        if: ${{ always() && steps.baseline-validation.outcome == 'success' }}
+        if: ${{ always() && steps.baseline-validation.outcome == 'success' && steps.release-lifecycle-restoration.outcome == 'success' }}
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -612,7 +644,7 @@ jobs:
           curl --fail --silent --show-error "$ADMIN_URL/" >/dev/null
           curl --fail --silent --show-error "$STOREFRONT_URL/" >/dev/null
       - name: Record proven catalog deployment after restored safe state
-        if: ${{ needs.deploy-staging.result == 'success' && needs.prove-staging.result == 'success' && steps.worker-restoration.outcome == 'success' && steps.d1-reconciliation.outcome == 'success' && steps.restored-state.outcome == 'success' }}
+        if: ${{ needs.deploy-staging.result == 'success' && needs.prove-staging.result == 'success' && steps.worker-restoration.outcome == 'success' && steps.release-lifecycle-restoration.outcome == 'success' && steps.d1-reconciliation.outcome == 'success' && steps.restored-state.outcome == 'success' }}
         env:
           BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
         run: |
@@ -624,17 +656,19 @@ jobs:
             --data '{"status":"deployed"}' \
             "$API_URL/build/catalog/releases/$RELEASE_ID/status"
       - name: Record one failed rehearsal outcome after restoration attempts
-        if: ${{ always() && !(needs.deploy-staging.result == 'success' && needs.prove-staging.result == 'success' && steps.worker-restoration.outcome == 'success' && steps.d1-reconciliation.outcome == 'success' && steps.restored-state.outcome == 'success') }}
+        if: ${{ always() && !(needs.deploy-staging.result == 'success' && needs.prove-staging.result == 'success' && steps.worker-restoration.outcome == 'success' && steps.release-lifecycle-restoration.outcome == 'success' && steps.d1-reconciliation.outcome == 'success' && steps.restored-state.outcome == 'success') }}
         env:
           BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
           D1_RECONCILIATION_OUTCOME: ${{ steps.d1-reconciliation.outcome }}
           DEPLOY_OUTCOME: ${{ needs.deploy-staging.result }}
           PROOF_OUTCOME: ${{ needs.prove-staging.result }}
+          RELEASE_LIFECYCLE_RESTORATION_OUTCOME: ${{ steps.release-lifecycle-restoration.outcome }}
           RESTORED_STATE_OUTCOME: ${{ steps.restored-state.outcome }}
           WORKER_RESTORATION_OUTCOME: ${{ steps.worker-restoration.outcome }}
         run: |
           failure_code=staging_restoration_failed
           if test "$WORKER_RESTORATION_OUTCOME" = "success" && \
+             test "$RELEASE_LIFECYCLE_RESTORATION_OUTCOME" = "success" && \
              test "$D1_RECONCILIATION_OUTCOME" = "success" && \
              test "$RESTORED_STATE_OUTCOME" = "success"; then
             if test "$DEPLOY_OUTCOME" != "success"; then

@@ -233,6 +233,45 @@ describe("guest cart authority", () => {
     });
   });
 
+  test("accepts a proof-marked building release only in staging", async () => {
+    await seedDeployedRelease("release-staging-proof");
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET status = 'building', deployed_at = NULL, build_correlation_id = 'staging-proof:test-run' WHERE id = ?",
+    )
+      .bind("release-staging-proof")
+      .run();
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-staging-proof-01" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    const lineRequest = (idempotencyKey: string) =>
+      cartRequest("/cart/lines", data.token, {
+        body: JSON.stringify({
+          quantity: 1,
+          releaseId: "release-staging-proof",
+          variantId: ids.variant,
+        }),
+        headers: { "Idempotency-Key": idempotencyKey },
+        method: "POST",
+      });
+
+    expect((await app.fetch(lineRequest("cart-add-staging-proof-0001"), env)).status).toBe(200);
+    expect(
+      (
+        await app.fetch(lineRequest("cart-add-production-proof-0001"), {
+          ...env,
+          ENVIRONMENT: "production",
+        })
+      ).status,
+    ).toBe(422);
+  });
+
   test("keeps unavailable price-list states out of live product output", async () => {
     const app = createApp();
     const expectCurrencyUnavailable = async () => {

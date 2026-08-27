@@ -602,7 +602,9 @@ export function createApp(options: CreateAppOptions = {}) {
         "A deployed Catalog Release is required for stable product lookup.",
       );
     }
-    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, releaseId);
+    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, releaseId, {
+      allowStagingProof: context.env.ENVIRONMENT === "staging",
+    });
     const releaseProduct = release.products.find(
       (product) => product.id === context.req.param("id") && product.status === "published",
     );

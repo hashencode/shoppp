@@ -427,7 +427,7 @@ describe("production promotion workflow", () => {
     expect(rollback).toContain("bun tools/staging-rollback-baseline.ts validate");
     expect(rollbackJobEnv).not.toContain("CLOUDFLARE_API_TOKEN");
     expect(baselineValidation).not.toContain("CLOUDFLARE_API_TOKEN");
-    expect(rollback.match(/^\s+CLOUDFLARE_API_TOKEN:/gm)).toHaveLength(3);
+    expect(rollback.match(/^\s+CLOUDFLARE_API_TOKEN:/gm)).toHaveLength(4);
     expect(rollback.indexOf("staging-rollback-baseline.ts validate")).toBeLessThan(
       rollback.indexOf('bunx wrangler versions deploy "$version_id@100%"'),
     );
@@ -436,6 +436,12 @@ describe("production promotion workflow", () => {
     expect(rollback).toContain('(cd "apps/$component"');
     expect(rollback).toContain("for attempt in 1 2 3; do");
     expect(rollback).toContain("worker-restore-outcomes.txt");
+    expect(rollback).toContain("Restore rehearsal Catalog Release lifecycle");
+    expect(rollback).toContain("build_correlation_id = substr");
+    expect(rollback).toContain("release-lifecycle-restore.txt");
+    expect(rollback.indexOf("Restore rehearsal Catalog Release lifecycle")).toBeLessThan(
+      rollback.indexOf("Reconcile run-scoped staging proof data"),
+    );
     expect(rollback).toContain("Reconcile run-scoped staging proof data");
     expect(rollback).toContain("staging-rollback-baseline.ts reconcile");
     expect(rollback.match(/--buyer-email="\$E2E_BUYER_EMAIL"/g)).toHaveLength(2);
@@ -446,12 +452,18 @@ describe("production promotion workflow", () => {
     expect(rollback).toContain("bun tools/staging-rollback-baseline.ts verify");
     expect(rollback).toContain('curl --fail --silent --show-error "$API_URL/health"');
     expect(proof).toContain("if: ${{ !inputs.rehearse_staging_rollback }}");
+    expect(proof).toContain("Activate staging proof Catalog Release");
+    expect(proof).toContain("'staging-proof:' || build_correlation_id");
+    expect(proof.indexOf("Activate staging proof Catalog Release")).toBeLessThan(
+      proof.indexOf("Verify public and protected deployment boundaries"),
+    );
     expect(proof).toContain("E2E_BUYER_EMAIL: release-buyer+${{ github.run_id }}");
     expect(proof).toContain("DELETE FROM admin_invitations");
     expect(
       rollback.indexOf("Record proven catalog deployment after restored safe state"),
     ).toBeGreaterThan(rollback.indexOf("Verify restored staging Worker and D1 baseline"));
     expect(rollback).toContain("steps.worker-restoration.outcome == 'success'");
+    expect(rollback).toContain("steps.release-lifecycle-restoration.outcome == 'success'");
     expect(rollback).toContain("steps.d1-reconciliation.outcome == 'success'");
     expect(rollback).toContain("steps.restored-state.outcome == 'success'");
     expect(deployment).toContain("!inputs.rehearse_staging_rollback");

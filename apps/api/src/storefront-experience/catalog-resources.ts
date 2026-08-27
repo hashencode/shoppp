@@ -28,14 +28,17 @@ function parseCanonicalRelease(
 export async function getCanonicalDeployedCatalogRelease(
   db: D1Database,
   releaseId: string,
+  options: { allowStagingProof?: boolean } = {},
 ): Promise<CanonicalCatalogRelease> {
   const row = await db
     .prepare(
       `SELECT id, manifest_json
          FROM catalog_releases
-        WHERE id = ? AND status = 'deployed'`,
+        WHERE id = ?
+          AND (status = 'deployed' OR
+               (? = 1 AND status = 'building' AND build_correlation_id LIKE 'staging-proof:%'))`,
     )
-    .bind(releaseId)
+    .bind(releaseId, options.allowStagingProof ? 1 : 0)
     .first<{ id: string; manifest_json: string }>();
   if (!row) {
     throw new ApiError(422, "catalog_release_unavailable", "Select a deployed Catalog Release.");

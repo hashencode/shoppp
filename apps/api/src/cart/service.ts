@@ -558,7 +558,9 @@ export async function addCartLine(
         "This cart is already bound to another Catalog Release.",
       );
     }
-    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, input.releaseId);
+    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, input.releaseId, {
+      allowStagingProof: context.env.ENVIRONMENT === "staging",
+    });
     const member = release.products.some(
       (product) =>
         product.status === "published" &&

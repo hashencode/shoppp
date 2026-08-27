@@ -98,7 +98,12 @@ export async function recordCatalogBuildResult(
   const now = new Date().toISOString();
   const transition = context.env.DB.prepare(
     `UPDATE catalog_releases
-        SET status = ?, deployed_at = ?, failure_code = ?, updated_at = ?
+        SET status = ?, deployed_at = ?, failure_code = ?, updated_at = ?,
+            build_correlation_id = CASE
+              WHEN build_correlation_id LIKE 'staging-proof:%'
+                THEN substr(build_correlation_id, length('staging-proof:') + 1)
+              ELSE build_correlation_id
+            END
       WHERE id = ? AND status = 'building'`,
   ).bind(
     result.status,

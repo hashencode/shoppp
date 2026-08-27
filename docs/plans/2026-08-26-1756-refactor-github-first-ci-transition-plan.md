@@ -58,12 +58,12 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Commit and push the retained successor-preparation evidence, then run the
-  resulting exact clean protected-default source through `deploy.yml` for immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-d`, with staging rollback rehearsal enabled and production
+- **Next concrete action:** Integrate the staging-only proof-marker lifecycle correction, then use that
+  exact clean protected-default source to prepare a new immutable ordinary-staging successor. Run
+  that successor through `deploy.yml` with staging rollback rehearsal enabled and production
   promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
-  deployment binding, staging proof, exact Worker restoration, D1 reconciliation checks, and
-  restored safe state. Do not reuse any terminal failed successor or trigger production.
+  deployment binding, staging proof, exact Worker/lifecycle restoration, D1 reconciliation checks,
+  and restored safe state. Do not reuse any terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -127,7 +127,16 @@ plan_role: temporary-ci-bridge
   preparation run `33058031666` passed its D1 backup, collision refusal, canonical projection,
   immutable insertion, protected endpoint read-back, exact D1 state verification, and receipt
   retention for successor `staging-canonical-2026-08-27-ci-gh-u4-d`. The current blocker is only its
-  exact-source hosted/staging rollback rehearsal and retained evidence.
+  exact-source hosted/staging rollback rehearsal and retained evidence. Exact-source run
+  `33058180318` then passed both preflights, all 17 unchanged gates, same-run deployment-input
+  binding, staging baseline/backup/migration safety, protected administrator checks, and all three
+  staging Worker deployments. Public proof reached the correct successor storefront but the API
+  correctly refused its still-`building` Catalog Release; the workflow had deferred `deployed` until
+  after proof, creating a lifecycle cycle. Exact Worker restoration, D1 reconciliation, and restored
+  safe-state verification passed; human and production jobs were skipped, and the successor is
+  terminal failed. The current blocker is integration of a staging-only correlation marker that
+  preserves `building`, is removed before the existing terminal callback during rehearsal, and is
+  never accepted by production, followed by a new immutable successor and exact-source rehearsal.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

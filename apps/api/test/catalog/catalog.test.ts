@@ -338,6 +338,43 @@ describe("catalog management and publishing", () => {
     ).toBe(401);
   });
 
+  test("removes a staging proof marker while recording the terminal result", async () => {
+    const { app } = appFor();
+    const releaseId = "proving-release-001";
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, created_at, updated_at)
+       VALUES (?, 'building', '{}', ?, ?, ?)`,
+    )
+      .bind(releaseId, NOW, NOW, NOW)
+      .run();
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET build_correlation_id = 'staging-proof:original-correlation' WHERE id = ?",
+    )
+      .bind(releaseId)
+      .run();
+    const response = await app.fetch(
+      new Request(`https://api.example.test/build/catalog/releases/${releaseId}/status`, {
+        body: JSON.stringify({ status: "deployed" }),
+        headers: {
+          Authorization: "Bearer test-build-manifest-token-at-least-32-bytes",
+          "Content-Type": "application/json",
+          "Idempotency-Key": `catalog-build-${releaseId}-deployed`,
+        },
+        method: "POST",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: { status: "deployed" } });
+    expect(
+      await env.DB.prepare("SELECT build_correlation_id FROM catalog_releases WHERE id = ?")
+        .bind(releaseId)
+        .first(),
+    ).toEqual({ build_correlation_id: "original-correlation" });
+  });
+
   test("converges concurrent identical build callbacks to one terminal audit", async () => {
     const { app } = appFor();
     const releaseId = "concurrent-release-001";

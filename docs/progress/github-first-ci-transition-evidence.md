@@ -466,3 +466,47 @@ digest `sha256:c80d8091b9de467db9fe00446aac96902fe0d4c884d22552ccc48891e7b1ba0d`
 CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not replace the required exact
 17-gate hosted validation, same-run artifact binding, staging proof, Worker restoration, D1
 reconciliation, or restored safe-state evidence.
+
+## Staging proof lifecycle refusal and safe restoration — 2026-08-27
+
+Exact-source rollback rehearsal run `33058180318` bound protected-default source
+`f93444b08789cb8bc00d0001973cec06f87d1740` to immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-d`, with rollback rehearsal enabled and production promotion
+disabled. Preflight jobs `98470113805` and `98470159817` passed. GitHub-hosted quality job
+`98470208557` passed all 17 unchanged gates, including browser journeys, accessibility, performance,
+and the unchanged Lighthouse thresholds. Official validation artifact `9641197088`, named
+`validated-release-f93444b08789cb8bc00d0001973cec06f87d1740-33058180318-attempt-1`, has digest
+`sha256:f6c9e046f14531f7179349d6be66635d7edb740c0b7c1c6ce028fe4faf9737e0` and expiry
+`2026-09-26T09:43:04Z`. Same-run deployment-input job `98475584031` passed.
+
+Protected deployment job `98475652856` captured exact baseline artifact `9641221208` with digest
+`sha256:edb7d2394a28246c3e5b53e0a20cf2c0b2c3594aaaa9398b1616684244c74f17` and expiry
+`2026-11-25T09:21:22Z`. It retained D1 export artifact `9641223991` with digest
+`sha256:ad8b023f489f6f816dcb0d86f20b986ba794ad4e045c4118c65fdbcb293b2561` and expiry
+`2026-09-03T09:43:57Z`, found no pending migration, passed protected administrator and D1 integrity
+checks, and deployed all three exact Worker versions.
+
+Staging proof job `98475908911` passed credential provisioning, administrator secret verification,
+last-unit inventory preparation, isolated fixtures, and service-principal access. The public journey
+loaded the correct successor storefront, but Add to bag returned `catalog_release_unavailable` with
+“Select a deployed Catalog Release.” The successor was still correctly `building`: the workflow
+required public proof before its success callback could transition it to `deployed`, while cart
+authority correctly required `deployed` before public proof. Staging evidence artifact `9641282687`
+has digest `sha256:5b2421e993bac346d51dbd6218f2fc0d3d825ae552bfbd6d85c980d4efd59188` and expiry
+`2026-11-25T09:21:22Z`.
+
+Recovery job `98476257703` restored all three exact Worker versions, reconciled run-scoped D1 data,
+verified the restored Worker/D1 safe state, and recorded the failed rehearsal. Restoration artifact
+`9641302137` has digest
+`sha256:4886e6159c36d8f832ca83dfd20b54e8b978484108d8dab11ba7e1ea54c74859` and expiry
+`2026-11-25T09:21:22Z`. Human access and production remained skipped. The successor is terminal
+failed and will not be reused.
+
+The correction preserves the four existing lifecycle states and adds no migration. Protected staging
+proof prefixes the release's existing build correlation with `staging-proof:` while it remains
+`building`. Staging cart and stable-product reads may accept only that marked state; production still
+refuses it and release listings still expose only `deployed`. Ordinary proof removes the marker while
+the existing authenticated callback records `deployed` or `failed`. Rollback rehearsal removes the
+marker before that same terminal callback after exact Worker/D1 safe-state verification. CI-GH-U4
+remains open and U5 remains unauthorized pending integration, another immutable successor, and a
+complete rehearsal.
