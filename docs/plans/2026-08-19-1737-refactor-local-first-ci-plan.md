@@ -1,5 +1,5 @@
 ---
-title: Long-Term CI Resilience and Provider-Independent Delivery - Plan
+title: Long-Term CI Resilience and GitHub-First Delivery - Plan
 type: refactor
 date: 2026-08-19
 topic: long-term-ci-resilience-provider-independent-delivery
@@ -11,90 +11,87 @@ plan_role: parallel-infrastructure
 deepened: 2026-08-24
 ---
 
-# Long-Term CI Resilience and Provider-Independent Delivery - Plan
+# Long-Term CI Resilience and GitHub-First Delivery - Plan
 
 ## Goal Capsule
 
-- **Objective:** Make routine development, full candidate validation, and local candidate-bundle preparation
-  continue when GitHub Actions is unavailable, queued, or billing-blocked. Repository-owned commands
-  and portable, content-addressed evidence are the authority; GitHub remains one replaceable remote
-  adapter and the default protected CD control plane, not the owner of validation semantics.
+- **Objective:** Keep routine development available through repository-owned local commands while
+  making GitHub-hosted full validation and protected GitHub deployment the one maintained release
+  path. GitHub Actions or billing failure pauses release without weakening any gate or production
+  prerequisite.
 - **Upstream product authority:** The
   [Shoppp Product Master Plan](2026-08-13-001-refactor-shoppp-product-master-plan.md) remains the
   product-level authority. Commerce, Theme Platform, Fashion Store, Decor Store, and Development
   Candidate plans retain their existing product, implementation, candidate, and production
   authority.
-- **Inherited baseline:** The existing `release:validate` gate order, release reports, artifact
-  digests, exact-candidate identity, and DC/release meaning are inherited unchanged. Existing
-  GitHub-hosted deployment workflows remain the initial default adapter while this plan extracts a
-  provider-neutral validation/evidence contract and a separately protected remote-deployment driver.
-- **Explicit supersession:** This plan supersedes (1) full release validation as the default workflow
-  for every PR and ordinary `main` push, (2) GitHub run/check metadata or artifact storage as the
-  only durable CI evidence, and (3) GitHub Actions YAML as the sole executable release/CD
-  orchestration. It does not supersede release gates, exact-candidate validation, deployment
-  approvals, credential isolation, DC/PG authority, or fail-closed production promotion.
+- **Inherited baseline:** The existing `release:validate` gate order, all 17 gates, Lighthouse
+  thresholds, release reports, artifact digests, exact-candidate identity, protected environments,
+  rollback semantics, and DC/release meaning are inherited unchanged. Completed local-tier,
+  self-hosted, CI-U7, and CI-U12 work remains historical evidence rather than future release
+  authority.
+- **Explicit supersession:** The
+  [GitHub-First CI/CD Transition plan](2026-08-26-1756-refactor-github-first-ci-transition-plan.md)
+  supersedes CI-U7.3 as the current stage and supersedes the future-authority portions of CI-R18–R20,
+  CI-R23–R28, CI-R31, CI-R35, CI-KTD7, CI-KTD9, CI-KTD11, and CI-KTD12 that require Docker,
+  provider-independent candidate evidence, Intel/native-amd64 parity, an alternate CD path, or
+  GitHub-independent release operation. The stable IDs below are retained where their governed
+  exact-source, secret-refusal, recovery, or fail-closed behavior still exists. Nothing supersedes
+  release gates, exact-candidate validation, deployment approvals, credential isolation, DC/PG
+  authority, rollback, or fail-closed production promotion.
 - **Parallel plans:** Fashion Store remains active at FS-U8.2 after governed U12 closure. The
   branch-qualified Decor page-suite plan remains parallel in its recorded temporary worktree. This
   plan changes neither pointer.
-- **Execution profile:** First deliver shared validation tiers. Then run two independent tracks: an
-  optional non-secret mirror/pilot (CI-U2–CI-U6) and the primary provider-resilience tail (CI-U7–CI-U11)
-  for portable full-validation evidence, thin provider adapters, protected remote-CD extraction, and
-  outage/recovery proof. PR automation is not part of this execution tail.
+- **Execution profile:** Preserve the completed validation tiers and optional non-secret mirror
+  history. CI-GH first establishes and proves direct hosted validation plus same-run protected
+  deployment, removes the superseded capsule/evidence system, and hands back to `CI-U8.3` for the
+  GitHub-first availability boundary and steady-state review. PR automation remains deferred.
 - **Stop conditions:** Stop if implementation would expose production secrets or developer state to
   routine local/self-hosted code, run untrusted PR code on the persistent host, weaken a release or
   deployment approval, reinterpret a short lane as release evidence, auto-fail-open during a
   provider outage, or change the active Fashion pointer or governed candidate identity without
   separate authorization.
-- **Tail ownership:** This plan owns repository validation commands, portable evidence and candidate
-  bundles, GitHub adapter thinning, non-secret runner operations, provider-degradation drills,
-  remote-CD adapter extraction, and the final resilience decision. Product completion, candidate
-  selection, DC/PG decisions, and any actual production promotion remain with their existing
-  authorities.
+- **Tail ownership:** While CI-GH is active, this plan owns completed CI history and the named
+  post-bridge tail only. After hand-back it owns repository validation commands, optional non-secret
+  runner policy, the GitHub release-availability boundary, dependency inventory, and steady-state
+  review. Product completion, candidate selection, DC/PG decisions, and any actual production
+  promotion remain with their existing authorities.
 
 ## Execution Checkpoint
 
 CI-U1 is complete on `d1027841`; CI-U2 is complete on `bca6fede`; CI-U3 is complete on `93b3f88f`.
-Provider-neutral local tiers now back thin optional adapters, and the checked runner runbook defines
-dedicated-account isolation, exact-SHA pre-job admission, fail-closed cleanup, recovery, and
-deregistration without reusing FS-U8 authority. No runner was registered and no credential was
-handled; those remain human-only operations.
+CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remains completed on exact
+commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
+Intel restore never ran, and no outage result is reclassified as passing evidence.
 
-- **Current parent/child stage:** CI-U7.3 — operationally prove the executable no-PKI baseline.
-  Repository-owned baseline build/verify/retain/restore commands and profile-isolation tests are
-  implemented and locally verified. CI-U7.2 is complete only for the optional high-assurance signed profile. On 2026-08-26
-  the operator accepted a proportionate solo-developer baseline:
-  exact source/report/toolchain/artifact digests, secret scanning, one durable read-back-verified
-  target, and a practical restore remain required, while offline-root signing, short-lived signer
-  certificates, signed witnesses, and recurring signing/restore ceremonies are an optional
-  high-assurance profile. The implemented signed profile remains available and tested but its live
-  provisioning is not CI, candidate, or launch completion authority. Parent CI-U7 remains open only
-  for one practical restore against the adopted Intel target.
-  CI-U12 is
-  complete on exact commit `47b6b340`: all 17 unchanged gates passed in the pinned `linux/amd64`
-  capsule on the independent Intel executor, with a validation-class receipt and retained transfer,
-  report, image-role, and toolchain digests. The optional 14-day CI-U4 runner pilot still awaits
-  human adoption. Intel Jenkins builds through `shoppp-main#17` independently passed the
-  provider-neutral post-commit lane, including exact integrated SHA `63b71c82`, and retained their
-  machine-readable reports under the host-controlled evidence root.
-- **Next concrete action:** Run and retain one practical restore against the adopted Intel target.
-- **Current blockers:** The Intel host `192.168.1.250` is currently unreachable from the development
-  Mac (`Host is down` on SSH and Jenkins ports), so the practical restore cannot yet run. GitHub,
-  signing keys, and a second operator are not CI-U7.3 blockers. GitHub billing blocks only the
-  optional hosted-adapter compatibility check. CI-U4 also cannot complete until a human
-  adopts and operates the optional runner for the bounded 14-day sample.
-- **Tail:** CI-U7.3 followed by CI-U8–CI-U11 is the active provider-resilience track; CI-U4/CI-U6 remains the
-  parallel optional-runner pilot and decision track.
-  CI-U5 is retained as a stable deferred ID for optional future PR automation. CI-U6 and CI-U11 may record governed CI operating
-  decisions, but they cannot change upstream product, release, candidate, or production policy or
-  promote production automatically.
+- **Current parent/child stage:** Execution is temporarily handed to `CI-GH-U2` in the
+  [GitHub-First CI/CD Transition plan](2026-08-26-1756-refactor-github-first-ci-transition-plan.md).
+  CI-GH-U1 reconciled future authority and named `CI-U8.3`/`CI-U11.1` as the hand-back tail. CI-U7.3
+  remains incomplete and superseded as the current stage, not marked complete. The bridge owns the
+  switch from Docker/Intel/provider-independent release proof to direct GitHub-hosted full validation
+  and protected GitHub CD.
+- **Next concrete action:** Execute `CI-GH-U2`: contract-test and implement direct GitHub-hosted full
+  validation without changing the repository-owned 17-gate contract or Lighthouse thresholds.
+- **Current blockers:** None for the bridge's repository work. GitHub Actions billing may block the
+  first live hosted validation and staging proof required by `CI-GH-U4`; if so, the bridge remains
+  open and no old release implementation is removed.
+  The Intel host is no longer the current execution dependency.
+- **Tail:** `CI-GH-U2` through `CI-GH-U7`, then hand back to this plan at `CI-U8.3` — publish and
+  verify the GitHub-first release-availability and recovery boundary — followed by the revised
+  `CI-U11.1` steady-state review. CI-U4/CI-U6 remain an optional non-secret-runner pilot/decision
+  track rather than a release dependency. CI-U5 remains the stable deferred ID for optional future
+  PR automation. Completed CI-U7/CI-U12 history remains retained even where its future authority is
+  superseded.
 - **Temporary isolation:** Worktree `.worktrees/relax-ci-u7-signing` on branch
-  `codex/relax-ci-u7-signing` owns the 2026-08-26 solo-developer signing-policy amendment and CI-U7.3 implementation because the
+  `codex/relax-ci-u7-signing` owns the 2026-08-26 signing-policy amendment, CI-U7.3 history, and
+  GitHub-first bridge because the
   primary checkout contains concurrent FS-U8 work and stale CI plan bytes. Remove this checkout only
-  after the exact CI-U7.3 work is committed and integrated; removal retains its branch and
-  commit. Earlier CI-U7 temporary checkouts have met their cleanup conditions and are not current
-  execution authority.
+  after the exact bridge work is integrated, the hand-back checkpoint is recorded, no writer remains,
+  and required manifests are retained; removal retains its branch and commits. Earlier CI-U7
+  temporary checkouts have met their cleanup conditions and are not current execution authority.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
-  `docs/progress/` may retain results but must not become a second current-unit queue.
+  `docs/progress/` may retain results but must not become a second current-unit queue. While the
+  bridge is active, its checkpoint is the only authority for the current transition unit; this plan
+  owns the preserved CI history and eventual post-bridge tail.
 
 ## Context and Evidence
 
@@ -215,112 +212,88 @@ handled; those remain human-only operations.
   production additionally requires separate production approval. No automatic credential fallback
   is allowed.
 
-### Provider resilience and portable release proof
+### GitHub-first release proof and availability
 
-- **R18:** Workflow YAML shall be a thin adapter that selects and invokes repository-owned commands;
-  validation membership, gate order, evidence finalization, and deployment-driver semantics shall
-  not exist only in GitHub configuration.
-- **R19:** A full-validation result shall finalize content-addressed candidate evidence containing
-  immutable source identity, declared toolchain/inputs, gate reports, artifact digests, timestamps,
-  and provenance metadata. It shall be verifiable without a GitHub API call or GitHub artifact URL.
-  Cryptographic attestation is an optional high-assurance profile, not a default completion gate.
-- **R20:** The canonical evidence bundle shall be retained outside transient runner workspaces and
-  any single CI provider. Retention shall use at least one operator-approved, encrypted,
-  read-back-verified durable target. A second independently recoverable copy is recommended but not
-  required; storage credentials and locations are operational configuration, not repository data.
+- **R18:** Workflow YAML shall invoke the repository-owned `release:validate` command rather than
+  copying the 17-gate membership or order. Workflow-owned identity, permission, environment, and
+  artifact-transport controls remain contract-tested GitHub release authority.
+- **R19:** A formal full-validation result shall publish a validation attestation that binds exact
+  commit/tree identity, immutable run and attempt, declared toolchain, the unchanged release-report
+  digest, and deployable-artifact digests. The attestation supplements rather than changes the
+  release report schema.
+- **R20:** GitHub run metadata and uniquely named exact-SHA/run/attempt artifacts are the maintained
+  CI evidence projection. Each artifact class shall declare retention, access, and deletion policy;
+  no append-only, WORM, offline, cross-provider, or independently recoverable claim is made.
 - **R21:** GitHub degradation states shall be explicit: `normal`, `actions-degraded`,
-  `github-unavailable`, and `recovery-audit`. Routine development may continue through local gates in
-  every state; production promotion shall fail closed unless the default protected CD adapter or a
-  separately approved alternate adapter can verify the same immutable bundle and record authority.
+  `github-unavailable`, and `recovery-audit`. Routine development may continue through local gates,
+  but formal staging or production release pauses whenever the GitHub-hosted validation/protected-CD
+  path cannot produce and consume its same-run exact-source evidence.
 - **R22:** The repository shall publish a provider-dependency inventory covering source remote,
-  workflow triggers, runners, environments/secrets, approvals, artifacts, status checks, releases,
-  and deployment audit. Every dependency shall name its development impact, release impact,
-  fallback/recovery owner, and acceptable outage behavior.
-- **R23:** Local candidate-bundle preparation shall support a GitHub-independent, network-connected
-  path from an exact local source object to the same full-validation and bundle-verification
-  contract. It may depend on explicitly inventoried package, Catalog, and Cloudflare endpoints and
-  read-only, candidate-scoped credentials supplied only to a dedicated release-operator context;
-  routine local/self-hosted tiers receive no Cloudflare, Catalog, deployment, or production
-  credential. It makes no air-gapped/offline claim and never infers candidate or production
-  authority from local success alone.
-- **R24:** The protected deployment driver shall accept only a verified immutable candidate bundle,
-  explicit target/environment, and recorded human authorization; it shall produce a provider-neutral
-  deployment receipt and rollback identity. GitHub Actions and any alternate operator are adapters
-  to this contract.
-- **R25:** If CI-U9's explicit go/no-go decision admits an alternate CD adapter, it shall run only in a dedicated ephemeral or equivalently isolated
-  remote operator environment, never the persistent non-secret runner or ordinary development
-  shell. Its credentials shall be short-lived, scoped, rotated after break-glass use, and absent when
-  the adapter is disabled.
-- **R26:** Same-source parity checks shall compare local, self-hosted, and hosted executions at the
-  command, toolchain, selected-gate, report-schema, and digest levels; unexplained drift invalidates
-  the affected evidence rather than being normalized by an adapter.
-- **R27:** Recovery verification shall run when a retention or deployment adapter is first adopted,
-  after a material storage/credential/driver change, and before first production reliance. It shall
-  cover GitHub Actions unavailability, evidence restoration, rollback receipt verification, and
-  return-to-normal reconciliation without production impact. A stale/offline runner drill applies only
-  while the mirror is adopted; an alternate-CD dry run applies only after CI-U9.5 admits CI-U10.
-  Otherwise the drill proves the optional path is disabled, credential-free, and fail-closed.
-- **R28:** The long-term operating target is: routine local feedback remains available without
-  GitHub; a full candidate bundle can be produced and independently verified without GitHub Actions;
-  GitHub adapter recovery creates no duplicate authority; and no provider outage weakens production
-  gates. The default outage policy pauses production promotion. An alternate adapter may replace that
-  pause only after separate authority grants `production-approved`; CI-U10 alone can establish at
-  most `contract-tested` and `non-production-proven`.
-- **R29:** The default solo-developer profile shall not require independent bundle signing. The
-  existing Ed25519 profile remains opt-in and fail-closed when selected. Re-entry requires an
-  explicit policy decision naming the candidate and trust anchor after multiple operators, external
-  consumers, regulatory audit, untrusted runners, cross-provider provenance needs, or observed
-  compromise makes the additional lifecycle cost proportionate.
-- **R30:** If CI-U9.5 admits an alternate adapter, its deployment authorization shall be a
-  provider-neutral, signed, non-replayable envelope bound to bundle digest, exact
-  target/environment, operation, rollback identity, approver and adapter identities, issue/expiry
-  time, unique nonce, maximum uses, and clock-skew policy. Secret issuance and mutation require
-  authenticated issuer verification and atomic one-time consumption; revocation and audit retention
-  are mandatory. The default GitHub adapter preserves its existing protected-environment,
-  actor/approval, exact-confirmation, and run-attempt semantics and maps them directly into the
-  driver context; it does not claim this alternate-envelope contract.
-- **R31:** The required evidence target shall use encrypted transport/storage plus versioned or
-  append-only retention, declared retention periods, digest read-back verification, and a practical
-  restore test at adoption or material change. Separate write/delete administrators and recurring
-  quarterly drills are recommended only when the operating model gains independent operators or an
-  audit requirement. Additional declared targets must verify; failed copies are never reported as
-  successful redundancy.
-- **R32:** Reports, bundles, receipts, adapter logs, and recovery exports shall use allowlisted
-  structured fields; prohibit raw environment/credential-bearing command output; run redaction and
-  canary-secret scanning before finalization/projection; and declare least-privilege read access,
-  encryption, retention, and deletion by artifact class.
-- **R33:** If CI-U9.5 admits CI-U10, before any alternate credentialed drill a human shall record the deployment-authorization signing policy:
-  permitted issuer identities, algorithm/key IDs, custody outside ordinary development and CI
-  runners, GitHub-independent trust-root distribution, rotation/revocation, outstanding-envelope
-  treatment after compromise, and refusal of unknown/revoked issuer keys. Bundle and authorization
-  signing may share infrastructure only if the recorded threat analysis preserves separation of
-  duties and compromise containment.
-- **R34:** Deployment, phase, and rollback receipts shall be tamper-evident and independently
-  retained. Bind them to authorization nonce, bundle digest, target, operation, adapter identity,
-  idempotency key, observed remote state, predecessor receipt, and phase result; sign/MAC with an
-  independently trusted adapter identity, hash-chain partial-mutation phases, retain exact bytes in
-  at least one R31 target, and fail closed when receipt integrity or the required retained copy is
-  unavailable. A second receipt target remains recommended but optional.
-- **R35:** Provider-neutral full validation shall run in a repository-defined, image-digest-pinned
-  `linux/amd64` execution capsule containing the declared Bun, browser, font, and system toolchain.
-  The current ARM64 Mac may execute it through the installed Docker/OrbStack runtime, but native
-  macOS output is not candidate authority. Capsule provisioning, cache inputs, version upgrades, and
-  same-source report/artifact parity with an independent native amd64 executor require contract
-  evidence before its bundles become authoritative. GitHub-hosted Ubuntu is one remote adapter: its
-  compatibility evidence is retained when available but is not provider-neutral completion
-  authority.
-- **R36:** If CI-U9.5 admits an alternate CD path, it shall name before CI-U10 the authorization
-  issuer, GitHub-independent trust root, atomic nonce/use registry, audit store, caller
-  authentication, compare-and-set semantics, expiry/revocation/clock policy, issuer-outage behavior,
-  and recovery after consumption-before-mutation. A `no-go` provisions none of this infrastructure.
+  workflow triggers, hosted runners, environments/secrets, approvals, artifacts, status checks,
+  releases, Cloudflare dependencies, and deployment audit. Every dependency shall name development
+  impact, release impact, recovery owner, and acceptable outage behavior.
+- **R23:** Formal candidate validation shall run from an exact clean commit on a GitHub-hosted Linux
+  x64 runner through `release:validate`. Local or self-hosted output may support development but is
+  not a substitute for the hosted release proof.
+- **R24:** Protected staging and production jobs shall consume only the report and deployable
+  artifacts produced by the same caller workflow run and attempt that passed full validation. They
+  shall fail before remote mutation on any source, tree, release ID, report digest, attestation
+  digest, artifact digest, run, or attempt mismatch.
+- **R25:** Staging read credentials and Cloudflare deployment credentials shall be distinct,
+  least-privileged, environment-scoped, and unavailable until the trusted-source and exact-input
+  prerequisites for their jobs pass. Production credentials and approvals remain unavailable until
+  all existing production prerequisites pass.
+- **R26:** Same-source checks shall join checkout identity, selected gate contract, release report,
+  validation attestation, and deployable artifacts within one immutable GitHub run/attempt.
+  Deployment-local rebuilds, branch-tip substitution, and cross-run artifact discovery are not
+  release authority.
+- **R27:** Non-production recovery verification shall run before obsolete-path removal, after
+  removal, and after a material validation/deployment contract change. It shall cover pre-mutation
+  refusal, staging Worker/data baseline capture, post-deploy checks, rollback or forward
+  reconciliation, and return to the prior safe staging state without production impact.
+- **R28:** The long-term operating target is: routine local feedback continues without GitHub;
+  formal release proof and protected deployment remain GitHub-first; GitHub or billing failure
+  pauses release; and no outage, local result, historical Intel result, or Codex Cloud result weakens
+  production gates or creates substitute authority.
+- **R29:** Independent candidate-bundle signing is not part of the maintained solo-developer path.
+  Re-entry requires a new governed plan naming the candidate, consumers, trust anchor, key custody,
+  rotation/revocation, and operating owner when multiple operators, external consumers, regulatory
+  audit, untrusted runners, cross-provider provenance needs, or observed compromise makes it
+  proportionate.
+- **R30:** Deployment authorization uses the existing GitHub protected-environment, authorized-actor,
+  explicit-confirmation, exact-source, and run-attempt controls. No alternate signed authorization
+  envelope or second credentialed control plane is maintained.
+- **R31:** Validation attestations, release reports, deployable artifacts, deployment receipts, and
+  rollback identity shall use unique immutable names, declared GitHub retention periods, digest
+  verification before consumption, and fail-closed handling for missing, expired, or mismatched
+  artifacts.
+- **R32:** Reports, attestations, artifacts, receipts, and logs shall use allowlisted structured
+  fields; prohibit raw environment or credential-bearing output; run redaction and canary-secret
+  scanning before publication; and declare least-privilege access, retention, and deletion by
+  artifact class.
+- **R33:** A human owner shall document staging and production credential scope, rotation,
+  emergency revocation, environment separation, and response to suspected disclosure. Repository
+  logs, artifacts, tests, and documentation shall contain no usable secret, token, password, or
+  private key.
+- **R34:** Deployment and rollback receipts shall bind exact source, release/report/attestation and
+  artifact digests, target, operation, GitHub run/attempt, observed remote state, and result. Receipt
+  or rollback-identity mismatch fails closed; existing backup, migration, callback, and rollback
+  prerequisites remain authoritative.
+- **R35:** Formal full validation shall run directly on a GitHub-hosted Linux x64 runner with the
+  declared Bun, browser, font, and system toolchain captured in the validation attestation. Docker,
+  OrbStack, a capsule image, capsule receipt, Intel host, and native-amd64 parity are not future
+  release authority.
+- **R36:** No alternate-CD issuer, trust root, nonce registry, audit store, credential plane, or
+  break-glass adapter is provisioned by this plan. A future need requires a separately authorized
+  successor plan and cannot be inferred from provider outage.
 
 ## Key Technical Decisions
 
 1. **KTD1 — Separate fast, post-commit, and full-release tiers.**
    `(session-settled: user-approved — chosen over running the full release suite for every change: routine feedback must be fast while release proof stays complete)`
    Repository-owned orchestrators define tier membership and evidence. The existing release
-   validator remains the full-proof authority and may be invoked locally or through a remote
-   adapter. Governs R1–R4, R13, R18, R23, and R26.
+   validator remains the 17-gate semantic owner; formal release proof invokes it on the governed
+   GitHub-hosted runner. Governs R1–R4, R13, R18, R23, and R26.
 2. **KTD2 — Run normal development tests directly, not through a local runner.**
    `(session-settled: user-approved — chosen over wrapping every local edit in GitHub runner machinery: direct commands are faster and easier to diagnose)`
    The self-hosted runner exists for post-commit GitHub evidence, not as the developer's default
@@ -341,43 +314,58 @@ handled; those remain human-only operations.
 6. **KTD6 — Preserve active product-plan and feature-runner boundaries.**
    CI implementation does not inherit authority over Fashion checkpoints or the U8 feature-scoped
    test runner merely because historical U12 is closed. Governs R16.
-7. **KTD7 — Make repository commands and portable evidence the authority.**
-   `(session-settled: user-directed — chosen over GitHub-dependent routine validation: development must continue during GitHub billing, queue, or availability failures.)`
-   GitHub workflows, checks, and artifacts are projections of a provider-neutral contract. Local
-   post-commit evidence governs ordinary solo integration; full candidate evidence governs release
-   readiness under its upstream authority. Governs R5, R8, R13, and R18–R23.
-8. **KTD8 — Keep production promotion remote and fail closed.**
-   Provider independence does not mean moving production credentials to a laptop or non-secret
-   runner. GitHub is the default protected CD adapter; an outage pauses promotion. A maintained
-   alternate is optional and must first beat the fail-closed baseline on measured release urgency,
-   correlated-failure reduction, setup/quarterly cost, recovery time, and reversal cost. Governs
-   R17, R21, R24–R25, R28, R30, and R33–R34.
-9. **KTD9 — Use proportionate content-addressed, durably retained evidence.**
-   `(session-settled: user-directed — amended on 2026-08-26: one durable target is sufficient and
-   independent signing is optional for the current solo-developer risk profile.)` An atomic local
-   spool, exact digests, one read-back-verified retained copy, secret scanning, and practical restore
-   remain the default baseline. Independent redundancy and cryptographic attestation are activated
-   only by a named higher-assurance need. Late projection is labeled as projection, not execution.
-   Governs R5, R8, R19–R20, R26, R29, and R31–R34.
+7. **KTD7 — Keep repository gate semantics and adopt GitHub release authority.**
+   `(session-settled: user-directed — amended by the GitHub-first transition: local development must
+   continue during GitHub billing, queue, or availability failures, while formal release pauses.)`
+   Repository commands own tier and gate semantics. GitHub-hosted run/attempt identity, protected
+   environments, and exact artifacts own formal validation/deployment orchestration. Local
+   post-commit evidence governs ordinary solo integration but is not release proof. Governs R5, R8,
+   R13, and R18–R23.
+8. **KTD8 — Keep production promotion in protected GitHub jobs and fail closed.**
+   Production credentials never move to a laptop or non-secret runner. GitHub is the one maintained
+   protected CD control plane; an outage pauses staging/production release. A future alternate path
+   requires a separately authorized successor plan. Governs R17, R21, R24–R25, R28, R30, and
+   R33–R34.
+9. **KTD9 — Use exact GitHub attestation and artifact evidence.**
+   `(session-settled: user-directed — amended by the GitHub-first transition: accept GitHub as the
+   release-time availability and retention boundary for the solo project.)` Exact run/attempt and
+   source identity, report/artifact digests, validation attestation, secret scanning, declared
+   retention, and fail-closed consumption form the baseline. Independent signing, portable
+   retention, and offline restore are not maintained. Governs R5, R8, R19–R20, R26, R29, and
+   R31–R34.
 10. **KTD10 — Treat the historical CI branch as a prototype, not completion evidence.**
     The isolated `codex/refactor-local-first-ci` implementation is reconciled file-by-file against
     current `HEAD`; its commits may inform CI-U1–CI-U3 but shall not be merged wholesale or used to
     mark a unit complete. Governs CI-U1.1 and prototype reuse in CI-U1–CI-U3.
-11. **KTD11 — Operate resilience as a recurring capability.**
-    A one-time pilot is insufficient. Dependency inventory, parity checks, outage/recovery drills,
-    compromise response, and periodic human review remain in the long-term tail. Governs R22 and
-    R26–R28.
-12. **KTD12 — Standardize full proof in a pinned Linux execution capsule.**
-    The existing full lane has Ubuntu-specific browser/font dependencies, while the current machine
-    is macOS ARM64 with Docker/OrbStack available. A digest-pinned `linux/amd64` capsule preserves the
-    hosted baseline more closely than a second native gate implementation and remains runnable
-    without GitHub Actions. Governs R4, R23, R26, and R35.
+11. **KTD11 — Operate the GitHub availability boundary explicitly.**
+    Dependency inventory, billing/control-plane classification, staging recovery checks, credential
+    response, and periodic human review remain in the long-term tail. No drill manufactures release
+    proof while GitHub is unavailable. Governs R22 and R26–R28.
+12. **KTD12 — Standardize full proof on GitHub-hosted Linux x64.**
+    The production-aligned hosted lane supplies the Ubuntu browser/font/system environment directly,
+    invokes the unchanged release validator, and records the effective toolchain in its attestation.
+    Docker/OrbStack and Intel parity remain historical only. Governs R4, R23, R26, and R35.
 
 ## High-Level Technical Design
 
-These sketches define responsibilities and invariants, not implementation syntax.
+The GitHub-first successor flow is the future release authority:
 
-### Validation components and authority
+```mermaid
+flowchart LR
+  Local[Local fast and post-commit checks] --> Dev[Ordinary solo integration]
+  SHA[Exact clean source SHA] --> GH[GitHub-hosted Linux x64 full validation]
+  GH --> Gates[Repository-owned 17-gate release:validate]
+  Gates --> Bound[Attestation plus report and deployable artifacts]
+  Bound --> Stage[Protected staging deploy and recovery proof]
+  Stage --> Prod[Existing REL/DC/PG plus production prerequisites]
+  Outage[GitHub or billing unavailable] --> Pause[Release pauses; local development continues]
+```
+
+The older provider-neutral sketches, matrices, and lifecycle descriptions retained below define the
+implemented/proposed history only. They do not restore a portable-bundle, capsule, Intel,
+alternate-CD, or GitHub-independent completion obligation.
+
+### Historical validation components and authority
 
 ```mermaid
 flowchart LR
@@ -602,6 +590,10 @@ stateDiagram-v2
 
 ### CI-U12 — Prove the provider-neutral full-validation execution capsule
 
+- **Status:** Historical complete on exact commit `47b6b340`. This section retains the executed
+  capsule/Intel contract and evidence as history; CI-GH supersedes it as future release authority.
+  Its Docker, capsule, and parity scenarios are not pending work and do not block hand-back.
+
 - **Requirements:** R4, R18–R19, R23, R26, R35; KTD1, KTD7, KTD9, KTD12.
 - **Depends on:** CI-U1.
 - **Outcome:** The current ARM64 Mac can invoke all 17 full-release gates inside a digest-pinned
@@ -632,6 +624,11 @@ stateDiagram-v2
     the result is an infrastructure failure and never a passing candidate bundle.
 
 ### CI-U7 — Produce and durably retain portable candidate evidence
+
+- **Status:** CI-U7.1 and CI-U7.2 are historical complete implementation. CI-U7.3 is incomplete: the
+  required practical Intel restore never ran. CI-GH supersedes CI-U7.3 as the current stage and the
+  portable evidence/signing/retention system as future authority without reclassifying the missing
+  restore or deleting this history.
 
 - **Requirements:** R4–R5, R8, R18–R20, R23, R26, R29, R31–R32; KTD1, KTD7, KTD9.
 - **Depends on:** CI-U12 and an executable REL-owned source-input policy accepted by REL as
@@ -679,6 +676,16 @@ stateDiagram-v2
 
 ### CI-U8 — Define provider degradation and recovery operation
 
+- **Successor disposition:** The original CI-U8.1/CI-U8.2 portable-projection and restore approach
+  below is superseded before completion and retained only for trace. After CI-GH-U7, parent CI-U8
+  resumes at **CI-U8.3 — Publish the GitHub-first release-availability boundary**. CI-U8.3 updates the
+  dependency inventory and current runbook so local development may continue during GitHub outage,
+  formal release pauses, missing/expired GitHub artifacts fail closed, and recovery starts with a new
+  exact-SHA hosted run rather than replaying local or historical evidence. It verifies the retained
+  staging rollback/reconciliation recipe without production mutation. Its likely files are the
+  current CI/release runbooks, dependency inventory, their contract tests, and focused operational
+  evidence; it depends on CI-GH-U7 hand-back.
+
 - **Requirements:** R12–R13, R19–R23, R27–R28; KTD7, KTD9, KTD11.
 - **Depends on:** CI-U1 for CI-U8.1; CI-U7 for CI-U8.2.
 - **Outcome:** Operators and agents can classify GitHub failure, continue allowed local work, stop
@@ -706,6 +713,13 @@ stateDiagram-v2
     infrastructure and no offline-capability claim is made.
 
 ### CI-U9 — Extract a protected provider-neutral remote-CD adapter contract
+
+- **Successor disposition:** Superseded before execution by CI-GH-U3 and CI-GH-U6 where this unit
+  required a provider-neutral driver, portable bundle, second adapter, signed authorization, or
+  independent receipt store. The protected GitHub deployment path, exact same-run artifact join,
+  backups, confirmation, environment boundaries, receipts, and rollback behavior survive under
+  CI-GH and R17/R24–R25/R30/R32–R34. The original proposal below is retained as supersession history
+  and is not a current or future queue.
 
 - **Requirements:** R17–R18, R21, R24–R25, R28, R30, R32–R34, R36; KTD8.
 - **Depends on:** CI-U7 and existing deployment contract characterization.
@@ -758,6 +772,11 @@ stateDiagram-v2
 
 ### CI-U10 — Conditionally prove alternate-CD and break-glass safety
 
+- **Successor disposition:** Superseded before admission or execution. The GitHub-first operating
+  decision is fail-closed release pause during GitHub unavailability; no alternate credential plane,
+  issuer, trust root, drill, or production authority is provisioned. The original conditional
+  proposal below remains historical planning trace only and is not a completion prerequisite.
+
 - **Requirements:** R20–R22, R24–R34, R36; KTD8–KTD11.
 - **Depends on:** CI-U8–CI-U9, a `go` at CI-U9.5, and separate human authorization before any
   credentialed remote test. On `no-go`, record `not-admitted` with the fail-closed outage policy;
@@ -785,6 +804,14 @@ stateDiagram-v2
     duplicate deployment.
 
 ### CI-U11 — Establish steady-state resilience governance
+
+- **Successor disposition:** The original provider-independent drill program below is superseded
+  before execution where it requires portable retention, parity, alternate CD, signing, or capsule
+  operation. After CI-U8.3, parent CI-U11 resumes at **CI-U11.1 — Review GitHub-first operations**:
+  record owners and re-entry triggers for GitHub billing/control-plane availability, artifact
+  retention, staging recovery, credential rotation/revocation, toolchain drift, and workflow action
+  pin updates. It captures the proven GitHub-first limits without creating a recurring ceremony that
+  blocks plan completion and without changing REL/DC/PG or production authority.
 
 - **Requirements:** R19–R22, R26–R36; KTD9, KTD11–KTD12.
 - **Depends on:** CI-U7–CI-U10.
@@ -821,31 +848,25 @@ stateDiagram-v2
 - Sensitive-workflow assertions prove production `deploy` retains its hosted protected boundary;
   FS-U8 preparation/acceptance/preview retain their feature-owned temporary-runner boundary and are
   not selectable by the normal non-secret CI runner.
-- Evidence tests prove exact source/toolchain/input/report/artifact/provenance binding, digest
-  verification, single-target retention/restore, optional multi-copy fallback, and rejection of any
-  altered byte. Signed-profile tests remain valid but are not baseline operational gates.
-- Deployment-adapter contracts prove GitHub remains a thin default caller. If CI-U9.5 admits an
-  alternate caller, it cannot acquire credentials or mutate a target without exact evidence and
-  explicit authorization; on no-go, tests prove the path is absent/disabled and credential-free.
-- Canary-secret tests prove reports, bundles, receipts, logs, projections, and recovery exports never
-  retain seeded credentials. Optional signer tests and mandatory deployment-authorization tests
-  continue covering their respective expiry, revocation, replay, trust, clock, and use limits.
+- Workflow and validator tests prove exact source/toolchain/run/attempt/report/artifact binding,
+  digest refusal, full-SHA external action pins, least-privilege permissions, and rejection of any
+  altered or missing input without changing the release report or 17-gate contract.
+- Deployment-workflow contracts prove the protected GitHub jobs consume only same-run validated
+  artifacts, never rebuild or discover cross-run release authority, and isolate staging from
+  production credentials and approvals.
+- Canary-secret tests prove reports, attestations, artifacts, receipts, and logs never retain seeded
+  credentials. Removed candidate-evidence signer/retention/restore tests are not continuing gates.
 
 ### Operational gates
 
-- If the mirror is adopted, the dedicated account passes the isolation checklist before registration
-  and after runner updates; on no-go, workflow/runner disablement and absence of credentials are the
-  operational evidence.
-- If the mirror is adopted, self-hosted-runner-offline, interruption, retained-workspace,
-  upload-failure, and rapid-push drills match the lifecycle in this plan.
-- GitHub run/check plus the uploaded report bind SHA, run ID, attempt, tier, runner class, result, and
-  duration as an optional projection. The local spool and its digest remain interpretable without
-  provider metadata; a never-started queued job is operational evidence, not a fabricated report.
-- GitHub billing/control-plane outage, evidence restore, rollback-receipt, and recovery
-  reconciliation checks match R21 and R27 when their adoption/change trigger fires. Runner interruption/compromise applies only while the
-  mirror is adopted; alternate-CD dry run and credential revocation apply only after CI-U9.5 go.
-  Each no-go path instead proves disablement, credential absence, fail-closed pause, and periodic
-  re-evaluation.
+- The bridge must retain real pre-removal and post-removal exact-SHA GitHub-hosted validation plus
+  protected staging proof, including safe rollback/reconciliation, before its dependent removals and
+  hand-back. A definition or local run is not operational proof.
+- GitHub run/check metadata and uploaded artifacts bind SHA, tree, run ID, attempt, toolchain,
+  release report, deployable digests, result, and duration. A never-started, billing-blocked, queued,
+  or failed job is blocker evidence, never a fabricated validation result.
+- CI-U8.3 verifies the release-pause/recovery boundary after hand-back. Optional non-secret runner
+  pilot evidence remains separate from formal release authority.
 
 ### Authority gates
 
@@ -853,8 +874,9 @@ stateDiagram-v2
   or reinterprets FS-U8 state, workflows, runners, evidence, or candidate identity.
 - Short-lane evidence contains no release, candidate, DC, PG, or deployment-complete claim.
 - Full validation and deployment retain their existing release report and approval semantics.
-- Local full validation may prepare evidence, but only REL/DC/PG and the protected remote deployment
-  authority may select, promote, or declare a candidate/production outcome.
+- Local full validation may diagnose development state, but formal release proof is the governed
+  GitHub-hosted result; only REL/DC/PG and the protected remote deployment authority may select,
+  promote, or declare a candidate/production outcome.
 
 ## Risks and Mitigations
 
@@ -864,17 +886,17 @@ stateDiagram-v2
 | Runner offline or mismatched | A best-effort job remains queued | Human health check while the runner is expected online, recorded recovery of the required SHA, no implicit fallback or SLA |
 | Tier drift | Local and remote results mean different things | One code-owned tier definition, stable scripts, membership/order tests, workflow wiring tests |
 | False release confidence | Short checks pass while release behavior fails | Preserve `release:validate` and hosted sensitive workflows; label CI reports advisory |
-| Billing remains blocked | GitHub-hosted mirror or CD cannot execute | Continue repository-owned local validation and candidate-bundle preparation; pause remote promotion unless a separately production-approved alternate exists |
-| Provider metadata/artifact is the only evidence | Outage destroys or blocks proof | Atomic provider-neutral spool, content-addressed evidence, one required durable copy, optional independent replica, replay/projection distinction |
-| Single retained target is destroyed or compromised | The only authoritative copy is lost | Accepted solo-operator tradeoff; immutable/versioned Intel storage, adoption/change restore checks, and an optional independent replica |
-| Optional signing remains operationally expensive | Key lifecycle becomes a new availability blocker | Keep the implementation off by default and activate it only for a named higher-assurance requirement |
-| GitHub Actions/control plane unavailable | Routine work or candidate preparation stops | Local fast/post-commit/full commands continue; remote promotion fails closed unless a separately production-approved alternate exists |
-| Alternate CD weakens controls | Outage path bypasses secrets, approval, or rollback policy | Disabled-by-default isolated remote adapter, short-lived scoped credentials, exact bundle/target/authority binding, dry-run and rotation drill |
+| Billing remains blocked | Formal hosted validation or CD cannot execute | Continue repository-owned local development checks; pause formal release and retain the real blocker without substituting local evidence |
+| GitHub metadata/artifact is unavailable | Formal proof cannot be produced or consumed | Accept GitHub as the release-time boundary; rerun the exact SHA after recovery and never infer proof from workflow definition or local output |
+| GitHub artifact expires or is altered | Deployment cannot join exact validated inputs | Unique SHA/run/attempt identity, declared retention, digest verification, and fail-closed redeployment from a fresh validated run |
+| Removed signing path is later needed | Current evidence no longer meets a new assurance model | Require a separately governed re-entry plan with trust, custody, rotation, consumer, and operator authority |
+| GitHub Actions/control plane unavailable | Formal candidate validation and remote promotion stop | Local fast/post-commit checks continue; release fails closed until a new exact-SHA hosted run succeeds |
+| Unplanned alternate CD path appears | Outage path could bypass secrets, approval, or rollback policy | Keep the path absent and credential-free; require explicit successor authority before any implementation or provisioning |
 | Active-plan interference | CI work mutates or reinterprets FS-U8 state or its temporary runner | Re-read current checkpoints before landing; contract-test separate labels/environments; no FS pointer edits |
 | Persistent workspace collision | Rerun fails or uploads stale evidence | Exact cleanup boundary and SHA/run/attempt report identity |
 | Pilot becomes permanent by inertia | Unreviewed infrastructure becomes policy | Bounded sample, explicit pass/no-go bars, separate CI-U6 decision |
-| Long-term drift | Local, mirror, hosted, or CD adapters silently diverge | Same-source parity checks, quarterly drills, invalidation/replay, CI-U11 human review |
-| Offline claim exceeds dependency reality | Fresh checkout fails when registry/network is unavailable | Separate GitHub independence from package/bootstrap availability; measure cache/fresh-bootstrap behavior explicitly |
+| Long-term drift | Workflow, toolchain, report, or deployment contract silently diverges | Contract tests, attested toolchain, exact digest joins, post-change staging recovery, and CI-U11.1 review |
+| Availability claim exceeds reality | GitHub, registry, Catalog, or Cloudflare dependency is unavailable | Inventory each dependency and distinguish local-development continuity from formal release availability |
 
 ## System-Wide Impact
 
@@ -891,22 +913,19 @@ stateDiagram-v2
 - **Persistent host state:** The runner service, dedicated account, toolchain, work directory,
   cleanup hooks, and ambient filesystem/network access form one security boundary. Preflight or
   cleanup drift invalidates the run even if repository tests pass.
-- **Evidence propagation:** The orchestrator atomically finalizes every state it can observe into a
-  content-addressed spool. Provider metadata covers queued, canceled, and host-loss states that
-  repository code cannot report, while provider artifacts/checks are optional projections. Upload
-  failure is separate from the executed verdict; consumers join by source/tree, tier, execution ID,
-  attempt lineage, and digest.
-- **Release and deployment:** Full validation continues to produce release reports consumed by
-  candidate and deployment processes, now wrapped in durably retained portable evidence.
-  The remote deployment driver verifies the bundle and produces deployment/rollback receipts;
-  adapters own credentials and human approval. Short CI reports never satisfy preparation, preview,
-  DC, PG, or production approvals.
-- **Operational ownership:** A named human repository operator responds when an expected-online job
-  remains queued, maintains the runner, performs required-SHA recovery, and owns deregistration.
-  The release operator owns provider-state declaration, evidence recovery, alternate-adapter
-  authorization, credential rotation, and return-to-normal audit. Agents may inspect status and
-  evidence with bounded polling, but may not handle registration tokens, enable persistent services,
-  grant secrets, authorize break-glass, or promote production.
+- **Evidence propagation:** The hosted validator publishes a separate attestation plus unchanged
+  release report and deployable artifacts under unique source/run/attempt identities. Downstream
+  protected jobs join their digests within the same caller run; upload failure or expiration stops
+  release rather than creating replay or substitute authority.
+- **Release and deployment:** Formal full validation produces the exact reports and artifacts
+  consumed by protected staging/production jobs. GitHub environments own credential and human
+  approval boundaries; existing receipts and rollback identity remain fail-closed. Short or local CI
+  reports never satisfy preparation, preview, DC, PG, or production approvals.
+- **Operational ownership:** A named human repository operator owns GitHub availability and artifact
+  policy. Staging and production credential owners maintain scope, rotation, emergency revocation,
+  and environment separation. Agents may inspect status and non-secret evidence with bounded
+  polling, but may not provision secrets, grant approvals, authorize break-glass, or promote
+  production.
 - **Plan authority:** Implementation changes only the CI checkpoint and matching master CI pointer.
   Fashion U8, Decor state, REL candidate identity, DC/PG, and production authority remain
   independent; any REL clean-worktree or candidate-schema enhancement is coordinated rather than
@@ -919,10 +938,10 @@ stateDiagram-v2
 - Stable local/remote short-tier commands and CI-specific reports.
 - Trusted-main, non-secret self-hosted pilot and its operational runbook.
 - Separation of scheduled/manual full validation from routine feedback.
-- Provider-neutral full-validation bundles, independent retention/replay, dependency inventory, and
-  provider-degradation operation.
-- Thin GitHub validation/CD adapters, a disabled-by-default isolated alternate-CD contract, workflow
-  contract tests, bounded pilot evidence, and recurring resilience drills.
+- GitHub-hosted full validation, exact source/report/artifact attestation, protected same-run
+  deployment, dependency inventory, and GitHub release-availability operation.
+- Workflow contract tests, bounded non-production staging recovery evidence, credential lifecycle,
+  and periodic GitHub-first operational review.
 
 ### Deferred to Follow-Up Work
 
@@ -931,8 +950,8 @@ stateDiagram-v2
 - Any required-check, merge-policy, or release-prerequisite change after pilot review.
 - Optional PR automation if the user explicitly requests it or the project gains a real
   multi-contributor/external-review need.
-- General-purpose ephemeral/JIT CI runner provisioning, autoscaling, runner groups, and webhook
-  watchdogs; CI-U10 owns only the isolated alternate-CD drill environment.
+- General-purpose ephemeral/JIT CI runner provisioning, autoscaling, runner groups, webhook
+  watchdogs, and any alternate-CD or provider-independent release path.
 
 ### Out of scope
 
@@ -947,36 +966,33 @@ stateDiagram-v2
 
 ## Definition of Done
 
-- CI-U1 through CI-U4 meet their applicable verification scenarios, CI-U5 remains explicitly deferred, CI-U6
-  records the pilot policy decision, and CI-U12 plus CI-U7 through CI-U11 meet their applicable verification
-  scenarios and record the long-term human operating decision. CI-U10 is satisfied by either
-  `not-admitted` from CI-U9.5 with fail-closed pause retained, or admitted non-production proof; it
-  never implies production approval.
+- CI-U1–CI-U3 remain complete; CI-U7.1, CI-U7.2, and CI-U12 remain historical complete; incomplete
+  CI-U7.3 and the superseded CI-U8.1/CI-U8.2, CI-U9, and CI-U10 formulations are not fabricated as
+  complete. CI-GH-U1–U7 complete their bridge contract before hand-back to CI-U8.3, followed by the
+  revised CI-U11.1 review. CI-U4/CI-U6 remain an optional runner pilot/decision track, and CI-U5
+  remains explicitly deferred.
 - Developers can run the stable fast and post-commit commands directly and obtain actionable,
   machine-readable evidence.
 - If the mirror is adopted, the self-hosted runner accepts only the explicit trusted-main workflow
   and demonstrably cannot access developer credentials, primary/Decor worktrees, or deployment
   secrets; on no-go it is absent/disabled and credential-free.
-- Every applicable pilot run and rerun is traceable by source/tree, provider-neutral execution ID,
-  attempt lineage, and digest; provider run IDs are optional projections. A local-only/no-mirror
-  pilot records the adapter decision without fabricating remote evidence.
-- Full release validation produces content-addressed candidate evidence that can be digest-verified
-  and retained without GitHub Actions/API/artifacts, while REL/DC/PG authority remains unchanged.
-  Independent signing is optional unless a later policy activates the high-assurance profile.
-- GitHub is a thin default protected-CD adapter. If CI-U9.5 admits an alternate, the
-  disabled-by-default isolated adapter passes exact-evidence, authorization, refusal, rollback,
-  credential-rotation, GitHub-independent failure-domain, and reconciliation drills without a
-  production mutation; otherwise the recorded outage behavior remains fail-closed pause.
-- GitHub Actions billing/control-plane/artifact failure does not block routine development or local
-  candidate preparation and never weakens production gates; promotion pauses when no approved
-  protected adapter is available.
+- Every formal hosted run and rerun is traceable by exact source/tree, GitHub run/attempt, attested
+  toolchain, release-report digest, and deployable-artifact digests; missing or failed hosted output
+  is not replaced by local, historical Intel, or Codex Cloud evidence.
+- Full release validation runs all 17 unchanged gates directly on GitHub-hosted Linux x64 and
+  produces the same-run attestation, report, and artifacts required by protected deployment while
+  REL/DC/PG authority remains unchanged.
+- GitHub is the one maintained protected validation/CD control plane. Staging and production retain
+  distinct credentials, exact-input refusal, approvals, backups, receipts, and rollback identity;
+  no alternate credential plane or portable signing/retention/restore system remains active.
+- GitHub Actions billing/control-plane/artifact failure does not block routine local development and
+  never weakens production gates; formal release pauses until a new exact-SHA hosted proof succeeds.
 - No merge, runner execution, master CI pointer change, or candidate-state inference modifies or
   reinterprets the active FS-U8 boundary.
-- The pilot and steady-state reviews each record explicit keep/revise/remove decisions; no
-  enforcement or production-policy change occurs implicitly.
-- The proven pattern, including its limits and recovery protocol, is captured under
-  `docs/solutions/` so future projects receive the complete version rather than only the initial
-  local-first/self-hosted split.
+- The optional runner pilot and CI-U11.1 review each record explicit keep/revise/remove decisions;
+  no enforcement or production-policy change occurs implicitly.
+- The proven GitHub-first availability boundary, including staging recovery and re-entry triggers,
+  is captured as durable repository guidance without turning progress evidence into a second queue.
 
 ## References
 

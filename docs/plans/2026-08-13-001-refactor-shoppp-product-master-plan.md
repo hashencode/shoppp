@@ -112,31 +112,27 @@ Parallel Decor execution is complete without replacing the product-level Fashion
   concurrent checkout until the page-suite work is merged or explicitly abandoned; its lifecycle
   record is retained in shared Git metadata.
 
-Parallel CI infrastructure planning is registered without replacing either implementation pointer:
+Parallel CI infrastructure planning is temporarily routed through a bounded bridge without replacing
+either product implementation pointer:
 
-- **Parallel plan:** `CI` — Long-Term CI Resilience and Provider-Independent Delivery.
-- **Current parent/child stage:** `CI-U7.3` — CI-U7.2 completed the optional high-assurance signed
-  profile. The repository-owned solo-developer no-PKI build/verify/retain/restore path and
-  profile-isolation tests are implemented and locally verified; parent CI-U7 remains open only for
-  one practical Intel-target restore. On 2026-08-26 the operator retained exact source, full capsule
-  validation, artifact digests, secret scanning, one durable read-back-verified target, and a
-  practical restore check while making offline-root signing and signed witnesses an optional
-  high-assurance profile rather than a CI or launch blocker. CI-U12 is
-  complete on exact commit `47b6b340`: all 17
-  unchanged gates passed in the pinned `linux/amd64` capsule on the independent Intel executor and
-  produced retained validation-class evidence. Registration and the CI-U4 14-day pilot remain
-  human-operated and pending. Intel Jenkins builds through `shoppp-main#17` passed the
-  provider-neutral post-commit lane, including exact integrated SHA `63b71c82`.
-- **Next action:** Retain one practical Intel-target restore. The Intel host is currently unreachable
-  from the development Mac; GitHub, PKI provisioning, and a second operator are not blockers.
-  GitHub Actions billing blocks only optional hosted-adapter compatibility.
-- **Tail:** The CI plan owns local validation authority, optional non-secret mirror operations,
-  a pinned provider-neutral full-validation capsule, portable evidence, provider
-  degradation/recovery, thin GitHub adapters, a
-  provider-neutral remote-CD contract, a conditional go/no-go for any isolated alternate-CD drill,
-  and steady-state resilience review.
-  CI-U5 keeps PR automation deferred; product completion, candidate selection, DC/PG decisions, and
-  production promotion remain outside CI authority.
+- **Parallel plan:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
+- **Current parent/child stage:** `CI-GH-U2` — make direct GitHub-hosted full validation
+  authoritative. CI-GH-U1 reconciled the parent future authority and named `CI-U8.3`/`CI-U11.1` as
+  the hand-back tail. `CI-U7.3` remains incomplete and superseded as the current stage; CI-U7.1,
+  CI-U7.2, and CI-U12 remain historical completed work, and the missing practical Intel restore
+  remains missing.
+- **Next action:** Strengthen workflow/release-validator refusal tests, then implement the reusable
+  direct GitHub-hosted Linux x64 validation path with exact SHA/run/attempt identity and unchanged
+  17-gate/Lighthouse semantics. Do not remove old implementation before the replacement is
+  operationally proven.
+- **Blocker:** None for `CI-GH-U1` through repository implementation. GitHub Actions billing may
+  block the first live hosted validation and staging proof required by `CI-GH-U4`; it cannot be
+  replaced by local, historical Intel, or Codex Cloud output, and removal cannot start without it.
+- **Tail:** `CI-GH-U2` through `CI-GH-U7`, then return to `CI-U8.3` for the GitHub-first
+  release-availability/recovery boundary, followed by `CI-U11.1` steady-state review. The transition
+  preserves all 17 release gates, Lighthouse thresholds, exact-SHA binding, protected deployment,
+  rollback, and REL/DC/PG authority while removing future Docker/Intel/provider-independent release
+  obligations.
 
 The 2026-08-17 activation reverified exactly one registered Shoppp worktree at `8a3723d4` and a
 separately reachable Decor branch. The product master explicitly accepts that observable topology
@@ -170,7 +166,8 @@ focused test alone.
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
-| `CI` | [Long-Term CI Resilience and Provider-Independent Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Parallel validation and release-resilience infrastructure | **Active — CI-U1–U3, CI-U7.1–U7.2, and CI-U12 complete; current `CI-U7.3`; parent CI-U7 remains open; optional runner pilot pending human operation; optional PR automation remains deferred** | Owns repository validation commands, optional mirror/runner operation, the pinned full-validation capsule, portable candidate evidence, provider degradation/recovery, remote-CD adapter extraction, the alternate-CD go/no-go and any admitted non-production drill, and steady-state review; it does not own product completion, candidate selection, DC/PG, or production promotion |
+| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Temporarily paused at incomplete `CI-U7.3`; CI-U1–U3, CI-U7.1–U7.2, and CI-U12 remain complete; resumes at `CI-U8.3` only after CI-GH hand-back** | Retains completed CI history, then owns the GitHub-first availability boundary and `CI-U11.1` review; it does not own the current transition unit while the bridge is active |
+| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Active — CI-GH-U1 complete; current `CI-GH-U2`; Docker/Intel/provider-independent implementation remains until the replacement is operationally proven** | Owns CI-GH-U1–U7, exact transition supersessions, pre-removal and post-removal non-production hosted/staging proof, and hand-back to `CI-U8.3`; no product, candidate, DC/PG, or production-promotion authority |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions
@@ -190,13 +187,18 @@ focused test alone.
    future product-framework integration ownership, candidate scope, or production-promotion policy.
 7. DC/PG are mandatory production-promotion policy for an immutable candidate. They do not gate
    ordinary U implementation, local preview, or a non-production development proof.
-8. The Long-Term CI Resilience plan supersedes GitHub-dependent routine validation, GitHub-only
-   evidence retention, and GitHub workflow YAML as the sole release/CD orchestrator. Repository
-   commands and portable evidence govern validation; GitHub remains an optional advisory CI mirror
-   and the default protected remote-CD adapter. PR automation remains optional and deferred. The
-   plan does not supersede feature checkpoints, candidate selection, DC/PG gates, credential and
-   approval boundaries, or production-promotion authority; if no approved remote adapter is
-   available, promotion fails closed while local development and candidate preparation continue.
+8. The Long-Term CI plan preserves repository-owned fast/post-commit commands and completed
+   self-hosted/capsule/evidence history, but its future release authority is GitHub-first: direct
+   hosted full validation, GitHub run/attempt artifacts, protected environments, and fail-closed
+   release pause during GitHub unavailability. PR automation remains optional and deferred. The plan
+   does not supersede feature checkpoints, candidate selection, DC/PG gates, credential and approval
+   boundaries, rollback, or production-promotion authority.
+9. The GitHub-First CI/CD Transition plan temporarily owns the route switch and explicitly
+   supersedes the future Docker, Intel, provider-independent evidence, alternate-CD, and
+   GitHub-independent release obligations it names. It preserves completed CI history and all
+   release-quality, exact-source, protected-deployment, rollback, credential, REL, DC, PG, and
+   production-approval boundaries. On closure it returns tail ownership to `CI-U8.3`, followed by
+   `CI-U11.1`, rather than becoming a second permanent CI plan.
 
 The 2026-08-13 product decision explicitly supersedes earlier wording that retained only
 `fashion-store` and removed both `fashion` and `decor`:
