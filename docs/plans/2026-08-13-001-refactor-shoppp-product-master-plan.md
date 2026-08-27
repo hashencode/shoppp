@@ -120,11 +120,14 @@ either product implementation pointer:
   and protected staging path, then hand back to parent `CI-U8.3`. CI-GH-U1–U6 are complete without
   changing the 17 gates or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing
   Intel restore remains missing historical evidence rather than a current action.
-- **Next action:** Commit and push the verified post-removal source, prepare and checkpoint a new
-  immutable canonical staging successor from that exact source, then run the protected
-  non-production rollback rehearsal with production disabled. Close the bridge only after retained
+- **Next action:** Run the protected non-production rollback rehearsal from the exact checkpoint SHA
+  with immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k` and production disabled. Close
+  the bridge only after retained
   post-removal evidence proves all 17 gates, exact binding, staging proof, recovery, and safe state.
-- **Blocker:** None for U7. No external billing blocker remains. Historical U4 execution follows.
+- **Blocker:** None for U7. No external billing blocker remains. Protected preparation run
+  `33073448872` passed from post-removal source `2972a090`, retained its D1 backup and canonical
+  receipt, and created immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k`; only its exact
+  checkpoint hosted/staging/recovery proof remains. Historical U4 execution follows.
   Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.

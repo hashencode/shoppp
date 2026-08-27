@@ -58,13 +58,17 @@ plan_role: temporary-ci-bridge
   the superseded runtime and portable-evidence implementation are absent, and direct exact-source,
   digest, report, artifact, static-output, secret-refusal, deployment-receipt, and rollback behavior
   remains owned by the GitHub/Cloudflare path.
-- **Next concrete action:** Commit and push the verified post-removal source, prepare one new
-  immutable canonical staging successor from that exact protected-default source, bind its receipt
-  in the checkpoint, then run the same protected non-production deployment workflow with rollback
+- **Next concrete action:** Run the same protected non-production deployment workflow from the exact
+  checkpoint SHA with immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k`, rollback
   rehearsal enabled and production disabled. Retain official run/artifact identities and close the
   bridge only if all 17 gates, Lighthouse budgets, exact binding, staging proof, p95 thresholds,
   Worker/proof-marker restoration, D1 reconciliation, and restored safe state pass.
 - **Current blockers:** None for U7. GitHub Actions billing is no longer blocking execution.
+  Protected preparation run `33073448872`, job `98521379512`, passed from post-removal source
+  `2972a090c225a8482c5d5ecc50c5d41d0b7ea5d6`; it retained pre-insertion D1 artifact `9646795381`
+  and canonical successor receipt `9646800676` for new immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u7-k`. The only current action is its exact-checkpoint
+  hosted/staging rollback rehearsal and retained evidence.
   Historical U4 execution follows. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`

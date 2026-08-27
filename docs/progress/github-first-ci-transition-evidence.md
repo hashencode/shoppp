@@ -849,3 +849,24 @@ This local toolchain condition is not GitHub evidence and does not substitute fo
 
 These results complete CI-GH-U5 and CI-GH-U6 and authorize only the post-removal U7 proof. They do
 not establish candidate, DC, PG, or production authority.
+
+## Post-removal staging successor — 2026-08-27
+
+Protected preparation run `33073448872`, job `98521379512`, checked out exact post-removal source
+`2972a090c225a8482c5d5ecc50c5d41d0b7ea5d6` from the protected default branch and created new
+immutable successor `staging-canonical-2026-08-27-ci-gh-u7-k`. It passed the staging-only request
+guard, pre-insertion D1 export, predecessor fetch, exact staging identity projection, collision
+refusal, canonical generation, immutable insertion, protected endpoint read-back, and exact D1
+state verification.
+
+The pre-insertion export is official artifact `9646795381`, named
+`staging-catalog-successor-d1-before-33073448872-attempt-1`, with digest
+`sha256:10ba0bc3ece47aa0c94fea0ff7ad1c46f3393c98844238917ffd8dfea78ded2b` and expiry
+`2026-09-03T12:46:32Z`. The canonical receipt is official artifact `9646800676`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u7-k-33073448872-attempt-1`, with
+digest `sha256:60518455a55e860fe1a4ba1c73c73f5bd856df5e0d5d14a6c1a8014836463c8e` and expiry
+`2026-11-25T12:46:06Z`. No predecessor was rewritten and no production job or resource ran.
+
+Preparation does not complete CI-GH-U7 or substitute for its pending exact-checkpoint 17-gate
+hosted validation, same-run artifact binding, protected staging proof, exact Worker/proof-marker
+restoration, D1 reconciliation, and restored safe-state evidence.
