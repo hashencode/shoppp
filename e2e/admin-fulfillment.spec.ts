@@ -5,12 +5,15 @@ test("AE5: authorized operator fulfills and partially refunds the staged order",
   browser,
   request,
 }) => {
-  const orders = await request.get(
-    adminApiUrl(
-      "/admin/orders?query=release-buyer%40example.test&paymentStatus=paid&fulfillmentStatus=unfulfilled&pageSize=1",
-    ),
-    { headers: accessHeaders() },
-  );
+  const query = new URLSearchParams({
+    fulfillmentStatus: "unfulfilled",
+    pageSize: "1",
+    paymentStatus: "paid",
+    query: requiredEnvironment("E2E_BUYER_EMAIL"),
+  });
+  const orders = await request.get(adminApiUrl(`/admin/orders?${query}`), {
+    headers: accessHeaders(),
+  });
   expect(orders.ok()).toBeTruthy();
   const payload = (await orders.json()) as {
     data: Array<{ publicReference: string }>;

@@ -26,7 +26,7 @@ export async function adminContext(
 }
 
 export async function fillShippingAddress(page: Page): Promise<void> {
-  await page.getByLabel("Email").fill("release-buyer@example.test");
+  await page.getByLabel("Email").fill(requiredEnvironment("E2E_BUYER_EMAIL"));
   await page.getByLabel("Name").fill("Release Buyer");
   await page.getByLabel("Address").fill("100 Market Street");
   await page.getByLabel("City").fill("Portland");

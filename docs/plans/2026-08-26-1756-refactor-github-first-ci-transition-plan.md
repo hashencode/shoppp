@@ -58,18 +58,20 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Resolve GitHub Actions billing, then rerun exact source
-  `bad6aeda5dac3727a039b5ead4f69020ca3ac000` through hosted validation and the staging-only deploy
-  path. Retain its pre-mutation Worker/D1 baseline, passing 17-gate attestation and artifact
-  identities, controlled mismatch refusal, deploy/post-deploy result, rollback/reconciliation, and
-  restored safe state. Do not trigger production.
-- **Current blockers:** The exact bridge implementation was fast-forwarded to `origin/main` at
-  `bad6aeda5dac3727a039b5ead4f69020ca3ac000`, so protected-default integration is no longer a
-  blocker. GitHub Actions remains operationally blocked: exact-source hosted-validation run
-  `33035917400` failed before its first step, and preflight job `98398449298` states that recent
-  account payments failed or the spending limit must be increased; its quality job was skipped.
-  This is real U4 blocker evidence, not a hosted validation result. Local tests, historical Intel
-  evidence, and Codex Cloud output are not substitutes, and U5 is not authorized.
+- **Next concrete action:** Finish and locally verify the fail-closed staging rehearsal path, push
+  its exact clean protected-default commit, then run that same source through `deploy.yml` with
+  staging rollback rehearsal enabled and production promotion disabled. Retain its pre-mutation
+  Worker/D1 baseline, passing 17-gate attestation and artifact identities, a deliberate controlled
+  mismatch refusal, deploy/post-deploy result, exact Worker restoration, D1 reconciliation checks,
+  and restored safe state. Do not trigger production.
+- **Current blockers:** GitHub Actions billing is no longer blocking execution. Exact-source hosted
+  validation run `33041884429` passed all 17 gates for
+  `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
+  and Linux X64 toolchain evidence. CI-GH-U4 nevertheless remains incomplete because that source did
+  not yet implement or execute the required exact pre-mutation Worker capture and safe staging
+  restoration. The replacement workflow must pass its local contract gates and a new exact-source
+  hosted/staging exercise before U5 is authorized; the earlier billing failure, local tests,
+  historical Intel evidence, and Codex Cloud output remain non-substitutes.
 - **Tail:** `CI-GH-U4` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
   `CI-U11.1`.
 - **Temporary isolation:** Work only in `.worktrees/relax-ci-u7-signing` on

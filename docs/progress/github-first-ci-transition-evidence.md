@@ -88,3 +88,45 @@ environment secret was exposed to a runner, and no staging or production mutatio
 Run `33035917400` is current CI-GH-U4 billing-blocker evidence only. It does not satisfy any hosted
 validation, controlled-refusal, deployment, post-deployment, rollback, reconciliation, restoration,
 signing, retention, DC, or PG requirement.
+
+## Public-repository retry and hosted validation — 2026-08-27
+
+After the repository became public, attempt 2 of run `33035917400` started on GitHub-hosted Linux
+instead of failing at billing preflight. Its preflight job `98400701920` passed, but quality job
+`98400745140` failed because the default Admin browser suite incorrectly included the interactive
+`storefront-theme-preview.live.spec.ts` acceptance file without its separately governed Fashion U8
+manifest. Diagnostics artifact `9632615394` retained that real failure. This attempt proves billing
+execution resumed; it is not a passing hosted validation or Fashion acceptance result.
+
+Commit `b1ea32e33335e964f1578af057e87a008ab27df0` excludes `*.live.spec.ts` from the default Admin
+Playwright configuration while leaving the dedicated Fashion staging configuration authoritative.
+Its focused configuration tests, the full 302-test Admin Rstest suite, the default and dedicated
+Playwright discovery checks, the 77-test CI/deploy/release validator suite, lint, boundaries, and
+diff checks passed locally. Those local checks are implementation evidence only.
+
+An operator input error then supplied nonexistent source SHA
+`b1ea32e3b7b512a4f8eaa9fb2930a574b9cc73a4` to hosted run `33041864836`. Preflight job
+`98417033760` rejected it as an invalid commit before quality ran. No credentialed validation,
+staging, or production job started. This is genuine fail-closed source-refusal evidence, but it was
+not the plan's deliberate controlled source/report/artifact mismatch exercise and is not classified
+as that missing proof.
+
+Hosted run `33041884429` then passed for exact protected-default source
+`b1ea32e33335e964f1578af057e87a008ab27df0`. Preflight job `98417096118` and GitHub-hosted Linux X64
+quality job `98417114486` both succeeded. The retained release report records 17 ordered passing
+gates and unchanged release semantics. Artifact `9634591187`, named
+`validated-release-b1ea32e33335e964f1578af057e87a008ab27df0-33041884429-attempt-1`, binds:
+
+- source tree `7cecaefcae784996215c54432bb90fb6fe40b329`;
+- run `33041884429`, attempt `1`, report digest
+  `sha256:1b7eec5221d6b1811a0cb0264e44991336fa4c24f9fef573bcb5e56092bc2ba0`, and attestation file digest
+  `sha256:6c9f701b58a7abb5633389a07e3d39027f990b4cceb83fd64c01a2a142bd7f73`;
+- Ubuntu runner image `ubuntu24/20260816.277.1`, Linux X64, Bun `1.3.5`, Playwright `1.62.1`,
+  Chromium `151.0.7922.34`, and the captured system/font identities; and
+- all nine declared storefront, admin, API, configuration, and D1-migration artifact digests.
+
+This is valid intermediate hosted 17-gate evidence and confirms the billing blocker is removed. It
+does not complete CI-GH-U4: no staging deployment ran, no pre-mutation Worker/D1 baseline was
+captured, no planned controlled mismatch was exercised, and no Worker rollback, D1 reconciliation,
+or restored-state verification occurred. No production mutation occurred, and U5 remains
+unauthorized.

@@ -19,7 +19,7 @@ describe("candidate evidence operating contract", () => {
     expect(policy).toMatch(/optional high-assurance signing profile/is);
 
     expect(plan).toMatch(/\*\*Bridge handoff:\*\* Current transition execution is handed to/is);
-    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* Blocked `CI-GH-U4`/);
+    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* Active `CI-GH-U4`/);
     expect(plan).toMatch(/CI-U7\.1 and CI-U7\.2 remain completed historical implementation/is);
     expect(plan).toMatch(
       /CI-U7\.2 — Implement optional signed profile:[\s\S]{0,300}high-assurance profile is complete/is,
@@ -29,10 +29,10 @@ describe("candidate evidence operating contract", () => {
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Resolve GitHub Actions billing[\s\S]{0,180}bad6aeda5dac3727a039b5ead4f69020ca3ac000/is,
+      /\*\*Next action:\*\* Finish and verify the fail-closed staging rollback rehearsal path[\s\S]{0,220}production disabled/is,
     );
     expect(masterPlan).toMatch(
-      /bridge is integrated on `origin\/main`[\s\S]{0,180}run\s+`33035917400`/is,
+      /No external billing blocker remains[\s\S]{0,180}run `33041884429` passed all 17/is,
     );
     expect(plan).not.toContain("**Next concrete action:**");
 

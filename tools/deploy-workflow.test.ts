@@ -113,7 +113,7 @@ describe("production promotion workflow", () => {
     );
     const stagingSetup = staging.slice(
       0,
-      staging.indexOf("Export test D1 before staging migration"),
+      staging.indexOf("Capture exact staging Worker and D1 baseline"),
     );
     const production = workflow.slice(workflow.indexOf("  promote-production:"));
     const productionSetup = production.slice(
@@ -215,9 +215,15 @@ describe("production promotion workflow", () => {
 
   test("defaults to staging-only and requires explicit release confirmation", async () => {
     const workflow = await readFile(workflowPath, "utf8");
+    const rehearsalInput = workflow.slice(
+      workflow.indexOf("      rehearse_staging_rollback:"),
+      workflow.indexOf("      production_confirmation:"),
+    );
 
     expect(workflow).toContain("promote_production:");
-    expect(workflow).toContain("default: false");
+    expect(workflow).toContain("rehearse_staging_rollback:");
+    expect(rehearsalInput).toContain("default: false");
+    expect(workflow).toContain("inputs.rehearse_staging_rollback && inputs.promote_production");
     expect(workflow).toContain('test "$PRODUCTION_CONFIRMATION" = "PROMOTE $RELEASE_ID"');
     expect(workflow).toContain(
       '[[ "$PRODUCTION_BACKUP_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]',
@@ -375,18 +381,82 @@ describe("production promotion workflow", () => {
     }
   });
 
-  test("keeps rollback artifacts without activating authentication-incompatible workers", async () => {
+  test("rehearses an exact no-migration staging rollback from a captured baseline", async () => {
     const workflow = await readFile(workflowPath, "utf8");
-    const rollback = workflow.indexOf("Verify last-known-good rollback artifacts remain available");
-    const rollbackEnd = workflow.indexOf("Record proven catalog deployment", rollback);
-    const rollbackStep = workflow.slice(rollback, rollbackEnd);
+    const deployment = workflow.slice(
+      workflow.indexOf("  deploy-staging:"),
+      workflow.indexOf("  prove-staging:"),
+    );
+    const rollback = workflow.slice(
+      workflow.indexOf("  restore-staging-baseline:"),
+      workflow.indexOf("  approve-human-access:"),
+    );
+    const proof = workflow.slice(
+      workflow.indexOf("  prove-staging:"),
+      workflow.indexOf("  restore-staging-baseline:"),
+    );
+    const rollbackJobEnv = rollback.slice(
+      rollback.indexOf("    env:"),
+      rollback.indexOf("    steps:"),
+    );
+    const baselineValidation = rollback.slice(
+      rollback.indexOf("Validate captured staging baseline identity before restoration"),
+      rollback.indexOf("Restore exact captured staging Worker versions"),
+    );
+    const capture = deployment.indexOf("Capture exact staging Worker and D1 baseline");
+    const firstMutation = deployment.indexOf("Upload saved staging versions before migration");
 
-    expect(rollback).toBeGreaterThan(0);
-    expect(rollbackEnd).toBeGreaterThan(rollback);
-    expect(rollbackStep).toContain("for component in apps/api apps/admin apps/storefront; do");
-    expect(rollbackStep).toContain("bunx wrangler versions list --env staging --json");
-    expect(rollbackStep).toContain('--arg release "$E2E_LAST_KNOWN_GOOD_RELEASE_ID"');
-    expect(rollbackStep).toContain('.annotations["workers/message"] == $release');
+    expect(capture).toBeGreaterThan(0);
+    expect(firstMutation).toBeGreaterThan(capture);
+    expect(deployment).toContain("bun tools/staging-rollback-baseline.ts capture");
+    expect(deployment).toContain("Preserve the exact staging rollback baseline");
+    expect(deployment).toContain("List pending test D1 migrations and refuse unsafe rehearsal");
+    expect(deployment).toContain("staging-rollback-baseline.ts check-migrations");
+    expect(deployment).toContain(
+      "baseline_artifact_id: ${{ steps.staging-baseline.outputs.artifact-id }}",
+    );
+
+    expect(rollback).toContain("needs: [validate, deploy-staging, prove-staging]");
+    expect(rollback).toContain("always() && inputs.rehearse_staging_rollback");
+    expect(rollback).toContain("needs.deploy-staging.outputs.baseline_artifact_id != ''");
+    expect(rollback).toContain("Validate captured staging baseline identity before restoration");
+    expect(rollback).toContain("bun tools/staging-rollback-baseline.ts validate");
+    expect(rollbackJobEnv).not.toContain("CLOUDFLARE_API_TOKEN");
+    expect(baselineValidation).not.toContain("CLOUDFLARE_API_TOKEN");
+    expect(rollback.match(/^\s+CLOUDFLARE_API_TOKEN:/gm)).toHaveLength(3);
+    expect(rollback.indexOf("staging-rollback-baseline.ts validate")).toBeLessThan(
+      rollback.indexOf('bunx wrangler versions deploy "$version_id@100%"'),
+    );
+    expect(rollback).toContain('bunx wrangler versions deploy "$version_id@100%"');
+    expect(rollback).toContain("for component in api admin storefront; do");
+    expect(rollback).toContain('(cd "apps/$component"');
+    expect(rollback).toContain("for attempt in 1 2 3; do");
+    expect(rollback).toContain("worker-restore-outcomes.txt");
+    expect(rollback).toContain("Reconcile run-scoped staging proof data");
+    expect(rollback).toContain("staging-rollback-baseline.ts reconcile");
+    expect(rollback.match(/--buyer-email="\$E2E_BUYER_EMAIL"/g)).toHaveLength(2);
+    expect(rollback).toContain(
+      "if: ${{ always() && steps.baseline-validation.outcome == 'success' }}",
+    );
+    expect(rollback).toContain("Verify restored staging Worker and D1 baseline");
+    expect(rollback).toContain("bun tools/staging-rollback-baseline.ts verify");
+    expect(rollback).toContain('curl --fail --silent --show-error "$API_URL/health"');
+    expect(proof).toContain("if: ${{ !inputs.rehearse_staging_rollback }}");
+    expect(proof).toContain("E2E_BUYER_EMAIL: release-buyer+${{ github.run_id }}");
+    expect(proof).toContain("DELETE FROM admin_invitations");
+    expect(
+      rollback.indexOf("Record proven catalog deployment after restored safe state"),
+    ).toBeGreaterThan(rollback.indexOf("Verify restored staging Worker and D1 baseline"));
+    expect(rollback).toContain("steps.worker-restoration.outcome == 'success'");
+    expect(rollback).toContain("steps.d1-reconciliation.outcome == 'success'");
+    expect(rollback).toContain("steps.restored-state.outcome == 'success'");
+    expect(deployment).toContain("!inputs.rehearse_staging_rollback");
+    expect(proof).toContain("failure() && !inputs.rehearse_staging_rollback");
+    expect(rollback).toContain("Record one failed rehearsal outcome after restoration attempts");
+    expect(rollback).toContain("failure_code=staging_restoration_failed");
+    expect(rollback).toContain("failure_code=staging_deployment_failed");
+    expect(rollback).toContain("failure_code=staging_proof_failed");
+    expect(rollback).toContain("$failure_code");
     expect(workflow).not.toContain("bunx wrangler rollback --env staging");
   });
 
