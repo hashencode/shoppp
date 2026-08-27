@@ -577,3 +577,17 @@ digest `sha256:df4462c6dfff541c7870f17df1c2c8a7c70bfd883c660db2ff4aa0b40b688ec6`
 CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
 exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
 exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.
+
+## Fail-closed source-parameter refusal — 2026-08-27
+
+Dispatch run `33062287746` targeted successor `staging-canonical-2026-08-27-ci-gh-u4-f` but supplied
+nonexistent source `4054e621c9e483078cd8833fb3b6b15164cb819e` instead of actual protected-default
+checkpoint `4054e6219c79ee844f0e4a0fca6608335b50b057`. Deployment preflight job `98483744994`
+passed the staging-rehearsal and production-off request guards. Reusable validation preflight job
+`98483780847` then failed closed at exact source reachability with `Not a valid commit name`.
+
+Failure-record job `98483826630` passed and transitioned successor `f` to terminal `failed` with
+`candidate_validation_failed`. Quality, deployment-input verification, staging deployment, public
+proof, restoration, human access, and production were all skipped. No official artifact was
+created, no staging or production resource was mutated, and successor `f` will not be reused. This
+operator dispatch error is refusal evidence only and does not satisfy CI-GH-U4 or authorize U5.
