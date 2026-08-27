@@ -116,18 +116,16 @@ Parallel CI infrastructure planning is temporarily routed through a bounded brid
 either product implementation pointer:
 
 - **Parallel plan:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
-- **Current parent/child stage:** Active `CI-GH-U4` — obtain complete pre-removal GitHub-hosted full
-  validation and protected staging rollback/reconciliation proof. CI-GH-U1–U3 completed repository
-  authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
-  or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
-  missing.
-- **Next action:** Run immutable successor `staging-canonical-2026-08-27-ci-gh-u4-j` through
-  `deploy.yml` from the exact clean checkpoint SHA that records preparation run `33070208055`, with
-  the source read directly from Git, rollback rehearsal enabled, and production disabled. Retain all
-  17 hosted gates, exact artifact binding, staging proof, Worker/proof-marker restoration, D1
-  reconciliation, and restored-state evidence. Do not reuse any terminal failed successor, remove
-  old implementation, or trigger production.
-- **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
+- **Current parent/child stage:** Active `CI-GH-U5` — remove the Docker/Intel release-capsule
+  implementation after U4's retained exact GitHub-hosted and protected staging proof. CI-GH-U1–U4
+  are complete without changing the 17 gates or Lighthouse thresholds. `CI-U7.3` remains incomplete,
+  and its missing Intel restore remains missing historical evidence rather than a current action.
+- **Next action:** Build the exact capsule-consumer manifest, preserve direct GitHub source/static
+  refusal behavior at its real owner, remove the U5 capsule runtime/tests/commands and active
+  Docker/Intel operational instructions, then pass focused source/static tests, typecheck, lint, and
+  repository reference scans before U6.
+- **Blocker:** None for U5. No external billing blocker remains. Historical U4 execution follows.
+  Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
   Commit `5b2e9d73` aligned the governance test. Exact-source run `33046259704` passed all 17 gates and
@@ -257,7 +255,11 @@ either product implementation pointer:
   refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
   verification, and receipt retention for successor
   `staging-canonical-2026-08-27-ci-gh-u4-j`. The current dependency is only its exact-checkpoint
-  hosted/staging rollback rehearsal and retained evidence. Hosted validation run `33041884429` passed all 17
+  hosted/staging rollback rehearsal and retained evidence. Exact-source run `33070432378` then
+  passed both preflights, all 17 unchanged gates and Lighthouse budgets, exact same-run binding,
+  protected staging deploy/proof, preserved p95 thresholds, exact Worker/proof-marker restoration,
+  D1 reconciliation, and restored safe-state verification. Human access and production were
+  skipped. CI-GH-U4 is complete and U5 is authorized. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

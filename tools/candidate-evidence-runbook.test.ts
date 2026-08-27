@@ -19,7 +19,7 @@ describe("candidate evidence operating contract", () => {
     expect(policy).toMatch(/optional high-assurance signing profile/is);
 
     expect(plan).toMatch(/\*\*Bridge handoff:\*\* Current transition execution is handed to/is);
-    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* Active `CI-GH-U4`/);
+    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* Active `CI-GH-U5`/);
     expect(plan).toMatch(/CI-U7\.1 and CI-U7\.2 remain completed historical implementation/is);
     expect(plan).toMatch(
       /CI-U7\.2 — Implement optional signed profile:[\s\S]{0,300}high-assurance profile is complete/is,
@@ -49,10 +49,9 @@ describe("candidate evidence operating contract", () => {
     expect(masterPlan).toMatch(/run\s+`33064849074`[\s\S]{0,260}all 17 unchanged gates/is);
     expect(masterPlan).toMatch(/run\s+`33067448314`[\s\S]{0,360}collision\s+refusal/is);
     expect(masterPlan).toMatch(/run\s+`33067627981`[\s\S]{0,260}all 17 unchanged gates/is);
-    expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Run immutable successor[\s\S]{0,360}33070208055[\s\S]{0,360}production disabled/is,
-    );
+    expect(masterPlan).toMatch(/\*\*Next action:\*\* Build the exact capsule-consumer manifest/is);
     expect(masterPlan).toMatch(/run\s+`33070208055`[\s\S]{0,360}collision\s+refusal/is);
+    expect(masterPlan).toMatch(/run\s+`33070432378`[\s\S]{0,360}all 17 unchanged gates/is);
     expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");

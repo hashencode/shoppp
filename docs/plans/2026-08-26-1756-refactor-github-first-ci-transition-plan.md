@@ -52,20 +52,18 @@ plan_role: temporary-ci-bridge
 
 ## Execution Checkpoint
 
-- **Current parent/child stage:** `CI-GH-U4` — prove the replacement on a real GitHub-hosted run and
-  protected staging exercise before removal. `CI-GH-U3` is complete in repository implementation:
-  `deploy.yml` begins credential-free, calls the reusable validator, pins every external action,
-  verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
-  remote operation, and preserves protected environments, confirmation, backup, human-access,
-  receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Run immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-j` through `deploy.yml` from the exact clean checkpoint SHA
-  that records preparation run `33070208055`, with the source value read directly from Git, staging
-  rollback rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1
-  baseline, all 17 hosted gates, exact deployment binding, staging proof, exact Worker/proof-marker
-  restoration, D1 reconciliation checks, and restored safe state. Do not reuse any terminal failed
-  successor or trigger production.
-- **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
+- **Current parent/child stage:** `CI-GH-U5` — remove the Docker and Intel release-capsule
+  implementation now that U4 has proved the exact GitHub-hosted and protected staging replacement.
+  `CI-GH-U4` is complete on retained non-production run `33070432378`: all 17 gates, exact same-run
+  binding, staging proof, p95 thresholds, exact Worker/proof-marker restoration, D1 reconciliation,
+  and restored safe state passed with production disabled.
+- **Next concrete action:** Build the exact remaining capsule-consumer manifest, move only
+  source-identity or secret-refusal behavior still required by direct GitHub validation to its real
+  owner, then remove the U5 container directory, capsule tools/tests/package command, and active
+  Docker/Intel/capsule operational instructions. Run the focused source/static checks, typecheck,
+  lint, and reference scans before advancing to U6.
+- **Current blockers:** None for U5. GitHub Actions billing is no longer blocking execution.
+  Historical U4 execution follows. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
   fixed. Commit `5b2e9d73` aligned the governance test. Exact-source run `33046259704` passed both
@@ -205,7 +203,13 @@ plan_role: temporary-ci-bridge
   canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
   verification, and receipt retention for successor
   `staging-canonical-2026-08-27-ci-gh-u4-j`. The current blocker is only its exact-checkpoint
-  hosted/staging rollback rehearsal and retained evidence.
+  hosted/staging rollback rehearsal and retained evidence. Exact-source run `33070432378` then
+  passed both preflights, all 17 unchanged gates and Lighthouse budgets, same-run deployment-input
+  binding, staging baseline/backup/migration safety, protected administrator checks, all three
+  staging Worker deployments, every public and protected proof, and the preserved p95 thresholds
+  (458 ms catalog read, 378 ms cart read, 695 ms shipping mutation). Recovery restored all three
+  exact Worker versions and the proof marker, reconciled D1, and verified restored safe state.
+  Human access and production were skipped. This retained run completes CI-GH-U4 and authorizes U5.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
