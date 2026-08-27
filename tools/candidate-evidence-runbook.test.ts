@@ -28,9 +28,6 @@ describe("candidate evidence operating contract", () => {
       /CI-U7\.3 was not completed[\s\S]{0,120}practical\s+Intel restore never ran/is,
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
-    expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Run immutable successor[\s\S]{0,360}production\s+disabled/is,
-    );
     expect(masterPlan).toMatch(/No external billing blocker remains/is);
     expect(masterPlan).toMatch(/run\s+`33048142888`[\s\S]{0,140}all 17 gates/is);
     expect(masterPlan).toMatch(/run\s+`33052078852`[\s\S]{0,260}representative-catalog/is);
@@ -51,6 +48,10 @@ describe("candidate evidence operating contract", () => {
     expect(masterPlan).toMatch(/run\s+`33064643874`[\s\S]{0,360}collision\s+refusal/is);
     expect(masterPlan).toMatch(/run\s+`33064849074`[\s\S]{0,260}all 17 unchanged gates/is);
     expect(masterPlan).toMatch(/run\s+`33067448314`[\s\S]{0,360}collision\s+refusal/is);
+    expect(masterPlan).toMatch(/run\s+`33067627981`[\s\S]{0,260}all 17 unchanged gates/is);
+    expect(masterPlan).toMatch(
+      /\*\*Next action:\*\* Integrate the fail-closed CI-GH release-staging latency entry[\s\S]{0,360}production disabled/is,
+    );
     expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");

@@ -236,6 +236,20 @@ describe("production promotion workflow", () => {
     );
   });
 
+  test("runs release p95 only through the protected CI-GH staging rehearsal entry", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const proof = workflow.slice(
+      workflow.indexOf("  prove-staging:"),
+      workflow.indexOf("  restore-staging-baseline:"),
+    );
+
+    expect(proof).toContain("CI_GH_VALIDATED_SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}");
+    expect(proof).toContain("CI_GH_STAGING_REHEARSAL: ${{ inputs.rehearse_staging_rollback }}");
+    expect(proof).toContain("CI_GH_PRODUCTION_PROMOTION: ${{ inputs.promote_production }}");
+    expect(proof).toContain("bun tools/verify-release-staging-latency.ts");
+    expect(proof).not.toContain("bun run test:staging-latency");
+  });
+
   test("verifies a recent ready production backup before migration", async () => {
     const workflow = await readFile(workflowPath, "utf8");
     const backupVerification = workflow.indexOf("Verify recent production backup before migration");

@@ -727,3 +727,40 @@ digest `sha256:dba27dc75bb0ffd359db8374f7dd2012cd153442ea4510751b55a299485c8902`
 CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
 exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
 exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.
+
+## Release-staging latency authority mismatch — 2026-08-27
+
+Exact-source run `33067627981` bound source `00313031c9b28751ff91f714b8a8244a0977a0b8` to immutable
+successor `staging-canonical-2026-08-27-ci-gh-u4-i`, with rollback rehearsal enabled and production
+promotion disabled. Preflight jobs `98501569326` and `98501605696` passed. Hosted quality job
+`98501662425` passed all 17 unchanged gates and Lighthouse budgets. Official validation artifact
+`9644902209`, named
+`validated-release-00313031c9b28751ff91f714b8a8244a0977a0b8-33067627981-attempt-1`, has digest
+`sha256:0003eb5c9c1fb718a4f09fb3fd1d0a2ae97a9bb5e2a634b05cdb00ca604d6e07` and expiry
+`2026-09-26T11:47:24Z`. It binds source tree `2fef2b9aaab34a888985dcf51df3d539160d0bf3`, report digest
+`sha256:be8324e8d1e9ade8b977d6c1a77223968ae5d88977900203380427903dbd772d`, run/attempt,
+Linux X64 toolchain, and all nine deployment artifact digests. Same-run deployment-input job
+`98505904495` passed.
+
+Protected deployment job `98505982722` passed baseline capture, D1 backup and migration safety,
+protected administrator checks, integrity checks, and all three staging Worker deployments.
+Baseline artifact `9644926439` has digest
+`sha256:637f4caa614ec05fff45f0c61015754c05b07273b98fb7b04ff580bac2658ade`; D1 backup artifact
+`9644929233` has digest `sha256:929bb01523dbba45ecef2dca07f901f6c8efea89af07ceb27fa8d3617b4d74ab`
+and expiry `2026-09-03T11:48:17Z`.
+
+Public proof job `98506223720` passed every preceding browser and operational proof, including the
+corrected provider purchase, forged-return, and staged-publication identities. Its p95 step then ran
+the historical `test:staging-latency` command, whose target had deliberately become an
+authenticated FS-U8 orchestrator library. The direct-execution guard refused it before any latency
+sample, so this is an authority-entry mismatch rather than a p95 threshold failure. Staging evidence
+artifact `9645005725` has digest
+`sha256:d17805df7fb3362fcaec7aee4e5fe9375551785ce0f168daac50d31042bd4a01` and expiry
+`2026-11-25T11:29:59Z`. No trace contents were inspected.
+
+Recovery job `98506722688` restored all three exact Worker versions and the proof marker, reconciled
+run-scoped D1 data, and verified restored safe state. Worker restoration, lifecycle restoration, D1
+reconciliation, and restored-state outcomes were all `success`. Restoration artifact `9645026614`
+has digest `sha256:45abc733e3854472302b261f96920afb14f2585ea6deb7b753de9dccd7d1d0c2` and expiry
+`2026-11-25T11:29:59Z`. Human access and production remained skipped. Successor `i` is terminal
+failed and will not be reused; CI-GH-U4 remains open and U5 remains unauthorized.

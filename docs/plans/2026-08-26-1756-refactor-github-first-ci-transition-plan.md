@@ -58,12 +58,14 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Run immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-i` through `deploy.yml` from the exact clean checkpoint SHA
-  that records preparation run `33067448314`, with the source value read directly from Git, staging
-  rollback rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
-  deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
-  checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
+- **Next concrete action:** Integrate the fail-closed CI-GH release-staging latency entry, then use
+  its exact clean protected-default source to prepare new immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-j`. Record that preparation in a clean checkpoint, read the
+  source value directly from Git, and run the successor through `deploy.yml` with staging rollback
+  rehearsal enabled and production promotion disabled. Retain its pre-mutation Worker/D1 baseline,
+  all 17 hosted gates, exact deployment binding, staging proof, exact Worker/proof-marker
+  restoration, D1 reconciliation checks, and restored safe state. Do not reuse any terminal failed
+  successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -188,8 +190,18 @@ plan_role: temporary-ci-bridge
   integrated. Protected preparation run `33067448314` passed its staging D1 backup, collision
   refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
   verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-i`.
-  The current blocker is only its exact-checkpoint hosted/staging rollback rehearsal and retained
-  evidence.
+  Exact-source run `33067627981` then passed both preflights, all 17 unchanged gates, same-run
+  deployment-input binding, staging baseline/backup/migration safety, protected administrator
+  checks, all three staging Worker deployments, and every public proof before the p95 step. That
+  step invoked the historical direct `verify-staging-latency.ts` CLI after FS-U8 had deliberately
+  converted it into an authenticated-orchestrator-only library, so it failed at the authority guard
+  before measuring latency. Exact Worker and proof-marker restoration, D1 reconciliation, and
+  restored safe-state verification passed; production and human access were skipped, and successor
+  `i` is terminal failed. The current blocker is integration of a separate CI-GH release-staging
+  latency entry that preserves the existing 20-sample, concurrency-4, 500 ms read, and 800 ms
+  mutation thresholds, fails closed outside the protected rollback rehearsal, and does not alter or
+  invoke FS-U8 authority, followed by protected preparation of successor `j` and its exact-source
+  rehearsal.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

@@ -361,6 +361,9 @@ jobs:
       E2E_ADMIN_ACCESS_PROOF_ID: access-proof-${{ github.run_id }}-${{ github.run_attempt }}
       E2E_ADMIN_ACCESS_PROOF_EMAIL: admin-proof+${{ github.run_id }}-${{ github.run_attempt }}@example.test
       E2E_BUYER_EMAIL: release-buyer+${{ github.run_id }}-${{ github.run_attempt }}@example.test
+      CI_GH_VALIDATED_SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
+      CI_GH_STAGING_REHEARSAL: ${{ inputs.rehearse_staging_rollback }}
+      CI_GH_PRODUCTION_PROMOTION: ${{ inputs.promote_production }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -484,7 +487,7 @@ jobs:
                  AND normalized_email = '$E2E_ADMIN_ACCESS_PROOF_EMAIL';
             "
       - name: Enforce staging API p95 targets
-        run: bun run test:staging-latency
+        run: bun tools/verify-release-staging-latency.ts
       - name: Verify last-known-good rollback artifacts remain available
         run: |
           for component in apps/api apps/admin apps/storefront; do
