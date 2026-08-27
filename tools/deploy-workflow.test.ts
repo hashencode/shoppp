@@ -24,6 +24,8 @@ const fashionPurchaseJourneyPath = resolve(
   import.meta.dir,
   "../e2e/fashion-store-purchase.spec.ts",
 );
+const paymentRecoveryJourneyPath = resolve(import.meta.dir, "../e2e/payment-recovery.spec.ts");
+const publicationJourneyPath = resolve(import.meta.dir, "../e2e/publication.spec.ts");
 const storefrontPlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.config.ts",
@@ -492,7 +494,11 @@ describe("production promotion workflow", () => {
   });
 
   test("prepares isolated and auditable staging journey fixtures", async () => {
-    const workflow = await readFile(workflowPath, "utf8");
+    const [workflow, paymentRecovery, publication] = await Promise.all([
+      readFile(workflowPath, "utf8"),
+      readFile(paymentRecoveryJourneyPath, "utf8"),
+      readFile(publicationJourneyPath, "utf8"),
+    ]);
 
     expect(workflow).toContain("Prepare representative last-unit inventory");
     expect(workflow).toContain(
@@ -511,6 +517,13 @@ describe("production promotion workflow", () => {
     expect(workflow).toContain("'inv_$E2E_ADMIN_ACCESS_PROOF_ID'");
     expect(workflow).toContain("Record failed staging proof");
     expect(workflow).toContain('"failureCode":"staging_proof_failed"');
+    expect(paymentRecovery).toContain('name: "Payment status is unavailable"');
+    expect(paymentRecovery).toContain(
+      "This return cannot be matched to a secure checkout session.",
+    );
+    expect(publication).toContain('requiredEnvironment("RELEASE_ID")');
+    expect(publication).not.toContain('requiredEnvironment("E2E_LAST_KNOWN_GOOD_RELEASE_ID")');
+    expect(workflow).toContain('jq -e --arg release "$E2E_LAST_KNOWN_GOOD_RELEASE_ID"');
   });
 });
 

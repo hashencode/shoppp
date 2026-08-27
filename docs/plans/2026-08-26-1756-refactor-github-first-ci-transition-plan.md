@@ -58,10 +58,10 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Run immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-h` through `deploy.yml` from the exact clean checkpoint SHA
-  that records preparation run `33064643874`, with the source value read directly from Git, staging
-  rollback rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
+- **Next concrete action:** Integrate the forged-return copy and staged-release publication identity
+  corrections, then use that exact clean source to prepare new immutable ordinary-staging successor
+  `i`. Run it through `deploy.yml` with the source value read directly from Git, staging rollback
+  rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
   checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
@@ -175,7 +175,16 @@ plan_role: temporary-ci-bridge
   refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
   verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-h`.
   The current blocker is only its exact-checkpoint hosted/staging rollback rehearsal and retained
-  evidence.
+  evidence. Exact-source run `33064849074` passed both preflights, all 17 unchanged gates,
+  same-run deployment-input binding, staging baseline/backup/migration safety, protected
+  administrator checks, all three staging Worker deployments, and the corrected Stripe purchase.
+  Public proof then found two later stale assertions: forged-return expected removed copy rather
+  than the current fail-closed heading/announcement, and failed-publication compared the live staged
+  successor against the historical rollback ID rather than `RELEASE_ID`. Exact Worker and
+  proof-marker restoration, D1 reconciliation, and restored safe-state verification passed;
+  production and human access were skipped, and successor `h` is terminal failed. The current
+  blocker is integration of both assertion/identity corrections, protected preparation of new
+  immutable successor `i`, and its exact-source rehearsal.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

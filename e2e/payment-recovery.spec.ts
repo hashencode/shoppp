@@ -6,7 +6,10 @@ test("AE4/AE7: forged returns fail closed and an exhausted notification replays 
   request,
 }) => {
   await page.goto("/checkout/complete?session_id=forged-release-proof");
-  await expect(page.getByText(/return URL cannot confirm payment/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Payment status is unavailable" })).toBeVisible();
+  await expect(
+    page.getByText("This return cannot be matched to a secure checkout session."),
+  ).toBeVisible();
 
   const jobId = requiredEnvironment("E2E_EXHAUSTED_NOTIFICATION_ID");
   const headers = {

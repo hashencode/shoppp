@@ -668,3 +668,40 @@ digest `sha256:3b8848e18f3f4e95164fd837409977ac01e7ff9492f50321b76349f4ac87e3c7`
 CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
 exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
 exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.
+
+## Post-purchase proof identity mismatches — 2026-08-27
+
+Exact-source run `33064849074` bound source `6ce74ae7b0d7803d5127958583d608880d4d3154` to immutable
+successor `staging-canonical-2026-08-27-ci-gh-u4-h`, with rollback rehearsal enabled and production
+promotion disabled. Preflight jobs `98492319870` and `98492373842` passed. Hosted quality job
+`98492419556` passed all 17 unchanged gates and Lighthouse budgets. Official validation artifact
+`9643912356`, named
+`validated-release-6ce74ae7b0d7803d5127958583d608880d4d3154-33064849074-attempt-1`, has digest
+`sha256:54180e0e2e47ff1fb27d3374435f9f8c541df0af63acbe01939bed68d083a317` and expiry
+`2026-09-26T11:14:23Z`. It binds source tree `385323a04cfb1315dca0c2ad2366921d01ff9683`, report
+digest `sha256:1822c79e6a001450dccf02655872e7b0880d3f553eeef33ed1c332e48cbda0eb`, run/attempt,
+Linux X64 toolchain, and all nine deployment artifact digests. Same-run deployment-input job
+`98497756251` passed.
+
+Protected deployment job `98497839584` passed baseline capture, D1 backup and migration safety,
+protected administrator checks, integrity checks, and all three staging Worker deployments.
+Baseline artifact `9643936982` has digest
+`sha256:6fd714f48b5e9ce88a54b49b57f76671d722156f02168e54cefbc407cc12adfd`; D1 backup artifact
+`9643939339` has digest `sha256:9e4b92a9998ae90a40fd864725616cedf0510ad7df463e5524870f3f7578e06c`
+and expiry `2026-09-03T11:15:22Z`.
+
+Public proof job `98498097230` passed the corrected real Stripe provider-purchase journey plus five
+other release-operation cases before two assertions failed. Forged return correctly rendered
+`Payment status is unavailable` and `This return cannot be matched to a secure checkout session`,
+while the test expected retired copy. Synthetic publication failure correctly left exact staged
+successor `h` live, while the test incorrectly compared the page to historical rollback variable
+`LAST_KNOWN_GOOD_RELEASE_ID`; that variable remains correct only for the separate retained-Worker
+version check. Staging diagnostic artifact `9644019226` has digest
+`sha256:b5e5b2e3c19dba8ed30a297e101d537a234fe0dafca855f05eb1a0a736bbbf9f` and expiry
+`2026-11-25T10:51:50Z`. No trace contents were inspected.
+
+Recovery job `98498656284` restored all three exact Worker versions and the proof marker, reconciled
+run-scoped D1 data, and verified restored safe state. Restoration artifact `9644047771` has digest
+`sha256:9894ec7c7161bf0de25c572043a94a491aba7903e2bac0d7f78b79761f628f25` and expiry
+`2026-11-25T10:51:50Z`. Human access and production remained skipped. Successor `h` is terminal
+failed and will not be reused; CI-GH-U4 remains open and U5 remains unauthorized.

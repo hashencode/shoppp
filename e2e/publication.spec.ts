@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { accessHeaders, adminApiUrl, requiredEnvironment } from "./support";
 
-test("failed publication keeps the recorded last-known-good storefront live and alerts operators", async ({
+test("failed publication keeps the exact staged storefront live and alerts operators", async ({
   page,
   request,
 }) => {
   const slug = requiredEnvironment("E2E_PRODUCT_SLUG");
-  const releaseId = requiredEnvironment("E2E_LAST_KNOWN_GOOD_RELEASE_ID");
+  const releaseId = requiredEnvironment("RELEASE_ID");
   const failedReleaseId = requiredEnvironment("E2E_FAILED_CATALOG_RELEASE_ID");
   const response = await page.goto(`/products/${slug}`);
   expect(response?.ok()).toBeTruthy();
