@@ -121,9 +121,9 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Integrate the provider-purchase order-reference assertion, then use that exact
-  clean source to prepare a new immutable ordinary-staging successor `h` and run it through
-  `deploy.yml` with the source read directly from Git, rollback rehearsal enabled, and production disabled. Retain all 17 hosted gates,
+- **Next action:** Run immutable successor `staging-canonical-2026-08-27-ci-gh-u4-h` through
+  `deploy.yml` from the exact clean checkpoint SHA that records preparation run `33064643874`, with
+  the source read directly from Git, rollback rehearsal enabled, and production disabled. Retain all 17 hosted gates,
   exact artifact binding, staging proof, Worker/proof-marker restoration, D1 reconciliation, and
   restored-state evidence. Do not reuse any terminal failed successor, remove old implementation,
   or trigger production.
@@ -225,7 +225,12 @@ either product implementation pointer:
   proof-marker restoration, D1 reconciliation, and restored safe-state verification passed;
   production and human access were skipped, and successor `g` is terminal failed. The current
   dependency is integration of the order-reference assertion, protected preparation of new
-  immutable successor `h`, and its exact-source rehearsal. Hosted validation run `33041884429` passed all 17
+  immutable successor `h`, and its exact-source rehearsal. Order-reference correction `56c43d48`
+  is integrated. Protected preparation run `33064643874` passed its staging D1 backup, collision
+  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
+  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-h`.
+  The current dependency is only its exact-checkpoint hosted/staging rollback rehearsal and retained
+  evidence. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

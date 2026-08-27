@@ -29,7 +29,7 @@ describe("candidate evidence operating contract", () => {
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Integrate the provider-purchase order-reference assertion[\s\S]{0,420}production\s+disabled/is,
+      /\*\*Next action:\*\* Run immutable successor[\s\S]{0,360}production\s+disabled/is,
     );
     expect(masterPlan).toMatch(/No external billing blocker remains/is);
     expect(masterPlan).toMatch(/run\s+`33048142888`[\s\S]{0,140}all 17 gates/is);
@@ -48,6 +48,7 @@ describe("candidate evidence operating contract", () => {
     );
     expect(masterPlan).toMatch(/run\s+`33062452797`[\s\S]{0,260}collision refusal/is);
     expect(masterPlan).toMatch(/run\s+`33062635406`[\s\S]{0,260}all 17 unchanged gates/is);
+    expect(masterPlan).toMatch(/run\s+`33064643874`[\s\S]{0,360}collision\s+refusal/is);
     expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");

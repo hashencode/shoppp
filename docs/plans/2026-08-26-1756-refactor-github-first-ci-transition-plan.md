@@ -58,10 +58,10 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the provider-purchase order-reference assertion, then use that
-  exact clean source to prepare a new immutable ordinary-staging successor `h`. Run it through
-  `deploy.yml` with the source value read directly from Git, staging rollback rehearsal enabled,
-  and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
+- **Next concrete action:** Run immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-h` through `deploy.yml` from the exact clean checkpoint SHA
+  that records preparation run `33064643874`, with the source value read directly from Git, staging
+  rollback rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
   checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
@@ -170,7 +170,12 @@ plan_role: temporary-ci-bridge
   proof-marker restoration, D1 reconciliation, and restored safe-state verification passed;
   production and human access were skipped, and successor `g` is terminal failed. The current
   blocker is integration of the order-reference assertion, protected preparation of new immutable
-  successor `h`, and its exact-source rehearsal.
+  successor `h`, and its exact-source rehearsal. Order-reference correction `56c43d48` is
+  integrated. Protected preparation run `33064643874` passed its staging D1 backup, collision
+  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
+  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-h`.
+  The current blocker is only its exact-checkpoint hosted/staging rollback rehearsal and retained
+  evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
