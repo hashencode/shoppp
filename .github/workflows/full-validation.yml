@@ -63,11 +63,11 @@ jobs:
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       FROZEN_CANDIDATE_REF: ${{ vars.FROZEN_CANDIDATE_REF }}
-      GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
       RELEASE_OPERATORS: ${{ vars.RELEASE_OPERATORS }}
       REQUESTED_RELEASE_ID: ${{ inputs.release_id }}
       REQUESTED_SOURCE_REF: ${{ inputs.source_ref }}
-      SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+      REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+      SCHEDULED_CATALOG_RELEASE_ID: ${{ vars.SCHEDULED_CATALOG_RELEASE_ID }}
     steps:
       - name: Check out protected default-branch authority
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -76,44 +76,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           clean: true
+      - name: Set up trusted preflight runtime
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
       - name: Verify trusted workflow, actor, and exact reachable source
         id: identity
-        shell: bash
-        env:
-          WORKFLOW_ACTOR: ${{ github.actor }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
-        run: |
-          set -euo pipefail
-          [[ -n "$DEFAULT_BRANCH" ]]
-          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
-          case "$GITHUB_WORKFLOW_REF" in
-            "$GITHUB_REPOSITORY/.github/workflows/"*"@refs/heads/$DEFAULT_BRANCH") ;;
-            *) echo "release workflow must come from the protected default branch" >&2; exit 1 ;;
-          esac
-          normalized_operators=",${RELEASE_OPERATORS//[[:space:]]/},"
-          if [[ "$WORKFLOW_ACTOR" != "$REPOSITORY_OWNER" && "$normalized_operators" != *",$WORKFLOW_ACTOR,"* ]]; then
-            echo "workflow actor is not an authorized release operator" >&2
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor "$SOURCE_SHA" "origin/$DEFAULT_BRANCH"; then
-            [[ -n "$FROZEN_CANDIDATE_REF" ]]
-            [[ "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
-            git check-ref-format "$FROZEN_CANDIDATE_REF"
-            [[ "$FROZEN_CANDIDATE_REF" == refs/heads/* || "$FROZEN_CANDIDATE_REF" == refs/tags/* ]]
-            git fetch --no-tags origin "+$FROZEN_CANDIDATE_REF:$FROZEN_CANDIDATE_REF"
-            candidate_sha="$(git rev-parse "$FROZEN_CANDIDATE_REF^{commit}")"
-            test "$candidate_sha" = "$SOURCE_SHA"
-          elif [[ -n "$REQUESTED_SOURCE_REF" ]]; then
-            [[ -n "$FROZEN_CANDIDATE_REF" && "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
-          fi
-          git cat-file -e "$SOURCE_SHA^{commit}"
-          source_tree="$(git rev-parse "$SOURCE_SHA^{tree}")"
-          [[ "$source_tree" =~ ^[a-f0-9]{40}$ ]]
-          release_id="${REQUESTED_RELEASE_ID:-ci-$SOURCE_SHA}"
-          [[ "$release_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
-          printf 'source_sha=%s\n' "$SOURCE_SHA" >> "$GITHUB_OUTPUT"
-          printf 'source_tree=%s\n' "$source_tree" >> "$GITHUB_OUTPUT"
-          printf 'release_id=%s\n' "$release_id" >> "$GITHUB_OUTPUT"
+        run: bun tools/ci-trusted-source-preflight.ts --mode validation
 
   quality:
     needs: preflight
@@ -128,8 +97,6 @@ jobs:
       attestation_digest: ${{ steps.evidence.outputs.attestation_digest }}
       deployable_digest: ${{ steps.evidence.outputs.deployable_digest }}
     env:
-      NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
-      NUXT_CATALOG_RELEASE_URL: ${{ vars.API_URL }}/build/catalog/releases/${{ needs.preflight.outputs.release_id }}
       RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}
       RELEASE_EXPECTED_TREE: ${{ needs.preflight.outputs.source_tree }}
       RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -194,6 +161,8 @@ jobs:
           printf 'RELEASE_SYSTEM_VERSION=%s\n' "$(uname -srvmo | head -n 1)" >> "$GITHUB_ENV"
       - name: Validate release candidate and write bound attestation
         env:
+          NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+          NUXT_CATALOG_RELEASE_URL: ${{ vars.API_URL }}/build/catalog/releases/${{ needs.preflight.outputs.release_id }}
           RELEASE_STRICT_ENVIRONMENT: "true"
         run: bun run release:validate -- --release-id "$RELEASE_ID" --write-attestation
         shell: bash

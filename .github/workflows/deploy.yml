@@ -49,44 +49,32 @@ jobs:
   preflight:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
     outputs:
       source_sha: ${{ steps.request.outputs.source_sha }}
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       FROZEN_CANDIDATE_REF: ${{ vars.FROZEN_CANDIDATE_REF }}
-      GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
       RELEASE_OPERATORS: ${{ vars.RELEASE_OPERATORS }}
+      REQUESTED_RELEASE_ID: ${{ inputs.release_id }}
       REQUESTED_SOURCE_REF: ${{ inputs.source_ref }}
       REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
     steps:
+      - name: Check out protected deployment authority
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - name: Set up trusted preflight runtime
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
       - name: Verify trusted deployment request before credentials
         id: request
-        shell: bash
-        env:
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
-          WORKFLOW_ACTOR: ${{ github.actor }}
-        run: |
-          set -euo pipefail
-          [[ -n "$DEFAULT_BRANCH" ]]
-          case "$GITHUB_WORKFLOW_REF" in
-            "$GITHUB_REPOSITORY/.github/workflows/deploy.yml@refs/heads/$DEFAULT_BRANCH") ;;
-            *) echo "deployment workflow must come from the protected default branch" >&2; exit 1 ;;
-          esac
-          normalized_operators=",${RELEASE_OPERATORS//[[:space:]]/},"
-          if [[ "$WORKFLOW_ACTOR" != "$REPOSITORY_OWNER" && "$normalized_operators" != *",$WORKFLOW_ACTOR,"* ]]; then
-            echo "workflow actor is not an authorized release operator" >&2
-            exit 1
-          fi
-          source_sha="${REQUESTED_SOURCE_SHA:-$GITHUB_SHA}"
-          [[ "$source_sha" =~ ^[a-f0-9]{40}$ ]]
-          [[ "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
-          if [[ -n "$REQUESTED_SOURCE_REF" ]]; then
-            [[ -n "$FROZEN_CANDIDATE_REF" && "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
-            git check-ref-format "$FROZEN_CANDIDATE_REF"
-            [[ "$FROZEN_CANDIDATE_REF" == refs/heads/* || "$FROZEN_CANDIDATE_REF" == refs/tags/* ]]
-          fi
-          printf 'source_sha=%s\n' "$source_sha" >> "$GITHUB_OUTPUT"
+        run: bun tools/ci-trusted-source-preflight.ts --mode deploy
 
   validate:
     needs: preflight
@@ -98,19 +86,68 @@ jobs:
       source_ref: ${{ inputs.source_ref }}
       release_id: ${{ inputs.release_id }}
 
-  deploy-staging:
+  verify-deployment-inputs:
     needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out protected deployment verifier
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.validate.outputs.artifact_name }}
+      - name: Verify deployment inputs with protected code
+        env:
+          EXPECTED_ATTESTATION_DIGEST: ${{ needs.validate.outputs.attestation_digest }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          RELEASE_EXPECTED_COMMIT: ${{ needs.validate.outputs.source_sha }}
+          RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}
+          RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun tools/release-validate.ts --verify-attestation
+
+  record-validation-failure:
+    needs: [preflight, validate]
+    if: ${{ always() && needs.preflight.result == 'success' && needs.validate.result == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    permissions: {}
+    steps:
+      - name: Record failed candidate validation
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: catalog-build-$RELEASE_ID-validation-failed" \
+            --data '{"status":"failed","failureCode":"candidate_validation_failed"}' \
+            "$API_URL/build/catalog/releases/$RELEASE_ID/status"
+
+  deploy-staging:
+    needs: [validate, verify-deployment-inputs]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: staging
     permissions:
       actions: read
       contents: read
-    env:
-      API_URL: ${{ vars.API_URL }}
-      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -138,6 +175,9 @@ jobs:
         run: bun tools/release-validate.ts --verify-attestation
       - name: Export test D1 before staging migration
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           mkdir -p ../../artifacts/d1-backups
           bunx wrangler d1 export shoppp-staging --env staging --remote \
@@ -151,14 +191,23 @@ jobs:
           path: artifacts/d1-backups/
       - name: List pending test D1 migrations
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bunx wrangler d1 migrations list shoppp-staging --env staging --remote
       - name: Upload saved staging versions before migration
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           (cd apps/api && bunx wrangler versions upload dist/index.js --env staging --no-bundle --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
           (cd apps/admin && bunx wrangler versions upload worker-dist/index.js --env staging --no-bundle --assets dist --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
           (cd apps/storefront && bunx wrangler versions upload worker-dist/index.js --env staging --no-bundle --assets .output/public --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
       - name: Verify test protected administrator before migration
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           schema_json="$(bunx wrangler d1 execute shoppp-staging --env staging --remote --json --command "SELECT COUNT(*) AS dynamic_iam FROM sqlite_master WHERE type = 'table' AND name = 'admin_roles'")"
           dynamic_iam="$(jq --exit-status --raw-output 'first(.[]?.results[]?.dynamic_iam) | tonumber' <<<"$schema_json")"
@@ -183,9 +232,15 @@ jobs:
             <<<"$protected_admin_json" >/dev/null
       - name: Apply test D1 migrations
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bunx wrangler d1 migrations apply shoppp-staging --env staging --remote
       - name: Verify test D1 integrity and protected administrator
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           foreign_key_json="$(bunx wrangler d1 execute shoppp-staging --env staging --remote --json --command "PRAGMA foreign_key_check")"
           jq --exit-status 'all(.[]?; ((.results // []) | length == 0))' <<<"$foreign_key_json" >/dev/null
@@ -214,12 +269,18 @@ jobs:
           jq --exit-status 'any(.[]?.results[]?; ((.credentialed_protected_admins // 0) | tonumber) > 0)' \
             <<<"$credentialed_admin_json" >/dev/null
       - name: Deploy saved staging versions
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           (cd apps/api && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
           (cd apps/admin && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
           (cd apps/storefront && bunx wrangler versions deploy --env staging --version-tag "$RELEASE_TAG" --message "$RELEASE_ID" --yes)
       - name: Record failed staging deployment
         if: ${{ failure() && steps.validated-inputs.outcome == 'success' }}
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
         run: |
           curl --fail --silent --show-error \
             --request POST \
@@ -490,7 +551,7 @@ jobs:
           printf 'human_access_evidence_id=%s\n' "$HUMAN_ACCESS_EVIDENCE_ID" >> "$GITHUB_OUTPUT"
 
   promote-production:
-    needs: [validate, prove-staging, approve-production]
+    needs: [validate, verify-deployment-inputs, prove-staging, approve-production]
     if: ${{ inputs.promote_production }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -498,9 +559,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-    env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -530,6 +588,8 @@ jobs:
         run: bun tools/release-validate.ts --verify-attestation
       - name: Verify recent production backup before migration
         env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
         run: |
           backup_json="$(
@@ -555,15 +615,24 @@ jobs:
           STAGING_RELEASE_REPORT: artifacts/releases/${{ inputs.release_id }}.json
         run: bun run release:validate -- --promotion --release-id "${RELEASE_ID}-production"
       - name: Upload production-bound saved versions before migration
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           (cd apps/api && bunx wrangler versions upload dist/index.js --env production --no-bundle --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
           (cd apps/admin && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets dist --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
           (cd apps/storefront && bunx wrangler versions upload worker-dist/index.js --env production --no-bundle --assets .output/public --tag "$RELEASE_TAG" --message "$RELEASE_ID" --strict)
       - name: List pending production D1 migrations
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bunx wrangler d1 migrations list shoppp-production --env production --remote
       - name: Verify two production protected administrators before migration
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           schema_json="$(bunx wrangler d1 execute shoppp-production --env production --remote --json --command "SELECT COUNT(*) AS dynamic_iam FROM sqlite_master WHERE type = 'table' AND name = 'admin_roles'")"
           dynamic_iam="$(jq --exit-status --raw-output 'first(.[]?.results[]?.dynamic_iam) | tonumber' <<<"$schema_json")"
@@ -588,9 +657,15 @@ jobs:
             <<<"$protected_admin_json" >/dev/null
       - name: Apply production D1 migrations after approved backup
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bunx wrangler d1 migrations apply shoppp-production --env production --remote
       - name: Verify production D1 integrity and protected administrator
         working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           foreign_key_json="$(bunx wrangler d1 execute shoppp-production --env production --remote --json --command "PRAGMA foreign_key_check")"
           jq --exit-status 'all(.[]?; ((.results // []) | length == 0))' <<<"$foreign_key_json" >/dev/null
@@ -621,6 +696,8 @@ jobs:
       - name: Deploy production versions after environment approval
         env:
           APPROVED_BY: ${{ needs.approve-production.outputs.approved_by }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
         run: |
           (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)

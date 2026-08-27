@@ -18,22 +18,18 @@ describe("candidate evidence operating contract", () => {
     expect(policy).toMatch(/default evidence baseline.*without requiring a private PKI ceremony/is);
     expect(policy).toMatch(/optional high-assurance signing profile/is);
 
-    expect(plan).toMatch(/\*\*Current parent\/child stage:\*\* CI-U7\.3\b/);
-    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* `CI-U7\.3`/);
-    expect(plan).toMatch(
-      /CI-U7\.2 is complete only for the optional high-assurance signed profile/is,
-    );
+    expect(plan).toMatch(/\*\*Bridge handoff:\*\* Current transition execution is handed to/is);
+    expect(masterPlan).toMatch(/\*\*Current parent\/child stage:\*\* Blocked `CI-GH-U4`/);
+    expect(plan).toMatch(/CI-U7\.1 and CI-U7\.2 remain completed historical implementation/is);
     expect(plan).toMatch(
       /CI-U7\.2 — Implement optional signed profile:[\s\S]{0,300}high-assurance profile is complete/is,
     );
     expect(plan).toMatch(
-      /\*\*Next concrete action:\*\*[\s\S]{0,240}practical restore[\s\S]{0,180}Intel target/is,
+      /CI-U7\.3 was not completed[\s\S]{0,120}practical\s+Intel restore never ran/is,
     );
-    expect(masterPlan).toMatch(
-      /\*\*Next action:\*\*[\s\S]{0,240}practical Intel-target\s+restore/is,
-    );
-    expect(plan).not.toMatch(/\*\*Next concrete action:\*\*[^\n]*commit/is);
-    expect(masterPlan).not.toMatch(/\*\*Next action:\*\*[^\n]*commit/is);
+    expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
+    expect(masterPlan).toMatch(/\*\*Next action:\*\* Integrate the exact bridge implementation/is);
+    expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");
     expect(runbook).toContain("intel:intel-append-only:intel-jenkins");

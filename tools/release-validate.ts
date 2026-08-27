@@ -203,7 +203,7 @@ export async function assertProductionApproval(options: {
   );
   assert(stagingReport, "production promotion requires STAGING_RELEASE_REPORT");
   const reportPath = resolve(ROOT, stagingReport);
-  const report = JSON.parse(await readFile(reportPath, "utf8")) as ReleaseReport;
+  const report = parseReleaseReport(JSON.parse(await readFile(reportPath, "utf8")));
   assert(report.target === "staging", "promotion evidence must be a staging release report");
   assert(report.status === "passed", "staging release report did not pass");
   assert(
@@ -236,12 +236,24 @@ export function assertCatalogReleaseSource(options: {
   assert(!source.username && !source.password, "catalog release URL must not embed credentials");
 }
 
+export function releaseGateEnvironment(
+  gateName: string,
+  environment: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const scopedEnvironment = { ...environment };
+  if (gateName !== "production-builds") {
+    delete scopedEnvironment.NUXT_CATALOG_RELEASE_TOKEN;
+    delete scopedEnvironment.NUXT_CATALOG_RELEASE_URL;
+  }
+  return scopedEnvironment;
+}
+
 async function runGate(gate: GateDefinition): Promise<GateResult> {
   const started = performance.now();
   console.log(`\n[release] ${gate.name}: ${gate.command.join(" ")}`);
   const child = Bun.spawn(gate.command, {
     cwd: ROOT,
-    env: process.env,
+    env: releaseGateEnvironment(gate.name),
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
@@ -319,10 +331,243 @@ export interface ValidationAttestation {
   toolchain: ValidationAttestationOptions["toolchain"];
 }
 
+function requiredRecord(value: unknown, label: string): Record<string, unknown> {
+  assert(
+    typeof value === "object" && value !== null && !Array.isArray(value),
+    `${label} is invalid`,
+  );
+  return value as Record<string, unknown>;
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0)!;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
+
+function requiredString(value: unknown, label: string): string {
+  assert(typeof value === "string" && value.length > 0, `${label} is invalid`);
+  assert(!hasControlCharacters(value), `${label} contains control characters`);
+  return value;
+}
+
+function requiredInteger(value: unknown, label: string): number {
+  assert(typeof value === "number" && Number.isInteger(value), `${label} is invalid`);
+  return value;
+}
+
+function requiredIsoTimestamp(value: unknown, label: string): string {
+  const timestamp = requiredString(value, label);
+  assert(!Number.isNaN(Date.parse(timestamp)), `${label} is invalid`);
+  return timestamp;
+}
+
+function parseArtifactDigests(value: unknown, label: string): Record<string, string> {
+  const candidate = requiredRecord(value, label);
+  const digests: Record<string, string> = {};
+  for (const [path, digest] of Object.entries(candidate)) {
+    const normalizedDigest = requiredString(digest, `${label} digest`);
+    assert(path.length > 0 && SHA256_DIGEST.test(normalizedDigest), `${label} digest is invalid`);
+    digests[path] = normalizedDigest;
+  }
+  return digests;
+}
+
+function assertExactArtifactMap(artifactDigests: Record<string, string>, label: string): void {
+  for (const path of RELEASE_ARTIFACT_PATHS) {
+    assert(
+      Object.hasOwn(artifactDigests, path),
+      `${label} is missing deployable artifact path: ${path}`,
+    );
+  }
+  for (const path of Object.keys(artifactDigests)) {
+    assert(
+      RELEASE_ARTIFACT_PATHS.includes(path as (typeof RELEASE_ARTIFACT_PATHS)[number]),
+      `${label} contains unknown deployable artifact path: ${path}`,
+    );
+  }
+}
+
+function parseGateResult(value: unknown, index: number): GateResult {
+  const candidate = requiredRecord(value, `release report gate ${index}`);
+  const name = requiredString(candidate.name, `release report gate ${index} name`);
+  assert(Array.isArray(candidate.command), `release report gate ${index} command is invalid`);
+  const command = candidate.command.map((part, partIndex) =>
+    requiredString(part, `release report gate ${index} command ${partIndex}`),
+  );
+  assert(command.length > 0, `release report gate ${index} command is invalid`);
+  const durationMs = requiredInteger(candidate.durationMs, `release report gate ${index} duration`);
+  assert(durationMs >= 0, `release report gate ${index} duration is invalid`);
+  const status = requiredString(candidate.status, `release report gate ${index} status`);
+  assert(
+    status === "passed" || status === "failed",
+    `release report gate ${index} status is invalid`,
+  );
+  const exitCode = requiredInteger(candidate.exitCode, `release report gate ${index} exit code`);
+  return { name, command, durationMs, status, exitCode };
+}
+
+function parseReleaseReport(value: unknown): ReleaseReport {
+  const candidate = requiredRecord(value, "release report");
+  assert(candidate.schemaVersion === 1, "release report schema is invalid");
+  const releaseId = safeReleaseId(requiredString(candidate.releaseId, "release report ID"));
+  const target = requiredString(candidate.target, "release report target");
+  assert(target === "staging" || target === "production", "release report target is invalid");
+  const commit = requiredString(candidate.commit, "release report commit");
+  assert(FULL_SHA.test(commit), "release report commit is invalid");
+  const createdAt = requiredIsoTimestamp(candidate.createdAt, "release report creation time");
+  const status = requiredString(candidate.status, "release report status");
+  assert(status === "passed" || status === "failed", "release report status is invalid");
+  assert(Array.isArray(candidate.gates), "release report gates are invalid");
+  const gates = candidate.gates.map(parseGateResult);
+  const artifactDigests = parseArtifactDigests(
+    candidate.artifactDigests,
+    "release report artifact map",
+  );
+  if (status === "passed") assertExactArtifactMap(artifactDigests, "release report artifact map");
+  const isolation = requiredRecord(
+    candidate.environmentIsolation,
+    "release report environment isolation",
+  );
+  const mode = requiredString(isolation.mode, "release report environment isolation mode");
+  assert(
+    mode === "structural" || mode === "strict",
+    "release report environment isolation mode is invalid",
+  );
+  assert(Array.isArray(isolation.environments), "release report environments are invalid");
+  const environments = isolation.environments.map((environment, index) =>
+    requiredString(environment, `release report environment ${index}`),
+  );
+  let approval: ReleaseReport["approval"];
+  if (candidate.approval !== undefined) {
+    const approvalCandidate = requiredRecord(candidate.approval, "release report approval");
+    approval = {
+      approvedBy: requiredString(approvalCandidate.approvedBy, "release report approver"),
+      backupId: requiredString(approvalCandidate.backupId, "release report backup ID"),
+      humanAccessApprovedBy: requiredString(
+        approvalCandidate.humanAccessApprovedBy,
+        "release report human access approver",
+      ),
+      humanAccessEvidenceId: requiredString(
+        approvalCandidate.humanAccessEvidenceId,
+        "release report human access evidence ID",
+      ),
+      stagingReport: requiredString(
+        approvalCandidate.stagingReport,
+        "release report staging report",
+      ),
+    };
+  }
+  return {
+    schemaVersion: 1,
+    releaseId,
+    target,
+    commit,
+    createdAt,
+    status,
+    gates,
+    artifactDigests,
+    environmentIsolation: { mode, environments },
+    ...(approval ? { approval } : {}),
+  };
+}
+
+function parseValidationAttestation(value: unknown): ValidationAttestation {
+  const candidate = requiredRecord(value, "validation attestation");
+  assert(candidate.schemaVersion === 1, "validation attestation schema is invalid");
+  const releaseId = safeReleaseId(
+    requiredString(candidate.releaseId, "validation attestation release ID"),
+  );
+  const createdAt = requiredIsoTimestamp(
+    candidate.createdAt,
+    "validation attestation creation time",
+  );
+  const sourceCandidate = requiredRecord(candidate.source, "validation attestation source");
+  const source = {
+    commit: requiredString(sourceCandidate.commit, "validation attestation source commit"),
+    tree: requiredString(sourceCandidate.tree, "validation attestation source tree"),
+  };
+  assert(FULL_SHA.test(source.commit), "validation attestation source commit is invalid");
+  assert(FULL_SHA.test(source.tree), "validation attestation source tree is invalid");
+  const reportCandidate = requiredRecord(candidate.report, "validation attestation report");
+  const report = {
+    commit: requiredString(reportCandidate.commit, "validation attestation report commit"),
+    digest: requiredString(reportCandidate.digest, "validation attestation report digest"),
+    path: requiredString(reportCandidate.path, "validation attestation report path"),
+  };
+  assert(FULL_SHA.test(report.commit), "validation attestation report commit is invalid");
+  assert(SHA256_DIGEST.test(report.digest), "validation attestation report digest is invalid");
+  const artifactDigests = parseArtifactDigests(
+    candidate.artifactDigests,
+    "validation attestation artifact map",
+  );
+  assertExactArtifactMap(artifactDigests, "validation attestation artifact map");
+  const githubCandidate = requiredRecord(
+    candidate.github,
+    "validation attestation GitHub identity",
+  );
+  const repository = requiredString(
+    githubCandidate.repository,
+    "validation attestation GitHub repository",
+  );
+  assert(
+    /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository),
+    "validation attestation GitHub repository is invalid",
+  );
+  const workflowRef = requiredString(
+    githubCandidate.workflowRef,
+    "validation attestation GitHub workflow ref",
+  );
+  const runId = requiredString(githubCandidate.runId, "validation attestation GitHub run ID");
+  assert(/^[1-9][0-9]*$/.test(runId), "validation attestation GitHub run ID is invalid");
+  const runAttempt = requiredInteger(
+    githubCandidate.runAttempt,
+    "validation attestation GitHub run attempt",
+  );
+  assert(runAttempt > 0, "validation attestation GitHub run attempt is invalid");
+  const toolchainCandidate = requiredRecord(
+    candidate.toolchain,
+    "validation attestation toolchain",
+  );
+  const toolchain = {
+    runnerOs: requiredString(toolchainCandidate.runnerOs, "validation attestation runner OS"),
+    runnerArch: requiredString(
+      toolchainCandidate.runnerArch,
+      "validation attestation runner architecture",
+    ),
+    runnerImage: requiredString(
+      toolchainCandidate.runnerImage,
+      "validation attestation runner image",
+    ),
+    bun: requiredString(toolchainCandidate.bun, "validation attestation Bun version"),
+    playwright: requiredString(
+      toolchainCandidate.playwright,
+      "validation attestation Playwright version",
+    ),
+    chromium: requiredString(
+      toolchainCandidate.chromium,
+      "validation attestation Chromium version",
+    ),
+    woff2: requiredString(toolchainCandidate.woff2, "validation attestation woff2 version"),
+    system: requiredString(toolchainCandidate.system, "validation attestation system version"),
+  };
+  return {
+    schemaVersion: 1,
+    releaseId,
+    createdAt,
+    source,
+    report,
+    artifactDigests,
+    github: { repository, workflowRef, runId, runAttempt },
+    toolchain,
+  };
+}
+
 function safeAttestationValue(value: string, label: string): string {
   const normalized = value.trim();
   assert(normalized.length > 0 && normalized.length <= 512, `${label} is missing or too long`);
-  assert(!/[\u0000-\u001f\u007f]/.test(normalized), `${label} contains control characters`);
+  assert(!hasControlCharacters(normalized), `${label} contains control characters`);
   return normalized;
 }
 
@@ -337,13 +582,11 @@ export function createValidationAttestation(
     "attestation source differs from release report",
   );
   assert(SHA256_DIGEST.test(options.report.digest), "attestation report digest is invalid");
-  assert(
-    Object.keys(options.artifactDigests).length > 0,
-    "attestation requires deployable artifact digests",
+  const artifactDigests = parseArtifactDigests(
+    options.artifactDigests,
+    "validation attestation artifact map",
   );
-  for (const [path, digest] of Object.entries(options.artifactDigests)) {
-    assert(path.length > 0 && SHA256_DIGEST.test(digest), "attestation artifact digest is invalid");
-  }
+  assertExactArtifactMap(artifactDigests, "validation attestation artifact map");
   assert(
     /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(options.github.repository),
     "GitHub repository is invalid",
@@ -366,7 +609,7 @@ export function createValidationAttestation(
       digest: options.report.digest,
       path: safeAttestationValue(options.report.path, "release report path"),
     },
-    artifactDigests: options.artifactDigests,
+    artifactDigests,
     github: {
       repository: options.github.repository,
       workflowRef: safeAttestationValue(options.github.workflowRef, "GitHub workflow ref"),
@@ -445,8 +688,8 @@ export async function verifyValidationAttestation(options: {
     "attestation digest mismatch",
   );
   assert(contentsDigest(reportContents) === options.reportDigest, "release report digest mismatch");
-  const report = JSON.parse(reportContents.toString("utf8")) as ReleaseReport;
-  const attestation = JSON.parse(attestationContents.toString("utf8")) as ValidationAttestation;
+  const report = parseReleaseReport(JSON.parse(reportContents.toString("utf8")));
+  const attestation = parseValidationAttestation(JSON.parse(attestationContents.toString("utf8")));
   assert(report.schemaVersion === 1, "release report schema is invalid");
   assert(report.releaseId === releaseId, "release report ID mismatch");
   assert(

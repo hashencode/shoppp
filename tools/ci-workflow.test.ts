@@ -85,6 +85,9 @@ describe("local-first CI workflow contracts", () => {
     expect(contents).toContain("timeout-minutes: 60");
     expect(contents).toContain("Install browser runtime");
     expect(contents).toContain("Install font inspection runtime");
+    expect(contents).toContain(
+      "SCHEDULED_CATALOG_RELEASE_ID: ${{ vars.SCHEDULED_CATALOG_RELEASE_ID }}",
+    );
     expect(contents).toContain('bun run release:validate -- --release-id "$RELEASE_ID"');
     expect(contents).toContain("--write-attestation");
     expect(contents).toContain(
@@ -99,29 +102,37 @@ describe("local-first CI workflow contracts", () => {
       contents.indexOf("  quality:"),
     );
     const quality = contents.slice(contents.indexOf("  quality:"));
+    const qualityJobEnvironment = quality.slice(0, quality.indexOf("    steps:"));
+    const validationStep = quality.slice(
+      quality.indexOf("      - name: Validate release candidate and write bound attestation"),
+      quality.indexOf("      - name: Record validation evidence outputs"),
+    );
 
     expect(preflight).toContain("permissions:\n      contents: read");
     expect(preflight).not.toContain("environment:");
     expect(preflight).not.toMatch(/secrets\.|BUILD_MANIFEST_TOKEN|NUXT_CATALOG_RELEASE_TOKEN/);
-    expect(preflight).toContain("GITHUB_WORKFLOW_REF");
-    expect(preflight).toContain("refs/heads/$DEFAULT_BRANCH");
+    expect(preflight).toContain("Check out protected default-branch authority");
+    expect(preflight).toContain("ref: ${{ github.event.repository.default_branch }}");
     expect(preflight).toContain("RELEASE_OPERATORS");
-    expect(preflight).toContain(
-      'git merge-base --is-ancestor "$SOURCE_SHA" "origin/$DEFAULT_BRANCH"',
-    );
+    expect(preflight).toContain("bun tools/ci-trusted-source-preflight.ts --mode validation");
     expect(preflight).toContain("FROZEN_CANDIDATE_REF");
-    expect(preflight).toContain('git check-ref-format "$FROZEN_CANDIDATE_REF"');
-    expect(preflight).toContain('test "$candidate_sha" = "$SOURCE_SHA"');
+    expect(preflight).toContain("SCHEDULED_CATALOG_RELEASE_ID");
 
     expect(quality).toContain("needs: preflight");
     expect(quality).toContain("environment: staging");
-    expect(quality).toContain("NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}");
+    expect(qualityJobEnvironment).not.toMatch(
+      /NUXT_CATALOG_RELEASE_(?:TOKEN|URL)|BUILD_MANIFEST_TOKEN/,
+    );
+    expect(validationStep).toContain(
+      "NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}",
+    );
+    expect(validationStep).toContain("NUXT_CATALOG_RELEASE_URL:");
   });
 
   test("binds the exact checkout, tree, run attempt, attestation, and deployable outputs", async () => {
     const contents = await fullValidationWorkflow;
 
-    expect(contents).toMatch(/^permissions:\n  contents: none$/m);
+    expect(contents).toMatch(/^permissions:\n {2}contents: none$/m);
     expect(contents).toContain("ref: ${{ needs.preflight.outputs.source_sha }}");
     expect(contents).toContain('test "$actual_sha" = "$SOURCE_SHA"');
     expect(contents).toContain('test "$actual_tree" = "$SOURCE_TREE"');

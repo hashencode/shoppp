@@ -62,6 +62,10 @@ from the protected default branch or equals the repository-configured frozen-can
 the `staging` environment exposes its Catalog read credential.
 
 Full validation runs the unchanged 17-gate `release:validate` contract on GitHub-hosted Linux x64.
+The weekly schedule has no dispatch inputs, so the repository Actions variable
+`SCHEDULED_CATALOG_RELEASE_ID` must name an existing approved immutable Catalog release. If the
+variable is absent or unsafe, credential-free preflight fails before the `staging` environment is
+entered; scheduled validation never falls back to fixtures or structural mode.
 The resulting validation attestation binds commit/tree, GitHub run and attempt, hosted toolchain,
 unchanged release-report digest, and every deployable-artifact digest. Only the artifact uniquely
 named for that source and the same caller run and attempt is downloaded. Staging and production

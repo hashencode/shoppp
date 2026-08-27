@@ -45,7 +45,7 @@ Shoppp is one cross-border DTC commerce product with these product areas:
 | `FS` | The `fashion-store` product template | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) |
 | `DS` | The `decor-store` product template | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) for home correction; branch-qualified `codex/feat-decor-store-source-parity:docs/plans/2026-08-19-1518-feat-decor-store-page-suite-plan.md` for the remaining-page tail |
 | `REL` | Candidate proof and production-promotion policy | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) |
-| `CI` | Local validation authority, portable release evidence, provider adapters, and resilient remote-delivery operations | [Long-Term CI Resilience and Provider-Independent Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) |
+| `CI` | Repository validation plus GitHub-first release delivery | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) while the temporary bridge is active; [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) after hand-back |
 
 `fashion-store` and `decor-store` are templates in the same product and shared theme platform. The
 older `fashion` reimplementation is retired and is not a third product template. The existing code

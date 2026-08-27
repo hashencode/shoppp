@@ -86,18 +86,74 @@ describe("production promotion workflow", () => {
 
     expect(workflow).toContain("source_sha:");
     expect(workflow).toContain("source_ref:");
-    expect(workflow).toMatch(/^permissions:\n  actions: none\n  contents: none$/m);
-    expect(preflight).toContain("permissions: {}");
+    expect(workflow).toMatch(/^permissions:\n {2}actions: none\n {2}contents: none$/m);
+    expect(preflight).toContain("permissions:\n      contents: read");
     expect(preflight).not.toContain("environment:");
     expect(preflight).not.toMatch(/secrets\.|CLOUDFLARE|BUILD_MANIFEST_TOKEN/);
-    expect(preflight).toContain("GITHUB_WORKFLOW_REF");
+    expect(preflight).toContain("Check out protected deployment authority");
+    expect(preflight).toContain("ref: ${{ github.event.repository.default_branch }}");
     expect(preflight).toContain("RELEASE_OPERATORS");
-    expect(preflight).toContain('git check-ref-format "$FROZEN_CANDIDATE_REF"');
+    expect(preflight).toContain("bun tools/ci-trusted-source-preflight.ts --mode deploy");
     expect(validation).toContain("needs: preflight");
     expect(validation).toContain("uses: ./.github/workflows/full-validation.yml");
     expect(validation).toContain("source_sha: ${{ needs.preflight.outputs.source_sha }}");
     expect(validation).toContain("release_id: ${{ inputs.release_id }}");
     expect(validation).not.toContain("secrets: inherit");
+  });
+
+  test("verifies deployment evidence with protected code before deployment credentials exist", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const verification = workflow.slice(
+      workflow.indexOf("  verify-deployment-inputs:"),
+      workflow.indexOf("  record-validation-failure:"),
+    );
+    const staging = workflow.slice(
+      workflow.indexOf("  deploy-staging:"),
+      workflow.indexOf("  prove-staging:"),
+    );
+    const stagingSetup = staging.slice(
+      0,
+      staging.indexOf("Export test D1 before staging migration"),
+    );
+    const production = workflow.slice(workflow.indexOf("  promote-production:"));
+    const productionSetup = production.slice(
+      0,
+      production.indexOf("Verify recent production backup before migration"),
+    );
+
+    expect(verification).toContain("needs: validate");
+    expect(verification).not.toContain("environment:");
+    expect(verification).not.toMatch(/secrets\.|CLOUDFLARE|BUILD_MANIFEST_TOKEN/);
+    expect(verification).toContain("ref: ${{ github.sha }}");
+    expect(verification).toContain("name: ${{ needs.validate.outputs.artifact_name }}");
+    expect(verification).toContain("bun tools/release-validate.ts --verify-attestation");
+
+    expect(staging).toContain("needs: [validate, verify-deployment-inputs]");
+    expect(stagingSetup).not.toMatch(/secrets\.|CLOUDFLARE|BUILD_MANIFEST_TOKEN/);
+    expect(productionSetup).not.toMatch(/secrets\.|CLOUDFLARE|BUILD_MANIFEST_TOKEN/);
+    expect(staging).toMatch(
+      /Export test D1 before staging migration[\s\S]*CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/,
+    );
+    expect(production).toMatch(
+      /Verify recent production backup before migration[\s\S]*CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/,
+    );
+  });
+
+  test("reports validation failure only after trusted preflight", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const failureReport = workflow.slice(
+      workflow.indexOf("  record-validation-failure:"),
+      workflow.indexOf("  deploy-staging:"),
+    );
+
+    expect(failureReport).toContain("needs: [preflight, validate]");
+    expect(failureReport).toContain(
+      "always() && needs.preflight.result == 'success' && needs.validate.result == 'failure'",
+    );
+    expect(failureReport).toContain("environment: staging");
+    expect(failureReport).toContain("BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}");
+    expect(failureReport).toContain('"failureCode":"candidate_validation_failed"');
+    expect(failureReport).toContain("Idempotency-Key: catalog-build-$RELEASE_ID-validation-failed");
   });
 
   test("verifies same-run source and digests before staging mutation", async () => {
@@ -110,7 +166,7 @@ describe("production promotion workflow", () => {
     const firstRemoteRead = staging.indexOf("Export test D1 before staging migration");
     const firstMutation = staging.indexOf("Upload saved staging versions before migration");
 
-    expect(staging).toContain("needs: validate");
+    expect(staging).toContain("needs: [validate, verify-deployment-inputs]");
     expect(staging).toContain("ref: ${{ needs.validate.outputs.source_sha }}");
     expect(staging).toContain("name: ${{ needs.validate.outputs.artifact_name }}");
     expect(staging).toContain("RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}");

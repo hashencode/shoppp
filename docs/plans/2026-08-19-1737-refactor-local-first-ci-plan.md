@@ -63,30 +63,16 @@ CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remai
 commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
 Intel restore never ran, and no outage result is reclassified as passing evidence.
 
-- **Current parent/child stage:** Execution is temporarily handed to blocked `CI-GH-U4` in the
+- **Bridge handoff:** Current transition execution is handed to the
   [GitHub-First CI/CD Transition plan](2026-08-26-1756-refactor-github-first-ci-transition-plan.md).
-  CI-GH-U1 reconciled future authority; CI-GH-U2 implemented the reusable exact-source hosted
-  validation and attestation contract; CI-GH-U3 bound protected deployment to those exact same-run
-  outputs. CI-U7.3 remains incomplete and superseded as the current stage, not marked complete.
-- **Next concrete action:** Integrate the exact bridge implementation into the protected default
-  branch, resolve GitHub Actions billing, and run the non-production CI-GH-U4 hosted validation plus
-  staging rollback/reconciliation proof. Do not remove old implementation or trigger production.
-- **Current blockers:** `origin/main` does not yet contain CI-GH-U1–U3, and GitHub run `32830213920`
-  proves hosted jobs are billing-blocked before their first step. The Intel host is no longer the
-  execution dependency, and its history cannot substitute for U4.
-- **Tail:** `CI-GH-U4` through `CI-GH-U7`, then hand back to this plan at `CI-U8.3` — publish and
-  verify the GitHub-first release-availability and recovery boundary — followed by the revised
-  `CI-U11.1` steady-state review. CI-U4/CI-U6 remain an optional non-secret-runner pilot/decision
-  track rather than a release dependency. CI-U5 remains the stable deferred ID for optional future
-  PR automation. Completed CI-U7/CI-U12 history remains retained even where its future authority is
-  superseded.
-- **Temporary isolation:** Worktree `.worktrees/relax-ci-u7-signing` on branch
-  `codex/relax-ci-u7-signing` owns the 2026-08-26 signing-policy amendment, CI-U7.3 history, and
-  GitHub-first bridge because the
-  primary checkout contains concurrent FS-U8 work and stale CI plan bytes. Remove this checkout only
-  after the exact bridge work is integrated, the hand-back checkpoint is recorded, no writer remains,
-  and required manifests are retained; removal retains its branch and commits. Earlier CI-U7
-  temporary checkouts have met their cleanup conditions and are not current execution authority.
+  Its execution checkpoint exclusively owns the current bridge unit, status, blocker, next concrete
+  action, implementation order, isolation, and bridge tail. CI-U7.3 remains incomplete historical
+  work and is not reclassified as complete by the handoff.
+- **Post-handback tail:** When the bridge records hand-back, this plan resumes at `CI-U8.3` — publish
+  and verify the GitHub-first release-availability and recovery boundary — followed by `CI-U11.1`
+  steady-state review. CI-U4/CI-U6 remain an optional non-secret-runner pilot/decision track rather
+  than a release dependency. CI-U5 remains the stable deferred ID for optional future PR automation.
+  Completed CI-U7/CI-U12 history remains retained even where its future authority is superseded.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
   `docs/progress/` may retain results but must not become a second current-unit queue. While the
   bridge is active, its checkpoint is the only authority for the current transition unit; this plan
