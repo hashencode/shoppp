@@ -228,3 +228,31 @@ CI-GH-U4 remains open. The next hosted exercise requires a new immutable canonic
 ordinary staging and an exact-source rollback rehearsal; the historical release will not be
 rewritten, local results do not substitute for GitHub/staging proof, U5 remains unauthorized, and
 no production mutation is authorized.
+
+## Protected canonical-successor preparation refusal — 2026-08-27
+
+Commits `ea1f065e703ef2f7393c2644bbecf1ddba47125a` and
+`750b25cb49398c45e0008fb723d2e0641a1ce5f5` integrated fail-closed canonical source validation and a
+staging-only protected successor-preparation workflow. The preparation path scopes Catalog and
+Cloudflare credentials to separate required steps, exports D1 before insertion, refuses release-ID
+collisions, never updates the predecessor, validates the canonical manifest, verifies the protected
+endpoint read-back, and retains a non-secret receipt. Its complete local tools suite passed 377 tests
+and 1,630 expectations; tools TypeScript, YAML parsing, formatting, lint, boundaries, and diff checks
+also passed. These remain local implementation results.
+
+Protected preparation run `33051564144` at exact source `750b25cb49398c45e0008fb723d2e0641a1ce5f5`
+exported ordinary staging D1 and retained artifact `9637815283`, named
+`staging-catalog-successor-d1-before-33051564144-attempt-1`, with digest
+`sha256:7fb0a34c7a196a3588bf7fc838c9d1283539dd229ca44ca1b7f8ae782c33cb37` and seven-day retention.
+It fetched the immutable legacy manifest and queried its exact ordinary-staging product and
+collection identities. Generation then correctly failed before insertion because those legacy D1
+primary keys are neither canonical prefixed public IDs nor UUIDs. No successor or audit row was
+inserted, no existing release was updated, and no production job or resource ran.
+
+That run invalidated the assumption that ordinary staging's legacy database identities already met
+the newer public-ID contract. The corrected projection derives deterministic canonical product and
+collection IDs from their stable slugs for the immutable manifest, while retaining the actual legacy
+product ID only in `catalog_releases.product_id` to satisfy its D1 foreign key. A new protected run,
+not this failed run or local tests, must prove backup, collision refusal, exact insertion, endpoint
+read-back, and receipt before the rollback rehearsal can begin. CI-GH-U4 remains open and U5 remains
+unauthorized.

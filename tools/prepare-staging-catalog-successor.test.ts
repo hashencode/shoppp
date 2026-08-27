@@ -22,14 +22,14 @@ const legacyRelease = {
 };
 
 describe("ordinary staging canonical Catalog Release successor", () => {
-  test("upgrades a legacy manifest with exact database identities without changing its predecessor", () => {
+  test("projects deterministic canonical identities without changing its legacy predecessor", () => {
     const successor = createStagingCatalogSuccessor({
-      collectionIdentities: [{ id: "col_01JSTAGING000000000000001", slug: "travel-essentials" }],
+      collectionIdentities: [{ id: "collection-travel", slug: "travel-essentials" }],
       generatedAt: "2026-08-27T12:00:00.000Z",
       legacyRelease,
       productIdentities: [
-        { id: "prod_01JSTAGING00000000000001", slug: "atlas-carry-on" },
-        { id: "prod_01JSTAGING00000000000002", slug: "relaxed-corduroy-shirt" },
+        { id: "product-atlas", slug: "atlas-carry-on" },
+        { id: "product-shirt", slug: "relaxed-corduroy-shirt" },
       ],
       releaseId: "staging-canonical-2026-08-27",
     });
@@ -40,13 +40,11 @@ describe("ordinary staging canonical Catalog Release successor", () => {
       schemaVersion: 2,
     });
     expect(successor.products.map(({ id }) => id)).toEqual([
-      "prod_01JSTAGING00000000000001",
-      "prod_01JSTAGING00000000000002",
+      expect.stringMatching(/^prod_[A-F0-9]{26}$/),
+      expect.stringMatching(/^prod_[A-F0-9]{26}$/),
     ]);
-    expect(successor.collections[0]?.productIds).toEqual([
-      "prod_01JSTAGING00000000000001",
-      "prod_01JSTAGING00000000000002",
-    ]);
+    expect(successor.collections[0]?.id).toMatch(/^col_[A-F0-9]{26}$/);
+    expect(successor.collections[0]?.productIds).toEqual(successor.products.map(({ id }) => id));
     expect(successor.redirects).toEqual([
       { from: "/products/carry-on", status: 301, to: "/products/atlas-carry-on" },
     ]);
@@ -54,19 +52,19 @@ describe("ordinary staging canonical Catalog Release successor", () => {
 
   test("builds a collision-refusing insert instead of updating an existing release", () => {
     const successor = createStagingCatalogSuccessor({
-      collectionIdentities: [{ id: "col_01JSTAGING000000000000001", slug: "travel-essentials" }],
+      collectionIdentities: [{ id: "collection-travel", slug: "travel-essentials" }],
       generatedAt: "2026-08-27T12:00:00.000Z",
       legacyRelease,
       productIdentities: [
-        { id: "prod_01JSTAGING00000000000001", slug: "atlas-carry-on" },
-        { id: "prod_01JSTAGING00000000000002", slug: "relaxed-corduroy-shirt" },
+        { id: "product-atlas", slug: "atlas-carry-on" },
+        { id: "product-shirt", slug: "relaxed-corduroy-shirt" },
       ],
       releaseId: "staging-canonical-2026-08-27",
     });
     const sql = buildStagingCatalogSuccessorSql(successor, {
       correlationId: "staging-catalog-successor-123-1",
       createdAt: "2026-08-27T12:00:00.000Z",
-      productId: successor.products[0]!.id,
+      productId: "product-atlas",
     });
 
     expect(sql).toContain("CHECK (invalid_count = 0)");
@@ -74,6 +72,7 @@ describe("ordinary staging canonical Catalog Release successor", () => {
     expect(sql).toContain("INSERT INTO catalog_releases");
     expect(sql).not.toContain("UPDATE catalog_releases");
     expect(sql).toContain("'building'");
+    expect(sql).toContain("'product-atlas'");
   });
 
   test("refuses incomplete identity projections", () => {

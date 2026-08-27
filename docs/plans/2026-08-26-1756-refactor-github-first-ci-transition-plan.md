@@ -58,12 +58,13 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the build-time canonical Catalog Release validation fix, create
-  a new immutable canonical successor for ordinary staging through its protected environment without
-  changing the legacy release, and run that exact clean source through `deploy.yml` with staging
-  rollback rehearsal enabled and production promotion disabled. Retain its pre-mutation Worker/D1
-  baseline, all 17 hosted gates, exact deployment binding, staging proof, exact Worker restoration,
-  D1 reconciliation checks, and restored safe state. Do not trigger production.
+- **Next concrete action:** Rerun the protected ordinary-staging canonical successor preparation with
+  deterministic canonical resource IDs while retaining the real legacy product ID only for the D1
+  foreign key. If its backup, collision refusal, insertion, canonical endpoint read-back, and receipt
+  all pass, run that exact clean source through `deploy.yml` with staging rollback rehearsal enabled
+  and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates,
+  exact deployment binding, staging proof, exact Worker restoration, D1 reconciliation checks, and
+  restored safe state. Do not trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -82,6 +83,13 @@ plan_role: temporary-ci-bridge
   cast the fetched JSON and therefore let hosted validation accept a storefront artifact that the
   API would reject. The current blocker is a new immutable canonical ordinary-staging successor and
   integration of the fail-closed source validation; the legacy release must not be rewritten.
+  Source validation commit `ea1f065e` and protected preparation commit `750b25cb` are integrated.
+  Preparation run `33051564144` retained a pre-insertion D1 export, fetched the legacy release, and
+  projected its database identities, then failed before insertion because ordinary staging's legacy
+  product and collection primary keys do not satisfy the canonical public-ID schema. No successor
+  row or production resource was created. The preparation now derives deterministic canonical
+  manifest IDs while preserving the actual legacy product ID solely for the release row's D1 foreign
+  key; that correction requires a new protected run.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

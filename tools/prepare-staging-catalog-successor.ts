@@ -5,6 +5,7 @@ import { parseArgs } from "node:util";
 import {
   canonicalCatalogReleaseSchema,
   legacyCatalogReleaseSchema,
+  publicIdSchema,
   type CanonicalCatalogRelease,
 } from "../packages/contracts/src";
 
@@ -27,13 +28,27 @@ export interface StagingCatalogSuccessorSqlOptions {
   readonly productId: string;
 }
 
-function identityMap(values: readonly CatalogIdentity[], kind: string): Map<string, string> {
+function canonicalIdentity(identity: CatalogIdentity, kind: "collection" | "product"): string {
+  if (publicIdSchema.safeParse(identity.id).success) return identity.id;
+  const prefix = kind === "collection" ? "col" : "prod";
+  const digest = new Bun.CryptoHasher("sha256")
+    .update(`${kind}:${identity.slug}`)
+    .digest("hex")
+    .slice(0, 26)
+    .toUpperCase();
+  return `${prefix}_${digest}`;
+}
+
+function identityMap(
+  values: readonly CatalogIdentity[],
+  kind: "collection" | "product",
+): Map<string, string> {
   const identities = new Map<string, string>();
   for (const value of values) {
     if (!value.id || !value.slug || identities.has(value.slug)) {
       throw new Error(`${kind} identity projection is invalid.`);
     }
-    identities.set(value.slug, value.id);
+    identities.set(value.slug, canonicalIdentity(value, kind));
   }
   return identities;
 }
@@ -55,8 +70,8 @@ export function createStagingCatalogSuccessor(
   if (legacy.releaseId === input.releaseId) {
     throw new Error("The canonical successor must use a new immutable release ID.");
   }
-  const productIds = identityMap(input.productIdentities, "Product");
-  const collectionIds = identityMap(input.collectionIdentities, "Collection");
+  const productIds = identityMap(input.productIdentities, "product");
+  const collectionIds = identityMap(input.collectionIdentities, "collection");
   const products = legacy.products.map((product) => ({
     ...product,
     collectionIds: product.collectionSlugs.map((slug) =>
@@ -101,9 +116,7 @@ export function buildStagingCatalogSuccessorSql(
   options: StagingCatalogSuccessorSqlOptions,
 ): string {
   const canonical = canonicalCatalogReleaseSchema.parse(release);
-  if (!canonical.products.some(({ id }) => id === options.productId)) {
-    throw new Error("The release product identity is invalid.");
-  }
+  if (!options.productId) throw new Error("The source product identity is invalid.");
   const guard = `_staging_catalog_successor_guard_${options.correlationId.replaceAll(
     /[^A-Za-z0-9]/g,
     "_",
@@ -188,6 +201,7 @@ function cliInput(): CliInput {
 
 async function runCli(input: CliInput): Promise<void> {
   const legacyRelease = JSON.parse(await readFile(input.source, "utf8")) as unknown;
+  const predecessor = legacyCatalogReleaseSchema.parse(legacyRelease);
   const identities = JSON.parse(await readFile(input.identities, "utf8")) as {
     collections?: CatalogIdentity[];
     products?: CatalogIdentity[];
@@ -199,11 +213,15 @@ async function runCli(input: CliInput): Promise<void> {
     productIdentities: identities.products ?? [],
     releaseId: input.releaseId,
   });
+  const sourceProductId = identities.products?.find(
+    ({ slug }) => slug === predecessor.products[0]?.slug,
+  )?.id;
+  if (!sourceProductId) throw new Error("The predecessor source product identity is missing.");
   const correlationId = input.correlationId;
   const sqlSource = buildStagingCatalogSuccessorSql(release, {
     correlationId,
     createdAt: input.generatedAt,
-    productId: release.products[0]!.id,
+    productId: sourceProductId,
   });
   const manifest = `${JSON.stringify(release, null, 2)}\n`;
   const digest = new Bun.CryptoHasher("sha256").update(manifest).digest("hex");
@@ -219,7 +237,7 @@ async function runCli(input: CliInput): Promise<void> {
           correlationId,
           generatedAt: input.generatedAt,
           manifestSha256: `sha256:${digest}`,
-          predecessorId: legacyCatalogReleaseSchema.parse(legacyRelease).releaseId,
+          predecessorId: predecessor.releaseId,
           productCount: release.products.length,
           releaseId: release.releaseId,
         },

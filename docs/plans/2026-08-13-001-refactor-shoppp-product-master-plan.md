@@ -121,12 +121,12 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Integrate the fail-closed canonical Catalog Release source validation, create a new
-  immutable canonical successor through the protected ordinary-staging environment without changing
-  the legacy release, and run the exact clean source through `deploy.yml` with rollback rehearsal
-  enabled and production disabled. Retain all 17 hosted gates, exact artifact binding, staging proof,
-  Worker restoration, D1 reconciliation, and restored-state evidence. Do not remove old
-  implementation or trigger production.
+- **Next action:** Rerun protected ordinary-staging successor preparation with deterministic canonical
+  resource IDs and the real legacy product ID retained only for its D1 foreign key. If backup,
+  collision refusal, insertion, endpoint read-back, and receipt pass, run the exact clean source
+  through `deploy.yml` with rollback rehearsal enabled and production disabled. Retain all 17 hosted
+  gates, exact artifact binding, staging proof, Worker restoration, D1 reconciliation, and
+  restored-state evidence. Do not remove old implementation or trigger production.
 - **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
@@ -142,7 +142,13 @@ either product implementation pointer:
   cart-line mutation correctly rejected the legacy `representative-release-2026-07-30` manifest as
   noncanonical. The current blocker is integration of fail-closed build-time manifest validation and
   creation of a new immutable canonical ordinary-staging successor; the legacy release is not to be
-  rewritten. Hosted validation run `33041884429` passed all 17
+  rewritten. Source validation `ea1f065e` and protected preparation `750b25cb` are integrated, but
+  preparation run `33051564144` failed before insertion because the legacy staging product and
+  collection primary keys do not satisfy the canonical public-ID schema. It retained the D1 backup
+  and created no successor row or production mutation. The tested correction deterministically
+  projects canonical manifest IDs while retaining the actual legacy product ID only for the D1
+  foreign key; a new protected preparation run is required. Hosted validation run `33041884429`
+  passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging
