@@ -531,3 +531,27 @@ digest `sha256:fc2cf6e993fb6ee2ab460f2ce5684f550a372c76071ae73cbd58e65afcfc4781`
 CI-GH-U4 remains open and U5 remains unauthorized. This preparation does not substitute for all 17
 unchanged hosted gates, same-run artifact binding, staging proof, exact Worker/proof-marker
 restoration, D1 reconciliation, or restored safe-state evidence.
+
+## Default-deny test-harness refusal — 2026-08-27
+
+Exact-source run `33061506493` bound source `2cb23ab7dc82f2381e3b2431182c942bf974428f`
+to immutable successor `staging-canonical-2026-08-27-ci-gh-u4-e`, with rollback rehearsal enabled
+and production promotion disabled. Preflight jobs `98481140443` and `98481194312` passed. Hosted
+quality job `98481232858` passed the first eight unchanged gates and entered Worker integration.
+There, the new staging proof-marker test confirmed a proof-marked `building` release can add a cart
+line in staging with HTTP 200.
+
+The test's production-deny half then replaced only `ENVIRONMENT` while retaining the complete staging
+binding set. Production configuration validation correctly failed with HTTP 500 before Catalog
+authority could return the expected 422, so the assertion failed. The correction exercises the
+Catalog helper directly without `allowStagingProof`, which proves default/production denial without
+constructing an invalid mixed environment. This was a deterministic test-harness defect; no staging
+credential or mutation job ran.
+
+Official validation diagnostic artifact `9642006086`, named
+`validation-diagnostics-2cb23ab7dc82f2381e3b2431182c942bf974428f-33061506493-attempt-1`, has
+digest `sha256:d5b16474ab3e55903b8a71da7e319773691aeee830b8a9c0e2ed0c8ddbb34c42` and expiry
+`2026-09-10T10:09:38Z`. Failure-record job `98482166186` passed. Deployment-input verification,
+staging deployment/proof/restoration, human access, and production jobs were all skipped. The
+successor is terminal failed and will not be reused. CI-GH-U4 remains open and U5 remains
+unauthorized.

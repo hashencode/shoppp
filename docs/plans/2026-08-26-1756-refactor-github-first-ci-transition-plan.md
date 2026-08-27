@@ -58,9 +58,9 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Commit and push the retained successor-preparation evidence, then run the
-  resulting exact clean protected-default source through `deploy.yml` for immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-e`, with staging rollback rehearsal enabled and production
+- **Next concrete action:** Integrate the proof-marker default-deny test correction, then use that
+  exact clean protected-default source to prepare a new immutable ordinary-staging successor. Run
+  that successor through `deploy.yml` with staging rollback rehearsal enabled and production
   promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
   checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
@@ -141,7 +141,14 @@ plan_role: temporary-ci-bridge
   Protected preparation run `33061325008` passed its D1 backup, collision refusal, canonical
   projection, immutable insertion, protected endpoint read-back, exact D1 state verification, and
   receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-e`. The current blocker is
-  only its exact-source hosted/staging rollback rehearsal and retained evidence.
+  only its exact-source hosted/staging rollback rehearsal and retained evidence. Exact-source run
+  `33061506493` passed both preflights and the first eight unchanged gates. Worker integration proved
+  the staging proof-marked cart path returns 200, but the new default-deny test forced the complete
+  staging binding set to `production`, producing an unrelated configuration 500 instead of the
+  expected Catalog 422. The validation failure callback passed; all staging, restoration, human,
+  and production jobs were skipped, and the successor is terminal failed. The current blocker is
+  integration of a direct helper-level default-deny assertion, a new immutable successor, and its
+  exact-source rehearsal.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

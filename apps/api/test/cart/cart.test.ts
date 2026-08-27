@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { canonicalCatalogReleaseSchema } from "@shoppp/contracts";
 
 import { createApp } from "../../src/http/app";
+import { getCanonicalDeployedCatalogRelease } from "../../src/storefront-experience/catalog-resources";
 
 const now = "2026-07-30T00:00:00.000Z";
 const ids = {
@@ -262,14 +263,9 @@ describe("guest cart authority", () => {
       });
 
     expect((await app.fetch(lineRequest("cart-add-staging-proof-0001"), env)).status).toBe(200);
-    expect(
-      (
-        await app.fetch(lineRequest("cart-add-production-proof-0001"), {
-          ...env,
-          ENVIRONMENT: "production",
-        })
-      ).status,
-    ).toBe(422);
+    await expect(
+      getCanonicalDeployedCatalogRelease(env.DB, "release-staging-proof"),
+    ).rejects.toMatchObject({ code: "catalog_release_unavailable", status: 422 });
   });
 
   test("keeps unavailable price-list states out of live product output", async () => {
