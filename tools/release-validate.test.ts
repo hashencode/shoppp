@@ -188,6 +188,13 @@ describe("release validation", () => {
     for (const config of configs) {
       expect(config).toContain("STOREFRONT_REUSE_VALIDATED_BUILD");
     }
+
+    const cartJourney = await readFile(
+      resolve(import.meta.dir, "../apps/storefront/e2e/cart.spec.ts"),
+      "utf8",
+    );
+    expect(cartJourney).toContain("process.env.RELEASE_ID");
+    expect(cartJourney).not.toContain('releaseId: "representative-release-2026-07-30"');
   });
 
   test("aggregates every verification-contract gate", () => {

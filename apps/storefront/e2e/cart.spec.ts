@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const variantId = "var_01J00000000000000000000000";
+const expectedReleaseId = process.env.RELEASE_ID ?? "representative-release-2026-07-30";
 const cart = {
   adjustments: [],
   canCheckout: true,
@@ -85,7 +86,7 @@ test("desktop and mobile add the same variant and render the API-authoritative q
   expect(submitted).toMatchObject({
     expectedUnitPrice: { amount: 12_900, currency: "USD" },
     quantity: 1,
-    releaseId: "representative-release-2026-07-30",
+    releaseId: expectedReleaseId,
     variantId,
   });
 });

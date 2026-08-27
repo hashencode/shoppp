@@ -415,3 +415,32 @@ Preparation is not CI-GH-U4 completion. U5 remains unauthorized until an exact c
 this successor through all 17 unchanged hosted gates, same-run artifact binding, staging proof,
 exact Worker restoration, D1 reconciliation, and restored safe-state verification with production
 disabled.
+
+## Release-aware journey refusal — 2026-08-27
+
+Exact-source rollback rehearsal run `33056208460` bound protected-default source
+`2bc8de12c19531257642023f81b522c35d8e3f44` to immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-c`, with rollback rehearsal enabled and production promotion
+disabled. Preflight jobs `98463518029` and `98463575128` passed. Hosted quality job `98463609919`
+passed the first 14 unchanged gates: reproducible install, format, lint, types, source equivalence,
+theme contracts, fidelity contract, unit contract, Worker integration, administrator browser,
+representative catalog, theme matrix, production builds, and static output.
+
+The `browser-journeys` gate then failed both desktop and mobile instances of the cart journey. The
+preserved build correctly submitted release ID `staging-canonical-2026-08-27-ci-gh-u4-c`, proving
+that the exact-artifact reuse correction prevented the earlier legacy rebuild. The test itself still
+expected hard-coded predecessor `representative-release-2026-07-30`, so it rejected the correct
+request. This is a deterministic assertion defect, not a billing failure, deployment-input failure,
+or staging response.
+
+Official validation diagnostic artifact `9640303957`, named
+`validation-diagnostics-2bc8de12c19531257642023f81b522c35d8e3f44-33056208460-attempt-1`, has
+digest `sha256:e3219b1d24ae0eefe37f5427111fe78b7bf4d713c60b4825ad6d228ca358d228` and expiry
+`2026-09-10T09:14:46Z`. Failure-record job `98468424584` passed. Exact deployment-input
+verification, staging deployment/proof/restoration, human access, and production jobs were all
+skipped. The successor is terminal failed and will not be reused.
+
+The correction makes the cart journey expect `RELEASE_ID` when the release gate supplies it, while
+retaining the representative fixture as the ordinary local fallback. CI-GH-U4 remains open and U5
+remains unauthorized pending integration, another immutable successor, and a complete exact-source
+rollback rehearsal with production disabled.
