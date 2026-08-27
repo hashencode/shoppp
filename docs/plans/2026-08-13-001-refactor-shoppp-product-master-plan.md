@@ -121,9 +121,9 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Use the exact clean checkpoint source that records the fail-closed dispatch-parameter
-  refusal to prepare a new immutable ordinary-staging successor `g`, then run it through `deploy.yml`
-  with the source read directly from Git, rollback rehearsal enabled, and production disabled. Retain all 17 hosted gates,
+- **Next action:** Run immutable successor `staging-canonical-2026-08-27-ci-gh-u4-g` through
+  `deploy.yml` from the exact clean checkpoint SHA that records preparation run `33062452797`, with
+  the source read directly from Git, rollback rehearsal enabled, and production disabled. Retain all 17 hosted gates,
   exact artifact binding, staging proof, Worker/proof-marker restoration, D1 reconciliation, and
   restored-state evidence. Do not reuse any terminal failed successor, remove old implementation,
   or trigger production.
@@ -212,8 +212,12 @@ either product implementation pointer:
   checkpoint `4054e6219c79ee844f0e4a0fca6608335b50b057`. The trusted-source preflight refused it
   before quality or staging; the failure callback passed, all mutation jobs were skipped, and
   successor `f` is terminal failed. The current dependency is protected preparation of new
-  immutable successor `g` from a source read directly from Git and its complete rehearsal. Hosted
-  validation run `33041884429` passed all 17
+  immutable successor `g` from a source read directly from Git and its complete rehearsal.
+  Protected preparation run `33062452797` passed its staging D1 backup, collision refusal,
+  canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
+  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-g`.
+  The current dependency is only its exact-checkpoint hosted/staging rollback rehearsal and retained
+  evidence. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

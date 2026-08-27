@@ -591,3 +591,23 @@ Failure-record job `98483826630` passed and transitioned successor `f` to termin
 proof, restoration, human access, and production were all skipped. No official artifact was
 created, no staging or production resource was mutated, and successor `f` will not be reused. This
 operator dispatch error is refusal evidence only and does not satisfy CI-GH-U4 or authorize U5.
+
+## Exact-source successor g preparation — 2026-08-27
+
+Protected preparation run `33062452797`, job `98484305871`, used exact protected-default source
+`3341e59e46b8d746291b1916b2a6ed1dc77df280` read directly from Git to create immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-g`. It passed the protected staging-only request guard,
+pre-insertion D1 export, predecessor fetch, exact staging identity projection, collision refusal,
+canonical generation, immutable insertion, protected endpoint read-back, and exact D1 state check.
+
+The pre-insertion D1 export is official artifact `9642293285`, named
+`staging-catalog-successor-d1-before-33062452797-attempt-1`, with digest
+`sha256:badadbc27f10ebc562b638c244933882d07a8f4fa82d602182a118d462bd92ae` and expiry
+`2026-09-03T10:18:48Z`. The canonical manifest/receipt is official artifact `9642297876`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-g-33062452797-attempt-1`, with
+digest `sha256:3b4fd92f8db21992ced983f30671e48a57c87a94c9f016fde34f2817597f6072` and expiry
+`2026-11-25T10:18:26Z`. No predecessor was rewritten and no production job or resource ran.
+
+CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
+exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
+exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.
