@@ -611,3 +611,38 @@ digest `sha256:3b4fd92f8db21992ced983f30671e48a57c87a94c9f016fde34f2817597f6072`
 CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
 exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
 exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.
+
+## Provider-purchase copy mismatch after complete hosted deployment — 2026-08-27
+
+Exact-source run `33062635406` bound source `8c040b044ad232c7dbeb68149178029be9bab2c1` to immutable
+successor `staging-canonical-2026-08-27-ci-gh-u4-g`, with rollback rehearsal enabled and production
+promotion disabled. Preflight jobs `98484924392` and `98484959915` passed. Hosted quality job
+`98485013770` passed all 17 unchanged gates, including the existing Lighthouse budgets. Official
+validation artifact `9642931141`, named
+`validated-release-8c040b044ad232c7dbeb68149178029be9bab2c1-33062635406-attempt-1`, has digest
+`sha256:a8453e599806e10b82cae4e683854d26ef81ac8633d87b67b1d713ee91f8f04b` and expiry
+`2026-09-26T10:40:00Z`. It binds source tree `8bf2811ef2f07fe5ed60e85dd0c2e7b901fff285`, report
+digest `sha256:5fc1802095f0208e9f4243d4a4f1b134239c995ad1d5723c305cd34deccffa91`, run/attempt,
+Linux X64 toolchain, and all nine deployment artifact digests. Same-run deployment-input job
+`98489557230` passed.
+
+Protected deployment job `98489617636` passed baseline capture, D1 backup and migration safety,
+protected administrator checks, integrity checks, and all three staging Worker deployments.
+Baseline artifact `9642950833` has digest
+`sha256:7c31450c67e27b44d9828e5e989ab84152d3b9c4c19eb9e374a6f48112f66739`; D1 backup artifact
+`9642953671` has digest `sha256:a8fa056205704b690fbd7cd5c9571935b94f4bc45e8e052b19e73823ea2863cd`
+and expiry `2026-09-03T10:40:48Z`.
+
+Public proof job `98489852425` completed the real Stripe-hosted test payment and returned to a page
+showing `Payment confirmed`, a provider-backed order reference, and `View order`. The last assertion
+then waited for removed copy matching `order … is confirmed`; current checkout UI and its other
+tests use `Order reference: …`. Staging diagnostic artifact `9643017069` has digest
+`sha256:551a19a300b2bd2f73c713aa80984d17d2b3b5ff93953499a01a54fdd96abe74` and expiry
+`2026-11-25T10:20:55Z`. No trace contents were inspected.
+
+Recovery job `98490255068` restored all three exact Worker versions and the proof marker, reconciled
+run-scoped D1 data, verified the restored Worker/D1 safe state and all three public health checks,
+then recorded `staging_proof_failed`. Restoration artifact `9643035240` has digest
+`sha256:380fb257861943d1e596933eb16170ee193c6645431a31e24ae3157df50e20c2` and expiry
+`2026-11-25T10:20:55Z`. Human access and production remained skipped. Successor `g` is terminal
+failed and will not be reused; CI-GH-U4 remains open and U5 remains unauthorized.

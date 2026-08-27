@@ -58,10 +58,10 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Run immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-g` through `deploy.yml` from the exact clean checkpoint SHA
-  that records preparation run `33062452797`, with the source value read directly from Git, staging
-  rollback rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
+- **Next concrete action:** Integrate the provider-purchase order-reference assertion, then use that
+  exact clean source to prepare a new immutable ordinary-staging successor `h`. Run it through
+  `deploy.yml` with the source value read directly from Git, staging rollback rehearsal enabled,
+  and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
   checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
@@ -162,7 +162,15 @@ plan_role: temporary-ci-bridge
   refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
   verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-g`.
   The current blocker is only its exact-checkpoint hosted/staging rollback rehearsal and retained
-  evidence.
+  evidence. Exact-source run `33062635406` passed both preflights, all 17 unchanged gates,
+  same-run deployment-input binding, staging baseline/backup/migration safety, protected
+  administrator checks, and all three staging Worker deployments. Public proof completed Stripe
+  hosted payment and rendered `Payment confirmed`, an order reference, and `View order`, but its
+  final assertion still expected removed copy matching `order … is confirmed`. Exact Worker and
+  proof-marker restoration, D1 reconciliation, and restored safe-state verification passed;
+  production and human access were skipped, and successor `g` is terminal failed. The current
+  blocker is integration of the order-reference assertion, protected preparation of new immutable
+  successor `h`, and its exact-source rehearsal.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
