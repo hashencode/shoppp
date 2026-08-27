@@ -256,3 +256,24 @@ product ID only in `catalog_releases.product_id` to satisfy its D1 foreign key. 
 not this failed run or local tests, must prove backup, collision refusal, exact insertion, endpoint
 read-back, and receipt before the rollback rehearsal can begin. CI-GH-U4 remains open and U5 remains
 unauthorized.
+
+Corrected commit `32f2f01737ebadbd0ecfa33d986d8ccbd2064d9b` derives deterministic canonical
+manifest identities from stable slugs when legacy D1 primary keys do not satisfy the public-ID
+contract, while preserving the actual first product ID only for the release row's D1 foreign key.
+Its complete tools suite passed 377 tests and 1,632 expectations; tools TypeScript, formatting,
+lint, boundaries, and diff checks passed.
+
+Protected preparation run `33051894271` at that exact source passed every step. It retained
+pre-insertion D1 artifact `9637962953`, named
+`staging-catalog-successor-d1-before-33051894271-attempt-1`, with digest
+`sha256:6589541fcfe60dc817fc117bd374df92a117d4396749bef664dd530c72e6a3d4` and seven-day retention.
+It then generated and inserted new immutable successor `staging-canonical-2026-08-27-ci-gh-u4`,
+verified exact semantic equality through the protected build endpoint, verified its D1 `building`
+state and run correlation, and retained 90-day manifest/receipt artifact `9637966514` with digest
+`sha256:4a103d599fca24214b1d2ec9c84ed704ab8ab27c81e22faa5131af419ae601ca`.
+The historical release was not updated and no production job or resource ran.
+
+The successor is now valid input for the missing exact-source staging rollback rehearsal. This
+preparation proves only the bounded staging input and its backup/read-back contract; it does not
+substitute for the 17-gate deploy run, staging journey, Worker restoration, D1 reconciliation, or
+restored-state evidence. CI-GH-U4 and the U5 dependency boundary therefore remain open.

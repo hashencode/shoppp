@@ -58,13 +58,11 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Rerun the protected ordinary-staging canonical successor preparation with
-  deterministic canonical resource IDs while retaining the real legacy product ID only for the D1
-  foreign key. If its backup, collision refusal, insertion, canonical endpoint read-back, and receipt
-  all pass, run that exact clean source through `deploy.yml` with staging rollback rehearsal enabled
-  and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates,
-  exact deployment binding, staging proof, exact Worker restoration, D1 reconciliation checks, and
-  restored safe state. Do not trigger production.
+- **Next concrete action:** Run the exact clean protected-default source through `deploy.yml` for
+  canonical successor `staging-canonical-2026-08-27-ci-gh-u4`, with staging rollback rehearsal
+  enabled and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17
+  hosted gates, exact deployment binding, staging proof, exact Worker restoration, D1 reconciliation
+  checks, and restored safe state. Do not trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -89,7 +87,11 @@ plan_role: temporary-ci-bridge
   product and collection primary keys do not satisfy the canonical public-ID schema. No successor
   row or production resource was created. The preparation now derives deterministic canonical
   manifest IDs while preserving the actual legacy product ID solely for the release row's D1 foreign
-  key; that correction requires a new protected run.
+  key. Corrected preparation run `33051894271` passed the D1 backup, collision refusal, canonical
+  generation, immutable insertion, protected endpoint read-back, exact D1 state verification, and
+  90-day receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4`. The successor is
+  now ready; CI-GH-U4 is waiting only for the exact-source hosted/staging rollback rehearsal and its
+  retained evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

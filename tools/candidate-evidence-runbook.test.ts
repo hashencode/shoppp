@@ -29,7 +29,7 @@ describe("candidate evidence operating contract", () => {
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Rerun protected ordinary-staging successor preparation[\s\S]{0,520}production disabled/is,
+      /\*\*Next action:\*\* Run the exact clean protected-default source through `deploy\.yml`[\s\S]{0,420}production\s+disabled/is,
     );
     expect(masterPlan).toMatch(/No external billing blocker remains/is);
     expect(masterPlan).toMatch(/run\s+`33048142888`[\s\S]{0,140}all 17 gates/is);
