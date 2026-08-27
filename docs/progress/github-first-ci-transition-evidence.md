@@ -154,3 +154,13 @@ strict staging validation received an empty `NUXT_CATALOG_RELEASE_TOKEN`: the re
 had neither declared nor passed `BUILD_MANIFEST_TOKEN`. Every staging, proof, restoration, approval,
 and production job was skipped. This is a real credential-wiring blocker, not hosted, staging, or
 rollback proof; CI-GH-U4 remains open and U5 remains unauthorized.
+
+Commit `bd53945a8aafc24fe63ae8c4e418710ec936edce` explicitly declared the reusable workflow's
+`BUILD_MANIFEST_TOKEN` and passed only that named secret from `deploy.yml`; it did not use
+`secrets: inherit`. Eighty-three focused workflow/release tests, TypeScript, YAML parsing, and diff
+checks passed locally. Exact-source run `33045869299` confirmed the token path by passing both
+preflights and entering the unchanged release test gate. Quality job `98429687655` then failed in
+`candidate evidence operating contract > keeps the solo baseline separate from the optional signed
+profile` because that test still expected the prior CI-GH-U4 next-action and blocker wording. All
+staging, proof, restoration, approval, and production jobs were skipped. This is real hosted failure
+evidence only; it is not a passing 17-gate or staging-restoration proof.

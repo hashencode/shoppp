@@ -58,18 +58,19 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Declare and pass only `BUILD_MANIFEST_TOKEN` across the reusable
-  `workflow_call` boundary, locally verify that credential contract, push the exact clean fix, then
-  run that same source through `deploy.yml` with staging rollback rehearsal enabled and production
-  promotion disabled. Retain its pre-mutation
+- **Next concrete action:** Align the candidate-evidence governance contract test with the current
+  CI-GH-U4 checkpoint, locally verify it, push the exact clean fix, then run that same source through
+  `deploy.yml` with staging rollback rehearsal enabled and production promotion disabled. Retain its pre-mutation
   Worker/D1 baseline, passing 17-gate attestation and artifact identities, a deliberate controlled
   mismatch refusal, deploy/post-deploy result, exact Worker restoration, D1 reconciliation checks,
   and restored safe state. Do not trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
-  `33045612910` then passed both trusted-source preflights but stopped before the 17 gates because the
-  reusable validation call did not declare/pass `BUILD_MANIFEST_TOKEN`; no staging or production job
-  ran. This repository credential-wiring gap is the current blocker. Earlier exact-source hosted
+  `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
+  fixed. Exact-source run `33045869299` passed both preflights, received the protected Catalog token,
+  and entered the unchanged release test gate, but the stale candidate-evidence test still expected
+  the prior checkpoint wording. No staging or production job ran. This focused governance-test drift
+  is the current blocker. Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
   and Linux X64 toolchain evidence. CI-GH-U4 nevertheless remains incomplete because that source did
