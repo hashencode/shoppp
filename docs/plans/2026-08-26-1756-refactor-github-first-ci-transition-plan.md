@@ -58,12 +58,11 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the fail-closed CI-GH release-staging latency entry, then use
-  its exact clean protected-default source to prepare new immutable successor
-  `staging-canonical-2026-08-27-ci-gh-u4-j`. Record that preparation in a clean checkpoint, read the
-  source value directly from Git, and run the successor through `deploy.yml` with staging rollback
-  rehearsal enabled and production promotion disabled. Retain its pre-mutation Worker/D1 baseline,
-  all 17 hosted gates, exact deployment binding, staging proof, exact Worker/proof-marker
+- **Next concrete action:** Run immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-j` through `deploy.yml` from the exact clean checkpoint SHA
+  that records preparation run `33070208055`, with the source value read directly from Git, staging
+  rollback rehearsal enabled, and production promotion disabled. Retain its pre-mutation Worker/D1
+  baseline, all 17 hosted gates, exact deployment binding, staging proof, exact Worker/proof-marker
   restoration, D1 reconciliation checks, and restored safe state. Do not reuse any terminal failed
   successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
@@ -201,7 +200,12 @@ plan_role: temporary-ci-bridge
   latency entry that preserves the existing 20-sample, concurrency-4, 500 ms read, and 800 ms
   mutation thresholds, fails closed outside the protected rollback rehearsal, and does not alter or
   invoke FS-U8 authority, followed by protected preparation of successor `j` and its exact-source
-  rehearsal.
+  rehearsal. Release-staging latency correction `300122f6` is integrated without changing FS-U8.
+  Protected preparation run `33070208055` passed its staging D1 backup, collision refusal,
+  canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
+  verification, and receipt retention for successor
+  `staging-canonical-2026-08-27-ci-gh-u4-j`. The current blocker is only its exact-checkpoint
+  hosted/staging rollback rehearsal and retained evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

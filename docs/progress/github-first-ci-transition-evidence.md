@@ -764,3 +764,30 @@ reconciliation, and restored-state outcomes were all `success`. Restoration arti
 has digest `sha256:45abc733e3854472302b261f96920afb14f2585ea6deb7b753de9dccd7d1d0c2` and expiry
 `2026-11-25T11:29:59Z`. Human access and production remained skipped. Successor `i` is terminal
 failed and will not be reused; CI-GH-U4 remains open and U5 remains unauthorized.
+
+## Release-staging latency correction successor — 2026-08-27
+
+Commit `300122f6eeaabb1015f62ffaaf424e452034ed37` adds a separate CI-GH release-staging latency
+entry. It retains the existing 20 samples, checkout concurrency 4, 500 ms read p95, and 800 ms
+shipping-mutation p95 thresholds, while refusing execution outside GitHub `deploy.yml`, outside a
+rollback rehearsal, during production promotion, or when the checked-out source differs from the
+same-run validated SHA. It neither changes nor invokes the FS-U8 authenticated Preview
+orchestrator.
+
+Protected preparation run `33070208055`, job `98510200925`, used that exact protected-default
+source to create immutable successor `staging-canonical-2026-08-27-ci-gh-u4-j`. It passed the
+protected staging-only request guard, pre-insertion D1 export, predecessor fetch, exact staging
+identity projection, collision refusal, canonical generation, immutable insertion, protected
+endpoint read-back, and exact D1 state check.
+
+The pre-insertion D1 export is official artifact `9645439826`, named
+`staging-catalog-successor-d1-before-33070208055-attempt-1`, with digest
+`sha256:e6996a0276da4ca520d6ce7bdc727952851bb5dadc29dce36e79ab7a59637440` and expiry
+`2026-09-03T12:05:08Z`. The canonical manifest/receipt is official artifact `9645444560`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-j-33070208055-attempt-1`, with
+digest `sha256:0cb329de7b808b0d871b7596464ef205cb688035475f95d8c25f77bc88eb31e2` and expiry
+`2026-11-25T12:04:48Z`. No predecessor was rewritten and no production job or resource ran.
+
+CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
+exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
+exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.

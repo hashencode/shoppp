@@ -50,8 +50,9 @@ describe("candidate evidence operating contract", () => {
     expect(masterPlan).toMatch(/run\s+`33067448314`[\s\S]{0,360}collision\s+refusal/is);
     expect(masterPlan).toMatch(/run\s+`33067627981`[\s\S]{0,260}all 17 unchanged gates/is);
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Integrate the fail-closed CI-GH release-staging latency entry[\s\S]{0,360}production disabled/is,
+      /\*\*Next action:\*\* Run immutable successor[\s\S]{0,360}33070208055[\s\S]{0,360}production disabled/is,
     );
+    expect(masterPlan).toMatch(/run\s+`33070208055`[\s\S]{0,360}collision\s+refusal/is);
     expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");
