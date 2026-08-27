@@ -555,3 +555,25 @@ digest `sha256:d5b16474ab3e55903b8a71da7e319773691aeee830b8a9c0e2ed0c8ddbb34c42`
 staging deployment/proof/restoration, human access, and production jobs were all skipped. The
 successor is terminal failed and will not be reused. CI-GH-U4 remains open and U5 remains
 unauthorized.
+
+## Default-deny correction successor — 2026-08-27
+
+Commit `41992c032143d1e234e1b9d81b287149d053e8fe` replaces the invalid mixed-environment test with a
+direct Catalog helper assertion that omits staging proof authorization and expects the existing
+`catalog_release_unavailable` 422 refusal. Protected preparation run `33062008517`, job
+`98482820505`, used that exact protected-default source to create immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-f`. It passed the protected staging-only request guard,
+pre-insertion D1 export, predecessor fetch, exact staging identity projection, collision refusal,
+canonical generation, immutable insertion, protected endpoint read-back, and exact D1 state check.
+
+The pre-insertion D1 export is official artifact `9642099891`, named
+`staging-catalog-successor-d1-before-33062008517-attempt-1`, with digest
+`sha256:7e22a37d63d38b3c698b37e18deb06178a9c600d2a3cb719912d719a345f07e1` and expiry
+`2026-09-03T10:12:40Z`. The canonical manifest/receipt is official artifact `9642104766`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-f-33062008517-attempt-1`, with
+digest `sha256:df4462c6dfff541c7870f17df1c2c8a7c70bfd883c660db2ff4aa0b40b688ec6` and expiry
+`2026-11-25T10:12:17Z`. No predecessor was rewritten and no production job or resource ran.
+
+CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not substitute for the pending
+exact-checkpoint 17-gate hosted validation, same-run artifact binding, protected staging proof,
+exact Worker/proof-marker restoration, D1 reconciliation, or restored safe-state evidence.

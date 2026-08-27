@@ -58,9 +58,9 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the proof-marker default-deny test correction, then use that
-  exact clean protected-default source to prepare a new immutable ordinary-staging successor. Run
-  that successor through `deploy.yml` with staging rollback rehearsal enabled and production
+- **Next concrete action:** Run immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-f` through `deploy.yml` from the exact clean checkpoint SHA
+  that records preparation run `33062008517`, with staging rollback rehearsal enabled and production
   promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker/proof-marker restoration, D1 reconciliation
   checks, and restored safe state. Do not reuse any terminal failed successor or trigger production.
@@ -148,7 +148,11 @@ plan_role: temporary-ci-bridge
   expected Catalog 422. The validation failure callback passed; all staging, restoration, human,
   and production jobs were skipped, and the successor is terminal failed. The current blocker is
   integration of a direct helper-level default-deny assertion, a new immutable successor, and its
-  exact-source rehearsal.
+  exact-source rehearsal. Default-deny correction `41992c03` is integrated. Protected preparation
+  run `33062008517` passed its staging D1 backup, collision refusal, canonical generation,
+  immutable insertion, protected endpoint read-back, exact D1 state verification, and receipt
+  retention for successor `staging-canonical-2026-08-27-ci-gh-u4-f`. The current blocker is only
+  its exact-checkpoint hosted/staging rollback rehearsal and retained evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

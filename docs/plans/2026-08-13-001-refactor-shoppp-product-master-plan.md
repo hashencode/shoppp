@@ -121,9 +121,9 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Integrate the proof-marker default-deny test correction, then use that exact clean
-  protected-default source to prepare a new immutable ordinary-staging successor and run it through
-  `deploy.yml` with rollback rehearsal enabled and production disabled. Retain all 17 hosted gates,
+- **Next action:** Run immutable successor `staging-canonical-2026-08-27-ci-gh-u4-f` through
+  `deploy.yml` from the exact clean checkpoint SHA that records preparation run `33062008517`, with
+  rollback rehearsal enabled and production disabled. Retain all 17 hosted gates,
   exact artifact binding, staging proof, Worker/proof-marker restoration, D1 reconciliation, and
   restored-state evidence. Do not reuse any terminal failed successor, remove old implementation,
   or trigger production.
@@ -203,7 +203,12 @@ either product implementation pointer:
   Catalog 422. The validation failure callback passed; all staging, restoration, human, and
   production jobs were skipped, and the successor is terminal failed. The current dependency is
   integration of a direct helper-level default-deny assertion, protected preparation of a new
-  immutable successor, and its exact-source rehearsal. Hosted
+  immutable successor, and its exact-source rehearsal. Default-deny correction `41992c03` is
+  integrated. Protected preparation run `33062008517` passed its staging D1 backup, collision
+  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
+  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-f`.
+  The current dependency is only its exact-checkpoint hosted/staging rollback rehearsal and retained
+  evidence. Hosted
   validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
