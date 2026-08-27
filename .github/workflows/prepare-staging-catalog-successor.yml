@@ -1,0 +1,158 @@
+name: Prepare immutable staging Catalog successor
+
+on:
+  workflow_dispatch:
+    inputs:
+      predecessor_release_id:
+        description: Existing immutable legacy staging release to project into canonical v2
+        required: true
+        default: representative-release-2026-07-30
+        type: string
+      successor_release_id:
+        description: New immutable ordinary-staging Catalog Release ID
+        required: true
+        type: string
+
+concurrency:
+  group: commerce-staging-catalog-preparation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      API_URL: ${{ vars.API_URL }}
+      PREDECESSOR_RELEASE_ID: ${{ inputs.predecessor_release_id }}
+      SUCCESSOR_RELEASE_ID: ${{ inputs.successor_release_id }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Verify protected staging-only preparation request
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/${{ github.event.repository.default_branch }}"
+          [[ "$PREDECESSOR_RELEASE_ID" =~ ^[A-Za-z0-9._:-]{1,160}$ ]]
+          [[ "$SUCCESSOR_RELEASE_ID" =~ ^[A-Za-z0-9._:-]{1,160}$ ]]
+          test "$PREDECESSOR_RELEASE_ID" != "$SUCCESSOR_RELEASE_ID"
+      - name: Export ordinary staging D1 before successor insertion
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          mkdir -p ../../artifacts/staging-catalog-successor
+          bunx wrangler d1 export shoppp-staging --env staging --remote \
+            --output="../../artifacts/staging-catalog-successor/d1-before-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.sql"
+      - name: Preserve pre-insertion staging D1 export
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-catalog-successor-d1-before-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          path: artifacts/staging-catalog-successor/d1-before-*.sql
+      - name: Fetch immutable predecessor
+        env:
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_path="$RUNNER_TEMP/predecessor-release.json"
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
+            "$API_URL/build/catalog/releases/$PREDECESSOR_RELEASE_ID" > "$source_path"
+          jq --exit-status '
+            all(.products[]; (.slug | test("^[a-z0-9]+(?:-[a-z0-9]+)*$"))) and
+            all(.collections[]; (.slug | test("^[a-z0-9]+(?:-[a-z0-9]+)*$")))
+          ' "$source_path" >/dev/null
+      - name: Project exact staging identities
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_path="$RUNNER_TEMP/predecessor-release.json"
+          product_slugs="$(jq --raw-output '[.products[].slug | "\u0027" + . + "\u0027"] | join(",")' "$source_path")"
+          collection_slugs="$(jq --raw-output '[.collections[].slug | "\u0027" + . + "\u0027"] | join(",")' "$source_path")"
+          (cd apps/api && bunx wrangler d1 execute shoppp-staging --env staging --remote --json \
+            --command "SELECT id, slug FROM products WHERE slug IN ($product_slugs) ORDER BY slug") \
+            | jq '[.[]?.results[]? | {id,slug}]' > "$RUNNER_TEMP/product-identities.json"
+          (cd apps/api && bunx wrangler d1 execute shoppp-staging --env staging --remote --json \
+            --command "SELECT id, slug FROM collections WHERE slug IN ($collection_slugs) ORDER BY slug") \
+            | jq '[.[]?.results[]? | {id,slug}]' > "$RUNNER_TEMP/collection-identities.json"
+          jq --null-input \
+            --slurpfile products "$RUNNER_TEMP/product-identities.json" \
+            --slurpfile collections "$RUNNER_TEMP/collection-identities.json" \
+            '{products:$products[0],collections:$collections[0]}' \
+            > "$RUNNER_TEMP/catalog-identities.json"
+      - name: Generate collision-refusing canonical successor
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_at="$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')"
+          bun tools/prepare-staging-catalog-successor.ts \
+            --source="$RUNNER_TEMP/predecessor-release.json" \
+            --identities="$RUNNER_TEMP/catalog-identities.json" \
+            --release-id="$SUCCESSOR_RELEASE_ID" \
+            --generated-at="$generated_at" \
+            --correlation-id="staging-catalog-successor-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --output-dir=artifacts/staging-catalog-successor
+      - name: Insert new immutable successor
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: >-
+          bunx wrangler d1 execute shoppp-staging --env staging --remote
+          --file=../../artifacts/staging-catalog-successor/seed.sql
+      - name: Verify exact successor through protected build endpoint
+        env:
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $BUILD_MANIFEST_TOKEN" \
+            "$API_URL/build/catalog/releases/$SUCCESSOR_RELEASE_ID" \
+            | jq --sort-keys --compact-output . > "$RUNNER_TEMP/remote-successor.json"
+          jq --sort-keys --compact-output . artifacts/staging-catalog-successor/manifest.json \
+            > "$RUNNER_TEMP/local-successor.json"
+          cmp "$RUNNER_TEMP/local-successor.json" "$RUNNER_TEMP/remote-successor.json"
+      - name: Verify inserted successor state
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd apps/api && bunx wrangler d1 execute shoppp-staging --env staging --remote --json \
+            --command "SELECT id, status, build_correlation_id FROM catalog_releases WHERE id = '$SUCCESSOR_RELEASE_ID'") \
+            | jq --exit-status --arg id "$SUCCESSOR_RELEASE_ID" \
+              --arg correlation "staging-catalog-successor-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+              'any(.[]?.results[]?; .id == $id and .status == "building" and .build_correlation_id == $correlation)' \
+              >/dev/null
+          printf 'Prepared immutable staging Catalog successor `%s`.\n' "$SUCCESSOR_RELEASE_ID" \
+            >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve canonical successor receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-catalog-successor-${{ inputs.successor_release_id }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            artifacts/staging-catalog-successor/manifest.json
+            artifacts/staging-catalog-successor/receipt.json
