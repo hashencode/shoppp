@@ -22,7 +22,9 @@ export function representativeCatalog() {
     return {
       ...baseRelease.collections[0],
       description: `Representative collection ${number} for static release capacity verification.`,
+      id: `col_${number.padStart(23, "0")}`,
       name: `Representative collection ${number}`,
+      productIds: [] as string[],
       productSlugs: [] as string[],
       seoDescription: `Representative collection ${number} static generation fixture.`,
       seoTitle: `Representative collection ${number} | Shoppp`,
@@ -33,11 +35,15 @@ export function representativeCatalog() {
     const productNumber = padded(index + 1);
     const collection = collections[index % collectionCount]!;
     const slug = `product-${productNumber}`;
+    const id = `prod_${String(index + 1).padStart(23, "0")}`;
+    collection.productIds.push(id);
     collection.productSlugs.push(slug);
     return {
       ...baseRelease.products[0],
+      collectionIds: [collection.id],
       collectionSlugs: [collection.slug],
       description: `Representative product ${productNumber} used to verify full static catalog generation.`,
+      id,
       name: `Representative product ${productNumber}`,
       seoDescription: `Representative product ${productNumber} static catalog capacity fixture.`,
       seoTitle: `Representative product ${productNumber} | Shoppp`,
@@ -55,8 +61,14 @@ export function representativeCatalog() {
     ...baseRelease,
     collections,
     products,
-    redirects: [{ from: "/products/legacy-product", to: "/products/product-0001" }],
+    redirects: [{ from: "/products/legacy-product", status: 301, to: "/products/product-0001" }],
     releaseId: "representative-scale-1000x5000",
+    routes: [
+      "/",
+      ...collections.map(({ slug }) => `/collections/${slug}`),
+      ...baseRelease.policies.map(({ slug }) => `/policies/${slug}`),
+      ...products.map(({ slug }) => `/products/${slug}`),
+    ].sort((left, right) => (left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right))),
   };
 }
 

@@ -58,11 +58,12 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Run the exact clean protected-default source through `deploy.yml` for
-  canonical successor `staging-canonical-2026-08-27-ci-gh-u4`, with staging rollback rehearsal
-  enabled and production promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17
-  hosted gates, exact deployment binding, staging proof, exact Worker restoration, D1 reconciliation
-  checks, and restored safe state. Do not trigger production.
+- **Next concrete action:** Integrate the canonical representative-scale fixture correction, then use
+  that exact clean protected-default source to prepare a new immutable ordinary-staging successor.
+  Run that new successor through `deploy.yml` with staging rollback rehearsal enabled and production
+  promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
+  deployment binding, staging proof, exact Worker restoration, D1 reconciliation checks, and
+  restored safe state. Do not reuse the terminal failed successor or trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -90,8 +91,15 @@ plan_role: temporary-ci-bridge
   key. Corrected preparation run `33051894271` passed the D1 backup, collision refusal, canonical
   generation, immutable insertion, protected endpoint read-back, exact D1 state verification, and
   90-day receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4`. The successor is
-  now ready; CI-GH-U4 is waiting only for the exact-source hosted/staging rollback rehearsal and its
-  retained evidence.
+  now terminal failed: exact-source rehearsal run `33052078852` passed both credential-free
+  preflights, then failed in the existing `representative-catalog` quality gate before any staging
+  credential or mutation because its scale fixture generated a redirect without canonical status,
+  reused product/collection IDs, retained stale reciprocal IDs, and omitted the generated scale
+  routes. The validation-failure callback correctly transitioned that immutable successor to
+  `failed`; downstream verification, staging, restoration, and production jobs were skipped. The
+  current blocker is integration of the fail-closed scale-fixture correction followed by protected
+  preparation of a new immutable canonical successor and its exact-source hosted/staging rollback
+  rehearsal.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,

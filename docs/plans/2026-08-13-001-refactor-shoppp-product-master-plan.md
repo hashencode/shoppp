@@ -121,11 +121,12 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Run the exact clean protected-default source through `deploy.yml` for canonical
-  successor `staging-canonical-2026-08-27-ci-gh-u4`, with rollback rehearsal enabled and production
-  disabled. Retain all 17 hosted gates, exact artifact binding, staging proof, Worker restoration, D1
-  reconciliation, and restored-state evidence. Do not remove old implementation or trigger
-  production.
+- **Next action:** Integrate the canonical representative-scale fixture correction, then use that
+  exact clean protected-default source to prepare a new immutable ordinary-staging successor and run
+  it through `deploy.yml` with rollback rehearsal enabled and production disabled. Retain all 17
+  hosted gates, exact artifact binding, staging proof, Worker restoration, D1 reconciliation, and
+  restored-state evidence. Do not reuse the terminal failed successor, remove old implementation, or
+  trigger production.
 - **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
@@ -148,8 +149,14 @@ either product implementation pointer:
   projects canonical manifest IDs while retaining the actual legacy product ID only for the D1
   foreign key. Corrected protected run `33051894271` then passed backup, collision refusal, canonical
   generation, immutable insertion, endpoint read-back, D1 state verification, and receipt retention
-  for successor `staging-canonical-2026-08-27-ci-gh-u4`. The current dependency is now the
-  exact-source hosted/staging rollback rehearsal. Hosted validation run `33041884429` passed all 17
+  for successor `staging-canonical-2026-08-27-ci-gh-u4`. Exact-source rehearsal run `33052078852`
+  then passed both credential-free preflights but failed in the existing `representative-catalog`
+  quality gate before any staging credential or mutation: its scale generator violated canonical v2
+  identity, reciprocal-link, redirect-status, and route requirements. The successful failure callback
+  transitioned that immutable successor to terminal `failed`, and every staging, restoration, and
+  production job was skipped. The current dependency is integration of the scale-fixture correction,
+  protected preparation of a new immutable successor, and its exact-source hosted/staging rollback
+  rehearsal. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

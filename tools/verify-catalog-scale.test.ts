@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import { canonicalCatalogReleaseSchema } from "../packages/contracts/src";
+
 import {
   catalogFixtureEnvironment,
   representativeCatalog,
@@ -17,6 +19,7 @@ describe("representative catalog fixture", () => {
     expect(
       release.collections.reduce((count, collection) => count + collection.productSlugs.length, 0),
     ).toBe(1_000);
+    expect(canonicalCatalogReleaseSchema.safeParse(release).success).toBe(true);
   });
 
   test("isolates scale builds from a selected remote catalog release", () => {

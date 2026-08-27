@@ -277,3 +277,40 @@ The successor is now valid input for the missing exact-source staging rollback r
 preparation proves only the bounded staging input and its backup/read-back contract; it does not
 substitute for the 17-gate deploy run, staging journey, Worker restoration, D1 reconciliation, or
 restored-state evidence. CI-GH-U4 and the U5 dependency boundary therefore remain open.
+
+## Canonical representative-scale refusal — 2026-08-27
+
+Exact-source rollback rehearsal run `33052078852` used protected-default source
+`ac2fb76747b08311a5767ccf244f86f6b8884c80`, successor
+`staging-canonical-2026-08-27-ci-gh-u4`, rollback rehearsal enabled, and production promotion
+disabled. Deployment preflight job `98449803727` and reusable validation preflight job
+`98449842719` passed. GitHub-hosted quality job `98449885215` then failed in the unchanged
+`representative-catalog` gate before same-run deployment-input verification or any Cloudflare
+staging credential and mutation.
+
+The retained diagnostics artifact is `9638184208`, named
+`validation-diagnostics-ac2fb76747b08311a5767ccf244f86f6b8884c80-33052078852-attempt-1`, with
+digest `sha256:db79eee920b4b750e8486758a7d5fe8493d164b8fdf688458e402c260ac21c41` and
+expiry `2026-09-10T08:05:32Z`. The gate exposed that `tools/verify-catalog-scale.ts` still generated
+a legacy-shaped scale fixture: its redirect lacked canonical status `301`, expanded collections and
+products reused base manifest IDs, reciprocal ID arrays were stale, and the route inventory did not
+contain the generated scale routes. Runtime canonical validation therefore rejected the fixture; it
+did not indicate a defect in the protected successor.
+
+Failure callback job `98451182117` succeeded and transitioned the immutable successor to terminal
+`failed` with failure code `candidate_validation_failed`. Deployment-input verification, staging
+deployment, staging proof, restoration, human approval, and production jobs were all skipped. No
+staging or production mutation occurred. That successor cannot be reused or rewritten.
+
+The regression test in `tools/verify-catalog-scale.test.ts` first failed by parsing the representative
+fixture through `canonicalCatalogReleaseSchema`. The correction now generates unique canonical
+product and collection IDs, reciprocal membership IDs, an explicit 301 redirect, and the complete
+scale route inventory. The focused test and complete tools suite pass locally (377 tests, 1,633
+expectations), as do tools TypeScript, focused formatting and lint, and import boundaries. The host's
+Homebrew Node executable currently has a missing `libsimdjson.26.dylib`; checks invoked directly
+through the repository's Bun runtime passed, and this local result is not represented as GitHub
+evidence.
+
+CI-GH-U4 remains open and U5 remains unauthorized. The next hosted sequence is to integrate this
+correction, prepare a new immutable canonical ordinary-staging successor from that exact source, and
+run the new successor through the full exact-source rollback rehearsal with production disabled.
