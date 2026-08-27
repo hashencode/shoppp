@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { readReleaseSourceIdentity } from "./release-source-identity";
 import { verifyEnvironmentIsolation } from "./verify-environment-isolation";
 
 type ReleaseTarget = "staging" | "production";
@@ -113,8 +112,6 @@ async function git(...arguments_: string[]): Promise<string> {
 }
 
 async function releaseSourceIdentity(): Promise<{ commit: string; tree: string }> {
-  const source = await readReleaseSourceIdentity(ROOT);
-  if (source) return source;
   const workspaceChanges = await git("status", "--porcelain", "--untracked-files=all");
   assert(
     !workspaceChanges,

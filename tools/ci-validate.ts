@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { link, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { readReleaseSourceIdentity } from "./release-source-identity";
 
 export type CiTier = "fast" | "post-commit";
 export type FailureClassification = "test" | "infrastructure";
@@ -183,14 +182,7 @@ async function git(...arguments_: string[]): Promise<string> {
   return output.trim();
 }
 
-async function releaseSourceIdentity(): Promise<GitIdentity | undefined> {
-  const source = await readReleaseSourceIdentity(ROOT);
-  return source ? { testedSha: source.commit, testedTree: source.tree } : undefined;
-}
-
 async function observeGitIdentity(): Promise<GitIdentity> {
-  const releaseSource = await releaseSourceIdentity();
-  if (releaseSource) return releaseSource;
   const identities = (await git("rev-parse", "HEAD", "HEAD^{tree}")).split("\n");
   assert(identities.length === 2, "git rev-parse returned an unexpected identity count");
   const testedSha = identities[0]!;
@@ -199,7 +191,6 @@ async function observeGitIdentity(): Promise<GitIdentity> {
 }
 
 async function observeWorkspaceChanges(): Promise<string[]> {
-  if (await releaseSourceIdentity()) return [];
   const status = await git("status", "--porcelain=v1", "--untracked-files=all");
   return status ? status.split("\n") : [];
 }

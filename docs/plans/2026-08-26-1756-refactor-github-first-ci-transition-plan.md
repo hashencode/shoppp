@@ -52,17 +52,19 @@ plan_role: temporary-ci-bridge
 
 ## Execution Checkpoint
 
-- **Current parent/child stage:** `CI-GH-U5` — remove the Docker and Intel release-capsule
-  implementation now that U4 has proved the exact GitHub-hosted and protected staging replacement.
-  `CI-GH-U4` is complete on retained non-production run `33070432378`: all 17 gates, exact same-run
-  binding, staging proof, p95 thresholds, exact Worker/proof-marker restoration, D1 reconciliation,
-  and restored safe state passed with production disabled.
-- **Next concrete action:** Build the exact remaining capsule-consumer manifest, move only
-  source-identity or secret-refusal behavior still required by direct GitHub validation to its real
-  owner, then remove the U5 container directory, capsule tools/tests/package command, and active
-  Docker/Intel/capsule operational instructions. Run the focused source/static checks, typecheck,
-  lint, and reference scans before advancing to U6.
-- **Current blockers:** None for U5. GitHub Actions billing is no longer blocking execution.
+- **Current parent/child stage:** `CI-GH-U7` — re-prove the post-removal exact GitHub-hosted and
+  protected staging path, then hand the remaining CI tail back to parent `CI-U8.3`. `CI-GH-U5` and
+  `CI-GH-U6` are complete: their exact consumer scan found no maintained capsule/evidence caller,
+  the superseded runtime and portable-evidence implementation are absent, and direct exact-source,
+  digest, report, artifact, static-output, secret-refusal, deployment-receipt, and rollback behavior
+  remains owned by the GitHub/Cloudflare path.
+- **Next concrete action:** Commit and push the verified post-removal source, prepare one new
+  immutable canonical staging successor from that exact protected-default source, bind its receipt
+  in the checkpoint, then run the same protected non-production deployment workflow with rollback
+  rehearsal enabled and production disabled. Retain official run/artifact identities and close the
+  bridge only if all 17 gates, Lighthouse budgets, exact binding, staging proof, p95 thresholds,
+  Worker/proof-marker restoration, D1 reconciliation, and restored safe state pass.
+- **Current blockers:** None for U7. GitHub Actions billing is no longer blocking execution.
   Historical U4 execution follows. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`

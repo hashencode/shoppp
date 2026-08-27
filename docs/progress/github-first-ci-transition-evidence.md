@@ -826,3 +826,26 @@ run-scoped D1 data, and verified restored safe state. Restoration artifact `9646
 `2026-11-25T12:07:44Z`. Human access and production remained skipped. This retained non-production
 run completes CI-GH-U4 and authorizes U5; it does not establish candidate, DC, PG, or production
 authority.
+
+## Docker/capsule and portable-evidence removal — 2026-08-27
+
+CI-GH-U5 and CI-GH-U6 characterized the live consumers before deletion. The only maintained
+capsule-specific source/static branches and the only remaining capsule report/manifest consumer
+belonged to the superseded runtime and provider-independent candidate-evidence path. Direct GitHub
+validation continues to obtain and reject mismatched commit/tree identity from the clean checkout;
+static output still scans tracked build inputs and rejects provider-secret and card-shaped material;
+the protected deployment path retains exact report, attestation, deployable digest, receipt,
+rollback, and safe-state checks.
+
+The release-validation container, capsule creation/inspection/source-marker tools, portable bundle
+assembly/signing/retention/restore tools, their tests and package commands, and their active
+operational/reference documents are removed. Historical progress remains unchanged and is not
+treated as an executable path. Focused verification passed 97 tests with 725 assertions; the full
+tool suite passed 340 tests with 1,460 assertions; tools typecheck, Prettier, direct locked ESLint,
+import-boundary checks, and active-reference scans passed. The wrapper `bun run lint` and workspace
+script could not invoke package-level `eslint` because the local Homebrew Node installation lacks
+`libsimdjson.26.dylib`; direct execution of the same locked ESLint implementation through Bun passed.
+This local toolchain condition is not GitHub evidence and does not substitute for CI-GH-U7.
+
+These results complete CI-GH-U5 and CI-GH-U6 and authorize only the post-removal U7 proof. They do
+not establish candidate, DC, PG, or production authority.

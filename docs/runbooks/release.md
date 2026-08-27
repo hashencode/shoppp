@@ -74,10 +74,9 @@ Cloudflare or D1 operation. Missing, expired, altered, cross-run, rebuilt, or br
 input stops deployment. GitHub Actions, billing, protected-environment, or artifact failure pauses
 formal release; local and historical Intel output cannot substitute for this proof.
 
-The static contract does not by itself satisfy CI-GH-U4 operational proof. Keep the capsule and
-portable-evidence implementation intact until the bridge retains a real hosted validation, staging
-deployment, post-deployment check, and rollback/reconciliation exercise. No step in this transition
-authorizes production mutation.
+The retained CI-GH-U4 run supplies the required pre-removal hosted validation, staging deployment,
+post-deployment checks, and rollback/reconciliation proof. Repository definitions still require a
+fresh exact-source run; they never substitute for operational evidence or authorize production.
 
 Credential ownership is role-based and environment-specific:
 
@@ -95,235 +94,20 @@ revocation:** disable the affected GitHub environment secret and revoke the prov
 before rerunning any job; preserve the failed run identity, rotate the credential, re-check scope,
 and start a new exact-SHA caller run rather than resuming a credential-exposed attempt.
 
-### Provider-neutral full-validation capsule
+### Retained GitHub release evidence
 
-Native macOS output is useful developer feedback but is not candidate authority. The provider-neutral
-path builds the exact clean committed source into a `linux/amd64` capsule and invokes the unchanged
-17-gate `release:validate` contract without GitHub Actions, its API, or its artifact store:
+The authoritative full-validation and deployment path is the protected GitHub workflow. It retains
+the exact source commit and tree, all 17 gate results, the release report, validation attestation,
+deployable artifact digests, hosted toolchain identity, staging proof, deployment receipt, and
+rollback evidence under the workflow retention policy. These GitHub artifacts are the only
+maintained release-evidence transport; local reports remain developer diagnostics and cannot
+substitute for the hosted run.
 
-```sh
-bun run release:validate:capsule -- --probe
-SHOPPP_RELEASE_OPERATOR_CONTEXT=approved \
-  bun run release:validate:capsule -- \
-  --release-id <release-id> \
-  --output-directory <absolute-empty-evidence-directory>
-```
-
-The `approved` marker records that the command is running in the dedicated release-operator context;
-it does not grant product, candidate, DC, PG, deployment, or production authority. Do not set it in
-ordinary developer or persistent-runner profiles. The entry point rejects any populated `GITHUB_*`
-identity or ambient token, secret, password, private-key, or credential variable. Structural full
-validation needs no Catalog or deployment credential. A later strict candidate run may receive only
-the separately authorized read-only, candidate-scoped Catalog input defined by the candidate policy;
-that credential path is not enabled by this command yet.
-
-The build context is produced by `git archive` from `HEAD`, includes a generated commit/tree identity,
-and rejects tracked and untracked checkout changes before Docker starts; ignored-material candidate
-identity remains governed by the later REL/CI-U7 source-input policy. The
-Dockerfile binds that identity into the image and fails if the archive identity and build arguments
-differ. It uses the amd64 platform manifests for Bun 1.3.5
-(`sha256:7985c11f2d6f8b3cd67cfe6e4da08151102a63db596b79bcaed5e9a50965276e`) and Playwright
-1.62.0 (`sha256:02bbb2155cd7109e3e9c741941097ed1608cf8b6fa44ee2595896da2bdc1f471`). The declared
-gate/tool dependencies live in `containers/release-validation/manifest.json`.
-
-The host Docker socket is used only to build and start the ephemeral capsule and is never mounted
-inside it. The image build uses network access to populate only the lockfile-governed Bun package
-cache and native prebuild download cache; it proves that no `node_modules` tree enters the runtime
-image. The unchanged
-reproducible-install gate therefore rebuilds a clean install tree from that cache while the 17-gate
-runtime uses `--network none`. Direct Ubuntu packages are exact-version pinned, and the image build
-fails unless the declared Bun, Playwright, platform, package, command, and browser inventory matches.
-The container drops Linux capabilities, enables `no-new-privileges`, has
-bounded process and shared-memory settings, and receives only `CI`, `RELEASE_ID`, and one evidence
-bind mount. The report is finalized with no overwrite. Missing
-Docker/OrbStack service, amd64 emulation, registry/bootstrap network, image, tool, browser, font,
-workspace cleanliness, or evidence finalization is an infrastructure failure and never a pass.
-
-Before capsule output becomes formal candidate evidence, compare a same-source capsule run with the
-hosted Ubuntu adapter: exact commit/tree, the 17 selected gate names and commands, Bun/Playwright
-versions, final status, report schema, and every required artifact digest must match. Timestamps,
-durations, execution IDs, and attempt lineage may differ but must be explicitly classified rather
-than removed silently. Any unexplained gate, toolchain, report, or artifact drift invalidates the
-capsule result. Updating either base digest, Bun, Playwright, system packages, lockfiles, or the gate
-manifest requires a clean rebuild, negative preflight checks, and a new same-source parity record.
-The release report is accompanied by `<release-id>.capsule.json`, which retains source commit/tree,
-immutable image ID, capsule-manifest digest, actual tool/package/browser inventory, report digest,
-exit code, and failure class. The builder reuses the single local tag
-`shoppp-release-capsule:local-cache` for layer caching, then runs by the inspected immutable image ID.
-After finalizing a passing new receipt it attempts to remove only the exact previous capsule image ID;
-failed or infrastructure-classified runs retain that previous replay image.
-Docker safely refuses if another tag or container still references it. Never use broad image or
-system pruning as capsule cleanup.
-
-### Solo-developer candidate evidence baseline
-
-The default solo-developer release baseline does not require an offline root, signer certificate, or
-signed witness. It still requires a clean exact commit, a passing validation-class capsule report and
-receipt, SHA-256 toolchain/artifact digests, secret scanning, one encrypted versioned or append-only
-durable copy, digest read-back, and a practical restore check when the storage target is adopted or
-materially changed and before first production reliance.
-
-The repository exposes `evidence:baseline:build`, `evidence:baseline:verify`, and
-`evidence:baseline:restore`. The baseline commands do not accept certificate, signer-key, or
-trust-store inputs. They reject signed-profile material and require the expected bundle digest from
-outside the retained directory.
-
-```sh
-SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
-  bun run evidence:baseline:build -- \
-  --repository "$(pwd)" \
-  --approved-commit <exact-commit> \
-  --release-report <capsule-output>/<release-id>.json \
-  --capsule-receipt <capsule-output>/<release-id>.capsule.json \
-  --spool <atomic-local-spool> \
-  --attempt-id <provider-neutral-attempt-id> \
-  --executor-id <executor-id> \
-  --adapter-id <adapter-id> \
-  --audit-log <append-only-audit.jsonl> \
-  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
-
-bun run evidence:baseline:verify -- \
-  --bundle <bundle-directory> \
-  --digest <sha256:bundle-digest>
-
-bun run evidence:baseline:restore -- \
-  --digest <sha256:bundle-digest> \
-  --destination <new-empty-restore-path> \
-  --audit-log <append-only-audit.jsonl> \
-  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
-```
-
-Retention roots are paths local to the environment where the command runs. Therefore, the
-`/srv/shoppp-evidence` Intel example must run on the Intel Jenkins host or against an explicitly
-mounted Intel filesystem. Retention metadata identifies and audits the target; it does not establish
-a remote connection.
-
-Build refuses dirty or untracked source, incomplete or mismatched capsule/report evidence, secret
-content, missing retention, or any failed write/read-back verification. Restore verifies the retained
-source, copies to a temporary path, verifies the copy, and atomically publishes a new destination.
-Until the practical Intel restore is retained, do not treat an ad-hoc copy, Jenkins archive, or
-passing post-commit lane as completed CI-U7 evidence.
-
-### Optional high-assurance signed candidate evidence
-
-The current `evidence:build`, `evidence:verify`, and `evidence:restore` commands are
-signed-profile-only. Use the commands below only when a later REL/security decision explicitly activates the optional
-high-assurance signed profile for a named candidate. This profile wraps a passing capsule report and
-receipt without changing the 17 release gates. Its format and trust checks are defined in
-[`candidate-evidence-bundle.md`](../reference/candidate-evidence-bundle.md); the approved security
-policy is
-[`ci-evidence-trust-and-retention.md`](../architecture/ci-evidence-trust-and-retention.md).
-
-The offline root operator creates the public trust store and signs a short-lived online signer
-certificate. These commands run outside Jenkins and ordinary developer shells. The root private key
-must never be copied to the Jenkins host:
-
-```sh
-bun tools/candidate-evidence.ts create-trust-store \
-  --root-key-id <root-key-id> \
-  --root-public-key <offline-root-public.pem> \
-  --output <trust-store.json>
-
-bun tools/candidate-evidence.ts issue-certificate \
-  --root-key <offline-root-private.pem> \
-  --root-key-id <root-key-id> \
-  --signer-public-key <jenkins-signer-public.pem> \
-  --signer-key-id <short-lived-signer-id> \
-  --not-before <ISO-8601> \
-  --not-after <ISO-8601-within-90-days> \
-  --output <signer-certificate.json>
-```
-
-After a passing capsule run, the dedicated release-operator context builds and projects the bundle
-to one declared, operator-approved durable target. That target must be encrypted and
-write-once/versioned outside the transient workspace:
-
-```sh
-SHOPPP_EVIDENCE_CANARY=<ephemeral-seeded-canary> \
-  bun run evidence:build -- \
-  --repository "$(pwd)" \
-  --approved-commit <exact-commit> \
-  --release-report <capsule-output>/<release-id>.json \
-  --capsule-receipt <capsule-output>/<release-id>.capsule.json \
-  --certificate <signer-certificate.json> \
-  --signer-key <host-owned-signer-private.pem> \
-  --trust-store <trust-store.json> \
-  --spool <atomic-local-spool> \
-  --attempt-id <provider-neutral-attempt-id> \
-  --executor-id <executor-id> \
-  --adapter-id <adapter-id> \
-  --audit-log <append-only-audit.jsonl> \
-  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
-```
-
-The build refuses a dirty or untracked non-ignored checkout, a non-exact HEAD, a non-validation
-capsule, source/report mismatch, permissive signer-key permissions, symlinked evidence, an unknown,
-expired, or revoked signer, secret-shaped content, no retention target, duplicate target IDs/roots,
-no `intel-append-only` target, more than two targets, or any declared target that cannot be written
-and read-back verified. The verified retention target
-receives a signed witness that binds the requested digest and all targets declared by that build. It
-emits only allowlisted structured audit fields. A successful bundle remains evidence preparation,
-not candidate selection or deployment authorization.
-
-A second independently administered VPS/object-lock target is recommended for disaster recovery,
-but it is not required for either the baseline or signed profile. To use one, add another `--retention` argument. Every
-target declared in that invocation becomes required for that invocation; omit an unavailable
-optional target rather than treating a failed backup as successful redundancy.
-
-Verification uses no GitHub API or artifact URL:
-
-```sh
-bun run evidence:verify -- --bundle <bundle-directory> --digest <sha256:bundle-digest> --trust-store <trust-store.json>
-```
-
-Restore verifies the declared source copy before reading, copies exact bytes into a new destination,
-and verifies again. When the original build declared more than one target, provide the same target
-list and restore will try them in order:
-
-```sh
-bun run evidence:restore -- \
-  --digest <sha256:bundle-digest> \
-  --destination <new-empty-restore-path> \
-  --trust-store <trust-store.json> \
-  --audit-log <append-only-audit.jsonl> \
-  --retention intel:intel-append-only:intel-jenkins:/srv/shoppp-evidence
-```
-
-While the signed profile is active, an expired or revoked signer is refused during verification. Compromise response revokes
-the signer ID in the required trust store and operator recovery copy, stops finalization, provisions a new
-short-lived signer from the offline root, and reruns the exact source in a clean capsule; historical
-bytes are never silently re-signed.
-
-This command contributes DC1 local evidence. It does not by itself satisfy the deployed-commerce,
-template-compatibility, activation-target, recovery, or production-authorization gates. Before
-running it for a formal
-candidate, record the exact commit, Product Contract revisions, required capability set, approved
-deferrals, Catalog Release, Candidate Template Matrix and versions, Activation Target, immutable
-Experience Snapshot identity and digest, platform contract, and staging environment in the
-candidate ledger. A later code, configuration, policy, fixture, migration, deployable-output, or
-normative acceptance-document change creates a new candidate or invalidates the affected DC
-evidence. An editorial-only amendment may retain the candidate only when it changes no requirement,
-security boundary, acceptance criterion, evidence meaning, owner, or invalidation rule, and the
-ledger records unchanged inputs and output digests.
-
-The command performs the locked install, formatting, lint, type, theme-contract, unit, Worker,
-admin-browser, representative-catalog, configured template-matrix, production-build, static-output,
-end-to-end, accessibility, and performance gates. Formal DC1 use additionally requires that the
-configured blocking matrix equals the frozen Candidate Template Matrix. Non-target cross-template
-regression runs occur in DC3 and are recorded as non-blocking observations. The command also checks
-staging/production isolation and writes `artifacts/releases/<release-id>.json` with the commit,
-individual gate outcomes, and SHA-256 digests for all three production deployable outputs and D1
-migrations. Preview artifacts and credentials are rejected from the production report. Until the
-Pre-DC validator work records the remaining identity fields, this report is supporting integration
-evidence rather than a complete candidate identity record.
-The build gate prebundles all three Worker entrypoints. Deployment uses those saved bundles with
-Wrangler `--no-bundle`; deploy jobs never rebuild Worker code.
-
-Never put Cloudflare, Stripe, email-provider, Turnstile, administrator passwords, sessions, or service credentials in source, workflow
-defaults, build arguments, or the report. Repository configuration contains non-routable
-placeholders until an owner supplies the real resource IDs and domains. The deployment workflow
-uses strict environment validation, so placeholders and any staging/production crossover stop the
-release before upload.
+Candidate selection, DC, PG, production approval, backup verification, deployment receipts, and
+rollback authority remain governed by their existing plans and protected environments. No portable
+capsule, Intel runner, independent signing ceremony, or provider-neutral restore command is part of
+the active release path. Historical evidence remains historical and is not an executable
+instruction.
 
 ## One-time environment setup
 

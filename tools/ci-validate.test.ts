@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import packageManifest from "../package.json";
-import { readReleaseSourceIdentity } from "./release-source-identity";
 import {
   CI_TIERS,
   resolveCiIdentity,
@@ -31,26 +30,10 @@ async function git(argument: string): Promise<string> {
 }
 
 async function observedSourceIdentity(): Promise<GitIdentity> {
-  try {
-    const source = JSON.parse(
-      await readFile(resolve(repositoryRoot, ".release-source.json"), "utf8"),
-    ) as { commit?: unknown; tree?: unknown };
-    if (
-      typeof source.commit === "string" &&
-      /^[a-f0-9]{40}$/.test(source.commit) &&
-      typeof source.tree === "string" &&
-      /^[a-f0-9]{40}$/.test(source.tree)
-    ) {
-      return { testedSha: source.commit, testedTree: source.tree };
-    }
-    throw new Error("release source identity is invalid");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    return {
-      testedSha: await git("HEAD"),
-      testedTree: await git("HEAD^{tree}"),
-    };
-  }
+  return {
+    testedSha: await git("HEAD"),
+    testedTree: await git("HEAD^{tree}"),
+  };
 }
 
 const observedGit = await observedSourceIdentity();
@@ -79,23 +62,6 @@ function fixedIdentity(overrides: Partial<CiIdentity> = {}): CiIdentity {
 }
 
 describe("repository-owned CI validation", () => {
-  test("honors release source markers only in explicit capsule mode", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "shoppp-release-source-"));
-    temporaryDirectories.push(root);
-    const source = {
-      schemaVersion: 1,
-      commit: "a".repeat(40),
-      tree: "b".repeat(40),
-    };
-    await writeFile(resolve(root, ".release-source.json"), JSON.stringify(source));
-
-    expect(await readReleaseSourceIdentity(root, {})).toBeUndefined();
-    expect(await readReleaseSourceIdentity(root, { RELEASE_SOURCE_MODE: "capsule" })).toEqual({
-      commit: source.commit,
-      tree: source.tree,
-    });
-  });
-
   test("defines stable fast and post-commit gates without changing release validation", () => {
     expect(packageManifest.scripts["ci:fast"]).toBe("bun tools/ci-validate.ts fast");
     expect(packageManifest.scripts["ci:post-commit"]).toBe("bun tools/ci-validate.ts post-commit");

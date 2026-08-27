@@ -77,20 +77,7 @@ export async function verifyNoSensitiveBuildArtifacts(
   }
 }
 
-export async function trackedSourcePaths(
-  root: string,
-  environment: Record<string, string | undefined> = process.env,
-): Promise<string[]> {
-  if (environment.RELEASE_SOURCE_MODE === "capsule") {
-    const entries = (await readFile(resolve(root, ".release-tracked-files"), "utf8"))
-      .split("\0")
-      .filter(Boolean)
-      .map((path) => path.replace(/^\.\//, ""));
-    if (entries.some((path) => !path || path.startsWith("../") || path.startsWith("/"))) {
-      throw new Error("release capsule tracked-source manifest contains an unsafe path");
-    }
-    return entries;
-  }
+export async function trackedSourcePaths(root: string): Promise<string[]> {
   const git = Bun.spawn(["git", "ls-files", "-z"], {
     cwd: root,
     stdout: "pipe",
