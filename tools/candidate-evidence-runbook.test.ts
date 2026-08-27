@@ -29,10 +29,10 @@ describe("candidate evidence operating contract", () => {
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Align the CI bridge governance contract test[\s\S]{0,220}production disabled/is,
+      /\*\*Next action:\*\* Run the tested standard `deploy\.yml` staging-only path[\s\S]{0,360}production disabled/is,
     );
     expect(masterPlan).toMatch(
-      /No external billing blocker remains[\s\S]{0,400}Exact-source run `33045869299`[\s\S]{0,80}reached the unchanged test gate/is,
+      /No external billing blocker remains[\s\S]{0,520}Exact-source run `33046259704` passed all 17 gates/is,
     );
     expect(plan).not.toContain("**Next concrete action:**");
 

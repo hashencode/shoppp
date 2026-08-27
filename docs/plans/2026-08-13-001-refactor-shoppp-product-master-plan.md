@@ -121,16 +121,20 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Align the CI bridge governance contract test with the current checkpoint, verify
-  and push that exact fix, then run it staging-only with production disabled and retain exact
-  refusal, validation, deploy, post-deploy, Worker restoration, D1 reconciliation, and restored-state
-  evidence. Do not remove old implementation or trigger production.
+- **Next action:** Run the tested standard `deploy.yml` staging-only path with rollback rehearsal and
+  production disabled to back up D1, apply pending migrations `0018`–`0022`, verify D1 integrity and
+  protected access, and retain deploy/post-deploy evidence. If it passes, rerun the exact-source
+  rollback rehearsal with production disabled and retain Worker restoration, D1 reconciliation, and
+  restored-state evidence. Do not remove old implementation or trigger production.
 - **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
-  Exact-source run `33045869299` then reached the unchanged test gate but failed because the
-  candidate-evidence contract still expected the prior checkpoint wording; no staging or production
-  job ran. Hosted validation run `33041884429` passed all 17
+  Commit `5b2e9d73` aligned the governance test. Exact-source run `33046259704` passed all 17 gates and
+  same-run input verification, captured exact Worker/D1 baseline artifacts and a D1 export, then
+  correctly refused rollback rehearsal because staging has pending migrations `0018`–`0022`. Its
+  recovery job restored all three Workers, reconciled D1, and verified safe state; no new Worker or
+  production version was deployed. The pending migrations now require the named standard
+  staging-only forward-alignment recipe before another rollback rehearsal. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

@@ -164,3 +164,32 @@ preflights and entering the unchanged release test gate. Quality job `9842968765
 profile` because that test still expected the prior CI-GH-U4 next-action and blocker wording. All
 staging, proof, restoration, approval, and production jobs were skipped. This is real hosted failure
 evidence only; it is not a passing 17-gate or staging-restoration proof.
+
+## Exact-source rollback refusal and verified safe restoration — 2026-08-27
+
+Commit `5b2e9d73905deb51f84d2ee1c4d0ed15191d597b` aligned the CI bridge governance contract. Its local
+focused workflow/release suite passed 84 tests and 685 expectations; TypeScript, formatting, YAML
+parsing, and diff checks passed. Exact-source deploy run `33046259704` then passed deployment
+preflight job `98430860137`, reusable validation preflight job `98430894194`, the unchanged 17-gate
+quality job `98430917302`, and same-run deployment-input verification job `98435824176`. Bound
+validation artifact `9636328676` is named
+`validated-release-5b2e9d73905deb51f84d2ee1c4d0ed15191d597b-33046259704-attempt-1`.
+
+Before any new Worker received traffic, deploy job `98435873207` captured exact Worker/D1 baseline
+artifact `9636347253` with digest
+`sha256:32f46118c51b911a12bcedeb0dfb8a3a2f5c17f7e5aebbe7e133da5f8953ba81`, exported test D1 to
+artifact `9636349427`, and listed the remote migration state. The rollback rehearsal correctly
+refused because migrations `0018_storefront_preview_revocation.sql` through
+`0022_admin_identity_expiry.sql` remain pending. Upload, migration, deployment, and staging proof
+steps were skipped; no new Worker version or production resource was deployed.
+
+Recovery job `98436002794` validated the captured baseline, restored the captured API, Admin, and
+Storefront Worker versions at 100%, reconciled run-scoped D1 proof data, verified the restored Worker
+and D1 safety projection, and uploaded restoration artifact `9636364856` with digest
+`sha256:51ea1f7a73d31781bbce3cea16743be6508a177a53e3375f708660c454bd2037` and 90-day retention. Its
+final failed-status Catalog callback returned HTTP 409 because the representative release was
+already terminal; the explicit workflow outcomes remained Worker restoration `success`, D1
+reconciliation `success`, and restored state `success`. This run is valid hosted validation,
+fail-closed migration-refusal, baseline-capture, and safe-restoration evidence, but it is not a
+successful staging deployment/post-deployment rollback rehearsal. CI-GH-U4 remains open and U5
+remains unauthorized.
