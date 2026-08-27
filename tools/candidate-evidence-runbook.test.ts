@@ -28,7 +28,12 @@ describe("candidate evidence operating contract", () => {
       /CI-U7\.3 was not completed[\s\S]{0,120}practical\s+Intel restore never ran/is,
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
-    expect(masterPlan).toMatch(/\*\*Next action:\*\* Integrate the exact bridge implementation/is);
+    expect(masterPlan).toMatch(
+      /\*\*Next action:\*\* Resolve GitHub Actions billing[\s\S]{0,180}bad6aeda5dac3727a039b5ead4f69020ca3ac000/is,
+    );
+    expect(masterPlan).toMatch(
+      /bridge is integrated on `origin\/main`[\s\S]{0,180}run\s+`33035917400`/is,
+    );
     expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");

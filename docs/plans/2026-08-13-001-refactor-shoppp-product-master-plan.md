@@ -121,13 +121,15 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Integrate the exact bridge implementation into the protected default branch,
-  resolve GitHub Actions billing, then run staging-only CI-GH-U4 and retain exact refusal,
+- **Next action:** Resolve GitHub Actions billing, then rerun exact protected-default source
+  `bad6aeda5dac3727a039b5ead4f69020ca3ac000` through staging-only CI-GH-U4 and retain exact refusal,
   validation, deploy, post-deploy, and restored-state evidence. Do not remove old implementation or
   trigger production.
-- **Blocker:** None for `CI-GH-U1` through repository implementation. GitHub Actions billing may
-  block the first live hosted validation and staging proof required by `CI-GH-U4`; it cannot be
-  replaced by local, historical Intel, or Codex Cloud output, and removal cannot start without it.
+- **Blocker:** The bridge is integrated on `origin/main`, but exact-source hosted-validation run
+  `33035917400` and preflight job `98398449298` had zero steps because account payment failed or the
+  spending limit must be increased. Billing therefore blocks the live hosted validation and staging
+  proof required by `CI-GH-U4`; local, historical Intel, and Codex Cloud output cannot replace it,
+  and removal cannot start without it.
 - **Tail:** `CI-GH-U4` through `CI-GH-U7`, then return to `CI-U8.3` for the GitHub-first
   release-availability/recovery boundary, followed by `CI-U11.1` steady-state review. The transition
   preserves all 17 release gates, Lighthouse thresholds, exact-SHA binding, protected deployment,
@@ -167,7 +169,7 @@ focused test alone.
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Temporarily paused at incomplete `CI-U7.3`; CI-U1–U3, CI-U7.1–U7.2, and CI-U12 remain complete; resumes at `CI-U8.3` only after CI-GH hand-back** | Retains completed CI history, then owns the GitHub-first availability boundary and `CI-U11.1` review; it does not own the current transition unit while the bridge is active |
-| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Active but blocked — CI-GH-U1–U3 complete in repository implementation; current `CI-GH-U4` awaits protected-default integration and real hosted/staging proof; Docker/Intel/provider-independent implementation remains** | Owns CI-GH-U1–U7, exact transition supersessions, pre-removal and post-removal non-production hosted/staging proof, and hand-back to `CI-U8.3`; no product, candidate, DC/PG, or production-promotion authority |
+| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Active but blocked — CI-GH-U1–U3 are integrated on `origin/main`; current `CI-GH-U4` awaits billing recovery and real hosted/staging proof; Docker/Intel/provider-independent implementation remains** | Owns CI-GH-U1–U7, exact transition supersessions, pre-removal and post-removal non-production hosted/staging proof, and hand-back to `CI-U8.3`; no product, candidate, DC/PG, or production-promotion authority |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions

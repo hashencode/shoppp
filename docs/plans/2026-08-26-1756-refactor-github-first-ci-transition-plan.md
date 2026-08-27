@@ -58,17 +58,18 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** After the exact CI-GH-U1–U3 implementation is integrated into the
-  protected default branch and GitHub hosted execution is available, dispatch a staging-only exact
-  clean SHA. Retain its pre-mutation Worker/D1 baseline, passing 17-gate attestation and artifact
+- **Next concrete action:** Resolve GitHub Actions billing, then rerun exact source
+  `bad6aeda5dac3727a039b5ead4f69020ca3ac000` through hosted validation and the staging-only deploy
+  path. Retain its pre-mutation Worker/D1 baseline, passing 17-gate attestation and artifact
   identities, controlled mismatch refusal, deploy/post-deploy result, rollback/reconciliation, and
   restored safe state. Do not trigger production.
-- **Current blockers:** `origin/main` is still `63b71c82` and does not contain the bridge workflow,
-  so the protected-default-branch preflight cannot yet authorize it. GitHub Actions is also
-  operationally blocked: run `32830213920` had zero steps and its job annotation states that recent
-  account payments failed or the spending limit must be increased. No hosted `full-validation.yml`
-  run exists. These are real U4 blockers; local tests, historical Intel evidence, and Codex Cloud
-  output are not substitutes, and U5 is not authorized.
+- **Current blockers:** The exact bridge implementation was fast-forwarded to `origin/main` at
+  `bad6aeda5dac3727a039b5ead4f69020ca3ac000`, so protected-default integration is no longer a
+  blocker. GitHub Actions remains operationally blocked: exact-source hosted-validation run
+  `33035917400` failed before its first step, and preflight job `98398449298` states that recent
+  account payments failed or the spending limit must be increased; its quality job was skipped.
+  This is real U4 blocker evidence, not a hosted validation result. Local tests, historical Intel
+  evidence, and Codex Cloud output are not substitutes, and U5 is not authorized.
 - **Tail:** `CI-GH-U4` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
   `CI-U11.1`.
 - **Temporary isolation:** Work only in `.worktrees/relax-ci-u7-signing` on

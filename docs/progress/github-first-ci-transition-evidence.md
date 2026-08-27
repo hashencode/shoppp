@@ -44,8 +44,8 @@ default ref, environment, or remote content was changed during this observation.
 CI-GH-U4 still lacks every required operational result: a passing exact-SHA hosted 17-gate run,
 bound attestation/report/deployable artifacts, controlled mismatch refusal, captured pre-mutation
 Worker and D1 baseline, staging deployment and post-deployment checks, rollback or forward
-reconciliation, and verification of the restored safe staging state. The billing failure and missing
-protected-default integration are blocker evidence, not substitutes for those results. CI-GH-U5 is
+reconciliation, and verification of the restored safe staging state. The billing failure is blocker
+evidence, not a substitute for those results. CI-GH-U5 is
 therefore not authorized, and no Docker, Intel, capsule, candidate-evidence, signing, retention, or
 restore implementation was removed. No staging or production mutation occurred.
 
@@ -69,3 +69,22 @@ Lighthouse thresholds were not changed.
 These are local implementation and review results only. They do not prove a GitHub-hosted run,
 staging deployment, rollback/reconciliation, Intel execution, retention, restoration, signing, or
 production behavior, and they do not relax the CI-GH-U4 blocker recorded above.
+
+## Protected-default integration and exact-source dispatch — 2026-08-27
+
+The isolated bridge branch was a pure fast-forward of `origin/main`, and the exact implementation
+was pushed without force or a production workflow. The protected default branch then resolved to
+`bad6aeda5dac3727a039b5ead4f69020ca3ac000`; this removes the earlier integration blocker without
+claiming any hosted or staging result.
+
+Hosted full-validation run `33035917400` was explicitly dispatched from `main` for exact source
+`bad6aeda5dac3727a039b5ead4f69020ca3ac000` and the existing staging variable
+`LAST_KNOWN_GOOD_RELEASE_ID` value `representative-release-2026-07-30`. Preflight job `98398449298`
+failed with zero steps. Its GitHub annotation states that the job did not start because recent
+account payments failed or the spending limit must be increased; the dependent quality job was
+skipped with zero steps. No hosted gate executed, no artifact or attestation was produced, no
+environment secret was exposed to a runner, and no staging or production mutation occurred.
+
+Run `33035917400` is current CI-GH-U4 billing-blocker evidence only. It does not satisfy any hosted
+validation, controlled-refusal, deployment, post-deployment, rollback, reconciliation, restoration,
+signing, retention, DC, or PG requirement.
