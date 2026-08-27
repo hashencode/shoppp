@@ -1,10 +1,12 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type releaseFixture from "../fixtures/release.json";
+import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@shoppp/contracts";
 import { format, resolveConfig } from "prettier";
 
-type Release = typeof releaseFixture;
+function assertCanonicalCatalogRelease(input: unknown): asserts input is CanonicalCatalogRelease {
+  canonicalCatalogReleaseSchema.parse(input);
+}
 
 const root = resolve(import.meta.dir, "..");
 const prettierConfig = await resolveConfig(root);
@@ -12,16 +14,18 @@ const sourceFile = process.env.NUXT_CATALOG_RELEASE_FILE
   ? resolve(process.env.NUXT_CATALOG_RELEASE_FILE)
   : resolve(root, "fixtures/release.json");
 
-const release = process.env.NUXT_CATALOG_RELEASE_URL
+const releaseSource = process.env.NUXT_CATALOG_RELEASE_URL
   ? await fetch(process.env.NUXT_CATALOG_RELEASE_URL, {
       headers: process.env.NUXT_CATALOG_RELEASE_TOKEN
         ? { Authorization: `Bearer ${process.env.NUXT_CATALOG_RELEASE_TOKEN}` }
         : {},
     }).then(async (response) => {
       if (!response.ok) throw new Error(`Catalog release fetch failed: ${response.status}`);
-      return response.json() as Promise<Release>;
+      return response.json() as Promise<unknown>;
     })
-  : (JSON.parse(await readFile(sourceFile, "utf8")) as Release);
+  : (JSON.parse(await readFile(sourceFile, "utf8")) as unknown);
+assertCanonicalCatalogRelease(releaseSource);
+const release = releaseSource;
 
 const products = release.products.filter(
   (product) =>

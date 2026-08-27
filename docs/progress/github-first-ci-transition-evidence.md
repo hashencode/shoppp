@@ -193,3 +193,38 @@ reconciliation `success`, and restored state `success`. This run is valid hosted
 fail-closed migration-refusal, baseline-capture, and safe-restoration evidence, but it is not a
 successful staging deployment/post-deployment rollback rehearsal. CI-GH-U4 remains open and U5
 remains unauthorized.
+
+## Forward-aligned staging and canonical-release refusal — 2026-08-27
+
+Commit `9928ae85b92b4dcde698c69438b39055849bcc61` was dispatched through the standard staging-only
+path with production promotion and rollback rehearsal both disabled. Run `33048142888` passed
+deployment preflight job `98436914852`, reusable validation preflight job `98436960643`, all 17
+unchanged release gates in quality job `98436988731`, same-run deployment-input verification job
+`98442016884`, and deploy-staging job `98442094728`. The run retained validation artifact
+`9637061809` and pre-migration D1 export artifact `9637080055`, applied migrations `0018`–`0022`,
+verified D1 integrity and protected administrator state, and deployed all three validated Worker
+versions to staging. No production job ran.
+
+Staging proof job `98442292600` provisioned the scoped proof credentials, verified administrator
+authentication, prepared inventory and isolated fixtures, and passed the service-principal access
+proof. The public/protected journey then failed when the Atlas product's first cart-line mutation
+returned `catalog_release_invalid`: the deployed API correctly found that immutable release
+`representative-release-2026-07-30` does not satisfy the canonical v2 Catalog Release schema. The
+retained staging-evidence artifact is `9637131133` with digest
+`sha256:f635e104b7dc4003f2097df9965a90b2f9b346374bb7a4e2ba380dfbabc98584`; transient proof cleanup
+succeeded. The failed-result callback returned HTTP 409 because the legacy release was already
+terminal. No rollback rehearsal was requested in this forward-alignment run.
+
+Root-cause investigation found that `apps/storefront/scripts/prepare-release.ts` treated fetched
+JSON as a TypeScript fixture type instead of runtime-validating the canonical schema. Consequently,
+the hosted gates could build a legacy manifest that `apps/api/src/storefront-experience/catalog-resources.ts`
+must reject during Commerce mutation. The repository fix makes local and fetched release sources
+pass the shared `canonicalCatalogReleaseSchema` before any generated output is written and upgrades
+the default fixture to canonical v2. The focused regression test first failed on the legacy fixture,
+then the complete 239-test Storefront unit suite and Storefront typecheck passed after the fix.
+These local results are implementation evidence only.
+
+CI-GH-U4 remains open. The next hosted exercise requires a new immutable canonical successor in
+ordinary staging and an exact-source rollback rehearsal; the historical release will not be
+rewritten, local results do not substitute for GitHub/staging proof, U5 remains unauthorized, and
+no production mutation is authorized.

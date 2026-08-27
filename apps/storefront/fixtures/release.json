@@ -1,5 +1,7 @@
 {
   "releaseId": "representative-release-2026-07-30",
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-30T00:00:00.000Z",
   "site": {
     "name": "Shoppp",
     "origin": "https://shop.example.invalid",
@@ -8,12 +10,14 @@
   },
   "products": [
     {
+      "id": "prod_01J00000000000000000000001",
       "slug": "atlas-carry-on",
       "name": "Atlas Carry-on",
       "description": "A lightweight, impact-resistant carry-on designed for long-haul travel and compact overhead bins.",
       "seoTitle": "Atlas Carry-on | Shoppp",
       "seoDescription": "Meet the Atlas Carry-on: durable shell, quiet wheels, and an international cabin-friendly profile.",
       "status": "published",
+      "collectionIds": ["col_01J00000000000000000000001"],
       "collectionSlugs": ["travel-essentials"],
       "variants": [
         {
@@ -39,12 +43,14 @@
       ]
     },
     {
+      "id": "prod_01J00000000000000000000002",
       "slug": "relaxed-corduroy-shirt",
       "name": "Relaxed corduroy shirt",
       "description": "A relaxed organic-cotton corduroy shirt with source-matched color and size options.",
       "seoTitle": "Relaxed corduroy shirt | Shoppp",
       "seoDescription": "Shop the relaxed corduroy shirt in Gold, Blue, or Green and sizes S through XL.",
       "status": "published",
+      "collectionIds": ["col_01J00000000000000000000001"],
       "collectionSlugs": ["travel-essentials"],
       "variants": [
         {
@@ -168,12 +174,14 @@
   ],
   "collections": [
     {
+      "id": "col_01J00000000000000000000001",
       "slug": "travel-essentials",
       "name": "Travel essentials",
       "description": "Purposeful gear for moving through the world with less friction.",
       "seoTitle": "Travel essentials | Shoppp",
       "seoDescription": "Browse durable travel essentials for international journeys.",
       "status": "published",
+      "productIds": ["prod_01J00000000000000000000001", "prod_01J00000000000000000000002"],
       "productSlugs": ["atlas-carry-on", "relaxed-corduroy-shirt"]
     }
   ],
@@ -299,10 +307,23 @@
       ]
     }
   ],
+  "routes": [
+    "/",
+    "/collections/travel-essentials",
+    "/policies/contact",
+    "/policies/cookies",
+    "/policies/privacy",
+    "/policies/returns",
+    "/policies/shipping",
+    "/policies/terms",
+    "/products/atlas-carry-on",
+    "/products/relaxed-corduroy-shirt"
+  ],
   "redirects": [
     {
       "from": "/products/carry-on",
-      "to": "/products/atlas-carry-on"
+      "to": "/products/atlas-carry-on",
+      "status": 301
     }
   ]
 }

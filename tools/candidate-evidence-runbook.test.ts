@@ -29,11 +29,10 @@ describe("candidate evidence operating contract", () => {
     );
     expect(masterPlan).toMatch(/CI-U7\.3` remains incomplete[\s\S]{0,120}Intel restore remains/is);
     expect(masterPlan).toMatch(
-      /\*\*Next action:\*\* Run the tested standard `deploy\.yml` staging-only path[\s\S]{0,360}production disabled/is,
+      /\*\*Next action:\*\* Integrate the fail-closed canonical Catalog Release source validation[\s\S]{0,420}production disabled/is,
     );
-    expect(masterPlan).toMatch(
-      /No external billing blocker remains[\s\S]{0,520}Exact-source run `33046259704` passed all 17 gates/is,
-    );
+    expect(masterPlan).toMatch(/No external billing blocker remains/is);
+    expect(masterPlan).toMatch(/run\s+`33048142888`[\s\S]{0,140}all 17 gates/is);
     expect(plan).not.toContain("**Next concrete action:**");
 
     expect(runbook).toContain("--capsule-receipt");

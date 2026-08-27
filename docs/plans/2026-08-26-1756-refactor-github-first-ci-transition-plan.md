@@ -58,13 +58,12 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Use the tested standard `deploy.yml` staging-only path with rollback
-  rehearsal and production promotion both disabled to export D1, verify a protected administrator,
-  apply pending migrations `0018`–`0022`, verify D1 integrity and protected access, and retain the
-  deploy/post-deploy result. If that forward alignment succeeds, run a new exact clean source with
-  staging rollback rehearsal enabled and production promotion disabled, retaining its pre-mutation
-  Worker/D1 baseline, exact Worker restoration, D1 reconciliation checks, and restored safe state.
-  Do not trigger production.
+- **Next concrete action:** Integrate the build-time canonical Catalog Release validation fix, create
+  a new immutable canonical successor for ordinary staging through its protected environment without
+  changing the legacy release, and run that exact clean source through `deploy.yml` with staging
+  rollback rehearsal enabled and production promotion disabled. Retain its pre-mutation Worker/D1
+  baseline, all 17 hosted gates, exact deployment binding, staging proof, exact Worker restoration,
+  D1 reconciliation checks, and restored safe state. Do not trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -74,8 +73,16 @@ plan_role: temporary-ci-bridge
   pending migrations `0018`–`0022`; no new Worker version was deployed. Its recovery job restored all
   three captured Worker versions, reconciled D1, and verified restored safe state, while the terminal
   failed-status callback returned HTTP 409 because the representative release was already terminal.
-  The pending staging migrations are the current blocker and require the named standard staging-only
-  forward-alignment recipe before another rollback rehearsal. Earlier exact-source hosted
+  Forward-alignment run `33048142888` for exact source `9928ae85` then passed both preflights, all 17
+  gates, same-run deployment-input verification, the D1 backup, migrations `0018`–`0022`, integrity
+  and protected-access checks, and deployment of all three validated staging Workers. Its staging
+  proof failed at the first cart-line mutation because the immutable
+  `representative-release-2026-07-30` manifest is legacy rather than canonical v2; the current API
+  correctly returned `catalog_release_invalid`. The build-time `prepare-release.ts` path had only
+  cast the fetched JSON and therefore let hosted validation accept a storefront artifact that the
+  API would reject. The current blocker is a new immutable canonical ordinary-staging successor and
+  integration of the fail-closed source validation; the legacy release must not be rewritten.
+  Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
   and Linux X64 toolchain evidence. CI-GH-U4 nevertheless remains incomplete because that source did

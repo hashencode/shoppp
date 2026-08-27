@@ -2,6 +2,7 @@ import type { StorefrontProduct } from "../types/catalog-release";
 
 export const featuredProducts = [
   {
+    id: "prod_01J00000000000000000000001",
     slug: "atlas-carry-on",
     name: "Atlas Carry-on",
     description:
@@ -10,6 +11,7 @@ export const featuredProducts = [
     seoDescription:
       "Meet the Atlas Carry-on: durable shell, quiet wheels, and an international cabin-friendly profile.",
     status: "published",
+    collectionIds: ["col_01J00000000000000000000001"],
     collectionSlugs: ["travel-essentials"],
     variants: [
       {
@@ -35,6 +37,7 @@ export const featuredProducts = [
     ],
   },
   {
+    id: "prod_01J00000000000000000000002",
     slug: "relaxed-corduroy-shirt",
     name: "Relaxed corduroy shirt",
     description:
@@ -43,6 +46,7 @@ export const featuredProducts = [
     seoDescription:
       "Shop the relaxed corduroy shirt in Gold, Blue, or Green and sizes S through XL.",
     status: "published",
+    collectionIds: ["col_01J00000000000000000000001"],
     collectionSlugs: ["travel-essentials"],
     variants: [
       {

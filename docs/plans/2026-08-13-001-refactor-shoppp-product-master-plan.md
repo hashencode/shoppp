@@ -121,11 +121,12 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Run the tested standard `deploy.yml` staging-only path with rollback rehearsal and
-  production disabled to back up D1, apply pending migrations `0018`–`0022`, verify D1 integrity and
-  protected access, and retain deploy/post-deploy evidence. If it passes, rerun the exact-source
-  rollback rehearsal with production disabled and retain Worker restoration, D1 reconciliation, and
-  restored-state evidence. Do not remove old implementation or trigger production.
+- **Next action:** Integrate the fail-closed canonical Catalog Release source validation, create a new
+  immutable canonical successor through the protected ordinary-staging environment without changing
+  the legacy release, and run the exact clean source through `deploy.yml` with rollback rehearsal
+  enabled and production disabled. Retain all 17 hosted gates, exact artifact binding, staging proof,
+  Worker restoration, D1 reconciliation, and restored-state evidence. Do not remove old
+  implementation or trigger production.
 - **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
@@ -133,8 +134,15 @@ either product implementation pointer:
   same-run input verification, captured exact Worker/D1 baseline artifacts and a D1 export, then
   correctly refused rollback rehearsal because staging has pending migrations `0018`–`0022`. Its
   recovery job restored all three Workers, reconciled D1, and verified safe state; no new Worker or
-  production version was deployed. The pending migrations now require the named standard
-  staging-only forward-alignment recipe before another rollback rehearsal. Hosted validation run `33041884429` passed all 17
+  production version was deployed. The pending migrations at that point required the named standard
+  staging-only forward-alignment recipe before another rollback rehearsal. Forward-alignment run
+  `33048142888` for exact source `9928ae85` subsequently passed both preflights, all 17 gates,
+  same-run input verification, the D1 backup, migrations `0018`–`0022`, integrity and protected-admin
+  checks, and deployment of the three validated staging Workers. Its proof failed when the first
+  cart-line mutation correctly rejected the legacy `representative-release-2026-07-30` manifest as
+  noncanonical. The current blocker is integration of fail-closed build-time manifest validation and
+  creation of a new immutable canonical ordinary-staging successor; the legacy release is not to be
+  rewritten. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging
@@ -178,7 +186,7 @@ focused test alone.
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Temporarily paused at incomplete `CI-U7.3`; CI-U1–U3, CI-U7.1–U7.2, and CI-U12 remain complete; resumes at `CI-U8.3` only after CI-GH hand-back** | Retains completed CI history, then owns the GitHub-first availability boundary and `CI-U11.1` review; it does not own the current transition unit while the bridge is active |
-| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Active — CI-GH-U1–U3 are integrated on `origin/main`; current `CI-GH-U4` has a passing hosted 17-gate run and now requires the exact-source staging rollback/reconciliation exercise; Docker/Intel/provider-independent implementation remains** | Owns CI-GH-U1–U7, exact transition supersessions, pre-removal and post-removal non-production hosted/staging proof, and hand-back to `CI-U8.3`; no product, candidate, DC/PG, or production-promotion authority |
+| `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Active — CI-GH-U1–U3 are integrated on `origin/main`; current `CI-GH-U4` has passing hosted 17-gate and forward-alignment evidence, and now requires a canonical staging successor plus the exact-source rollback/reconciliation exercise; Docker/Intel/provider-independent implementation remains** | Owns CI-GH-U1–U7, exact transition supersessions, pre-removal and post-removal non-production hosted/staging proof, and hand-back to `CI-U8.3`; no product, candidate, DC/PG, or production-promotion authority |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions
