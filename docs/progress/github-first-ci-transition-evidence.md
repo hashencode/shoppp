@@ -314,3 +314,25 @@ evidence.
 CI-GH-U4 remains open and U5 remains unauthorized. The next hosted sequence is to integrate this
 correction, prepare a new immutable canonical ordinary-staging successor from that exact source, and
 run the new successor through the full exact-source rollback rehearsal with production disabled.
+
+## Replacement canonical successor prepared — 2026-08-27
+
+Correction commit `88528d05db121dc508a195c555ec93fbfc8e0e5c` passed the representative Catalog
+schema regression and was integrated into the protected default branch. Protected preparation run
+`33053063337` at that exact source passed every step for new immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-b`. It retained pre-insertion D1 artifact `9638418314`, named
+`staging-catalog-successor-d1-before-33053063337-attempt-1`, with digest
+`sha256:cf911096ca6336fa52db82ddf435a0d96dc6c665019f6897e5f39bf186040184` and expiry
+`2026-09-03T08:13:32Z`.
+
+The run then passed collision refusal, deterministic canonical generation, immutable insertion,
+exact semantic read-back through the protected build endpoint, and D1 `building` state/correlation
+verification. It retained manifest/receipt artifact `9638422206`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-b-33053063337-attempt-1`, with
+digest `sha256:3c2c2596ad9d1cb12f5f46b4f747f24c8c52dcabf2cf1a15a3000e9eb8d6c789` and
+expiry `2026-11-25T08:13:07Z`. No predecessor was rewritten and no production job or resource ran.
+
+This new successor is valid input for the missing exact-source rollback rehearsal. Preparation does
+not substitute for its 17-gate validation, exact deployment binding, staging proof, Worker
+restoration, D1 reconciliation, or restored-state evidence. CI-GH-U4 and the U5 dependency boundary
+remain open until that exercise passes.

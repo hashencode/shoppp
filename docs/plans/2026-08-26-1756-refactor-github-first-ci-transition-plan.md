@@ -58,12 +58,12 @@ plan_role: temporary-ci-bridge
   verifies same-run source/tree/release/report/attestation/deployable/run/attempt identity before
   remote operation, and preserves protected environments, confirmation, backup, human-access,
   receipt, rollback, and production-off-by-default gates.
-- **Next concrete action:** Integrate the canonical representative-scale fixture correction, then use
-  that exact clean protected-default source to prepare a new immutable ordinary-staging successor.
-  Run that new successor through `deploy.yml` with staging rollback rehearsal enabled and production
+- **Next concrete action:** Commit and push the retained protected-preparation evidence, then run the
+  resulting exact clean protected-default source through `deploy.yml` for immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-b`, with staging rollback rehearsal enabled and production
   promotion disabled. Retain its pre-mutation Worker/D1 baseline, all 17 hosted gates, exact
   deployment binding, staging proof, exact Worker restoration, D1 reconciliation checks, and
-  restored safe state. Do not reuse the terminal failed successor or trigger production.
+  restored safe state. Do not trigger production.
 - **Current blockers:** GitHub Actions billing is no longer blocking execution. Controlled mismatch
   run `33045559474` was refused before quality or Cloudflare staging jobs. Exact-source rehearsal run
   `33045612910` then exposed the missing reusable Catalog-token declaration, which commit `bd53945a`
@@ -99,7 +99,11 @@ plan_role: temporary-ci-bridge
   `failed`; downstream verification, staging, restoration, and production jobs were skipped. The
   current blocker is integration of the fail-closed scale-fixture correction followed by protected
   preparation of a new immutable canonical successor and its exact-source hosted/staging rollback
-  rehearsal.
+  rehearsal. Correction commit `88528d05` is integrated, and protected preparation run
+  `33053063337` passed its D1 backup, collision refusal, canonical generation, immutable insertion,
+  protected endpoint read-back, exact D1 state verification, and receipt retention for new successor
+  `staging-canonical-2026-08-27-ci-gh-u4-b`. The current blocker is only its exact-source
+  hosted/staging rollback rehearsal and retained evidence.
   Earlier exact-source hosted
   validation run `33041884429` passed all 17 gates for
   `b1ea32e33335e964f1578af057e87a008ab27df0` and retained its bound artifact, report, attestation,
