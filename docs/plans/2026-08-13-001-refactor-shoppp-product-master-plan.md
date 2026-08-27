@@ -121,12 +121,12 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Integrate the release-aware cart-journey assertion, then use that exact clean
-  protected-default source to prepare a new immutable ordinary-staging successor and run it through
-  `deploy.yml` with rollback rehearsal enabled and production disabled. Retain all 17 hosted gates,
-  exact artifact binding, staging proof, Worker restoration, D1 reconciliation, and restored-state
-  evidence. Do not reuse any terminal failed successor, remove old implementation, or trigger
-  production.
+- **Next action:** Commit and push the retained successor-preparation evidence, then run the resulting
+  exact clean protected-default source through `deploy.yml` for immutable successor
+  `staging-canonical-2026-08-27-ci-gh-u4-d`, with rollback rehearsal enabled and production disabled.
+  Retain all 17 hosted gates, exact artifact binding, staging proof, Worker restoration, D1
+  reconciliation, and restored-state evidence. Do not reuse any terminal failed successor, remove
+  old implementation, or trigger production.
 - **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
   refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
   both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
@@ -177,7 +177,12 @@ either product implementation pointer:
   request. The failure callback passed; all staging, restoration, human, and production jobs were
   skipped, and the successor is terminal failed. The current dependency is integration of the
   release-aware journey assertion, protected preparation of a new immutable successor, and its
-  exact-source rehearsal. Hosted validation run `33041884429` passed all 17
+  exact-source rehearsal. Release-aware assertion commit `91202e94` is integrated. Protected
+  preparation run `33058031666` passed its staging D1 backup, collision refusal, canonical
+  projection, immutable insertion, protected endpoint read-back, exact D1 state verification, and
+  receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-d`. The current dependency
+  is only its exact-source hosted/staging rollback rehearsal and retained evidence. Hosted
+  validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

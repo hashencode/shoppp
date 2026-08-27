@@ -444,3 +444,25 @@ The correction makes the cart journey expect `RELEASE_ID` when the release gate 
 retaining the representative fixture as the ordinary local fallback. CI-GH-U4 remains open and U5
 remains unauthorized pending integration, another immutable successor, and a complete exact-source
 rollback rehearsal with production disabled.
+
+## Release-aware replacement successor — 2026-08-27
+
+Commit `91202e945820a78214bd46b82da1fa525223f7fa` integrates the release-aware cart journey while
+preserving the representative fixture fallback. Protected preparation run `33058031666`, job
+`98469621564`, used that exact protected-default source to create immutable successor
+`staging-canonical-2026-08-27-ci-gh-u4-d`. The job passed the staging-only request guard, exported D1
+before insertion, fetched the immutable predecessor, projected exact staging identities, refused
+collisions, generated the canonical successor, inserted it immutably, read it back through the
+protected endpoint, and verified its exact D1 state.
+
+The pre-insertion D1 export is official artifact `9640464999`, named
+`staging-catalog-successor-d1-before-33058031666-attempt-1`, with digest
+`sha256:8d9ee931667790cfa38f8555e4b48441dbf011596d361b21cdf3460cddb268c9` and expiry
+`2026-09-03T09:19:44Z`. The canonical manifest/receipt is official artifact `9640468977`, named
+`staging-catalog-successor-staging-canonical-2026-08-27-ci-gh-u4-d-33058031666-attempt-1`, with
+digest `sha256:c80d8091b9de467db9fe00446aac96902fe0d4c884d22552ccc48891e7b1ba0d` and expiry
+`2026-11-25T09:19:25Z`. No predecessor was rewritten and no production job or resource ran.
+
+CI-GH-U4 remains open and U5 remains unauthorized. Preparation does not replace the required exact
+17-gate hosted validation, same-run artifact binding, staging proof, Worker restoration, D1
+reconciliation, or restored safe-state evidence.
