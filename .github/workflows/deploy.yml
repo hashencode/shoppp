@@ -95,6 +95,8 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       source_ref: ${{ inputs.source_ref }}
       release_id: ${{ inputs.release_id }}
+    secrets:
+      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
 
   verify-deployment-inputs:
     needs: validate

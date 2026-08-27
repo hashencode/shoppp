@@ -130,3 +130,27 @@ does not complete CI-GH-U4: no staging deployment ran, no pre-mutation Worker/D1
 captured, no planned controlled mismatch was exercised, and no Worker rollback, D1 reconciliation,
 or restored-state verification occurred. No production mutation occurred, and U5 remains
 unauthorized.
+
+## Controlled mismatch and first rollback-capable dispatch — 2026-08-27
+
+Commit `6c6cd6486463f19e61431a77b1288c31e351d1cd` added the staging-only rollback rehearsal contract,
+including exact pre-mutation Worker/D1 capture, pending-migration refusal, exact Worker restoration,
+run-scoped D1 forward reconciliation, retained proof-history classification, protected-state
+verification, and production/rehearsal conflict refusal. The complete local tools suite passed 373
+tests; TypeScript, format, lint, boundaries, YAML parsing, and diff checks passed. Structured local
+review findings were applied before the commit. These remain local implementation results.
+
+Deliberate controlled mismatch run `33045559474` requested nonexistent 40-character source
+`0000000000000000000000000000000000000001`. Deploy preflight job `98428612399` completed, and the
+reusable validation preflight job `98428651461` rejected source reachability. Quality, staging,
+proof, restoration, human approval, and production jobs were skipped. The validation-failure Catalog
+callback returned HTTP 409, but no Cloudflare staging or production mutation occurred.
+
+Exact-source rehearsal run `33045612910` requested
+`6c6cd6486463f19e61431a77b1288c31e351d1cd`, with rollback rehearsal enabled and production
+promotion disabled. Deploy preflight job `98428783393` and reusable validation preflight job
+`98428810262` passed. Quality job `98428845739` then failed before running any release gate because
+strict staging validation received an empty `NUXT_CATALOG_RELEASE_TOKEN`: the reusable workflow call
+had neither declared nor passed `BUILD_MANIFEST_TOKEN`. Every staging, proof, restoration, approval,
+and production job was skipped. This is a real credential-wiring blocker, not hosted, staging, or
+rollback proof; CI-GH-U4 remains open and U5 remains unauthorized.

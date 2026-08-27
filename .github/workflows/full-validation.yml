@@ -29,6 +29,10 @@ on:
         description: Immutable release identity
         required: true
         type: string
+    secrets:
+      BUILD_MANIFEST_TOKEN:
+        description: Read-only Catalog release validation token; the staging environment value wins
+        required: false
     outputs:
       source_sha:
         value: ${{ jobs.preflight.outputs.source_sha }}

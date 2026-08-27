@@ -94,6 +94,10 @@ describe("production promotion workflow", () => {
     expect(preflight).toContain("ref: ${{ github.event.repository.default_branch }}");
     expect(preflight).toContain("RELEASE_OPERATORS");
     expect(preflight).toContain("bun tools/ci-trusted-source-preflight.ts --mode deploy");
+    expect(validation).toContain(
+      "secrets:\n      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}",
+    );
+    expect(validation).not.toContain("secrets: inherit");
     expect(validation).toContain("needs: preflight");
     expect(validation).toContain("uses: ./.github/workflows/full-validation.yml");
     expect(validation).toContain("source_sha: ${{ needs.preflight.outputs.source_sha }}");

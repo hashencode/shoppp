@@ -121,11 +121,14 @@ either product implementation pointer:
   authority, hosted-validation, and exact same-run deployment binding without changing the 17 gates
   or Lighthouse thresholds. `CI-U7.3` remains incomplete, and its missing Intel restore remains
   missing.
-- **Next action:** Finish and verify the fail-closed staging rollback rehearsal path, push its exact
-  clean protected-default source, then run it staging-only with production disabled and retain exact
+- **Next action:** Declare and pass only the Catalog validation token across the reusable validation
+  boundary, verify and push that exact fix, then run it staging-only with production disabled and retain exact
   refusal, validation, deploy, post-deploy, Worker restoration, D1 reconciliation, and restored-state
   evidence. Do not remove old implementation or trigger production.
-- **Blocker:** No external billing blocker remains. Hosted validation run `33041884429` passed all 17
+- **Blocker:** No external billing blocker remains. Controlled mismatch run `33045559474` was safely
+  refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
+  both source preflights but stopped before the 17 gates because its reusable workflow call did not
+  declare/pass `BUILD_MANIFEST_TOKEN`; no staging or production job ran. Hosted validation run `33041884429` passed all 17
   gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
   missing pre-mutation Worker capture or restored staging state. CI-GH-U4 and the dependency boundary
   therefore remain open until the rollback-capable exact source passes the full hosted/staging

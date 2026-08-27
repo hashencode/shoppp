@@ -80,6 +80,7 @@ describe("local-first CI workflow contracts", () => {
     expect(contents).toMatch(/^\s+workflow_dispatch:\n\s+inputs:/m);
     expect(contents).toMatch(/^\s+schedule:\n\s+- cron: "17 3 \* \* 2"$/m);
     expect(contents).toMatch(/^\s+workflow_call:\n\s+inputs:/m);
+    expect(contents).toContain("secrets:\n      BUILD_MANIFEST_TOKEN:");
     expect(contents).not.toMatch(/^\s+push:/m);
     expect(contents).toContain("runs-on: ubuntu-latest");
     expect(contents).toContain("timeout-minutes: 60");
