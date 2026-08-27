@@ -2,32 +2,166 @@ name: Hosted full validation
 
 on:
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact commit to validate; defaults to the protected workflow commit
+        required: false
+        type: string
+      source_ref:
+        description: Governed frozen-candidate ref when the source is not on the default branch
+        required: false
+        type: string
+      release_id:
+        description: Immutable release identity; defaults to ci-<source-sha>
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Exact commit to validate
+        required: true
+        type: string
+      source_ref:
+        description: Governed frozen-candidate ref when the source is not on the default branch
+        required: false
+        type: string
+      release_id:
+        description: Immutable release identity
+        required: true
+        type: string
+    outputs:
+      source_sha:
+        value: ${{ jobs.preflight.outputs.source_sha }}
+      source_tree:
+        value: ${{ jobs.preflight.outputs.source_tree }}
+      release_id:
+        value: ${{ jobs.preflight.outputs.release_id }}
+      artifact_name:
+        value: ${{ jobs.quality.outputs.artifact_name }}
+      report_digest:
+        value: ${{ jobs.quality.outputs.report_digest }}
+      attestation_digest:
+        value: ${{ jobs.quality.outputs.attestation_digest }}
+      deployable_digest:
+        value: ${{ jobs.quality.outputs.deployable_digest }}
   schedule:
     - cron: "17 3 * * 2"
 
 permissions:
-  contents: read
+  contents: none
 
 jobs:
-  quality:
+  preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      source_sha: ${{ steps.identity.outputs.source_sha }}
+      source_tree: ${{ steps.identity.outputs.source_tree }}
+      release_id: ${{ steps.identity.outputs.release_id }}
     env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      FROZEN_CANDIDATE_REF: ${{ vars.FROZEN_CANDIDATE_REF }}
+      GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
+      RELEASE_OPERATORS: ${{ vars.RELEASE_OPERATORS }}
+      REQUESTED_RELEASE_ID: ${{ inputs.release_id }}
+      REQUESTED_SOURCE_REF: ${{ inputs.source_ref }}
+      SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+    steps:
+      - name: Check out protected default-branch authority
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+          clean: true
+      - name: Verify trusted workflow, actor, and exact reachable source
+        id: identity
+        shell: bash
+        env:
+          WORKFLOW_ACTOR: ${{ github.actor }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          [[ -n "$DEFAULT_BRANCH" ]]
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          case "$GITHUB_WORKFLOW_REF" in
+            "$GITHUB_REPOSITORY/.github/workflows/"*"@refs/heads/$DEFAULT_BRANCH") ;;
+            *) echo "release workflow must come from the protected default branch" >&2; exit 1 ;;
+          esac
+          normalized_operators=",${RELEASE_OPERATORS//[[:space:]]/},"
+          if [[ "$WORKFLOW_ACTOR" != "$REPOSITORY_OWNER" && "$normalized_operators" != *",$WORKFLOW_ACTOR,"* ]]; then
+            echo "workflow actor is not an authorized release operator" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$SOURCE_SHA" "origin/$DEFAULT_BRANCH"; then
+            [[ -n "$FROZEN_CANDIDATE_REF" ]]
+            [[ "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
+            git fetch --no-tags origin "+$FROZEN_CANDIDATE_REF:$FROZEN_CANDIDATE_REF"
+            candidate_sha="$(git rev-parse "$FROZEN_CANDIDATE_REF^{commit}")"
+            test "$candidate_sha" = "$SOURCE_SHA"
+          elif [[ -n "$REQUESTED_SOURCE_REF" ]]; then
+            [[ -n "$FROZEN_CANDIDATE_REF" && "$REQUESTED_SOURCE_REF" == "$FROZEN_CANDIDATE_REF" ]]
+          fi
+          git cat-file -e "$SOURCE_SHA^{commit}"
+          source_tree="$(git rev-parse "$SOURCE_SHA^{tree}")"
+          [[ "$source_tree" =~ ^[a-f0-9]{40}$ ]]
+          release_id="${REQUESTED_RELEASE_ID:-ci-$SOURCE_SHA}"
+          [[ "$release_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
+          printf 'source_sha=%s\n' "$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          printf 'source_tree=%s\n' "$source_tree" >> "$GITHUB_OUTPUT"
+          printf 'release_id=%s\n' "$release_id" >> "$GITHUB_OUTPUT"
+
+  quality:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: staging
+    permissions:
+      contents: read
+    outputs:
+      artifact_name: ${{ steps.evidence.outputs.artifact_name }}
+      report_digest: ${{ steps.evidence.outputs.report_digest }}
+      attestation_digest: ${{ steps.evidence.outputs.attestation_digest }}
+      deployable_digest: ${{ steps.evidence.outputs.deployable_digest }}
+    env:
+      NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+      NUXT_CATALOG_RELEASE_URL: ${{ vars.API_URL }}/build/catalog/releases/${{ needs.preflight.outputs.release_id }}
+      RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_EXPECTED_TREE: ${{ needs.preflight.outputs.source_tree }}
+      RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+      RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
+      RELEASE_ID: ${{ needs.preflight.outputs.release_id }}
+      RELEASE_TARGET: staging
       SOURCE_EQUIVALENCE_MAX_BROWSER_WORKERS: "2"
+      SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      SOURCE_TREE: ${{ needs.preflight.outputs.source_tree }}
     steps:
       - name: Check out the immutable validation commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.preflight.outputs.source_sha }}
           fetch-depth: 1
           persist-credentials: false
           clean: true
+      - name: Verify exact clean checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          actual_tree="$(git rev-parse 'HEAD^{tree}')"
+          test "$actual_sha" = "$SOURCE_SHA"
+          test "$actual_tree" = "$SOURCE_TREE"
+          test -z "$(git status --porcelain --untracked-files=all)"
       - name: Set up Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
       - name: Install browser runtime
+        shell: bash
         run: |
+          set -euo pipefail
           printf '%s\n' \
             'Acquire::Retries "3";' \
             'Acquire::http::Timeout "30";' \
@@ -44,13 +178,62 @@ jobs:
           done
       - name: Install font inspection runtime
         run: sudo apt-get install --yes woff2
-      - name: Validate release candidate
-        run: bun run release:validate -- --release-id "ci-${GITHUB_SHA}"
-      - name: Preserve the exact release report
-        if: always()
+      - name: Capture effective hosted toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          chromium_path="$(bun -e 'import { chromium } from "@playwright/test"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          printf 'RELEASE_BUN_VERSION=%s\n' "$(bun --version | head -n 1)" >> "$GITHUB_ENV"
+          printf 'RELEASE_PLAYWRIGHT_VERSION=%s\n' "$(bunx playwright --version | head -n 1)" >> "$GITHUB_ENV"
+          printf 'RELEASE_CHROMIUM_VERSION=%s\n' "$("$chromium_path" --version | head -n 1)" >> "$GITHUB_ENV"
+          printf 'RELEASE_WOFF2_VERSION=%s\n' "$(dpkg-query --show --showformat='${Version}' woff2)" >> "$GITHUB_ENV"
+          printf 'RELEASE_RUNNER_IMAGE=%s/%s\n' "${ImageOS:-unknown}" "${ImageVersion:-unknown}" >> "$GITHUB_ENV"
+          printf 'RELEASE_SYSTEM_VERSION=%s\n' "$(uname -srvmo | head -n 1)" >> "$GITHUB_ENV"
+      - name: Validate release candidate and write bound attestation
+        env:
+          RELEASE_STRICT_ENVIRONMENT: "true"
+        run: bun run release:validate -- --release-id "$RELEASE_ID" --write-attestation
+        shell: bash
+      - name: Record validation evidence outputs
+        id: evidence
+        shell: bash
+        env:
+          RELEASE_ID: ${{ needs.preflight.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          report_path="artifacts/releases/$RELEASE_ID.json"
+          attestation_path="artifacts/validation-attestations/$RELEASE_ID-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT.json"
+          report_digest="sha256:$(sha256sum "$report_path" | cut -d ' ' -f 1)"
+          attestation_digest="sha256:$(sha256sum "$attestation_path" | cut -d ' ' -f 1)"
+          deployable_digest="sha256:$(jq --sort-keys --compact-output '.artifactDigests' "$attestation_path" | sha256sum | cut -d ' ' -f 1)"
+          test "$(jq -er '.report.digest' "$attestation_path")" = "$report_digest"
+          artifact_name="validated-release-$SOURCE_SHA-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT"
+          printf 'artifact_name=%s\n' "$artifact_name" >> "$GITHUB_OUTPUT"
+          printf 'report_digest=%s\n' "$report_digest" >> "$GITHUB_OUTPUT"
+          printf 'attestation_digest=%s\n' "$attestation_digest" >> "$GITHUB_OUTPUT"
+          printf 'deployable_digest=%s\n' "$deployable_digest" >> "$GITHUB_OUTPUT"
+      - name: Preserve validated report, attestation, and deployable artifacts
+        if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: release-report-${{ github.sha }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: artifacts/releases/ci-${{ github.sha }}.json
+          name: validated-release-${{ needs.preflight.outputs.source_sha }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            apps/admin/dist/
+            apps/admin/worker-dist/
+            apps/api/dist/
+            apps/storefront/.output/public/
+            apps/storefront/worker-dist/
+            artifacts/releases/${{ needs.preflight.outputs.release_id }}.json
+            artifacts/validation-attestations/${{ needs.preflight.outputs.release_id }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}.json
+            packages/db/migrations/
           if-no-files-found: error
+          retention-days: 30
+      - name: Preserve failed validation diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: validation-diagnostics-${{ needs.preflight.outputs.source_sha }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: artifacts/releases/${{ needs.preflight.outputs.release_id }}.json
+          if-no-files-found: warn
           retention-days: 14

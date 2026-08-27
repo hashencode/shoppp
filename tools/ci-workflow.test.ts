@@ -77,15 +77,69 @@ describe("local-first CI workflow contracts", () => {
   test("keeps manual and scheduled full validation hosted with unchanged release semantics", async () => {
     const contents = await fullValidationWorkflow;
 
-    expect(contents).toMatch(/^\s+workflow_dispatch:$/m);
+    expect(contents).toMatch(/^\s+workflow_dispatch:\n\s+inputs:/m);
     expect(contents).toMatch(/^\s+schedule:\n\s+- cron: "17 3 \* \* 2"$/m);
+    expect(contents).toMatch(/^\s+workflow_call:\n\s+inputs:/m);
     expect(contents).not.toMatch(/^\s+push:/m);
     expect(contents).toContain("runs-on: ubuntu-latest");
-    expect(contents).toContain("timeout-minutes: 45");
+    expect(contents).toContain("timeout-minutes: 60");
     expect(contents).toContain("Install browser runtime");
     expect(contents).toContain("Install font inspection runtime");
-    expect(contents).toContain('bun run release:validate -- --release-id "ci-${GITHUB_SHA}"');
-    expect(contents).toContain("path: artifacts/releases/ci-${{ github.sha }}.json");
+    expect(contents).toContain('bun run release:validate -- --release-id "$RELEASE_ID"');
+    expect(contents).toContain("--write-attestation");
+    expect(contents).toContain(
+      "path: artifacts/releases/${{ needs.preflight.outputs.release_id }}.json",
+    );
+  });
+
+  test("refuses untrusted workflow, actor, or source before staging credentials exist", async () => {
+    const contents = await fullValidationWorkflow;
+    const preflight = contents.slice(
+      contents.indexOf("  preflight:"),
+      contents.indexOf("  quality:"),
+    );
+    const quality = contents.slice(contents.indexOf("  quality:"));
+
+    expect(preflight).toContain("permissions:\n      contents: read");
+    expect(preflight).not.toContain("environment:");
+    expect(preflight).not.toMatch(/secrets\.|BUILD_MANIFEST_TOKEN|NUXT_CATALOG_RELEASE_TOKEN/);
+    expect(preflight).toContain("GITHUB_WORKFLOW_REF");
+    expect(preflight).toContain("refs/heads/$DEFAULT_BRANCH");
+    expect(preflight).toContain("RELEASE_OPERATORS");
+    expect(preflight).toContain(
+      'git merge-base --is-ancestor "$SOURCE_SHA" "origin/$DEFAULT_BRANCH"',
+    );
+    expect(preflight).toContain("FROZEN_CANDIDATE_REF");
+    expect(preflight).toContain('test "$candidate_sha" = "$SOURCE_SHA"');
+
+    expect(quality).toContain("needs: preflight");
+    expect(quality).toContain("environment: staging");
+    expect(quality).toContain("NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}");
+  });
+
+  test("binds the exact checkout, tree, run attempt, attestation, and deployable outputs", async () => {
+    const contents = await fullValidationWorkflow;
+
+    expect(contents).toMatch(/^permissions:\n  contents: none$/m);
+    expect(contents).toContain("ref: ${{ needs.preflight.outputs.source_sha }}");
+    expect(contents).toContain('test "$actual_sha" = "$SOURCE_SHA"');
+    expect(contents).toContain('test "$actual_tree" = "$SOURCE_TREE"');
+    expect(contents).toContain('test -z "$(git status --porcelain --untracked-files=all)"');
+    expect(contents).toContain(
+      "RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}",
+    );
+    expect(contents).toContain("RELEASE_EXPECTED_TREE: ${{ needs.preflight.outputs.source_tree }}");
+    expect(contents).toContain("RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}");
+    expect(contents).toContain("RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}");
+    expect(contents).toContain("artifacts/validation-attestations/");
+    expect(contents).toContain(
+      "validated-release-${{ needs.preflight.outputs.source_sha }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}",
+    );
+    expect(contents).toContain(
+      "validation-diagnostics-${{ needs.preflight.outputs.source_sha }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}",
+    );
+    expect(contents).toContain("if: success()");
+    expect(contents).toContain("if: failure()");
   });
 
   test("uses read-only checkout and immutable bounded dependencies", async () => {
@@ -95,12 +149,13 @@ describe("local-first CI workflow contracts", () => {
     ]);
 
     for (const contents of [postCommit, fullValidation]) {
-      expect(contents).toMatch(/permissions:\n\s+contents: read/);
+      expect(contents).toMatch(/permissions:\n(?:\s+contents: none[\s\S]*?)?\s+contents: read/);
       expect(contents).toContain("persist-credentials: false");
-      expect(contents).toContain("ref: ${{ github.sha }}");
       expect(contents).toMatch(/timeout-minutes: \d+/);
       expectActionsPinnedToFullShas(contents);
     }
+    expect(postCommit).toContain("ref: ${{ github.sha }}");
+    expect(fullValidation).toContain("ref: ${{ needs.preflight.outputs.source_sha }}");
   });
 
   test("rejects an unpinned action hidden by an inline comment", () => {

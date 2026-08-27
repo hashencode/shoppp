@@ -18,7 +18,7 @@ interface GateResult extends GateDefinition {
   exitCode: number;
 }
 
-interface ReleaseReport {
+export interface ReleaseReport {
   schemaVersion: 1;
   releaseId: string;
   target: ReleaseTarget;
@@ -42,6 +42,9 @@ interface ReleaseReport {
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPORT_DIRECTORY = resolve(ROOT, "artifacts/releases");
+const ATTESTATION_DIRECTORY = resolve(ROOT, "artifacts/validation-attestations");
+const FULL_SHA = /^[a-f0-9]{40}$/;
+const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/;
 
 export const RELEASE_GATES: GateDefinition[] = [
   { name: "reproducible-install", command: ["bun", "install", "--frozen-lockfile"] },
@@ -109,13 +112,29 @@ async function git(...arguments_: string[]): Promise<string> {
   return output.trim();
 }
 
-async function releaseSourceCommit(): Promise<string> {
+async function releaseSourceIdentity(): Promise<{ commit: string; tree: string }> {
   const source = await readReleaseSourceIdentity(ROOT);
-  if (source) return source.commit;
+  if (source) return source;
+  const workspaceChanges = await git("status", "--porcelain", "--untracked-files=all");
+  assert(
+    !workspaceChanges,
+    "release validation requires a clean checkout including untracked files",
+  );
   const commit = await git("rev-parse", "HEAD");
-  const trackedChanges = await git("status", "--porcelain", "--untracked-files=no");
-  assert(!trackedChanges, "release validation requires a clean tracked working tree");
-  return commit;
+  const tree = await git("rev-parse", `${commit}^{tree}`);
+  assert(FULL_SHA.test(commit), "release source commit is invalid");
+  assert(FULL_SHA.test(tree), "release source tree is invalid");
+  const expectedCommit = process.env.RELEASE_EXPECTED_COMMIT?.trim();
+  const expectedTree = process.env.RELEASE_EXPECTED_TREE?.trim();
+  if (expectedCommit) {
+    assert(FULL_SHA.test(expectedCommit), "expected release commit is invalid");
+    assert(commit === expectedCommit, "checked-out release commit differs from the trusted source");
+  }
+  if (expectedTree) {
+    assert(FULL_SHA.test(expectedTree), "expected release tree is invalid");
+    assert(tree === expectedTree, "checked-out release tree differs from the trusted source");
+  }
+  return { commit, tree };
 }
 
 async function allFiles(path: string): Promise<string[]> {
@@ -261,13 +280,174 @@ export function assertReleaseReportContainsNoPreviewSecrets(report: unknown): vo
   );
 }
 
+interface ValidationAttestationOptions {
+  releaseId: string;
+  source: { commit: string; tree: string };
+  report: { commit: string; digest: string; path: string };
+  artifactDigests: Record<string, string>;
+  github: {
+    repository: string;
+    workflowRef: string;
+    runId: string;
+    runAttempt: string;
+  };
+  toolchain: {
+    runnerOs: string;
+    runnerArch: string;
+    runnerImage: string;
+    bun: string;
+    playwright: string;
+    chromium: string;
+    woff2: string;
+    system: string;
+  };
+}
+
+export interface ValidationAttestation {
+  schemaVersion: 1;
+  releaseId: string;
+  createdAt: string;
+  source: { commit: string; tree: string };
+  report: { commit: string; digest: string; path: string };
+  artifactDigests: Record<string, string>;
+  github: {
+    repository: string;
+    workflowRef: string;
+    runId: string;
+    runAttempt: number;
+  };
+  toolchain: ValidationAttestationOptions["toolchain"];
+}
+
+function safeAttestationValue(value: string, label: string): string {
+  const normalized = value.trim();
+  assert(normalized.length > 0 && normalized.length <= 512, `${label} is missing or too long`);
+  assert(!/[\u0000-\u001f\u007f]/.test(normalized), `${label} contains control characters`);
+  return normalized;
+}
+
+export function createValidationAttestation(
+  options: ValidationAttestationOptions,
+): ValidationAttestation {
+  const releaseId = safeReleaseId(options.releaseId);
+  assert(FULL_SHA.test(options.source.commit), "attestation source commit is invalid");
+  assert(FULL_SHA.test(options.source.tree), "attestation source tree is invalid");
+  assert(
+    options.report.commit === options.source.commit,
+    "attestation source differs from release report",
+  );
+  assert(SHA256_DIGEST.test(options.report.digest), "attestation report digest is invalid");
+  assert(
+    Object.keys(options.artifactDigests).length > 0,
+    "attestation requires deployable artifact digests",
+  );
+  for (const [path, digest] of Object.entries(options.artifactDigests)) {
+    assert(path.length > 0 && SHA256_DIGEST.test(digest), "attestation artifact digest is invalid");
+  }
+  assert(
+    /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(options.github.repository),
+    "GitHub repository is invalid",
+  );
+  assert(/^[1-9][0-9]*$/.test(options.github.runId), "GitHub run ID is invalid");
+  assert(/^[1-9][0-9]*$/.test(options.github.runAttempt), "GitHub run attempt is invalid");
+  const toolchain = Object.fromEntries(
+    Object.entries(options.toolchain).map(([key, value]) => [
+      key,
+      safeAttestationValue(value, `toolchain ${key}`),
+    ]),
+  ) as ValidationAttestationOptions["toolchain"];
+  const attestation: ValidationAttestation = {
+    schemaVersion: 1,
+    releaseId,
+    createdAt: new Date().toISOString(),
+    source: options.source,
+    report: {
+      commit: options.report.commit,
+      digest: options.report.digest,
+      path: safeAttestationValue(options.report.path, "release report path"),
+    },
+    artifactDigests: options.artifactDigests,
+    github: {
+      repository: options.github.repository,
+      workflowRef: safeAttestationValue(options.github.workflowRef, "GitHub workflow ref"),
+      runId: options.github.runId,
+      runAttempt: Number(options.github.runAttempt),
+    },
+    toolchain,
+  };
+  assertReleaseReportContainsNoPreviewSecrets(attestation);
+  assert(
+    !/(?:password|private[_ -]?key|authorization["':\s]+bearer|token["':\s]+[A-Za-z0-9_-]{16,})/i.test(
+      JSON.stringify(attestation),
+    ),
+    "validation attestation contains credential material",
+  );
+  return attestation;
+}
+
+async function fileDigest(path: string): Promise<string> {
+  return `sha256:${createHash("sha256")
+    .update(await readFile(path))
+    .digest("hex")}`;
+}
+
+async function writeValidationAttestation(options: {
+  report: ReleaseReport;
+  reportPath: string;
+  source: { commit: string; tree: string };
+}): Promise<string> {
+  assert(
+    options.report.status === "passed",
+    "failed validation cannot produce a passing attestation",
+  );
+  const environment = process.env;
+  const attestation = createValidationAttestation({
+    releaseId: options.report.releaseId,
+    source: options.source,
+    report: {
+      commit: options.report.commit,
+      digest: await fileDigest(options.reportPath),
+      path: relative(ROOT, options.reportPath),
+    },
+    artifactDigests: options.report.artifactDigests,
+    github: {
+      repository: environment.GITHUB_REPOSITORY ?? "",
+      workflowRef: environment.GITHUB_WORKFLOW_REF ?? "",
+      runId: environment.RELEASE_GITHUB_RUN_ID ?? environment.GITHUB_RUN_ID ?? "",
+      runAttempt: environment.RELEASE_GITHUB_RUN_ATTEMPT ?? environment.GITHUB_RUN_ATTEMPT ?? "",
+    },
+    toolchain: {
+      runnerOs: environment.RUNNER_OS ?? "",
+      runnerArch: environment.RUNNER_ARCH ?? "",
+      runnerImage: environment.RELEASE_RUNNER_IMAGE ?? "",
+      bun: environment.RELEASE_BUN_VERSION ?? "",
+      playwright: environment.RELEASE_PLAYWRIGHT_VERSION ?? "",
+      chromium: environment.RELEASE_CHROMIUM_VERSION ?? "",
+      woff2: environment.RELEASE_WOFF2_VERSION ?? "",
+      system: environment.RELEASE_SYSTEM_VERSION ?? "",
+    },
+  });
+  await mkdir(ATTESTATION_DIRECTORY, { recursive: true });
+  const path = resolve(
+    ATTESTATION_DIRECTORY,
+    `${safeReleaseId(attestation.releaseId)}-${attestation.github.runId}-attempt-${attestation.github.runAttempt}.json`,
+  );
+  await writeFile(path, `${JSON.stringify(attestation, null, 2)}\n`, { flag: "wx" });
+  return path;
+}
+
 export async function validateRelease(options: {
   target: ReleaseTarget;
   releaseId?: string;
   strictEnvironment?: boolean;
   promotion?: boolean;
-}): Promise<{ report: ReleaseReport; reportPath: string }> {
-  const commit = await releaseSourceCommit();
+}): Promise<{
+  report: ReleaseReport;
+  reportPath: string;
+  source: { commit: string; tree: string };
+}> {
+  const source = await releaseSourceIdentity();
+  const commit = source.commit;
   const strictEnvironment = options.strictEnvironment ?? false;
   const releaseId = safeReleaseId(
     options.releaseId ??
@@ -355,7 +535,7 @@ export async function validateRelease(options: {
       : {}),
   };
   const reportPath = await writeReport(report);
-  return { report, reportPath };
+  return { report, reportPath, source };
 }
 
 if (import.meta.main) {
@@ -367,6 +547,7 @@ if (import.meta.main) {
       "release-id": { type: "string" },
       "strict-environment": { type: "boolean", default: false },
       promotion: { type: "boolean", default: false },
+      "write-attestation": { type: "boolean", default: false },
     },
   });
   const releaseId = values["release-id"] ?? process.env.RELEASE_ID;
@@ -378,5 +559,9 @@ if (import.meta.main) {
     promotion: values.promotion,
   });
   console.log(`\nRelease report: ${relative(ROOT, result.reportPath)}`);
+  if (values["write-attestation"] && result.report.status === "passed") {
+    const attestationPath = await writeValidationAttestation(result);
+    console.log(`Validation attestation: ${relative(ROOT, attestationPath)}`);
+  }
   if (result.report.status !== "passed") process.exitCode = 1;
 }

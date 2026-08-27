@@ -52,18 +52,20 @@ plan_role: temporary-ci-bridge
 
 ## Execution Checkpoint
 
-- **Current parent/child stage:** `CI-GH-U2` — make direct GitHub-hosted full validation
-  authoritative. `CI-GH-U1` is complete: the parent CI plan and product master now preserve
-  historical Intel/capsule evidence, name exact supersessions, and name `CI-U8.3`/`CI-U11.1` as the
-  post-bridge tail.
-- **Next concrete action:** Strengthen workflow and release-validator contract tests first, then make
-  `.github/workflows/full-validation.yml` a credential-gated reusable GitHub-hosted Linux x64 path
-  with full-SHA action pins, explicit permissions, unique run/attempt artifacts, and a validation
-  attestation around the unchanged 17-gate `release:validate` contract.
-- **Current blockers:** None for `CI-GH-U2` through repository implementation. The first required
+- **Current parent/child stage:** `CI-GH-U3` — bind protected deployment to the exact source and
+  outputs accepted by full validation. `CI-GH-U2` is complete in repository implementation: the
+  reusable hosted workflow has a credential-free trusted-source preflight, staging-scoped read
+  credential, exact commit/tree and run/attempt identity, full-SHA action pins, success/failure
+  artifact separation, and a toolchain/report/artifact validation attestation around the unchanged
+  17-gate contract.
+- **Next concrete action:** Add deployment refusal tests first, then make `deploy.yml` call the
+  reusable validator and consume only its same-run exact-SHA artifact after verifying source, tree,
+  release ID, report digest, attestation digest, deployable digest, run, and attempt. Preserve all
+  staging/production environment, confirmation, backup, human-access, receipt, and rollback gates.
+- **Current blockers:** None for `CI-GH-U3` repository implementation. The first required
   GitHub-hosted proof in `CI-GH-U4` cannot complete while GitHub Actions billing prevents hosted jobs;
   that state must be recorded as a blocker rather than replaced by local or Codex Cloud output.
-- **Tail:** `CI-GH-U2` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
+- **Tail:** `CI-GH-U3` through `CI-GH-U7`, followed by hand-back to parent `CI-U8.3` and then
   `CI-U11.1`.
 - **Temporary isolation:** Work only in `.worktrees/relax-ci-u7-signing` on
   `codex/relax-ci-u7-signing`. The worktree cleanup condition becomes: the exact bridge changes are

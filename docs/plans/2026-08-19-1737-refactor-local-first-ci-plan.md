@@ -63,19 +63,18 @@ CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remai
 commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
 Intel restore never ran, and no outage result is reclassified as passing evidence.
 
-- **Current parent/child stage:** Execution is temporarily handed to `CI-GH-U2` in the
+- **Current parent/child stage:** Execution is temporarily handed to `CI-GH-U3` in the
   [GitHub-First CI/CD Transition plan](2026-08-26-1756-refactor-github-first-ci-transition-plan.md).
-  CI-GH-U1 reconciled future authority and named `CI-U8.3`/`CI-U11.1` as the hand-back tail. CI-U7.3
-  remains incomplete and superseded as the current stage, not marked complete. The bridge owns the
-  switch from Docker/Intel/provider-independent release proof to direct GitHub-hosted full validation
-  and protected GitHub CD.
-- **Next concrete action:** Execute `CI-GH-U2`: contract-test and implement direct GitHub-hosted full
-  validation without changing the repository-owned 17-gate contract or Lighthouse thresholds.
+  CI-GH-U1 reconciled future authority; CI-GH-U2 implemented the reusable exact-source hosted
+  validation and attestation contract without changing the 17 gates or Lighthouse thresholds.
+  CI-U7.3 remains incomplete and superseded as the current stage, not marked complete.
+- **Next concrete action:** Execute `CI-GH-U3`: make protected deployment call the reusable validator
+  and fail closed unless the same-run source/report/attestation/deployable identity matches.
 - **Current blockers:** None for the bridge's repository work. GitHub Actions billing may block the
   first live hosted validation and staging proof required by `CI-GH-U4`; if so, the bridge remains
   open and no old release implementation is removed.
   The Intel host is no longer the current execution dependency.
-- **Tail:** `CI-GH-U2` through `CI-GH-U7`, then hand back to this plan at `CI-U8.3` — publish and
+- **Tail:** `CI-GH-U3` through `CI-GH-U7`, then hand back to this plan at `CI-U8.3` — publish and
   verify the GitHub-first release-availability and recovery boundary — followed by the revised
   `CI-U11.1` steady-state review. CI-U4/CI-U6 remain an optional non-secret-runner pilot/decision
   track rather than a release dependency. CI-U5 remains the stable deferred ID for optional future

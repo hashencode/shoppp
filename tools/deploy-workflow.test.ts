@@ -54,8 +54,10 @@ describe("hosted full validation workflow", () => {
   test("allows the complete release gate to finish without weakening it", async () => {
     const workflow = await readFile(fullValidationWorkflowPath, "utf8");
 
-    expect(workflow).toContain("timeout-minutes: 45");
-    expect(workflow).toContain('bun run release:validate -- --release-id "ci-${GITHUB_SHA}"');
+    expect(workflow).toContain("timeout-minutes: 60");
+    expect(workflow).toContain(
+      'bun run release:validate -- --release-id "$RELEASE_ID" --write-attestation',
+    );
   });
 });
 
