@@ -77,6 +77,11 @@ Intel restore never ran, and no outage result is reclassified as passing evidenc
   pilot/decision track rather than a release dependency. CI-U5 remains the stable deferred ID for
   optional future PR automation. Completed CI-U7/CI-U12 history remains retained even where its
   future authority is superseded.
+- **Temporary isolation:** `CI-U8.3` uses branch `codex/ci-u8-github-availability` at
+  `/Users/studio/Documents/GitHub/shoppp/.worktrees/ci-u8-github-availability` while the long-lived
+  primary checkout preserves concurrent FS-U8 work. Remove this checkout only after CI-U8.3 changes
+  and evidence are integrated, the checkpoint advances or hands off, writers are stopped, and its
+  exact tracked, untracked, material ignored, and removal-command manifests are retained.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
   `docs/progress/` may retain results but must not become a second current-unit queue. The bridge is
   complete, so this plan owns the current CI unit and remaining tail.

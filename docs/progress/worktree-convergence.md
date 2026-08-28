@@ -200,3 +200,53 @@ material ignored manifest, and retained ref must match this record (except the C
 expected advance to the commit containing this record). A mismatch stops removal. The manager uses
 Git's force option; this authorization is bounded to these three exact paths and manifests and is not
 a reusable cleanup precedent. No failed removal may be retried with a stronger primitive.
+
+### Removal, branch consolidation, and successor isolation result
+
+Immediately before removal, the CI checkout had advanced exactly to cleanup-evidence commit
+`b4e4f7b078cb3925092611537d6a320eda2b04f4`, equal to `origin/main`; the other two HEADs and all
+three manifests still matched the inventory. The writer scan remained empty. The approved manager
+invocation completed once without a failed removal or stronger retry, and all three exact paths were
+then absent from the filesystem and Git's registered worktree list. The two Fashion harness
+untracked diagnostics and every listed reproducible ignored output were discarded and are not
+recoverable from Git.
+
+Decor was protected before checkout removal: local and remote
+`codex/feat-decor-store-source-parity` both resolve to
+`db1a362a680421e2c0b7dbb966f92f5fb03d7105`. Removing its checkout did not merge or delete the
+branch, its 24 commits outside `origin/main`, or its product authority.
+
+The following redundant local branches were deleted only after each tip was proven an ancestor of
+`origin/main`; their commits remain reachable from `origin/main` (and from their remote branch where
+one exists):
+
+- `codex/ci-u7-portable-evidence` at `59c2a64e055cf7be33602462d9f9ca34cd61f73f`;
+- `codex/fashion-u8-governed-harness` at `91e5db248f7e53c9029c73539ee7d0dfa575233a`;
+- `codex/feat-fashion-store-functional-integration` at
+  `922cf55893fd921d625b37b01ab49ede98f0a05b`;
+- `codex/fix-main-format-gate` at `3d63fb8cee2a8af853ae0528a793e33542c35019`;
+- `codex/land-provider-neutral-ci` at `e77187b6ab2fe5ff9f33e51ef1de8e6b6e7ded79`;
+- `codex/relax-ci-u7-retention` at `63b71c824ff2ac5852c7cd9bae951e286603f1dd`;
+- `codex/relax-ci-u7-signing` at `b4e4f7b078cb3925092611537d6a320eda2b04f4`.
+
+Local `main` was then fast-forwarded to `origin/main` without checking it out or changing the dirty
+primary checkout. Local branches `codex/ci-u12-native-gate-isolation` and
+`codex/refactor-local-first-ci` remain because they still contain patches not proven equivalent to
+`origin/main`. The active `codex/fashion-staging-self-hosted-preparation` and retained Decor branch
+also remain. No remote branch was deleted.
+
+Actual concurrent FS and CI work still requires one temporary isolation checkout. The manager
+attached the new branch `codex/ci-u8-github-availability` at exact base
+`b4e4f7b078cb3925092611537d6a320eda2b04f4` to
+`/Users/studio/Documents/GitHub/shoppp/.worktrees/ci-u8-github-availability`.
+
+- **Owner:** parent CI plan `CI-U8.3`, operated by the solo Shoppp operator/Codex session.
+- **Purpose:** implement and verify the GitHub-first release-availability and recovery boundary
+  while the long-lived primary checkout preserves concurrent FS-U8 work.
+- **Cleanup condition:** CI-U8.3 changes and evidence are integrated, its checkpoint advances or
+  hands off, no writer remains, and exact tracked, untracked, and material ignored manifests plus
+  the removal command are retained immediately before removal.
+
+The resulting intended topology contains exactly the dirty long-lived primary checkout and this
+clean temporary CI-U8.3 checkout. This topology change does not advance Fashion, Decor, REL, DC, or
+PG status and does not repair historical WTC-U1/U2.
