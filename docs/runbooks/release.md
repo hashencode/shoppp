@@ -54,6 +54,12 @@ bun run release:validate -- --release-id <release-id>
 
 ### GitHub-first release authority
 
+The [GitHub-first availability and recovery](github-first-release-availability.md) runbook is the
+operational authority for provider-state classification, the complete dependency inventory,
+formal-release pause rules, missing/expired artifact refusal, and the fresh exact-SHA recovery
+audit. This release runbook owns the normal protected validation and deployment procedure; it must
+not be used to bypass a degraded-state stop.
+
 The maintained replacement path dispatches `Deploy immutable commerce release` from the protected
 default-branch workflow with an exact full `source_sha`, optional governed `source_ref`, and immutable
 `release_id`. A credential-free job first verifies the workflow ref, authorized actor, and input

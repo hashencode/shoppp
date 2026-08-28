@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-08-11-001-feat-fashion-store-functional-integration-plan.md
-current_unit: FS-U8.2
+current_plan: 2026-08-19-1737-refactor-local-first-ci-plan.md
+current_unit: CI-U11.1
 ---
 
 # Shoppp Product Master Plan
@@ -66,37 +66,26 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
-- **Current parent unit:** `FS-U8` — complete Fashion Store test-environment acceptance.
-- **Current child stage:** `FS-U8.2` — close bounded gaps from fresh reconciliation. The repaired
-  runner and complete local Fashion, Admin, accessibility, performance, scale, static, security,
-  and environment matrix are green. Stale attempt 30 is now terminal after its exact Preview run
-  failed in checkout before build or deployment. The exact offline runner registration is removed;
-  Fashion staging D1 cleanup and the dedicated local account remain to be reconciled.
-  Thirty browser/preflight attempts made no passing U8 candidate; attempts 22 and 24 retained
-  excluded mutable failed-attempt successor and exposed missing isolated-port
-  forwarding, a login-readiness locator mismatch, and an exact Fashion development-origin mismatch;
-  tested harness `e1a55e18` plus API version `284c7b70` close the launch, origin, login, exact
-  context-Card release identity, bounded staging-session cold-start, and repeated invalid-summary
-  focus and keyboard resource-selection gaps.
-  The prepared retry source's missing reference is schema-valid but absent, its correction is audited,
-  and the authenticated draft read passes before the next human attempt.
-  A mis-targeted residual test-browser window exposed the first generated password in attempt 9; it
-  was immediately invalidated and replaced, the residual browser was removed, and sessions are zero.
-- **Next action:** Use an authorized Cloudflare identity to reconcile Fashion U8 operator/session and
-  retry29 source state, then use a privileged local operator to retain the dedicated runner-home
-  manifests before deleting its directory and account. Only after cleanup closes may a fresh exact-
-  main U8 run resume through successor, VoiceOver, Preview, approval, and terminal p95.
-- **Blocker:** Fashion staging's authenticated ephemeral build hook now hands builds only to the
-  protected self-hosted CD workflow without GitHub-hosted runner billing. Attempt 29 exposed the
-  missing competing-save response barrier; harness `91e5db24` now serializes the proven competing
-  PUT `200` before requiring the stale PUT `409` and conflict recovery UI.
-  Attempt 30's Preview run `32814863542` failed in checkout and skipped every later mutation and
-  acceptance step. Its GitHub runner registration is removed, but the available Cloudflare identity
-  cannot read Fashion D1 and the local account requires privileged manifest capture before removal;
-  ordinary staging and production remain excluded.
-- **Following sequence:** Complete `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`, `FS-U10`,
-  `FS-U11`, `FS-U12`, and `FS-U13` remain completed dependency baselines rather than queued units.
+- **Active product plan:** `CI` — [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md).
+- **Current parent/child stage:** `CI-U11.1` — review GitHub-first operations and close the remaining
+  CI tail. CI-U8.3 is complete with the four-state availability boundary, provider dependency
+  inventory, fail-closed artifact recovery, and retained non-production reconciliation evidence.
+- **FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
+  enabled U8 identities and 23/23 sessions revoked; retry29 remains excluded v3 evidence with no
+  Snapshot. The exact runner registration is absent, protected manifests are retained, the runner
+  is recoverable in Trash under UID `501`, the dedicated account/home are removed, and the
+  run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
+  non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
+  not complete or pause FS-U8 or authorize a new Fashion acceptance run.
+- **Next action:** Execute `CI-U11.1`: record the GitHub-first operating owners and re-entry
+  triggers, capture the durable repository learning, close the CI tail, and integrate it into `main`
+  before returning execution to `FS-U8.2`.
+- **Blocker:** None intrinsic to `CI-U11.1`. The intentional FS cleanup sequencing condition is
+  satisfied and CI-U8.3 is complete. Ordinary staging and all production mutation remain excluded.
+- **Following sequence:** `CI-U11.1` steady-state review -> integrate the closed CI tail into `main`
+  -> resume `FS-U8.2` formal acceptance on that exact-main baseline -> `FS-U8.3` final verification
+  and closure. No fresh Fashion acceptance evidence is captured before the CI tail that could
+  change its source baseline has landed.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
   candidate are complete in their owning plans.
 
@@ -116,18 +105,23 @@ Parallel Decor execution is complete without replacing the product-level Fashion
   exact manifests and ref recovery were retained. This integration does not reopen DS-P1 or change
   Fashion, REL, DC, or PG scope.
 
-CI infrastructure execution has returned from its completed bounded bridge without replacing either
-product implementation pointer:
+CI infrastructure execution is now active after its completed bounded bridge and the terminal FS
+cleanup-only handoff:
 
 - **Completed bridge:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
-- **Current parent/child stage:** Active parent `CI-U8.3` — publish and verify the GitHub-first
-  release-availability and recovery boundary. CI-GH-U1–U7 are complete without changing the 17
-  gates or Lighthouse thresholds. `CI-U7.3` remains incomplete historical work, and its missing
-  Intel restore is not reclassified as passing evidence.
-- **Next action:** Update the provider dependency inventory, current CI/release runbooks, and
-  contract tests with the GitHub-first pause/fail-closed/recovery boundary, then verify the retained
-  staging rollback/reconciliation recipe without production mutation.
-- **Blocker:** None for `CI-U8.3`. Retained post-removal run `33073613728` passed all 17 gates, exact
+- **Current parent/child stage:** Active parent `CI-U11.1` — review GitHub-first operations and close
+  the remaining CI tail. CI-U8.3 is complete with the availability/recovery runbook, provider
+  dependency inventory, contract coverage, and read-only reconciliation of retained run
+  `33073613728`. CI-GH-U1–U7 are complete without changing the 17 gates or Lighthouse thresholds.
+  `CI-U7.3` remains incomplete historical work, and its missing Intel restore is not reclassified as
+  passing evidence.
+- **Next action:** Execute `CI-U11.1`: record operating owners and re-entry triggers for availability,
+  retention, staging recovery, credential lifecycle, toolchain drift, and action pins; capture the
+  durable repository learning; then integrate the closed CI tail into `main` before handing
+  execution back to `FS-U8.2` for fresh exact-main acceptance.
+- **Blocker:** None intrinsic to `CI-U11.1`; CI-U8.3 is complete and the FS-U8.2 cleanup-only
+  sequencing condition is satisfied. Retained post-removal run
+  `33073613728` passed all 17 gates, exact
   same-run binding, protected staging proof, p95 budgets, exact restoration, D1 reconciliation, and
   restored safe state with human access and production skipped. Historical U4 execution follows.
   Controlled mismatch run `33045559474` was safely
@@ -143,7 +137,7 @@ product implementation pointer:
   same-run input verification, the D1 backup, migrations `0018`–`0022`, integrity and protected-admin
   checks, and deployment of the three validated staging Workers. Its proof failed when the first
   cart-line mutation correctly rejected the legacy `representative-release-2026-07-30` manifest as
-  noncanonical. The current blocker is integration of fail-closed build-time manifest validation and
+  noncanonical. The blocker at that point was integration of fail-closed build-time manifest validation and
   creation of a new immutable canonical ordinary-staging successor; the legacy release is not to be
   rewritten. Source validation `ea1f065e` and protected preparation `750b25cb` are integrated, but
   preparation run `33051564144` failed before insertion because the legacy staging product and
@@ -301,14 +295,14 @@ focused test alone.
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
 | `DS-H1` | [Decor Store Source Parity](2026-08-10-001-feat-decor-store-source-parity-plan.md) | Decor Store source-equivalent home baseline | Complete and inherited; U1-U8 closed the home implementation and acceptance baseline | `DS` owns later home correction; `DS-P1` owns the completed secondary-page tail |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U8.2`; U12 complete with governed test-environment proof** | This plan owns `FS-U8` and the remaining Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **In progress — waiting at the completed `FS-U8.2` cleanup-only handoff behind active `CI-U11.1`; U12 complete with governed test-environment proof** | This plan owns `FS-U8` and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
-| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Active at `CI-U8.3`; CI-U1–U3, CI-U7.1–U7.2, and CI-U12 remain complete; incomplete historical CI-U7.3 is not reclassified** | Owns the current GitHub-first availability boundary and subsequent `CI-U11.1` review |
+| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Active at `CI-U11.1`; CI-U1–U3, CI-U7.1–U7.2, CI-U8.3, and CI-U12 remain complete; incomplete historical CI-U7.3 is not reclassified** | Owns the current GitHub-first steady-state review and CI tail closure |
 | `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 

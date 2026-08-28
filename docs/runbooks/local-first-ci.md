@@ -5,6 +5,11 @@ post-commit lane. It does not authorize registration or make this lane release, 
 deployment, or production evidence. Hosted full validation and protected remote delivery remain
 separate.
 
+The separate [GitHub-first release availability](github-first-release-availability.md) runbook owns
+the provider dependency inventory, the `normal` / `actions-degraded` / `github-unavailable` /
+`recovery-audit` states, formal-release pause rules, and fresh exact-SHA recovery. This optional
+runner never changes those boundaries and never supplies substitute release evidence.
+
 ## Current authority and isolation
 
 Last reconciled 2026-08-24: the product pointer was FS-U8.2. This is a dated snapshot, not current

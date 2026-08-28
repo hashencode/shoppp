@@ -63,27 +63,40 @@ deepened: 2026-08-24
 CI-U1 is complete on `d1027841`; CI-U2 is complete on `bca6fede`; CI-U3 is complete on `93b3f88f`.
 CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remains completed on exact
 commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
-Intel restore never ran, and no outage result is reclassified as passing evidence.
+Intel restore never ran, and no outage result is reclassified as passing evidence. CI-U8.3 is
+complete with the GitHub-first availability runbook, provider dependency inventory, contract tests,
+and retained non-production recovery verification recorded in
+`docs/progress/ci-u8-github-availability-evidence.md`.
 
-- **Current parent/child stage:** `CI-U8.3` — publish and verify the GitHub-first
-  release-availability and recovery boundary. The temporary CI-GH bridge completed U1–U7 and handed
-  current CI authority back after retained post-removal non-production run `33073613728` passed all
-  17 gates, exact binding, staging proof, recovery, and safe-state verification with production
-  disabled. CI-U7.3 remains incomplete historical work and is not reclassified as complete.
-- **Next concrete action:** Update the provider dependency inventory, current CI/release runbooks,
-  and their contract tests with the four GitHub availability states: local development may
-  continue, formal release pauses when hosted authority or retained artifacts are unavailable,
-  missing/expired artifacts fail closed, and recovery starts with a new exact-SHA hosted run. Verify
-  the retained staging rollback/reconciliation recipe without production mutation.
-- **Current blockers:** None for `CI-U8.3`. CI-U4/CI-U6 remain an optional non-secret-runner
-  pilot/decision track rather than a release dependency. CI-U5 remains the stable deferred ID for
-  optional future PR automation. Completed CI-U7/CI-U12 history remains retained even where its
-  future authority is superseded.
-- **Temporary isolation:** `CI-U8.3` uses branch `codex/ci-u8-github-availability` at
-  `/Users/studio/Documents/GitHub/shoppp/.worktrees/ci-u8-github-availability` while the long-lived
-  primary checkout preserves concurrent FS-U8 work. Remove this checkout only after CI-U8.3 changes
-  and evidence are integrated, the checkpoint advances or hands off, writers are stopped, and its
-  exact tracked, untracked, material ignored, and removal-command manifests are retained.
+- **Current parent/child stage:** `CI-U11.1` — review GitHub-first operations and close the remaining
+  CI tail. CI-U8.3 now publishes the four explicit availability states, release-pause and
+  fail-closed artifact rules, fresh exact-SHA recovery, and the complete provider dependency
+  inventory. Read-only reconciliation confirms retained run `33073613728` and its validation,
+  staging, and restoration artifacts remain available with production jobs skipped.
+- **Next concrete action:** Execute `CI-U11.1`: record owners and re-entry triggers for GitHub
+  billing/control-plane availability, artifact retention, staging recovery, credential
+  rotation/revocation, toolchain drift, and workflow action-pin updates. Capture the proven
+  GitHub-first limits as a durable repository learning, close the CI tail, and integrate it into
+  `main` before handing execution back to `FS-U8.2` for fresh exact-main acceptance and `FS-U8.3`
+  closure.
+- **Current blockers:** None for `CI-U11.1`; the FS-U8.2 cleanup-only sequencing condition is
+  satisfied and CI-U8.3 is complete. CI-U4/CI-U6 remain
+  an optional non-secret-runner pilot/decision track rather than a release dependency. CI-U5 remains
+  the stable deferred ID for optional future PR automation. Completed CI-U7/CI-U12 history remains
+  retained even where its future authority is superseded.
+- **Temporary isolation:** The previously recorded `codex/ci-u8-github-availability` branch and
+  `/Users/studio/Documents/GitHub/shoppp/.worktrees/ci-u8-github-availability` checkout are absent
+  from the current topology and are not required by this serial execution order. Use the long-lived
+  primary checkout when no concurrent writer remains. Create a temporary worktree only if actual
+  concurrent isolation is still required for CI-U11.1; at creation, record its exact branch/ref,
+  owner, purpose, and cleanup condition. Remove any such checkout only after CI-U11.1 changes and
+  evidence are integrated, the CI tail closes and hands back to FS-U8.2,
+  writers are stopped, and its exact tracked, untracked, material ignored, and removal-command
+  manifests are retained.
+- **Cross-plan execution order:** FS-U8.2 cleanup only -> CI-U8.3 complete -> `CI-U11.1` -> CI tail
+  integrated into `main` -> fresh FS-U8.2 formal acceptance -> FS-U8.3 final verification. CI owns
+  its U11.1 status and evidence while active; the FS and product-master checkpoints own the cleanup
+  handoff and product-level return sequence.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
   `docs/progress/` may retain results but must not become a second current-unit queue. The bridge is
   complete, so this plan owns the current CI unit and remaining tail.
@@ -677,9 +690,9 @@ stateDiagram-v2
   dependency inventory and current runbook so local development may continue during GitHub outage,
   formal release pauses, missing/expired GitHub artifacts fail closed, and recovery starts with a new
   exact-SHA hosted run rather than replaying local or historical evidence. It verifies the retained
-  staging rollback/reconciliation recipe without production mutation. Its likely files are the
-  current CI/release runbooks, dependency inventory, their contract tests, and focused operational
-  evidence; it depends on CI-GH-U7 hand-back.
+  staging rollback/reconciliation recipe without production mutation. **CI-U8.3 is complete** with
+  the current CI/release runbooks, provider dependency inventory, contract tests, and focused
+  operational evidence; it depended on and preserved the CI-GH-U7 hand-back.
 
 - **Requirements:** R12–R13, R19–R23, R27–R28; KTD7, KTD9, KTD11.
 - **Depends on:** CI-U1 for CI-U8.1; CI-U7 for CI-U8.2.

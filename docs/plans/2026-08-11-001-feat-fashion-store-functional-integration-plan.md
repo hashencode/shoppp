@@ -102,10 +102,15 @@ U13 add-only probe do not establish overall completion.
   repaired 15-page runner now restores both generated selection files, and the complete local
   Fashion, Admin, accessibility, performance, scale, static, security, and environment matrix is
   green. The bounded runner `shoppp-fashion-u8-20260825a` registration has been removed after stale
-  attempt reconciliation; its dedicated local account remains pending privileged manifest capture
-  and cleanup. Shared IAM migration `0022` and harness API version `ed2f28b0` are deployed
+  attempt reconciliation. Its exact runner directory has been moved recoverably to the operator
+  account's Trash after protected manifest capture; macOS System Settings removed the dedicated
+  account and home. Shared IAM migration `0022` and harness API version `ed2f28b0` are deployed
   only to Fashion staging. Run `u8-20260825a` previously had a verified expiring operator,
-  deterministic retry sources, and refreshed frozen manifests; its current D1 state is unverified.
+  deterministic retry sources, and refreshed frozen manifests. Authorized D1 reconciliation now
+  proves every Fashion U8 identity disabled, all 23 U8 sessions revoked, and retry29 retained as an
+  excluded v3 draft with no Snapshot. The run-scoped operator credential file is deleted, so the
+  cleanup-only tranche is terminal. CI-U8.3 is now complete, and product execution remains with
+  `CI-U11.1` until the closed CI tail is integrated into `main`.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -124,30 +129,51 @@ U13 add-only probe do not establish overall completion.
   `audit-fashion-u8-u8-20260825a-retry24-source-setup` is retained and authenticated draft GET is
   `200` with no active operator session.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
-  field and browser were cleared, that password was invalidated, and a new owner-only credential now
-  matches the replaced D1 digest with zero active sessions.
-- **Next concrete action:** With an authorized Cloudflare identity, reconcile and clean every
-  Fashion U8 operator/session and inspect retry29 source/audit state. With a privileged local
-  operator, retain exact tracked, untracked, and material-ignored manifests for the dedicated runner
-  home before removing its directory and account. Only then prepare a fresh audited source and new
-  exact-main run identity before resuming the guided browser lane, VoiceOver, approval, refresh,
-  terminal p95, and U8.3 verification.
+  field and browser were cleared, that password was invalidated, and the replacement credential is
+  now unusable and its owner-only file deleted after operator cleanup.
+- **Next concrete action:** Wait while the CI plan completes `CI-U11.1` and integrates that closed
+  tail into `main`. Then resume `U8.2` on the resulting exact-main baseline with a fresh
+  audited source and run identity before the guided browser lane, VoiceOver, Preview, approval,
+  refresh, and terminal p95. The account/home are removed, the exact runner directory is in the
+  operator account's Trash, and protected manifests and the removal-command record are retained.
+  Exact orphaned cache root
+  `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
+  residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
+  deletion and ownership transfer fail closed. Do not disable SIP or treat that system cache as
+  runner/account content.
+- **Cross-plan execution order:** `FS-U8.2` cleanup only -> CI-U8.3 complete -> `CI-U11.1` -> CI tail
+  integrated into `main` -> fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification. The
+  cleanup handoff does not complete or pause U8, create candidate evidence, or authorize REL/DC/PG;
+  it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
+  captured against a source baseline that the remaining CI tail could subsequently change.
 - **Blocker:** The authenticated ephemeral Preview build hook is configured and rejects unauthorized
   or malformed input without storing a GitHub credential; deployment remains in the protected
   self-hosted CD workflow and does not consume GitHub-hosted runner billing. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
   `32814863542`, which failed in checkout before any later build, deployment, or acceptance step.
-  Its runner registration is removed, but Fashion D1 cleanup is unverified because the available
-  Cloudflare identity is unauthorized, and the dedicated local account requires privileged manifest
-  capture before deletion. Ordinary staging and production remain excluded.
+  Its runner registration is removed. Authorized reconciliation on 2026-08-28 disabled the exact
+  operator and every Fashion U8 identity, revoked all 23 U8 sessions, and confirmed retry29 at v3
+  with no Snapshot. Protected manifests are retained, the runner is in Trash, and System Settings
+  removed the dedicated account/home, and the run-scoped operator credential file is deleted. The
+  rootless macOS cache residual is classified as non-actionable system metadata and does not block
+  cleanup. There is no remaining FS cleanup blocker; CI-U8.3 is complete and execution is
+  intentionally sequenced behind the active `CI-U11.1` tail. Ordinary staging and production
+  remain excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
-- **Implementation tail:** Complete U8. Only after every required unit is complete may the selected
-  product scope enter Pre-DC and then DC1 against a frozen candidate.
+- **Implementation tail:** Retain the completed cleanup-only tranche and CI-U8.3 handoff through
+  `CI-U11.1`, then return on the integrated exact-main baseline to complete U8. Only after every
+  required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
+  frozen candidate.
 - **Last reviewed:** 2026-08-28 after attempt 30 was closed conservatively from retained GitHub
-  evidence and its exact offline runner registration was removed. Fashion D1 and the dedicated
-  local account remain explicit cleanup blockers. Earlier governed preparation `32383732029` bound exact `main`
+  evidence, its exact offline runner registration was removed, and Fashion D1 reconciliation
+  disabled all U8 identities and revoked all 23 sessions. Protected local manifests were retained,
+  the exact runner directory moved to Trash, the dedicated account/home removed, and the exact
+  run-scoped operator credential file deleted without reading its contents. The rootless macOS cache
+  residual is classified as non-actionable system metadata, the cleanup-only tranche is terminal,
+  CI-U8.3 is complete, and execution remains with `CI-U11.1`. Earlier governed preparation
+  `32383732029` bound exact `main`
   `1e823172` to the approved immutable input and Preview `32384126394` passed deployment, U13, the
   no-interception three-archetype and sandbox-payment journey, paid-order retention, baseline
   restoration, fresh-session addability, and the complete U12 verdict. U8.2 repaired the generated
