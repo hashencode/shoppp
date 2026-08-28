@@ -307,10 +307,17 @@ describe("storefront experience API", () => {
           id: "decor-store",
           presetDefinitions: [
             expect.objectContaining({
-              templates: [expect.objectContaining({ pageType: "home" })],
+              templates: [
+                expect.objectContaining({ pageType: "home" }),
+                expect.objectContaining({ pageType: "collection" }),
+                expect.objectContaining({ pageType: "product" }),
+                expect.objectContaining({ pageType: "cart" }),
+                expect.objectContaining({ pageType: "checkout" }),
+                expect.objectContaining({ pageType: "content" }),
+              ],
             }),
           ],
-          supportedPageTemplates: ["home"],
+          supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "content"],
           themeVersion: "1.0.0",
         },
         {
