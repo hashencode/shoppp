@@ -39,8 +39,10 @@ deepened: 2026-08-24
   release gates, exact-candidate validation, deployment approvals, credential isolation, DC/PG
   authority, rollback, or fail-closed production promotion.
 - **Parallel plans:** Fashion Store remains active at FS-U8.2 after governed U12 closure. The
-  branch-qualified Decor page-suite plan remains parallel in its recorded temporary worktree. This
-  plan changes neither pointer.
+  branch-qualified Decor page-suite plan remains parallel on retained local and remote branch
+  `codex/feat-decor-store-source-parity` at
+  `db1a362a680421e2c0b7dbb966f92f5fb03d7105`; its temporary checkout was removed during bounded
+  worktree convergence without changing DS-P1 authority. This plan changes neither pointer.
 - **Execution profile:** Preserve the completed validation tiers and optional non-secret mirror
   history. CI-GH first establishes and proves direct hosted validation plus same-run protected
   deployment, removes the superseded capsule/evidence system, and hands back to `CI-U8.3` for the

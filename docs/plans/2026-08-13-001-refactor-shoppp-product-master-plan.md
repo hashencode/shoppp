@@ -108,9 +108,11 @@ Parallel Decor execution is complete without replacing the product-level Fashion
   this completion does not change Fashion, REL, DC, or PG scope.
 - **Blocker:** None. Unavailable remote placeholder image content is governed as a deterministic
   local-asset adaptation and is excluded from exact image-content parity claims.
-- **Isolation:** The temporary worktree at `.worktrees/decor-store-source-parity` owns this
-  concurrent checkout until the page-suite work is merged or explicitly abandoned; its lifecycle
-  record is retained in shared Git metadata.
+- **Isolation:** The completed DS-P1 branch remains retained locally and remotely at
+  `db1a362a680421e2c0b7dbb966f92f5fb03d7105`, but its temporary
+  `.worktrees/decor-store-source-parity` checkout was removed during the bounded 2026-08-28
+  worktree convergence after exact manifests and ref recovery were retained. Checkout removal did
+  not merge, delete, abandon, reopen, or otherwise change DS-P1 authority.
 
 CI infrastructure execution has returned from its completed bounded bridge without replacing either
 product implementation pointer:
@@ -380,16 +382,17 @@ implementation or a `fashion-store`-only candidate, but it must be complete befo
 ### 4. Decor Store remaining page suite
 
 The branch-qualified Decor Store Remaining Page Suite continues from the accepted home-only
-`decor-store` baseline and owns exactly the fourteen non-home Crafto Decor source entries. It runs
-in parallel with Fashion execution from a temporary worktree, preserves the home runtime boundary,
-and keeps Product, Wishlist, Cart, Checkout, and Account replicas fixture-backed and
-presentation-only. It does not connect the replica pages to current catalog, cart, checkout,
-authentication, payment, provider, or order capabilities; later product-framework integration is
-owned by a successor plan. Its reconstruction process reuses the existing shared source-equivalence
-policy, inventory/capture tools, behavior verifier, orchestrator, and home-era Decor runner unchanged
-by default. Shared implementation changes require a concrete failing Decor source case and remain the
-smallest regression-covered adaptation; unrelated Fashion live/business workflow is omitted. No
-second workflow is created. Order and policy surfaces have no dedicated Decor source entry and remain
+`decor-store` baseline and owns exactly the fourteen non-home Crafto Decor source entries. It ran in
+parallel with Fashion execution from a temporary worktree that was later removed under the retained
+2026-08-28 convergence record. The completed implementation preserves the home runtime boundary and
+keeps Product, Wishlist, Cart, Checkout, and Account replicas fixture-backed and presentation-only.
+It does not connect the replica pages to current catalog, cart, checkout, authentication, payment,
+provider, or order capabilities; later product-framework integration is owned by a successor plan.
+Its reconstruction process reuses the existing shared source-equivalence policy, inventory/capture
+tools, behavior verifier, orchestrator, and home-era Decor runner unchanged by default. Shared
+implementation changes require a concrete failing Decor source case and remain the smallest
+regression-covered adaptation; unrelated Fashion live/business workflow is omitted. No second
+workflow is created. Order and policy surfaces have no dedicated Decor source entry and remain
 outside this page-replication scope.
 
 ## Update contract

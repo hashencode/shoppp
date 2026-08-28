@@ -214,7 +214,8 @@ recoverable from Git.
 Decor was protected before checkout removal: local and remote
 `codex/feat-decor-store-source-parity` both resolve to
 `db1a362a680421e2c0b7dbb966f92f5fb03d7105`. Removing its checkout did not merge or delete the
-branch, its 24 commits outside `origin/main`, or its product authority.
+branch, its 24 commits outside `origin/main`, or its product authority. The product master plan and
+active CI plan now record this checkout closure while retaining DS-P1 and branch authority.
 
 The following redundant local branches were deleted only after each tip was proven an ancestor of
 `origin/main`; their commits remain reachable from `origin/main` (and from their remote branch where
