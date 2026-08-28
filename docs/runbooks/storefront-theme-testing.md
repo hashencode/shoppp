@@ -154,6 +154,11 @@ The original U12 readiness commit and digest remain historical baseline evidence
 the post-CI U8 candidate. The U8 preparation and refresh workflows verify that exact readiness
 commit and artifact, prove that commit is an ancestor of the frozen exact-main U8 candidate, and
 carry both identities independently through the refresh attestation.
+If the seven-day U12 readiness artifact has expired before formal U8 acceptance, do not reconstruct
+its bytes from summaries or weaken the digest gate. Re-run the governed U12 preparation on exact
+`main` through the exact temporary U8 runner using the protected U8 candidate SHA and exact runner
+name gates, then complete its ordinary Preview/U12 lifecycle before using that fresh readiness as
+the U8 baseline.
 Set the protected `fashion-staging` environment variables `FASHION_U8_CANDIDATE_SHA`,
 `FASHION_U8_HARNESS_SHA`, and `FASHION_U8_HARNESS_MANIFEST_DIGEST` to that reviewed authority.
 Every U8 workflow must match those values and its own `GITHUB_SHA` before executing harness code.

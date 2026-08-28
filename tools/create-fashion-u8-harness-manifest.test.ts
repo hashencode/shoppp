@@ -2,10 +2,17 @@ import { describe, expect, test } from "bun:test";
 
 import {
   createFashionU8HarnessManifest,
+  FASHION_U8_SECURITY_SENSITIVE_PATHS,
   verifyFashionU8HarnessManifest,
 } from "./create-fashion-u8-harness-manifest";
 
 describe("Fashion U8 frozen harness manifest", () => {
+  test("freezes the exact-main U12 readiness refresh workflow", () => {
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      ".github/workflows/prepare-fashion-staging-u12.yml",
+    );
+  });
+
   test("sorts paths, hashes canonical contents, and detects self or file drift", async () => {
     const files = new Map([
       ["tools/verify-staging-latency.ts", "latency"],

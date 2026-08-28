@@ -809,6 +809,11 @@ describe("governed Fashion staging preparation workflow", () => {
 
     expect(workflow).toContain("FASHION_U12_ADMIN_SERVICE_TOKEN");
     expect(workflow).toContain("FASHION_U12_GITHUB_ADMIN_TOKEN");
+    expect(workflow).toContain("fashion-staging-u8");
+    expect(workflow).toContain("u8_candidate_sha:");
+    expect(workflow).toContain('test "$GITHUB_SHA" = "$U8_CANDIDATE_SHA"');
+    expect(workflow).toContain('test "$RUNNER_NAME" = "shoppp-fashion-u8-$U8_RUN_ID"');
+    expect(workflow).toContain('test "$U8_CANDIDATE_SHA" = "$PROTECTED_U8_CANDIDATE_SHA"');
     expect(workflow).toContain("STRIPE_WEBHOOK_SECRET");
     expect(workflow).toContain("Rotate and synchronize the Fashion API Stripe sandbox credentials");
     expect(workflow).toContain("wrangler secret put STRIPE_SECRET_KEY --env fashion-staging");

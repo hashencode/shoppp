@@ -21,6 +21,7 @@ const SAFE_PATH = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._/-]+$/;
 
 export const FASHION_U8_SECURITY_SENSITIVE_PATHS = [
   ".github/workflows/accept-fashion-staging-u8.yml",
+  ".github/workflows/prepare-fashion-staging-u12.yml",
   ".github/workflows/prepare-fashion-staging-u8.yml",
   ".github/workflows/preview-storefront.yml",
   "apps/admin/e2e/storefront-theme-preview.live.spec.ts",

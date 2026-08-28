@@ -11,6 +11,15 @@ on:
         options:
           - ubuntu-latest
           - fashion-staging-preparation
+          - fashion-staging-u8
+      u8_candidate_sha:
+        description: Exact-main U8 candidate allowed to refresh expired U12 readiness evidence
+        required: false
+        type: string
+      u8_run_id:
+        description: Run suffix bound to the exact temporary U8 runner name
+        required: false
+        type: string
 
 concurrency:
   group: fashion-staging-preview
@@ -31,6 +40,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       FASHION_U12_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
       FASHION_U12_MIGRATIONS: '["0018_storefront_preview_revocation.sql","0019_storefront_validation_catalog_identity.sql","0020_fashion_staging_acceptance.sql","0021_fashion_shipping_method_public_id.sql"]'
+      PROTECTED_U8_CANDIDATE_SHA: ${{ vars.FASHION_U8_CANDIDATE_SHA }}
+      U8_CANDIDATE_SHA: ${{ inputs.u8_candidate_sha }}
+      U8_RUN_ID: ${{ inputs.u8_run_id }}
       GH_TOKEN: ${{ secrets.FASHION_U12_GITHUB_ADMIN_TOKEN }}
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
@@ -44,8 +56,18 @@ jobs:
       - name: Verify standing FS-U12 execution authority
         run: |
           test "$GITHUB_REF" = "refs/heads/main"
-          bun tools/verify-fashion-u12-standing-authority.ts \
-            --baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"
+          if test "${{ inputs.runner }}" = "fashion-staging-u8"; then
+            [[ "$U8_CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+            [[ "$U8_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]
+            test "$GITHUB_SHA" = "$U8_CANDIDATE_SHA"
+            test "$U8_CANDIDATE_SHA" = "$PROTECTED_U8_CANDIDATE_SHA"
+            test "$RUNNER_NAME" = "shoppp-fashion-u8-$U8_RUN_ID"
+          else
+            test -z "$U8_CANDIDATE_SHA"
+            test -z "$U8_RUN_ID"
+            bun tools/verify-fashion-u12-standing-authority.ts \
+              --baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"
+          fi
           test "$API_ORIGIN" = "https://shoppp-api-fashion-staging.hashencode.workers.dev"
           [[ "$STRIPE_SECRET_KEY" == sk_test_* ]]
           test "${#TURNSTILE_SECRET}" -ge 20
