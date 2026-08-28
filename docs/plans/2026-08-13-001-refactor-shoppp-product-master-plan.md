@@ -77,8 +77,8 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Execute `CI-U11.1`: record the GitHub-first operating owners and re-entry
-  triggers, capture the durable repository learning, close the CI tail, and integrate it into `main`
+- **Next action:** Execute `CI-U11.1`: record the GitHub-first re-entry triggers and required checks,
+  capture the durable repository learning, close the CI tail, and integrate it into `main`
   before returning execution to `FS-U8.2`.
 - **Blocker:** None intrinsic to `CI-U11.1`. The intentional FS cleanup sequencing condition is
   satisfied and CI-U8.3 is complete. Ordinary staging and all production mutation remain excluded.
@@ -115,7 +115,7 @@ cleanup-only handoff:
   `33073613728`. CI-GH-U1–U7 are complete without changing the 17 gates or Lighthouse thresholds.
   `CI-U7.3` remains incomplete historical work, and its missing Intel restore is not reclassified as
   passing evidence.
-- **Next action:** Execute `CI-U11.1`: record operating owners and re-entry triggers for availability,
+- **Next action:** Execute `CI-U11.1`: record re-entry triggers and required checks for availability,
   retention, staging recovery, credential lifecycle, toolchain drift, and action pins; capture the
   durable repository learning; then integrate the closed CI tail into `main` before handing
   execution back to `FS-U8.2` for fresh exact-main acceptance.

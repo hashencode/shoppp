@@ -73,7 +73,7 @@ and retained non-production recovery verification recorded in
   fail-closed artifact rules, fresh exact-SHA recovery, and the complete provider dependency
   inventory. Read-only reconciliation confirms retained run `33073613728` and its validation,
   staging, and restoration artifacts remain available with production jobs skipped.
-- **Next concrete action:** Execute `CI-U11.1`: record owners and re-entry triggers for GitHub
+- **Next concrete action:** Execute `CI-U11.1`: record re-entry triggers and required checks for GitHub
   billing/control-plane availability, artifact retention, staging recovery, credential
   rotation/revocation, toolchain drift, and workflow action-pin updates. Capture the proven
   GitHub-first limits as a durable repository learning, close the CI tail, and integrate it into
@@ -89,8 +89,9 @@ and retained non-production recovery verification recorded in
   from the current topology and are not required by this serial execution order. Use the long-lived
   primary checkout when no concurrent writer remains. Create a temporary worktree only if actual
   concurrent isolation is still required for CI-U11.1; at creation, record its exact branch/ref,
-  owner, purpose, and cleanup condition. Remove any such checkout only after CI-U11.1 changes and
-  evidence are integrated, the CI tail closes and hands back to FS-U8.2,
+  owner, purpose, and cleanup condition as worktree audit provenance, not CI task assignment. Remove
+  any such checkout only after CI-U11.1 changes and evidence are integrated, the CI tail closes and
+  hands back to FS-U8.2,
   writers are stopped, and its exact tracked, untracked, material ignored, and removal-command
   manifests are retained.
 - **Cross-plan execution order:** FS-U8.2 cleanup only -> CI-U8.3 complete -> `CI-U11.1` -> CI tail
@@ -239,7 +240,7 @@ and retained non-production recovery verification recorded in
 - **R22:** The repository shall publish a provider-dependency inventory covering source remote,
   workflow triggers, hosted runners, environments/secrets, approvals, artifacts, status checks,
   releases, Cloudflare dependencies, and deployment audit. Every dependency shall name development
-  impact, release impact, recovery owner, and acceptable outage behavior.
+  impact, release impact, required recovery access, and acceptable outage behavior.
 - **R23:** Formal candidate validation shall run from an exact clean commit on a GitHub-hosted Linux
   x64 runner through `release:validate`. Local or self-hosted output may support development but is
   not a substitute for the hosted release proof.
@@ -265,9 +266,10 @@ and retained non-production recovery verification recorded in
   production gates or creates substitute authority.
 - **R29:** Independent candidate-bundle signing is not part of the maintained solo-developer path.
   Re-entry requires a new governed plan naming the candidate, consumers, trust anchor, key custody,
-  rotation/revocation, and operating owner when multiple operators, external consumers, regulatory
-  audit, untrusted runners, cross-provider provenance needs, or observed compromise makes it
-  proportionate.
+  rotation/revocation, and operating authority when multiple maintainers, external consumers,
+  regulatory audit, untrusted runners, cross-provider provenance needs, or observed compromise makes
+  it proportionate. This conditional future-plan authority does not create a current CI-U11.1 owner
+  roster.
 - **R30:** Deployment authorization uses the existing GitHub protected-environment, authorized-actor,
   explicit-confirmation, exact-source, and run-attempt controls. No alternate signed authorization
   envelope or second credentialed control plane is maintained.
@@ -279,7 +281,7 @@ and retained non-production recovery verification recorded in
   fields; prohibit raw environment or credential-bearing output; run redaction and canary-secret
   scanning before publication; and declare least-privilege access, retention, and deletion by
   artifact class.
-- **R33:** A human owner shall document staging and production credential scope, rotation,
+- **R33:** Repository guidance shall document staging and production credential scope, rotation,
   emergency revocation, environment separation, and response to suspected disclosure. Repository
   logs, artifacts, tests, and documentation shall contain no usable secret, token, password, or
   private key.
@@ -696,16 +698,16 @@ stateDiagram-v2
 
 - **Requirements:** R12–R13, R19–R23, R27–R28; KTD7, KTD9, KTD11.
 - **Depends on:** CI-U1 for CI-U8.1; CI-U7 for CI-U8.2.
-- **Outcome:** Operators and agents can classify GitHub failure, continue allowed local work, stop
+- **Outcome:** The maintainer and agents can classify GitHub failure, continue allowed local work, stop
   unsafe promotion, preserve evidence, and reconcile recovered provider state without duplicate
   authority.
 - **Approach:** Extend the runbook and dependency inventory with the four explicit provider states,
-  per-surface impact, authority owner, commands/entry points, evidence projection backlog,
+  per-surface impact, required recovery access, commands/entry points, evidence projection backlog,
   `recovery_of` lineage, and return-to-normal audit. Package-registry/fresh-bootstrap outage remains
   a distinct infrastructure dependency rather than being misreported as GitHub independence.
 - **Child stages:**
   - **CI-U8.1 — Publish operating boundaries:** after CI-U1, publish the dependency inventory,
-    provider states, owners, and stop/continue matrix using current evidence paths.
+    provider states, required access, and stop/continue matrix using current evidence paths.
   - **CI-U8.2 — Add portable recovery:** after CI-U7, add bundle restore, projection backlog,
     `recovery_of` lineage, and return-to-normal reconciliation.
 - **Likely files:** `docs/runbooks/local-first-ci.md`, provider dependency inventory, runbook contract
@@ -816,17 +818,18 @@ stateDiagram-v2
 - **Successor disposition:** The original provider-independent drill program below is superseded
   before execution where it requires portable retention, parity, alternate CD, signing, or capsule
   operation. After CI-U8.3, parent CI-U11 resumes at **CI-U11.1 — Review GitHub-first operations**:
-  record owners and re-entry triggers for GitHub billing/control-plane availability, artifact
-  retention, staging recovery, credential rotation/revocation, toolchain drift, and workflow action
-  pin updates. It captures the proven GitHub-first limits without creating a recurring ceremony that
-  blocks plan completion and without changing REL/DC/PG or production authority.
+  record re-entry triggers and required checks for GitHub billing/control-plane availability,
+  artifact retention, staging recovery, credential rotation/revocation, toolchain drift, and
+  workflow action pin updates. The single-maintainer operating model requires no owner roster,
+  responsibility matrix, escalation tree, or recurring assignment ceremony. It captures the proven
+  GitHub-first limits without changing REL/DC/PG or production authority.
 
 - **Requirements:** R19–R22, R26–R36; KTD9, KTD11–KTD12.
 - **Depends on:** CI-U7–CI-U10.
-- **Outcome:** A human-reviewed operating decision establishes owners, service targets, quarterly
-  drills, audit/retention cadence, re-entry triggers, and shutdown criteria after one inaugural full
-  recovery drill, then captures the proven pattern as a durable repository learning. Later drills
-  are steady-state obligations rather than an infinite completion condition.
+- **Outcome:** A maintainer-reviewed operating decision records the current limits, required access,
+  event-driven re-review triggers, and shutdown criteria after one inaugural full recovery drill,
+  then captures the proven pattern as durable repository guidance. It creates no recurring owner
+  assignment, calendar obligation, or completion-blocking ceremony.
 - **Approach:** Review measured local/full-validation performance, parity drift, evidence recovery,
   runner maintenance/security, adapter isolation, provider dependency inventory, and drill results.
   Re-review when team size, repository plan/visibility, GitHub product behavior, runner exposure,
@@ -834,8 +837,9 @@ stateDiagram-v2
 - **Likely files:** this checkpoint, master CI classification/tail, runbooks, provider inventory,
   `docs/progress/` evidence, and a new `docs/solutions/` learning.
 - **Test scenarios:**
-  - One inaugural drill covers every R27 failure mode and records owners, next due date, escalation,
-    and reminders; a later missed or failed drill reopens CI-U11 or creates governed follow-up work.
+  - One inaugural drill covers every R27 failure mode and records the observed result, required
+    access, and material-change triggers; a failed drill reopens CI-U11 or creates governed follow-up
+    work, while the absence of a calendar reminder does not.
   - Same-source local/self-hosted/hosted reports drift; affected evidence is invalidated until the
     cause is resolved and replayed.
   - A runner or alternate adapter no longer meets security/maintenance bars; it is disabled and
@@ -929,11 +933,11 @@ stateDiagram-v2
   consumed by protected staging/production jobs. GitHub environments own credential and human
   approval boundaries; existing receipts and rollback identity remain fail-closed. Short or local CI
   reports never satisfy preparation, preview, DC, PG, or production approvals.
-- **Operational ownership:** A named human repository operator owns GitHub availability and artifact
-  policy. Staging and production credential owners maintain scope, rotation, emergency revocation,
-  and environment separation. Agents may inspect status and non-secret evidence with bounded
-  polling, but may not provision secrets, grant approvals, authorize break-glass, or promote
-  production.
+- **Operational access and authority:** The single maintainer follows the documented GitHub,
+  artifact, staging, production, and credential procedures when their trigger conditions occur; no
+  separate owner registry or task assignment is maintained. Agents may inspect status and
+  non-secret evidence with bounded polling, but may not provision secrets, grant approvals,
+  authorize break-glass, or promote production.
 - **Plan authority:** Implementation changes only the CI checkpoint and matching master CI pointer.
   Fashion U8, Decor state, REL candidate identity, DC/PG, and production authority remain
   independent; any REL clean-worktree or candidate-schema enhancement is coordinated rather than
@@ -949,7 +953,7 @@ stateDiagram-v2
 - GitHub-hosted full validation, exact source/report/artifact attestation, protected same-run
   deployment, dependency inventory, and GitHub release-availability operation.
 - Workflow contract tests, bounded non-production staging recovery evidence, credential lifecycle,
-  and periodic GitHub-first operational review.
+  and event-driven GitHub-first operational review on documented material-change triggers.
 
 ### Deferred to Follow-Up Work
 

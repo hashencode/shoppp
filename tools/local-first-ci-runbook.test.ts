@@ -12,6 +12,10 @@ const productMasterPlan = readFile(
   resolve(import.meta.dir, "../docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md"),
   "utf8",
 );
+const ciPlan = readFile(
+  resolve(import.meta.dir, "../docs/plans/2026-08-19-1737-refactor-local-first-ci-plan.md"),
+  "utf8",
+);
 
 function markdownSection(contents: string, heading: string): string {
   const marker = `## ${heading}`;
@@ -195,14 +199,14 @@ describe("local-first CI runner operations contract", () => {
       "Surface",
       "Development impact",
       "Release impact",
-      "Recovery owner",
+      "Required recovery access",
       "Acceptable outage behavior",
     ]);
 
     const artifacts = tableRow(inventory, "Workflow artifacts");
     expect(artifacts[1]).toContain("Local reports may diagnose development state");
     expect(artifacts[2]).toContain("cannot be joined or retained");
-    expect(artifacts[3]).toBe("Release operator");
+    expect(artifacts[3]).toBe("GitHub Actions run and artifact access");
     expect(artifacts[4]).toContain("fails closed");
 
     const environments = tableRow(inventory, "Environments, secrets, and approvals");
@@ -210,13 +214,13 @@ describe("local-first CI runner operations contract", () => {
     expect(environments[2]).toContain(
       "credentials and approvals cannot be safely exposed or audited",
     );
-    expect(environments[3]).toBe("Environment owner for staging or production");
+    expect(environments[3]).toBe("GitHub environment and secret administration");
     expect(environments[4]).toContain("Pause every credentialed job");
 
     const cloudflare = tableRow(inventory, "Cloudflare Workers and D1");
     expect(cloudflare[1]).toContain("Local development may continue");
     expect(cloudflare[2]).toContain("baseline capture, verification, reconciliation, or rollback");
-    expect(cloudflare[3]).toBe("Environment owner and deployment operator");
+    expect(cloudflare[3]).toBe("Cloudflare Workers and D1 deployment access");
     expect(cloudflare[4]).toContain("Stop before mutation when preconditions fail");
   });
 
@@ -278,5 +282,71 @@ describe("local-first CI runner operations contract", () => {
     expect(fashion[3]).toContain("behind active `CI-U11.1`");
 
     expect(tableRow(register, "`CI`")[3]).toContain("CI-U8.3");
+  });
+
+  test("keeps CI-U11.1 proportional to a single-maintainer project", async () => {
+    const [plan, master] = await Promise.all([ciPlan, productMasterPlan]);
+    const unit = normalizedMarkdown(
+      markdownSection(plan, "CI-U11 — Establish steady-state resilience governance"),
+    );
+    const checkpoint = normalizedMarkdown(markdownSection(plan, "Execution Checkpoint"));
+    const pointer = normalizedMarkdown(markdownSection(master, "Current execution pointer"));
+
+    expect(unit).toContain("single-maintainer operating model");
+    expect(unit).toMatch(/(?:requires|creates) no owner roster/i);
+    expect(unit).toMatch(/(?:requires|creates) no [^.]*responsibility matrix/i);
+    expect(unit).toMatch(/(?:requires|creates) no [^.]*escalation tree/i);
+    expect(unit).toMatch(/(?:requires|creates) no [^.]*recurring (?:owner|task) assignment/i);
+    expect(unit).toMatch(/(?:requires|creates) no [^.]*(?:periodic|calendar) [^.]*ceremony/i);
+    expect(unit).toContain("event-driven re-review");
+    expect(unit).toMatch(/re-review when [^.]*changes materially/i);
+    expect(unit).not.toMatch(/record (?:operating )?owners/i);
+    expect(unit).not.toContain("quarterly drills");
+
+    expect(checkpoint).toContain("re-entry triggers and required checks");
+    for (const provenance of ["exact branch/ref", "owner", "purpose", "cleanup condition"]) {
+      expect(checkpoint).toContain(provenance);
+    }
+
+    expect(pointer).toContain("re-entry triggers and required checks");
+    expect(pointer).not.toMatch(/record (?:operating )?owners/i);
+  });
+
+  test("keeps future signing and deployment authorization within existing operating authority", async () => {
+    const plan = await ciPlan;
+    const requirements = normalizedMarkdown(markdownSection(plan, "Requirements"));
+    const scope = normalizedMarkdown(markdownSection(plan, "Scope Boundaries"));
+    const r29 = requirements.match(/\*\*R29:\*\* (.*?)(?=- \*\*R30:\*\*)/)?.[1];
+    const r30 = requirements.match(/\*\*R30:\*\* (.*?)(?=- \*\*R31:\*\*)/)?.[1];
+
+    expect(r29).toBeDefined();
+    expect(r29).toContain("new governed plan");
+    for (const authority of [
+      "candidate",
+      "consumers",
+      "trust anchor",
+      "key custody",
+      "rotation/revocation",
+      "operating authority",
+    ]) {
+      expect(r29).toContain(authority);
+    }
+    expect(r29).toMatch(/does not create a current .*owner roster/i);
+
+    expect(r30).toBeDefined();
+    for (const control of [
+      "protected-environment",
+      "authorized-actor",
+      "explicit-confirmation",
+      "exact-source",
+      "run-attempt",
+    ]) {
+      expect(r30).toContain(control);
+    }
+    expect(r30).toContain("No alternate signed authorization envelope");
+    expect(r30).toContain("second credentialed control plane");
+
+    expect(scope).toContain("event-driven GitHub-first operational review");
+    expect(scope).not.toContain("periodic GitHub-first operational review");
   });
 });
