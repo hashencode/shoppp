@@ -122,6 +122,8 @@ U13 add-only probe do not establish overall completion.
   reconstructed or accepted. A focused recovery extends the governed U12 preparation to the exact
   named U8 runner only when its protected candidate SHA equals exact `main`, producing fresh
   readiness and the ordinary complete U12 lifecycle without weakening standing FS-U12 authority.
+  Both lineage and expired-artifact recovery corrections are now integrated into exact `main`
+  `dc746220`; focused workflow, manifest, U8/U12 lifecycle, and standing-authority coverage is green.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -142,11 +144,10 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the bounded expired-readiness recovery and lineage corrections,
-  prepare and complete a fresh exact-main U12 readiness/Preview baseline on the exact U8 runner,
-  then freeze the reviewed U8 harness and resume `U8.2` with a fresh audited source and run identity
-  before the guided browser lane, VoiceOver, Preview, approval, refresh, and terminal p95. The
-  account/home are
+- **Next concrete action:** Freeze the reviewed U8 harness over candidate `dc746220`, create the exact
+  temporary U8 runner/account, and prepare and complete a fresh exact-main U12 readiness/Preview
+  baseline. Then resume `U8.2` with a fresh audited source and run identity before the guided browser
+  lane, VoiceOver, Preview, approval, refresh, and terminal p95. The account/home are
   removed, the exact runner directory is in the operator account's Trash, and protected manifests
   and the removal-command record are retained.
   Exact orphaned cache root
@@ -173,9 +174,9 @@ U13 add-only probe do not establish overall completion.
   removed the dedicated account/home, and the run-scoped operator credential file is deleted. The
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
-  closed CI tail is integrated into exact `main`. The only current blocker is integration and
-  frozen-harness verification of the bounded readiness/candidate lineage and expired-artifact
-  recovery corrections found by the exact-main preflight. Ordinary staging and production remain
+  closed CI tail plus both bounded acceptance corrections are integrated into exact `main`. No code,
+  cleanup, CI review, or sequencing blocker remains; the governed temporary-runner and fresh
+  readiness preparation are the next operational actions. Ordinary staging and production remain
   excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
@@ -188,8 +189,9 @@ U13 add-only probe do not establish overall completion.
   and the bounded workflow/test correction was prepared with red/green contract evidence. The same
   preflight proved the seven-day U12 readiness artifact expired with HTTP `410`; a separate
   red/green recovery now permits fresh exact-main U12 preparation only on the exact protected U8
-  runner. Before that, attempt 30 was closed conservatively from retained GitHub evidence, its exact
-  offline runner registration was removed, and Fashion D1 reconciliation
+  runner. Both corrections are integrated in exact `main` `dc746220`, so harness freeze and
+  temporary-runner setup are next. Before that, attempt 30 was closed conservatively from retained
+  GitHub evidence, its exact offline runner registration was removed, and Fashion D1 reconciliation
   disabled all U8 identities and revoked all 23 sessions. Protected local manifests were retained,
   the exact runner directory moved to Trash, the dedicated account/home removed, and the exact
   run-scoped operator credential file deleted without reading its contents. The rootless macOS cache

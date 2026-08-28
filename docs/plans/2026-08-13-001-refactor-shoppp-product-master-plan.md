@@ -77,14 +77,13 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the focused U8 lineage and expired-readiness recovery corrections,
-  complete a fresh exact-main U12 readiness/Preview baseline on the exact protected U8 runner, then
-  freeze the reviewed U8 harness and resume `FS-U8.2` with a fresh audited source and run identity.
-- **Blocker:** No Fashion cleanup, CI review, or CI integration blocker remains. The only current
-  blocker is the focused U8 workflow correction that separates the historical U12 readiness commit
-  from the post-CI exact-main candidate, verifies their ancestry, and recovers the now-expired
-  seven-day readiness artifact by gated fresh exact-main U12 preparation rather than evidence
-  reconstruction. Ordinary staging and all production mutation remain excluded.
+- **Next action:** Freeze the reviewed U8 harness over exact-main candidate `dc746220`, create the
+  exact temporary U8 runner/account, complete a fresh U12 readiness/Preview baseline through the
+  gated recovery, then resume `FS-U8.2` with a fresh audited source and run identity.
+- **Blocker:** No Fashion cleanup, code, CI review, CI integration, or sequencing blocker remains.
+  The lineage and expired-readiness recovery corrections are integrated into exact `main`; governed
+  runner setup and fresh readiness preparation are the next operational actions. Ordinary staging
+  and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
   closure.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
