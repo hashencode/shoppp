@@ -15,6 +15,10 @@ on:
         description: Exact preparation commit bound to the verified readiness artifact
         required: true
         type: string
+      candidate_sha:
+        description: Exact U8 storefront candidate commit; required only for a refresh deployment
+        required: false
+        type: string
       readiness_run_id:
         description: Preparation workflow run containing the verified readiness artifact
         required: true
@@ -93,6 +97,7 @@ jobs:
       - name: Validate governed Preview dispatch inputs
         env:
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           READINESS_DIGEST: ${{ inputs.readiness_digest }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
           RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
@@ -108,13 +113,16 @@ jobs:
           [[ "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]
           test -z "$RECOVERY_RUN_ID" || [[ "$RECOVERY_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
           if test -n "$REFRESH_RUN_ID"; then
+            [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
             [[ "$REFRESH_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             [[ "$REFRESH_ARTIFACT_NAME" =~ ^fashion-u8-refresh-[1-9][0-9]*-[1-9][0-9]*$ ]]
             [[ "$REFRESH_DIGEST" =~ ^[a-f0-9]{64}$ ]]
             [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
             test "$HARNESS_SHA" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
+            test "$CANDIDATE_SHA" = "${{ vars.FASHION_U8_CANDIDATE_SHA }}"
             test -z "$RECOVERY_RUN_ID"
           else
+            test -z "$CANDIDATE_SHA"
             test -z "$REFRESH_ARTIFACT_NAME"
             test -z "$REFRESH_DIGEST"
             test -z "$HARNESS_SHA"
@@ -130,6 +138,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HARNESS_SHA: ${{ inputs.harness_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
           REFRESH_ARTIFACT_NAME: ${{ inputs.refresh_artifact_name }}
@@ -143,6 +152,7 @@ jobs:
              .status == "completed" and .conclusion == "success"' \
             artifacts/provenance/readiness-run.json >/dev/null
           if test -n "$REFRESH_RUN_ID"; then
+            git merge-base --is-ancestor "$READINESS_COMMIT_SHA" "$CANDIDATE_SHA"
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REFRESH_RUN_ID" > artifacts/provenance/refresh-run.json
             jq --exit-status --arg harness "$HARNESS_SHA" --arg artifact "$REFRESH_ARTIFACT_NAME" \
               '.path == ".github/workflows/prepare-fashion-staging-u8.yml" and
@@ -198,6 +208,7 @@ jobs:
         if: ${{ inputs.refresh_run_id != '' }}
         env:
           HARNESS_SHA: ${{ inputs.harness_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           READINESS_DIGEST: ${{ inputs.readiness_digest }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
@@ -209,14 +220,16 @@ jobs:
           test "$ACTUAL_REFRESH_DIGEST" = "$REFRESH_DIGEST"
           jq --exit-status \
             --arg build "$BUILD_ID" \
-            --arg candidate "$READINESS_COMMIT_SHA" \
+            --arg candidate "$CANDIDATE_SHA" \
             --arg harness "$HARNESS_SHA" \
             --arg readiness "$READINESS_DIGEST" \
+            --arg readinessCommit "$READINESS_COMMIT_SHA" \
             --arg run "$READINESS_RUN_ID" \
             --arg snapshot "$SNAPSHOT_ID" \
             '.schemaVersion == 1 and .newBuildId == $build and
              .successorSnapshotId == $snapshot and .candidateSha == $candidate and
-             .u12ReadinessRunId == $run and .u12ReadinessDigest == $readiness and
+             .u12ReadinessRunId == $run and .u12ReadinessCommitSha == $readinessCommit and
+             .u12ReadinessDigest == $readiness and
              .harnessSha == $harness and (.runManifestDigest | test("^[a-f0-9]{64}$")) and
              (.harnessManifestDigest | test("^[a-f0-9]{64}$")) and
              (.contractTestDigest | test("^[a-f0-9]{64}$")) and
@@ -224,7 +237,7 @@ jobs:
              (.successorContentDigest | test("^[a-f0-9]{64}$")) and
              (.successorAuditId | type == "string")' \
             artifacts/refresh/refresh-attestation.json >/dev/null
-          FASHION_U8_CANDIDATE_SHA="$READINESS_COMMIT_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
+          FASHION_U8_CANDIDATE_SHA="$CANDIDATE_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
             bun tools/create-fashion-u8-harness-manifest.ts \
             > artifacts/refresh/current-harness-manifest.json
           test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/refresh/current-harness-manifest.json)" = \

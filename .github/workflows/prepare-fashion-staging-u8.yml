@@ -21,6 +21,9 @@ on:
       human_evidence_base64:
         description: Base64-encoded redacted passed human-lane evidence
         required: true
+      u12_readiness_commit_sha:
+        description: Historical U12 preparation commit bound to the readiness evidence
+        required: true
       u12_readiness_run_id:
         description: Historical U12 preparation run containing readiness evidence
         required: true
@@ -55,6 +58,7 @@ jobs:
       RUN_MANIFEST_DIGEST: ${{ inputs.run_manifest_digest }}
       RUN_MANIFEST_BASE64: ${{ inputs.run_manifest_base64 }}
       HUMAN_EVIDENCE_BASE64: ${{ inputs.human_evidence_base64 }}
+      U12_READINESS_COMMIT_SHA: ${{ inputs.u12_readiness_commit_sha }}
       U12_READINESS_RUN_ID: ${{ inputs.u12_readiness_run_id }}
       U12_READINESS_DIGEST: ${{ inputs.u12_readiness_digest }}
       PRIOR_LEDGER_RUN_ID: ${{ inputs.prior_ledger_run_id }}
@@ -81,8 +85,10 @@ jobs:
           test "$GITHUB_SHA" = "$HARNESS_SHA"
           [[ "$HARNESS_MANIFEST_DIGEST" =~ ^[a-f0-9]{64}$ ]]
           [[ "$RUN_MANIFEST_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$U12_READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "$U12_READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$U12_READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          git merge-base --is-ancestor "$U12_READINESS_COMMIT_SHA" "$CANDIDATE_SHA"
           mkdir -p artifacts/fashion-u8
           FASHION_U8_CANDIDATE_SHA="$CANDIDATE_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
             bun tools/create-fashion-u8-harness-manifest.ts \
@@ -160,15 +166,15 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$U12_READINESS_RUN_ID" \
             > artifacts/fashion-u8/u12-readiness-run.json
-          jq --exit-status --arg candidate "$CANDIDATE_SHA" \
+          jq --exit-status --arg readinessCommit "$U12_READINESS_COMMIT_SHA" \
             '.path == ".github/workflows/prepare-fashion-staging-u12.yml" and
-             .event == "workflow_dispatch" and .head_sha == $candidate and
+             .event == "workflow_dispatch" and .head_sha == $readinessCommit and
              .status == "completed" and .conclusion == "success"' \
             artifacts/fashion-u8/u12-readiness-run.json >/dev/null
       - name: Download exact historical U12 readiness evidence
         uses: actions/download-artifact@v4
         with:
-          name: fashion-u12-readiness-${{ inputs.candidate_sha }}
+          name: fashion-u12-readiness-${{ inputs.u12_readiness_commit_sha }}
           path: artifacts/fashion-u8/u12-readiness
           github-token: ${{ github.token }}
           run-id: ${{ inputs.u12_readiness_run_id }}
@@ -185,10 +191,10 @@ jobs:
             '.u12ReadinessDigest == $readiness and .u12SnapshotId == $snapshot' \
             artifacts/fashion-u8/run-manifest.json >/dev/null
           jq --exit-status \
-            --arg candidate "$CANDIDATE_SHA" \
+            --arg readinessCommit "$U12_READINESS_COMMIT_SHA" \
             --arg catalog "$CATALOG_RELEASE_ID" \
             --arg run "$U12_READINESS_RUN_ID" \
-            '.commitSha == $candidate and .github.operatorGate.runId == $run and
+            '.commitSha == $readinessCommit and .github.operatorGate.runId == $run and
              .seed.catalogReleaseId == $catalog and
              (.seed.buildId | type == "string") and
              (.seed.experienceSnapshotId | type == "string")' \
@@ -309,6 +315,7 @@ jobs:
             --arg runManifestDigest "$RUN_MANIFEST_DIGEST" \
             --arg humanEvidenceDigest "$HUMAN_EVIDENCE_DIGEST" \
             --arg u12ReadinessDigest "$U12_READINESS_DIGEST" \
+            --arg u12ReadinessCommitSha "$U12_READINESS_COMMIT_SHA" \
             --arg u12ReadinessRunId "$U12_READINESS_RUN_ID" \
             --arg u12BuildId "$(jq -er '.seed.buildId' "$READINESS_PATH")" \
             --arg u12SnapshotId "$(jq -er '.seed.experienceSnapshotId' "$READINESS_PATH")" \
@@ -326,6 +333,7 @@ jobs:
             '{schemaVersion:1,candidateSha:$candidateSha,harnessSha:$harnessSha,
               harnessManifestDigest:$harnessManifestDigest,contractTestDigest:$contractTestDigest,u12ArtifactDigest:$u12ArtifactDigest,
               runManifestDigest:$runManifestDigest,humanEvidenceDigest:$humanEvidenceDigest,u12ReadinessDigest:$u12ReadinessDigest,
+              u12ReadinessCommitSha:$u12ReadinessCommitSha,
               u12ReadinessRunId:$u12ReadinessRunId,u12BuildId:$u12BuildId,
               u12SnapshotId:$u12SnapshotId,successorSnapshotId:$successorSnapshotId,
               successorContentDigest:$successorContentDigest,successorAuditId:$successorAuditId,
@@ -356,7 +364,8 @@ jobs:
             --ref "$HARNESS_SHA" \
             -f "build_id=$NEW_BUILD_ID" \
             -f "snapshot_id=$SUCCESSOR_SNAPSHOT_ID" \
-            -f "readiness_commit_sha=$CANDIDATE_SHA" \
+            -f "candidate_sha=$CANDIDATE_SHA" \
+            -f "readiness_commit_sha=$U12_READINESS_COMMIT_SHA" \
             -f "readiness_run_id=$U12_READINESS_RUN_ID" \
             -f "readiness_digest=$U12_READINESS_DIGEST" \
             -f "refresh_run_id=$GITHUB_RUN_ID" \

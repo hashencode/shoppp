@@ -150,6 +150,10 @@ browser must never share a macOS account. Before creating either credential, gen
 harness manifest from the reviewed checkout, hash that exact JSON file, and run the standing-
 authority verifier. Do not start the listener if the checkout, manifest, contract-test digest,
 candidate-to-harness diff, or exact harness SHA differs from the reviewed record.
+The original U12 readiness commit and digest remain historical baseline evidence; they do not become
+the post-CI U8 candidate. The U8 preparation and refresh workflows verify that exact readiness
+commit and artifact, prove that commit is an ancestor of the frozen exact-main U8 candidate, and
+carry both identities independently through the refresh attestation.
 Set the protected `fashion-staging` environment variables `FASHION_U8_CANDIDATE_SHA`,
 `FASHION_U8_HARNESS_SHA`, and `FASHION_U8_HARNESS_MANIFEST_DIGEST` to that reviewed authority.
 Every U8 workflow must match those values and its own `GITHUB_SHA` before executing harness code.

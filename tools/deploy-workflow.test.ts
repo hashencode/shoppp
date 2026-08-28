@@ -852,13 +852,17 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain("Start append-only U8 build attempt");
     expect(preparation).toContain("Preserve append-only U8 preparation ledger");
     expect(preparation).toContain("harness_manifest_digest:");
+    expect(preparation).toContain("u12_readiness_commit_sha:");
     expect(preparation).toContain("Verify canonical reviewed U8 harness before package execution");
     expect(preparation).toContain("vars.FASHION_U8_HARNESS_MANIFEST_DIGEST");
     expect(preparation).toContain('test "$GITHUB_SHA" = "$HARNESS_SHA"');
     expect(preparation).toContain("verify-fashion-u8-standing-authority.ts");
     expect(preparation).toContain("Download exact historical U12 readiness evidence");
-    expect(preparation).toContain("fashion-u12-readiness-${{ inputs.candidate_sha }}");
+    expect(preparation).toContain("fashion-u12-readiness-${{ inputs.u12_readiness_commit_sha }}");
     expect(preparation).toContain("Verify historical readiness and frozen U8 lineage");
+    expect(preparation).toContain(
+      'git merge-base --is-ancestor "$U12_READINESS_COMMIT_SHA" "$CANDIDATE_SHA"',
+    );
     expect(preparation).toContain(".seed.catalogReleaseId == $catalog");
     expect(preparation).toContain("/admin/storefront-experiences/builds/$U12_BUILD_ID");
     expect(preparation).toContain(".data.artifactDigest");
@@ -866,6 +870,8 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain("/snapshots/$SUCCESSOR_SNAPSHOT_ID/build");
     expect(preparation).toContain("newBuildId");
     expect(preparation).toContain("gh workflow run preview-storefront.yml");
+    expect(preparation).toContain('-f "candidate_sha=$CANDIDATE_SHA"');
+    expect(preparation).toContain('-f "readiness_commit_sha=$U12_READINESS_COMMIT_SHA"');
     expect(preparation).toContain("refresh_run_id=$GITHUB_RUN_ID");
     expect(preparation).not.toContain("gh run watch");
     expect(preparation).toContain('.approvalAuditId == ("audit-" + .successorSnapshotId)');
@@ -893,6 +899,7 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preview).toContain("refresh_artifact_name:");
     expect(preview).toContain("refresh_digest:");
     expect(preview).toContain("harness_sha:");
+    expect(preview).toContain("candidate_sha:");
     expect(preview).toContain("Download exact U8 refresh attestation");
     expect(preview).toContain("Verify U8 refresh attestation before deployment mutation");
     expect(preview).toContain("current-harness-manifest.json");
@@ -900,6 +907,10 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preview).toContain(".newBuildId == $build");
     expect(preview).toContain(".successorSnapshotId == $snapshot");
     expect(preview).toContain(".u12ReadinessDigest == $readiness");
+    expect(preview).toContain(".candidateSha == $candidate");
+    expect(preview).toContain(
+      'git merge-base --is-ancestor "$READINESS_COMMIT_SHA" "$CANDIDATE_SHA"',
+    );
     expect(preview).toContain(".harnessSha == $harness");
     expect(preview).toContain("inputs.refresh_run_id == ''");
     expect(preview).toContain("--snapshot=artifacts/readiness/readiness.json");
