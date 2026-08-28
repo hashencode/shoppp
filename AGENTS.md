@@ -45,3 +45,7 @@ These rules apply to work in this repository.
 - Before removing a dirty worktree, stop known writers and retain the exact tracked, untracked, and
   material ignored-path manifests plus the removal command. A force removal requires an exact-path,
   plan-scoped approval and cannot be inferred from a prior cleanup or from branch containment alone.
+- Shoppp currently has one developer. Ordinary development does not require a pull request: use
+  local verification and the governed branch/main workflow without creating or waiting for an
+  unnecessary PR. Create a PR only when the user explicitly requests one or a concrete
+  multi-contributor, external-review, or repository-policy requirement makes it useful.

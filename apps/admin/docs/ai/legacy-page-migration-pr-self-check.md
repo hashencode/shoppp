@@ -54,10 +54,14 @@
 
 ## 八、验证
 
-- [ ] `bunx tsc --noEmit` 已通过
+- [ ] 已按 `docs/testing-standards.md` 记录所选 `L0-L4` 与选择依据
+- [ ] 已列出实际验证命令和结果，且只执行所选等级要求的范围
 - [ ] 至少补了 1 条 happy path 测试
 - [ ] 至少补了 1 条失败或边界测试
 - [ ] 已完成一轮关键跳转链路手工点测
+- [ ] 若为 `L3`，已用 import/reference 搜索与 workspace/package 依赖关系列出受影响 consumers/suites；无法界定时已升到 `L4`
+- [ ] 最终 typecheck/build 只运行一次，build 含类型检查时未重复 typecheck，较广检查覆盖较窄检查时未重复执行
+- [ ] 涉及真实浏览器、登录、跨页面、权限链路或发布门禁时，已保留所需 Browser Mode/E2E，且 E2E 仍先构建候选
 
 ## 九、PR 备注
 
@@ -66,3 +70,5 @@
 - 本次保留的业务 override：
 - 本次仍未收敛的问题：
 - 是否使用 legacy 接口：
+- 验证等级与理由：
+- 验证命令与结果：

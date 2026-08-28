@@ -11,7 +11,7 @@
 - [ ] 编辑/查看/详情路由遵守“列表路径前缀 + 子路径”
 - [ ] `Navigate / useNavigate` 只从 `react-router-dom` 引入
 - [ ] 操作列宽度已按“可见动作集合”计算，并写了注释
-- [ ] 已完成 `tsc`、最少 2 条测试（happy path + edge case）、一轮关键跳转手工点测
+- [ ] 已按 `docs/testing-standards.md` 选择 `L0-L4` 并完成对应 focused checks：迁移行为仍覆盖 happy path、edge case 和关键跳转；`L3` 已用引用与 workspace/package 依赖证据界定影响，无法界定才升 `L4`；最终 typecheck/build 不重复，必要 Browser Mode/E2E 与“先构建候选”要求未弱化
 
 ## 快速备注
 
@@ -19,4 +19,4 @@
 - 是否有业务 override：
 - 是否使用 legacy 接口：
 - 本次最大风险点：
-
+- 验证等级、理由与结果：

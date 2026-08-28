@@ -58,6 +58,17 @@
 
 ## 任务入口
 
+开始任务时先分类，再进入对应权威链：
+
+- 纯文档、注释或分析：按 `docs/testing-standards.md` 选择 `L0`，只检查改动与引用一致性。
+- 局部修复：读取与改动直接相关的规则和源码，按实际风险选择 `L1-L3`。
+- 新页面 / 标准页面：执行 `AGENTS.md` 的 Mandatory Read Order。
+- 旧页迁移：执行下方迁移入口与 `legacy-page-migration-workflow.md`。
+
+所有 Admin 任务都必须在计划或进度中记录所选 `L0-L4`；等级定义、升级条件和去重规则只以
+[testing-standards.md](../testing-standards.md) 为准。该政策仅适用于 `apps/admin`，不改变
+monorepo 其他应用或仓库级发布流程。
+
 ### 新页面 / 标准页面
 
 执行 `AGENTS.md` 的 Mandatory Read Order，再按页面 recipe 输出计划并实施。
