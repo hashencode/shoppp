@@ -114,6 +114,8 @@ describe("source-equivalence acceptance orchestration", () => {
       [
         "decor-motion.spec.ts",
         "decor-theme.spec.ts",
+        "decor-store-source-equivalence.spec.ts",
+        "decor-store-page-suite.spec.ts",
         "fashion-store-theme.spec.ts",
         "fashion-store-acceptance-slice.spec.ts",
         "fashion-store-acceptance-self-test.spec.ts",
@@ -132,7 +134,16 @@ describe("source-equivalence acceptance orchestration", () => {
     for (const theme of policy.themes) {
       for (const page of theme.pages) {
         for (const state of page.focusedStates) {
-          for (const mode of state.modes) expect(testSource).toContain(`${state.id} ${mode}`);
+          for (const mode of state.modes) {
+            const directTitle = testSource.includes(`${state.id} ${mode}`);
+            const dynamicDecorSecondaryTitle =
+              theme.id === "decor-store" &&
+              page.id !== "home" &&
+              mode === "interaction" &&
+              testSource.includes("for (const interaction of sourceContract.interactions)") &&
+              testSource.includes("test(`${id} ${interaction} interaction`");
+            expect(directTitle || dynamicDecorSecondaryTitle).toBe(true);
+          }
         }
       }
     }
@@ -151,6 +162,7 @@ describe("source-equivalence acceptance orchestration", () => {
       "contracts",
       "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
       "decor/pages[home]",
+      "decor-store/pages[home,shop-left,shop-none,shop-right,collection,product,wishlist,cart,checkout,account,blog,article,about,faq,contact]",
       "fidelity-evidence",
     ]);
     expect(

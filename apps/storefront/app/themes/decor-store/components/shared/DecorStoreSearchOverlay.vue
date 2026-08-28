@@ -4,9 +4,6 @@ const input = ref<HTMLInputElement>();
 const query = ref("");
 
 onMounted(() => input.value?.focus());
-onBeforeUnmount(() => {
-  query.value = "";
-});
 </script>
 
 <template>

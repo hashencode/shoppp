@@ -232,7 +232,6 @@ export function useDecorStoreRuntime(
     document.addEventListener("visibilitychange", publishBodyPauseState, { signal });
     bodyMotionQuery.addEventListener("change", publishBodyPauseState);
     publishBodyPauseState();
-    host.dataset.decorBodyReady = "true";
     bodyReady.value = true;
   }
 
@@ -507,7 +506,6 @@ export function useDecorStoreRuntime(
     });
     carouselSlides = [];
     carouselRegion = undefined;
-    root.value?.removeAttribute("data-decor-body-ready");
     root.value?.removeAttribute("data-decor-tail-ready");
     bodyReady.value = false;
     tailAbort?.abort();

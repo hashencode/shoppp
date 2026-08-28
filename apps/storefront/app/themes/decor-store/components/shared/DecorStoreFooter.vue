@@ -6,9 +6,6 @@ import { decorStoreAssetId } from "../../resources";
 const properties = defineProps<{ resolveAsset: ThemeAssetResolver }>();
 const email = ref("");
 const asset = (path: string) => properties.resolveAsset(decorStoreAssetId(path));
-onBeforeUnmount(() => {
-  email.value = "";
-});
 </script>
 
 <template>
