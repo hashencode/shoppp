@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildDecorStoreAcceptancePlan,
   canonicalDecorStoreAcceptanceEnvironment,
+  decorStoreGeneratedStateFiles,
 } from "./run-decor-store-acceptance";
 
 describe("Decor Store acceptance runner", () => {
@@ -44,5 +45,21 @@ describe("Decor Store acceptance runner", () => {
     expect(env.STOREFRONT_PERF_BASE_URL).toBeUndefined();
     expect(env.STOREFRONT_PERF_ROOT_URL).toBeUndefined();
     expect(env.STOREFRONT_PERF_ROUTE).toBeUndefined();
+  });
+
+  test("restores every generated storefront selection file after acceptance", () => {
+    expect(decorStoreGeneratedStateFiles().map((path) => path.split("/").at(-1))).toEqual([
+      "active-theme.ts",
+      "active-experience.ts",
+    ]);
+  });
+
+  test("keeps the storefront package command on the canonical acceptance runner", async () => {
+    const packageJson = (await import("../apps/storefront/package.json")).default as {
+      scripts: Record<string, string>;
+    };
+    expect(packageJson.scripts["accept:decor-store"]).toBe(
+      "bun ../../tools/run-decor-store-acceptance.ts --scope=theme",
+    );
   });
 });

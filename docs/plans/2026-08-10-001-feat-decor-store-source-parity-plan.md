@@ -23,6 +23,18 @@ deepened: 2026-08-10
 
 ---
 
+## Execution checkpoint
+
+- **Status:** Complete and inherited. U1-U8 closed the source-frozen homepage, isolated registration,
+  complete visual/runtime implementation, fallback behavior, acceptance automation, and repository
+  stabilization baseline.
+- **Current unit:** None. This plan has no active implementation tail.
+- **Next action:** None in this plan. The Decor Motion and Responsive Parity plan owns later homepage
+  correction; the Decor Store Remaining Page Suite owns the completed secondary-page tail.
+- **Blocker:** None. Candidate selection and production promotion remain outside this plan.
+
+---
+
 ## Product Contract
 
 ### Summary

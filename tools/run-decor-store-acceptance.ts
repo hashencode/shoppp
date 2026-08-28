@@ -15,6 +15,14 @@ export interface DecorStoreAcceptancePlan {
 
 const STOREFRONT_ROOT = resolve(import.meta.dir, "../apps/storefront");
 const DECOR_STORE_PAGES = decorStorePageContracts.map(({ id }) => id);
+const GENERATED_STATE_FILES = [
+  resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts"),
+  resolve(STOREFRONT_ROOT, "app/generated/active-experience.ts"),
+];
+
+export function decorStoreGeneratedStateFiles(): string[] {
+  return [...GENERATED_STATE_FILES];
+}
 
 export function canonicalDecorStoreAcceptanceEnvironment(
   source: NodeJS.ProcessEnv,
@@ -104,8 +112,9 @@ export async function runDecorStoreAcceptancePlan(plan: DecorStoreAcceptancePlan
   const implementationPort = await availablePort();
   let sourcePort = await availablePort();
   while (sourcePort === implementationPort) sourcePort = await availablePort();
-  const generatedThemePath = resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts");
-  const originalGeneratedTheme = await readFile(generatedThemePath);
+  const originalGeneratedState = await Promise.all(
+    GENERATED_STATE_FILES.map(async (path) => ({ contents: await readFile(path), path })),
+  );
   const env = {
     ...canonicalDecorStoreAcceptanceEnvironment(process.env),
     PLAYWRIGHT_FORCE_ASYNC_LOADER: "1",
@@ -125,7 +134,9 @@ export async function runDecorStoreAcceptancePlan(plan: DecorStoreAcceptancePlan
       if (exitCode !== 0) throw new Error(`${step.label} failed with exit code ${exitCode}`);
     }
   } finally {
-    await writeFile(generatedThemePath, originalGeneratedTheme);
+    await Promise.all(
+      originalGeneratedState.map(({ contents, path }) => writeFile(path, contents)),
+    );
   }
   console.log(
     JSON.stringify({

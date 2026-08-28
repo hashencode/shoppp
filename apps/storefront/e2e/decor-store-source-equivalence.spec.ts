@@ -660,6 +660,7 @@ test("fallback-static fallback: blocked Revolution and no-JS surfaces remain rea
   await expect(page.locator("#decor-store-slider")).toBeVisible();
   await expect(page.locator("#decor-store-slider")).not.toHaveClass(/revslider-initialised/);
   await expect(page.locator("[data-decor-region='products'] .grid-item").first()).toBeVisible();
+  recordBehaviors(testInfo, ["hero-revolution"], "fallback");
   const context = await browser.newContext({
     javaScriptEnabled: false,
     viewport: page.viewportSize()!,
@@ -670,6 +671,16 @@ test("fallback-static fallback: blocked Revolution and no-JS surfaces remain rea
     await expect(
       noJavaScript.getByRole("link", { name: "Decor Store home" }).first(),
     ).toBeVisible();
+    const language = noJavaScript.locator(".header-language > a");
+    if (viewportId(testInfo) === "desktop") await expect(language).toBeVisible();
+    else await expect(language).toBeAttached();
+    await expect(noJavaScript.locator(".header-search-form")).toBeVisible();
+    await expect(noJavaScript.locator(".header-cart-icon")).toBeVisible();
+    recordBehaviors(
+      testInfo,
+      ["header-language", "header-navigation", "header-search", "header-commerce"],
+      "fallback",
+    );
     await expect(noJavaScript.locator("#decor-store-slider > ul > li").first()).toBeVisible();
     await expect(noJavaScript.locator("#decor-store-slider")).toContainText("Corby sofas");
     await expect(noJavaScript.locator("[data-decor-region='products'] #tab_five1")).toBeVisible();
@@ -677,18 +688,31 @@ test("fallback-static fallback: blocked Revolution and no-JS surfaces remain rea
     await expect(
       noJavaScript.locator("[data-decor-region='products'] .shop-box").first(),
     ).toBeVisible();
+    await expect(
+      noJavaScript.locator("[data-decor-region='products'] .shop-box a").first(),
+    ).toBeVisible();
+    recordBehaviors(testInfo, ["product-tabs", "product-card-actions"], "fallback");
     for (const key of ["promotional-marquee", "collection-carousel", "client-marquee"])
       await expect(
         noJavaScript.locator(`[data-decor-region='${key}'] .swiper-slide`).first(),
       ).toBeVisible();
+    recordBehaviors(
+      testInfo,
+      ["promotional-marquee", "collection-carousel", "client-marquee"],
+      "fallback",
+    );
     await expect(noJavaScript.locator(".cookie-message")).toBeVisible();
     await expect(noJavaScript.locator("footer.footer-dark")).toBeVisible();
+    await expect(
+      noJavaScript.locator("footer.footer-dark .elements-social a").first(),
+    ).toBeVisible();
+    expect(
+      await noJavaScript.evaluate(
+        () => document.documentElement.scrollHeight > document.documentElement.clientHeight,
+      ),
+    ).toBe(true);
+    recordBehaviors(testInfo, ["cookie-notice", "sticky-social", "scroll-progress"], "fallback");
   } finally {
     await context.close();
   }
-  recordBehaviors(
-    testInfo,
-    decorStoreBehaviorContract.behaviors.map(({ id }) => id),
-    "fallback",
-  );
 });

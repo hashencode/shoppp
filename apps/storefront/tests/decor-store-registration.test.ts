@@ -14,6 +14,7 @@ import { decorStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fi
 import {
   assertSourceRuntimePolicy,
   collectInitialJavaScriptAssets,
+  containsInactiveTheme,
 } from "../scripts/check-bundle-budget";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 
@@ -206,5 +207,17 @@ describe("Decor Store U2 registration", () => {
       return source;
     });
     expect([...assets].sort()).toEqual(["/_nuxt/entry.js", "/_nuxt/nested.js", "/_nuxt/shared.js"]);
+  });
+
+  test("rejects inactive theme identities carried only by a generated JSON payload", () => {
+    const fashionPattern = /(?:themes(?:\/|%2f|[._-])fashion-store|data-fashion-store)/i;
+    expect(
+      containsInactiveTheme(
+        "_payload.json",
+        '{"component":"themes/fashion-store/registry"}',
+        "fashion-store",
+        fashionPattern,
+      ),
+    ).toBe(true);
   });
 });

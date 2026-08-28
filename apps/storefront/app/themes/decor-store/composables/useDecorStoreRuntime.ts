@@ -23,6 +23,7 @@ export function useDecorStoreRuntime(
   let frozenHeroMarkup = "";
   let reducedMotionQuery: MediaQueryList | undefined;
   let readinessFrame = 0;
+  let resolveReadinessFrame: (() => void) | undefined;
   let disposed = false;
   let bodyAbort: AbortController | undefined;
   let bodyMotionQuery: MediaQueryList | undefined;
@@ -342,6 +343,8 @@ export function useDecorStoreRuntime(
   function destroyHeroRuntime(restoreFrozenMarkup = false): void {
     if (readinessFrame) cancelAnimationFrame(readinessFrame);
     readinessFrame = 0;
+    resolveReadinessFrame?.();
+    resolveReadinessFrame = undefined;
     observer?.disconnect();
     observer = undefined;
     try {
@@ -404,8 +407,10 @@ export function useDecorStoreRuntime(
         return;
       }
       await new Promise<void>((resolve) => {
+        resolveReadinessFrame = resolve;
         readinessFrame = requestAnimationFrame(() => {
           readinessFrame = 0;
+          resolveReadinessFrame = undefined;
           resolve();
         });
       });

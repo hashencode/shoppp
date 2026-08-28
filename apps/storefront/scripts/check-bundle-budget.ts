@@ -93,10 +93,16 @@ async function outputFiles(output: string, directory: string): Promise<string[]>
   return files;
 }
 
-function containsInactiveTheme(file: string, contents: string, theme: string, pattern: RegExp) {
+export function containsInactiveTheme(
+  file: string,
+  contents: string,
+  theme: string,
+  pattern: RegExp,
+) {
   if (pattern.test(file)) return true;
   const extension = extname(file);
   if (codeExtensions.has(extension)) return pattern.test(contents);
+  if (extension === ".json") return pattern.test(contents);
   if (extension !== ".html") return false;
   return new RegExp(`(?:class|id|data-theme)=["'][^"']*${theme}(?:[._-]|["'])`, "i").test(contents);
 }
