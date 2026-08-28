@@ -94,6 +94,9 @@ watch(
   () => router.currentRoute.value.fullPath,
   () => {
     void headerHandle.value?.closeTransient(false);
+    void nextTick(() => {
+      document.getElementById("fashion-store-main")?.setAttribute("tabindex", "-1");
+    });
   },
 );
 
@@ -102,6 +105,7 @@ onMounted(() => {
   nextTick(() => {
     document.documentElement.classList.remove("no-js");
     document.documentElement.classList.add("js");
+    document.getElementById("fashion-store-main")?.setAttribute("tabindex", "-1");
   });
   window.dispatchEvent(new Event(storefrontExperienceHydratedEvent));
 });

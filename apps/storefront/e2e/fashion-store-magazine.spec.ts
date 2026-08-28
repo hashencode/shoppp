@@ -84,6 +84,7 @@ test("Magazine card, article navigation, and pagination interactions remain dete
   await expect(image).toHaveCSS("transform", /matrix\(1\.05/);
   const title = firstCard.getByRole("link", {
     name: "Elegance is not standing out, but being remembered.",
+    exact: true,
   });
   await title.focus();
   await expect(title).toBeFocused();
@@ -107,7 +108,10 @@ test("Magazine card, article navigation, and pagination interactions remain dete
   const keyboardTitle = page
     .locator(".fashion-magazine-grid > .grid-item")
     .first()
-    .getByRole("link", { name: "Elegance is not standing out, but being remembered." });
+    .getByRole("link", {
+      name: "Elegance is not standing out, but being remembered.",
+      exact: true,
+    });
   await keyboardTitle.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`${articlePath}$`));

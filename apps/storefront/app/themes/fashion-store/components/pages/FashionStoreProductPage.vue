@@ -543,6 +543,7 @@ onBeforeUnmount(() => {
                   <span
                     v-for="(payment, index) in data.payments"
                     :key="payment"
+                    role="img"
                     :aria-label="`Payment method ${index + 1}`"
                     ><img
                       :src="sourceAsset(payment)"

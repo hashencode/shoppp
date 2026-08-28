@@ -179,7 +179,11 @@ defineExpose({ closeTransient });
               >
             </div>
             <div class="widget-text icon alt-font">
-              <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"
+              <a
+                href="https://www.instagram.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram, 100k followers"
                 ><i class="feather icon-feather-instagram d-inline-block me-5px"></i
                 ><span class="d-none d-xxl-inline-block">100k Followers</span></a
               >

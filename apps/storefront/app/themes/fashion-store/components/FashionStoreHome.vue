@@ -1673,6 +1673,7 @@ onBeforeUnmount(() => {
       </div>
       <div
         class="fs-180 lg-fs-150 md-fs-130 fw-700 position-absolute bottom-minus-50px md-bottom-minus-40px ls-minus-5px left-0px right-0px text-center w-100 opacity-1 d-none d-md-block"
+        aria-hidden="true"
         data-bottom-top="transform:scale(1, 1) translate3d(0px, 0px, 0px);"
         data-top-bottom="transform:scale(1, 1) translate3d(-100px, 0px, 0px);"
       >

@@ -1704,3 +1704,60 @@
   background: #f3f3f3;
   border: 1px solid #d8d8d8;
 }
+
+/* Accessibility adaptations preserve the source layout while meeting the U8 contrast and target gates. */
+[data-fashion-store-shop],
+[data-fashion-store-product],
+[data-fashion-store-magazine],
+[data-fashion-store-cart],
+[data-fashion-store-checkout] {
+  --medium-gray: #6b6b6b;
+  color: #6b6b6b;
+}
+
+[data-fashion-store-cart] .fs-14,
+[data-fashion-store-cart] .product-price,
+[data-fashion-store-cart] .product-subtotal,
+[data-fashion-store-cart] input,
+[data-fashion-store-cart] label,
+[data-fashion-store-checkout] .fs-14,
+[data-fashion-store-checkout] .product-price,
+[data-fashion-store-checkout] input,
+[data-fashion-store-checkout] textarea,
+[data-fashion-store-checkout] select,
+[data-fashion-store-checkout] label,
+[data-fashion-store-checkout] .box,
+[data-fashion-store-checkout] .bg-very-light-gray {
+  color: #6b6b6b !important;
+}
+
+[data-fashion-store-shop] .shop-image .lable.new,
+[data-fashion-store-product] .shop-image .lable.new {
+  background-color: #08783f;
+}
+
+[data-fashion-store-header] .search-form-icon,
+[data-fashion-store-shop] .slider-one-slide-prev-1,
+[data-fashion-store-shop] .slider-one-slide-next-1,
+[data-fashion-store-product] .qty-minus,
+[data-fashion-store-product] .qty-plus,
+[data-fashion-store-cart] .qty-minus,
+[data-fashion-store-cart] .qty-plus {
+  display: inline-flex;
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-dark ul a,
+.footer-dark a[href^="tel:"],
+.footer-dark a[href^="mailto:"],
+.footer-dark .mb-15px,
+.footer-dark .input-small,
+.footer-dark .input-small::placeholder,
+.footer-dark p,
+.footer-dark .col-lg-5 > span {
+  color: #a8a8a8 !important;
+  opacity: 1;
+}

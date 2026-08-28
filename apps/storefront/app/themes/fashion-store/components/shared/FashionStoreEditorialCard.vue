@@ -12,7 +12,9 @@ defineProps<{
   <li class="grid-item">
     <article class="card bg-transparent border-0 h-100">
       <div class="blog-image position-relative overflow-hidden">
-        <a :href="href" data-fashion-store-route><img :src="image" alt="" /></a>
+        <a :href="href" :aria-label="`Read article: ${title}`" data-fashion-store-route
+          ><img :src="image" alt=""
+        /></a>
       </div>
       <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
         <span class="mb-5px d-block"

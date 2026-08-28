@@ -419,7 +419,7 @@ onMounted(async () => {
                             <img
                               class="cart-product-image"
                               :src="sourceAsset(line.sourceImage)"
-                              alt=""
+                              :alt="line.name"
                             />
                           </a>
                           <span
