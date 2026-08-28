@@ -70,9 +70,10 @@ historical evidence remain unchanged inside the owning plans.
 - **Current parent unit:** `FS-U8` — complete Fashion Store test-environment acceptance.
 - **Current child stage:** `FS-U8.2` — close bounded gaps from fresh reconciliation. The repaired
   runner and complete local Fashion, Admin, accessibility, performance, scale, static, security,
-  and environment matrix are green. The bounded runner, Fashion staging IAM/API, expiring operator,
-  deterministic retry source draft, and refreshed `u8-20260825a` run manifest are prepared.
-  Twenty-four browser/preflight attempts made no immutable candidate; attempts 22 and 24 retained
+  and environment matrix are green. Stale attempt 30 is now terminal after its exact Preview run
+  failed in checkout before build or deployment. The exact offline runner registration is removed;
+  Fashion staging D1 cleanup and the dedicated local account remain to be reconciled.
+  Thirty browser/preflight attempts made no passing U8 candidate; attempts 22 and 24 retained
   excluded mutable failed-attempt successor and exposed missing isolated-port
   forwarding, a login-readiness locator mismatch, and an exact Fashion development-origin mismatch;
   tested harness `e1a55e18` plus API version `284c7b70` close the launch, origin, login, exact
@@ -82,16 +83,18 @@ historical evidence remain unchanged inside the owning plans.
   and the authenticated draft read passes before the next human attempt.
   A mis-targeted residual test-browser window exposed the first generated password in attempt 9; it
   was immediately invalidated and replaced, the residual browser was removed, and sessions are zero.
-- **Next action:** Prepare a fresh audited source, freeze harness `ed91c980` and refreshed manifests,
-  reprovision the cleaned operator, and rerun through successor, VoiceOver, Preview, approval, and
-  terminal p95 before `FS-U8.3` verification.
+- **Next action:** Use an authorized Cloudflare identity to reconcile Fashion U8 operator/session and
+  retry29 source state, then use a privileged local operator to retain the dedicated runner-home
+  manifests before deleting its directory and account. Only after cleanup closes may a fresh exact-
+  main U8 run resume through successor, VoiceOver, Preview, approval, and terminal p95.
 - **Blocker:** Fashion staging's authenticated ephemeral build hook now hands builds only to the
   protected self-hosted CD workflow without GitHub-hosted runner billing. Attempt 29 exposed the
   missing competing-save response barrier; harness `91e5db24` now serializes the proven competing
   PUT `200` before requiring the stale PUT `409` and conflict recovery UI.
-  The remaining operational dependency is starting the already-registered isolated macOS U8 runner
-  listener after the next exact Preview job is queued; ordinary staging and production remain
-  excluded.
+  Attempt 30's Preview run `32814863542` failed in checkout and skipped every later mutation and
+  acceptance step. Its GitHub runner registration is removed, but the available Cloudflare identity
+  cannot read Fashion D1 and the local account requires privileged manifest capture before removal;
+  ordinary staging and production remain excluded.
 - **Following sequence:** Complete `FS-U8`; `FS-U3`, `FS-U4`, `FS-U7`, `FS-U9`, `FS-U10`,
   `FS-U11`, `FS-U12`, and `FS-U13` remain completed dependency baselines rather than queued units.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the

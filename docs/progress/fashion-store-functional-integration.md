@@ -1464,3 +1464,88 @@ out. Governed cleanup retained both paid orders and restored inventory to 100/0/
 now matches the existing confirmation-page contract and passes E2E TypeScript, two-test discovery,
 Prettier, and diff checks. All ephemeral runners auto-deregistered, ordinary staging and production
 were not accessed, and U12 remains in progress pending a fresh governed proof.
+
+## 2026-08-22 — governed Preview closes U12 and hands execution to U8
+
+Commit `1e8231726d8a0ad2c9ed4c10e4d27092160fd629` landed the confirmation-copy assertion repair on
+`main`. Governed Fashion-only preparation `32383732029` then passed at that exact commit and
+produced readiness artifact `9412144384` with SHA-256
+`d7fa774152fa42891faa241eaf1bfddc9711d6fc99e2f2c783e2a86343ad1223`. The retained identity was:
+
+- Catalog Release `fashion-staging-u12-release-2026-08-18` with canonical digest
+  `3de6a2b08375c2ae11e4f43838d034106626a8ce39910308c7e54fed66c0fff6`;
+- approved Snapshot `snapshot-approved-89c1cd6696769d3a962f1029e9118892`;
+- build `preview-build-96769d3a962f1029e9118892-f1bb77ee6f824f48-1`;
+- Fashion Store theme and platform contract versions `1.0.0` / `1.0.0` in the isolated
+  `fashion-staging` environment.
+
+Preview `32384126394` deployed content-addressed artifact digest
+`58eab5a6dcdd9d94a13e22f2002ff72d1f2cc3dffdf85660aeb98f6b341bb52e`, passed the deployed U13
+identity and stable-ID add proof, and completed the no-interception Fashion archetype and real
+sandbox-payment journey under namespace `fashion-u12-32384126394-1`. The browser test's first
+attempt observed a transient cart-quantity mismatch; its governed retry completed the full journey,
+and the workflow's final verdict required the passing journey rather than masking cleanup or
+postcondition failures.
+
+U12 cleanup retained paid order `ORD-B4939D786114`, reported no journey failure, and restored the
+representative inventory baseline to on-hand/reserved/backordered/oversell `100/0/0/0`. A separately
+acquired fresh-session phase passed its addability test, completed a second idempotent cleanup with
+the same restored inventory, and left no retained order in that postcondition namespace. The final
+workflow gate verified U13 `passed=true`, both cleanup reports `status=completed`, and recorded
+`Fashion preview accepted by deployed U13 and complete U12 lifecycle proof.` Artifact
+`9412765921` retains the exact build metadata and Playwright report with SHA-256
+`a3ac342abf1fee8204ac8dc3eaaca1b377ca637b08791872c007a00275db632b`.
+
+All Preview job steps completed successfully, ordinary staging and production remained excluded,
+and no bearer-capable values are copied into this retained evidence. U12 is therefore
+`Complete — test-environment proven`. The active execution pointer moves to U8.1 reconciliation;
+this evidence remains a U12 dependency baseline and does not by itself satisfy U8's broader route,
+Admin, responsive, accessibility, no-JavaScript, performance, scale, and full acceptance matrix.
+
+## 2026-08-22 — U8 local acceptance matrix passes and isolates the remote tail
+
+Fresh U8 reconciliation first exposed that the acceptance runner restored
+`active-theme.ts` but left `active-experience.ts` changed. The runner now snapshots and restores both
+generated selection files, its focused contract passes 5/5, and the final full run leaves both files
+with zero diff. The final Fashion Store result is 34/34 unit tests, 132 applicable Playwright tests,
+192 contract-driven viewport skips, and verified behavior evidence for all 15 governed pages. An
+intermediate red run caught an accessible magazine-image link colliding with the title selector and
+a home product-label contrast adaptation exceeding the one-percent source-parity budget; the final
+implementation gives the image link a distinct name, uses exact title-link selection, and retains
+the already audited home contrast exceptions while keeping the broader accessibility fixes.
+
+The additional local U8 evidence is:
+
+| Gate                      | Result                                                                                                                                                                                                                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accessibility and input   | Six critical routes plus keyboard skip/purchase order passed 7/7; serious or critical Axe findings are zero outside the existing source-parity home contrast exceptions. Product payment semantics, editorial and cart link names, skip-target focus, and 24 px critical targets are covered. |
+| Static, bundle, and theme | `verify:themes`, preview static verification, bundle budget, and repository static-output safety passed; initial route JavaScript remained below 300 KiB.                                                                                                                                     |
+| Performance and scale     | Fashion Lighthouse passed after one governed transient Home retry; 1,000 products and 5,000 variants produced 1,027 indexable routes plus four private shells in 28,093 ms and passed the 15-minute gate.                                                                                     |
+| Admin L4                  | Full Rstest 299/299, test build/typecheck, focused real-browser editor 2/2, and the save/validate/preview/approve Playwright journey 1/1 passed. Unit coverage includes optimistic conflict, invalid reference/validation, permission, immutable preview, and approval recovery branches.     |
+| Isolation and security    | Environment isolation passed 33/33 and the live repository profile verified distinct staging, production, and `fashion-staging` resources. Static sensitive-artifact verification and the focused Worker secret-contract test passed.                                                         |
+| Repository quality        | Root tests, API/DB Worker tests 199/199, repository typecheck, ESLint, import boundaries, formatting, and generated-state cleanliness passed.                                                                                                                                                 |
+
+The test-environment p95 executable itself passes 3/3 unit tests, but its live form expects a public
+`API_E2E_BASE_URL` and creates 20 carts plus shipping mutations. The Fashion API intentionally has
+service-binding-only ingress, and the repository has no existing U8 runner that combines that probe
+with the real Admin operator path. Local execution therefore cannot safely supply the remaining
+remote latency or real edit/conflict/invalid-reference/preview/approval evidence. U8 remains at
+U8.2; the active plan and product master pointer own the next action and blocker. No remote mutation,
+ordinary staging access, production access, or runner registration occurred in this U8 pass.
+
+## 2026-08-28 — stale U8 attempt and runner reconciliation
+
+The append-only ledger contained `human-u8-20260825a-30` as started without a terminal record.
+Read-only GitHub reconciliation identified Preview run `32814863542` at exact harness `91e5db24`:
+the isolated runner eventually accepted the job, but `actions/checkout@v4` failed and every later
+readiness, build, deployment, U13, purchase, restoration, and publication step was skipped. No
+process for the runner or acceptance harness remained active. Exact offline, non-busy runner ID
+`71` was removed from the repository registration, and the repository inventory is now empty for
+its name and `fashion-staging-u8` label.
+
+The attempt is retained as failed, not reconstructed as successful. The repository has no surviving
+human-evidence file, and the available Cloudflare identity cannot read the Fashion D1 database
+(API code `7403`), so operator/session, retry29 source, and any Admin-side audit state remain
+unverified. The dedicated macOS account and its inaccessible home also require a privileged
+operator to retain the exact manifests before local removal. U8 remains at U8.2 and no new retry is
+authorized until those two cleanup surfaces are reconciled.
