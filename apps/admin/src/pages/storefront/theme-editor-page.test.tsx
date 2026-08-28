@@ -771,7 +771,11 @@ describe('ThemeEditorPage', () => {
       ).toBe(true)
 
       fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
-      expect(await screen.findByText(/home-story moved to position 2 of 3/)).toBeTruthy()
+      await waitFor(() =>
+        expect(screen.getByRole('status').textContent).toContain(
+          'home-story moved to position 2 of 3'
+        )
+      )
       fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
         target: { value: 'Local unsaved headline' },
       })
@@ -842,8 +846,16 @@ describe('ThemeEditorPage', () => {
     expect(screen.getByRole('button', { name: 'Reload and discard local edits' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Save local edits as successor' }))
     await screen.findByText('draft-successor-1')
+    expect(
+      await screen.findByText('Successor draft draft-successor-1 created for review.')
+    ).toBeTruthy()
     await waitFor(() =>
       expect(router.state.location.pathname).toBe('/storefront/themes/draft-successor-1')
+    )
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'storefront-synthetic' })
+      )
     )
     expect(successorBody).toMatchObject({
       reason: 'Attempt an optimistic save',
@@ -1031,6 +1043,14 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create migration successor' }))
 
     await screen.findByText('draft-migration-successor')
+    expect(
+      await screen.findByText('Successor draft draft-migration-successor created for review.')
+    ).toBeTruthy()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'storefront-synthetic' })
+      )
+    )
     expect(successorRequest).toMatchObject({
       confirm: true,
       expectedVersion: 1,
@@ -1127,7 +1147,7 @@ describe('ThemeEditorPage', () => {
         screen.getByRole('button', { name: 'Open authenticated preview' }).hasAttribute('disabled')
       ).toBe(true)
     )
-    expect(screen.getAllByText('Preview access revoked')).toHaveLength(2)
+    expect(screen.getAllByText('Preview access revoked')).toHaveLength(1)
     HTMLFormElement.prototype.submit = originalSubmit
   })
 
@@ -1201,7 +1221,7 @@ describe('ThemeEditorPage', () => {
       'catalog.read',
     ])
     await screen.findByText('Ready')
-    expect(await screen.findByText('Returned from private preview.')).toBeTruthy()
+    expect(screen.queryByText('Returned from private preview.')).toBeNull()
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: 'Open authenticated preview' })
     )

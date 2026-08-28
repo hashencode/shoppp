@@ -32,3 +32,22 @@ For legacy-page migration, follow the read order in
 `docs/testing-standards.md` is the only detailed `L0-L4` policy owner for this subtree. Existing
 admin security, permission, E2E, build, and release requirements remain mandatory when their risk or
 delivery conditions apply.
+
+## Accessibility ownership
+
+- Ant Design v6 and its underlying component primitives own standard control roles, keyboard
+  behavior, popup and modal focus management, and ordinary live feedback. Feature pages preserve
+  those contracts instead of layering parallel ARIA or focus protocols over them.
+- Admin pages own visible task language, form labels, icon-only control names, error association,
+  and focus movement to a newly rendered error or recovery target when the current focus would
+  otherwise be lost or leave the failure undiscoverable.
+- Do not add a page-global hidden announcer or duplicate Ant Design's live regions. A custom live
+  region must be local to one interaction, convey an outcome that is not already exposed by a
+  visible status or focused control, and have a focused regression test demonstrating that gap.
+- Use the existing feedback hierarchy: lightweight results use `message`; persistent or
+  decision-relevant state is visible in `Alert`, `Result`, field help, or page content; destructive
+  confirmation uses the existing modal primitives. Do not mirror the same outcome into a second
+  screen-reader-only channel.
+- Preserve explicit, local focus corrections for validation summaries, conflict recovery, or
+  removed triggers when their workflow requires them. Do not turn those exceptions into a generic
+  focus manager.

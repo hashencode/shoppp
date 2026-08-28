@@ -49,3 +49,29 @@ These rules apply to work in this repository.
   local verification and the governed branch/main workflow without creating or waiting for an
   unnecessary PR. Create a PR only when the user explicitly requests one or a concrete
   multi-contributor, external-review, or repository-policy requirement makes it useful.
+
+## Accessibility ownership
+
+- Treat the UI libraries and existing shared primitives used by each application as the default
+  authority for standard roles, keyboard interaction, modal focus containment, and ordinary trigger
+  focus restoration. Preserve their APIs and behavior instead of reimplementing them in feature
+  code.
+- Application code still owns meaningful visible text, accessible names for icon-only controls,
+  form labels, dialog titles and descriptions, field-error association, and truthful non-color
+  status cues. Prefer native HTML semantics and existing primitive parts before adding ARIA or
+  custom keyboard handlers.
+- Add custom accessibility behavior only for an explicit product requirement or a reproducible gap
+  in the composed control. A hypothetical assistive-technology benefit or a review suggestion alone
+  is not sufficient evidence.
+- Do not add page-global announcers, duplicate hidden live regions, repeated `role="status"` /
+  `role="alert"` output, or multi-state screen-reader protocols when the same decision-relevant
+  state is already conveyed by a component-library primitive, visible status, current title or
+  description, or the intentionally focused control.
+- Override library focus behavior only when its default target is invalid or no longer exists, or
+  when an explicit workflow must move focus to a newly rendered error or recovery target. Keep the
+  fallback local and deterministic; do not build a page-wide focus state machine for a
+  component-level problem.
+- Test application-owned semantics and deliberate deviations at the nearest stable interaction
+  boundary. Do not duplicate a component library's accessibility suite. Keep coverage risk-tiered:
+  shared primitives and critical shopper/operator paths receive deeper input-mode coverage; other
+  routes receive structural and basic accessibility checks.

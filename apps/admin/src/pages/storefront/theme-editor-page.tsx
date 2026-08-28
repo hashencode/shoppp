@@ -19,7 +19,6 @@ import type {
   ThemeOverride,
   ThemeOverrideOperation,
 } from '@shoppp/contracts'
-import { storefrontLinkSchema, storefrontResourceReferenceSchema } from '@shoppp/contracts'
 import {
   Alert,
   Button,
@@ -106,37 +105,6 @@ export const resolveValidationFieldPath = (issue: {
       ? issue.path.slice(instanceId.length + 1)
       : pathParts[1]
   return { instanceId, settingId }
-}
-
-const missingReferenceCount = (
-  release: StorefrontCatalogRelease,
-  templates: readonly PageTemplate[],
-  bindings: readonly ExperienceResourceBinding[]
-): number => {
-  const keys = new Set([
-    ...release.products.map(({ id }) => `product:${id}`),
-    ...release.collections.map(({ id }) => `collection:${id}`),
-    ...(release.destinations ?? []).map(({ id, kind }) => `${kind}:${id}`),
-  ])
-  const references: StorefrontResourceReference[] = bindings.flatMap((binding) =>
-    binding.kind === 'catalog' ? [binding.reference] : []
-  )
-  for (const instance of templates.flatMap((template) =>
-    template.sections.flatMap((section) => [section, ...section.blocks])
-  )) {
-    for (const value of Object.values(instance.settings)) {
-      const reference = storefrontResourceReferenceSchema.safeParse(value)
-      if (reference.success) {
-        references.push(reference.data)
-        continue
-      }
-      const link = storefrontLinkSchema.safeParse(value)
-      if (link.success && link.data.target.kind === 'internal') {
-        references.push(link.data.target.reference)
-      }
-    }
-  }
-  return references.filter(({ id, kind }) => !keys.has(`${kind}:${id}`)).length
 }
 
 export const resolveDraftTemplates = (
@@ -351,7 +319,7 @@ export const ThemeEditorPage = ({
   const [error, setError] = useState<string | null>(null)
   const [changeReason, setChangeReason] = useState('')
   const [approvalReason, setApprovalReason] = useState('')
-  const [announcement, setAnnouncement] = useState('')
+  const [sectionMoveStatus, setSectionMoveStatus] = useState('')
   const [build, setBuild] = useState<StorefrontPreviewBuild | null>(null)
   const [previewSnapshot, setPreviewSnapshot] = useState<StorefrontExperienceSnapshot | null>(null)
   const [revokedPreviewSnapshotId, setRevokedPreviewSnapshotId] = useState<string | null>(null)
@@ -366,6 +334,8 @@ export const ThemeEditorPage = ({
   const previewContextRequest = useRef(0)
   const conflictActionRef = useRef<HTMLButtonElement>(null)
   const previewLaunchRef = useRef<HTMLButtonElement>(null)
+  const draftHeadingRef = useRef<HTMLHeadingElement>(null)
+  const successorFocusTarget = useRef<string | null>(null)
   const validationSummaryRef = useRef<HTMLDivElement>(null)
   const dirty = useMemo(
     () => !equalValue(templates, savedTemplates) || !equalValue(bindings, savedBindings),
@@ -383,6 +353,18 @@ export const ThemeEditorPage = ({
     const frame = window.requestAnimationFrame(() => conflictActionRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [conflict])
+
+  useEffect(() => {
+    const successorId = successorFocusTarget.current
+    if (loading || !successorId || draft?.id !== successorId || draftId !== successorId) return
+    const frame = window.requestAnimationFrame(() => {
+      const heading = draftHeadingRef.current
+      if (!heading || successorFocusTarget.current !== successorId) return
+      heading.focus()
+      successorFocusTarget.current = null
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [draft?.id, draftId, loading])
 
   const load = useCallback(async () => {
     const request = ++loadRequest.current
@@ -617,7 +599,7 @@ export const ThemeEditorPage = ({
       if (!template || index < 0 || target < 0 || target >= template.sections.length) return current
       const [section] = template.sections.splice(index, 1)
       template.sections.splice(target, 0, section)
-      setAnnouncement(
+      setSectionMoveStatus(
         t('{id} moved to position {position} of {count} on {pageType}.', {
           id: section.id,
           position: target + 1,
@@ -640,7 +622,6 @@ export const ThemeEditorPage = ({
       section.settings = structuredClone(original.settings)
       section.visible = original.visible
     })
-    setAnnouncement(t('{id} reset to the {preset} preset.', { id: sectionId, preset: draft.presetId }))
   }
 
   const save = async (reason: string): Promise<StorefrontExperienceDraft> => {
@@ -748,11 +729,10 @@ export const ThemeEditorPage = ({
     const timer = window.setTimeout(() => {
       url.searchParams.delete('preview-return')
       window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
-      setAnnouncement(t('Returned from private preview.'))
       previewLaunchRef.current?.focus()
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [previewContextCurrent, t])
+  }, [previewContextCurrent])
 
   const startPreview = async (
     target: StorefrontExperienceDraft,
@@ -844,7 +824,7 @@ export const ThemeEditorPage = ({
           >
             {t('Storefront themes')}
           </Button>
-          <Typography.Title level={2} className="!mb-1 !mt-0">
+          <Typography.Title ref={draftHeadingRef} level={2} tabIndex={-1} className="!mb-1 !mt-0">
             {draft.experienceId}
           </Typography.Title>
           <Space wrap>
@@ -979,12 +959,16 @@ export const ThemeEditorPage = ({
                       changeReason,
                       conflict.bindings
                     )
+                    successorFocusTarget.current = successor.id
+                    setLoading(true)
                     setConflict(null)
                     setDraft(successor)
                     setSavedTemplates(cloneTemplates(templates))
                     setBindings(structuredClone(successor.bindings))
                     setSavedBindings(structuredClone(successor.bindings))
-                    setAnnouncement(t('Local edits were saved as successor draft {id}.', { id: successor.id }))
+                    void message.success(
+                      t('Successor draft {id} created for review.', { id: successor.id })
+                    )
                   })
                 }
               >
@@ -1070,10 +1054,6 @@ export const ThemeEditorPage = ({
                 value: release.id,
               }))}
               onChange={(value) => {
-                const nextRelease = catalogReleases.find(({ id }) => id === value)
-                const missingCount = nextRelease
-                  ? missingReferenceCount(nextRelease, templates, bindings)
-                  : 0
                 selectedReleaseIdRef.current = value
                 setSelectedReleaseId(value)
                 window.sessionStorage.setItem('storefront-editor-catalog-release', value)
@@ -1081,11 +1061,6 @@ export const ThemeEditorPage = ({
                 setBuild(null)
                 setPreviewSnapshot(null)
                 setRevokedPreviewSnapshotId(null)
-                setAnnouncement(
-                  missingCount > 0
-                    ? t('Catalog Release changed. Draft edits were preserved; {count} references need replacement before preview.', { count: missingCount })
-                    : t('Catalog Release changed. Draft edits were preserved; reference validation is required again.')
-                )
               }}
             />
             {selectedRelease ? (
@@ -1122,8 +1097,8 @@ export const ThemeEditorPage = ({
         <Typography.Paragraph type="secondary">
           {t('Sections keep stable IDs. Required capabilities cannot be hidden; ordering uses explicit controls for keyboard, touch, and assistive technology.')}
         </Typography.Paragraph>
-        <div className="sr-only" aria-live="polite">
-          {announcement}
+        <div className="sr-only" role="status">
+          {sectionMoveStatus}
         </div>
         <Tabs
           activeKey={activeTemplate.id}
@@ -1416,9 +1391,6 @@ export const ThemeEditorPage = ({
                                                 }
                                               )
                                             }
-                                            setAnnouncement(
-                                              t('Reference changed. Validation is required again.')
-                                            )
                                           }}
                                         />
                                       </div>
@@ -1673,11 +1645,11 @@ export const ThemeEditorPage = ({
                           migration,
                           changeReason
                         )
+                        successorFocusTarget.current = successor.id
+                        setLoading(true)
                         setMigration(null)
-                        setAnnouncement(
-                          t('Migration successor {id} was created for review and validation.', {
-                            id: successor.id,
-                          })
+                        void message.success(
+                          t('Successor draft {id} created for review.', { id: successor.id })
                         )
                         navigate(`/storefront/themes/${successor.id}`, { replace: true })
                       })
@@ -1783,7 +1755,6 @@ export const ThemeEditorPage = ({
                   await revokeStorefrontPreviewAccess(previewSnapshot.id, changeReason)
                   if (selectedReleaseIdRef.current !== releaseId) return
                   setRevokedPreviewSnapshotId(previewSnapshot.id)
-                  setAnnouncement(t('Preview access revoked'))
                 })
               }
             >

@@ -1549,3 +1549,37 @@ human-evidence file, and the available Cloudflare identity cannot read the Fashi
 unverified. The dedicated macOS account and its inaccessible home also require a privileged
 operator to retain the exact manifests before local removal. U8 remains at U8.2 and no new retry is
 authorized until those two cleanup surfaces are reconciled.
+
+## 2026-08-28 — Admin accessibility ownership and announcement cleanup
+
+The Voice Studio precedent was applied as a bounded ownership rule rather than as a blanket removal
+of accessibility behavior. Shoppp now treats native semantics, Ant Design v6, and existing shared
+primitives as the authority for standard roles, keyboard behavior, popup/modal focus, and ordinary
+live feedback. Feature code still owns visible task language, control names, field-error association,
+and local focus or announcement behavior when an explicit workflow exposes a reproducible gap.
+
+The Theme Editor no longer maintains one page-global hidden announcer for unrelated operations.
+Catalog Release and resource selection rely on the selected Ant control and visible dirty/validation
+state; preview revocation relies on its visible success Alert; preview return relies on deterministic
+focus restoration; successor creation uses one Ant Design success message and focuses the stable
+editor heading after the new draft loads. The section-order control retains one local `role="status"`
+result because its changed position is otherwise not announced while focus remains on the move
+button. Validation-summary focus, conflict recovery focus, and preview-return focus remain intact as
+explicit workflow behavior.
+
+Admin verification used L2 because the runtime change is bounded to one existing business-override
+page and does not touch shared components, routes, permissions, APIs, or build configuration. Updated
+component expectations first failed in exactly three places against the prior implementation: the
+reorder result lacked the local status role, preview revocation appeared twice, and preview return
+still rendered duplicate hidden copy. After the implementation change, the focused Theme Editor
+suite passed 19/19, changed-file ESLint passed, Admin `tsc -b` passed, the governed Fashion-staging
+Playwright configuration discovered its single live acceptance spec, and `git diff --check` passed.
+The first test launch through the host Homebrew Node aborted before collection because its simdjson
+dynamic-library link is stale; the same command passed with the bundled Node v24.19.0 runtime. The
+live human U8 browser lane was not executed and no remote, staging, production, account, session, or
+runner state changed. U8 remains at U8.2 with the same cleanup blocker and next action.
+
+Code review kept Reset feedback library-native and local (changed fields plus retained button focus),
+while adding one visible Ant Design success message for async successor creation because the
+initiating control is removed during navigation. The successor route also focuses the stable editor
+heading after the new draft loads, and unit coverage verifies that message-and-focus result.
