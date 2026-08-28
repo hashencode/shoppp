@@ -9,6 +9,21 @@ describe("theme fidelity matrix", () => {
   test("covers the enabled source-equivalent pages at desktop/mobile and DPR 1/2", () => {
     expect(() => assertFidelityMatrixComplete()).not.toThrow();
     expect(themeFidelityMatrix.map(({ id }) => id)).toEqual([
+      "decor-store-home",
+      "decor-store-shop-left",
+      "decor-store-shop-none",
+      "decor-store-shop-right",
+      "decor-store-collection",
+      "decor-store-product",
+      "decor-store-wishlist",
+      "decor-store-cart",
+      "decor-store-checkout",
+      "decor-store-account",
+      "decor-store-blog",
+      "decor-store-article",
+      "decor-store-about",
+      "decor-store-faq",
+      "decor-store-contact",
       "decor-home",
       "fashion-store-home",
       "fashion-store-shop-left",

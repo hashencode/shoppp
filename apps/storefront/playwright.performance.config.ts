@@ -4,7 +4,7 @@ const port = Number(process.env.STOREFRONT_PERF_PORT || 3421);
 const baseURL = process.env.STOREFRONT_PERF_BASE_URL || `http://127.0.0.1:${port}`;
 const reuseValidatedBuild = process.env.STOREFRONT_REUSE_VALIDATED_BUILD === "1";
 const theme = process.env.STOREFRONT_THEME;
-if (theme && theme !== "fashion-store") {
+if (theme && theme !== "decor-store" && theme !== "fashion-store") {
   throw new Error(`Unsupported STOREFRONT_THEME: ${theme}`);
 }
 const buildCommand = theme ? `bun run build:preview:${theme}` : "bun run build";

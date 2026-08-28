@@ -108,6 +108,7 @@ export interface PrepareExperienceOptions extends RenderActiveThemeOptions {
 
 const defaultModuleAllowlist = {
   decor: "../themes/decor/registry",
+  "decor-store": "../themes/decor-store/registry",
   "fashion-store": "../themes/fashion-store/registry",
 } as const;
 

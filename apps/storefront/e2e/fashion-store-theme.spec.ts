@@ -327,6 +327,7 @@ test("reduced motion defers home hydration without deferring readable content", 
   await page.goto("/", { waitUntil: "networkidle" });
 
   const marker = page.locator("[data-fashion-store-source-parity]");
+  await expect(marker).not.toHaveAttribute("data-storefront-hydration", "eager");
   await expect(marker).toHaveAttribute("data-runtime-status", "loading");
   await expect(page.locator("section:nth-of-type(4) .shop-footer").first()).toContainText(
     "Textured sweater",

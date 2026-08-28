@@ -10,6 +10,8 @@ import { extname, resolve } from "node:path";
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
 import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
 import { decorPreset } from "../app/themes/decor/presets/layered";
+import { decorStoreManifest, decorStoreThemeDescriptor } from "../app/themes/decor-store/manifest";
+import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import {
   fashionStoreManifest,
   fashionStoreThemeDescriptor,
@@ -46,6 +48,13 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
     descriptor: fashionStoreThemeDescriptor,
     migrations: [],
     package: { manifest: fashionStoreManifest, presets: [fashionStorePreset] },
+    requiredPageTypes: ["home"],
+  },
+  {
+    assetPolicy: "source-equivalent",
+    descriptor: decorStoreThemeDescriptor,
+    migrations: [],
+    package: { manifest: decorStoreManifest, presets: [decorStorePreset] },
     requiredPageTypes: ["home"],
   },
   {

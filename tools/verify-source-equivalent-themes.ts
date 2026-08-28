@@ -43,6 +43,7 @@ export interface SourceEquivalencePolicy {
     scriptFirst: boolean;
   };
   requiredEvidence: string[];
+  sourceIntakes: SourceEquivalenceSourceIntakePolicy[];
   themes: SourceEquivalenceThemePolicy[];
   waivers: {
     approvedBy: string;
@@ -54,6 +55,27 @@ export interface SourceEquivalencePolicy {
     routeId: string;
     themeId: string;
   }[];
+}
+
+export interface SourceEquivalenceSourceIntakePolicy {
+  acceptanceModes: string[];
+  authorizedSourceRoot: string;
+  canonicalViewports: { height: number; id: string; width: number }[];
+  checkpoints: string[];
+  contracts: {
+    acceptanceAdapter: string;
+    behavior: string;
+    source: string;
+  };
+  excludedSourceResources: { path: string; reason: string }[];
+  id: string;
+  requiredHeroDependencies: string[];
+  scriptOrder: string[];
+  sourceEntry: string;
+  sourceEntrySha256: string;
+  sourceManifestThemeId: string;
+  status: "contracts-frozen";
+  stylesheetOrder: string[];
 }
 
 export interface SourceEquivalencePagePolicy {
@@ -244,90 +266,96 @@ export async function validateImportedSourceTree(root = ROOT): Promise<void> {
   const manifest = JSON.parse(
     await readFile(manifestPath, "utf8"),
   ) as StorefrontThemeSourceManifest;
-  const declaration = manifest.themes.find(({ themeId }) => themeId === "fashion-store");
-  if (!declaration) throw new Error("Fashion Store source declaration is missing.");
   const errors: string[] = [];
-  if (!declaration.importedAt) errors.push("Fashion Store importedAt is missing");
-  if (declaration.importedFiles.length !== declaration.allowlist.length)
-    errors.push("Fashion Store imported file count does not match the allowlist");
+  const declarations = manifest.themes.filter(({ themeId }) =>
+    ["decor-store", "fashion-store"].includes(themeId),
+  );
+  if (!declarations.some(({ themeId }) => themeId === "fashion-store"))
+    throw new Error("Fashion Store source declaration is missing.");
 
-  const themeRoot = resolve(root, "apps/storefront/app/themes/fashion-store");
-  const upstreamRoot = resolve(themeRoot, "upstream");
-  const expectedPaths = new Set<string>();
-  for (const asset of declaration.allowlist) {
-    const destinationPath = asset.destinationPath;
-    if (!destinationPath.startsWith("upstream/") || destinationPath.includes("..")) {
-      errors.push(`${destinationPath}: unsafe Fashion Store destination path`);
-      continue;
-    }
-    expectedPaths.add(destinationPath);
-    const imported = declaration.importedFiles.find(
-      (candidate) => candidate.destinationPath === destinationPath,
-    );
-    if (
-      !imported ||
-      imported.sourcePath !== asset.sourcePath ||
-      imported.kind !== asset.kind ||
-      imported.sha256 !== asset.expectedSha256
-    ) {
-      errors.push(`${destinationPath}: imported metadata does not match the pinned declaration`);
-      continue;
-    }
-    const path = resolve(themeRoot, destinationPath);
-    if (relative(themeRoot, path).startsWith("..")) {
-      errors.push(`${destinationPath}: imported path escapes the theme root`);
-      continue;
-    }
-    try {
-      const entry = await lstat(path);
-      if (entry.isSymbolicLink() || !entry.isFile()) {
-        errors.push(`${destinationPath}: imported output is not a regular file`);
+  for (const declaration of declarations) {
+    const label = declaration.themeId === "decor-store" ? "Decor Store" : "Fashion Store";
+    if (!declaration.importedAt) errors.push(`${label} importedAt is missing`);
+    if (declaration.importedFiles.length !== declaration.allowlist.length)
+      errors.push(`${label} imported file count does not match the allowlist`);
+
+    const themeRoot = resolve(root, `apps/storefront/app/themes/${declaration.themeId}`);
+    const upstreamRoot = resolve(themeRoot, "upstream");
+    const expectedPaths = new Set<string>();
+    for (const asset of declaration.allowlist) {
+      const destinationPath = asset.destinationPath;
+      if (!destinationPath.startsWith("upstream/") || destinationPath.includes("..")) {
+        errors.push(`${destinationPath}: unsafe ${label} destination path`);
         continue;
       }
-      const contents = new Uint8Array(await readFile(path));
-      const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
-      if (digest !== asset.expectedSha256 || digest !== imported.sha256)
-        errors.push(`${destinationPath}: imported hash does not match`);
-      if (contents.byteLength !== imported.bytes)
-        errors.push(`${destinationPath}: imported byte count does not match`);
+      expectedPaths.add(destinationPath);
+      const imported = declaration.importedFiles.find(
+        (candidate) => candidate.destinationPath === destinationPath,
+      );
+      if (
+        !imported ||
+        imported.sourcePath !== asset.sourcePath ||
+        imported.kind !== asset.kind ||
+        imported.sha256 !== asset.expectedSha256
+      ) {
+        errors.push(`${destinationPath}: imported metadata does not match the pinned declaration`);
+        continue;
+      }
+      const path = resolve(themeRoot, destinationPath);
+      if (relative(themeRoot, path).startsWith("..")) {
+        errors.push(`${destinationPath}: imported path escapes the theme root`);
+        continue;
+      }
+      try {
+        const entry = await lstat(path);
+        if (entry.isSymbolicLink() || !entry.isFile()) {
+          errors.push(`${destinationPath}: imported output is not a regular file`);
+          continue;
+        }
+        const contents = new Uint8Array(await readFile(path));
+        const digest = new Bun.CryptoHasher("sha256").update(contents).digest("hex");
+        if (digest !== asset.expectedSha256 || digest !== imported.sha256)
+          errors.push(`${destinationPath}: imported hash does not match`);
+        if (contents.byteLength !== imported.bytes)
+          errors.push(`${destinationPath}: imported byte count does not match`);
+      } catch (error) {
+        errors.push(
+          `${destinationPath}: imported output is missing (${error instanceof Error ? error.message : String(error)})`,
+        );
+      }
+    }
+
+    try {
+      const actualPaths = (await treeFiles(upstreamRoot)).map((path) =>
+        relative(themeRoot, path).split(sep).join("/"),
+      );
+      for (const path of actualPaths) {
+        if (!expectedPaths.has(path)) errors.push(`${path}: unlisted imported output`);
+      }
+      for (const path of expectedPaths) {
+        if (!actualPaths.includes(path))
+          errors.push(`${path}: allowlisted imported output is missing`);
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+
+    try {
+      const provenance = await readFile(resolve(themeRoot, "UPSTREAM.md"), "utf8");
+      if (!provenance.includes(declaration.sourceIdentity ?? "(missing source identity)"))
+        errors.push(`${label} provenance source identity does not match`);
+      if (!provenance.includes("js/main.js") || !/behavioral reference/i.test(provenance))
+        errors.push(`${label} provenance does not document the main.js execution boundary`);
+      for (const { sha256 } of declaration.importedFiles) {
+        if (!provenance.includes(sha256)) errors.push(`${label} provenance omits hash ${sha256}`);
+      }
     } catch (error) {
       errors.push(
-        `${destinationPath}: imported output is missing (${error instanceof Error ? error.message : String(error)})`,
+        `${label} provenance is missing (${error instanceof Error ? error.message : String(error)})`,
       );
     }
   }
-
-  try {
-    const actualPaths = (await treeFiles(upstreamRoot)).map((path) =>
-      relative(themeRoot, path).split(sep).join("/"),
-    );
-    for (const path of actualPaths) {
-      if (!expectedPaths.has(path)) errors.push(`${path}: unlisted imported output`);
-    }
-    for (const path of expectedPaths) {
-      if (!actualPaths.includes(path))
-        errors.push(`${path}: allowlisted imported output is missing`);
-    }
-  } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error));
-  }
-
-  try {
-    const provenance = await readFile(resolve(themeRoot, "UPSTREAM.md"), "utf8");
-    if (!provenance.includes(declaration.sourceIdentity ?? "(missing source identity)"))
-      errors.push("Fashion Store provenance source identity does not match");
-    if (!provenance.includes("js/main.js") || !/behavioral reference/i.test(provenance))
-      errors.push("Fashion Store provenance does not document the main.js execution boundary");
-    for (const { sha256 } of declaration.importedFiles) {
-      if (!provenance.includes(sha256))
-        errors.push(`Fashion Store provenance omits hash ${sha256}`);
-    }
-  } catch (error) {
-    errors.push(
-      `Fashion Store provenance is missing (${error instanceof Error ? error.message : String(error)})`,
-    );
-  }
-  assertNoErrors(errors, "Fashion Store imported source verification failed");
+  assertNoErrors(errors, "Imported source verification failed");
 }
 
 export async function validateSourceEquivalencePolicy(
@@ -401,6 +429,74 @@ export async function validateSourceEquivalencePolicy(
     REQUIRED_EVIDENCE.some((facet) => !policy.requiredEvidence.includes(facet))
   )
     errors.push("required evidence dimensions must not be removed or replaced");
+
+  const sourceManifest = JSON.parse(
+    readFileSync(resolve(root, "tools/storefront-theme-source-manifest.json"), "utf8"),
+  ) as StorefrontThemeSourceManifest;
+  const intakeIds = new Set<string>();
+  if (!Array.isArray(policy.sourceIntakes) || policy.sourceIntakes.length === 0)
+    errors.push("at least one frozen source intake is required");
+  for (const intake of policy.sourceIntakes ?? []) {
+    const label = intake.id || "unknown-source-intake";
+    if (!SAFE_THEME_ID.test(intake.id)) errors.push(`${label}: invalid source intake ID`);
+    if (intakeIds.has(intake.id)) errors.push(`${label}: duplicate source intake`);
+    intakeIds.add(intake.id);
+    if (intake.status !== "contracts-frozen")
+      errors.push(`${label}: source intake status must be contracts-frozen`);
+    if (
+      intake.canonicalViewports.length !== REQUIRED_VIEWPORTS.length ||
+      REQUIRED_VIEWPORTS.some((viewport, index) =>
+        Object.entries(viewport).some(
+          ([key, value]) =>
+            intake.canonicalViewports[index]?.[key as keyof typeof viewport] !== value,
+        ),
+      )
+    )
+      errors.push(`${label}: source intake canonical viewports are incomplete`);
+    if (intake.acceptanceModes.join(",") !== "static,temporal,interaction,scroll-fixed,fallback")
+      errors.push(`${label}: source intake acceptance modes are incomplete or reordered`);
+    if (intake.checkpoints.length !== 4)
+      errors.push(`${label}: source intake must declare four review checkpoints`);
+    for (const contractPath of Object.values(intake.contracts ?? {})) {
+      if (!contractPath || !existsSync(resolve(root, contractPath)))
+        errors.push(`${label}: source intake contract is missing (${contractPath || "unknown"})`);
+    }
+    const sourceRoot = resolve(root, intake.authorizedSourceRoot);
+    const entryPath = resolve(sourceRoot, intake.sourceEntry);
+    const entryRelative = relative(sourceRoot, entryPath);
+    if (entryRelative === ".." || entryRelative.startsWith(`..${sep}`) || !existsSync(entryPath)) {
+      errors.push(`${label}: source intake entry is missing or outside its root`);
+    } else {
+      const digest = createHash("sha256").update(readFileSync(entryPath)).digest("hex");
+      if (digest !== intake.sourceEntrySha256)
+        errors.push(`${label}: source intake entry digest does not match`);
+    }
+    const declaration = sourceManifest.themes.find(
+      ({ themeId }) => themeId === intake.sourceManifestThemeId,
+    );
+    if (!declaration) {
+      errors.push(`${label}: source manifest declaration is missing`);
+    } else {
+      const declaredPaths = new Set(declaration.allowlist.map(({ sourcePath }) => sourcePath));
+      for (const dependency of intake.requiredHeroDependencies) {
+        if (!declaredPaths.has(dependency))
+          errors.push(
+            `${label}: Hero dependency is absent from the source manifest (${dependency})`,
+          );
+      }
+      if (declaration.sourceRevision !== `sha256:${intake.sourceEntrySha256}`)
+        errors.push(`${label}: source manifest revision does not match policy`);
+    }
+    if (
+      intake.scriptOrder.some((path) => /(?:main\.js|particles|https?:|\.php)/i.test(path)) ||
+      intake.stylesheetOrder.some((path) => /(?:https?:|\.php)/i.test(path))
+    )
+      errors.push(`${label}: source intake executable order contains a forbidden resource`);
+    for (const exclusion of intake.excludedSourceResources ?? []) {
+      if (!exclusion.path?.trim() || !exclusion.reason?.trim())
+        errors.push(`${label}: excluded source resource requires a path and reason`);
+    }
+  }
 
   const themeIds = new Set<string>();
   const policyBehaviorDescriptors: ThemeBehaviorDescriptor[] = [];

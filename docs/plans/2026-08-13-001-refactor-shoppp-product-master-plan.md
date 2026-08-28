@@ -43,7 +43,7 @@ Shoppp is one cross-border DTC commerce product with these product areas:
 | `IAM` | Admin authentication, users, roles, authorization and environment isolation | [Multi-User Admin Access](2026-08-04-001-feat-multi-user-admin-access-plan.md) |
 | `AI` | Reviewable AI assistance in product editing | [AI-Assisted Product Form](2026-08-04-002-feat-ai-assisted-product-form-plan.md) |
 | `FS` | The `fashion-store` product template | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) |
-| `DS` | The `decor-store` product template | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) for home correction; branch-qualified `codex/feat-decor-store-source-parity:docs/plans/2026-08-19-1518-feat-decor-store-page-suite-plan.md` for the remaining-page tail |
+| `DS` | The `decor-store` product template | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) for home correction; [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) for the completed remaining-page tail |
 | `REL` | Candidate proof and production-promotion policy | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) |
 | `CI` | Repository validation plus GitHub-first release delivery | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md); the completed [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) retains bridge history |
 
@@ -99,8 +99,7 @@ historical evidence remain unchanged inside the owning plans.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 
-- **Parallel plan:** `DS-P1` — Decor Store Remaining Page Suite on branch
-  `codex/feat-decor-store-source-parity`.
+- **Parallel plan:** `DS-P1` — [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md), now retained in the shared main-based integration baseline.
 - **Current parent/child stage:** `DS-P1` complete — U1-U7 are closed with all fourteen Decor
   secondary routes source-compared, behavior-verified, readiness-gated, and browser-verified.
 - **Next action:** None in DS-P1. Any real catalog, cart, checkout, payment, authentication, order,
@@ -108,11 +107,11 @@ Parallel Decor execution is complete without replacing the product-level Fashion
   this completion does not change Fashion, REL, DC, or PG scope.
 - **Blocker:** None. Unavailable remote placeholder image content is governed as a deterministic
   local-asset adaptation and is excluded from exact image-content parity claims.
-- **Isolation:** The completed DS-P1 branch remains retained locally and remotely at
-  `db1a362a680421e2c0b7dbb966f92f5fb03d7105`, but its temporary
-  `.worktrees/decor-store-source-parity` checkout was removed during the bounded 2026-08-28
-  worktree convergence after exact manifests and ref recovery were retained. Checkout removal did
-  not merge, delete, abandon, reopen, or otherwise change DS-P1 authority.
+- **Integration:** The completed DS-P1 implementation, plans, evidence, source manifest, and
+  fifteen-route Decor Store suite were reconciled onto the current main-based integration baseline
+  during the bounded 2026-08-28 worktree convergence. Its temporary checkout was removed only after
+  exact manifests and ref recovery were retained. This integration does not reopen DS-P1 or change
+  Fashion, REL, DC, or PG scope.
 
 CI infrastructure execution has returned from its completed bounded bridge without replacing either
 product implementation pointer:
@@ -301,7 +300,7 @@ focused test alone.
 | `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active — current `FS-U8.2`; U12 complete with governed test-environment proof** | This plan owns `FS-U8` and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
-| `DS-P1` | `codex/feat-decor-store-source-parity:docs/plans/2026-08-19-1518-feat-decor-store-page-suite-plan.md` | Parallel remaining-page source-parity successor | **Complete — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
+| `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
@@ -381,7 +380,7 @@ implementation or a `fashion-store`-only candidate, but it must be complete befo
 
 ### 4. Decor Store remaining page suite
 
-The branch-qualified Decor Store Remaining Page Suite continues from the accepted home-only
+The integrated Decor Store Remaining Page Suite continues from the accepted home-only
 `decor-store` baseline and owns exactly the fourteen non-home Crafto Decor source entries. It ran in
 parallel with Fashion execution from a temporary worktree that was later removed under the retained
 2026-08-28 convergence record. The completed implementation preserves the home runtime boundary and

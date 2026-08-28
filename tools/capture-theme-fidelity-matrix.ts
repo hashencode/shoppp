@@ -26,21 +26,27 @@ const sourceOrigin = argumentValue(arguments_, "--source-origin");
 const implementationOrigin = argumentValue(arguments_, "--implementation-origin");
 const outputRoot = argumentValue(arguments_, "--output");
 const commit = argumentValue(arguments_, "--commit");
+const artifactDigest = argumentValue(arguments_, "--artifact-digest");
 const matchesTheme = (routeId: string): boolean =>
-  theme === "fashion-store" ? routeId.startsWith("fashion-store-") : routeId.startsWith("decor-");
+  theme === "fashion-store"
+    ? routeId.startsWith("fashion-store-")
+    : theme === "decor-store"
+      ? routeId.startsWith("decor-store-")
+      : routeId === "decor-home";
 
 if (
   !theme ||
-  !["fashion-store", "decor"].includes(theme) ||
+  !["fashion-store", "decor-store", "decor"].includes(theme) ||
   !["regional", "full-page"].includes(phase) ||
   !sourceOrigin ||
   !implementationOrigin ||
   !outputRoot ||
   !commit ||
+  !artifactDigest ||
   densities.some((density) => density !== 1 && density !== 2)
 ) {
   throw new Error(
-    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion-store|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha>",
+    "Usage: bun tools/capture-theme-fidelity-matrix.ts --theme=<fashion-store|decor-store|decor> --phase=<regional|full-page> [--route=<id>] [--region=<id>] [--viewport=<id>] [--dpr=<1|2|1,2>] --source-origin=<url> --implementation-origin=<url> --output=<path> --commit=<sha> --artifact-digest=<sha256>",
   );
 }
 
@@ -99,6 +105,7 @@ for (const [index, task] of tasks.entries()) {
       `--implementation-origin=${implementationOrigin}`,
       `--output=${outputRoot}`,
       `--commit=${commit}`,
+      `--artifact-digest=${artifactDigest}`,
     ],
     { stderr: "pipe", stdout: "pipe" },
   );

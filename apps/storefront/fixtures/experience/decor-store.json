@@ -1,0 +1,57 @@
+{
+  "approvedAt": "2026-08-10T00:00:00.000Z",
+  "approvedBy": "fixture-operator",
+  "bindings": [
+    {
+      "fixtureId": "decor-store-home",
+      "id": "decor-store-home-binding",
+      "instanceId": "decor-store-home",
+      "kind": "fixture",
+      "resource": "home",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-collection",
+      "id": "decor-store-collection-binding",
+      "instanceId": "decor-store-collection",
+      "kind": "fixture",
+      "resource": "collection",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-product",
+      "id": "decor-store-product-binding",
+      "instanceId": "decor-store-product",
+      "kind": "fixture",
+      "resource": "product",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-content",
+      "id": "decor-store-content-binding",
+      "instanceId": "decor-store-content",
+      "kind": "fixture",
+      "resource": "content",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-cart",
+      "id": "decor-store-cart-binding",
+      "instanceId": "decor-store-cart",
+      "kind": "fixture",
+      "resource": "cart",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "decor-store-checkout",
+      "id": "decor-store-checkout-binding",
+      "instanceId": "decor-store-checkout",
+      "kind": "fixture",
+      "resource": "checkout",
+      "state": "populated"
+    }
+  ],
+  "experienceId": "experience-decor-store-fixture",
+  "snapshotId": "snapshot-decor-store-fixture-1",
+  "version": 1
+}

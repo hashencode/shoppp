@@ -537,8 +537,14 @@
           "behaviorContractExport": "decorBehaviorContract",
           "behaviorContractPath": "apps/storefront/app/themes/decor/behavior-contract.ts",
           "focusedStates": [
-            { "id": "hero-slide-1", "modes": ["temporal", "interaction"] },
-            { "id": "scroll-progress-visible", "modes": ["scroll-fixed"] }
+            {
+              "id": "hero-slide-1",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "scroll-progress-visible",
+              "modes": ["scroll-fixed"]
+            }
           ],
           "id": "home",
           "implementationRoute": "/",
@@ -554,7 +560,1119 @@
         }
       ],
       "upstreamPath": "apps/storefront/app/themes/decor/UPSTREAM.md"
+    },
+    {
+      "id": "decor-store",
+      "acceptance": {
+        "browserConfig": "apps/storefront/playwright.decor-store.config.ts",
+        "browserProject": "decor-store-desktop",
+        "pageCommand": [
+          "bun",
+          "tools/run-decor-store-acceptance.ts",
+          "--scope=page",
+          "--page={page}"
+        ],
+        "themeCommand": ["bun", "tools/run-decor-store-acceptance.ts", "--scope=theme"]
+      },
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "declaredPages": [
+        {
+          "id": "home",
+          "implementationRoute": "/",
+          "pageType": "home",
+          "ready": true,
+          "sourceEntry": "demo-decor-store.html"
+        },
+        {
+          "id": "shop-left",
+          "implementationRoute": "/shop",
+          "pageType": "collection",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-shop.html"
+        },
+        {
+          "id": "shop-none",
+          "implementationRoute": "/shop/no-sidebar",
+          "pageType": "collection",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-no-sidebar.html"
+        },
+        {
+          "id": "shop-right",
+          "implementationRoute": "/shop/right-sidebar",
+          "pageType": "collection",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-right-sidebar.html"
+        },
+        {
+          "id": "collection",
+          "implementationRoute": "/collections",
+          "pageType": "collection",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-collections.html"
+        },
+        {
+          "id": "product",
+          "implementationRoute": "/products/minimalist-wooden-chair",
+          "pageType": "product",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-single-product.html"
+        },
+        {
+          "id": "wishlist",
+          "implementationRoute": "/wishlist",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-wishlist.html"
+        },
+        {
+          "id": "cart",
+          "implementationRoute": "/cart",
+          "pageType": "cart",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-cart.html"
+        },
+        {
+          "id": "checkout",
+          "implementationRoute": "/checkout",
+          "pageType": "checkout",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-checkout.html"
+        },
+        {
+          "id": "account",
+          "implementationRoute": "/account",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-account.html"
+        },
+        {
+          "id": "blog",
+          "implementationRoute": "/blog",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-blog.html"
+        },
+        {
+          "id": "article",
+          "implementationRoute": "/blog/best-influencers-for-decor-inspiration",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-blog-single-classic.html"
+        },
+        {
+          "id": "about",
+          "implementationRoute": "/about",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-about.html"
+        },
+        {
+          "id": "faq",
+          "implementationRoute": "/faq",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-faq.html"
+        },
+        {
+          "id": "contact",
+          "implementationRoute": "/contact",
+          "pageType": "content",
+          "ready": true,
+          "sourceEntry": "demo-decor-store-contact.html"
+        }
+      ],
+      "equivalenceScope": [
+        "home",
+        "shop-left",
+        "shop-none",
+        "shop-right",
+        "collection",
+        "product",
+        "wishlist",
+        "cart",
+        "checkout",
+        "account",
+        "blog",
+        "article",
+        "about",
+        "faq",
+        "contact"
+      ],
+      "manifestExport": "decorStoreManifest",
+      "manifestPath": "apps/storefront/app/themes/decor-store/manifest.ts",
+      "pages": [
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["fallback", "interaction", "scroll-fixed", "static", "temporal"],
+          "behaviorContractExport": "decorStoreBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "source-inventory",
+              "modes": ["static"]
+            },
+            {
+              "id": "hero-slide-2",
+              "modes": ["temporal", "interaction"]
+            },
+            {
+              "id": "header-search-open",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress-visible",
+              "modes": ["scroll-fixed"]
+            },
+            {
+              "id": "fallback-static",
+              "modes": ["fallback"]
+            }
+          ],
+          "id": "home",
+          "implementationRoute": "/",
+          "implementationRuntimeReadySelector": "[data-decor-store-source-parity][data-runtime-status='ready']",
+          "pageType": "home",
+          "requiredContractFacets": [
+            "behaviorContractPath",
+            "homeSectionCount",
+            "regionOrder",
+            "scriptOrder",
+            "stylesheetOrder"
+          ],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store.html",
+          "sourceEntrySha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+          "sourceFirstHero": "images/demo-decor-store-slider-01-img-01.png",
+          "sourceRegionsExport": "decorStoreSourceRegions",
+          "sourceRuntimeReadySelector": "#decor-store-slider.revslider-initialised"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreShopLeftBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "filter-accordion",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "sort",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "pagination",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-card-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "shop-left",
+          "implementationRoute": "/shop",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-shop.html",
+          "sourceEntrySha256": "065d95c8a46c2251677d560fecf68177bfac19d1a499180eeb0d6c9f33e39371",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreShopNoneBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "sort",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "pagination",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-card-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "shop-none",
+          "implementationRoute": "/shop/no-sidebar",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-no-sidebar.html",
+          "sourceEntrySha256": "38b1e80adf4f7eb4dcc27e20048aaf30455e30bf0aa8da0b5d1cc0d0576bb4f3",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreShopRightBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "filter-accordion",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "sort",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "pagination",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-card-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "shop-right",
+          "implementationRoute": "/shop/right-sidebar",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-right-sidebar.html",
+          "sourceEntrySha256": "c610ddcb1e7bf98dec9a0bce716c69c34104a1769035af7f4ad2cfd887a55592",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreCollectionBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "collection-card-hover",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "collection",
+          "implementationRoute": "/collections",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "collection",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-collections.html",
+          "sourceEntrySha256": "4c7e88b0cdb2522db60f94bcad37e9dd9801bc7af530d1a33e430ef177beae27",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreProductBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-gallery",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-options",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "quantity",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "product-tabs",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "wishlist-toggle",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "review-form-inert",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "product",
+          "implementationRoute": "/products/minimalist-wooden-chair",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "product",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-single-product.html",
+          "sourceEntrySha256": "0cc641e5bbaf8fc99b49f48a3018ee53c21da8e708322b02af92f44752a0cfc4",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreWishlistBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "wishlist-remove",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "wishlist-product-navigation",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "wishlist",
+          "implementationRoute": "/wishlist",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-wishlist.html",
+          "sourceEntrySha256": "20c2605c62a68a75246025f0b65ccf17d13c3f288aea31665f99a4afd7fc2f0a",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreCartBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cart-quantity",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cart-remove",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "coupon-form-inert",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "checkout-navigation",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "cart",
+          "implementationRoute": "/cart",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "cart",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-cart.html",
+          "sourceEntrySha256": "763274d2143c4c88a43887e96125005a545d14db95155058f4d2c5f2f7414415",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreCheckoutBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "login-panel",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "coupon-panel",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "billing-fields-inert",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "payment-options-inert",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "checkout",
+          "implementationRoute": "/checkout",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "checkout",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-checkout.html",
+          "sourceEntrySha256": "9c2449fa59420fb9a7914fb25889f89f1020ace405206e3465bbd1d48180b7ad",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreAccountBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "account-tabs",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "login-form-inert",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "register-form-inert",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "account",
+          "implementationRoute": "/account",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-account.html",
+          "sourceEntrySha256": "a31db714f1108752d90644cff0db073ba007f562306a3714065849a45f8366d9",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreBlogBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "article-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "blog-pagination",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "blog",
+          "implementationRoute": "/blog",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-blog.html",
+          "sourceEntrySha256": "c4c0a4e9df57465d0832d550c237e462b9e06c6659f01708e14790e56f200ec8",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreArticleBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "share-links",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "comment-form-inert",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "article",
+          "implementationRoute": "/blog/best-influencers-for-decor-inspiration",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-blog-single-classic.html",
+          "sourceEntrySha256": "b6abf777b80763160368ee2a0e026b44bca9281bb1a01bb7978c986842ce98f0",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreAboutBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "about-carousel",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "about",
+          "implementationRoute": "/about",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-about.html",
+          "sourceEntrySha256": "7bda4259daa489b5cccdb2e0e597c19133668e28d2efe122942bcdf491068512",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreFaqBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "faq-accordion",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "faq",
+          "implementationRoute": "/faq",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-faq.html",
+          "sourceEntrySha256": "548c9596e15be40b23552773c7be731721f02b67bfa9525e07a6acf5c7cdcb5a",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        },
+        {
+          "acceptanceAdapterExport": "decorStoreAcceptanceAdapters",
+          "acceptanceAdapterPath": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts",
+          "applicableModes": ["static", "interaction"],
+          "behaviorContractExport": "decorStoreContactBehaviorContract",
+          "behaviorContractPath": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+          "focusedStates": [
+            {
+              "id": "route-ready",
+              "modes": ["static"]
+            },
+            {
+              "id": "header-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mobile-navigation",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "search-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "mini-cart-overlay",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "cookie-dismissal",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "scroll-progress",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "contact-form-inert",
+              "modes": ["interaction"]
+            },
+            {
+              "id": "map-static",
+              "modes": ["interaction"]
+            }
+          ],
+          "id": "contact",
+          "implementationRoute": "/contact",
+          "implementationRuntimeReadySelector": "[data-decor-store-secondary-shell][data-runtime-status='ready']",
+          "pageType": "content",
+          "requiredContractFacets": ["secondaryPages"],
+          "sourceContractPath": "apps/storefront/app/themes/decor-store/source-contract.ts",
+          "sourceEntry": "demo-decor-store-contact.html",
+          "sourceEntrySha256": "603623c9ed2e0dbe50074a8a576493caf26e9978536720ae1cf46a4de443b088",
+          "sourceRegionsExport": "decorStoreSecondarySourceRegions",
+          "sourceRuntimeReadySelector": "body"
+        }
+      ],
+      "upstreamPath": "apps/storefront/app/themes/decor-store/UPSTREAM.md"
     }
   ],
-  "waivers": []
+  "waivers": [],
+  "sourceIntakes": [
+    {
+      "id": "decor-store",
+      "status": "contracts-frozen",
+      "authorizedSourceRoot": "templates/Crafto - The Multipurpose HTML5 Template/html",
+      "sourceEntry": "demo-decor-store.html",
+      "sourceEntrySha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+      "sourceManifestThemeId": "decor-store",
+      "stylesheetOrder": [
+        "revolution/css/settings.css",
+        "revolution/css/layers.css",
+        "revolution/css/navigation.css",
+        "css/vendors.min.css",
+        "css/icon.min.css",
+        "css/style.css",
+        "css/responsive.css",
+        "demos/decor-store/decor-store.css"
+      ],
+      "scriptOrder": [
+        "js/jquery.js",
+        "js/vendors.min.js",
+        "revolution/js/jquery.themepunch.tools.min.js",
+        "revolution/js/jquery.themepunch.revolution.min.js",
+        "revolution/js/extensions/revolution.extension.actions.min.js",
+        "revolution/js/extensions/revolution.extension.layeranimation.min.js",
+        "revolution/js/extensions/revolution.extension.navigation.min.js",
+        "revolution/js/extensions/revolution.extension.slideanims.min.js",
+        "inline:#decor-store-slider"
+      ],
+      "requiredHeroDependencies": [
+        "revolution/css/settings.css",
+        "revolution/css/layers.css",
+        "revolution/css/navigation.css",
+        "js/jquery.js",
+        "js/vendors.min.js",
+        "revolution/js/jquery.themepunch.tools.min.js",
+        "revolution/js/jquery.themepunch.revolution.min.js",
+        "revolution/js/extensions/revolution.extension.actions.min.js",
+        "revolution/js/extensions/revolution.extension.layeranimation.min.js",
+        "revolution/js/extensions/revolution.extension.navigation.min.js",
+        "revolution/js/extensions/revolution.extension.slideanims.min.js",
+        "images/demo-decor-store-slider-01-img-01.png",
+        "images/demo-decor-store-slider-01-img-02.jpg",
+        "images/demo-decor-store-slider-01-img-03.jpg",
+        "images/demo-decor-store-slider-01-thumb.jpg",
+        "images/demo-decor-store-slider-02-img-04.png",
+        "images/demo-decor-store-slider-02-img-05.jpg",
+        "images/demo-decor-store-slider-02-img-06.jpg",
+        "images/demo-decor-store-slider-02-thumb.jpg",
+        "images/demo-decor-store-slider-03-img-07.png",
+        "images/demo-decor-store-slider-03-img-08.jpg",
+        "images/demo-decor-store-slider-03-img-09.jpg",
+        "images/demo-decor-store-slider-03-thumb.jpg"
+      ],
+      "excludedSourceResources": [
+        {
+          "path": "revolution/revolution-addons/particles/js/revolution.addon.particles.min.js",
+          "reason": "The source includes the script tag but no Hero markup or initializer activates the add-on."
+        },
+        {
+          "path": "js/main.js",
+          "reason": "Behavioral reference only; production execution is prohibited."
+        },
+        {
+          "path": "https://fonts.googleapis.com",
+          "reason": "Remote font resources are replaced by an inspected, hash-pinned local WOFF2."
+        },
+        {
+          "path": "**/*.php",
+          "reason": "Backend/demo handlers are outside the frontend-only source-equivalence boundary."
+        }
+      ],
+      "acceptanceModes": ["static", "temporal", "interaction", "scroll-fixed", "fallback"],
+      "canonicalViewports": [
+        {
+          "height": 1000,
+          "id": "desktop",
+          "width": 1440
+        },
+        {
+          "height": 900,
+          "id": "laptop",
+          "width": 1024
+        },
+        {
+          "height": 1024,
+          "id": "tablet",
+          "width": 768
+        },
+        {
+          "height": 844,
+          "id": "mobile",
+          "width": 390
+        }
+      ],
+      "checkpoints": [
+        "header-hero-card",
+        "first-timed-body-behavior",
+        "desktop-complete",
+        "mobile-fallback-complete"
+      ],
+      "contracts": {
+        "source": "apps/storefront/app/themes/decor-store/source-contract.ts",
+        "behavior": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
+        "acceptanceAdapter": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts"
+      }
+    }
+  ]
 }

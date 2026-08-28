@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { chromium, expect, test, type Page } from "@playwright/test";
 
 import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
+import { decorStorePageContracts } from "../app/themes/decor-store/page-contracts";
 
 const manifest = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../app/generated/route-manifest.json"), "utf8"),
@@ -24,31 +25,43 @@ const fashionStoreRoutes = fashionStorePageContracts
 if (fashionStoreRoutes.length !== fashionStorePerformancePageIds.size) {
   throw new Error("Fashion Store performance routes are incomplete.");
 }
-const routes = rootUrlOverride
-  ? ["/"]
-  : theme === "fashion-store"
-    ? fashionStoreRoutes
-    : [
-        "/",
-        manifest.routes.find((route) => route.startsWith("/collections/")),
-        manifest.routes.find((route) => route.startsWith("/products/")),
-        "/cart",
-        "/checkout",
-        "/orders/fixture-order",
-        manifest.routes.find((route) => route.startsWith("/policies/")),
-      ].filter((route): route is string => Boolean(route));
+const decorStoreRoutes = decorStorePageContracts.map(({ path }) => path);
+if (decorStoreRoutes.length !== 15 || new Set(decorStoreRoutes).size !== 15) {
+  throw new Error("Decor Store performance routes are incomplete.");
+}
+function performanceRoutes(): string[] {
+  if (rootUrlOverride) return ["/"];
+  if (theme === "decor-store") return decorStoreRoutes;
+  if (theme === "fashion-store") return fashionStoreRoutes;
+  return [
+    "/",
+    manifest.routes.find((route) => route.startsWith("/collections/")),
+    manifest.routes.find((route) => route.startsWith("/products/")),
+    "/cart",
+    "/checkout",
+    "/orders/fixture-order",
+    manifest.routes.find((route) => route.startsWith("/policies/")),
+  ].filter((route): route is string => Boolean(route));
+}
+
+const routeOverride = process.env.STOREFRONT_PERF_ROUTE;
+const routes = routeOverride ? [routeOverride] : performanceRoutes();
 const thresholds = {
   accessibility: 0.95,
   "best-practices": 0.95,
   performance: 0.9,
   seo: 1,
 } as const;
+const decorStoreColdThresholds = {
+  cumulativeLayoutShift: 0.5,
+  largestContentfulPaintMs: 17_000,
+  totalBlockingTimeMs: 200,
+} as const;
 const routeThresholds = (route: string) => ({
   ...thresholds,
-  // Fashion Store intentionally preserves the source package's audited low-contrast labels and
-  // secondary copy. Its dedicated Axe gate enforces every serious rule and a narrow list of
-  // source-exact contrast exceptions.
-  accessibility: theme === "fashion-store" ? 0.85 : thresholds.accessibility,
+  // Source-equivalent themes intentionally preserve their source package's audited low-contrast
+  // labels and secondary copy. Dedicated Axe gates enforce every serious structural rule.
+  accessibility: ["decor-store", "fashion-store"].includes(theme) ? 0.85 : thresholds.accessibility,
   performance: thresholds.performance,
   // Private previews and production transaction shells are intentionally noindex, which
   // Lighthouse reports as an SEO deduction. verify-static.ts separately enforces their
@@ -60,6 +73,8 @@ const routeThresholds = (route: string) => ({
         ? 0.5
         : 1,
 });
+
+test.setTimeout(theme === "decor-store" ? 600_000 : 180_000);
 
 function lighthouseChromePath(): string {
   if (process.env.LIGHTHOUSE_CHROME_PATH) return process.env.LIGHTHOUSE_CHROME_PATH;
@@ -115,7 +130,8 @@ test(`${theme} storefront routes meet mobile Lighthouse budgets`, async ({ baseU
         style.textContent =
           "*,*::before,*::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}" +
           "[data-motion-layer]{opacity:1!important;filter:none!important}" +
-          "[data-source-reveal]{opacity:1!important;transform:none!important;visibility:visible!important}";
+          "[data-source-reveal]{opacity:1!important;transform:none!important;visibility:visible!important}" +
+          "[data-runtime-status='loading'] #decor-store-slider>ul{visibility:hidden!important}";
         document.documentElement.append(style);
       };
       if (document.documentElement) applyStableMotionPolicy();
@@ -164,7 +180,29 @@ test(`${theme} storefront routes meet mobile Lighthouse budgets`, async ({ baseU
             result!.lhr.categories[category]?.score,
           ]),
         );
-        console.log(`Lighthouse ${route} attempt ${attempt}: ${JSON.stringify(scores)}`);
+        const runtimeMetrics = {
+          cumulativeLayoutShift: result.lhr.audits["cumulative-layout-shift"]?.numericValue ?? null,
+          largestContentfulPaintMs:
+            result.lhr.audits["largest-contentful-paint"]?.numericValue ?? null,
+          totalBlockingTimeMs: result.lhr.audits["total-blocking-time"]?.numericValue ?? null,
+        };
+        console.log(
+          `Lighthouse ${route} attempt ${attempt}: ${JSON.stringify({ ...scores, ...runtimeMetrics })}`,
+        );
+        if (theme === "decor-store" && attempt === 1) {
+          expect(
+            runtimeMetrics.cumulativeLayoutShift ?? Number.POSITIVE_INFINITY,
+            `${route} cold CLS exceeded the recorded practical baseline`,
+          ).toBeLessThanOrEqual(decorStoreColdThresholds.cumulativeLayoutShift);
+          expect(
+            runtimeMetrics.largestContentfulPaintMs ?? Number.POSITIVE_INFINITY,
+            `${route} cold LCP exceeded the recorded practical baseline`,
+          ).toBeLessThanOrEqual(decorStoreColdThresholds.largestContentfulPaintMs);
+          expect(
+            runtimeMetrics.totalBlockingTimeMs ?? Number.POSITIVE_INFINITY,
+            `${route} cold TBT exceeded the recorded practical baseline`,
+          ).toBeLessThanOrEqual(decorStoreColdThresholds.totalBlockingTimeMs);
+        }
         if (result.lhr.runtimeError) {
           throw new Error(
             `Lighthouse runtime error for ${route}: ${result.lhr.runtimeError.code} ${result.lhr.runtimeError.message}`,

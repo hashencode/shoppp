@@ -8,6 +8,7 @@ export default defineConfig({
   testDir: "./e2e",
   testIgnore: [
     "a11y.spec.ts",
+    "decor-store-*.spec.ts",
     "decor-motion.spec.ts",
     "decor-theme.spec.ts",
     "fashion-store-*.spec.ts",
