@@ -16,6 +16,24 @@ const ciPlan = readFile(
   resolve(import.meta.dir, "../docs/plans/2026-08-19-1737-refactor-local-first-ci-plan.md"),
   "utf8",
 );
+const fashionPlan = readFile(
+  resolve(
+    import.meta.dir,
+    "../docs/plans/2026-08-11-001-feat-fashion-store-functional-integration-plan.md",
+  ),
+  "utf8",
+);
+const ciU11Evidence = readFile(
+  resolve(import.meta.dir, "../docs/progress/ci-u11-github-first-steady-state-review.md"),
+  "utf8",
+);
+const resilienceLearning = readFile(
+  resolve(
+    import.meta.dir,
+    "../docs/solutions/workflow-issues/github-first-release-resilience-for-solo-maintainers-2026-08-28.md",
+  ),
+  "utf8",
+);
 
 function markdownSection(contents: string, heading: string): string {
   const marker = `## ${heading}`;
@@ -260,28 +278,34 @@ describe("local-first CI runner operations contract", () => {
     expect(recoveryText).toContain("production mutation remains disabled");
   });
 
-  test("keeps the product master pointer and plan register on CI-U11.1", async () => {
-    const contents = await productMasterPlan;
+  test("returns the product master pointer to FS-U8.2 after closing CI-U11.1", async () => {
+    const [contents, fashionContents] = await Promise.all([productMasterPlan, fashionPlan]);
     const frontmatter = contents.slice(0, contents.indexOf("\n---", 4) + 4);
     const pointer = markdownSection(contents, "Current execution pointer");
     const register = markdownSection(contents, "Product-plan register");
+    const fashionCheckpoint = markdownSection(fashionContents, "Execution Checkpoint");
 
-    expect(frontmatter).toContain("current_plan: 2026-08-19-1737-refactor-local-first-ci-plan.md");
-    expect(frontmatter).toContain("current_unit: CI-U11.1");
-    expect(pointer).toContain("**Current parent/child stage:** `CI-U11.1`");
+    expect(frontmatter).toContain(
+      "current_plan: 2026-08-11-001-feat-fashion-store-functional-integration-plan.md",
+    );
+    expect(frontmatter).toContain("current_unit: FS-U8.2");
+    expect(pointer).toContain("**Current parent/child stage:** `FS-U8.2`");
 
     const activeRows = markdownTableRows(register).filter((row) =>
-      row.some((cell) => cell.includes("**Active at")),
+      row.some((cell) => cell.includes("**Active at `FS-U8.2`")),
     );
     expect(activeRows).toHaveLength(1);
-    expect(activeRows[0]![0]).toBe("`CI`");
-    expect(activeRows[0]![3]).toContain("**Active at `CI-U11.1`");
+    expect(activeRows[0]![0]).toBe("`FS`");
 
     const fashion = tableRow(register, "`FS`");
-    expect(fashion[3]).toContain("waiting at the completed `FS-U8.2` cleanup-only handoff");
-    expect(fashion[3]).toContain("behind active `CI-U11.1`");
+    expect(fashion[3]).toContain("**Active at `FS-U8.2`");
 
-    expect(tableRow(register, "`CI`")[3]).toContain("CI-U8.3");
+    const ci = tableRow(register, "`CI`");
+    expect(ci[3]).toContain("**Complete");
+    expect(ci[3]).toContain("CI-U11.1");
+    expect(fashionCheckpoint).toContain("product execution has returned to");
+    expect(fashionCheckpoint).toContain("`FS-U8.2`");
+    expect(fashionCheckpoint).toContain("integrated into the current exact-main baseline");
   });
 
   test("keeps CI-U11.1 proportional to a single-maintainer project", async () => {
@@ -308,7 +332,8 @@ describe("local-first CI runner operations contract", () => {
       expect(checkpoint).toContain(provenance);
     }
 
-    expect(pointer).toContain("re-entry triggers and required checks");
+    expect(pointer).toContain("`CI-U11.1` complete");
+    expect(pointer).toContain("documented event-driven boundary");
     expect(pointer).not.toMatch(/record (?:operating )?owners/i);
   });
 
@@ -348,5 +373,95 @@ describe("local-first CI runner operations contract", () => {
 
     expect(scope).toContain("event-driven GitHub-first operational review");
     expect(scope).not.toContain("periodic GitHub-first operational review");
+  });
+
+  test("records an event-driven solo-maintainer operating review", async () => {
+    const contents = await availabilityRunbook;
+    const review = markdownSection(contents, "Event-driven steady-state review");
+    const normalizedReview = normalizedMarkdown(review);
+
+    const triggerContracts: Record<string, [string, string]> = {
+      "GitHub billing or control-plane change": ["hosted-runner start", "Pause formal release"],
+      "Artifact retention or access change": ["digest checks", "Stop artifact consumption"],
+      "Staging recovery contract change": ["pre-mutation refusal", "Disable staging mutation"],
+      "Credential rotation, revocation, or suspected disclosure": [
+        "staging/production separation",
+        "Disable every affected credentialed job",
+      ],
+      "Toolchain drift": ["declared Bun", "Invalidate affected validation/deployment evidence"],
+      "Workflow action-pin update": ["full immutable SHA", "Reject mutable or unreviewed refs"],
+    };
+
+    for (const [trigger, [requiredCheck, shutdownCondition]] of Object.entries(triggerContracts)) {
+      const row = tableRow(review, trigger);
+      expect(row).toHaveLength(4);
+      expect(row[1]).toContain(requiredCheck);
+      expect(row[2]).toMatch(/Keep|keep|revise|remove/);
+      expect(row[3]).toContain(shutdownCondition);
+    }
+
+    expect(tableRow(review, "Trigger")).toEqual([
+      "Trigger",
+      "Required checks",
+      "Decision record",
+      "Shutdown or reopen condition",
+    ]);
+    expect(normalizedReview).toContain("keep`, `revise`, or `remove");
+    expect(normalizedReview).toContain("single maintainer");
+    expect(normalizedReview).toContain("event-driven");
+    expect(normalizedReview).not.toMatch(/\| (?:owner|cadence|frequency) \|/i);
+    expect(normalizedReview).not.toMatch(/quarterly|monthly/i);
+  });
+
+  test("retains the inaugural recovery drill as historical evidence, not a second queue", async () => {
+    const contents = normalizedMarkdown(await ciU11Evidence);
+    const lowerContents = contents.toLowerCase();
+
+    expect(contents).toContain("historical evidence");
+    expect(contents).toContain("not a current-unit queue");
+    expect(contents).toContain("33073613728");
+    expect(contents).toContain("inaugural full recovery drill");
+    for (const mode of [
+      "pre-mutation refusal",
+      "Worker/D1 baseline capture",
+      "post-deploy checks",
+      "rollback or forward reconciliation",
+      "return to the prior safe staging state",
+    ]) {
+      expect(contents).toContain(mode);
+    }
+    expect(lowerContents).toContain("required access");
+    expect(lowerContents).toContain("material-change triggers");
+    expect(contents).toContain("Keep the GitHub-first path");
+    expect(contents).toContain("production skipped");
+  });
+
+  test("captures the GitHub-first resilience boundary as durable repository guidance", async () => {
+    const contents = normalizedMarkdown(await resilienceLearning);
+
+    expect(contents).toContain("problem_type: workflow_issue");
+    expect(contents).toContain("single maintainer");
+    expect(contents).toContain("event-driven review");
+    expect(contents).toContain("GitHub outage pauses release");
+    expect(contents).toContain("local development continues");
+    expect(contents).toContain("fresh exact-SHA hosted run");
+    expect(contents).toContain("keep, revise, or remove");
+    expect(contents).toContain("does not select a candidate");
+  });
+
+  test("closes CI-U11.1 without retaining periodic review language", async () => {
+    const plan = await ciPlan;
+    const checkpoint = normalizedMarkdown(markdownSection(plan, "Execution Checkpoint"));
+    const decisions = normalizedMarkdown(markdownSection(plan, "Key Technical Decisions"));
+    const unit = normalizedMarkdown(
+      markdownSection(plan, "CI-U11 — Establish steady-state resilience governance"),
+    );
+
+    expect(checkpoint).toContain("CI-U11.1 is complete");
+    expect(checkpoint).toContain("CI tail is closed");
+    expect(checkpoint).toContain("FS-U8.2");
+    expect(unit).toContain("CI-U11.1` complete");
+    expect(decisions).toContain("event-driven human review");
+    expect(decisions).not.toContain("periodic human review");
   });
 });

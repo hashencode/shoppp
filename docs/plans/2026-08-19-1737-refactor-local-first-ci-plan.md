@@ -9,6 +9,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 plan_role: parallel-infrastructure
 deepened: 2026-08-24
+status: complete
 ---
 
 # Long-Term CI Resilience and GitHub-First Delivery - Plan
@@ -61,26 +62,20 @@ deepened: 2026-08-24
 ## Execution Checkpoint
 
 CI-U1 is complete on `d1027841`; CI-U2 is complete on `bca6fede`; CI-U3 is complete on `93b3f88f`.
-CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remains completed on exact
-commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the practical
-Intel restore never ran, and no outage result is reclassified as passing evidence. CI-U8.3 is
-complete with the GitHub-first availability runbook, provider dependency inventory, contract tests,
-and retained non-production recovery verification recorded in
-`docs/progress/ci-u8-github-availability-evidence.md`.
+CI-U7.1 and CI-U7.2 remain completed historical implementation, and CI-U12 remains completed on
+exact commit `47b6b340` with its retained Intel/capsule evidence. CI-U7.3 was not completed: the
+practical Intel restore never ran, and no outage result is reclassified as passing evidence.
+CI-U8.3 is complete and CI-U11.1 is complete, and the CI tail is closed.
 
-- **Current parent/child stage:** `CI-U11.1` — review GitHub-first operations and close the remaining
-  CI tail. CI-U8.3 now publishes the four explicit availability states, release-pause and
-  fail-closed artifact rules, fresh exact-SHA recovery, and the complete provider dependency
-  inventory. Read-only reconciliation confirms retained run `33073613728` and its validation,
-  staging, and restoration artifacts remain available with production jobs skipped.
-- **Next concrete action:** Execute `CI-U11.1`: record re-entry triggers and required checks for GitHub
-  billing/control-plane availability, artifact retention, staging recovery, credential
-  rotation/revocation, toolchain drift, and workflow action-pin updates. Capture the proven
-  GitHub-first limits as a durable repository learning, close the CI tail, and integrate it into
-  `main` before handing execution back to `FS-U8.2` for fresh exact-main acceptance and `FS-U8.3`
-  closure.
-- **Current blockers:** None for `CI-U11.1`; the FS-U8.2 cleanup-only sequencing condition is
-  satisfied and CI-U8.3 is complete. CI-U4/CI-U6 remain
+- **Current parent/child stage:** `CI-U11.1` complete — the event-driven GitHub-first operating
+  review records the six material re-entry triggers and required checks, required access, `keep` /
+  `revise` / `remove` decisions, and fail-closed shutdown/reopen conditions. Retained run
+  `33073613728` is the inaugural full recovery drill with production skipped; it remains historical
+  evidence rather than reusable release authority.
+- **Next concrete action:** None in this CI plan. This closed CI tail is integrated into `main`, and
+  product execution has returned to `FS-U8.2` for fresh Fashion acceptance on the exact-main
+  baseline before `FS-U8.3` closure.
+- **Current blockers:** None. CI-U4/CI-U6 remain
   an optional non-secret-runner pilot/decision track rather than a release dependency. CI-U5 remains
   the stable deferred ID for optional future PR automation. Completed CI-U7/CI-U12 history remains
   retained even where its future authority is superseded.
@@ -88,19 +83,19 @@ and retained non-production recovery verification recorded in
   `/Users/studio/Documents/GitHub/shoppp/.worktrees/ci-u8-github-availability` checkout are absent
   from the current topology and are not required by this serial execution order. Use the long-lived
   primary checkout when no concurrent writer remains. Create a temporary worktree only if actual
-  concurrent isolation is still required for CI-U11.1; at creation, record its exact branch/ref,
+  concurrent isolation is required for future CI work; at creation, record its exact branch/ref,
   owner, purpose, and cleanup condition as worktree audit provenance, not CI task assignment. Remove
-  any such checkout only after CI-U11.1 changes and evidence are integrated, the CI tail closes and
-  hands back to FS-U8.2,
-  writers are stopped, and its exact tracked, untracked, material ignored, and removal-command
+  any such checkout only after its changes and evidence are integrated and its cleanup condition is
+  met, writers are stopped, and its exact tracked, untracked, material ignored, and removal-command
   manifests are retained.
-- **Cross-plan execution order:** FS-U8.2 cleanup only -> CI-U8.3 complete -> `CI-U11.1` -> CI tail
-  integrated into `main` -> fresh FS-U8.2 formal acceptance -> FS-U8.3 final verification. CI owns
-  its U11.1 status and evidence while active; the FS and product-master checkpoints own the cleanup
-  handoff and product-level return sequence.
+- **Cross-plan execution order:** FS-U8.2 cleanup only -> CI-U8.3 complete -> CI-U11.1 complete -> CI
+  tail closure integrated into `main` -> fresh FS-U8.2 formal acceptance -> FS-U8.3 final
+  verification. The Fashion and product-master checkpoints now own the active product execution
+  pointer; this plan retains completed CI status and evidence.
 - **Status rule:** This plan is the only authority for its CI units. CI evidence under
   `docs/progress/` may retain results but must not become a second current-unit queue. The bridge is
-  complete, so this plan owns the current CI unit and remaining tail.
+  complete. This plan retains completed CI history and any future CI re-entry authority but no
+  current product unit or implementation tail.
 
 ## Context and Evidence
 
@@ -349,8 +344,9 @@ and retained non-production recovery verification recorded in
     mark a unit complete. Governs CI-U1.1 and prototype reuse in CI-U1–CI-U3.
 11. **KTD11 — Operate the GitHub availability boundary explicitly.**
     Dependency inventory, billing/control-plane classification, staging recovery checks, credential
-    response, and periodic human review remain in the long-term tail. No drill manufactures release
-    proof while GitHub is unavailable. Governs R22 and R26–R28.
+    response, and event-driven human review on material-change triggers remain the long-term
+    operating boundary. No drill manufactures release proof while GitHub is unavailable. Governs
+    R22 and R26–R28.
 12. **KTD12 — Standardize full proof on GitHub-hosted Linux x64.**
     The production-aligned hosted lane supplies the Ubuntu browser/font/system environment directly,
     invokes the unchanged release validator, and records the effective toolchain in its attestation.
@@ -815,10 +811,13 @@ stateDiagram-v2
 
 ### CI-U11 — Establish steady-state resilience governance
 
+- **Status:** `CI-U11.1` complete. The CI tail is closed and product execution has returned to
+  `FS-U8.2` without changing candidate, DC, PG, or production state.
+
 - **Successor disposition:** The original provider-independent drill program below is superseded
   before execution where it requires portable retention, parity, alternate CD, signing, or capsule
-  operation. After CI-U8.3, parent CI-U11 resumes at **CI-U11.1 — Review GitHub-first operations**:
-  record re-entry triggers and required checks for GitHub billing/control-plane availability,
+  operation. After CI-U8.3, parent CI-U11 resumed and completed **CI-U11.1 — Review GitHub-first
+  operations** by recording re-entry triggers and required checks for GitHub billing/control-plane availability,
   artifact retention, staging recovery, credential rotation/revocation, toolchain drift, and
   workflow action pin updates. The single-maintainer operating model requires no owner roster,
   responsibility matrix, escalation tree, or recurring assignment ceremony. It captures the proven
@@ -846,6 +845,12 @@ stateDiagram-v2
     development continues locally while production remains fail closed.
   - Human review records keep/revise/remove decisions without inferring product, candidate, DC, PG,
     or production completion.
+- **Completion evidence:** The event-driven operating table is published in
+  `docs/runbooks/github-first-release-availability.md`; retained inaugural drill review and access,
+  decision, and material-change evidence are in
+  `docs/progress/ci-u11-github-first-steady-state-review.md`; the proven pattern is captured in
+  `docs/solutions/workflow-issues/github-first-release-resilience-for-solo-maintainers-2026-08-28.md`.
+  Run `33073613728` remains historical non-production evidence and production stayed skipped.
 
 ## Verification Contract
 
