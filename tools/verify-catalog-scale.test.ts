@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
 import { canonicalCatalogReleaseSchema } from "../packages/contracts/src";
-
 import {
   catalogFixtureEnvironment,
   representativeCatalog,

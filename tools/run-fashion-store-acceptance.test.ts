@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildFashionStoreAcceptancePlan,
   fashionStorePageAcceptanceSelection,
+  fashionStoreGeneratedStateFiles,
 } from "./run-fashion-store-acceptance";
 
 describe("Fashion Store page acceptance routing", () => {
@@ -41,6 +42,13 @@ describe("Fashion Store page acceptance routing", () => {
       "test",
       "--config",
       "playwright.fashion-store.config.ts",
+    ]);
+  });
+
+  test("restores every generated storefront selection file after acceptance", () => {
+    expect(fashionStoreGeneratedStateFiles().map((path) => path.split("/").at(-1))).toEqual([
+      "active-theme.ts",
+      "active-experience.ts",
     ]);
   });
 

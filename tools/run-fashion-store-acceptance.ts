@@ -30,6 +30,10 @@ interface FashionStoreAcceptancePlan {
 }
 
 const STOREFRONT_ROOT = resolve(import.meta.dir, "../apps/storefront");
+const GENERATED_STATE_FILES = [
+  resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts"),
+  resolve(STOREFRONT_ROOT, "app/generated/active-experience.ts"),
+];
 const ALL_PAGES: FashionStoreAcceptancePageId[] = [
   "home",
   "shop-left",
@@ -145,6 +149,10 @@ export function fashionStorePageAcceptanceSelection(
   return PAGE_SELECTIONS[page as FashionStoreAcceptancePageId];
 }
 
+export function fashionStoreGeneratedStateFiles(): string[] {
+  return [...GENERATED_STATE_FILES];
+}
+
 export function buildFashionStoreAcceptancePlan(options: {
   page?: string;
   scope: "page" | "theme";
@@ -207,8 +215,9 @@ export async function runFashionStoreAcceptancePlan(
     STOREFRONT_FASHION_STORE_PORT: String(port),
     STOREFRONT_FASHION_STORE_SOURCE_PORT: String(sourcePort),
   };
-  const generatedThemePath = resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts");
-  const originalGeneratedTheme = await readFile(generatedThemePath);
+  const originalGeneratedState = await Promise.all(
+    GENERATED_STATE_FILES.map(async (path) => ({ contents: await readFile(path), path })),
+  );
   try {
     for (const step of plan.steps) {
       console.log(`[fashion-store-acceptance] ${step.label}: ${step.command.join(" ")}`);
@@ -222,7 +231,9 @@ export async function runFashionStoreAcceptancePlan(
       if (exitCode !== 0) throw new Error(`${step.label} failed with exit code ${exitCode}`);
     }
   } finally {
-    await writeFile(generatedThemePath, originalGeneratedTheme);
+    await Promise.all(
+      originalGeneratedState.map(({ contents, path }) => writeFile(path, contents)),
+    );
   }
   console.log(
     JSON.stringify({ pages: plan.pages, ports: { implementation: port, source: sourcePort } }),
