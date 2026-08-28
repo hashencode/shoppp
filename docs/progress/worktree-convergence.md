@@ -141,3 +141,62 @@ Final enumeration contains one worktree:
 condition. Worktree topology does not couple the Fashion Store and Decor Store schedules, and it does
 not determine candidate scope. At convergence completion, the active product-development pointer was
 `FS-U1.1`; the product master plan owns all later pointer changes.
+
+## Bounded temporary-worktree cleanup — 2026-08-28
+
+This is a new live-target cleanup record under the standing `AGENTS.md` worktree rules. It does not
+repair or complete historical WTC-U1/U2, merge any product branch, advance Fashion or Decor status,
+or change REL/DC/PG authority. The user authorized execution after reviewing the named cleanup and
+preservation recommendations. No writer matched any exact target path, no target was locked, and
+`git worktree prune --dry-run --verbose` reported nothing to prune.
+
+### Exact pre-removal inventory and manifests
+
+| Exact path                                                                     | Branch / inventory HEAD                                                             | Type and lock                                         | Tracked manifest | Untracked manifest           | Ref recovery                                                                                                |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `/Users/studio/Documents/GitHub/shoppp/.worktrees/relax-ci-u7-signing`         | `codex/relax-ci-u7-signing` / `5a4dbfd68818c4848f61b345039a3d8e78a1f356`            | Ordinary directory with regular `.git` file; unlocked | Empty            | Empty                        | Inventory HEAD equals `origin/main`; the final pre-removal HEAD is revalidated after this evidence commit   |
+| `/Users/studio/Documents/GitHub/shoppp/.worktrees/fashion-u8-governed-harness` | `codex/fashion-u8-governed-harness` / `91e5db248f7e53c9029c73539ee7d0dfa575233a`    | Ordinary directory with regular `.git` file; unlocked | Empty            | Two exact files listed below | HEAD is contained by `origin/main` and retained by local and remote branch refs                             |
+| `/Users/studio/Documents/GitHub/shoppp/.worktrees/decor-store-source-parity`   | `codex/feat-decor-store-source-parity` / `db1a362a680421e2c0b7dbb966f92f5fb03d7105` | Ordinary directory with regular `.git` file; unlocked | Empty            | Empty                        | Local and remote branch refs both resolve to exact HEAD after pushing the ten previously local-only commits |
+
+The Fashion harness untracked manifest is exact and content was not copied into repository evidence:
+
+- `apps/admin/test-results-fashion-staging/.last-run.json` — 96 bytes, SHA-256
+  `a107aee6e64c573a9fa3cdaf5d2cb3c2df398e7a2356eac19b58ad1e89a3c6be`;
+- `apps/admin/test-results-fashion-staging/storefront-theme-preview.l-dc8e6-ew-return-and-approval-path/error-context.md`
+  — 27,439 bytes, SHA-256
+  `8648b07a7c434ab9b4d03791b97f3aece93f7cdafe321e793edd79e77726564c`.
+
+These are one-run failed-test diagnostics, not retained product, release, candidate, DC, or PG
+evidence. Their exact paths and digests are retained; their contents will be discarded with the
+checkout and will not be recoverable from Git.
+
+The exact material ignored-path manifest, collapsed only at ignored directory boundaries, is:
+
+- `relax-ci-u7-signing`: `apps/storefront/.nuxt/`,
+  `apps/storefront/app/generated/collections/`, `apps/storefront/app/generated/products/`, and
+  `apps/storefront/test-results/`;
+- `fashion-u8-governed-harness`: `apps/admin/dist/`, `apps/admin/test-results/`,
+  `apps/api/.wrangler/`, and `apps/storefront/.nuxt/`;
+- `decor-store-source-parity`: `apps/storefront/.nuxt/`, `apps/storefront/.output/`,
+  `apps/storefront/app/generated/collections/`, `apps/storefront/app/generated/products/`,
+  `apps/storefront/dist`, `apps/storefront/fixtures/experience/.generated/`,
+  `apps/storefront/test-results/`, and `apps/storefront/worker-dist/`.
+
+Root/workspace `node_modules/` paths are excluded from the material manifest as reproducible
+dependency installations. The listed `.nuxt`, `.output`, `dist`, `worker-dist`, generated fixture,
+and test-result paths have the same reproducible generated-output disposition already established
+under this file's bounded ignored-path classification. No ignored path is candidate or release
+authority.
+
+The exact approved manager invocation is:
+
+```text
+printf 'y\\n' | bash /Users/studio/.codex/skills/git-worktree/scripts/worktree-manager.sh cleanup
+```
+
+It resolves the three absolute targets listed above from the primary checkout. Immediately before
+invocation, each exact path, type, registration, branch, HEAD, lock, writer, tracked/untracked state,
+material ignored manifest, and retained ref must match this record (except the CI cleanup checkout's
+expected advance to the commit containing this record). A mismatch stops removal. The manager uses
+Git's force option; this authorization is bounded to these three exact paths and manifests and is not
+a reusable cleanup precedent. No failed removal may be retried with a stronger primitive.
