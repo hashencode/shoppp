@@ -5,8 +5,8 @@ date: 2026-08-28
 topic: github-managed-cloud-runner-successor
 execution: implementation
 plan_role: successor
-status: in_progress
-current_unit: CI-CLOUD-U3
+status: complete
+completed: 2026-08-29
 ---
 
 # GitHub-Managed Cloud Runner Successor
@@ -22,12 +22,12 @@ current_unit: CI-CLOUD-U3
 
 ## Execution Checkpoint
 
-- **Current unit:** `CI-CLOUD-U3` — remotely prove the corrected immutable OIDC subject boundary.
-- **Status:** Reopened after the first real protected U12 preflight exposed a verifier compatibility defect. Candidate, Fashion, staging, release, and production completion are not implied.
-- **Completed and integrated:** Every current workflow job selects fixed `ubuntu-24.04`; dynamic and self-managed runner selectors are absent; every third-party Action is pinned to a full SHA. Exact-main SHA `4eb12886e8cfc64649ed1b73dfc6f0677b48f9f1` passed hosted run `33234346630`, job `99052568343`, with retained report artifact `9709486891`. Credential-free U12 authority job `99053798568` also passed on the fixed image.
-- **Blocker:** Protected job `99053818892` rejected GitHub's immutable repository-ID OIDC subject before any staging mutation. The verifier correction and red/green test are local only; no successful corrected exact-main post-commit or protected OIDC preflight exists.
-- **Next concrete action:** Integrate the immutable-subject verifier correction into exact `main`, update the protected candidate variable to that SHA, pass hosted post-commit, and rerun U12 until the protected OIDC boundary succeeds. Then return tail ownership to `FS-U8.2` for readiness/Preview and U8 preparation.
-- **Last reviewed:** 2026-08-29 after run `33234809325` failed closed at protected OIDC verification with no staging mutation.
+- **Current unit:** None. `CI-CLOUD-U1` through `CI-CLOUD-U3` are complete.
+- **Status:** Complete. Candidate, Fashion, staging, release, and production completion are not implied.
+- **Completed and integrated:** Every current workflow job selects fixed `ubuntu-24.04`; dynamic and self-managed runner selectors are absent; every third-party Action is pinned to a full SHA. Corrective exact-main SHA `aa38106038ad7b4ea19812a450ebc9501aa2e0eb` passed hosted run `33234977617` with report artifact `9709683601`. U12 run `33235176429` then passed credential-free authority and the protected immutable-ID OIDC boundary on the fixed image.
+- **Blocker:** None inside this successor. The protected Cloudflare token failed the subsequent no-mutation credential preflight and is now an `FS-U8.2` environment blocker.
+- **Next concrete action:** Tail ownership returns to `FS-U8.2`; an authorized administrator must replace the invalid protected `CLOUDFLARE_API_TOKEN`, after which the same governed U12 workflow can resume readiness/Preview and U8 preparation.
+- **Last reviewed:** 2026-08-29 after exact-main post-commit and the real protected immutable-ID OIDC boundary passed; the following Cloudflare preflight failed before mutation.
 
 ## Requirements
 
@@ -61,7 +61,7 @@ current_unit: CI-CLOUD-U3
 | --- | --- | --- | --- |
 | `CI-CLOUD-U1` | Establish successor authority and fixed shared/post-commit executor | Complete | Successor plan, hosted post-commit image, updated cloud operations runbook, preserved inherited IDs, and exact-main integration |
 | `CI-CLOUD-U2` | Enforce the current-workflow cloud-only policy | Complete | Repository-wide runner/action-pin test; credential-free authority and OIDC claim tests; integrated current-workflow graph |
-| `CI-CLOUD-U3` | Integrate and prove the successor on exact `main` | Reopened | Post-commit proof passed, but U12 run `33234809325` exposed an immutable-subject OIDC defect before mutation; corrected exact-main proof pending |
+| `CI-CLOUD-U3` | Integrate and prove the successor on exact `main` | Complete | SHA `aa38106038ad7b4ea19812a450ebc9501aa2e0eb`; post-commit run `33234977617`; report `9709683601`; protected OIDC proof in run `33235176429` |
 
 ## Verification Contract
 

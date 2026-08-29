@@ -77,15 +77,15 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the immutable-ID OIDC verifier correction, update the protected candidate
-  SHA, pass exact-main post-commit and the protected U12 OIDC boundary, then run fresh U12 readiness
-  and the ordinary Preview/U12 lifecycle before resuming `FS-U8.2` through
+- **Next action:** An authorized administrator replaces the invalid protected
+  `CLOUDFLARE_API_TOKEN`; then update the candidate to exact `main`, rerun fresh U12 readiness and the
+  ordinary Preview/U12 lifecycle, and resume `FS-U8.2` through
   `awaiting_operator`, existing named
   operator approval, separate refresh/Preview, and separate hosted acceptance.
-- **Blocker:** Successor post-commit run `33234346630` passed, but protected U12 job `99053818892`
-  rejected GitHub's immutable-ID OIDC subject before any staging mutation. The local verifier
-  correction still needs exact-main proof; no readiness bytes or server-side operator run exists.
-  No fallback to the
+- **Blocker:** Successor post-commit run `33234977617` and protected U12 OIDC authority in run
+  `33235176429` passed. The following no-mutation credential check proved the protected Cloudflare
+  token invalid; all provider and staging steps were skipped. No readiness bytes or server-side
+  operator run exists. No fallback to the
   developer machine, OrbStack, self-managed runner, local account, or historical artifact is
   authorized. Ordinary staging and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
@@ -93,15 +93,14 @@ historical evidence remain unchanged inside the owning plans.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
   candidate are complete in their owning plans.
 
-The reopened cloud-CI successor interlude does not replace the active Fashion status authority:
+The completed cloud-CI successor interlude does not replace the active Fashion status authority:
 
 - **Successor plan:** `CI-CLOUD` — [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md).
-- **Current unit:** `CI-CLOUD-U3` reopened. Shared/post-commit and every current workflow select fixed
-  `ubuntu-24.04` and immutable Action pins, but the protected verifier needs the tested immutable-ID
-  subject correction.
-- **Next action:** Integrate the correction, pass exact-main post-commit, and prove the protected U12
-  OIDC boundary before returning shared-workflow ownership to `FS-U8.2`.
-- **Blocker:** Run `33234809325` failed closed before mutation at the protected OIDC subject check.
+- **Completion:** `CI-CLOUD-U1/U2/U3` are complete. Corrective exact-main post-commit run
+  `33234977617`, report `9709683601`, and protected U12 OIDC proof in run `33235176429` close the
+  successor and return shared-workflow ownership to `FS-U8.2`.
+- **Remaining blocker:** The protected Cloudflare token failed the later U12 credential preflight;
+  this is an FS environment prerequisite and does not reopen the cloud runner/OIDC migration.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 
@@ -312,7 +311,7 @@ focused test alone.
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution and requires a named successor before the next U8 freeze** | Retains historical CI evidence; the successor owns shared/post-commit cloud migration and returns control to `FS-U8.2` |
 | `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
-| `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **Reopened at U3 — post-commit passed; protected run `33234809325` exposed an immutable-ID OIDC subject defect before mutation** | Correct and remotely prove the protected boundary, then return the verified baseline to `FS-U8.2` |
+| `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **Complete — corrected post-commit run `33234977617` and protected OIDC proof in U12 run `33235176429` passed** | Verified baseline returned to `FS-U8.2`; the later invalid Cloudflare credential is a Fashion environment blocker |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions

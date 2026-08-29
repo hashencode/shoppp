@@ -137,7 +137,9 @@ U13 add-only probe do not establish overall completion.
   assumptions. Corrective exact-main SHA `4eb12886` then passed fixed-image hosted run
   `33234346630` with retained report artifact `9709486891`. The first protected U12 run
   `33234809325` then failed closed before mutation because the OIDC verifier accepted only the old
-  mutable-slug subject, so `CI-CLOUD-U3` is reopened pending the tested immutable-ID correction.
+  mutable-slug subject. Corrective exact-main SHA `aa381060` passed post-commit run `33234977617`,
+  and U12 run `33235176429` then passed both credential-free and protected immutable-ID OIDC
+  authority, closing `CI-CLOUD-U3` before a later Cloudflare credential preflight failed.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -158,28 +160,30 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate and remotely prove the immutable GitHub OIDC subject correction,
-  update the protected candidate SHA, and rerun U12 readiness. After the corrected boundary passes,
-  freeze the separate harness/manifest identity and resume `U8.2` with an existing named operator,
-  fresh audited source, and server-side run identity.
+- **Next concrete action:** An authorized administrator must replace the invalid protected
+  `CLOUDFLARE_API_TOKEN` without exposing it to the developer host. Then update the exact-main
+  candidate variable, rerun U12 readiness, freeze the separate harness/manifest identity, and resume
+  `U8.2` with an existing named operator, fresh audited source, and server-side run identity.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
   deletion and ownership transfer fail closed. Do not disable SIP or treat that system cache as
   runner/account content.
 - **Cross-plan execution order:** `FS-U8.2` cleanup only -> CI-U8.3 complete -> CI-U11.1 complete ->
-  CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2` complete -> `CI-CLOUD-U3` corrected
-  exact-main post-commit and protected OIDC proof -> new U8 harness freeze -> fresh U12/Preview baseline ->
+  CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2/U3` complete with corrected exact-main
+  post-commit and protected OIDC proof -> restore the protected Cloudflare credential -> new U8
+  harness freeze -> fresh U12/Preview baseline ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** Cloud successor post-commit run `33234346630` passed, but U12 protected job
-  `99053818892` rejected GitHub's immutable-ID OIDC subject before any staging mutation. The tested
-  correction is not integrated, and no fresh U12 readiness artifact or server-side operator run
-  exists, so formal staging acceptance has not begun. The authenticated
+- **Blocker:** Cloud successor post-commit run `33234977617` and the protected immutable-ID OIDC
+  boundary in U12 run `33235176429` passed. The next pre-mutation check proved the protected
+  `CLOUDFLARE_API_TOKEN` invalid with Cloudflare codes `10000`/`9109`; all provider and staging
+  changes were skipped. No fresh U12 readiness artifact or server-side operator run exists, so
+  formal staging acceptance has not begun. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
@@ -192,19 +196,20 @@ U13 add-only probe do not establish overall completion.
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
   closed CI tail plus both bounded acceptance corrections are integrated into exact `main`. No code,
-  cleanup or prior-CI blocker remains; the OIDC correction must pass exact-main post-commit and
-  protected preflight before readiness preparation can continue. Ordinary staging and production remain excluded.
+  cleanup or CI blocker remains; an authorized Cloudflare credential replacement is required before
+  readiness preparation can continue. Ordinary staging and production remain excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
-- **Implementation tail:** Retain the completed cleanup-only tranche, close the corrected cloud OIDC
-  boundary, then freeze fresh identities and execute readiness, operator, refresh, Preview, and acceptance
+- **Implementation tail:** Retain the completed cleanup-only tranche and cloud successor, restore the
+  protected Cloudflare credential, then freeze fresh identities and execute readiness, operator,
+  refresh, Preview, and acceptance
   evidence before completing U8. This
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-29 after exact-main SHA `4eb12886` passed the fixed `ubuntu-24.04`
-  post-commit run, then protected U12 run `33234809325` failed closed on the immutable GitHub OIDC
-  subject before mutation and reopened `CI-CLOUD-U3`. The user superseded the local self-hosted runner, OrbStack,
+- **Last reviewed:** 2026-08-29 after exact-main SHA `aa381060` passed fixed-image post-commit run
+  `33234977617` and protected U12 run `33235176429` proved the corrected OIDC boundary, then stopped
+  before mutation on the invalid Cloudflare credential. The user superseded the local self-hosted runner, OrbStack,
   local-account, and manual assistive-technology acceptance paths with a GitHub-managed cloud-runner-only
   policy and automated keyboard/focus/semantic accessibility evidence. Earlier exact-main formal-acceptance preflight proved the historical
   U12 readiness commit and post-CI U8 candidate were still incorrectly required to be identical,

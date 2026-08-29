@@ -117,3 +117,20 @@ claimed by this evidence. Exact-main post-commit proof remains required before s
 - A red test now requires exact repository and owner numeric IDs plus the immutable protected
   Environment subject. The corrective verifier passes its focused rejection matrix locally; a fresh
   exact-main hosted post-commit run and U12 OIDC preflight are still required.
+
+## 2026-08-29 corrected protected-boundary proof
+
+- Corrective exact-main SHA `aa38106038ad7b4ea19812a450ebc9501aa2e0eb` passed post-commit run
+  `33234977617`, job `99054255374`, on fixed `ubuntu-24.04`. Retained report artifact
+  `9709683601` is named
+  `ci-report-aa38106038ad7b4ea19812a450ebc9501aa2e0eb-33234977617-attempt-1` with GitHub digest
+  `sha256:2105d23995b3b0ec871bee646e976b5c43d791f2f811fd4b4f2ab441cdff23f5`.
+- Fresh U12 run `33235176429` used the same exact-main SHA and fixed hosted image. Credential-free
+  job `99054801224` passed; protected job `99054820399` passed immutable OIDC binding, standing
+  authority, frozen install, environment isolation, and deterministic plan generation.
+- The next pre-mutation check failed because the protected `CLOUDFLARE_API_TOKEN` is invalid:
+  Wrangler returned Cloudflare codes `10000` and `9109`. Stripe checks, credential rotation, D1
+  backup/migration, Worker deployment, seed, Snapshot, build, and readiness upload were all skipped.
+- The protected-boundary result closes the reopened `CI-CLOUD-U3`. The invalid external credential
+  is an `FS-U8.2` environment blocker, not a runner capability failure; it does not authorize a
+  larger, OS-specific, local, or self-managed runner.
