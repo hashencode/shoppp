@@ -39,3 +39,21 @@ the current unit, next-action queue, Fashion status, candidate eligibility, DC, 
 
 No GitHub-hosted workflow, staging mutation, operator run, candidate freeze, or production action is
 claimed by this evidence. Exact-main post-commit proof remains required before successor closure.
+
+## 2026-08-29 first exact-main hosted execution
+
+- `main` advanced by fast-forward from `dc746220` to migration SHA `f94d2e35`; no pull request was
+  created.
+- Historical run `33156226300` for `dc746220` remained queued on the retired
+  `self-hosted, macOS, ARM64, shoppp-main-nonsecret` selector and occupied the
+  `post-commit-main` concurrency group. It was cancelled rather than starting or recreating a local
+  runner.
+- Exact-SHA run `33233110420`, job `99049480569`, then started on fixed GitHub-hosted
+  `ubuntu-24.04`. Immutable checkout, `HEAD` identity verification, Bun setup, and exact report
+  upload passed.
+- The repository `ci:post-commit` command failed in `format:check` because
+  `docs/progress/development-candidate-readiness.md` required Prettier table-width normalization.
+  This is an application/repository check failure, not a runner capability failure; the runner class
+  remains unchanged.
+- The failed same-run report artifact is retained by GitHub. A formatting correction and a fresh
+  exact-main hosted run are required before `CI-CLOUD-U3` can close.
