@@ -82,3 +82,23 @@ claimed by this evidence. Exact-main post-commit proof remains required before s
   `bun run lint`, `bun run format:check`, the real two-font inspection command, the reduced-`PATH`
   font suite, and `git diff --check`. These results support integration but do not replace the
   required exact-main hosted report.
+
+## 2026-08-29 successful exact-main hosted execution
+
+- Corrective SHA `4eb12886e8cfc64649ed1b73dfc6f0677b48f9f1`, tree
+  `5dea550a1bc2025e6fe0f2eb19933b39f0b23c8a`, was fast-forwarded to `main` without a PR and
+  triggered push run `33234346630`, attempt `1`.
+- Job `99052568343` completed successfully in the `GitHub Actions` runner group with exact label
+  `ubuntu-24.04`. Immutable checkout, exact identity verification, repository validation, and report
+  preservation all passed; no larger, OS-specific, self-managed, or developer-host runner was used.
+- Artifact `9709486891`, named
+  `ci-report-4eb12886e8cfc64649ed1b73dfc6f0677b48f9f1-33234346630-attempt-1`, is retained with GitHub
+  digest `sha256:08f4040823e30fe99cfaa02559f152e9d0af9aebcb7eb53af60da2c9825ffa66`.
+  Its report file has SHA-256 `eb60c5c4fc186799992caf1d24da2bc9146f43e1d0ab034607ecedad916f7b3b`.
+- The report binds the exact SHA and tree, clean workspace, `github-main-push` trigger,
+  `github-hosted-ubuntu-24.04` executor, `refs/heads/main`, and result `passed`. Reproducible install,
+  formatting, lint/boundaries, types, unit/contracts, Worker integration, and production builds all
+  passed in that same run.
+- This satisfies `CI-CLOUD-U3` and the successor Definition of Done. It does not establish a Fashion
+  candidate, staging acceptance, DC, PG, or production result; execution returns to `FS-U8.2` for a
+  new identity freeze and fresh U12 readiness.

@@ -5,8 +5,8 @@ date: 2026-08-28
 topic: github-managed-cloud-runner-successor
 execution: implementation
 plan_role: successor
-status: in_progress
-current_unit: CI-CLOUD-U3
+status: complete
+completed: 2026-08-29
 ---
 
 # GitHub-Managed Cloud Runner Successor
@@ -22,13 +22,12 @@ current_unit: CI-CLOUD-U3
 
 ## Execution Checkpoint
 
-- **Current unit:** `CI-CLOUD-U3` — integrate and verify the successor on exact `main`.
-- **Status:** In progress. `CI-CLOUD-U1` and `CI-CLOUD-U2` are complete and integrated; candidate or release completion is not implied.
-- **Completed and integrated:** Every current workflow job selects fixed `ubuntu-24.04`; dynamic and self-managed runner selectors are absent; every third-party Action is pinned to a full SHA. Migration SHA `f94d2e35` and formatting correction `db6a5b67` reached exact `main`; runs `33233110420` and `33233272802` both executed on the fixed hosted image and retained exact reports. The active runbook and static contracts encode the capability-preflight and fail-closed escalation policy.
-- **Blocker:** Neither hosted run passed. The first found one repository formatting error; the second exposed a date-expired theme-test fixture plus the undeclared developer-host `woff2_decompress` dependency and concurrent shared-output behavior. The corrective lockfile, font audit, regression test, and fixture changes are locally green but not yet integrated, so `CI-CLOUD-U3` still lacks a successful exact-main run and same-run passing report.
-- **Next concrete action:** Integrate the corrective diff into exact `main` without a PR; observe the resulting fixed-image post-commit run; verify exact SHA, action pins, successful conclusion, and same-run report artifact; append focused evidence under `docs/progress/`; then mark `CI-CLOUD-U3` and this plan complete and return tail ownership to `FS-U8.2` in the master pointer.
-- **Following action:** Freeze the new U8 candidate/harness/manifest identities and execute fresh U12 readiness, operator preparation, approval, refresh, Preview, and separate acceptance from the Fashion plan.
-- **Last reviewed:** 2026-08-29 after two exact-main hosted runs proved the fixed runner path and report upload, then failed on repository formatting and cross-platform test/tool assumptions. The corrective diff is locally verified; no staging mutation is claimed.
+- **Current unit:** None. `CI-CLOUD-U1` through `CI-CLOUD-U3` are complete.
+- **Status:** Complete. Candidate, Fashion, staging, release, and production completion are not implied.
+- **Completed and integrated:** Every current workflow job selects fixed `ubuntu-24.04`; dynamic and self-managed runner selectors are absent; every third-party Action is pinned to a full SHA. Exact-main corrective SHA `4eb12886e8cfc64649ed1b73dfc6f0677b48f9f1` passed hosted run `33234346630`, job `99052568343`, with retained report artifact `9709486891`. The active runbook and static contracts encode the capability-preflight and fail-closed escalation policy.
+- **Blocker:** None inside this successor. Fresh Fashion candidate identities, U12 readiness, operator evidence, Preview, and acceptance remain unexecuted under the Fashion plan.
+- **Next concrete action:** Tail ownership has returned to `FS-U8.2`; freeze new candidate/harness/manifest identities, then execute fresh U12 readiness, operator preparation, approval, refresh, Preview, and separate acceptance from the Fashion plan.
+- **Last reviewed:** 2026-08-29 after the exact-main fixed-image post-commit run and same-run report passed. No staging mutation is claimed.
 
 ## Requirements
 
@@ -62,7 +61,7 @@ current_unit: CI-CLOUD-U3
 | --- | --- | --- | --- |
 | `CI-CLOUD-U1` | Establish successor authority and fixed shared/post-commit executor | Complete | Successor plan, hosted post-commit image, updated cloud operations runbook, preserved inherited IDs, and exact-main integration |
 | `CI-CLOUD-U2` | Enforce the current-workflow cloud-only policy | Complete | Repository-wide runner/action-pin test; credential-free authority and OIDC claim tests; integrated current-workflow graph |
-| `CI-CLOUD-U3` | Integrate and prove the successor on exact `main` | In progress | Runs `33233110420` and `33233272802` retained failed exact reports; corrective diff needs integration, a successful exact-main report, and same-change checkpoint/master closure |
+| `CI-CLOUD-U3` | Integrate and prove the successor on exact `main` | Complete | SHA `4eb12886e8cfc64649ed1b73dfc6f0677b48f9f1`; successful run `33234346630`; job `99052568343`; retained report artifact `9709486891` |
 
 ## Verification Contract
 

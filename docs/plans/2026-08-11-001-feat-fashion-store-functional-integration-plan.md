@@ -134,8 +134,9 @@ U13 add-only probe do not establish overall completion.
   are removed while automated keyboard, focus, name/role/state, error, status, non-color,
   responsive, and Axe coverage remains. The migration is integrated on exact `main`; two fixed-image
   hosted runs retained reports but failed on repository formatting and cross-platform test/tool
-  assumptions. The corrective diff is locally green, but no successful post-commit or
-  test-environment proof is claimed.
+  assumptions. Corrective exact-main SHA `4eb12886` then passed fixed-image hosted run
+  `33234346630` with retained report artifact `9709486891`, closing `CI-CLOUD` without claiming any
+  Fashion candidate or test-environment result.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -156,30 +157,26 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the hosted-run corrections for the time-stable fidelity fixture
-  and lockfile-managed concurrent WOFF2 audit into exact `main`; observe and retain a successful
-  fixed-image post-commit report; then freeze a new candidate/harness/manifest identity and prepare a
-  fresh U12 readiness/Preview baseline before resuming `U8.2` with an existing named operator, fresh
-  audited source, and server-side run identity.
+- **Next concrete action:** Freeze a new exact-main candidate/harness/manifest identity, then prepare
+  a fresh U12 readiness and ordinary Preview/U12 lifecycle baseline before resuming `U8.2` with an
+  existing named operator, fresh audited source, and server-side run identity.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
   deletion and ownership transfer fail closed. Do not disable SIP or treat that system cache as
   runner/account content.
 - **Cross-plan execution order:** `FS-U8.2` cleanup only -> CI-U8.3 complete -> CI-U11.1 complete ->
-  CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2` locally complete -> `CI-CLOUD-U3`
-  exact-main hosted proof -> new U8 identity freeze -> fresh U12/Preview baseline ->
+  CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2/U3` complete with exact-main hosted
+  proof -> new U8 identity freeze -> fresh U12/Preview baseline ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** The cloud-only transitive workflow and operator-boundary implementation is integrated,
-  and hosted runs `33233110420` and `33233272802` proved fixed-image execution and exact report
-  retention but failed before a passing repository verdict. Their corrective diff is locally green
-  but not yet integrated, so no successful hosted post-commit proof, frozen harness digest, U12
-  readiness artifact, or server-side operator run exists. The authenticated
+- **Blocker:** No CI or cleanup blocker remains: cloud successor run `33234346630` passed on exact
+  `main`. A new frozen candidate/harness/manifest identity, fresh U12 readiness artifact, and
+  server-side operator run do not yet exist, so formal staging acceptance has not begun. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
@@ -192,17 +189,18 @@ U13 add-only probe do not establish overall completion.
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
   closed CI tail plus both bounded acceptance corrections are integrated into exact `main`. No code,
-  cleanup or prior-CI blocker remains; the hosted-run correction and `CI-CLOUD-U3` proof must complete
-  before fresh identity freeze and readiness preparation. Ordinary staging and production remain excluded.
+  cleanup or prior-CI blocker remains; fresh identity freeze and readiness preparation are now the
+  next governed work. Ordinary staging and production remain excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
-- **Implementation tail:** Retain the completed cleanup-only tranche and integrated CI handoff,
-  integrate and remotely prove the named cloud successor plus U8-specific migration on exact main,
-  then execute fresh readiness, operator, refresh, Preview, and acceptance evidence and complete U8. This
+- **Implementation tail:** Retain the completed cleanup-only tranche and completed cloud successor,
+  then freeze fresh identities and execute readiness, operator, refresh, Preview, and acceptance
+  evidence before completing U8. This
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-28 after the user superseded the local self-hosted runner, OrbStack,
+- **Last reviewed:** 2026-08-29 after exact-main SHA `4eb12886` passed the fixed `ubuntu-24.04`
+  post-commit run and the retained same-run report closed `CI-CLOUD`. The user superseded the local self-hosted runner, OrbStack,
   local-account, and manual assistive-technology acceptance paths with a GitHub-managed cloud-runner-only
   policy and automated keyboard/focus/semantic accessibility evidence. Earlier exact-main formal-acceptance preflight proved the historical
   U12 readiness commit and post-CI U8 candidate were still incorrectly required to be identical,

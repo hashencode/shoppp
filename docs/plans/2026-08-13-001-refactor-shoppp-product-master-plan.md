@@ -77,16 +77,14 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the time-stable fidelity fixture and lockfile-managed concurrent WOFF2
-  correction into exact `main`, observe a successful fixed-image hosted post-commit run, and record
-  its exact report artifact. Then freeze new candidate/harness/manifest identities, run fresh U12 readiness and
-  ordinary Preview/U12 lifecycle, and resume `FS-U8.2` through `awaiting_operator`, existing named
+- **Next action:** Freeze new exact-main candidate/harness/manifest identities, run fresh U12
+  readiness and the ordinary Preview/U12 lifecycle, and resume `FS-U8.2` through
+  `awaiting_operator`, existing named
   operator approval, separate refresh/Preview, and separate hosted acceptance.
-- **Blocker:** The successor and U8 migration are integrated on exact `main`; runs `33233110420` and
-  `33233272802` used fixed `ubuntu-24.04` and retained exact reports but failed on repository
-  formatting and cross-platform test/tool assumptions. The corrective diff is locally green but not
-  integrated, so no successful exact-main post-commit report, new harness digest, U12 readiness
-  bytes, or server-side operator run exists. No fallback to the
+- **Blocker:** No CI or cleanup blocker remains. Successor run `33234346630` passed against exact
+  `main` SHA `4eb12886` on fixed `ubuntu-24.04` with retained report artifact `9709486891`. New
+  candidate/harness identities, U12 readiness bytes, and a server-side operator run do not yet
+  exist, so Fashion formal acceptance has not begun. No fallback to the
   developer machine, OrbStack, self-managed runner, local account, or historical artifact is
   authorized. Ordinary staging and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
@@ -94,18 +92,13 @@ historical evidence remain unchanged inside the owning plans.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
   candidate are complete in their owning plans.
 
-The bounded cloud-CI successor interlude does not replace the active Fashion status authority:
+The completed cloud-CI successor interlude does not replace the active Fashion status authority:
 
 - **Successor plan:** `CI-CLOUD` — [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md).
-- **Current unit:** `CI-CLOUD-U3` — `CI-CLOUD-U1/U2` are complete and integrated; shared/post-commit and
-  every current workflow now select fixed `ubuntu-24.04`, immutable Action pins, and the tested
-  credential-free/protected Environment-OIDC boundary.
-- **Next action:** Integrate the hosted-run correction, observe a successful exact-main post-commit
-  run, retain the same-run report identity, close `CI-CLOUD-U3`, and return its shared-workflow tail
-  to `FS-U8.2` in the same governance change.
-- **Blocker:** Two exact-main hosted reports exist but neither passed; the locally green corrective
-  diff is not yet integrated. This blocks successor closure and the new U8 identity freeze, but it
-  does not reopen old CI units or authorize a different runner class.
+- **Completion:** `CI-CLOUD-U1/U2/U3` are complete. Shared/post-commit and every current workflow
+  select fixed `ubuntu-24.04`, immutable Action pins, and the tested credential-free/protected
+  Environment-OIDC boundary. Exact-main run `33234346630` and artifact `9709486891` close the plan.
+- **Tail:** Shared-workflow ownership has returned to `FS-U8.2`; no successor blocker remains.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 
@@ -316,7 +309,7 @@ focused test alone.
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution and requires a named successor before the next U8 freeze** | Retains historical CI evidence; the successor owns shared/post-commit cloud migration and returns control to `FS-U8.2` |
 | `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
-| `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **In progress at `CI-CLOUD-U3` — U1/U2 complete and integrated; two exact-main hosted reports failed; corrective proof pending** | Owns only the cloud runner/pin/authority migration and returns the verified baseline to `FS-U8.2` |
+| `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **Complete — U1/U2/U3 closed after exact-main run `33234346630` and retained report artifact `9709486891` passed** | Verified baseline returned to `FS-U8.2`; retained successor evidence remains authoritative for the runner/pin/authority migration |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions
