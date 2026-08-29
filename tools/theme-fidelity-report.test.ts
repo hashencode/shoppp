@@ -22,7 +22,7 @@ async function captureRoot(
   width = 1440,
   desktopViewportHeight = 1000,
   dpr = 1,
-  capturedAt = "2026-07-30T00:00:00.000Z",
+  capturedAt = new Date().toISOString(),
 ): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "shoppp-fidelity-"));
   roots.push(root);

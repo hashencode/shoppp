@@ -1,6 +1,5 @@
-import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
-import { basename, join } from "node:path";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
+import { decompress } from "wawoff2";
 
 export interface FontAxis {
   defaultValue: number;
@@ -22,6 +21,8 @@ interface SfntTable {
   length: number;
   offset: number;
 }
+
+let decompressionQueue = Promise.resolve();
 
 function readTag(view: DataView, offset: number): string {
   return String.fromCharCode(
@@ -100,44 +101,35 @@ function readAxes(view: DataView, table: SfntTable | undefined): FontAxis[] {
   });
 }
 
-async function decompressWoff2(path: string, destination: string): Promise<string> {
-  const copiedWoff = join(destination, basename(path));
-  await copyFile(path, copiedWoff);
-  const process = Bun.spawn(["woff2_decompress", copiedWoff], {
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-  const exitCode = await process.exited;
-  if (exitCode !== 0) {
-    const error = await new Response(process.stderr).text();
-    throw new Error(`woff2_decompress failed for ${path}: ${error.trim()}`);
+async function decompressWoff2(source: Uint8Array, path: string): Promise<Uint8Array> {
+  const operation = decompressionQueue.then(async () => Uint8Array.from(await decompress(source)));
+  decompressionQueue = operation.then(
+    () => undefined,
+    () => undefined,
+  );
+  try {
+    return await operation;
+  } catch (error) {
+    throw new Error(`WOFF2 decompression failed for ${path}.`, { cause: error });
   }
-  return copiedWoff.replace(/\.woff2$/i, ".ttf");
 }
 
 export async function inspectThemeFont(path: string): Promise<ThemeFontInspection> {
   const source = await readFile(path);
   const hash = new Bun.CryptoHasher("sha256").update(source).digest("hex");
-  const temporaryDirectory = await mkdtemp(join(tmpdir(), "shoppp-font-audit-"));
-  try {
-    const sfntPath = await decompressWoff2(path, temporaryDirectory);
-    const sfnt = await readFile(sfntPath);
-    const bytes = new Uint8Array(sfnt);
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    const tables = tableDirectory(view);
-    const names = tables.get("name");
-    if (!names) throw new Error(`Font ${path} has no name table.`);
-    return {
-      axes: readAxes(view, tables.get("fvar")),
-      family: readName(view, bytes, names, 16) ?? readName(view, bytes, names, 1) ?? "",
-      hash,
-      namedFamily: readName(view, bytes, names, 1) ?? "",
-      path,
-      subfamily: readName(view, bytes, names, 17) ?? readName(view, bytes, names, 2) ?? "",
-    };
-  } finally {
-    await rm(temporaryDirectory, { force: true, recursive: true });
-  }
+  const bytes = await decompressWoff2(source, path);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const tables = tableDirectory(view);
+  const names = tables.get("name");
+  if (!names) throw new Error(`Font ${path} has no name table.`);
+  return {
+    axes: readAxes(view, tables.get("fvar")),
+    family: readName(view, bytes, names, 16) ?? readName(view, bytes, names, 1) ?? "",
+    hash,
+    namedFamily: readName(view, bytes, names, 1) ?? "",
+    path,
+    subfamily: readName(view, bytes, names, 17) ?? readName(view, bytes, names, 2) ?? "",
+  };
 }
 
 if (import.meta.main) {

@@ -57,3 +57,28 @@ claimed by this evidence. Exact-main post-commit proof remains required before s
   remains unchanged.
 - The failed same-run report artifact is retained by GitHub. A formatting correction and a fresh
   exact-main hosted run are required before `CI-CLOUD-U3` can close.
+
+## 2026-08-29 second exact-main hosted execution
+
+- Formatting correction SHA `db6a5b67` triggered run `33233272802`, job `99049695499`, on the same
+  fixed GitHub-hosted `ubuntu-24.04` class. Immutable checkout, identity verification, Bun setup,
+  formatting, and exact report upload passed before the repository test stage failed.
+- Three theme-fidelity assertions reached the stale-capture guard instead of their intended pixel,
+  viewport/DPR, and capture-mode branches because their default fixture timestamp was fixed at
+  `2026-07-30` and crossed the product's 30-day freshness boundary.
+- Two font-audit assertions failed because `tools/inspect-theme-fonts.ts` invoked the developer-host
+  `woff2_decompress` executable from `PATH`; a clean hosted image does not provide that undeclared
+  dependency. A reduced-PATH local reproduction produced the same `ENOENT` failure.
+- The corrective working tree gives ordinary test fixtures a run-relative current timestamp while
+  retaining the explicit stale fixture, and replaces the host executable with exact lockfile
+  dependency `wawoff2@2.0.1`. The reduced-PATH font tests and focused theme-fidelity tests pass. A
+  fresh exact-main hosted run remains required before `CI-CLOUD-U3` can close.
+- Final review reproduced a second font boundary in the real multi-font CLI: concurrent calls saw
+  shared WASM output overwritten and failed with an out-of-bounds SFNT read. Decompression is now
+  serialized, each successful result is copied before the next call, the actual multi-font CLI is a
+  regression test, and invalid WOFF2 input verifies the contextual error path. The real CLI and all
+  four focused font tests pass with the host executable removed from `PATH`.
+- Corrective local verification passes `bun test tools` (`364` tests), `bun run typecheck`,
+  `bun run lint`, `bun run format:check`, the real two-font inspection command, the reduced-`PATH`
+  font suite, and `git diff --check`. These results support integration but do not replace the
+  required exact-main hosted report.
