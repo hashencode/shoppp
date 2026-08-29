@@ -156,6 +156,11 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     permission: "themes.read",
   },
   {
+    method: "GET",
+    path: "/admin/storefront-experiences/drafts/:id/operator-run",
+    permission: "themes.read",
+  },
+  {
     method: "POST",
     path: "/admin/storefront-experiences/drafts/:id/successors",
     permission: "themes.write",

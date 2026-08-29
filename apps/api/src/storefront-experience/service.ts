@@ -39,6 +39,10 @@ import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { redactForLog } from "../security/redaction";
 import {
+  assertFashionStagingOperatorRunApprovable,
+  moveFashionStagingOperatorRunToSuccessor,
+} from "../testing/fashion-staging-operator";
+import {
   getCanonicalDeployedCatalogRelease,
   storefrontDestinationsForRelease,
 } from "./catalog-resources";
@@ -891,6 +895,7 @@ export async function createStorefrontExperienceSuccessor(
     targetId: id,
     targetType: "storefront_experience_draft",
   });
+  await moveFashionStagingOperatorRunToSuccessor(context.env.DB, sourceId, id);
   return getStorefrontExperienceDraft(context.env.DB, id);
 }
 
@@ -1004,10 +1009,15 @@ async function insertSnapshot(
     resolvedTemplates: ThemePackage["presets"][number]["templates"];
     row: DraftRow;
     validation: ValidationRow;
+    operatorApproval?: {
+      auditId: string;
+      approvedAt: string;
+      runId: string;
+    };
   },
 ) {
   const principal = context.get("principal");
-  const now = new Date().toISOString();
+  const now = input.operatorApproval?.approvedAt ?? new Date().toISOString();
   const id = await snapshotId(input.deduplicationKey, input.kind);
   let snapshotOverrides = parseOverrides(input.row.overrides_json);
   if (input.migrationId) {
@@ -1042,49 +1052,124 @@ async function insertSnapshot(
     version: input.row.version,
   });
   const contentDigest = await sha256Hex(canonicalJson(snapshot));
-  await context.env.DB.prepare(
+  const operatorCondition = input.operatorApproval
+    ? `WHERE EXISTS (
+         SELECT 1 FROM fashion_staging_operator_runs
+          WHERE run_id = ? AND working_draft_id = ? AND status = 'awaiting_operator'
+            AND expires_at > ? AND catalog_release_id = ?
+       )`
+    : "";
+  const operatorBindings = input.operatorApproval
+    ? [input.operatorApproval.runId, input.row.id, now, input.validation.catalog_release_id]
+    : [];
+  const snapshotInsert = context.env.DB.prepare(
     `INSERT OR IGNORE INTO storefront_experience_snapshots
        (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
         source_validation_id, migration_id, kind, theme_id, theme_version,
         configuration_schema_version, snapshot_json, content_digest, created_by, approved_by,
         approved_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(
-      id,
-      input.deduplicationKey,
-      input.row.experience_id,
-      input.row.id,
-      input.row.version,
-      input.validation.id,
-      input.migrationId ?? null,
-      input.kind,
-      input.package.manifest.id,
-      input.package.manifest.themeVersion,
-      input.package.manifest.configurationSchemaVersion,
-      JSON.stringify(snapshot),
-      contentDigest,
-      principal.id,
-      input.kind === "approved" ? principal.id : null,
-      input.kind === "approved" ? now : null,
-      now,
-    )
-    .run();
-  await recordAuditOnce(context, {
-    action:
-      input.kind === "approved" ? "themes.experience.approve" : "themes.preview.snapshot.create",
-    id: `audit-${id}`,
-    metadata: {
-      catalogReleaseId: input.validation.catalog_release_id,
-      draftId: input.row.id,
-      draftVersion: input.row.version,
-      themeVersion: input.package.manifest.themeVersion,
-    },
-    reason: input.reason,
-    result: "succeeded",
-    targetId: id,
-    targetType: "storefront_experience_snapshot",
-  });
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     ${operatorCondition}`,
+  ).bind(
+    id,
+    input.deduplicationKey,
+    input.row.experience_id,
+    input.row.id,
+    input.row.version,
+    input.validation.id,
+    input.migrationId ?? null,
+    input.kind,
+    input.package.manifest.id,
+    input.package.manifest.themeVersion,
+    input.package.manifest.configurationSchemaVersion,
+    JSON.stringify(snapshot),
+    contentDigest,
+    principal.id,
+    input.kind === "approved" ? principal.id : null,
+    input.kind === "approved" ? now : null,
+    now,
+    ...operatorBindings,
+  );
+  const snapshotAudit = context.env.DB.prepare(
+    `INSERT OR IGNORE INTO audit_events
+       (id, actor_type, actor_id, action, target_type, target_id, result, reason,
+        request_id, metadata_json, created_at)
+     SELECT ?, 'admin', ?, ?, 'storefront_experience_snapshot', ?, 'succeeded', ?, ?, ?, ?
+     ${operatorCondition}`,
+  ).bind(
+    `audit-${id}`,
+    principal.id,
+    input.kind === "approved" ? "themes.experience.approve" : "themes.preview.snapshot.create",
+    id,
+    String(redactForLog(input.reason)),
+    context.get("requestId"),
+    JSON.stringify(
+      redactForLog({
+        catalogReleaseId: input.validation.catalog_release_id,
+        draftId: input.row.id,
+        draftVersion: input.row.version,
+        themeVersion: input.package.manifest.themeVersion,
+      }),
+    ),
+    now,
+    ...operatorBindings,
+  );
+  const statements: D1PreparedStatement[] = [snapshotInsert, snapshotAudit];
+  if (input.operatorApproval) {
+    statements.push(
+      context.env.DB.prepare(
+        `INSERT INTO audit_events
+           (id, actor_type, actor_id, action, target_type, target_id, result, reason,
+            request_id, metadata_json, created_at)
+         SELECT ?, 'admin', ?, 'themes.fashion-staging.operator.approve',
+                'fashion_staging_operator_run', ?, 'succeeded', ?, ?, ?, ?
+         ${operatorCondition}`,
+      ).bind(
+        input.operatorApproval.auditId,
+        principal.id,
+        input.operatorApproval.runId,
+        String(redactForLog(input.reason)),
+        context.get("requestId"),
+        JSON.stringify(
+          redactForLog({
+            catalogReleaseId: input.validation.catalog_release_id,
+            draftId: input.row.id,
+            draftVersion: input.row.version,
+            snapshotContentDigest: contentDigest,
+            snapshotId: id,
+          }),
+        ),
+        now,
+        ...operatorBindings,
+      ),
+      context.env.DB.prepare(
+        `UPDATE fashion_staging_operator_runs
+            SET status = 'approved', successor_snapshot_id = ?, successor_content_digest = ?,
+                approval_audit_id = ?, operator_identity_id = ?, approved_at = ?, updated_at = ?
+          WHERE run_id = ? AND working_draft_id = ? AND status = 'awaiting_operator'
+            AND expires_at > ? AND catalog_release_id = ?`,
+      ).bind(
+        id,
+        contentDigest,
+        input.operatorApproval.auditId,
+        principal.id,
+        now,
+        now,
+        input.operatorApproval.runId,
+        input.row.id,
+        now,
+        input.validation.catalog_release_id,
+      ),
+    );
+  }
+  const results = await context.env.DB.batch(statements);
+  if (input.operatorApproval && results.at(-1)?.meta.changes !== 1) {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_run_conflict",
+      "Operator run changed before approval evidence could be committed.",
+    );
+  }
   const persisted = await existingSnapshot(context.env.DB, input.deduplicationKey);
   if (!persisted) {
     throw new ApiError(
@@ -1124,16 +1209,88 @@ export async function approveStorefrontExperienceDraft(
   catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const operatorApprovalTime = new Date();
+  const operatorRun = await assertFashionStagingOperatorRunApprovable(
+    context.env.DB,
+    id,
+    operatorApprovalTime,
+  );
+  if (operatorRun && catalogReleaseId !== operatorRun.catalogReleaseId) {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_catalog_release_mismatch",
+      "The approval must use the Catalog Release frozen by the Fashion U8 operator run.",
+    );
+  }
   const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
-  return insertSnapshot(context, {
-    deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}`,
+  const deduplicationKey = `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}`;
+  const expectedSnapshotId = await snapshotId(deduplicationKey, "approved");
+  const expectedOperatorAuditId = operatorRun
+    ? `audit-fashion-u8-${(await sha256Hex(operatorRun.runId)).slice(0, 32)}`
+    : null;
+  if (operatorRun?.status === "approved") {
+    const existing = await getStorefrontExperienceSnapshot(context.env.DB, expectedSnapshotId);
+    const audit = expectedOperatorAuditId
+      ? await context.env.DB.prepare(
+          `SELECT actor_id, action, target_id, target_type, metadata_json, created_at
+               FROM audit_events WHERE id = ?`,
+        )
+          .bind(expectedOperatorAuditId)
+          .first<{
+            action: string;
+            actor_id: string | null;
+            created_at: string;
+            metadata_json: string;
+            target_id: string | null;
+            target_type: string;
+          }>()
+      : null;
+    const auditMetadata = audit
+      ? (JSON.parse(audit.metadata_json) as Record<string, unknown>)
+      : null;
+    if (
+      operatorRun.successorSnapshotId !== expectedSnapshotId ||
+      operatorRun.approvalAuditId !== expectedOperatorAuditId ||
+      operatorRun.operatorIdentityId !== context.get("principal").id ||
+      operatorRun.successorContentDigest !== existing.contentDigest ||
+      existing.sourceDraftId !== id ||
+      existing.sourceDraftVersion !== expectedVersion ||
+      audit?.actor_id !== context.get("principal").id ||
+      audit?.action !== "themes.fashion-staging.operator.approve" ||
+      audit?.target_type !== "fashion_staging_operator_run" ||
+      audit?.target_id !== operatorRun.runId ||
+      audit?.created_at !== operatorRun.approvedAt ||
+      auditMetadata?.snapshotId !== expectedSnapshotId ||
+      auditMetadata?.snapshotContentDigest !== existing.contentDigest ||
+      auditMetadata?.catalogReleaseId !== operatorRun.catalogReleaseId
+    ) {
+      throw new ApiError(
+        409,
+        "fashion_u8_operator_approval_conflict",
+        "The existing Fashion U8 operator approval does not match this request.",
+      );
+    }
+    return existing;
+  }
+  const snapshot = await insertSnapshot(context, {
+    deduplicationKey,
     kind: "approved",
     package: resolution.package,
     reason,
     resolvedTemplates: resolution.resolvedTemplates,
     row: resolution.row,
     validation: resolution.validation,
+    ...(operatorRun && expectedOperatorAuditId
+      ? {
+          operatorApproval: {
+            approvedAt: operatorApprovalTime.toISOString(),
+            auditId: expectedOperatorAuditId,
+            runId: operatorRun.runId,
+          },
+        }
+      : {}),
   });
+  return snapshot;
 }
 
 function mapMigration(row: MigrationRow) {

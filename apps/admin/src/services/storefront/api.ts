@@ -56,6 +56,22 @@ export type StorefrontExperienceSnapshot = {
   themeVersion: string
 }
 
+export type FashionStagingOperatorRun = {
+  allowedAction: 'complete_run_bound_editor_path' | null
+  approvalAuditId: string | null
+  approvedAt: string | null
+  candidateSha: string
+  catalogReleaseId: string
+  consumedAt: string | null
+  expiresAt: string
+  runId: string
+  sourceDraftId: string
+  status: 'approved' | 'awaiting_operator' | 'canceled' | 'consumed' | 'expired' | 'rejected'
+  successorSnapshotId: string | null
+  u12SnapshotId: string
+  workingDraftId: string
+}
+
 export type StorefrontPreviewBuild = {
   artifactDigest: string | null
   artifactPrefix: string | null
@@ -217,6 +233,15 @@ export const fetchStorefrontExperienceDraft = async (
 ): Promise<StorefrontExperienceDraft> => {
   const response = await apiClient.get<{ data: StorefrontExperienceDraft }>(
     `/admin/storefront-experiences/drafts/${id}`
+  )
+  return response.data.data
+}
+
+export const fetchFashionStagingOperatorRun = async (
+  draftId: string
+): Promise<FashionStagingOperatorRun | null> => {
+  const response = await apiClient.get<{ data: FashionStagingOperatorRun | null }>(
+    `/admin/storefront-experiences/drafts/${draftId}/operator-run`
   )
   return response.data.data
 }

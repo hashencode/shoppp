@@ -45,7 +45,9 @@ describe("local-first CI workflow contracts", () => {
     expect(contents).not.toMatch(/^\s+(?:workflow_dispatch|schedule):/m);
     expect(contents).toContain("github.event.deleted == false");
     expect(contents).toContain("github.ref == 'refs/heads/main'");
-    expect(contents).toContain("runs-on: [self-hosted, macOS, ARM64, shoppp-main-nonsecret]");
+    expect(contents).toContain("runs-on: ubuntu-24.04");
+    expect(contents).toContain("SHOPPP_CI_EXECUTOR_CLASS: github-hosted-ubuntu-24.04");
+    expect(contents).not.toContain("self-hosted");
     expect(contents).toContain("run: bun run ci:post-commit");
     expect(contents).not.toMatch(/\$\{\{\s*secrets\./);
     expect(contents).not.toMatch(/^\s+environment:/m);
@@ -82,7 +84,8 @@ describe("local-first CI workflow contracts", () => {
     expect(contents).toMatch(/^\s+workflow_call:\n\s+inputs:/m);
     expect(contents).toContain("secrets:\n      BUILD_MANIFEST_TOKEN:");
     expect(contents).not.toMatch(/^\s+push:/m);
-    expect(contents).toContain("runs-on: ubuntu-latest");
+    expect(contents).toContain("runs-on: ubuntu-24.04");
+    expect(contents).not.toContain("ubuntu-latest");
     expect(contents).toContain("timeout-minutes: 60");
     expect(contents).toContain("Install browser runtime");
     expect(contents).toContain("Install font inspection runtime");

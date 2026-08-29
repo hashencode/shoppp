@@ -14,6 +14,10 @@ import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store
 import { createApp } from "../../src/http/app";
 import { sha256Hex } from "../../src/orders/tokens";
 import { redactForLog } from "../../src/security/redaction";
+import {
+  createFashionStagingOperatorRun,
+  getFashionStagingOperatorRun,
+} from "../../src/testing/fashion-staging-operator";
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
 import type { StorefrontExperienceServiceOptions } from "../../src/storefront-experience/service";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
@@ -278,6 +282,7 @@ function revokePreviewAccessAfterGrantClaim(database: D1Database, snapshotId: st
 describe("storefront experience API", () => {
   beforeEach(async () => {
     await env.DB.batch([
+      env.DB.prepare("DELETE FROM fashion_staging_operator_runs"),
       env.DB.prepare("DELETE FROM storefront_preview_sessions"),
       env.DB.prepare("DELETE FROM storefront_preview_grants"),
       env.DB.prepare("DELETE FROM storefront_preview_builds"),
@@ -1564,6 +1569,123 @@ describe("storefront experience API", () => {
         .bind(snapshotId)
         .run(),
     ).rejects.toThrow("immutable_storefront_experience_snapshot");
+  });
+
+  test("reconciles a retried run-bound Fashion approval without replacing its evidence", async () => {
+    const app = appFor();
+    const catalogReleaseId = "fashion-run-bound-release";
+    const operatorNow = new Date();
+    await seedPreviewCatalogRelease(catalogReleaseId);
+    const created = await createDraft(
+      app,
+      "theme-run-bound-approval-create-0001",
+      catalogReadyDraftInput,
+    );
+    const draftId = created.body.data.id;
+    await validateDraft(
+      app,
+      draftId,
+      1,
+      "theme-run-bound-approval-validate-0001",
+      catalogReleaseId,
+    );
+    const validation = await env.DB.prepare(
+      `SELECT id FROM storefront_experience_validations
+        WHERE draft_id = ? AND draft_version = 1 AND catalog_release_id = ?`,
+    )
+      .bind(draftId, catalogReleaseId)
+      .first<{ id: string }>();
+    await env.DB.prepare(
+      `INSERT INTO storefront_experience_snapshots
+         (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
+          source_validation_id, migration_id, kind, theme_id, theme_version,
+          configuration_schema_version, snapshot_json, content_digest, created_by, approved_by,
+          approved_at, created_at)
+       VALUES ('snapshot-fashion-u12-retry', 'fashion-u12-retry-approved', 'fashion-u12', ?, 1,
+               ?, NULL, 'approved', 'fashion-store', '1.0.0', 1, '{}', ?,
+               'admin-theme-admin', 'admin-theme-admin', ?, ?)`,
+    )
+      .bind(
+        draftId,
+        validation!.id,
+        "0".repeat(64),
+        operatorNow.toISOString(),
+        operatorNow.toISOString(),
+      )
+      .run();
+    await createFashionStagingOperatorRun(
+      env.DB,
+      {
+        candidateSha: "1".repeat(40),
+        catalogReleaseId,
+        contractTestDigest: "2".repeat(64),
+        environment: "fashion-staging",
+        expiresAt: new Date(operatorNow.getTime() + 60 * 60_000).toISOString(),
+        harnessManifestDigest: "3".repeat(64),
+        harnessSha: "4".repeat(40),
+        repository: "hashencode/shoppp",
+        runId: "fashion-u8-retry-reconciliation",
+        runManifestDigest: "5".repeat(64),
+        sourceDraftId: draftId,
+        u12ReadinessDigest: "6".repeat(64),
+        u12SnapshotId: "snapshot-fashion-u12-retry",
+        workflowRunAttempt: 1,
+        workflowRunId: "40000000004",
+      },
+      operatorNow,
+    );
+    const mismatched = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/approve`,
+        { confirm: true, expectedVersion: 1, reason: "Reject an unbound Catalog Release" },
+        "theme-run-bound-approval-mismatch-0001",
+      ),
+      env,
+    );
+    expect(mismatched.status).toBe(409);
+    const approve = (key: string) =>
+      app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${draftId}/approve`,
+          {
+            catalogReleaseId,
+            confirm: true,
+            expectedVersion: 1,
+            reason: "Approve the exact run-bound draft",
+          },
+          key,
+        ),
+        env,
+      );
+
+    const first = await approve("theme-run-bound-approval-first-0001");
+    const retry = await approve("theme-run-bound-approval-retry-0001");
+    expect([first.status, retry.status]).toEqual([200, 200]);
+    const [firstBody, retryBody] = await Promise.all([
+      first.json<{ data: { contentDigest: string; id: string } }>(),
+      retry.json<{ data: { contentDigest: string; id: string } }>(),
+    ]);
+    expect(retryBody.data).toMatchObject(firstBody.data);
+    const operatorRun = await getFashionStagingOperatorRun(
+      env.DB,
+      "fashion-u8-retry-reconciliation",
+    );
+    expect(operatorRun).toMatchObject({
+      operatorIdentityId: "admin-theme-admin",
+      status: "approved",
+      successorContentDigest: firstBody.data.contentDigest,
+      successorSnapshotId: firstBody.data.id,
+    });
+    expect(operatorRun.approvalAuditId).toMatch(/^audit-fashion-u8-[a-f0-9]{32}$/);
+    expect(
+      await env.DB.prepare(`SELECT actor_id, action, target_id FROM audit_events WHERE id = ?`)
+        .bind(operatorRun.approvalAuditId)
+        .first(),
+    ).toEqual({
+      action: "themes.fashion-staging.operator.approve",
+      actor_id: "admin-theme-admin",
+      target_id: "fashion-u8-retry-reconciliation",
+    });
   });
 
   test("dry-runs an explicit schema migration, reports stable-ID conflicts, and preserves older snapshots", async () => {

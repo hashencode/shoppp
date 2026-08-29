@@ -238,8 +238,8 @@ untouched.
 
 The release owner records:
 
-- VoiceOver and NVDA announcements and focus behavior for product, cart, checkout errors, order
-  confirmation, admin fulfillment, and refund;
+- automated keyboard, focus, accessible name/role/state, field-error association, status semantics,
+  non-color cues, responsive behavior, and Axe results for shopper and operator paths;
 - responsive checks on representative current iOS Safari and Android Chrome devices;
 - Stripe test dashboard confirmation that one successful Checkout Session produced one order and
   that refund totals reconcile;

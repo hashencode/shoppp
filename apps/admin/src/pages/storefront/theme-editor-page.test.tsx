@@ -292,6 +292,9 @@ const server = setupServer(
   http.get('*/admin/storefront-experiences/drafts/:id', () =>
     HttpResponse.json({ data: currentDraft })
   ),
+  http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () =>
+    HttpResponse.json({ data: null })
+  ),
   http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
     HttpResponse.json({ data: null })
   ),
@@ -536,6 +539,38 @@ describe('ThemesPage', () => {
 })
 
 describe('ThemeEditorPage', () => {
+  it('shows the exact awaiting_operator run without exposing an account or credential', async () => {
+    server.use(
+      http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () =>
+        HttpResponse.json({
+          data: {
+            allowedAction: 'complete_run_bound_editor_path',
+            approvalAuditId: null,
+            approvedAt: null,
+            candidateSha: 'a'.repeat(40),
+            catalogReleaseId: 'fashion-u12-release',
+            consumedAt: null,
+            expiresAt: '2026-08-28T20:00:00.000Z',
+            runId: 'fashion-u8-cloud-1',
+            sourceDraftId: baseDraft.id,
+            status: 'awaiting_operator',
+            successorSnapshotId: null,
+            u12SnapshotId: 'snapshot-fashion-u12',
+            workingDraftId: baseDraft.id,
+          },
+        })
+      )
+    )
+
+    renderEditor()
+
+    expect(await screen.findByText('fashion-u8-cloud-1')).toBeTruthy()
+    expect(screen.getByText('Awaiting operator')).toBeTruthy()
+    expect(screen.getByText('snapshot-fashion-u12')).toBeTruthy()
+    expect(screen.getByText('Complete the run-bound editor path')).toBeTruthy()
+    expect(screen.queryByText(/password|session token/i)).toBeNull()
+  })
+
   it('derives live text, enum, asset, link, and stable reference controls from the manifest', async () => {
     const catalogTheme: AdminStorefrontTheme = {
       ...theme,
@@ -1159,7 +1194,31 @@ describe('ThemeEditorPage', () => {
       validations: [validation],
     }
     const hydrated = deployedPreviewContext('fixture')
+    let operatorRunReads = 0
     server.use(
+      http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () => {
+        operatorRunReads += 1
+        return HttpResponse.json({
+          data: {
+            allowedAction:
+              operatorRunReads === 1 ? 'complete_run_bound_editor_path' : null,
+            approvalAuditId:
+              operatorRunReads === 1 ? null : 'audit-snapshot-approved-fashion-store',
+            approvedAt: operatorRunReads === 1 ? null : '2026-07-30T00:15:00.000Z',
+            candidateSha: 'a'.repeat(40),
+            catalogReleaseId: 'fashion-u12-release',
+            consumedAt: null,
+            expiresAt: '2099-08-28T20:00:00.000Z',
+            runId: 'fashion-u8-cloud-approval',
+            sourceDraftId: baseDraft.id,
+            status: operatorRunReads === 1 ? 'awaiting_operator' : 'approved',
+            successorSnapshotId:
+              operatorRunReads === 1 ? null : 'snapshot-approved-fashion-store',
+            u12SnapshotId: 'snapshot-fashion-u12',
+            workingDraftId: baseDraft.id,
+          },
+        })
+      }),
       http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
         HttpResponse.json({
           data: { ...hydrated, build: { ...hydrated.build, inputIdentity: null } },
@@ -1174,6 +1233,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Approve exact draft v1' }))
 
     await waitFor(() => expect(screen.getByText(/snapshot-approved-fashion-store/)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Approved')).toBeTruthy())
     expect(approvalBody).toMatchObject({
       confirm: true,
       expectedVersion: 1,
@@ -1205,6 +1265,25 @@ describe('ThemeEditorPage', () => {
       http.get('*/admin/storefront-experiences/catalog-releases', () =>
         HttpResponse.json({ data: [catalogRelease(releaseId)] })
       ),
+      http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () =>
+        HttpResponse.json({
+          data: {
+            allowedAction: 'complete_run_bound_editor_path',
+            approvalAuditId: null,
+            approvedAt: null,
+            candidateSha: 'a'.repeat(40),
+            catalogReleaseId: releaseId,
+            consumedAt: null,
+            expiresAt: '2099-08-28T20:00:00.000Z',
+            runId: 'fashion-u8-catalog-lock',
+            sourceDraftId: baseDraft.id,
+            status: 'awaiting_operator',
+            successorSnapshotId: null,
+            u12SnapshotId: 'snapshot-fashion-u12',
+            workingDraftId: baseDraft.id,
+          },
+        })
+      ),
       http.get(
         '*/admin/storefront-experiences/drafts/:id/preview-context',
         ({ request }) => {
@@ -1221,6 +1300,9 @@ describe('ThemeEditorPage', () => {
       'catalog.read',
     ])
     await screen.findByText('Ready')
+    expect(screen.getByRole('combobox', { name: 'Catalog Release' }).hasAttribute('disabled')).toBe(
+      true
+    )
     expect(screen.queryByText('Returned from private preview.')).toBeNull()
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: 'Open authenticated preview' })

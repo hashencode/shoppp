@@ -53,17 +53,46 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: read
-  contents: read
+  contents: none
 
 jobs:
-  build-preview:
-    runs-on:
-      - self-hosted
-      - fashion-staging-preview
-      - ${{ inputs.refresh_run_id != '' && 'fashion-staging-u8' || 'fashion-staging-preview' }}
+  verify-authority:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'hashencode/shoppp' &&
+      github.event.repository.fork == false &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      EXPECTED_REPOSITORY: hashencode/shoppp
+      FASHION_CANDIDATE_SHA: ${{ inputs.candidate_sha || inputs.readiness_commit_sha }}
+      FASHION_HARNESS_SHA: ${{ inputs.harness_sha || github.sha }}
+      FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+      GITHUB_REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Verify fixed-ref cloud authority without credentials
+        run: bun tools/verify-fashion-cloud-authority.ts
+
+  protected-preview:
+    needs: verify-authority
+    runs-on: ubuntu-24.04
     timeout-minutes: 55
     environment: fashion-staging
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     env:
       PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}
       PREVIEW_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
@@ -94,6 +123,24 @@ jobs:
       STOREFRONT_BUILD_MODE: preview
       STOREFRONT_EXPERIENCE_FILE: ${{ github.workspace }}/artifacts/preview/build-input.json
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Bind the protected job to GitHub OIDC claims
+        env:
+          EXPECTED_REPOSITORY: hashencode/shoppp
+          FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          RESPONSE="$(curl --fail --silent --show-error --header "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=shoppp-fashion-staging")"
+          TOKEN="$(jq -er '.value' <<<"$RESPONSE")"
+          echo "::add-mask::$TOKEN"
+          SHOPPP_GITHUB_OIDC_TOKEN="$TOKEN" bun tools/verify-github-oidc-claims.ts
       - name: Validate governed Preview dispatch inputs
         env:
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
@@ -127,13 +174,6 @@ jobs:
             test -z "$REFRESH_DIGEST"
             test -z "$HARNESS_SHA"
           fi
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ inputs.refresh_run_id != '' && inputs.harness_sha || github.sha }}
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.5
       - name: Verify exact successful evidence workflow provenance
         env:
           GH_TOKEN: ${{ github.token }}
@@ -162,7 +202,7 @@ jobs:
               artifacts/provenance/refresh-run.json >/dev/null
           fi
       - name: Download the governed Fashion readiness snapshot
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: fashion-u12-readiness-${{ inputs.readiness_commit_sha }}
           path: artifacts/readiness
@@ -170,7 +210,7 @@ jobs:
           run-id: ${{ inputs.readiness_run_id }}
       - name: Download exact U8 refresh attestation
         if: ${{ inputs.refresh_run_id != '' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: ${{ inputs.refresh_artifact_name }}
           path: artifacts/refresh
@@ -207,6 +247,7 @@ jobs:
       - name: Verify U8 refresh attestation before deployment mutation
         if: ${{ inputs.refresh_run_id != '' }}
         env:
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           HARNESS_SHA: ${{ inputs.harness_sha }}
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
@@ -244,6 +285,21 @@ jobs:
             "$(jq -er '.harnessManifestDigest' artifacts/refresh/refresh-attestation.json)"
           bun tools/verify-fashion-u8-standing-authority.ts \
             artifacts/refresh/current-harness-manifest.json >/dev/null
+          OPERATOR_RUN_ID="$(jq -er '.operatorRunId' artifacts/refresh/refresh-attestation.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $FASHION_U12_ACCEPTANCE_TOKEN" \
+            "$PREVIEW_API_URL/internal/testing/fashion-staging/operator-runs/$OPERATOR_RUN_ID" \
+            > artifacts/refresh/operator-run-current.json
+          jq --exit-status --slurpfile attestation artifacts/refresh/refresh-attestation.json \
+            '.data.status == "approved" and
+             .data.runId == $attestation[0].operatorRunId and
+             .data.runManifestDigest == $attestation[0].runManifestDigest and
+             .data.catalogReleaseId == $attestation[0].catalogReleaseId and
+             .data.successorSnapshotId == $attestation[0].successorSnapshotId and
+             .data.successorContentDigest == $attestation[0].successorContentDigest and
+             .data.approvalAuditId == $attestation[0].successorAuditId and
+             .data.operatorIdentityId == $attestation[0].operatorIdentityId' \
+            artifacts/refresh/operator-run-current.json >/dev/null
       - run: bun install --frozen-lockfile
       - name: Validate fixed environment inputs
         id: validate
@@ -610,7 +666,7 @@ jobs:
         if: always() && steps.validate.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: preview-build-${{ inputs.snapshot_id }}
           path: |

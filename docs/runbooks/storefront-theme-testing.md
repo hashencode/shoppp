@@ -142,67 +142,43 @@ preview evidence and approval readiness but preserves unsaved draft edits.
 Stop after evidence is recorded. Production activation, monitoring, rollback, and legacy-trigger
 cleanup are intentionally outside this runbook.
 
-## Fashion U8 bounded runner and human acceptance
+## Fashion U8 cloud-only operator acceptance
 
-U8 uses one temporary runner named `shoppp-fashion-u8-<run-id>` with the labels
-`self-hosted`, `fashion-staging-preview`, and `fashion-staging-u8`. The runner and the headed Admin
-browser must never share a macOS account. Before creating either credential, generate the canonical
-harness manifest from the reviewed checkout, hash that exact JSON file, and run the standing-
-authority verifier. Do not start the listener if the checkout, manifest, contract-test digest,
-candidate-to-harness diff, or exact harness SHA differs from the reviewed record.
-The original U12 readiness commit and digest remain historical baseline evidence; they do not become
-the post-CI U8 candidate. The U8 preparation and refresh workflows verify that exact readiness
-commit and artifact, prove that commit is an ancestor of the frozen exact-main U8 candidate, and
-carry both identities independently through the refresh attestation.
-If the seven-day U12 readiness artifact has expired before formal U8 acceptance, do not reconstruct
-its bytes from summaries or weaken the digest gate. Re-run the governed U12 preparation on exact
-`main` through the exact temporary U8 runner using the protected U8 candidate SHA and exact runner
-name gates, then complete its ordinary Preview/U12 lifecycle before using that fresh readiness as
-the U8 baseline.
-Set the protected `fashion-staging` environment variables `FASHION_U8_CANDIDATE_SHA`,
-`FASHION_U8_HARNESS_SHA`, and `FASHION_U8_HARNESS_MANIFEST_DIGEST` to that reviewed authority.
-Every U8 workflow must match those values and its own `GITHUB_SHA` before executing harness code.
+Every U8 automation job runs on the fixed GitHub-hosted `ubuntu-24.04` image. The credential-free
+authority job checks the exact base repository, `workflow_dispatch`, `main`, full candidate and
+harness SHAs, reviewed harness digest, and authorized actor before any protected job starts. The
+protected job then validates GitHub OIDC claims for the exact Fashion staging audience. A local
+machine, VM, container runtime, account, or runner listener has no execution authority.
 
-Create a dedicated standard, non-admin macOS account with a run-scoped name. Give its home and
-runner directory no ACL granting access to the operator account, and verify from that account that
-the operator home, `Library/Keychains`, browser profiles, shell configuration, and unrelated Shoppp
-checkout are unreadable. Record only pass/fail and the exact account/runner names; never record
-directory contents. The operator browser remains in the original account. Stop if any denial check
-fails.
+The original U12 readiness commit and digest are historical baseline evidence, not the post-CI U8
+candidate. If that artifact has expired, rerun governed U12 preparation and its ordinary Preview/U12
+lifecycle on current exact `main`; never reconstruct the bytes from a summary. Set the protected
+`FASHION_U8_CANDIDATE_SHA`, `FASHION_U8_HARNESS_SHA`, and
+`FASHION_U8_HARNESS_MANIFEST_DIGEST` values to the reviewed identities before U8 dispatch.
 
-Download the Actions runner only into the dedicated account's empty run-scoped directory and verify
-its published checksum. Configure it interactively for the exact repository, runner name, and three
-labels. Paste the short-lived registration token only into a verified non-echo prompt: never put it
-in argv, an environment variable, shell history, a file, clipboard history, terminal capture, or
-evidence. If the installed runner version cannot accept the token without echo or argv exposure,
-stop; do not weaken this boundary. Keep the listener stopped until the reviewed preparation dispatch
-is queued. The preparation workflow dispatches Preview and exits so the single runner is released;
-wait for that exact Preview run to finish before dispatching acceptance.
+Dispatch `prepare-fashion-staging-u8.yml` with `operation=prepare`, the fresh U12 evidence, frozen
+Catalog Release, and an existing Fashion Store source draft. Preparation verifies the U12 artifact,
+creates a non-secret manifest, writes an immutable server-side `awaiting_operator` record, uploads
+the manifest, and exits. It does not create an identity, session, password, or runner-held browser,
+and it does not wait for a human.
 
-The human lane uses `ADMIN_DEVELOPMENT_PROFILE=fashion-staging` and the local same-origin Admin
-gateway. Run operator reconciliation first, then apply the generated migration SQL only after its
-confirmation gate. Enter the generated bootstrap password through the provisioning tool's no-echo
-stdin prompt, and type it directly into the headed browser. The password and browser session must
-not enter Playwright configuration, storage state, environment variables, screenshots, traces,
-HARs, recordings, or retained artifacts. The structured VoiceOver record contains only the run,
-harness, build, operator, expected/observed checkpoint summaries, timestamps, non-secret audit
-references, and explicit pass/fail results.
-Set `FASHION_U8_HUMAN_EVIDENCE_FILE` to a new run-scoped path before starting Playwright. The live
-config fails closed unless `FASHION_U8_INTERACTIVE_ACCEPTANCE=1`, and the test writes the redacted
-human evidence exactly once. Base64-encode the exact run-manifest and human-evidence bytes for the
-preparation dispatch; the workflow decodes and hashes both, joins their candidate, harness, Catalog,
-source draft, successor, content, and audit identities, and retains the joined bytes with the refresh
-attestation. Do not copy or reserialize either JSON file before encoding it.
+The existing named staging operator signs in normally and opens the source draft. The Admin editor
+shows the bound run ID, U12 baseline, Catalog Release, expiry, and allowed action. The operator
+executes the ordinary product path: edit presentation fields, save, validate, create the private
+preview, inspect conflict/recovery state when applicable, and approve the exact run-bound successor.
+Application-owned automated coverage remains authoritative for keyboard behavior, focus,
+accessible name/role/state, field-error association, truthful status semantics, non-color cues,
+responsive layouts, and Axe checks. Do not attach a password, browser storage, screenshot, trace,
+HAR, recording, or free-form human evidence to the workflow.
 
-When retrying preparation or machine acceptance after a failed attempt, pass the prior run ID and a
-non-empty corrective reason. The workflow restores the newest matching ledger artifact and refuses
-to start unless its last event failed. Do not start a fresh ledger to hide an earlier attempt.
+After approval, separately dispatch the same workflow with `operation=refresh`, the exact
+preparation run/artifact, and operator run ID. The hosted job reads the server-side named-operator,
+Snapshot, content digest, and audit evidence; mismatched, expired, rejected, or cross-run evidence
+fails closed. It creates a fresh build and dispatches `preview-storefront.yml` on exact `main`.
 
-On success, failure, timeout, or interruption, run the operator cleanup SQL to revoke all sessions
-and disable the run identity, then run reconciliation and fail closure if any U8-namespaced identity
-is still enabled. Stop the runner listener, terminate only its verified child processes, remove its
-repository registration interactively, and confirm the repository inventory contains no exact U8
-runner name or `fashion-staging-u8` label. Retain the tracked/untracked/material-ignored manifests
-for the exact runner directory, then move that directory to Trash. Remove the dedicated macOS
-account only after proving it owns no other files or processes. These cleanup actions do not delete
-branches, commits, artifacts, snapshots, audits, or plans.
+After that Preview run deploys the attested build, separately dispatch
+`accept-fashion-staging-u8.yml` with the refresh run/artifact and operator run ID. Acceptance reads
+the same server-side evidence, verifies the deployed identities, runs the terminal p95 and cleanup,
+and consumes the approval only on success. Retain the 30-day manifests, attestation, Snapshot/audit
+references, terminal report, cleanup result, and append-only attempt ledger. A retry must use the
+same governed evidence lineage; it must not create a new staging account or hide an earlier failure.

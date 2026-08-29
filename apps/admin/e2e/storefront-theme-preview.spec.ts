@@ -145,6 +145,10 @@ test('operator saves, validates, previews, and approves one exact theme version'
       await route.fulfill({ contentType: 'application/json', json: { data: [] } })
       return
     }
+    if (url.pathname.endsWith(`/drafts/${draft.id}/operator-run`) && request.method() === 'GET') {
+      await route.fulfill({ contentType: 'application/json', json: { data: null } })
+      return
+    }
     if (url.pathname.endsWith(`/drafts/${draft.id}`) && request.method() === 'GET') {
       await route.fulfill({ contentType: 'application/json', json: { data: currentDraft } })
       return

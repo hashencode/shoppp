@@ -52,7 +52,7 @@ env:
 
 jobs:
   preflight:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -100,7 +100,7 @@ jobs:
 
   verify-deployment-inputs:
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       actions: read
@@ -134,7 +134,7 @@ jobs:
   record-validation-failure:
     needs: [preflight, validate]
     if: ${{ always() && needs.preflight.result == 'success' && needs.validate.result == 'failure' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
     permissions: {}
@@ -154,7 +154,7 @@ jobs:
 
   deploy-staging:
     needs: [validate, verify-deployment-inputs]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: staging
     permissions:
@@ -334,7 +334,7 @@ jobs:
 
   prove-staging:
     needs: [validate, deploy-staging]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 55
     environment: staging
     permissions:
@@ -529,7 +529,7 @@ jobs:
   restore-staging-baseline:
     needs: [validate, deploy-staging, prove-staging]
     if: ${{ always() && inputs.rehearse_staging_rollback && needs.deploy-staging.outputs.baseline_artifact_id != '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: staging
     permissions:
@@ -699,7 +699,7 @@ jobs:
   approve-human-access:
     needs: prove-staging
     if: ${{ inputs.promote_production }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: staging-human-access
     permissions:
@@ -754,7 +754,7 @@ jobs:
   approve-production:
     needs: [validate, prove-staging, approve-human-access]
     if: ${{ inputs.promote_production }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
     outputs:
@@ -785,7 +785,7 @@ jobs:
   promote-production:
     needs: [validate, verify-deployment-inputs, prove-staging, approve-production]
     if: ${{ inputs.promote_production }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: production
     permissions:

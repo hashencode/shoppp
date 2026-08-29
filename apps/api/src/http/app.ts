@@ -185,6 +185,12 @@ import {
   settleFashionStagingTestPayment,
   startFashionStagingAcceptance,
 } from "../testing/fashion-staging";
+import {
+  consumeFashionStagingOperatorRun,
+  createFashionStagingOperatorRun,
+  getFashionStagingOperatorRun,
+  getFashionStagingOperatorRunForDraft,
+} from "../testing/fashion-staging-operator";
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
@@ -307,6 +313,30 @@ const fashionAcceptanceFailureSchema = fashionAcceptanceOwnerSchema
   .strict();
 const fashionAcceptanceSettlementSchema = fashionAcceptanceOwnerSchema
   .extend({ checkoutAttemptId: stableIdentifierSchema })
+  .strict();
+const fashionOperatorRunSchema = z
+  .object({
+    candidateSha: z.string().regex(/^[a-f0-9]{40}$/),
+    catalogReleaseId: stableIdentifierSchema,
+    contractTestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    expiresAt: z.string().datetime({ offset: false }),
+    harnessManifestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    harnessSha: z.string().regex(/^[a-f0-9]{40}$/),
+    repository: z.literal("hashencode/shoppp"),
+    runId: stableIdentifierSchema,
+    runManifestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    sourceDraftId: stableIdentifierSchema,
+    u12ReadinessDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    u12SnapshotId: stableIdentifierSchema,
+    workflowRunAttempt: z.number().int().positive(),
+    workflowRunId: z.string().regex(/^[1-9][0-9]*$/),
+  })
+  .strict();
+const fashionOperatorRunConsumeSchema = z
+  .object({
+    approvalAuditId: stableIdentifierSchema,
+    successorSnapshotId: stableIdentifierSchema,
+  })
   .strict();
 
 function validatedQuery<Schema extends z.ZodType>(
@@ -511,6 +541,34 @@ export function createApp(options: CreateAppOptions = {}) {
       context.env.DB,
       context.req.param("id"),
       input.owner,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/internal/testing/fashion-staging/operator-runs", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionOperatorRunSchema);
+    const result = await createFashionStagingOperatorRun(context.env.DB, {
+      ...input,
+      environment: "fashion-staging",
+    });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } }, 201);
+  });
+  app.get("/internal/testing/fashion-staging/operator-runs/:id", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const result = await getFashionStagingOperatorRun(context.env.DB, context.req.param("id"));
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/internal/testing/fashion-staging/operator-runs/:id/consume", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionOperatorRunConsumeSchema);
+    const result = await consumeFashionStagingOperatorRun(
+      context.env.DB,
+      context.req.param("id"),
+      input.successorSnapshotId,
+      input.approvalAuditId,
     );
     context.header("Cache-Control", "private, no-store");
     return context.json({ data: result, meta: { requestId: context.get("requestId") } });
@@ -1164,6 +1222,17 @@ export function createApp(options: CreateAppOptions = {}) {
     });
     return context.json({
       data: await getStorefrontExperienceDraft(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-experiences/drafts/:id/operator-run", async (context) => {
+    await requirePermission(context, "themes.read", {
+      id: context.req.param("id"),
+      type: "storefront_experience_draft",
+    });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await getFashionStagingOperatorRunForDraft(context.env.DB, context.req.param("id")),
       meta: { requestId: context.get("requestId") },
     });
   });

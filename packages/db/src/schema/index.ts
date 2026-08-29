@@ -1020,6 +1020,60 @@ export const storefrontExperienceSnapshots = sqliteTable(
   ],
 );
 
+export const fashionStagingOperatorRuns = sqliteTable(
+  "fashion_staging_operator_runs",
+  {
+    runId: text("run_id").primaryKey(),
+    environment: text("environment", { enum: ["fashion-staging"] }).notNull(),
+    repository: text("repository").notNull(),
+    workflowRunId: text("workflow_run_id").notNull(),
+    workflowRunAttempt: integer("workflow_run_attempt").notNull(),
+    status: text("status", {
+      enum: ["awaiting_operator", "approved", "rejected", "canceled", "expired", "consumed"],
+    }).notNull(),
+    candidateSha: text("candidate_sha").notNull(),
+    harnessSha: text("harness_sha").notNull(),
+    harnessManifestDigest: text("harness_manifest_digest").notNull(),
+    contractTestDigest: text("contract_test_digest").notNull(),
+    runManifestDigest: text("run_manifest_digest").notNull().unique(),
+    u12ReadinessDigest: text("u12_readiness_digest").notNull(),
+    u12SnapshotId: text("u12_snapshot_id")
+      .notNull()
+      .references(() => storefrontExperienceSnapshots.id, { onDelete: "restrict" }),
+    catalogReleaseId: text("catalog_release_id")
+      .notNull()
+      .references(() => catalogReleases.id, { onDelete: "restrict" }),
+    sourceDraftId: text("source_draft_id")
+      .notNull()
+      .references(() => storefrontExperienceDrafts.id, { onDelete: "restrict" }),
+    workingDraftId: text("working_draft_id")
+      .notNull()
+      .references(() => storefrontExperienceDrafts.id, { onDelete: "restrict" }),
+    expiresAt: text("expires_at").notNull(),
+    successorSnapshotId: text("successor_snapshot_id").references(
+      () => storefrontExperienceSnapshots.id,
+      { onDelete: "restrict" },
+    ),
+    successorContentDigest: text("successor_content_digest"),
+    approvalAuditId: text("approval_audit_id").references(() => auditEvents.id, {
+      onDelete: "restrict",
+    }),
+    operatorIdentityId: text("operator_identity_id").references(() => adminIdentities.id, {
+      onDelete: "restrict",
+    }),
+    approvedAt: text("approved_at"),
+    consumedAt: text("consumed_at"),
+    ...timestamps,
+  },
+  (table) => [
+    index("fashion_staging_operator_working_draft_idx").on(
+      table.workingDraftId,
+      table.status,
+      table.expiresAt,
+    ),
+  ],
+);
+
 export const storefrontPreviewBuilds = sqliteTable(
   "storefront_preview_builds",
   {

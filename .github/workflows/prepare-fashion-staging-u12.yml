@@ -3,21 +3,8 @@ name: Prepare governed Fashion staging U12 inputs
 on:
   workflow_dispatch:
     inputs:
-      runner:
-        description: Select the dedicated one-time runner only for an explicitly authorized preparation
-        required: true
-        default: ubuntu-latest
-        type: choice
-        options:
-          - ubuntu-latest
-          - fashion-staging-preparation
-          - fashion-staging-u8
       u8_candidate_sha:
         description: Exact-main U8 candidate allowed to refresh expired U12 readiness evidence
-        required: false
-        type: string
-      u8_run_id:
-        description: Run suffix bound to the exact temporary U8 runner name
         required: false
         type: string
 
@@ -26,45 +13,84 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: write
-  contents: read
+  contents: none
 
 jobs:
-  prepare:
-    runs-on: ${{ inputs.runner }}
+  verify-authority:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'hashencode/shoppp' &&
+      github.event.repository.fork == false &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      EXPECTED_REPOSITORY: hashencode/shoppp
+      FASHION_CANDIDATE_SHA: ${{ inputs.u8_candidate_sha || github.sha }}
+      FASHION_HARNESS_SHA: ${{ github.sha }}
+      FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+      GITHUB_REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Verify fixed-ref cloud authority without credentials
+        run: bun tools/verify-fashion-cloud-authority.ts
+
+  protected-prepare:
+    needs: verify-authority
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: fashion-staging
+    permissions:
+      actions: write
+      contents: read
+      id-token: write
     env:
       API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       FASHION_U12_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
-      FASHION_U12_MIGRATIONS: '["0018_storefront_preview_revocation.sql","0019_storefront_validation_catalog_identity.sql","0020_fashion_staging_acceptance.sql","0021_fashion_shipping_method_public_id.sql"]'
+      FASHION_U12_MIGRATIONS: '["0018_storefront_preview_revocation.sql","0019_storefront_validation_catalog_identity.sql","0020_fashion_staging_acceptance.sql","0021_fashion_shipping_method_public_id.sql","0022_admin_identity_expiry.sql","0023_fashion_staging_operator_runs.sql"]'
       PROTECTED_U8_CANDIDATE_SHA: ${{ vars.FASHION_U8_CANDIDATE_SHA }}
       U8_CANDIDATE_SHA: ${{ inputs.u8_candidate_sha }}
-      U8_RUN_ID: ${{ inputs.u8_run_id }}
       GH_TOKEN: ${{ secrets.FASHION_U12_GITHUB_ADMIN_TOKEN }}
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
-      - uses: oven-sh/setup-bun@v2
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
+      - name: Bind the protected job to GitHub OIDC claims
+        env:
+          EXPECTED_REPOSITORY: hashencode/shoppp
+          FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          RESPONSE="$(curl --fail --silent --show-error --header "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=shoppp-fashion-staging")"
+          TOKEN="$(jq -er '.value' <<<"$RESPONSE")"
+          echo "::add-mask::$TOKEN"
+          SHOPPP_GITHUB_OIDC_TOKEN="$TOKEN" bun tools/verify-github-oidc-claims.ts
       - name: Verify standing FS-U12 execution authority
         run: |
           test "$GITHUB_REF" = "refs/heads/main"
-          if test "${{ inputs.runner }}" = "fashion-staging-u8"; then
+          if test -n "$U8_CANDIDATE_SHA"; then
             [[ "$U8_CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
-            [[ "$U8_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]
             test "$GITHUB_SHA" = "$U8_CANDIDATE_SHA"
             test "$U8_CANDIDATE_SHA" = "$PROTECTED_U8_CANDIDATE_SHA"
-            test "$RUNNER_NAME" = "shoppp-fashion-u8-$U8_RUN_ID"
           else
-            test -z "$U8_CANDIDATE_SHA"
-            test -z "$U8_RUN_ID"
             bun tools/verify-fashion-u12-standing-authority.ts \
               --baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"
           fi
@@ -189,7 +215,7 @@ jobs:
             '{artifactName:$artifactName,createdAt:$createdAt,databaseId:$databaseId,restoreVerifiedAt:$restoreVerifiedAt,runId:$runId,sha256:$sha256}' \
             > ../../artifacts/fashion-u12/backup-receipt.json
       - name: Preserve verified Fashion D1 backup before migration
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: fashion-u12-d1-backup-${{ github.sha }}
           path: |
@@ -327,7 +353,7 @@ jobs:
           jq -r '"Build: \(.seed.buildId)\nSnapshot: \(.seed.experienceSnapshotId)\nCatalog: \(.seed.catalogReleaseId)"' \
             artifacts/fashion-u12/readiness.json >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve governed Fashion deployment readiness
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: fashion-u12-readiness-${{ github.sha }}
           path: |

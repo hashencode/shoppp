@@ -49,6 +49,7 @@ import {
   createStorefrontPreviewGrant,
   dryRunStorefrontExperienceMigration,
   fetchStorefrontExperienceDraft,
+  fetchFashionStagingOperatorRun,
   fetchStorefrontCatalogReleases,
   fetchStorefrontPreviewBuild,
   fetchStorefrontPreviewContext,
@@ -59,6 +60,7 @@ import {
   updateStorefrontExperienceDraft,
   validateStorefrontExperienceDraft,
   type StorefrontExperienceDraft,
+  type FashionStagingOperatorRun,
   type StorefrontExperienceMigration,
   type StorefrontExperienceSnapshot,
   type StorefrontPreviewBuild,
@@ -84,6 +86,15 @@ type DraftConflict = {
   bindings: ExperienceResourceBinding[]
   draft: StorefrontExperienceDraft
   overrides: ThemeOverride[]
+}
+
+const operatorRunStatusMessages: Record<FashionStagingOperatorRun['status'], string> = {
+  approved: 'Approved',
+  awaiting_operator: 'Awaiting operator',
+  canceled: 'Canceled',
+  consumed: 'Consumed',
+  expired: 'Expired',
+  rejected: 'Rejected',
 }
 
 const cloneTemplates = (templates: readonly PageTemplate[]): PageTemplate[] =>
@@ -299,6 +310,7 @@ export const ThemeEditorPage = ({
   const canReadCatalog = hasPermission(role, 'catalog.read', permissions)
   const canApprove = hasPermission(role, 'themes.approve', permissions)
   const [draft, setDraft] = useState<StorefrontExperienceDraft | null>(null)
+  const [operatorRun, setOperatorRun] = useState<FashionStagingOperatorRun | null>(null)
   const [theme, setTheme] = useState<AdminStorefrontTheme | null>(null)
   const [availableThemes, setAvailableThemes] = useState<AdminStorefrontTheme[]>([])
   const [templates, setTemplates] = useState<PageTemplate[]>([])
@@ -376,9 +388,10 @@ export const ThemeEditorPage = ({
     setLoading(true)
     setError(null)
     try {
-      const [nextDraft, themes] = await Promise.all([
+      const [nextDraft, themes, nextOperatorRun] = await Promise.all([
         fetchStorefrontExperienceDraft(draftId),
         fetchStorefrontThemes(),
+        fetchFashionStagingOperatorRun(draftId),
       ])
       const nextTheme = themes.find(
         ({ id, themeVersion }) =>
@@ -388,6 +401,7 @@ export const ThemeEditorPage = ({
       if (request !== loadRequest.current) return
       const nextTemplates = resolveDraftTemplates(nextTheme, nextDraft)
       setDraft(nextDraft)
+      setOperatorRun(nextOperatorRun)
       setTheme(nextTheme)
       setAvailableThemes(themes)
       setTemplates(nextTemplates)
@@ -395,7 +409,18 @@ export const ThemeEditorPage = ({
       setBindings(structuredClone(nextDraft.bindings))
       setSavedBindings(structuredClone(nextDraft.bindings))
       setActiveTemplateId((current) => current || nextTemplates[0]?.id || '')
-      if (nextDraft.themeId !== 'fashion-store') {
+      if (
+        nextDraft.themeId === 'fashion-store' &&
+        nextOperatorRun &&
+        ['awaiting_operator', 'approved'].includes(nextOperatorRun.status)
+      ) {
+        selectedReleaseIdRef.current = nextOperatorRun.catalogReleaseId
+        setSelectedReleaseId(nextOperatorRun.catalogReleaseId)
+        window.sessionStorage.setItem(
+          'storefront-editor-catalog-release',
+          nextOperatorRun.catalogReleaseId
+        )
+      } else if (nextDraft.themeId !== 'fashion-store') {
         selectedReleaseIdRef.current = ''
         setSelectedReleaseId('')
       }
@@ -438,9 +463,12 @@ export const ThemeEditorPage = ({
           if (cancelled) return
           setCatalogReleases(releases)
           setSelectedReleaseId((current) => {
-            const next = releases.some(({ id }) => id === current)
-              ? current
-              : (releases[0]?.id ?? '')
+            const frozen =
+              operatorRun && ['awaiting_operator', 'approved'].includes(operatorRun.status)
+                ? operatorRun.catalogReleaseId
+                : null
+            const next = frozen ??
+              (releases.some(({ id }) => id === current) ? current : (releases[0]?.id ?? ''))
             selectedReleaseIdRef.current = next
             return next
           })
@@ -456,7 +484,7 @@ export const ThemeEditorPage = ({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [canPreview, canReadCatalog, catalogReleasesRetry, draft?.themeId])
+  }, [canPreview, canReadCatalog, catalogReleasesRetry, draft?.themeId, operatorRun])
 
   useEffect(() => {
     if (!dirty) return
@@ -999,6 +1027,37 @@ export const ThemeEditorPage = ({
         />
       ) : null}
 
+      {operatorRun ? (
+        <Alert
+          type={operatorRun.status === 'awaiting_operator' ? 'info' : 'warning'}
+          showIcon
+          title={t('Fashion staging acceptance run')}
+          description={
+            <Descriptions size="small" column={{ xs: 1, lg: 2 }}>
+              <Descriptions.Item label={t('Run')}>{operatorRun.runId}</Descriptions.Item>
+              <Descriptions.Item label={t('State')}>
+                {t(operatorRunStatusMessages[operatorRun.status])}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('U12 baseline')}>
+                {operatorRun.u12SnapshotId}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Catalog Release')}>
+                {operatorRun.catalogReleaseId}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Source draft')}>
+                {operatorRun.sourceDraftId}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Expires')}>{operatorRun.expiresAt}</Descriptions.Item>
+              <Descriptions.Item label={t('Allowed action')}>
+                {operatorRun.allowedAction === 'complete_run_bound_editor_path'
+                  ? t('Complete the run-bound editor path')
+                  : t('No further action is authorized')}
+              </Descriptions.Item>
+            </Descriptions>
+          }
+        />
+      ) : null}
+
       <Descriptions bordered size="small" column={{ xs: 1, lg: 3 }}>
         <Descriptions.Item label={t('Draft identity')}>
           <Typography.Text className="break-all">{draft.id}</Typography.Text>
@@ -1047,7 +1106,10 @@ export const ThemeEditorPage = ({
             <Select
               aria-label={t('Catalog Release')}
               className="w-full"
-              disabled={busy}
+              disabled={
+                busy ||
+                Boolean(operatorRun && ['awaiting_operator', 'approved'].includes(operatorRun.status))
+              }
               value={selectedReleaseId || undefined}
               options={catalogReleases.map((release) => ({
                 label: `${release.id} · ${release.environment} · ${release.deployedAt ?? release.approvedAt}`,
@@ -1840,6 +1902,14 @@ export const ThemeEditorPage = ({
                   )
                   if (selectedReleaseIdRef.current !== releaseId) return
                   setApprovedSnapshot(snapshot)
+                  if (operatorRun) {
+                    setOperatorRun(null)
+                    try {
+                      setOperatorRun(await fetchFashionStagingOperatorRun(draft.id))
+                    } catch {
+                      // The immutable approval remains authoritative; a reload can retry this read.
+                    }
+                  }
                   void message.success(t('Immutable experience snapshot approved and audited.'))
                 })
               }
