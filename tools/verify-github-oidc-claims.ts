@@ -8,7 +8,9 @@ export interface GithubOidcClaims {
   nbf?: number;
   ref?: string;
   repository?: string;
+  repository_id?: string;
   repository_owner?: string;
+  repository_owner_id?: string;
   sub?: string;
   workflow_ref?: string;
 }
@@ -18,6 +20,8 @@ export interface GithubOidcAuthority {
   expectedAudience: string;
   expectedEnvironment: string;
   expectedRepository: string;
+  expectedRepositoryId: string;
+  expectedRepositoryOwnerId: string;
   expectedWorkflowRef: string;
   nowSeconds?: number;
 }
@@ -34,19 +38,27 @@ export function verifyGithubOidcClaims(claims: GithubOidcClaims, authority: Gith
   assert(typeof claims.exp === "number" && claims.exp > now, "OIDC token is expired");
   assert(typeof claims.nbf === "number" && claims.nbf <= now, "OIDC token is not active");
   assert(claims.repository === authority.expectedRepository, "OIDC repository is not authorized");
+  assert(
+    claims.repository_id === authority.expectedRepositoryId,
+    "OIDC repository ID is not authorized",
+  );
   assert(claims.ref === "refs/heads/main", "OIDC ref must be exact main");
   assert(claims.event_name === "workflow_dispatch", "OIDC event must be workflow_dispatch");
-  const owner = authority.expectedRepository.split("/", 1)[0];
+  const [owner, repositoryName] = authority.expectedRepository.split("/");
+  assert(owner && repositoryName, "expected repository must contain owner and name");
   assert(claims.repository_owner === owner, "OIDC repository owner is not authorized");
+  assert(
+    claims.repository_owner_id === authority.expectedRepositoryOwnerId,
+    "OIDC repository owner ID is not authorized",
+  );
   assert(
     claims.environment === authority.expectedEnvironment,
     "OIDC environment is not authorized",
   );
-  assert(
-    claims.sub ===
-      `repo:${authority.expectedRepository}:environment:${authority.expectedEnvironment}`,
-    "OIDC subject is not bound to the protected environment",
-  );
+  const immutableSubject =
+    `repo:${owner}@${authority.expectedRepositoryOwnerId}/` +
+    `${repositoryName}@${authority.expectedRepositoryId}:environment:${authority.expectedEnvironment}`;
+  assert(claims.sub === immutableSubject, "OIDC subject is not bound to the protected environment");
   assert(
     claims.workflow_ref === authority.expectedWorkflowRef,
     "OIDC workflow ref is not the executing workflow",
@@ -82,6 +94,8 @@ if (import.meta.main) {
     expectedAudience: "shoppp-fashion-staging",
     expectedEnvironment: "fashion-staging",
     expectedRepository: required("EXPECTED_REPOSITORY"),
+    expectedRepositoryId: required("GITHUB_REPOSITORY_ID"),
+    expectedRepositoryOwnerId: required("GITHUB_REPOSITORY_OWNER_ID"),
     expectedWorkflowRef: required("GITHUB_WORKFLOW_REF"),
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);

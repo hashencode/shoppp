@@ -102,3 +102,18 @@ claimed by this evidence. Exact-main post-commit proof remains required before s
 - This satisfies `CI-CLOUD-U3` and the successor Definition of Done. It does not establish a Fashion
   candidate, staging acceptance, DC, PG, or production result; execution returns to `FS-U8.2` for a
   new identity freeze and fresh U12 readiness.
+
+## 2026-08-29 protected OIDC preflight reopening
+
+- Candidate baseline `635be84df585cadbb7618a4c8e036bc1fff1199c` passed post-commit run
+  `33234594213`, then exact-main U12 readiness run `33234809325` executed both jobs on fixed
+  `ubuntu-24.04`.
+- Credential-free authority job `99053798568` passed. Protected job `99053818892` obtained a GitHub
+  OIDC token but rejected it before the standing-authority, install, provider, D1, Worker, Stripe,
+  seed, Snapshot, build, or readiness steps. No staging mutation occurred.
+- The repository OIDC endpoint reports immutable subject prefix
+  `repo:hashencode@15647097/shoppp@1315879472`; the verifier accepted only the older mutable-slug
+  subject. `CI-CLOUD-U3` is therefore reopened for this protected-boundary compatibility defect.
+- A red test now requires exact repository and owner numeric IDs plus the immutable protected
+  Environment subject. The corrective verifier passes its focused rejection matrix locally; a fresh
+  exact-main hosted post-commit run and U12 OIDC preflight are still required.

@@ -12,8 +12,10 @@ const claims = {
   nbf: 900,
   ref: "refs/heads/main",
   repository: "hashencode/shoppp",
+  repository_id: "1315879472",
   repository_owner: "hashencode",
-  sub: "repo:hashencode/shoppp:environment:fashion-staging",
+  repository_owner_id: "15647097",
+  sub: "repo:hashencode@15647097/shoppp@1315879472:environment:fashion-staging",
   workflow_ref: "hashencode/shoppp/.github/workflows/preview-storefront.yml@refs/heads/main",
 };
 const authority = {
@@ -21,6 +23,8 @@ const authority = {
   expectedAudience: "shoppp-fashion-staging",
   expectedEnvironment: "fashion-staging",
   expectedRepository: "hashencode/shoppp",
+  expectedRepositoryId: "1315879472",
+  expectedRepositoryOwnerId: "15647097",
   expectedWorkflowRef: claims.workflow_ref,
   nowSeconds: 1_000,
 };
@@ -38,11 +42,14 @@ describe("GitHub OIDC Fashion staging claims", () => {
     for (const [override, message] of [
       [{ aud: "another-service" }, /audience/],
       [{ repository: "fork/shoppp" }, /repository/],
+      [{ repository_id: "999" }, /repository ID/],
+      [{ repository_owner_id: "999" }, /owner ID/],
       [{ ref: "refs/heads/feature" }, /exact main/],
       [{ event_name: "pull_request_target" }, /workflow_dispatch/],
       [{ actor: "intruder" }, /actor/],
       [{ environment: "production" }, /environment/],
       [{ sub: "repo:hashencode/shoppp:ref:refs/heads/main" }, /subject/],
+      [{ sub: "repo:hashencode/shoppp:environment:fashion-staging" }, /subject/],
       [
         { workflow_ref: "hashencode/shoppp/.github/workflows/other.yml@refs/heads/main" },
         /workflow ref/,
