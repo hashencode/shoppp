@@ -151,7 +151,15 @@ U13 add-only probe do not establish overall completion.
   stage passed, but GitHub exposes `GITHUB_STEP_SUMMARY` only in the web UI rather than the
   authenticated run/check APIs. The successor therefore mirrors the same counts-only JSON to the
   protected job log while retaining the summary; the invariant and credential boundary remain
-  unchanged.
+  unchanged. Exact-candidate run `33298499218` then exposed the complete safe aggregate:
+  `3/1/1/12/12/0/1/13/4` for products, single variants, single availability, multi variants,
+  multi availability, unavailable sellable inventory, immutable Catalogs, approved Snapshots, and
+  building builds. Every seed, inventory, Catalog, and Snapshot invariant passed. The only mismatch
+  was the global `building_build_count == 1`: retries legitimately retained four distinct building
+  builds for the shared Catalog Release, so that aggregate cannot prove the identity of the build
+  created by the current run. The bounded correction removes only that historical-cardinality
+  query and instead reads back the just-created build by its returned ID, failing closed unless its
+  ID, approved Snapshot, Catalog input identity, and `building` status all match.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -172,10 +180,9 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit the machine-readable counts-only U12 postcondition diagnostic to exact `main`,
-  update the protected candidate variable to that exact SHA, and rerun U12. Use the retained
-  aggregate counts to correct the specific invariant without relaxing the immutable Catalog,
-  product/inventory, Snapshot, or build contract. After fresh readiness passes, freeze the separate
+- **Next concrete action:** Commit the exact-build U12 postcondition correction to `main`, wait for its
+  fixed-image post-commit successor, update the protected candidate variable to that exact SHA, and
+  rerun U12. After fresh readiness passes, freeze the separate
   harness/manifest identity and resume
   `U8.2` with an existing named operator, fresh audited source, and server-side run identity.
   Exact orphaned cache root
@@ -197,8 +204,10 @@ U13 add-only probe do not establish overall completion.
   boundary remain proven. The protected Cloudflare credential has been replaced and run
   `33297740426` passed every authority and mutation stage through immutable Snapshot/build creation,
   then failed the aggregate postcondition assertion before readiness capture. Diagnostic run
-  `33298148206` reproduced the same boundary, but its safe summary is not returned by GitHub's APIs;
-  the same counts must be mirrored to the hosted log before a narrow correction can be justified.
+  `33298499218` proved every retained immutable seed/Snapshot invariant and identified the sole
+  mismatch as four legitimate historical `building` builds where the workflow incorrectly required
+  one global row. The current correction must pass post-commit and protected U12 execution before
+  readiness exists.
   No fresh U12 readiness artifact or server-side operator run exists, so
   formal staging acceptance has not begun. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
@@ -213,8 +222,9 @@ U13 add-only probe do not establish overall completion.
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
   closed CI tail plus both bounded acceptance corrections are integrated into exact `main`. No code,
-  cleanup, CI, runner, or credential blocker remains; the active blocker is the unclassified U12
-  immutable postcondition mismatch. Ordinary staging and production remain excluded.
+  cleanup, CI, runner, or credential blocker remains; the active blocker is verification of the
+  exact-build U12 correction and capture of fresh readiness. Ordinary staging and production remain
+  excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
 - **Implementation tail:** Retain the completed cleanup-only tranche and cloud successor, restore the
@@ -224,9 +234,11 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-30 after protected U12 diagnostic run `33298148206` passed the corrected cloud
+- **Last reviewed:** 2026-08-30 after protected U12 diagnostic run `33298499218` passed the corrected cloud
   authority, restored credential, backup/migration, deployment, seed, and immutable-input stages,
-  then failed closed on the aggregate postcondition assertion before readiness capture. The user
+  then proved the sole failure was a historical build-cardinality assertion rather than the exact
+  current build identity. The test-first correction now requires exact API read-back of that build
+  before readiness capture. The user
   superseded the local self-hosted runner, OrbStack,
   local-account, and manual assistive-technology acceptance paths with a GitHub-managed cloud-runner-only
   policy and automated keyboard/focus/semantic accessibility evidence. Earlier exact-main formal-acceptance preflight proved the historical

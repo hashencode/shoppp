@@ -77,8 +77,8 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the machine-readable counts-only U12 immutable-postcondition diagnostic, update the
-  candidate to that exact `main`, and rerun protected U12. Correct only the observed invariant;
+- **Next action:** Integrate the exact-build U12 postcondition correction, wait for fixed-image
+  post-commit validation, update the candidate to that exact `main`, and rerun protected U12;
   after fresh readiness passes, continue the ordinary Preview/U12 lifecycle and resume `FS-U8.2` through
   `awaiting_operator`, existing named
   operator approval, separate refresh/Preview, and separate hosted acceptance.
@@ -86,9 +86,12 @@ historical evidence remain unchanged inside the owning plans.
   proven. The Cloudflare credential is replaced; run `33297740426` passed authority, credential,
   D1 backup/restore, migrations, integrity, Worker deployment, seed, and immutable Snapshot/build
   creation, then failed closed on the aggregate postcondition assertion before readiness capture.
-  Diagnostic run `33298148206` reproduced the boundary, but GitHub's run/check APIs do not return
-  its UI-only step summary; the same safe counts must be mirrored to the hosted log. No readiness
-  bytes or server-side operator run exists. No fallback to the
+  Exact-candidate diagnostic run `33298499218` recorded safe counts
+  `3/1/1/12/12/0/1/13/4`: all seed, inventory, Catalog, and Snapshot invariants passed, while four
+  legitimate historical building builds disproved the workflow's global `== 1` assumption. The
+  bounded correction now reads the current build back by its returned ID and requires exact build,
+  Snapshot, Catalog, and status identity; it still needs post-commit and protected U12 proof. No
+  readiness bytes or server-side operator run exists. No fallback to the
   developer machine, OrbStack, self-managed runner, local account, or historical artifact is
   authorized. Ordinary staging and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
@@ -103,8 +106,8 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
   `33234977617`, report `9709683601`, and protected U12 OIDC proof in run `33235176429` close the
   successor and return shared-workflow ownership to `FS-U8.2`.
 - **Remaining blocker:** The Cloudflare credential is restored. The remaining FS prerequisite is
-  the unclassified immutable-postcondition mismatch reproduced by U12 run `33298148206`; a machine-readable counts-only hosted
-  diagnostic will identify it without reopening the cloud runner/OIDC migration.
+  post-commit and protected U12 proof of the exact-build correction identified by run `33298499218`;
+  the cloud runner/OIDC migration remains closed.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 

@@ -36,7 +36,7 @@ describe("Fashion staging U12 one-time seed plan", () => {
     expect(plan.seedSql).not.toContain("DELETE");
     expect(plan.seedSql).not.toContain("UPDATE");
     expect(plan.verifySql).toContain("approved_snapshot_count");
-    expect(plan.verifySql).toContain("building_build_count");
+    expect(plan.verifySql).not.toContain("building_build_count");
   });
 
   test("uses the approved snapshot path and publishes the exact protected variables", () => {

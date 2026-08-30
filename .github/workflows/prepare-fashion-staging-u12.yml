@@ -309,7 +309,18 @@ jobs:
             --data "$(jq -nc --arg catalog "$CATALOG_RELEASE_ID" '{catalogReleaseId:$catalog,manualDispatch:true}')" \
             "$API_ORIGIN/admin/storefront-experiences/snapshots/$SNAPSHOT_ID/build" \
             > artifacts/fashion-u12/build.json
-          jq --exit-status '.data.status == "building"' artifacts/fashion-u12/build.json >/dev/null
+          BUILD_ID="$(jq -er '.data.id' artifacts/fashion-u12/build.json)"
+          [[ "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]
+          curl --fail --silent --show-error --header "$AUTHORIZATION" \
+            "$API_ORIGIN/admin/storefront-experiences/builds/$BUILD_ID" \
+            > artifacts/fashion-u12/build-verification.json
+          jq --exit-status --arg build "$BUILD_ID" --arg snapshot "$SNAPSHOT_ID" \
+            --arg catalog "$CATALOG_RELEASE_ID" '
+              .data.id == $build and
+              .data.snapshotId == $snapshot and
+              .data.inputIdentity.catalogReleaseId == $catalog and
+              .data.status == "building"
+            ' artifacts/fashion-u12/build-verification.json >/dev/null
       - name: Verify immutable seed, snapshot, and build postconditions
         working-directory: apps/api
         run: |
@@ -327,16 +338,14 @@ jobs:
             multi_available_count,
             unavailable_sellable_count,
             immutable_catalog_count,
-            approved_snapshot_count,
-            building_build_count
+            approved_snapshot_count
           }]' ../../artifacts/fashion-u12/seed-verification.json | tee -a "$GITHUB_STEP_SUMMARY"
           printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
           jq --exit-status 'all(.[]?.results[]?;
             .product_count == 3 and .single_variant_count == 1 and
             .single_available_count == 1 and .multi_variant_count == 12 and
             .multi_available_count > 0 and .unavailable_sellable_count == 0 and
-            .immutable_catalog_count == 1 and .approved_snapshot_count >= 1 and
-            .building_build_count == 1)' \
+            .immutable_catalog_count == 1 and .approved_snapshot_count >= 1)' \
             ../../artifacts/fashion-u12/seed-verification.json >/dev/null
           bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
             --command "SELECT name, applied_at FROM d1_migrations ORDER BY name" \
@@ -375,6 +384,7 @@ jobs:
             artifacts/fashion-u12/readiness-verdict.json
             artifacts/fashion-u12/seed-receipt.json
             artifacts/fashion-u12/build.json
+            artifacts/fashion-u12/build-verification.json
             artifacts/fashion-u12/snapshot.json
           if-no-files-found: error
           retention-days: 7

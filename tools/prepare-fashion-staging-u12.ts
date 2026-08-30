@@ -257,8 +257,7 @@ function verificationSql(release: CanonicalCatalogRelease): string {
   (SELECT COUNT(*) FROM inventory_items i JOIN product_variants v ON v.id = i.variant_id WHERE v.product_id = ${sql(PRODUCT_IDS.multi)} AND i.on_hand_quantity + i.oversell_limit - i.reserved_quantity - i.backordered_quantity > 0) AS multi_available_count,
   (SELECT COUNT(*) FROM inventory_items i JOIN product_variants v ON v.id = i.variant_id WHERE v.product_id = ${sql(PRODUCT_IDS.unavailable)} AND i.on_hand_quantity + i.oversell_limit - i.reserved_quantity - i.backordered_quantity > 0) AS unavailable_sellable_count,
   (SELECT COUNT(*) FROM catalog_releases WHERE id = ${sql(release.releaseId)} AND status = 'deployed' AND manifest_json = ${sql(JSON.stringify(release))}) AS immutable_catalog_count,
-  (SELECT COUNT(*) FROM storefront_experience_snapshots WHERE kind = 'approved' AND source_validation_id IN (SELECT id FROM storefront_experience_validations WHERE catalog_release_id = ${sql(release.releaseId)} AND status = 'valid')) AS approved_snapshot_count,
-  (SELECT COUNT(*) FROM storefront_preview_builds WHERE catalog_release_id = ${sql(release.releaseId)} AND status = 'building') AS building_build_count;
+  (SELECT COUNT(*) FROM storefront_experience_snapshots WHERE kind = 'approved' AND source_validation_id IN (SELECT id FROM storefront_experience_validations WHERE catalog_release_id = ${sql(release.releaseId)} AND status = 'valid')) AS approved_snapshot_count;
 `;
 }
 

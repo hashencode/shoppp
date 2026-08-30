@@ -845,6 +845,13 @@ describe("governed Fashion staging preparation workflow", () => {
       "Idempotency-Key: fashion-u12-build-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT",
     );
     expect(workflow).toContain("manualDispatch:true");
+    expect(workflow).toContain('[[ "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]');
+    expect(workflow).toContain("/admin/storefront-experiences/builds/$BUILD_ID");
+    expect(workflow).toContain("artifacts/fashion-u12/build-verification.json");
+    expect(workflow).toContain(".data.id == $build");
+    expect(workflow).toContain(".data.snapshotId == $snapshot");
+    expect(workflow).toContain(".data.inputIdentity.catalogReleaseId == $catalog");
+    expect(workflow).not.toContain("building_build_count");
     expect(workflow).toContain("Fashion U12 immutable postcondition counts");
     expect(workflow).toContain('seed-verification.json | tee -a "$GITHUB_STEP_SUMMARY"');
     expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
