@@ -197,8 +197,9 @@ jobs:
       - name: Assemble exact deployed U8 terminal manifest
         env:
           API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
-          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
         run: |
+          test "${#ADMIN_SERVICE_TOKEN}" -ge 32
           REFRESH_DIGEST="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/refresh-attestation.json)"
           BUILD_ID="$(jq -er '.newBuildId' artifacts/fashion-u8/refresh-attestation.json)"
           curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
@@ -246,7 +247,7 @@ jobs:
         id: terminal-u8
         continue-on-error: true
         env:
-          FASHION_U8_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+          FASHION_U8_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
           FASHION_U8_AUTHORITY_ORIGIN: ${{ vars.PREVIEW_API_URL }}
           FASHION_U8_HANDOFF_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
           FASHION_U8_PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}

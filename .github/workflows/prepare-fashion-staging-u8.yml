@@ -153,10 +153,11 @@ jobs:
           run-id: ${{ inputs.u12_readiness_run_id }}
       - name: Register the non-secret awaiting_operator boundary
         env:
-          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          test "${#ADMIN_SERVICE_TOKEN}" -ge 32
           test "$(sha256sum artifacts/fashion-u8/u12/readiness.json | cut -d ' ' -f 1)" = "$U12_READINESS_DIGEST"
           jq --exit-status --arg commit "$U12_READINESS_COMMIT_SHA" --arg catalog "$CATALOG_RELEASE_ID" \
             '.commitSha == $commit and .seed.catalogReleaseId == $catalog and
@@ -297,9 +298,10 @@ jobs:
       - name: Read immutable server-side operator approval and create successor build
         id: refresh
         env:
-          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
         run: |
+          test "${#ADMIN_SERVICE_TOKEN}" -ge 32
           jq --exit-status --arg run "$OPERATOR_RUN_ID" --arg candidate "${{ inputs.candidate_sha }}" \
             --arg harness "${{ inputs.harness_sha }}" \
             '.schemaVersion == 2 and .status == "awaiting_operator" and .runId == $run and
