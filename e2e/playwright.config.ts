@@ -22,6 +22,7 @@ export default defineConfig({
     {
       name: "fashion-provider-purchase",
       testMatch: "fashion-store-purchase.spec.ts",
+      use: { trace: "off" },
     },
     {
       name: "release-operations",

@@ -1,7 +1,26 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type APIResponse,
+  type Page,
+} from "@playwright/test";
 import { requiredEnvironment } from "./support";
 
 const phase = process.env.FASHION_U12_PHASE;
+
+async function requireSuccessfulSettlement(response: APIResponse): Promise<void> {
+  if (response.ok()) return;
+  const payload = (await response.json().catch(() => null)) as {
+    error?: { code?: unknown };
+  } | null;
+  const providerCode = payload?.error?.code;
+  const code =
+    typeof providerCode === "string" && /^[a-z0-9_]{1,120}$/.test(providerCode)
+      ? providerCode
+      : `http_${response.status()}`;
+  throw new Error(`Fashion staging settlement failed: ${code}`);
+}
 
 async function authorizePrivatePreview(page: Page): Promise<void> {
   const authorityOrigin = requiredEnvironment("FASHION_U12_API_ORIGIN");
@@ -240,7 +259,7 @@ test("Fashion staging completes the no-interception archetype and sandbox purcha
       },
     },
   );
-  expect(settlement.ok()).toBe(true);
+  await requireSuccessfulSettlement(settlement);
   const settlementPayload = (await settlement.json()) as { data?: { orderReference?: string } };
   expect(settlementPayload.data?.orderReference).toMatch(/^[A-Z]+-[A-Z0-9]+$/);
   await page.goto(

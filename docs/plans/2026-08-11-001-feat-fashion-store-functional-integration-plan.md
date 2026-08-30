@@ -160,6 +160,20 @@ U13 add-only probe do not establish overall completion.
   created by the current run. The bounded correction removes only that historical-cardinality
   query and instead reads back the just-created build by its returned ID, failing closed unless its
   ID, approved Snapshot, Catalog input identity, and `building` status all match.
+  That correction is integrated as exact main `c7094e9d`; fixed-image post-commit run `33298809209`
+  passed and protected U12 run `33299012866` captured fresh readiness artifact `9728322442` with
+  SHA-256 `f844e690bc9c95c65c5392c6fdb6f949e19265d5b23f7c19e98fee9ba6c49390`, Snapshot
+  `snapshot-approved-f9b186526759940392b8eb39403c31eb`, and build
+  `preview-build-6759940392b8eb39403c31eb-f1bb77ee6f824f48-1`. Ordinary Preview run
+  `33299115094` then passed authority, readiness, build, deployment, and U13 but failed the
+  no-interception journey twice when the protected settlement endpoint returned sanitized HTTP
+  `500`; unconditional cleanup restored inventory to `100/0/0/0`. Its retained Playwright trace
+  also proved that the Fashion project could serialize bearer headers, so the affected acceptance
+  credential is treated as exposed. The current test-first correction disables trace for that
+  secret-bearing project, rotates and synchronizes the Worker/GitHub acceptance credential only
+  inside protected U12 preparation, and returns only a bounded Stripe error code from the protected
+  settlement boundary so the next cloud run can distinguish provider rejection from reconciliation
+  failure without retaining provider details.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -180,9 +194,12 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit the exact-build U12 postcondition correction to `main`, wait for its
-  fixed-image post-commit successor, update the protected candidate variable to that exact SHA, and
-  rerun U12. After fresh readiness passes, freeze the separate
+- **Next concrete action:** Integrate the trace/credential/settlement-diagnostic correction to
+  `main`, wait for fixed-image post-commit validation, update the protected candidate to that exact
+  SHA, and rerun protected U12 so the exposed acceptance credential is replaced in both protected
+  stores. Delete the exact compromised Preview artifact only after rotation succeeds, then rerun
+  the ordinary Preview/U12 lifecycle and use its bounded provider code to complete any remaining
+  settlement correction. After the complete U12 verdict passes, freeze the separate
   harness/manifest identity and resume
   `U8.2` with an existing named operator, fresh audited source, and server-side run identity.
   Exact orphaned cache root
@@ -192,24 +209,24 @@ U13 add-only probe do not establish overall completion.
   runner/account content.
 - **Cross-plan execution order:** `FS-U8.2` cleanup only -> CI-U8.3 complete -> CI-U11.1 complete ->
   CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2/U3` complete with corrected exact-main
-  post-commit and protected OIDC proof -> restore the protected Cloudflare credential -> new U8
-  harness freeze -> fresh U12/Preview baseline ->
+  post-commit and protected OIDC proof -> restore the protected Cloudflare credential -> exact-build
+  U12 readiness -> rotate the exposed acceptance credential and close the Preview settlement
+  failure -> fresh U12/Preview baseline -> new U8 harness freeze ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** Cloud successor post-commit run `33234977617` and the protected immutable-ID OIDC
-  boundary remain proven. The protected Cloudflare credential has been replaced and run
-  `33297740426` passed every authority and mutation stage through immutable Snapshot/build creation,
-  then failed the aggregate postcondition assertion before readiness capture. Diagnostic run
-  `33298499218` proved every retained immutable seed/Snapshot invariant and identified the sole
-  mismatch as four legitimate historical `building` builds where the workflow incorrectly required
-  one global row. The current correction must pass post-commit and protected U12 execution before
-  readiness exists.
-  No fresh U12 readiness artifact or server-side operator run exists, so
-  formal staging acceptance has not begun. The authenticated
+- **Blocker:** Cloud successor post-commit and protected immutable-ID OIDC authority remain proven.
+  Exact-build correction `c7094e9d`, post-commit run `33298809209`, and protected readiness run
+  `33299012866` passed. Preview run `33299115094` failed only after deployment and U13 when the
+  protected Stripe settlement boundary returned HTTP `500`; cleanup restored the inventory
+  baseline. That failed run also retained a bearer-capable Playwright trace, so its acceptance token
+  must be rotated before another journey and artifact `9728471189` must be deleted after successful
+  rotation. The current test-first correction still needs exact-main post-commit and protected U12
+  proof; its rerun will create new readiness identities. No server-side U8 operator run exists, so
+  formal U8 staging acceptance has not begun. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
@@ -221,10 +238,10 @@ U13 add-only probe do not establish overall completion.
   removed the dedicated account/home, and the run-scoped operator credential file is deleted. The
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
-  closed CI tail plus both bounded acceptance corrections are integrated into exact `main`. No code,
-  cleanup, CI, runner, or credential blocker remains; the active blocker is verification of the
-  exact-build U12 correction and capture of fresh readiness. Ordinary staging and production remain
-  excluded.
+  closed CI tail plus both bounded lineage corrections are integrated into exact `main`. The active
+  blocker is the candidate-scoped U12 settlement/security correction and complete Preview verdict;
+  it is not a runner-capability failure and does not authorize runner escalation. Ordinary staging
+  and production remain excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
 - **Implementation tail:** Retain the completed cleanup-only tranche and cloud successor, restore the
@@ -234,11 +251,13 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-30 after protected U12 diagnostic run `33298499218` passed the corrected cloud
-  authority, restored credential, backup/migration, deployment, seed, and immutable-input stages,
-  then proved the sole failure was a historical build-cardinality assertion rather than the exact
-  current build identity. The test-first correction now requires exact API read-back of that build
-  before readiness capture. The user
+- **Last reviewed:** 2026-08-30 after exact-build correction `c7094e9d`, post-commit run
+  `33298809209`, and protected readiness run `33299012866` passed, then Preview run `33299115094`
+  failed the protected settlement endpoint with HTTP `500` after deployment/U13 and restored the
+  inventory baseline through unconditional cleanup. The failed Playwright trace retained a bearer
+  header, so the current red/green correction turns trace off for the Fashion protected project,
+  rotates the acceptance credential only in protected U12 preparation, and exposes only a bounded
+  provider code for the next cloud diagnosis. The user
   superseded the local self-hosted runner, OrbStack,
   local-account, and manual assistive-technology acceptance paths with a GitHub-managed cloud-runner-only
   policy and automated keyboard/focus/semantic accessibility evidence. Earlier exact-main formal-acceptance preflight proved the historical

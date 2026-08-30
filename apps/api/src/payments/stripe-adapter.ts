@@ -53,6 +53,11 @@ const stripeTestPaymentIntentSchema = z
     status: z.literal("succeeded"),
   })
   .passthrough();
+const stripeErrorSchema = z
+  .object({
+    error: z.object({ code: z.string().regex(/^[a-z0-9_]{1,80}$/) }).passthrough(),
+  })
+  .passthrough();
 
 export interface StripeTestSettlementInput {
   readonly amountTotal: number;
@@ -238,8 +243,15 @@ export class StripePaymentProvider implements PaymentProvider {
       );
     }
     if (!response.ok) {
+      let code = "stripe_api_error";
+      try {
+        const parsed = stripeErrorSchema.safeParse(await response.json());
+        if (parsed.success) code = `stripe_api_${parsed.data.error.code}`;
+      } catch {
+        // Provider response details are intentionally discarded.
+      }
       throw new PaymentProviderError(
-        "stripe_api_error",
+        code,
         "The payment provider rejected the request.",
         response.status === 429 || response.status >= 500,
       );

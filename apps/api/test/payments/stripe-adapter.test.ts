@@ -248,6 +248,35 @@ describe("Stripe hosted Checkout adapter", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  test("classifies Stripe API rejections without retaining provider response details", async () => {
+    const provider = new StripePaymentProvider({
+      fetcher: vi.fn(async () =>
+        Response.json(
+          {
+            error: {
+              code: "payment_method_not_available",
+              message: "provider-only sensitive detail",
+              type: "invalid_request_error",
+            },
+          },
+          { status: 400 },
+        ),
+      ) as typeof fetch,
+      secretKey: STRIPE_SECRET_KEY,
+      webhookSecret: WEBHOOK_SECRET,
+    });
+
+    const rejection = provider.retrieveSession("cs_test_checkout_001").catch((error) => error);
+    await expect(rejection).resolves.toMatchObject({
+      code: "stripe_api_payment_method_not_available",
+      message: "The payment provider rejected the request.",
+      retryable: false,
+    });
+    await expect(rejection).resolves.not.toMatchObject({
+      message: expect.stringContaining("provider-only sensitive detail"),
+    });
+  });
+
   test("creates and retrieves an idempotent provider refund with exact facts", async () => {
     const requests: string[] = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

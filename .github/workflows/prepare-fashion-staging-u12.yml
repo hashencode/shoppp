@@ -147,6 +147,17 @@ jobs:
                 "checkout.session.expired"
               ]))
             )' artifacts/fashion-u12/stripe-webhooks.json >/dev/null
+      - name: Rotate and synchronize the Fashion acceptance credential
+        working-directory: apps/api
+        run: |
+          ROTATED_ACCEPTANCE_TOKEN="$(openssl rand -hex 48)"
+          [[ "$ROTATED_ACCEPTANCE_TOKEN" =~ ^[a-f0-9]{96}$ ]]
+          echo "::add-mask::$ROTATED_ACCEPTANCE_TOKEN"
+          printf '%s' "$ROTATED_ACCEPTANCE_TOKEN" | \
+            bunx wrangler secret put FASHION_ACCEPTANCE_TOKEN --env fashion-staging
+          printf '%s' "$ROTATED_ACCEPTANCE_TOKEN" | \
+            gh secret set FASHION_U12_ACCEPTANCE_TOKEN --env fashion-staging
+          unset ROTATED_ACCEPTANCE_TOKEN
       - name: Rotate and synchronize the Fashion API Stripe sandbox credentials
         working-directory: apps/api
         run: |

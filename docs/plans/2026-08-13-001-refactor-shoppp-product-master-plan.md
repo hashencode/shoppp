@@ -77,21 +77,22 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the exact-build U12 postcondition correction, wait for fixed-image
-  post-commit validation, update the candidate to that exact `main`, and rerun protected U12;
-  after fresh readiness passes, continue the ordinary Preview/U12 lifecycle and resume `FS-U8.2` through
+- **Next action:** Integrate the trace/credential/settlement-diagnostic correction, wait for
+  fixed-image post-commit validation, update the candidate to that exact `main`, and rerun protected
+  U12 to rotate the exposed acceptance credential and capture new readiness. Delete the exact
+  compromised Preview artifact only after rotation succeeds, then rerun the ordinary Preview/U12
+  lifecycle and resume `FS-U8.2` through
   `awaiting_operator`, existing named
   operator approval, separate refresh/Preview, and separate hosted acceptance.
-- **Blocker:** Successor post-commit run `33234977617` and protected U12 OIDC authority remain
-  proven. The Cloudflare credential is replaced; run `33297740426` passed authority, credential,
-  D1 backup/restore, migrations, integrity, Worker deployment, seed, and immutable Snapshot/build
-  creation, then failed closed on the aggregate postcondition assertion before readiness capture.
-  Exact-candidate diagnostic run `33298499218` recorded safe counts
-  `3/1/1/12/12/0/1/13/4`: all seed, inventory, Catalog, and Snapshot invariants passed, while four
-  legitimate historical building builds disproved the workflow's global `== 1` assumption. The
-  bounded correction now reads the current build back by its returned ID and requires exact build,
-  Snapshot, Catalog, and status identity; it still needs post-commit and protected U12 proof. No
-  readiness bytes or server-side operator run exists. No fallback to the
+- **Blocker:** Successor post-commit and protected U12 OIDC authority remain proven. Exact-build
+  correction `c7094e9d`, post-commit run `33298809209`, and protected readiness run `33299012866`
+  passed. Preview run `33299115094` passed authority, readiness, deployment, and U13 but the
+  protected Stripe settlement boundary returned HTTP `500`; cleanup restored inventory to
+  `100/0/0/0`. Its retained Playwright trace contained a bearer-capable header, so the acceptance
+  token must be rotated and artifact `9728471189` deleted after successful rotation. The current
+  red/green correction disables trace for that project, synchronizes rotation only in protected U12
+  preparation, and emits a bounded provider code; it still needs exact-main post-commit, fresh
+  readiness, and a complete Preview verdict. No server-side U8 operator run exists. No fallback to the
   developer machine, OrbStack, self-managed runner, local account, or historical artifact is
   authorized. Ordinary staging and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
@@ -105,9 +106,10 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
 - **Completion:** `CI-CLOUD-U1/U2/U3` are complete. Corrective exact-main post-commit run
   `33234977617`, report `9709683601`, and protected U12 OIDC proof in run `33235176429` close the
   successor and return shared-workflow ownership to `FS-U8.2`.
-- **Remaining blocker:** The Cloudflare credential is restored. The remaining FS prerequisite is
-  post-commit and protected U12 proof of the exact-build correction identified by run `33298499218`;
-  the cloud runner/OIDC migration remains closed.
+- **Remaining blocker:** The Cloudflare credential and exact-build readiness are restored. The
+  remaining FS prerequisite is acceptance-token rotation plus closure of the candidate-scoped
+  Preview settlement/security failure from run `33299115094`; the cloud runner/OIDC migration
+  remains closed.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 

@@ -24,6 +24,7 @@ const fashionPurchaseJourneyPath = resolve(
   import.meta.dir,
   "../e2e/fashion-store-purchase.spec.ts",
 );
+const stagingPlaywrightPath = resolve(import.meta.dir, "../e2e/playwright.config.ts");
 const paymentRecoveryJourneyPath = resolve(import.meta.dir, "../e2e/payment-recovery.spec.ts");
 const publicationJourneyPath = resolve(import.meta.dir, "../e2e/publication.spec.ts");
 const storefrontPlaywrightPath = resolve(
@@ -825,6 +826,12 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("wrangler secret put STRIPE_SECRET_KEY --env fashion-staging");
     expect(workflow).toContain("wrangler secret put STRIPE_WEBHOOK_SECRET --env fashion-staging");
     expect(workflow).toContain("https://api.stripe.com/v1/webhook_endpoints/$webhook_id");
+    expect(workflow).toContain("Rotate and synchronize the Fashion acceptance credential");
+    expect(workflow).toContain(
+      "wrangler secret put FASHION_ACCEPTANCE_TOKEN --env fashion-staging",
+    );
+    expect(workflow).toContain("gh secret set FASHION_U12_ACCEPTANCE_TOKEN --env fashion-staging");
+    expect(workflow).not.toContain("gh secret set FASHION_U12_ACCEPTANCE_TOKEN --body");
     expect(workflow).toContain("wrangler secret list --env fashion-staging --format json");
     expect(workflow).toContain("wrangler secret list --config wrangler.preview.jsonc");
     expect(workflow).toContain("--env fashion-staging --format json");
@@ -965,6 +972,21 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(acceptance).not.toContain("remote-proof-not-run");
     expect(acceptance).not.toContain("pull_request:");
     expect(acceptance).not.toMatch(/API_E2E_BASE_URL|\/catalog\/products\/\$\{?\w*slug/i);
+  });
+
+  test("never retains bearer-capable Fashion staging traffic in Playwright traces", async () => {
+    const [config, journey] = await Promise.all([
+      readFile(stagingPlaywrightPath, "utf8"),
+      readFile(fashionPurchaseJourneyPath, "utf8"),
+    ]);
+    const fashionProject = config.slice(
+      config.indexOf('name: "fashion-provider-purchase"'),
+      config.indexOf('name: "release-operations"'),
+    );
+
+    expect(fashionProject).toContain('trace: "off"');
+    expect(journey).toContain("Fashion staging settlement failed:");
+    expect(journey).not.toContain("settlement.ok()).toBe(true)");
   });
 });
 

@@ -10,6 +10,7 @@ import {
   startFashionStagingAcceptance,
 } from "../../src/testing/fashion-staging";
 import { createApp } from "../../src/http/app";
+import { PaymentProviderError } from "../../src/payments/port";
 
 const startedAt = new Date("2026-08-17T10:00:00.000Z");
 
@@ -216,16 +217,25 @@ describe.sequential("Fashion staging acceptance lifecycle", () => {
       attempt,
       settlementStartedAt,
     );
-    const settleTestSession = vi.fn(async () => ({
-      amountTotal: 12900,
-      attemptId: attempt,
-      createdAt: at,
-      currency: "USD",
-      expiresAt: "2026-08-18T10:00:00.000Z",
-      id: providerSession,
-      paymentId: "pi_fashion_settle_001",
-      paymentState: "approved" as const,
-    }));
+    const settleTestSession = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new PaymentProviderError(
+          "stripe_api_payment_method_not_available",
+          "The payment provider rejected the request.",
+          false,
+        ),
+      )
+      .mockResolvedValue({
+        amountTotal: 12900,
+        attemptId: attempt,
+        createdAt: at,
+        currency: "USD",
+        expiresAt: "2026-08-18T10:00:00.000Z",
+        id: providerSession,
+        paymentId: "pi_fashion_settle_001",
+        paymentState: "approved" as const,
+      });
     const app = createApp({
       fashionTestSettlementProvider: { settleTestSession },
     });
@@ -246,8 +256,30 @@ describe.sequential("Fashion staging acceptance lifecycle", () => {
       },
     );
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(422);
     expect(await response.json()).toMatchObject({
+      error: {
+        code: "stripe_api_payment_method_not_available",
+        message: "The payment provider rejected the request.",
+      },
+    });
+    const settled = await app.fetch(
+      new Request(
+        `https://api.example.test/internal/testing/fashion-staging/runs/${value.run}/settle`,
+        {
+          body: JSON.stringify({ checkoutAttemptId: attempt, owner: value.owner }),
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          method: "POST",
+        },
+      ),
+      {
+        ...env,
+        FASHION_ACCEPTANCE_TOKEN: token,
+        RESOURCE_NAMESPACE: "shoppp-fashion-staging",
+      },
+    );
+    expect(settled.status).toBe(200);
+    expect(await settled.json()).toMatchObject({
       data: { orderReference: expect.stringMatching(/^ORD-/), replayed: false },
     });
     const replay = await app.fetch(
@@ -275,7 +307,7 @@ describe.sequential("Fashion staging acceptance lifecycle", () => {
       currency: "USD",
       sessionId: providerSession,
     });
-    expect(settleTestSession).toHaveBeenCalledTimes(1);
+    expect(settleTestSession).toHaveBeenCalledTimes(2);
     expect(
       await env.DB.prepare(
         "SELECT payment_status, order_status, provider_payment_id FROM orders WHERE checkout_attempt_id = ?",

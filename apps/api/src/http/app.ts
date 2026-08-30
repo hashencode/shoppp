@@ -501,15 +501,21 @@ export function createApp(options: CreateAppOptions = {}) {
   app.post("/internal/testing/fashion-staging/runs/:id/settle", async (context) => {
     requireFashionAcceptanceCredential(context);
     const input = await parseJson(context, fashionAcceptanceSettlementSchema);
-    const result = await settleFashionStagingTestPayment(
-      context.env.DB,
-      context.req.param("id"),
-      input.owner,
-      input.checkoutAttemptId,
-      options.fashionTestSettlementProvider ?? createStripePaymentProvider(context.env),
-    );
-    context.header("Cache-Control", "private, no-store");
-    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+    try {
+      const result = await settleFashionStagingTestPayment(
+        context.env.DB,
+        context.req.param("id"),
+        input.owner,
+        input.checkoutAttemptId,
+        options.fashionTestSettlementProvider ?? createStripePaymentProvider(context.env),
+      );
+      context.header("Cache-Control", "private, no-store");
+      return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+    } catch (error) {
+      if (!(error instanceof PaymentProviderError)) throw error;
+      const apiError = new ApiError(error.retryable ? 503 : 422, error.code, error.message);
+      return context.json(errorEnvelope(apiError, context.get("requestId")), apiError.status);
+    }
   });
   app.post("/internal/testing/fashion-staging/runs/:id/failure", async (context) => {
     requireFashionAcceptanceCredential(context);
