@@ -919,6 +919,12 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).not.toContain(
       "U12_ARTIFACT_DIGEST=\"$(jq -er '.data.artifactDigest' artifacts/fashion-u8/u12/build.json)\"",
     );
+    expect(preparation).toContain(
+      "'{candidateSha,catalogReleaseId,contractTestDigest,expiresAt,harnessManifestDigest,harnessSha,",
+    );
+    expect(preparation).not.toContain(
+      "'{candidateSha,catalogReleaseId,contractTestDigest,environment,expiresAt,harnessManifestDigest,harnessSha,",
+    );
     expect(acceptance).toContain("group: fashion-staging-preview");
     expect(acceptance).toContain(
       "FASHION_U8_ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}",

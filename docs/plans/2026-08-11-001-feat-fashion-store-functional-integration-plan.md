@@ -204,6 +204,14 @@ U13 add-only probe do not establish overall completion.
   maps every U8 preparation, refresh, and acceptance Admin-service input to the existing protected
   `FASHION_U12_ADMIN_SERVICE_TOKEN`; it creates no U8 identity or credential and adds an explicit
   fail-fast length check before protected use.
+  That correction is integrated as exact main `cbfe4f54`; fixed-image post-commit run
+  `33301555441` passed. Preparation run `33301766997` then proved exact deployed-build readback and
+  created a complete local run manifest, but the registration POST returned `422` and the exact run
+  GET returned `404`. Artifact `9729171238` proves no server-side operator run exists and exposes
+  the contract mismatch: the strict registration schema rejects the extra `environment` property
+  projected from the broader local run manifest. The bounded correction removes only that property
+  from `operator-run-request.json`; the run manifest retains the protected environment identity and
+  the server continues to set `fashion-staging` rather than trusting caller input.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -224,7 +232,7 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the existing protected Admin-service credential mapping as a
+- **Next concrete action:** Integrate the strict registration-request projection correction as a
   new harness freeze, generate its canonical U8 harness manifest against unchanged candidate
   `0f5d1fe6`, bind the exact harness SHA and manifest digest at repository and protected Environment
   scope, and dispatch `prepare-fashion-staging-u8.yml` with existing source draft
@@ -242,7 +250,8 @@ U13 add-only probe do not establish overall completion.
   post-commit and protected OIDC proof -> restore the protected Cloudflare credential -> exact-build
   U12 readiness -> rotate the exposed acceptance credential and close the Preview settlement
   failure -> fresh U12/Preview baseline complete -> initial U8 harness freeze -> deployed-build
-  readback correction -> existing protected Admin-service credential mapping and harness refreeze ->
+  readback correction -> existing protected Admin-service credential mapping -> strict registration
+  request correction and harness refreeze ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
@@ -253,10 +262,10 @@ U13 add-only probe do not establish overall completion.
   fresh U12 readiness run `33300115340`, and complete Preview/U12 run `33300205798` are proven.
   The exposed token is invalidated and the compromised artifact is deleted. No U12, credential,
   cleanup, CI, or runner blocker remains. Preparation run `33300954731` attempt 2 exposed the
-  readiness/build contract mismatch, and run `33301434967` proved that correction reached the exact
-  server readback but exposed a nonexistent U8-specific secret binding. Neither run created a
-  server-side U8 operator run. The next gated boundary is the bounded reuse of the existing
-  protected U12 Admin-service identity, exact harness refreeze, and protected preparation to
+  readiness/build contract mismatch, run `33301434967` exposed the nonexistent U8-specific secret
+  binding, and run `33301766997` proved both corrections before the strict server schema rejected
+  an extra request property. None created a server-side U8 operator run. The next gated boundary is
+  the bounded request projection correction, exact harness refreeze, and protected preparation to
   `awaiting_operator`; creating a new U8 account or credential is forbidden. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that

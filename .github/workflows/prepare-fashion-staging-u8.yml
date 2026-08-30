@@ -204,7 +204,7 @@ jobs:
             > artifacts/fashion-u8/run-manifest.json
           RUN_MANIFEST_DIGEST="$(sha256sum artifacts/fashion-u8/run-manifest.json | cut -d ' ' -f 1)"
           jq --arg runManifestDigest "$RUN_MANIFEST_DIGEST" --arg workflowRunAttempt "$GITHUB_RUN_ATTEMPT" \
-            '{candidateSha,catalogReleaseId,contractTestDigest,environment,expiresAt,harnessManifestDigest,harnessSha,
+            '{candidateSha,catalogReleaseId,contractTestDigest,expiresAt,harnessManifestDigest,harnessSha,
               repository,runId,sourceDraftId,u12ReadinessDigest,u12SnapshotId,workflowRunId,
               workflowRunAttempt:($workflowRunAttempt|tonumber),
               runManifestDigest:$runManifestDigest}' artifacts/fashion-u8/run-manifest.json \
