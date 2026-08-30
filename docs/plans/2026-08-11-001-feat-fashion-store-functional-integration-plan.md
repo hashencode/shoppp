@@ -174,6 +174,18 @@ U13 add-only probe do not establish overall completion.
   inside protected U12 preparation, and returns only a bounded Stripe error code from the protected
   settlement boundary so the next cloud run can distinguish provider rejection from reconciliation
   failure without retaining provider details.
+  That correction is integrated as exact main `0f5d1fe6`; fixed-image post-commit run
+  `33299911627` passed. Protected U12 run `33300115340` then synchronized a newly generated
+  acceptance credential into the Fashion Worker and GitHub Environment, completed all preparation
+  stages, and captured readiness artifact `9728666247` with SHA-256
+  `be8043833631c4cf2d8b632385ced475a5d6d5d7b46b160a7bd19e31c9d9122f`, Snapshot
+  `snapshot-approved-d29dcefec16beea93ff713dea946f20a`, and build
+  `preview-build-c16beea93ff713dea946f20a-f1bb77ee6f824f48-1`. After the rotation succeeded,
+  compromised artifact `9728471189` and its local temporary copy were deleted. Preview run
+  `33300205798` passed exact authority, deployment, U13, the real no-interception Stripe settlement,
+  paid-order retention, inventory restoration to `100/0/0/0`, fresh-session addability, cleanup,
+  and the complete U12 verdict. Its retained artifact `9728806594` contains no trace/zip and a
+  focused scan found no bearer header.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -194,14 +206,13 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the trace/credential/settlement-diagnostic correction to
-  `main`, wait for fixed-image post-commit validation, update the protected candidate to that exact
-  SHA, and rerun protected U12 so the exposed acceptance credential is replaced in both protected
-  stores. Delete the exact compromised Preview artifact only after rotation succeeds, then rerun
-  the ordinary Preview/U12 lifecycle and use its bounded provider code to complete any remaining
-  settlement correction. After the complete U12 verdict passes, freeze the separate
-  harness/manifest identity and resume
-  `U8.2` with an existing named operator, fresh audited source, and server-side run identity.
+- **Next concrete action:** Integrate this docs-only checkpoint as the separate harness freeze,
+  generate its canonical U8 harness manifest against candidate `0f5d1fe6`, bind the exact harness
+  SHA and manifest digest in the protected Environment, and dispatch `prepare-fashion-staging-u8.yml`
+  with existing source draft `draft-fashion-u8-u8-20260825a-retry24-source`, Catalog Release
+  `fashion-staging-u12-release-2026-08-18`, and readiness run `33300115340`. Preparation must write
+  `awaiting_operator` and exit; only the existing named operator may then complete the run-bound
+  Admin path.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -211,22 +222,19 @@ U13 add-only probe do not establish overall completion.
   CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2/U3` complete with corrected exact-main
   post-commit and protected OIDC proof -> restore the protected Cloudflare credential -> exact-build
   U12 readiness -> rotate the exposed acceptance credential and close the Preview settlement
-  failure -> fresh U12/Preview baseline -> new U8 harness freeze ->
+  failure -> fresh U12/Preview baseline complete -> new U8 harness freeze ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** Cloud successor post-commit and protected immutable-ID OIDC authority remain proven.
-  Exact-build correction `c7094e9d`, post-commit run `33298809209`, and protected readiness run
-  `33299012866` passed. Preview run `33299115094` failed only after deployment and U13 when the
-  protected Stripe settlement boundary returned HTTP `500`; cleanup restored the inventory
-  baseline. That failed run also retained a bearer-capable Playwright trace, so its acceptance token
-  must be rotated before another journey and artifact `9728471189` must be deleted after successful
-  rotation. The current test-first correction still needs exact-main post-commit and protected U12
-  proof; its rerun will create new readiness identities. No server-side U8 operator run exists, so
-  formal U8 staging acceptance has not begun. The authenticated
+- **Blocker:** Cloud successor, protected immutable-ID OIDC authority, acceptance-token rotation,
+  fresh U12 readiness run `33300115340`, and complete Preview/U12 run `33300205798` are proven.
+  The exposed token is invalidated and the compromised artifact is deleted. No U12, credential,
+  cleanup, CI, or runner blocker remains. No server-side U8 operator run exists, so formal U8
+  staging acceptance has not begun; the next gated boundary is exact harness freeze plus protected
+  preparation to `awaiting_operator`. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
@@ -238,10 +246,9 @@ U13 add-only probe do not establish overall completion.
   removed the dedicated account/home, and the run-scoped operator credential file is deleted. The
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
-  closed CI tail plus both bounded lineage corrections are integrated into exact `main`. The active
-  blocker is the candidate-scoped U12 settlement/security correction and complete Preview verdict;
-  it is not a runner-capability failure and does not authorize runner escalation. Ordinary staging
-  and production remain excluded.
+  closed CI tail and candidate-scoped U12 corrections are integrated into exact `main`. Ordinary
+  staging and production remain excluded, and no application or acceptance failure authorizes
+  runner escalation.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
 - **Implementation tail:** Retain the completed cleanup-only tranche and cloud successor, restore the
@@ -251,13 +258,12 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-30 after exact-build correction `c7094e9d`, post-commit run
-  `33298809209`, and protected readiness run `33299012866` passed, then Preview run `33299115094`
-  failed the protected settlement endpoint with HTTP `500` after deployment/U13 and restored the
-  inventory baseline through unconditional cleanup. The failed Playwright trace retained a bearer
-  header, so the current red/green correction turns trace off for the Fashion protected project,
-  rotates the acceptance credential only in protected U12 preparation, and exposes only a bounded
-  provider code for the next cloud diagnosis. The user
+- **Last reviewed:** 2026-08-30 after exact main `0f5d1fe6` passed fixed-image post-commit run
+  `33299911627`; protected U12 run `33300115340` rotated the exposed acceptance credential and
+  captured fresh readiness; the compromised artifact was deleted; and Preview run `33300205798`
+  passed the real Stripe journey, retained one paid-order reference, restored both lifecycle
+  baselines to `100/0/0/0`, proved fresh-session addability, and enforced the complete U12 verdict.
+  Its replacement artifact contains no Playwright trace/zip or detected bearer header. The user
   superseded the local self-hosted runner, OrbStack,
   local-account, and manual assistive-technology acceptance paths with a GitHub-managed cloud-runner-only
   policy and automated keyboard/focus/semantic accessibility evidence. Earlier exact-main formal-acceptance preflight proved the historical

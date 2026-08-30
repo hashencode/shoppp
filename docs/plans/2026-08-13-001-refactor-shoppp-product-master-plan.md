@@ -77,22 +77,18 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the trace/credential/settlement-diagnostic correction, wait for
-  fixed-image post-commit validation, update the candidate to that exact `main`, and rerun protected
-  U12 to rotate the exposed acceptance credential and capture new readiness. Delete the exact
-  compromised Preview artifact only after rotation succeeds, then rerun the ordinary Preview/U12
-  lifecycle and resume `FS-U8.2` through
-  `awaiting_operator`, existing named
-  operator approval, separate refresh/Preview, and separate hosted acceptance.
-- **Blocker:** Successor post-commit and protected U12 OIDC authority remain proven. Exact-build
-  correction `c7094e9d`, post-commit run `33298809209`, and protected readiness run `33299012866`
-  passed. Preview run `33299115094` passed authority, readiness, deployment, and U13 but the
-  protected Stripe settlement boundary returned HTTP `500`; cleanup restored inventory to
-  `100/0/0/0`. Its retained Playwright trace contained a bearer-capable header, so the acceptance
-  token must be rotated and artifact `9728471189` deleted after successful rotation. The current
-  red/green correction disables trace for that project, synchronizes rotation only in protected U12
-  preparation, and emits a bounded provider code; it still needs exact-main post-commit, fresh
-  readiness, and a complete Preview verdict. No server-side U8 operator run exists. No fallback to the
+- **Next action:** Integrate this docs-only checkpoint as the separate harness freeze, generate and
+  bind its canonical manifest against candidate `0f5d1fe6`, then dispatch protected U8 preparation
+  with the existing retry24 source draft and U12 readiness run `33300115340`. Preparation must exit
+  at `awaiting_operator`; resume `FS-U8.2` only through existing named operator approval, separate
+  refresh/Preview, and separate hosted acceptance.
+- **Blocker:** Successor post-commit and protected U12 OIDC authority remain proven. Exact main
+  `0f5d1fe6` passed post-commit run `33299911627`; protected U12 run `33300115340` synchronized the
+  replacement acceptance credential and captured readiness artifact `9728666247`; Preview/U12 run
+  `33300205798` passed the real Stripe journey, cleanup, fresh-session postcondition, and complete
+  verdict. Compromised artifact `9728471189` is deleted, and replacement artifact `9728806594`
+  retains no trace/zip or detected bearer header. No server-side U8 operator run exists; the next
+  gated boundary is the independent harness freeze and protected preparation. No fallback to the
   developer machine, OrbStack, self-managed runner, local account, or historical artifact is
   authorized. Ordinary staging and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
@@ -106,10 +102,10 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
 - **Completion:** `CI-CLOUD-U1/U2/U3` are complete. Corrective exact-main post-commit run
   `33234977617`, report `9709683601`, and protected U12 OIDC proof in run `33235176429` close the
   successor and return shared-workflow ownership to `FS-U8.2`.
-- **Remaining blocker:** The Cloudflare credential and exact-build readiness are restored. The
-  remaining FS prerequisite is acceptance-token rotation plus closure of the candidate-scoped
-  Preview settlement/security failure from run `33299115094`; the cloud runner/OIDC migration
-  remains closed.
+- **Remaining blocker:** Cloud runner/OIDC, Cloudflare credential, acceptance-token rotation,
+  exact-build readiness, and the candidate-scoped Preview/U12 baseline are closed. The remaining FS
+  prerequisite is the independent harness freeze and protected U8 preparation to
+  `awaiting_operator`.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 
