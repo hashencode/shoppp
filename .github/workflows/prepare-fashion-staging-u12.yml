@@ -317,6 +317,20 @@ jobs:
           bunx wrangler d1 execute shoppp-fashion-staging --env fashion-staging --remote --json \
             --command "$VERIFY_SQL" \
             > ../../artifacts/fashion-u12/seed-verification.json
+          printf '### Fashion U12 immutable postcondition counts\n\n```json\n' \
+            >> "$GITHUB_STEP_SUMMARY"
+          jq --compact-output '[.[]?.results[]? | {
+            product_count,
+            single_variant_count,
+            single_available_count,
+            multi_variant_count,
+            multi_available_count,
+            unavailable_sellable_count,
+            immutable_catalog_count,
+            approved_snapshot_count,
+            building_build_count
+          }]' ../../artifacts/fashion-u12/seed-verification.json >> "$GITHUB_STEP_SUMMARY"
+          printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
           jq --exit-status 'all(.[]?.results[]?;
             .product_count == 3 and .single_variant_count == 1 and
             .single_available_count == 1 and .multi_variant_count == 12 and

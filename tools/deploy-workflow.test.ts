@@ -845,6 +845,8 @@ describe("governed Fashion staging preparation workflow", () => {
       "Idempotency-Key: fashion-u12-build-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT",
     );
     expect(workflow).toContain("manualDispatch:true");
+    expect(workflow).toContain("Fashion U12 immutable postcondition counts");
+    expect(workflow).toContain('seed-verification.json >> "$GITHUB_STEP_SUMMARY"');
     expect(workflow).toContain("bun tools/verify-fashion-staging-readiness.ts");
   });
 });
