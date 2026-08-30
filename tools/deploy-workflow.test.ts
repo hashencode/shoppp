@@ -909,6 +909,13 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(acceptance).toContain("operator-run-approved.json");
     expect(preparation).toContain("retention-days: 30");
     expect(preparation).not.toContain("group: fashion-staging-preview");
+    expect(preparation).toContain("FASHION_U8_ADMIN_SERVICE_TOKEN");
+    expect(preparation).toContain("/admin/storefront-experiences/builds/$U12_BUILD_ID");
+    expect(preparation).toContain("artifacts/fashion-u8/u12-deployed-build.json");
+    expect(preparation).toContain('.data.status == "deployed"');
+    expect(preparation).not.toContain(
+      "U12_ARTIFACT_DIGEST=\"$(jq -er '.data.artifactDigest' artifacts/fashion-u8/u12/build.json)\"",
+    );
     expect(acceptance).toContain("group: fashion-staging-preview");
     expect(acceptance).not.toContain("workflow run preview-storefront.yml");
     expect(acceptance).not.toContain("actions: write");

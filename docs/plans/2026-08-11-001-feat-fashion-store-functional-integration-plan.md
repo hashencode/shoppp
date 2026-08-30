@@ -186,6 +186,16 @@ U13 add-only probe do not establish overall completion.
   paid-order retention, inventory restoration to `100/0/0/0`, fresh-session addability, cleanup,
   and the complete U12 verdict. Its retained artifact `9728806594` contains no trace/zip and a
   focused scan found no bearer header.
+  Independent harness checkpoint `7f157e81` then passed fixed-image post-commit run `33300719966`.
+  U8 preparation run `33300954731` attempt 1 failed credential-free because the repository-level
+  harness manifest variables still named the prior freeze; correcting both repository and protected
+  Environment bindings allowed attempt 2 to pass authority, OIDC, provenance, and readiness
+  download. Attempt 2 stopped before server-side run creation because preparation read
+  `artifactDigest` from the intentionally pre-deployment U12 `building` response. Artifact
+  `9728927828` contains only the harness manifest, proving no operator run or human boundary was
+  created. The bounded harness correction reads the exact readiness `buildId` back through the
+  protected Admin service after Preview deployment and requires exact build, Snapshot, Catalog,
+  `deployed` status, digest, and content-addressed prefix before registering `awaiting_operator`.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -206,10 +216,11 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate this docs-only checkpoint as the separate harness freeze,
-  generate its canonical U8 harness manifest against candidate `0f5d1fe6`, bind the exact harness
-  SHA and manifest digest in the protected Environment, and dispatch `prepare-fashion-staging-u8.yml`
-  with existing source draft `draft-fashion-u8-u8-20260825a-retry24-source`, Catalog Release
+- **Next concrete action:** Integrate the exact deployed-build readback correction as a new harness
+  freeze, generate its canonical U8 harness manifest against unchanged candidate `0f5d1fe6`, bind
+  the exact harness SHA and manifest digest at repository and protected Environment scope, and
+  dispatch `prepare-fashion-staging-u8.yml` with existing source draft
+  `draft-fashion-u8-u8-20260825a-retry24-source`, Catalog Release
   `fashion-staging-u12-release-2026-08-18`, and readiness run `33300115340`. Preparation must write
   `awaiting_operator` and exit; only the existing named operator may then complete the run-bound
   Admin path.
@@ -222,7 +233,8 @@ U13 add-only probe do not establish overall completion.
   CI tail closure integrated into `main` -> `CI-CLOUD-U1/U2/U3` complete with corrected exact-main
   post-commit and protected OIDC proof -> restore the protected Cloudflare credential -> exact-build
   U12 readiness -> rotate the exposed acceptance credential and close the Preview settlement
-  failure -> fresh U12/Preview baseline complete -> new U8 harness freeze ->
+  failure -> fresh U12/Preview baseline complete -> initial U8 harness freeze -> deployed-build
+  readback correction and harness refreeze ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
@@ -232,9 +244,11 @@ U13 add-only probe do not establish overall completion.
 - **Blocker:** Cloud successor, protected immutable-ID OIDC authority, acceptance-token rotation,
   fresh U12 readiness run `33300115340`, and complete Preview/U12 run `33300205798` are proven.
   The exposed token is invalidated and the compromised artifact is deleted. No U12, credential,
-  cleanup, CI, or runner blocker remains. No server-side U8 operator run exists, so formal U8
-  staging acceptance has not begun; the next gated boundary is exact harness freeze plus protected
-  preparation to `awaiting_operator`. The authenticated
+  cleanup, CI, or runner blocker remains. Preparation run `33300954731` attempt 2 exposed a
+  harness-only contract mismatch between the pre-deployment readiness response and the deployed
+  build digest; it created no server-side U8 operator run. The next gated boundary is the bounded
+  deployed-build readback correction, exact harness refreeze, and protected preparation to
+  `awaiting_operator`. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`

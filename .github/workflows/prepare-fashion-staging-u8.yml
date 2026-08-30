@@ -153,6 +153,7 @@ jobs:
           run-id: ${{ inputs.u12_readiness_run_id }}
       - name: Register the non-secret awaiting_operator boundary
         env:
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -165,7 +166,21 @@ jobs:
             bun tools/create-fashion-u8-harness-manifest.ts > artifacts/fashion-u8/harness-manifest.json
           CONTRACT_TEST_DIGEST="$(jq -er '.contractTestDigest' artifacts/fashion-u8/harness-manifest.json)"
           U12_SNAPSHOT_ID="$(jq -er '.seed.experienceSnapshotId' artifacts/fashion-u8/u12/readiness.json)"
-          U12_ARTIFACT_DIGEST="$(jq -er '.data.artifactDigest' artifacts/fashion-u8/u12/build.json)"
+          U12_BUILD_ID="$(jq -er '.seed.buildId' artifacts/fashion-u8/u12/readiness.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$API_ORIGIN/admin/storefront-experiences/builds/$U12_BUILD_ID" \
+            --output artifacts/fashion-u8/u12-deployed-build.json
+          jq --exit-status --arg build "$U12_BUILD_ID" --arg snapshot "$U12_SNAPSHOT_ID" \
+            --arg catalog "$CATALOG_RELEASE_ID" \
+            '.data.id == $build and .data.snapshotId == $snapshot and
+             .data.inputIdentity.experienceSnapshotId == $snapshot and
+             .data.inputIdentity.catalogReleaseId == $catalog and .data.status == "deployed" and
+             (.data.artifactDigest | test("^[a-f0-9]{64}$")) and
+             .data.artifactPrefix ==
+               ("snapshots/" + $snapshot + "/" + $catalog + "/" + .data.artifactDigest)' \
+            artifacts/fashion-u8/u12-deployed-build.json >/dev/null
+          U12_ARTIFACT_DIGEST="$(jq -er '.data.artifactDigest' artifacts/fashion-u8/u12-deployed-build.json)"
           RUN_CREATED_AT="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.created_at')"
           EXPIRES_AT="$(node -e 'process.stdout.write(new Date(Date.parse(process.argv[1])+12*60*60*1000).toISOString())' "$RUN_CREATED_AT")"
           jq --null-input --sort-keys \
@@ -220,6 +235,7 @@ jobs:
             artifacts/fashion-u8/harness-manifest.json
             artifacts/fashion-u8/operator-run-request.json
             artifacts/fashion-u8/operator-run-response.json
+            artifacts/fashion-u8/u12-deployed-build.json
           if-no-files-found: error
           retention-days: 30
 

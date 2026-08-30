@@ -77,19 +77,22 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate this docs-only checkpoint as the separate harness freeze, generate and
-  bind its canonical manifest against candidate `0f5d1fe6`, then dispatch protected U8 preparation
-  with the existing retry24 source draft and U12 readiness run `33300115340`. Preparation must exit
-  at `awaiting_operator`; resume `FS-U8.2` only through existing named operator approval, separate
-  refresh/Preview, and separate hosted acceptance.
+- **Next action:** Integrate the exact deployed-build readback correction as a new harness freeze,
+  generate and bind its canonical manifest against unchanged candidate `0f5d1fe6`, then dispatch
+  protected U8 preparation with the existing retry24 source draft and U12 readiness run
+  `33300115340`. Preparation must exit at `awaiting_operator`; resume `FS-U8.2` only through existing
+  named operator approval, separate refresh/Preview, and separate hosted acceptance.
 - **Blocker:** Successor post-commit and protected U12 OIDC authority remain proven. Exact main
   `0f5d1fe6` passed post-commit run `33299911627`; protected U12 run `33300115340` synchronized the
   replacement acceptance credential and captured readiness artifact `9728666247`; Preview/U12 run
   `33300205798` passed the real Stripe journey, cleanup, fresh-session postcondition, and complete
   verdict. Compromised artifact `9728471189` is deleted, and replacement artifact `9728806594`
-  retains no trace/zip or detected bearer header. No server-side U8 operator run exists; the next
-  gated boundary is the independent harness freeze and protected preparation. No fallback to the
-  developer machine, OrbStack, self-managed runner, local account, or historical artifact is
+  retains no trace/zip or detected bearer header. Harness checkpoint `7f157e81` passed post-commit
+  run `33300719966`; U8 preparation run `33300954731` attempt 2 passed hosted authority, OIDC, and
+  readiness provenance but failed before server-side run creation because it read the deployed
+  digest from the intentionally pre-deployment readiness response. The next gated boundary is the
+  harness-only deployed-build readback correction, refreeze, and protected preparation. No fallback
+  to the developer machine, OrbStack, self-managed runner, local account, or historical artifact is
   authorized. Ordinary staging and all production mutation remain excluded.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
   closure.
@@ -104,8 +107,8 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
   successor and return shared-workflow ownership to `FS-U8.2`.
 - **Remaining blocker:** Cloud runner/OIDC, Cloudflare credential, acceptance-token rotation,
   exact-build readiness, and the candidate-scoped Preview/U12 baseline are closed. The remaining FS
-  prerequisite is the independent harness freeze and protected U8 preparation to
-  `awaiting_operator`.
+  prerequisite is the bounded deployed-build readback correction, exact harness refreeze, and
+  protected U8 preparation to `awaiting_operator`; run `33300954731` created no operator run.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 
