@@ -329,7 +329,7 @@ jobs:
             immutable_catalog_count,
             approved_snapshot_count,
             building_build_count
-          }]' ../../artifacts/fashion-u12/seed-verification.json >> "$GITHUB_STEP_SUMMARY"
+          }]' ../../artifacts/fashion-u12/seed-verification.json | tee -a "$GITHUB_STEP_SUMMARY"
           printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
           jq --exit-status 'all(.[]?.results[]?;
             .product_count == 3 and .single_variant_count == 1 and

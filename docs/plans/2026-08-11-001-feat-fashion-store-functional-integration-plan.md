@@ -147,7 +147,11 @@ U13 add-only probe do not establish overall completion.
   aggregate immutable postcondition assertion before readiness capture. Exact-main now adds a
   counts-only, secret-free step summary at that boundary so the next protected run can identify the
   mismatched invariant without weakening it or moving staging credentials off GitHub-hosted
-  runners.
+  runners. Exact-main diagnostic run `33298148206` reproduced the same boundary after every prior
+  stage passed, but GitHub exposes `GITHUB_STEP_SUMMARY` only in the web UI rather than the
+  authenticated run/check APIs. The successor therefore mirrors the same counts-only JSON to the
+  protected job log while retaining the summary; the invariant and credential boundary remain
+  unchanged.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -168,7 +172,7 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit the counts-only U12 postcondition diagnostic to exact `main`,
+- **Next concrete action:** Commit the machine-readable counts-only U12 postcondition diagnostic to exact `main`,
   update the protected candidate variable to that exact SHA, and rerun U12. Use the retained
   aggregate counts to correct the specific invariant without relaxing the immutable Catalog,
   product/inventory, Snapshot, or build contract. After fresh readiness passes, freeze the separate
@@ -192,9 +196,10 @@ U13 add-only probe do not establish overall completion.
 - **Blocker:** Cloud successor post-commit run `33234977617` and the protected immutable-ID OIDC
   boundary remain proven. The protected Cloudflare credential has been replaced and run
   `33297740426` passed every authority and mutation stage through immutable Snapshot/build creation,
-  then failed the aggregate postcondition assertion before readiness capture. The failed step did
-  not expose which safe count differed, so a counts-only hosted diagnostic must run before a narrow
-  correction can be justified. No fresh U12 readiness artifact or server-side operator run exists, so
+  then failed the aggregate postcondition assertion before readiness capture. Diagnostic run
+  `33298148206` reproduced the same boundary, but its safe summary is not returned by GitHub's APIs;
+  the same counts must be mirrored to the hosted log before a narrow correction can be justified.
+  No fresh U12 readiness artifact or server-side operator run exists, so
   formal staging acceptance has not begun. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
@@ -219,7 +224,7 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-30 after protected U12 run `33297740426` passed the corrected cloud
+- **Last reviewed:** 2026-08-30 after protected U12 diagnostic run `33298148206` passed the corrected cloud
   authority, restored credential, backup/migration, deployment, seed, and immutable-input stages,
   then failed closed on the aggregate postcondition assertion before readiness capture. The user
   superseded the local self-hosted runner, OrbStack,
