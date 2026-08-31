@@ -95,6 +95,9 @@ describe("Fashion staging operator provisioning workflow", () => {
     expect(protectedJob).toContain("shoppp-fashion-staging-notification-delivery");
     expect(workflow).toContain("group: fashion-staging-preview");
     expect(protectedJob).toContain('index("AUTH_TOKEN_SECRET") != null');
+    expect(protectedJob).toMatch(
+      /curl --retry 12 --retry-all-errors --retry-delay 5 --retry-max-time 90[\s\S]{0,160}--fail --silent --show-error[\s\S]{0,160}https:\/\/shoppp-admin-fashion-staging\.hashencode\.workers\.dev\/login/,
+    );
     expect(protectedJob).toContain("for attempt in {1..61}");
     expect(protectedJob).toContain('test "$attempt" -eq 61 && break');
     expectNoHumanPasswordInputs(protectedJob);
