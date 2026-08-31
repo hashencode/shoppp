@@ -12,6 +12,9 @@ on:
       harness_sha:
         description: Reviewed U8 harness commit
         required: true
+      candidate_sha:
+        description: Exact U8 storefront candidate commit bound to the refresh
+        required: true
       operator_run_id:
         description: Exact server-side U8 operator run bound to this refresh
         required: true
@@ -45,7 +48,7 @@ jobs:
       contents: read
     env:
       EXPECTED_REPOSITORY: hashencode/shoppp
-      FASHION_CANDIDATE_SHA: ${{ vars.FASHION_U8_CANDIDATE_SHA }}
+      FASHION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
       FASHION_HARNESS_SHA: ${{ inputs.harness_sha }}
       FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
       GITHUB_REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
@@ -120,6 +123,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ inputs.harness_sha }}"
           test "$GITHUB_SHA" = "${{ inputs.harness_sha }}"
           test "${{ inputs.harness_sha }}" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
+          test "${{ inputs.candidate_sha }}" = "${{ vars.FASHION_U8_CANDIDATE_SHA }}"
+          test "${{ inputs.candidate_sha }}" = "$(jq -er '.candidateSha' artifacts/fashion-u8/refresh-attestation.json)"
           jq --exit-status '.schemaVersion == 1 and .harnessSha == "${{ inputs.harness_sha }}" and
             (.harnessManifestDigest | test("^[a-f0-9]{64}$")) and
             (.contractTestDigest | test("^[a-f0-9]{64}$"))' \
