@@ -339,7 +339,7 @@ export async function rejectFashionStagingOperatorRun(
       `INSERT OR IGNORE INTO audit_events
          (id, actor_type, actor_id, action, target_type, target_id, result,
           reason, request_id, metadata_json, created_at)
-       VALUES (?, 'system', NULL, 'themes.fashion-staging.operator.reject',
+       VALUES (?, 'machine', NULL, 'themes.fashion-staging.operator.reject',
                'fashion_staging_operator_run', ?, 'succeeded', ?, NULL, '{}', ?)`,
     )
     .bind(`audit-fashion-u8-reject-${runId}`, runId, normalizedReason, at)
@@ -442,7 +442,7 @@ export async function supersedeFashionStagingOperatorRun(
         `INSERT INTO audit_events
            (id, actor_type, actor_id, action, target_type, target_id, result,
             reason, request_id, metadata_json, created_at)
-         VALUES (?, 'system', NULL, 'themes.fashion-staging.operator.supersede',
+         VALUES (?, 'machine', NULL, 'themes.fashion-staging.operator.supersede',
                  'fashion_staging_operator_run', ?, 'succeeded', ?, NULL, ?, ?)`,
       )
       .bind(

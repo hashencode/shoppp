@@ -257,6 +257,16 @@ describe.sequential("Fashion U8 named-operator run authority", () => {
         now,
       ),
     ).resolves.toMatchObject({ status: "rejected" });
+    await expect(
+      env.DB.prepare(
+        `SELECT actor_type, action, target_id FROM audit_events
+          WHERE id = 'audit-fashion-u8-reject-fashion-u8-rejected-preview'`,
+      ).first(),
+    ).resolves.toEqual({
+      action: "themes.fashion-staging.operator.reject",
+      actor_type: "machine",
+      target_id: "fashion-u8-rejected-preview",
+    });
   });
 
   test("supersedes an approved run without replacing its immutable approval evidence", async () => {
