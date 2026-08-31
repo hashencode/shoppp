@@ -77,11 +77,11 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Freeze and bind a separate exact-main harness identity for candidate `4fe21a47`,
-  then dispatch Preview/U12 against fresh readiness run `33361259495`. Prepare a fresh run while
-  rejecting failed run `fashion-u8-33357909651` as superseded; the fresh named-operator path must
-  receive its pre-approval Preview from a separate protected GitHub-hosted stage before approval,
-  refresh, Preview, and acceptance continue.
+- **Next action:** Pass post-commit for the field-specific operator-Preview verifier exposed by
+  failed hosted run `33363135756`, freeze and bind the new exact-main harness identity for candidate
+  `4fe21a47`, and prepare a new immutable run while rejecting `fashion-u8-33362817635` as
+  superseded. The repeated named-operator path must receive its pre-approval Preview from a separate
+  protected GitHub-hosted stage before approval, refresh, Preview, and acceptance continue.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -103,6 +103,14 @@ historical evidence remain unchanged inside the owning plans.
   `preview-build-d8cee43862e40e7d9d436ba8-f1bb77ee6f824f48-1`. The active plan now owns harness
   freeze, hosted Preview/U12, exact failed-run rejection, fresh preparation, named-operator action,
   refresh, and hosted acceptance.
+  Harness `5e72844b` and full hosted Preview/U12 run `33361735965` passed. Preparation
+  `33362817635` registered `fashion-u8-33362817635`, and the named operator completed missing
+  reference recovery, a real v8/v9 conflict, successor creation, validation, and run-bound Preview
+  allocation. Hosted Preview run `33363135756` then passed authority, OIDC, readiness, and
+  preparation checks but failed closed before deployment inside one compound jq tuple assertion;
+  its debug rerun reproduced the same non-mutating failure without a field name. The active plan
+  now owns a frozen field-specific verifier, harness refreeze, exact supersession, and replay. This
+  is not runner-capability evidence and does not authorize runner escalation.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected

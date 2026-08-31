@@ -383,44 +383,11 @@ jobs:
             --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
             "$PREVIEW_API_URL/admin/storefront-experiences/builds/$BUILD_ID" \
             > artifacts/operator/preview-build.json
-          jq --exit-status \
-            --slurpfile prepared artifacts/operator/operator-run-response.json \
-            --slurpfile manifest artifacts/operator/run-manifest.json \
-            --arg candidate "$CANDIDATE_SHA" \
-            --arg harness "$HARNESS_SHA" \
-            --arg operator "$OPERATOR_RUN_ID" \
-            --arg preparation "$PREPARATION_RUN_ID" \
-            '.data.status == "awaiting_operator" and .data.runId == $operator and
-             .data.candidateSha == $candidate and .data.harnessSha == $harness and
-             .data.workflowRunId == $preparation and
-             .data.runManifestDigest == $manifest[0].runManifestDigest and
-             .data.harnessManifestDigest == $manifest[0].harnessManifestDigest and
-             .data.contractTestDigest == $manifest[0].contractTestDigest and
-             .data.u12ReadinessDigest == $manifest[0].u12ReadinessDigest and
-             .data.catalogReleaseId == $manifest[0].catalogReleaseId and
-             .data.runId == $prepared[0].data.runId and
-             .data.candidateSha == $prepared[0].data.candidateSha and
-             .data.harnessSha == $prepared[0].data.harnessSha and
-             .data.workflowRunId == $prepared[0].data.workflowRunId and
-             .data.runManifestDigest == $prepared[0].data.runManifestDigest and
-             .data.harnessManifestDigest == $prepared[0].data.harnessManifestDigest and
-             .data.contractTestDigest == $prepared[0].data.contractTestDigest and
-             .data.u12ReadinessDigest == $prepared[0].data.u12ReadinessDigest and
-             .data.catalogReleaseId == $prepared[0].data.catalogReleaseId and
-             .data.sourceDraftId == $prepared[0].data.sourceDraftId and
-             (.data.workingDraftId | type == "string" and length > 0)' \
-            artifacts/operator/operator-run-preview.json >/dev/null
-          jq --exit-status --slurpfile run artifacts/operator/operator-run-preview.json \
-            --arg snapshot "$SNAPSHOT_ID" \
-            '.data.id == $snapshot and .data.kind == "preview" and
-             .data.sourceDraftId == $run[0].data.workingDraftId and
-             .data.sourceDraftVersion == .data.snapshot.version' \
-            artifacts/operator/preview-snapshot.json >/dev/null
-          jq --exit-status --slurpfile run artifacts/operator/operator-run-preview.json \
-            --arg build "$BUILD_ID" --arg snapshot "$SNAPSHOT_ID" \
-            '.data.id == $build and .data.snapshotId == $snapshot and .data.status == "building" and
-             .data.inputIdentity.experienceSnapshotId == $snapshot and
-             .data.inputIdentity.catalogReleaseId == $run[0].data.catalogReleaseId' \
+          bun tools/verify-fashion-u8-operator-preview.ts \
+            artifacts/operator/operator-run-preview.json \
+            artifacts/operator/operator-run-response.json \
+            artifacts/operator/run-manifest.json \
+            artifacts/operator/preview-snapshot.json \
             artifacts/operator/preview-build.json >/dev/null
       - run: bun install --frozen-lockfile
       - name: Validate fixed environment inputs

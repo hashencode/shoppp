@@ -66,6 +66,8 @@ export const FASHION_U8_SECURITY_SENSITIVE_PATHS = [
   "tools/run-fashion-staging-u12.ts",
   "tools/verify-fashion-u8-standing-authority.test.ts",
   "tools/verify-fashion-u8-standing-authority.ts",
+  "tools/verify-fashion-u8-operator-preview.test.ts",
+  "tools/verify-fashion-u8-operator-preview.ts",
   "tools/verify-fashion-cloud-authority.test.ts",
   "tools/verify-fashion-cloud-authority.ts",
   "tools/verify-environment-isolation.test.ts",

@@ -1102,8 +1102,7 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preview).toContain("Download exact U8 awaiting-operator attestation");
     expect(preview).toContain("Verify run-bound operator preview before deployment mutation");
     expect(preview).toContain("operator-run-preview.json");
-    expect(preview).toContain('.data.status == "awaiting_operator"');
-    expect(preview).toContain(".data.sourceDraftId == $run[0].data.workingDraftId");
+    expect(preview).toContain("bun tools/verify-fashion-u8-operator-preview.ts");
     expect(preview).toContain("inputs.operator_run_id == ''");
     expect(preview).toContain("runs-on: ubuntu-24.04");
     expect(preview).not.toContain("self-hosted");
