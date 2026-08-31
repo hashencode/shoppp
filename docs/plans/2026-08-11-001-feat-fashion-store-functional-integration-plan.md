@@ -229,6 +229,15 @@ U13 add-only probe do not establish overall completion.
   forbidden run-scoped U8 account. The bounded correction adds a dedicated
   `shoppp-admin-fashion-staging` Worker bound only to `shoppp-api-fashion-staging`, a protected
   main-only/OIDC invitation workflow, and password-free activation delivery.
+  Exact main `20e894d2` passed post-commit run `33350746899`; provisioning run `33350959835`
+  deployed both dedicated Workers but stopped on a transient post-deploy `/login` `404` before any
+  signing-secret, D1 invitation, or email step. Exact main `a19a2597` added a bounded propagation
+  retry and passed post-commit run `33351272413`. Protected provisioning run `33351533901` then
+  passed credential-free authority, protected OIDC, dedicated Worker deployment and readiness,
+  activation-signing capability, resumable D1 invitation creation, notification dispatch, and
+  server-side `sent` verification for the durable `Shoppp Fashion Staging Owner` invitation. The
+  hosted runner exited and is not waiting for recipient action; no human password was created or
+  transmitted through Actions.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -249,12 +258,10 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the dedicated Fashion Admin and protected password-free
-  invitation workflow on exact `main`, configure the protected `fashion-staging` Environment with
-  the approved operator email, and dispatch that workflow once. The repository-owned display name
-  is `Shoppp Fashion Staging Owner`; the workflow must verify the existing activation-signing
-  capability before any D1 mutation. The recipient
-  activates the durable identity and sets its password outside Actions. After activation, refresh
+- **Next concrete action:** The named recipient opens the delivered Fashion staging activation
+  email, follows the one-time link, and sets the durable operator password outside Actions. After
+  the recipient confirms activation, run a separate GitHub-hosted verification against server-side
+  identity/audit state, then refresh
   U12 readiness/Preview and create a new U8 preparation because run `fashion-u8-33302142836` expired;
   preparation must again exit at `awaiting_operator` before the named operator completes only the
   new run-bound path.
@@ -283,8 +290,8 @@ U13 add-only probe do not establish overall completion.
   preparation run `33302142836` are proven, but that operator boundary expired at
   `2026-08-30T20:39:55.000Z` without action and cannot be refreshed or accepted. The exposed token
   is invalidated and the compromised artifact is deleted. The current blocker is the corrected
-  platform prerequisite: deploy the dedicated Fashion Admin and activate the explicitly authorized
-  durable human operator before generating fresh U12/U8 evidence. This is not a new U8 account;
+  platform prerequisite is now narrowed to recipient activation of the delivered durable Fashion
+  invitation before generating fresh U12/U8 evidence. This is not a new U8 account;
   creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
