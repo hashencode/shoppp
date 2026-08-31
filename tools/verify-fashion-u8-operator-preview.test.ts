@@ -30,7 +30,6 @@ function evidence() {
     catalogReleaseId: prepared.data.catalogReleaseId,
     contractTestDigest: prepared.data.contractTestDigest,
     harnessManifestDigest: prepared.data.harnessManifestDigest,
-    runManifestDigest: prepared.data.runManifestDigest,
     u12ReadinessDigest: prepared.data.u12ReadinessDigest,
   };
   const operator = {
@@ -65,13 +64,15 @@ function evidence() {
 
 describe("Fashion U8 run-bound operator Preview verifier", () => {
   test("accepts one exact prepared run, successor Snapshot, and building build", () => {
+    const input = evidence();
     expect(
-      verifyFashionU8OperatorPreview(evidence(), {
+      verifyFashionU8OperatorPreview(input, {
         buildId,
         candidateSha,
         harnessSha,
         operatorRunId,
         preparationRunId,
+        runManifestDigest: input.prepared.data.runManifestDigest,
         snapshotId,
       }),
     ).toEqual({ passed: true, workingDraftId });
@@ -87,6 +88,7 @@ describe("Fashion U8 run-bound operator Preview verifier", () => {
         harnessSha,
         operatorRunId,
         preparationRunId,
+        runManifestDigest: input.prepared.data.runManifestDigest,
         snapshotId,
       }),
     ).toThrow("snapshot.sourceDraftId must match operator.workingDraftId");

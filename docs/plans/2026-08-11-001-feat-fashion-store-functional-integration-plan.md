@@ -308,13 +308,13 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit and pass post-commit for the field-specific run-bound Preview
-  verifier exposed by failed hosted Preview run `33363135756`, freeze and bind the resulting
-  exact-main harness identity for candidate `4fe21a47`, and prepare a new immutable operator run
-  while rejecting `fashion-u8-33362817635` as superseded. The named operator must repeat the
-  run-bound path under that verifier; a separately dispatched fixed-main GitHub-hosted Preview run
-  must deploy and return the exact pre-approval Preview to the editor before immutable approval,
-  hosted refresh/Preview, and acceptance continue.
+- **Next concrete action:** Commit and pass post-commit for the run-manifest byte-digest correction
+  exposed by hosted Preview run `33365596160`, freeze and bind the resulting exact-main harness
+  identity for candidate `4fe21a47`, and prepare a new immutable operator run while rejecting
+  `fashion-u8-33365265629` as superseded. The named operator must repeat the run-bound path under
+  that verifier; a separately dispatched fixed-main GitHub-hosted Preview run must deploy and
+  return the exact pre-approval Preview to the editor before immutable approval, hosted
+  refresh/Preview, and acceptance continue.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -370,11 +370,19 @@ U13 add-only probe do not establish overall completion.
   reports the exact operator/Snapshot/build field while retaining every equality check. The
   current run is excluded from acceptance and must be superseded under the new harness; this is an
   acceptance-harness defect, not runner-capability evidence, and does not authorize escalation.
-  Replacement preparation run `33364501176` then passed cloud authority and exact manifest digest
-  but failed closed in the credential-free standing-authority CLI before protected execution; no
-  operator run was rejected or registered. A debug rerun reproduced the same silent exit. The CLI
-  now uses an exact tracked-file diff and preserves a concise failure reason on stderr so the next
-  preflight cannot collapse another authority mismatch into an unexplained exit code.
+  Replacement preparation runs `33364501176` and `33365130421` failed before protected execution
+  because the locally calculated harness digest omitted the generator's trailing newline; no
+  operator run was rejected or registered. The corrected byte-for-byte digest allowed preparation
+  `33365265629` to pass and register `fashion-u8-33365265629`. The named operator then proved
+  invalid `catalog_binding_missing` at v10, repaired and validated v11, produced a real v11/v12
+  conflict, preserved successor `draft-eebd90cd-fa30-400a-9112-30e501a79e40`, validated v1, and
+  allocated Snapshot `snapshot-preview-b860394a8b9a7b6704867749fb64f2f6` with build
+  `preview-build-8b9a7b6704867749fb64f2f6-f1bb77ee6f824f48-1`. Hosted Preview run `33365596160`
+  then proved the original tuple defect exactly: downloaded `run-manifest.json` intentionally does
+  not self-contain `runManifestDigest`, while the verifier compared the operator's saved digest to
+  that absent field. The replacement computes SHA-256 from the exact downloaded bytes and compares
+  it to both the live operator run and preparation response. No Preview deployment occurred, and
+  this is not runner-capability evidence.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run

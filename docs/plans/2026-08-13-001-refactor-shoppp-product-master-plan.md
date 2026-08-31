@@ -77,11 +77,11 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for the field-specific operator-Preview verifier exposed by
-  failed hosted run `33363135756`, freeze and bind the new exact-main harness identity for candidate
-  `4fe21a47`, and prepare a new immutable run while rejecting `fashion-u8-33362817635` as
-  superseded. The repeated named-operator path must receive its pre-approval Preview from a separate
-  protected GitHub-hosted stage before approval, refresh, Preview, and acceptance continue.
+- **Next action:** Pass post-commit for the run-manifest byte-digest correction exposed by hosted
+  run `33365596160`, freeze and bind the new exact-main harness identity for candidate `4fe21a47`,
+  and prepare a new immutable run while rejecting `fashion-u8-33365265629` as superseded. The
+  repeated named-operator path must receive its pre-approval Preview from a separate protected
+  GitHub-hosted stage before approval, refresh, Preview, and acceptance continue.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -111,10 +111,13 @@ historical evidence remain unchanged inside the owning plans.
   its debug rerun reproduced the same non-mutating failure without a field name. The active plan
   now owns a frozen field-specific verifier, harness refreeze, exact supersession, and replay. This
   is not runner-capability evidence and does not authorize runner escalation.
-  Replacement preparation run `33364501176` also failed before protected execution after cloud
-  authority and manifest verification, because the standing-authority CLI returned a silent exit;
-  no old run was rejected and no new run was registered. The active plan now also owns the bounded
-  deterministic dirty-file probe and retained CLI failure reason before harness refreeze.
+  Replacement preparation runs `33364501176` and `33365130421` failed before protected execution
+  because the bound harness digest omitted the manifest generator's trailing newline; neither run
+  changed staging. Correct byte hashing allowed preparation `33365265629` and the complete named
+  operator path to reach a fresh successor Snapshot/build. Hosted Preview run `33365596160` then
+  exposed the exact tuple defect: `run-manifest.json` does not self-contain its own digest, so the
+  verifier must hash the downloaded bytes rather than read an absent field. The active plan owns
+  that bounded correction, harness refreeze, supersession, and replay.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected

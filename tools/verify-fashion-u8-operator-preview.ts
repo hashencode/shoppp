@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 type JsonObject = Record<string, unknown>;
@@ -16,6 +17,7 @@ export interface FashionU8OperatorPreviewExpectation {
   harnessSha: string;
   operatorRunId: string;
   preparationRunId: string;
+  runManifestDigest: string;
   snapshotId: string;
 }
 
@@ -64,8 +66,12 @@ export function verifyFashionU8OperatorPreview(
   for (const [name, value] of exactOperatorFields) {
     equal(field(operator, name, "operator.data"), value, `operator.${name}`);
   }
+  equal(
+    field(operator, "runManifestDigest", "operator.data"),
+    expected.runManifestDigest,
+    "operator.runManifestDigest/run-manifest SHA-256",
+  );
   for (const name of [
-    "runManifestDigest",
     "harnessManifestDigest",
     "contractTestDigest",
     "u12ReadinessDigest",
@@ -143,9 +149,10 @@ if (import.meta.main) {
     );
   }
   const paths = [operatorPath, preparedPath, manifestPath, snapshotPath, buildPath] as const;
-  const [operator, prepared, manifest, snapshot, build] = (await Promise.all(
-    paths.map(async (path) => JSON.parse(await readFile(path, "utf8")) as JsonObject),
-  )) as [JsonObject, JsonObject, JsonObject, JsonObject, JsonObject];
+  const contents = await Promise.all(paths.map((path) => readFile(path, "utf8")));
+  const [operator, prepared, manifest, snapshot, build] = contents.map(
+    (content) => JSON.parse(content) as JsonObject,
+  ) as [JsonObject, JsonObject, JsonObject, JsonObject, JsonObject];
   const verified = verifyFashionU8OperatorPreview(
     { build, manifest, operator, prepared, snapshot },
     {
@@ -154,6 +161,7 @@ if (import.meta.main) {
       harnessSha: process.env.HARNESS_SHA?.trim() ?? "",
       operatorRunId: process.env.OPERATOR_RUN_ID?.trim() ?? "",
       preparationRunId: process.env.PREPARATION_RUN_ID?.trim() ?? "",
+      runManifestDigest: createHash("sha256").update(contents[2]!).digest("hex"),
       snapshotId: process.env.SNAPSHOT_ID?.trim() ?? "",
     },
   );
