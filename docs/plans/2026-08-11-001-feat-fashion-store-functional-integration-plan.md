@@ -308,10 +308,9 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the reviewed operator-Preview successor into exact `main`,
-  require the post-commit cloud gate to pass, deploy the exact Fashion API/Admin build through the
-  protected provisioning workflow, and capture a fresh U12 readiness/Preview baseline because the
-  frozen harness and API changed. Bind the new harness SHA/digest, then prepare a fresh run while
+- **Next concrete action:** Freeze a separate exact-main harness ref for candidate `4fe21a47`, bind
+  its canonical manifest digest, and dispatch the hosted Preview/U12 graph against fresh readiness
+  run `33361259495`. Then prepare a fresh run while
   atomically rejecting failed run `fashion-u8-33357909651` as superseded. The named operator must
   repeat the fresh run-bound path; a separately dispatched fixed-main GitHub-hosted Preview run must
   deploy and return the exact pre-approval Preview to the editor before immutable approval, hosted
@@ -345,7 +344,14 @@ U13 add-only probe do not establish overall completion.
   hook failed closed and the Admin exposed its missing public Preview origin. That run and its
   successor/Snapshot/build are excluded non-candidate evidence and cannot be accepted under the
   replacement harness; the fresh preparation must reject it as superseded before registering a new
-  immutable run. The exposed historical token is invalidated and the compromised artifact is
+  immutable run. Candidate `4fe21a47` passed exact-main post-commit run `33360796811`. Protected
+  deployment run `33361171595` passed authority, build, and exact Fashion API/Admin deployment with
+  `PUBLIC_PREVIEW_ORIGIN`; its later bootstrap step correctly failed closed on the existing durable
+  operator's uniqueness constraint and created no second account. Fresh U12 readiness run
+  `33361259495` passed with artifact `9746774185`, artifact digest
+  `02ff2efceccea1275f74ebbaa63dda51b02cb11b3b54a3fc64e5579110d0d2f8`, Snapshot
+  `snapshot-approved-f68cd182d8cee43862e40e7d9d436ba8`, and build
+  `preview-build-d8cee43862e40e7d9d436ba8-f1bb77ee6f824f48-1`. The exposed historical token is invalidated and the compromised artifact is
   deleted. This is not a new U8 account;
   creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The
   legacy ephemeral Preview hook is no longer an execution authority: it depended on the removed
@@ -372,9 +378,12 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after preparation `33357909651` and the named-operator path exposed
-  the legacy Preview-hook/Admin-origin migration gap, and the current reviewed change added the
-  GitHub-hosted run-bound Preview successor and exact supersession boundary. Exact main `a9b7a12a`
+- **Last reviewed:** 2026-08-31 after candidate `4fe21a47` passed post-commit run `33360796811`,
+  protected run `33361171595` deployed the corrected Fashion API/Admin build and refused a duplicate
+  durable operator, and fresh U12 readiness run `33361259495` captured the replacement immutable
+  baseline. Preparation `33357909651` and the named-operator path had exposed the legacy
+  Preview-hook/Admin-origin migration gap; the integrated successor replaces it with a fixed-main
+  GitHub-hosted run-bound Preview stage and exact supersession boundary. Exact main `a9b7a12a`
   previously passed post-commit run `33354226588`, and protected read-only activation verification
   run `33354502008` proved the enabled,
   non-expiring durable named operator, protected Administrator role, accepted invitation, and
