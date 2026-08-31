@@ -308,13 +308,14 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit and pass post-commit for the run-manifest byte-digest correction
-  exposed by hosted Preview run `33365596160`, freeze and bind the resulting exact-main harness
-  identity for candidate `4fe21a47`, and prepare a new immutable operator run while rejecting
-  `fashion-u8-33365265629` as superseded. The named operator must repeat the run-bound path under
-  that verifier; a separately dispatched fixed-main GitHub-hosted Preview run must deploy and
-  return the exact pre-approval Preview to the editor before immutable approval, hosted
-  refresh/Preview, and acceptance continue.
+- **Next concrete action:** Commit and pass post-commit for the authenticated Preview handoff
+  correction exposed after hosted Preview run `33366389096`, deploy that exact-main Fashion Admin
+  through the protected GitHub-hosted/OIDC stage, and prove its response retains only the Admin
+  origin for the cross-origin grant POST. Freeze and bind the resulting harness identity for
+  candidate `4fe21a47`, then prepare a new immutable operator run while rejecting
+  `fashion-u8-33366227014` as superseded. The named operator must repeat the run-bound path and open
+  the authenticated Preview successfully before immutable approval, hosted refresh/Preview, and
+  acceptance continue.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -330,7 +331,9 @@ U13 add-only probe do not establish overall completion.
   Admin plus durable operator activation -> fresh U12/Preview -> fresh preparation at
   `awaiting_operator` -> named operator path exposed the legacy self-hosted Preview hook ->
   GitHub-hosted operator-Preview successor -> fresh U12/Preview and preparation -> named operator
-  Preview/approval -> separate hosted refresh/Preview/acceptance ->
+  Preview exposed the Admin referrer-policy handoff defect -> protected Admin correction and
+  harness refreeze -> fresh preparation and named operator Preview/approval -> separate hosted
+  refresh/Preview/acceptance ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
@@ -383,6 +386,20 @@ U13 add-only probe do not establish overall completion.
   that absent field. The replacement computes SHA-256 from the exact downloaded bytes and compares
   it to both the live operator run and preparation response. No Preview deployment occurred, and
   this is not runner-capability evidence.
+  Exact main `b0a8b510` passed post-commit run `33365840233`; preparation `33366227014` then
+  registered `fashion-u8-33366227014` while superseding the prior run. The named operator proved
+  missing-reference recovery, a real optimistic conflict, successor creation, and validation on
+  `draft-838d6b50-466b-416c-97a7-9fbb6c5d4e75`. Protected hosted Preview run `33366389096` passed
+  exact authority, OIDC, operator evidence verification, immutable upload, isolated Worker
+  deployment, U12/U13 acceptance, restoration, fresh-session postcondition, and cleanup. The
+  subsequent real named-operator launch failed closed before approval with `Preview origin is not
+  authorized.` The deployed Admin response still set `Referrer-Policy: no-referrer`, which causes
+  the cross-origin form POST to carry a null origin; its form-level `referrerpolicy` attribute is
+  unsupported and did not override the document policy. The bounded correction uses
+  `strict-origin-when-cross-origin`, which transmits only the protected Admin origin and never the
+  draft path or one-time grant, and removes the ineffective attribute. No approval Snapshot or
+  audit was created. The current run and successor are excluded and must be superseded under a new
+  exact-main harness; this application/configuration failure is not runner-capability evidence.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
@@ -405,12 +422,19 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after hosted run `33363135756` failed closed at the opaque
-  run-bound operator Preview tuple verifier before deployment; the replacement verifier now names
-  the exact mismatched field and is covered by focused red/green tests. Harness `5e72844b` had
-  passed post-commit run `33361450533`, Preview/U12 run `33361735965` had passed, and preparation
-  `33362817635` plus the named operator reached the fresh successor Snapshot/build boundary without
-  any self-hosted or local fallback. Earlier candidate `4fe21a47` passed post-commit run `33360796811`,
+- **Last reviewed:** 2026-08-31 after hosted run `33366389096` passed the complete protected
+  pre-approval deployment and U12/U13 lifecycle, but the real named-operator Preview launch failed
+  closed because the Fashion Admin's `no-referrer` response policy suppressed the origin required
+  by the grant redemption boundary. No immutable approval occurred. Focused red/green tests cover
+  the bounded origin-only policy correction and removal of the ineffective form attribute; the
+  fix must pass post-commit, protected deployment, harness refreeze, fresh preparation, and the
+  repeated run-bound operator path before approval can continue. Earlier hosted run `33363135756`
+  failed closed at the opaque run-bound operator Preview tuple verifier before deployment; the
+  replacement verifier names the exact mismatched field and is covered by focused tests. Harness
+  `5e72844b` had passed post-commit run `33361450533`, Preview/U12 run `33361735965` had passed, and
+  preparation `33362817635` plus the named operator reached the fresh successor Snapshot/build
+  boundary without any self-hosted or local fallback. Earlier candidate `4fe21a47` passed
+  post-commit run `33360796811`,
   protected run `33361171595` deployed the corrected Fashion API/Admin build and refused a duplicate
   durable operator, and fresh U12 readiness run `33361259495` captured the replacement immutable
   baseline. Preparation `33357909651` and the named-operator path had exposed the legacy

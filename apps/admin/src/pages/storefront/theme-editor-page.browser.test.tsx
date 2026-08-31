@@ -79,7 +79,7 @@ describe('ThemeEditorPage browser behavior', () => {
       action: 'https://preview.example.test/__preview/session',
       grant: 'grant_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
       method: 'post',
-      referrerPolicy: 'no-referrer',
+      referrerPolicy: '',
       target: '_blank',
     })
     expect(submitted?.action).not.toContain('grant_')

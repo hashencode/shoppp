@@ -77,11 +77,12 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for the run-manifest byte-digest correction exposed by hosted
-  run `33365596160`, freeze and bind the new exact-main harness identity for candidate `4fe21a47`,
-  and prepare a new immutable run while rejecting `fashion-u8-33365265629` as superseded. The
-  repeated named-operator path must receive its pre-approval Preview from a separate protected
-  GitHub-hosted stage before approval, refresh, Preview, and acceptance continue.
+- **Next action:** Pass post-commit for the authenticated Preview handoff correction exposed after
+  hosted run `33366389096`, deploy that exact-main Fashion Admin through the protected
+  GitHub-hosted/OIDC stage, and prove it preserves only the Admin origin for grant redemption.
+  Freeze and bind the resulting harness identity for candidate `4fe21a47`, prepare a fresh run
+  while rejecting `fashion-u8-33366227014`, and repeat the named-operator path through successful
+  Preview inspection before approval, refresh, Preview, and acceptance continue.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -118,6 +119,14 @@ historical evidence remain unchanged inside the owning plans.
   exposed the exact tuple defect: `run-manifest.json` does not self-contain its own digest, so the
   verifier must hash the downloaded bytes rather than read an absent field. The active plan owns
   that bounded correction, harness refreeze, supersession, and replay.
+  Exact main `b0a8b510` passed post-commit run `33365840233`; preparation `33366227014`, the complete
+  named-operator edit/conflict/successor/validation path, and protected hosted Preview run
+  `33366389096` then passed through isolated deployment plus U12/U13 restoration and cleanup. The
+  real authenticated Preview launch failed closed before approval because the Fashion Admin still
+  returned `Referrer-Policy: no-referrer`, suppressing the origin required by cross-origin grant
+  redemption. The active plan owns the bounded origin-only response-policy correction, protected
+  deployment, harness refreeze, exact supersession, and replay. No approval Snapshot/audit exists,
+  and this application/configuration failure does not authorize runner escalation.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
@@ -145,8 +154,10 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
   Preview, and durable operator activation are closed. The first fresh preparation reached the
   successor Preview boundary but exposed the retired self-hosted hook and missing Admin Preview
   origin. The fixed-main operator-Preview successor has passed post-commit, protected deployment,
-  and fresh U12 readiness; separate harness freeze, Preview/U12, preparation, named-operator
-  Preview/approval, refresh, and hosted acceptance remain.
+  fresh U12 readiness, run-bound evidence verification, and pre-approval Preview deployment. The
+  real browser handoff then exposed the Admin's origin-suppressing referrer policy before approval;
+  protected Admin correction, harness refreeze, fresh preparation, named-operator Preview/approval,
+  refresh, and hosted acceptance remain.
   FS-U8.2 remains in progress.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:

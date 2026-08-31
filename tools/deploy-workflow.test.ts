@@ -40,6 +40,7 @@ const storefrontPlaywrightPath = resolve(
   "../apps/storefront/playwright.config.ts",
 );
 const storefrontPackagePath = resolve(import.meta.dir, "../apps/storefront/package.json");
+const adminHeadersPath = resolve(import.meta.dir, "../apps/admin/public/_headers");
 const fashionStorePlaywrightPath = resolve(
   import.meta.dir,
   "../apps/storefront/playwright.fashion-store.config.ts",
@@ -77,6 +78,15 @@ function expectNoHumanPasswordInputs(contents: string): void {
   expect(contents).not.toMatch(/\bpassword\s*[:=]/i);
   expect(contents).not.toMatch(/\b[A-Za-z0-9_]*password[A-Za-z0-9_]*\s*[:=]/i);
 }
+
+describe("Admin preview handoff security headers", () => {
+  test("preserves only the admin origin for the authenticated cross-origin POST", async () => {
+    const headers = await readFile(adminHeadersPath, "utf8");
+
+    expect(headers).toContain("Referrer-Policy: strict-origin-when-cross-origin");
+    expect(headers).not.toContain("Referrer-Policy: no-referrer");
+  });
+});
 
 describe("Fashion staging operator provisioning workflow", () => {
   test("creates only a protected password-free invitation after OIDC verification", async () => {

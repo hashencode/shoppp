@@ -229,7 +229,6 @@ export const submitPreviewGrant = (
   form.action = grant.redeemUrl
   form.method = 'POST'
   form.target = '_blank'
-  form.setAttribute('referrerpolicy', 'no-referrer')
   form.style.display = 'none'
   const credential = documentRef.createElement('input')
   credential.type = 'hidden'
