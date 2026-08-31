@@ -30,6 +30,10 @@ describe("Fashion U8 frozen harness manifest", () => {
     expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
       "apps/api/src/storefront-experience/build.ts",
     );
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain("apps/admin/public/_headers");
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+    );
   });
 
   test("sorts paths, hashes canonical contents, and detects self or file drift", async () => {

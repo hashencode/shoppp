@@ -77,12 +77,11 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for the authenticated Preview handoff correction exposed after
-  hosted run `33366389096`, deploy that exact-main Fashion Admin through the protected
-  GitHub-hosted/OIDC stage, and prove it preserves only the Admin origin for grant redemption.
-  Freeze and bind the resulting harness identity for candidate `4fe21a47`, prepare a fresh run
-  while rejecting `fashion-u8-33366227014`, and repeat the named-operator path through successful
-  Preview inspection before approval, refresh, Preview, and acceptance continue.
+- **Next action:** Pass post-commit for the frozen-manifest coverage correction exposed by
+  credential-free run `33369722510`, freeze and bind the resulting harness identity for candidate
+  `4fe21a47`, prepare a fresh run while rejecting `fashion-u8-33366227014`, and repeat the
+  named-operator path through successful Preview inspection before approval, refresh, Preview, and
+  acceptance continue.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -127,6 +126,12 @@ historical evidence remain unchanged inside the owning plans.
   redemption. The active plan owns the bounded origin-only response-policy correction, protected
   deployment, harness refreeze, exact supersession, and replay. No approval Snapshot/audit exists,
   and this application/configuration failure does not authorize runner escalation.
+  Exact-main fix `5992f79c` passed post-commit run `33368095458`; protected run `33369474252`
+  deployed the corrected Fashion API/Admin before the existing operator uniqueness constraint
+  stopped duplicate provisioning, and the live Admin now returns the required origin-only policy.
+  Preparation `33369722510` failed credential-free before protected execution because `_headers`
+  and its real-browser regression were not yet frozen by the canonical manifest. The active plan
+  owns that bounded path-set correction, harness refreeze, supersession, and replay.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
@@ -156,8 +161,8 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
   origin. The fixed-main operator-Preview successor has passed post-commit, protected deployment,
   fresh U12 readiness, run-bound evidence verification, and pre-approval Preview deployment. The
   real browser handoff then exposed the Admin's origin-suppressing referrer policy before approval;
-  protected Admin correction, harness refreeze, fresh preparation, named-operator Preview/approval,
-  refresh, and hosted acceptance remain.
+  protected Admin correction is deployed; canonical manifest expansion, harness refreeze, fresh
+  preparation, named-operator Preview/approval, refresh, and hosted acceptance remain.
   FS-U8.2 remains in progress.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:

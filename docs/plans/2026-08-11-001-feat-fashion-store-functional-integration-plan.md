@@ -308,11 +308,9 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit and pass post-commit for the authenticated Preview handoff
-  correction exposed after hosted Preview run `33366389096`, deploy that exact-main Fashion Admin
-  through the protected GitHub-hosted/OIDC stage, and prove its response retains only the Admin
-  origin for the cross-origin grant POST. Freeze and bind the resulting harness identity for
-  candidate `4fe21a47`, then prepare a new immutable operator run while rejecting
+- **Next concrete action:** Commit and pass post-commit for the frozen-manifest coverage correction
+  exposed by credential-free run `33369722510`, then freeze and bind the resulting harness identity
+  for candidate `4fe21a47`. Prepare a new immutable operator run while rejecting
   `fashion-u8-33366227014` as superseded. The named operator must repeat the run-bound path and open
   the authenticated Preview successfully before immutable approval, hosted refresh/Preview, and
   acceptance continue.
@@ -400,6 +398,15 @@ U13 add-only probe do not establish overall completion.
   draft path or one-time grant, and removes the ineffective attribute. No approval Snapshot or
   audit was created. The current run and successor are excluded and must be superseded under a new
   exact-main harness; this application/configuration failure is not runner-capability evidence.
+  Exact-main fix `5992f79c` passed post-commit run `33368095458`. Protected GitHub-hosted/OIDC run
+  `33369474252` built and deployed the corrected Fashion API/Admin, then stopped at the expected
+  durable-operator uniqueness constraint without creating another identity. The live Admin now
+  returns `Referrer-Policy: strict-origin-when-cross-origin`. Preparation run `33369722510` failed
+  in the credential-free job before protected execution or rejection of the old run because
+  standing authority correctly classified `_headers` and the real-browser handoff test as
+  candidate-content drift not yet present in the frozen path set. The bounded correction adds
+  those two security-sensitive files to the canonical manifest. It does not change staging or
+  authorize runner escalation.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
@@ -422,7 +429,12 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after hosted run `33366389096` passed the complete protected
+- **Last reviewed:** 2026-08-31 after exact-main fix `5992f79c` passed post-commit and protected run
+  `33369474252` deployed the corrected Fashion Admin response policy. Preparation `33369722510`
+  then failed closed before protected execution because the canonical harness path set did not yet
+  freeze `_headers` and its real-browser regression. Focused red/green coverage now requires both
+  files; the correction must pass post-commit, harness refreeze, fresh preparation, and the repeated
+  operator path. Earlier hosted run `33366389096` passed the complete protected
   pre-approval deployment and U12/U13 lifecycle, but the real named-operator Preview launch failed
   closed because the Fashion Admin's `no-referrer` response policy suppressed the origin required
   by the grant redemption boundary. No immutable approval occurred. Focused red/green tests cover
