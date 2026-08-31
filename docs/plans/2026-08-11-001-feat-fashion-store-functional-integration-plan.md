@@ -308,13 +308,14 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Pass post-commit for the synchronized execution pointer, then freeze and
-  bind that exact-main harness identity for candidate `4fe21a47`. Prepare a new immutable operator
-  run while superseding approved `fashion-u8-33371168966` to terminal `expired` without clearing its
-  Snapshot, digest, audit, or operator identity. The named operator must repeat the run-bound path
-  and authenticated Preview before approval. Hosted refresh must emit and exit with exact
-  `preview-dispatch.json`; an authorized Fashion staging operator must separately dispatch the
-  fixed-main successor Preview before acceptance continues.
+- **Next concrete action:** Pass post-commit for the explicit acceptance-candidate input correction
+  and this synchronized execution pointer, then bind that exact-main harness identity for candidate
+  `4fe21a47`. Prepare a new immutable operator run while superseding approved
+  `fashion-u8-33377459110` to terminal `expired` without clearing its Snapshot, digest, audit, or
+  operator identity. The named operator must repeat the run-bound path and authenticated Preview
+  before approval. Hosted refresh must emit and exit with exact `preview-dispatch.json`; an
+  authorized Fashion staging operator must separately dispatch the fixed-main successor Preview,
+  then acceptance must pass its terminal p95, cleanup, approval consumption, and append-only ledger.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -441,6 +442,22 @@ U13 add-only probe do not establish overall completion.
   exact Fashion API/Admin deployment before the existing durable-operator uniqueness constraint
   correctly stopped duplicate invitation creation. The supersession endpoint is now deployed;
   refreeze and replay remain outstanding.
+  Harness `d9528464` passed post-commit run `33376764087`. Preparation `33377459110` superseded the
+  earlier approved lineage without clearing its evidence and registered
+  `fashion-u8-33377459110`; the named operator proved missing-reference recovery, a real v20/v21
+  optimistic conflict, successor creation, validation, run-bound private Preview, keyboard return,
+  and immutable approval Snapshot `snapshot-approved-38ac9d6a80d1452b8e07b8244588ba25` while the
+  production theme remained unchanged. Pre-approval Preview `33378000234`, refresh `33379186623`,
+  and the separately authorized successor Preview `33379296099` all passed on fixed
+  `ubuntu-24.04`, protected OIDC, and exact immutable inputs. Acceptance `33380073344` then failed in
+  the credential-free job before protected execution because it read the candidate only from the
+  Environment, which is unavailable before the Environment boundary. Fix `5526cc09` adds an
+  explicit candidate input and rechecks it against both the protected variable and refresh
+  attestation; post-commit `33380249623` reached only the formatting gate. The current change applies
+  repository formatting and synchronizes both plan pointers. Because workflow SHA equals reviewed
+  harness SHA, this correction intentionally requires a fresh preparation/operator lineage; no old
+  refresh may be consumed under the changed harness. This is an authority-contract defect, not
+  runner-capability evidence, and no protected acceptance mutation occurred.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
@@ -463,9 +480,15 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after audit correction `45d6d35d` passed full post-commit run
-  `33376115909`, and protected run `33376555667` deployed the evidence-preserving supersession API
-  before the existing durable operator's uniqueness constraint stopped duplicate provisioning.
+- **Last reviewed:** 2026-08-31 after the exact approved successor reached successful refresh and
+  separately authorized Preview, then acceptance `33380073344` exposed the pre-Environment
+  candidate-variable defect without entering protected execution. Fix `5526cc09` added the explicit
+  candidate input and three-way protected binding; post-commit `33380249623` stopped only on
+  formatting. The current synchronized change formats the regression and requires post-commit,
+  exact-main harness rebinding, and a fresh operator lineage before acceptance is retried. Earlier
+  audit correction `45d6d35d` passed full post-commit run `33376115909`, and protected run
+  `33376555667` deployed the evidence-preserving supersession API before the existing durable
+  operator's uniqueness constraint stopped duplicate provisioning.
   The synchronized plan pointer must pass post-commit, then the exact-main harness must be rebound
   and preparation replayed against approved `fashion-u8-33371168966`. Earlier dispatch fix
   `040dfbf3` passed post-commit run

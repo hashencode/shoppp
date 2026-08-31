@@ -77,12 +77,12 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for this synchronized pointer, refreeze candidate `4fe21a47` on
-  that exact-main harness, and prepare a fresh run while superseding approved
-  `fashion-u8-33371168966` to terminal `expired` without clearing its immutable evidence. Repeat the
-  named-operator path through Preview and approval; refresh must emit and exit with exact
-  `preview-dispatch.json`, after which an authorized Fashion staging operator separately dispatches
-  the fixed-main successor Preview before acceptance continues.
+- **Next action:** Pass post-commit for the explicit acceptance-candidate input correction and this
+  synchronized pointer, refreeze candidate `4fe21a47` on that exact-main harness, and prepare a
+  fresh run while superseding approved `fashion-u8-33377459110` to terminal `expired` without
+  clearing its immutable evidence. Repeat the named-operator path through Preview and approval;
+  refresh must emit and exit with exact `preview-dispatch.json`, after which an authorized Fashion
+  staging operator separately dispatches the fixed-main successor Preview and terminal acceptance.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -154,6 +154,15 @@ historical evidence remain unchanged inside the owning plans.
   build, and exact Fashion API/Admin deployment before the existing durable-operator uniqueness
   constraint stopped duplicate provisioning. The active plan now owns pointer synchronization,
   harness refreeze, supersession, and replay.
+  Harness `d9528464`, preparation `33377459110`, the repeated named-operator conflict/successor/
+  validation path, authenticated Preview and keyboard return, approval Snapshot
+  `snapshot-approved-38ac9d6a80d1452b8e07b8244588ba25`, refresh `33379186623`, and separately
+  authorized Preview `33379296099` all passed. Acceptance `33380073344` failed credential-free
+  before protected execution because its candidate authority incorrectly depended on an
+  Environment-only variable. Fix `5526cc09` makes the candidate an explicit input and verifies it
+  again against the protected variable and refresh attestation; post-commit `33380249623` stopped
+  only at formatting. The active plan owns the formatted exact-main correction, harness refreeze,
+  evidence-preserving supersession, and fresh replay. The failure is not runner-capability evidence.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected

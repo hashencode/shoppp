@@ -1051,9 +1051,7 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(acceptance).toContain("Verify exact successful preparation workflow provenance");
     expect(acceptance).toContain("candidate_sha:");
     expect(acceptance).toContain("FASHION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}");
-    expect(acceptance).not.toContain(
-      "FASHION_CANDIDATE_SHA: ${{ vars.FASHION_U8_CANDIDATE_SHA }}",
-    );
+    expect(acceptance).not.toContain("FASHION_CANDIDATE_SHA: ${{ vars.FASHION_U8_CANDIDATE_SHA }}");
     expect(acceptance).not.toContain("humanEvidenceDigest");
     expect(acceptance).toContain("operator_run_id:");
     expect(acceptance).toContain("operator-run-approved.json");
