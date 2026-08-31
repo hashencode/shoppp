@@ -308,14 +308,13 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit and pass post-commit for the evidence-preserving supersession
-  boundary exposed by preparation `33374982767`, deploy the protected Fashion API change, then
-  freeze and bind the resulting harness identity for candidate `4fe21a47`. Prepare a new immutable
-  operator run while superseding approved `fashion-u8-33371168966` to terminal `expired` without
-  clearing its Snapshot, digest, audit, or operator identity. The named operator must repeat the
-  run-bound path and authenticated Preview before approval. Hosted refresh must emit and exit with
-  exact `preview-dispatch.json`; an authorized Fashion staging operator must separately dispatch
-  the fixed-main successor Preview before acceptance continues.
+- **Next concrete action:** Pass post-commit for the synchronized execution pointer, then freeze and
+  bind that exact-main harness identity for candidate `4fe21a47`. Prepare a new immutable operator
+  run while superseding approved `fashion-u8-33371168966` to terminal `expired` without clearing its
+  Snapshot, digest, audit, or operator identity. The named operator must repeat the run-bound path
+  and authenticated Preview before approval. Hosted refresh must emit and exit with exact
+  `preview-dispatch.json`; an authorized Fashion staging operator must separately dispatch the
+  fixed-main successor Preview before acceptance continues.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -434,6 +433,14 @@ U13 add-only probe do not establish overall completion.
   `rejected` or an approved run to terminal `expired`, requires a different replacement harness,
   retains every approved evidence field, and appends a deterministic supersession audit. This
   staging state-model gap is not runner-capability evidence.
+  Supersession implementation `f5f0caed` failed post-commit run `33375732735` because the new audit
+  used unsupported `actor_type=system`; the same cloud test exposed that the older rejection audit
+  had been silently ignored for the same reason. Exact-main correction `45d6d35d` uses the valid
+  machine actor, asserts both retained audits, and passed full post-commit run `33376115909`.
+  Protected run `33376555667` then passed authority, OIDC, configuration verification, build, and
+  exact Fashion API/Admin deployment before the existing durable-operator uniqueness constraint
+  correctly stopped duplicate invitation creation. The supersession endpoint is now deployed;
+  refreeze and replay remain outstanding.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
@@ -456,7 +463,12 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after exact-main dispatch fix `040dfbf3` passed post-commit run
+- **Last reviewed:** 2026-08-31 after audit correction `45d6d35d` passed full post-commit run
+  `33376115909`, and protected run `33376555667` deployed the evidence-preserving supersession API
+  before the existing durable operator's uniqueness constraint stopped duplicate provisioning.
+  The synchronized plan pointer must pass post-commit, then the exact-main harness must be rebound
+  and preparation replayed against approved `fashion-u8-33371168966`. Earlier dispatch fix
+  `040dfbf3` passed post-commit run
   `33373986699` on attempt 2. Preparation `33374982767` passed authority, OIDC, and U12 provenance,
   then stopped before registration because approved `fashion-u8-33371168966` cannot use the
   awaiting-only reject transition. Focused red/green coverage now requires an evidence-preserving,

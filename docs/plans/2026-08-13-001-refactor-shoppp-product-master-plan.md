@@ -77,13 +77,12 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit and protected Fashion API deployment for the evidence-preserving
-  supersession boundary exposed by preparation `33374982767`, then refreeze candidate `4fe21a47`
-  and prepare a fresh run while superseding approved `fashion-u8-33371168966` to terminal
-  `expired` without clearing its immutable evidence. Repeat the named-operator path through Preview
-  and approval; refresh must emit and exit with exact `preview-dispatch.json`, after which an
-  authorized Fashion staging operator separately dispatches the fixed-main successor Preview
-  before acceptance continues.
+- **Next action:** Pass post-commit for this synchronized pointer, refreeze candidate `4fe21a47` on
+  that exact-main harness, and prepare a fresh run while superseding approved
+  `fashion-u8-33371168966` to terminal `expired` without clearing its immutable evidence. Repeat the
+  named-operator path through Preview and approval; refresh must emit and exit with exact
+  `preview-dispatch.json`, after which an authorized Fashion staging operator separately dispatches
+  the fixed-main successor Preview before acceptance continues.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -149,6 +148,12 @@ historical evidence remain unchanged inside the owning plans.
   transition. The active plan owns a bounded, audited supersession that retains all approved
   evidence while releasing the old harness lineage to terminal `expired`; it then owns protected
   API deployment, refreeze, and replay. This state-model gap does not authorize runner escalation.
+  Supersession implementation `f5f0caed` failed post-commit `33375732735` on an invalid audit actor
+  type; exact-main correction `45d6d35d` fixed both supersession and previously ignored rejection
+  audits and passed post-commit `33376115909`. Protected run `33376555667` passed authority, OIDC,
+  build, and exact Fashion API/Admin deployment before the existing durable-operator uniqueness
+  constraint stopped duplicate provisioning. The active plan now owns pointer synchronization,
+  harness refreeze, supersession, and replay.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
