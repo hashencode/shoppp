@@ -256,6 +256,18 @@ U13 add-only probe do not establish overall completion.
   reconciliation, allowing `checkout.session.expired` to release the active reservation first. The
   bounded correction separates settlement from session closure, commits the paid order before
   closing Checkout, and makes a replay close an already-settled session safely.
+  That correction is integrated as exact main `fb15848c`; fixed-image post-commit run
+  `33356423069` passed. Protected readiness run `33356725518` then passed the complete U12 sequence
+  and retained artifact `9745379093` with SHA-256
+  `7fa0a01313a79ce6695c6871d86d39fdf8fb8578772d875d03f1d1682b6faa24`, Snapshot
+  `snapshot-approved-5b739f352abb1137cb11d2fa3b30eecd`, and build
+  `preview-build-2abb1137cb11d2fa3b30eecd-f1bb77ee6f824f48-1`. Preview run
+  `33356841096` passed exact authority, protected OIDC/provenance, immutable deployment, U13, the
+  no-interception Stripe purchase, paid-order retention, baseline cleanup, fresh-session sellable
+  postcondition, and the complete U12 verdict. Artifact `9745596101` retains the non-secret Preview
+  evidence. This closes the fresh U12/Preview prerequisite only; U8 still requires a new harness
+  freeze, `awaiting_operator` preparation, named-operator path, hosted refresh, Preview, and
+  acceptance.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -276,9 +288,12 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Refresh exact-main U12 readiness and Preview, then create a new U8
-  preparation because run `fashion-u8-33302142836` expired; preparation must again exit at
-  `awaiting_operator` before the verified named operator completes only the new run-bound path.
+- **Next concrete action:** Freeze a reviewed U8 harness successor over candidate
+  `fb15848cdb82322bc2c1c58126162d3bc8f7fa2d`, bind its exact SHA and canonical manifest digest to
+  the repository and protected Environment, then create a new U8 preparation from readiness run
+  `33356725518`. Run `fashion-u8-33302142836` remains expired and cannot be reused; the new
+  preparation must exit at `awaiting_operator` before the verified named operator completes only
+  the new run-bound path.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -300,13 +315,12 @@ U13 add-only probe do not establish overall completion.
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
 - **Blocker:** Cloud successor, protected immutable-ID OIDC authority, acceptance-token rotation,
-  fresh U12 readiness run `33300115340`, complete Preview/U12 run `33300205798`, and hosted U8
-  preparation run `33302142836` are proven, but that operator boundary expired at
-  `2026-08-30T20:39:55.000Z` without action and cannot be refreshed or accepted. The exposed token
-  is invalidated and the compromised artifact is deleted. The durable Fashion operator platform
-  prerequisite is closed by protected read-only verification run `33354502008`; the remaining
-  blocker is generating a fresh exact-main U12/Preview baseline and U8 preparation before the
-  named operator can execute the new run-bound path. This is not a new U8 account;
+  durable operator verification run `33354502008`, fresh U12 readiness run `33356725518`, and
+  complete Preview/U12 run `33356841096` are proven. The prior operator boundary expired at
+  `2026-08-30T20:39:55.000Z` without action and cannot be refreshed or accepted; a new reviewed U8
+  harness authority and preparation must be issued before the named operator can execute the new
+  run-bound path. The exposed token is invalidated and the compromised artifact is deleted. This
+  is not a new U8 account;
   creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that

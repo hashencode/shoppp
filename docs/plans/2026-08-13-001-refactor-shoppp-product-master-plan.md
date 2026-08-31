@@ -77,9 +77,10 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Refresh exact-main U12 readiness/Preview and create a new U8 preparation; the
-  expired operator run cannot be reused. Preparation must exit at `awaiting_operator` before the
-  verified named operator completes only the new run-bound path.
+- **Next action:** Freeze the reviewed U8 harness successor over proven candidate `fb15848c`, bind
+  its exact SHA and canonical digest, and create a new U8 preparation from successful readiness run
+  `33356725518`; the expired operator run cannot be reused. Preparation must exit at
+  `awaiting_operator` before the verified named operator completes only the new run-bound path.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -87,14 +88,16 @@ historical evidence remain unchanged inside the owning plans.
   password-free invitation delivery are complete. Exact main `a9b7a12a` passed post-commit run
   `33354226588`, and protected read-only GitHub-hosted run `33354502008` verified the enabled,
   non-expiring durable identity, protected Administrator role, accepted invitation, and matching
-  successful acceptance audit. The remaining blocker is fresh U12, Preview, U8 preparation,
-  named-operator action, refresh, and hosted acceptance.
+  successful acceptance audit. Fresh U12 readiness run `33356725518` and complete Preview/U12 run
+  `33356841096` now pass on exact candidate `fb15848c`; the remaining blocker is a reviewed harness
+  refreeze, fresh U8 preparation, named-operator action, refresh, and hosted acceptance.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
   readiness run `33355358825` passed, while Preview `33355467693` restored its baseline but exposed
   a test-settlement/session-expiry webhook race before order creation; the active plan owns the
-  bounded post-order session-close correction and fresh exact-main retry.
+  bounded post-order session-close correction. Exact main `fb15848c` passed post-commit run
+  `33356423069`; the corrected readiness and Preview runs above prove the fresh baseline.
   No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
   or production mutation is authorized. Detailed run and artifact evidence remains in the active
   feature plan and progress records.
