@@ -308,7 +308,11 @@ export async function rejectFashionStagingOperatorRun(
   assertIdentifier(runId, "runId");
   const normalizedReason = reason.trim();
   if (normalizedReason.length < 3 || normalizedReason.length > 500) {
-    throw new ApiError(422, "fashion_u8_operator_rejection_invalid", "Rejection reason is invalid.");
+    throw new ApiError(
+      422,
+      "fashion_u8_operator_rejection_invalid",
+      "Rejection reason is invalid.",
+    );
   }
   await expireActiveRuns(db, now);
   const at = now.toISOString();
