@@ -69,7 +69,7 @@ export async function verifyFashionU8StandingAuthority(
   return verifyFashionU8HarnessManifest(manifest, dependencies.read);
 }
 
-if (import.meta.main) {
+async function runCli(): Promise<void> {
   const manifestPath = process.argv[2];
   if (!manifestPath)
     throw new Error("Use: bun tools/verify-fashion-u8-standing-authority.ts <manifest.json>");
@@ -92,18 +92,23 @@ if (import.meta.main) {
       execute("git", ["diff", "--name-only", `${manifest.candidateSha}..${manifest.harnessSha}`], {
         cwd: root,
       }),
-      execute("git", ["status", "--porcelain", "--", ...FASHION_U8_SECURITY_SENSITIVE_PATHS], {
-        cwd: root,
-      }),
+      execute(
+        "git",
+        [
+          "diff",
+          "--name-only",
+          "--no-ext-diff",
+          "HEAD",
+          "--",
+          ...FASHION_U8_SECURITY_SENSITIVE_PATHS,
+        ],
+        { cwd: root },
+      ),
     ]);
   const verified = await verifyFashionU8StandingAuthority(manifest, {
     candidateIsAncestor,
     changedPaths: changed.trim().split("\n").filter(Boolean),
-    dirtyPaths: dirty
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => line.slice(3)),
+    dirtyPaths: dirty.trim().split("\n").filter(Boolean),
     headSha: head.trim(),
     read: (path) => readFile(resolve(root, path)),
   });
@@ -115,4 +120,14 @@ if (import.meta.main) {
       passed: true,
     })}\n`,
   );
+}
+
+if (import.meta.main) {
+  try {
+    await runCli();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Fashion U8 standing authority failed: ${message}\n`);
+    process.exitCode = 1;
+  }
 }

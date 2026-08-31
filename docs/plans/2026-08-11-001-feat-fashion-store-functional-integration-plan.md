@@ -370,6 +370,11 @@ U13 add-only probe do not establish overall completion.
   reports the exact operator/Snapshot/build field while retaining every equality check. The
   current run is excluded from acceptance and must be superseded under the new harness; this is an
   acceptance-harness defect, not runner-capability evidence, and does not authorize escalation.
+  Replacement preparation run `33364501176` then passed cloud authority and exact manifest digest
+  but failed closed in the credential-free standing-authority CLI before protected execution; no
+  operator run was rejected or registered. A debug rerun reproduced the same silent exit. The CLI
+  now uses an exact tracked-file diff and preserves a concise failure reason on stderr so the next
+  preflight cannot collapse another authority mismatch into an unexplained exit code.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run

@@ -111,6 +111,10 @@ historical evidence remain unchanged inside the owning plans.
   its debug rerun reproduced the same non-mutating failure without a field name. The active plan
   now owns a frozen field-specific verifier, harness refreeze, exact supersession, and replay. This
   is not runner-capability evidence and does not authorize runner escalation.
+  Replacement preparation run `33364501176` also failed before protected execution after cloud
+  authority and manifest verification, because the standing-authority CLI returned a silent exit;
+  no old run was rejected and no new run was registered. The active plan now also owns the bounded
+  deterministic dirty-file probe and retained CLI failure reason before harness refreeze.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
