@@ -72,6 +72,8 @@ jobs:
           bun test tools/bootstrap-admin.test.ts tools/verify-environment-isolation.test.ts
           bun run verify:environment
       - name: Build the Fashion Admin artifact
+        env:
+          PUBLIC_PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}
         run: bun run --cwd apps/admin build
       - name: Deploy dedicated Fashion API and Admin
         env:

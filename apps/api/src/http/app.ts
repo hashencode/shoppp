@@ -190,6 +190,7 @@ import {
   createFashionStagingOperatorRun,
   getFashionStagingOperatorRun,
   getFashionStagingOperatorRunForDraft,
+  rejectFashionStagingOperatorRun,
 } from "../testing/fashion-staging-operator";
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
@@ -337,6 +338,9 @@ const fashionOperatorRunConsumeSchema = z
     approvalAuditId: stableIdentifierSchema,
     successorSnapshotId: stableIdentifierSchema,
   })
+  .strict();
+const fashionOperatorRunRejectSchema = z
+  .object({ reason: z.string().trim().min(3).max(500) })
   .strict();
 
 function validatedQuery<Schema extends z.ZodType>(
@@ -564,6 +568,17 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/internal/testing/fashion-staging/operator-runs/:id", async (context) => {
     requireFashionAcceptanceCredential(context);
     const result = await getFashionStagingOperatorRun(context.env.DB, context.req.param("id"));
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/internal/testing/fashion-staging/operator-runs/:id/reject", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionOperatorRunRejectSchema);
+    const result = await rejectFashionStagingOperatorRun(
+      context.env.DB,
+      context.req.param("id"),
+      input.reason,
+    );
     context.header("Cache-Control", "private, no-store");
     return context.json({ data: result, meta: { requestId: context.get("requestId") } });
   });
@@ -1361,10 +1376,26 @@ export function createApp(options: CreateAppOptions = {}) {
         input.catalogReleaseId,
         options.storefrontExperienceServiceOptions,
       );
+      const operatorRun = await getFashionStagingOperatorRunForDraft(
+        context.env.DB,
+        context.req.param("id"),
+      );
+      if (
+        operatorRun?.status === "awaiting_operator" &&
+        input.catalogReleaseId !== operatorRun.catalogReleaseId
+      ) {
+        throw new ApiError(
+          409,
+          "fashion_u8_operator_catalog_release_mismatch",
+          "The run-bound preview must use the Catalog Release frozen by the Fashion U8 operator run.",
+        );
+      }
       const build = await triggerStorefrontExperienceBuild(
         context,
         snapshot.id,
-        options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env),
+        operatorRun?.status === "awaiting_operator"
+          ? manualFashionPreparationBuildTrigger(context.env)
+          : (options.experienceBuildTrigger ?? defaultExperienceBuildTrigger(context.env)),
         input.catalogReleaseId,
       );
       return context.json(

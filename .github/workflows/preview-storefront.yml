@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       snapshot_id:
-        description: Approved immutable experience snapshot ID
+        description: Exact immutable experience snapshot ID
         required: true
         type: string
       readiness_commit_sha:
@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       candidate_sha:
-        description: Exact U8 storefront candidate commit; required only for a refresh deployment
+        description: Exact U8 storefront candidate commit; required for operator or refresh deployment
         required: false
         type: string
       readiness_run_id:
@@ -44,7 +44,19 @@ on:
         required: false
         type: string
       harness_sha:
-        description: Exact reviewed U8 harness commit used for refresh deployment
+        description: Exact reviewed U8 harness commit used for operator or refresh deployment
+        required: false
+        type: string
+      operator_run_id:
+        description: Awaiting-operator run whose exact preview build is being deployed
+        required: false
+        type: string
+      preparation_run_id:
+        description: U8 preparation run containing the awaiting-operator attestation
+        required: false
+        type: string
+      preparation_artifact_name:
+        description: Exact U8 awaiting-operator artifact name
         required: false
         type: string
 
@@ -152,6 +164,9 @@ jobs:
           REFRESH_ARTIFACT_NAME: ${{ inputs.refresh_artifact_name }}
           REFRESH_DIGEST: ${{ inputs.refresh_digest }}
           HARNESS_SHA: ${{ inputs.harness_sha }}
+          OPERATOR_RUN_ID: ${{ inputs.operator_run_id }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
+          PREPARATION_ARTIFACT_NAME: ${{ inputs.preparation_artifact_name }}
         run: |
           [[ "$READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "$READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
@@ -159,6 +174,7 @@ jobs:
           [[ "$SNAPSHOT_ID" =~ ^[a-z][a-z0-9-]{2,99}$ ]]
           [[ "$BUILD_ID" =~ ^preview-build-[a-z0-9-]{3,100}-[1-9][0-9]*$ ]]
           test -z "$RECOVERY_RUN_ID" || [[ "$RECOVERY_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ ]]
+          test -z "$REFRESH_RUN_ID" || test -z "$OPERATOR_RUN_ID"
           if test -n "$REFRESH_RUN_ID"; then
             [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
             [[ "$REFRESH_RUN_ID" =~ ^[1-9][0-9]*$ ]]
@@ -168,11 +184,27 @@ jobs:
             test "$HARNESS_SHA" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
             test "$CANDIDATE_SHA" = "${{ vars.FASHION_U8_CANDIDATE_SHA }}"
             test -z "$RECOVERY_RUN_ID"
+            test -z "$PREPARATION_RUN_ID"
+            test -z "$PREPARATION_ARTIFACT_NAME"
+          elif test -n "$OPERATOR_RUN_ID"; then
+            [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+            [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
+            [[ "$OPERATOR_RUN_ID" =~ ^fashion-u8-[A-Za-z0-9._:-]{1,180}$ ]]
+            [[ "$PREPARATION_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            [[ "$PREPARATION_ARTIFACT_NAME" =~ ^fashion-u8-awaiting-operator-[1-9][0-9]*-[1-9][0-9]*$ ]]
+            test "$HARNESS_SHA" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
+            test "$CANDIDATE_SHA" = "${{ vars.FASHION_U8_CANDIDATE_SHA }}"
+            test -z "$RECOVERY_RUN_ID"
+            test -z "$REFRESH_ARTIFACT_NAME"
+            test -z "$REFRESH_DIGEST"
           else
             test -z "$CANDIDATE_SHA"
+            test -z "$OPERATOR_RUN_ID"
             test -z "$REFRESH_ARTIFACT_NAME"
             test -z "$REFRESH_DIGEST"
             test -z "$HARNESS_SHA"
+            test -z "$PREPARATION_RUN_ID"
+            test -z "$PREPARATION_ARTIFACT_NAME"
           fi
       - name: Verify exact successful evidence workflow provenance
         env:
@@ -183,6 +215,9 @@ jobs:
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
           REFRESH_ARTIFACT_NAME: ${{ inputs.refresh_artifact_name }}
           REFRESH_RUN_ID: ${{ inputs.refresh_run_id }}
+          OPERATOR_RUN_ID: ${{ inputs.operator_run_id }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
+          PREPARATION_ARTIFACT_NAME: ${{ inputs.preparation_artifact_name }}
         run: |
           mkdir -p artifacts/provenance
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$READINESS_RUN_ID" > artifacts/provenance/readiness-run.json
@@ -200,6 +235,15 @@ jobs:
                .status == "completed" and .conclusion == "success" and
                $artifact == ("fashion-u8-refresh-" + (.id | tostring) + "-" + (.run_attempt | tostring))' \
               artifacts/provenance/refresh-run.json >/dev/null
+          elif test -n "$OPERATOR_RUN_ID"; then
+            git merge-base --is-ancestor "$READINESS_COMMIT_SHA" "$CANDIDATE_SHA"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREPARATION_RUN_ID" > artifacts/provenance/preparation-run.json
+            jq --exit-status --arg harness "$HARNESS_SHA" --arg artifact "$PREPARATION_ARTIFACT_NAME" \
+              '.path == ".github/workflows/prepare-fashion-staging-u8.yml" and
+               .event == "workflow_dispatch" and .head_sha == $harness and
+               .status == "completed" and .conclusion == "success" and
+               $artifact == ("fashion-u8-awaiting-operator-" + (.id | tostring) + "-" + (.run_attempt | tostring))' \
+              artifacts/provenance/preparation-run.json >/dev/null
           fi
       - name: Download the governed Fashion readiness snapshot
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -216,16 +260,25 @@ jobs:
           path: artifacts/refresh
           github-token: ${{ github.token }}
           run-id: ${{ inputs.refresh_run_id }}
+      - name: Download exact U8 awaiting-operator attestation
+        if: ${{ inputs.operator_run_id != '' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ inputs.preparation_artifact_name }}
+          path: artifacts/operator
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.preparation_run_id }}
       - name: Verify fresh pre-deployment readiness before any mutation
         env:
           READINESS_COMMIT_SHA: ${{ inputs.readiness_commit_sha }}
           READINESS_DIGEST: ${{ inputs.readiness_digest }}
           READINESS_RUN_ID: ${{ inputs.readiness_run_id }}
           REFRESH_RUN_ID: ${{ inputs.refresh_run_id }}
+          OPERATOR_RUN_ID: ${{ inputs.operator_run_id }}
         run: |
           ACTUAL_READINESS_DIGEST="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/readiness/readiness.json)"
           test "$ACTUAL_READINESS_DIGEST" = "$READINESS_DIGEST"
-          if test -z "$REFRESH_RUN_ID"; then
+          if test -z "$REFRESH_RUN_ID" && test -z "$OPERATOR_RUN_ID"; then
             bun tools/verify-fashion-staging-readiness.ts \
               --snapshot=artifacts/readiness/readiness.json > artifacts/readiness/verified.json
             jq --exit-status \
@@ -300,6 +353,75 @@ jobs:
              .data.approvalAuditId == $attestation[0].successorAuditId and
              .data.operatorIdentityId == $attestation[0].operatorIdentityId' \
             artifacts/refresh/operator-run-current.json >/dev/null
+      - name: Verify run-bound operator preview before deployment mutation
+        if: ${{ inputs.operator_run_id != '' }}
+        env:
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U12_ADMIN_SERVICE_TOKEN }}
+          FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
+          HARNESS_SHA: ${{ inputs.harness_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          OPERATOR_RUN_ID: ${{ inputs.operator_run_id }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          FASHION_U8_CANDIDATE_SHA="$CANDIDATE_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
+            bun tools/create-fashion-u8-harness-manifest.ts \
+            > artifacts/operator/current-harness-manifest.json
+          test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/operator/current-harness-manifest.json)" = \
+            "${{ vars.FASHION_U8_HARNESS_MANIFEST_DIGEST }}"
+          bun tools/verify-fashion-u8-standing-authority.ts \
+            artifacts/operator/current-harness-manifest.json >/dev/null
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $FASHION_U12_ACCEPTANCE_TOKEN" \
+            "$PREVIEW_API_URL/internal/testing/fashion-staging/operator-runs/$OPERATOR_RUN_ID" \
+            > artifacts/operator/operator-run-preview.json
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$PREVIEW_API_URL/admin/storefront-experiences/snapshots/$SNAPSHOT_ID" \
+            > artifacts/operator/preview-snapshot.json
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$PREVIEW_API_URL/admin/storefront-experiences/builds/$BUILD_ID" \
+            > artifacts/operator/preview-build.json
+          jq --exit-status \
+            --slurpfile prepared artifacts/operator/operator-run-response.json \
+            --slurpfile manifest artifacts/operator/run-manifest.json \
+            --arg candidate "$CANDIDATE_SHA" \
+            --arg harness "$HARNESS_SHA" \
+            --arg operator "$OPERATOR_RUN_ID" \
+            --arg preparation "$PREPARATION_RUN_ID" \
+            '.data.status == "awaiting_operator" and .data.runId == $operator and
+             .data.candidateSha == $candidate and .data.harnessSha == $harness and
+             .data.workflowRunId == $preparation and
+             .data.runManifestDigest == $manifest[0].runManifestDigest and
+             .data.harnessManifestDigest == $manifest[0].harnessManifestDigest and
+             .data.contractTestDigest == $manifest[0].contractTestDigest and
+             .data.u12ReadinessDigest == $manifest[0].u12ReadinessDigest and
+             .data.catalogReleaseId == $manifest[0].catalogReleaseId and
+             .data.runId == $prepared[0].data.runId and
+             .data.candidateSha == $prepared[0].data.candidateSha and
+             .data.harnessSha == $prepared[0].data.harnessSha and
+             .data.workflowRunId == $prepared[0].data.workflowRunId and
+             .data.runManifestDigest == $prepared[0].data.runManifestDigest and
+             .data.harnessManifestDigest == $prepared[0].data.harnessManifestDigest and
+             .data.contractTestDigest == $prepared[0].data.contractTestDigest and
+             .data.u12ReadinessDigest == $prepared[0].data.u12ReadinessDigest and
+             .data.catalogReleaseId == $prepared[0].data.catalogReleaseId and
+             .data.sourceDraftId == $prepared[0].data.sourceDraftId and
+             (.data.workingDraftId | type == "string" and length > 0)' \
+            artifacts/operator/operator-run-preview.json >/dev/null
+          jq --exit-status --slurpfile run artifacts/operator/operator-run-preview.json \
+            --arg snapshot "$SNAPSHOT_ID" \
+            '.data.id == $snapshot and .data.kind == "preview" and
+             .data.sourceDraftId == $run[0].data.workingDraftId and
+             .data.sourceDraftVersion == .data.snapshot.version' \
+            artifacts/operator/preview-snapshot.json >/dev/null
+          jq --exit-status --slurpfile run artifacts/operator/operator-run-preview.json \
+            --arg build "$BUILD_ID" --arg snapshot "$SNAPSHOT_ID" \
+            '.data.id == $build and .data.snapshotId == $snapshot and .data.status == "building" and
+             .data.inputIdentity.experienceSnapshotId == $snapshot and
+             .data.inputIdentity.catalogReleaseId == $run[0].data.catalogReleaseId' \
+            artifacts/operator/preview-build.json >/dev/null
       - run: bun install --frozen-lockfile
       - name: Validate fixed environment inputs
         id: validate
@@ -363,6 +485,12 @@ jobs:
                .inputIdentity.platformContractVersion == $attestation[0].platformContractVersion and
                .inputIdentity.themeId == $attestation[0].themeId and
                .inputIdentity.themeVersion == $attestation[0].themeVersion' \
+               "$STOREFRONT_EXPERIENCE_FILE" >/dev/null
+          elif test -n "${{ inputs.operator_run_id }}"; then
+            jq --exit-status --slurpfile run artifacts/operator/operator-run-preview.json \
+              '.snapshot.kind == "preview" and
+               .snapshot.id == .inputIdentity.experienceSnapshotId and
+               .catalogRelease.releaseId == $run[0].data.catalogReleaseId' \
               "$STOREFRONT_EXPERIENCE_FILE" >/dev/null
           fi
           CATALOG_RELEASE_ID="$(jq -er '.catalogRelease.releaseId' "$STOREFRONT_EXPERIENCE_FILE")"
@@ -488,7 +616,7 @@ jobs:
           printf 'digest=%s\n' "$(jq -er '.data.artifactDigest' "$REPORT_BODY")" >> "$GITHUB_OUTPUT"
           printf 'prefix=%s\n' "$(jq -er '.data.artifactPrefix' "$REPORT_BODY")" >> "$GITHUB_OUTPUT"
       - name: Reconcile an explicitly selected abandoned Fashion U12 run
-        if: ${{ inputs.refresh_run_id == '' && inputs.recovery_run_id != '' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && inputs.recovery_run_id != '' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -500,7 +628,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=reconcile > artifacts/preview/u12-recovery.json
       - name: Acquire Fashion U12 acceptance lock and inventory baseline
         id: u12-acquire
-        if: ${{ inputs.refresh_run_id == '' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -511,7 +639,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-acquire.json
       - name: Run deployed Fashion U13 acceptance
         id: u13
-        if: ${{ inputs.refresh_run_id == '' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' }}
         continue-on-error: true
         env:
           FASHION_U13_CATALOG_RELEASE_ID: ${{ steps.build-input.outputs.catalog_release_id }}
@@ -523,7 +651,7 @@ jobs:
           FASHION_U13_THEME_VERSION: ${{ steps.build-input.outputs.theme_version }}
         run: bun tools/run-fashion-staging-u13.ts > artifacts/preview/u13-report.json
       - name: Register the U13 cart with the U12 cleanup owner
-        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u13.outcome == 'success' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -536,11 +664,11 @@ jobs:
           export FASHION_U12_RESOURCE_ID="$(jq -er '.cartId' artifacts/preview/u13-report.json)"
           bun tools/run-fashion-staging-u12.ts --action=register
       - name: Install Chromium for the no-interception Fashion journey
-        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u13.outcome == 'success' }}
         run: bunx playwright install --with-deps chromium
       - name: Run no-interception Fashion archetype and sandbox purchase journey
         id: u12-journey
-        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u13.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -551,7 +679,7 @@ jobs:
           STOREFRONT_E2E_BASE_URL: ${{ vars.PREVIEW_ORIGIN }}
         run: bunx playwright test --config e2e/playwright.config.ts --project=fashion-provider-purchase --grep="no-interception archetype"
       - name: Preserve the original Fashion journey failure
-        if: ${{ inputs.refresh_run_id == '' && (steps.u13.outcome == 'failure' || steps.u12-journey.outcome == 'failure') }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && (steps.u13.outcome == 'failure' || steps.u12-journey.outcome == 'failure') }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -563,7 +691,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=failure
       - name: Restore the Fashion U12 baseline and retain paid-order evidence
         id: u12-cleanup
-        if: ${{ always() && inputs.refresh_run_id == '' && steps.u12-acquire.outcome == 'success' }}
+        if: ${{ always() && inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u12-acquire.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -575,7 +703,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-cleanup.json
       - name: Acquire an isolated fresh-session postcondition run
         id: u12-post-acquire
-        if: ${{ inputs.refresh_run_id == '' && steps.u13.outcome == 'success' && steps.u12-journey.outcome == 'success' && steps.u12-cleanup.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u13.outcome == 'success' && steps.u12-journey.outcome == 'success' && steps.u12-cleanup.outcome == 'success' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -587,7 +715,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=acquire > artifacts/preview/u12-post-acquire.json
       - name: Prove the fresh-session sellable postcondition
         id: u12-postcondition
-        if: ${{ inputs.refresh_run_id == '' && steps.u12-post-acquire.outcome == 'success' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u12-post-acquire.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -599,7 +727,7 @@ jobs:
           STOREFRONT_E2E_BASE_URL: ${{ vars.PREVIEW_ORIGIN }}
         run: bunx playwright test --config e2e/playwright.config.ts --project=fashion-provider-purchase --grep="fresh-session sellable"
       - name: Preserve a failed fresh-session postcondition
-        if: ${{ inputs.refresh_run_id == '' && steps.u12-postcondition.outcome == 'failure' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u12-postcondition.outcome == 'failure' }}
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
           FASHION_U12_ARTIFACT_DIGEST: ${{ steps.report.outputs.digest }}
@@ -612,7 +740,7 @@ jobs:
         run: bun tools/run-fashion-staging-u12.ts --action=failure
       - name: Clean the fresh-session postcondition run
         id: u12-post-cleanup
-        if: ${{ always() && inputs.refresh_run_id == '' && steps.u12-post-acquire.outcome == 'success' }}
+        if: ${{ always() && inputs.refresh_run_id == '' && inputs.operator_run_id == '' && steps.u12-post-acquire.outcome == 'success' }}
         continue-on-error: true
         env:
           FASHION_U12_ACCEPTANCE_TOKEN: ${{ secrets.FASHION_U12_ACCEPTANCE_TOKEN }}
@@ -624,7 +752,7 @@ jobs:
           FASHION_U12_SNAPSHOT_ID: ${{ inputs.snapshot_id }}
         run: bun tools/run-fashion-staging-u12.ts --action=cleanup > artifacts/preview/u12-post-cleanup.json
       - name: Enforce the complete Fashion U12 verdict
-        if: ${{ inputs.refresh_run_id == '' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' }}
         run: |
           test "${{ steps.u13.outcome }}" = success
           test "${{ steps.u12-journey.outcome }}" = success
@@ -632,7 +760,7 @@ jobs:
           test "${{ steps.u12-postcondition.outcome }}" = success
           test "${{ steps.u12-post-cleanup.outcome }}" = success
       - name: Report Fashion preview accepted
-        if: ${{ inputs.refresh_run_id == '' }}
+        if: ${{ inputs.refresh_run_id == '' && inputs.operator_run_id == '' }}
         run: |
           jq -e '.passed == true and .runId == "${{ github.run_id }}-${{ github.run_attempt }}"' \
             artifacts/preview/u13-report.json >/dev/null
@@ -650,6 +778,19 @@ jobs:
             "$RUNNER_TEMP/preview-build-report.json" >/dev/null
           cp artifacts/refresh/refresh-attestation.json artifacts/preview/refresh-attestation.json
           printf 'U8 successor %s deployed from verified refresh attestation.\n' "$BUILD_ID" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve exact run-bound operator preview evidence
+        if: ${{ inputs.operator_run_id != '' }}
+        run: |
+          jq --exit-status --slurpfile run artifacts/operator/operator-run-preview.json \
+            --arg build "$BUILD_ID" --arg snapshot "$SNAPSHOT_ID" \
+            '.data.id == $build and .data.snapshotId == $snapshot and
+             .data.artifactDigest == "${{ steps.report.outputs.digest }}" and
+             .data.status == "deployed" and
+             .data.inputIdentity.catalogReleaseId == $run[0].data.catalogReleaseId' \
+            "$RUNNER_TEMP/preview-build-report.json" >/dev/null
+          cp artifacts/operator/operator-run-preview.json artifacts/preview/operator-run-preview.json
+          printf 'Run-bound operator preview %s deployed on GitHub-hosted infrastructure.\n' \
+            "$BUILD_ID" >> "$GITHUB_STEP_SUMMARY"
       - name: Report a failed preview build
         if: failure() && steps.validate.outcome == 'success' && steps.report.outcome != 'success'
         env:

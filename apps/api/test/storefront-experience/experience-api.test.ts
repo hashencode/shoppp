@@ -1634,6 +1634,28 @@ describe("storefront experience API", () => {
       },
       operatorNow,
     );
+    const preview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/preview`,
+        {
+          catalogReleaseId,
+          expectedVersion: 1,
+          reason: "Build the exact run-bound private preview on the hosted executor",
+        },
+        "theme-run-bound-preview-create-0001",
+      ),
+      { ...env, RESOURCE_NAMESPACE: "shoppp-fashion-staging" },
+    );
+    expect(preview.status).toBe(202);
+    expect(await preview.json()).toMatchObject({
+      data: {
+        build: {
+          correlationId: expect.stringMatching(/^manual-fashion-preparation-/),
+          status: "building",
+        },
+        snapshot: { kind: "preview", sourceDraftId: draftId, sourceDraftVersion: 1 },
+      },
+    });
     const mismatched = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/drafts/${draftId}/approve`,

@@ -43,6 +43,9 @@ on:
       preparation_artifact_name:
         description: Exact preparation artifact; required for refresh
         required: false
+      superseded_operator_run_id:
+        description: Failed awaiting-operator run to reject before a fresh preparation
+        required: false
 
 concurrency:
   group: fashion-staging-u8-${{ inputs.operation }}
@@ -112,6 +115,7 @@ jobs:
       U12_READINESS_DIGEST: ${{ inputs.u12_readiness_digest }}
       OPERATOR_RUN_ID: fashion-u8-${{ github.run_id }}
       PREPARATION_ARTIFACT_NAME: fashion-u8-awaiting-operator-${{ github.run_id }}-${{ github.run_attempt }}
+      SUPERSEDED_OPERATOR_RUN_ID: ${{ inputs.superseded_operator_run_id }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -137,6 +141,8 @@ jobs:
         run: |
           test -n "$SOURCE_DRAFT_ID"
           test -n "$CATALOG_RELEASE_ID"
+          test -z "$SUPERSEDED_OPERATOR_RUN_ID" || \
+            [[ "$SUPERSEDED_OPERATOR_RUN_ID" =~ ^fashion-u8-[A-Za-z0-9._:-]{1,180}$ ]]
           [[ "$U12_READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           mkdir -p artifacts/fashion-u8/u12
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$U12_READINESS_RUN_ID" > artifacts/fashion-u8/u12-run.json
@@ -209,6 +215,18 @@ jobs:
               workflowRunAttempt:($workflowRunAttempt|tonumber),
               runManifestDigest:$runManifestDigest}' artifacts/fashion-u8/run-manifest.json \
             > artifacts/fashion-u8/operator-run-request.json
+          if test -n "$SUPERSEDED_OPERATOR_RUN_ID"; then
+            curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+              --request POST --header "Authorization: Bearer $FASHION_U12_ACCEPTANCE_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{"reason":"Superseded after the legacy preview hook failed closed; use the reviewed GitHub-hosted successor."}' \
+              "$API_ORIGIN/internal/testing/fashion-staging/operator-runs/$SUPERSEDED_OPERATOR_RUN_ID/reject" \
+              > artifacts/fashion-u8/superseded-operator-run.json
+            jq --exit-status --arg run "$SUPERSEDED_OPERATOR_RUN_ID" \
+              '.data.runId == $run and .data.status == "rejected" and
+               .data.successorSnapshotId == null and .data.approvalAuditId == null' \
+              artifacts/fashion-u8/superseded-operator-run.json >/dev/null
+          fi
           if ! curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
               --request POST --header "Authorization: Bearer $FASHION_U12_ACCEPTANCE_TOKEN" \
               --header "Content-Type: application/json" \
@@ -236,6 +254,7 @@ jobs:
             artifacts/fashion-u8/harness-manifest.json
             artifacts/fashion-u8/operator-run-request.json
             artifacts/fashion-u8/operator-run-response.json
+            artifacts/fashion-u8/superseded-operator-run.json
             artifacts/fashion-u8/u12-deployed-build.json
           if-no-files-found: error
           retention-days: 30

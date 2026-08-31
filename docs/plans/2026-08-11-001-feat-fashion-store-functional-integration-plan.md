@@ -267,7 +267,27 @@ U13 add-only probe do not establish overall completion.
   postcondition, and the complete U12 verdict. Artifact `9745596101` retains the non-secret Preview
   evidence. This closes the fresh U12/Preview prerequisite only; U8 still requires a new harness
   freeze, `awaiting_operator` preparation, named-operator path, hosted refresh, Preview, and
-  acceptance.
+  acceptance. Reviewed harness `5d5406451e8b390f44ad0c1c6f86131ff21df84e` then passed
+  post-commit run `33357676512`; canonical manifest digest
+  `188bb2b573a205b9fa2704517d9089dc5c47335f12c86971d72b63d862af441a` was bound to the
+  repository and protected Environment. Preparation run `33357909651` passed credential-free
+  authority, protected OIDC/provenance, exact deployed-build readback, server registration, and
+  artifact publication before exiting in 17 seconds with run `fashion-u8-33357909651` at
+  `awaiting_operator`. The named operator then proved missing-reference failure and recovery,
+  ordinary saves, a real v5/v6 two-context optimistic conflict, successor
+  `draft-92e9f496-8248-4757-a524-d928b43af73b`, and valid successor validation
+  `validation-741510843bfc28dfd58f9983d477600cfefec8d0`. Save-and-preview created immutable Preview
+  Snapshot `snapshot-preview-4d02077ca0a6a39b7e13eefa33d82614`, but build
+  `preview-build-a0a6a39b7e13eefa33d82614-f1bb77ee6f824f48-1` failed at
+  `themes.preview.build.start`. The failure exposed two remaining migration gaps: the run-bound
+  route still invoked the legacy hook that dispatched only to the retired self-hosted runner, and
+  the dedicated Admin artifact was built without `PUBLIC_PREVIEW_ORIGIN`. The current change adds
+  a manual, run-bound build allocation consumed only by fixed-main GitHub-hosted Preview authority,
+  verifies the exact preparation/operator/Snapshot/build tuple before protected deployment, skips
+  the unrelated U12 transaction journey for this pre-approval Preview, injects the protected
+  Preview origin into the Admin build, and permits an exact failed awaiting run to be rejected
+  before fresh registration. API and workflow contract regressions cover these boundaries; no
+  self-hosted listener, local account, human credential, or runner wait is restored.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -288,12 +308,14 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Freeze a reviewed U8 harness successor over candidate
-  `fb15848cdb82322bc2c1c58126162d3bc8f7fa2d`, bind its exact SHA and canonical manifest digest to
-  the repository and protected Environment, then create a new U8 preparation from readiness run
-  `33356725518`. Run `fashion-u8-33302142836` remains expired and cannot be reused; the new
-  preparation must exit at `awaiting_operator` before the verified named operator completes only
-  the new run-bound path.
+- **Next concrete action:** Integrate the reviewed operator-Preview successor into exact `main`,
+  require the post-commit cloud gate to pass, deploy the exact Fashion API/Admin build through the
+  protected provisioning workflow, and capture a fresh U12 readiness/Preview baseline because the
+  frozen harness and API changed. Bind the new harness SHA/digest, then prepare a fresh run while
+  atomically rejecting failed run `fashion-u8-33357909651` as superseded. The named operator must
+  repeat the fresh run-bound path; a separately dispatched fixed-main GitHub-hosted Preview run must
+  deploy and return the exact pre-approval Preview to the editor before immutable approval, hosted
+  refresh/Preview, and acceptance continue.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -307,7 +329,9 @@ U13 add-only probe do not establish overall completion.
   readback correction -> existing protected Admin-service credential mapping -> strict registration
   request correction and harness refreeze -> expired preparation boundary -> dedicated Fashion
   Admin plus durable operator activation -> fresh U12/Preview -> fresh preparation at
-  `awaiting_operator` -> named operator path -> separate hosted refresh/Preview/acceptance ->
+  `awaiting_operator` -> named operator path exposed the legacy self-hosted Preview hook ->
+  GitHub-hosted operator-Preview successor -> fresh U12/Preview and preparation -> named operator
+  Preview/approval -> separate hosted refresh/Preview/acceptance ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
@@ -316,14 +340,17 @@ U13 add-only probe do not establish overall completion.
   integration.
 - **Blocker:** Cloud successor, protected immutable-ID OIDC authority, acceptance-token rotation,
   durable operator verification run `33354502008`, fresh U12 readiness run `33356725518`, and
-  complete Preview/U12 run `33356841096` are proven. The prior operator boundary expired at
-  `2026-08-30T20:39:55.000Z` without action and cannot be refreshed or accepted; a new reviewed U8
-  harness authority and preparation must be issued before the named operator can execute the new
-  run-bound path. The exposed token is invalidated and the compromised artifact is deleted. This
-  is not a new U8 account;
-  creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The authenticated
-  ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
-  without storing a GitHub credential. Attempt 29 exposed that
+  complete Preview/U12 run `33356841096` are proven. Preparation `33357909651` and the named
+  operator reached the exact successor Preview build boundary, where the legacy self-hosted-only
+  hook failed closed and the Admin exposed its missing public Preview origin. That run and its
+  successor/Snapshot/build are excluded non-candidate evidence and cannot be accepted under the
+  replacement harness; the fresh preparation must reject it as superseded before registering a new
+  immutable run. The exposed historical token is invalidated and the compromised artifact is
+  deleted. This is not a new U8 account;
+  creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The
+  legacy ephemeral Preview hook is no longer an execution authority: it depended on the removed
+  self-hosted runner and is superseded by the fixed-main GitHub-hosted operator-Preview stage.
+  Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
   `32814863542`, which failed in checkout before any later build, deployment, or acceptance step.
@@ -345,8 +372,11 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after exact main `a9b7a12a` passed post-commit run `33354226588`
-  and protected read-only activation verification run `33354502008` proved the enabled,
+- **Last reviewed:** 2026-08-31 after preparation `33357909651` and the named-operator path exposed
+  the legacy Preview-hook/Admin-origin migration gap, and the current reviewed change added the
+  GitHub-hosted run-bound Preview successor and exact supersession boundary. Exact main `a9b7a12a`
+  previously passed post-commit run `33354226588`, and protected read-only activation verification
+  run `33354502008` proved the enabled,
   non-expiring durable named operator, protected Administrator role, accepted invitation, and
   matching successful invitation-accept audit without credential disclosure or staging mutation.
   Earlier exact main `0f5d1fe6` passed fixed-image post-commit run

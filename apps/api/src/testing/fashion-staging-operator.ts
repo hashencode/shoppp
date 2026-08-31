@@ -299,6 +299,49 @@ export async function getFashionStagingOperatorRun(
   return mapRun(row);
 }
 
+export async function rejectFashionStagingOperatorRun(
+  db: D1Database,
+  runId: string,
+  reason: string,
+  now = new Date(),
+) {
+  assertIdentifier(runId, "runId");
+  const normalizedReason = reason.trim();
+  if (normalizedReason.length < 3 || normalizedReason.length > 500) {
+    throw new ApiError(422, "fashion_u8_operator_rejection_invalid", "Rejection reason is invalid.");
+  }
+  await expireActiveRuns(db, now);
+  const at = now.toISOString();
+  const result = await db
+    .prepare(
+      `UPDATE fashion_staging_operator_runs
+          SET status = 'rejected', updated_at = ?
+        WHERE run_id = ? AND status = 'awaiting_operator'
+          AND successor_snapshot_id IS NULL AND approval_audit_id IS NULL`,
+    )
+    .bind(at, runId)
+    .run();
+  const row = await rowByRunId(db, runId);
+  if (result.meta.changes !== 1 && row?.status !== "rejected") {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_run_not_rejectable",
+      "Operator run is missing, immutable, or already terminal.",
+    );
+  }
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO audit_events
+         (id, actor_type, actor_id, action, target_type, target_id, result,
+          reason, request_id, metadata_json, created_at)
+       VALUES (?, 'system', NULL, 'themes.fashion-staging.operator.reject',
+               'fashion_staging_operator_run', ?, 'succeeded', ?, NULL, '{}', ?)`,
+    )
+    .bind(`audit-fashion-u8-reject-${runId}`, runId, normalizedReason, at)
+    .run();
+  return mapRun((await rowByRunId(db, runId))!);
+}
+
 export async function getFashionStagingOperatorRunForDraft(
   db: D1Database,
   draftId: string,

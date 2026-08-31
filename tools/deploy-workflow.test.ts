@@ -91,6 +91,7 @@ describe("Fashion staging operator provisioning workflow", () => {
     expect(verifier).toContain("bun tools/verify-fashion-cloud-authority.ts");
     expect(protectedJob).toContain("needs: verify-authority");
     expect(protectedJob).toContain("environment: fashion-staging");
+    expect(protectedJob).toContain("PUBLIC_PREVIEW_ORIGIN: ${{ vars.PREVIEW_ORIGIN }}");
     expect(protectedJob).toContain("id-token: write");
     expect(protectedJob.indexOf('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"')).toBeLessThan(
       protectedJob.indexOf("CLOUDFLARE_API_TOKEN"),
@@ -1003,6 +1004,11 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain("Read immutable server-side operator approval");
     expect(preparation).toContain("harness_manifest_digest:");
     expect(preparation).toContain("u12_readiness_commit_sha:");
+    expect(preparation).toContain("superseded_operator_run_id:");
+    expect(preparation).toContain("/reject");
+    expect(preparation.indexOf("/reject")).toBeLessThan(
+      preparation.indexOf('"$API_ORIGIN/internal/testing/fashion-staging/operator-runs"'),
+    );
     expect(preparation).toContain("Verify credential-free workflow authority");
     expect(preparation).toContain("vars.FASHION_U8_HARNESS_MANIFEST_DIGEST");
     expect(preparation).toContain('test "$(git rev-parse HEAD)" = "$FASHION_HARNESS_SHA"');
@@ -1086,6 +1092,21 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preview).not.toContain(
       ".seed.buildId == $build and .seed.experienceSnapshotId == $snapshot or",
     );
+  });
+
+  test("deploys a run-bound operator preview on hosted infrastructure without entering the U12 journey", async () => {
+    const preview = await readFile(previewWorkflowPath, "utf8");
+    expect(preview).toContain("operator_run_id:");
+    expect(preview).toContain("preparation_run_id:");
+    expect(preview).toContain("preparation_artifact_name:");
+    expect(preview).toContain("Download exact U8 awaiting-operator attestation");
+    expect(preview).toContain("Verify run-bound operator preview before deployment mutation");
+    expect(preview).toContain("operator-run-preview.json");
+    expect(preview).toContain('.data.status == "awaiting_operator"');
+    expect(preview).toContain(".data.sourceDraftId == $run[0].data.workingDraftId");
+    expect(preview).toContain("inputs.operator_run_id == ''");
+    expect(preview).toContain("runs-on: ubuntu-24.04");
+    expect(preview).not.toContain("self-hosted");
   });
 
   test("uses the protected U8 runner contract and always preserves cleanup evidence", async () => {

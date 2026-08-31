@@ -77,10 +77,12 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Freeze the reviewed U8 harness successor over proven candidate `fb15848c`, bind
-  its exact SHA and canonical digest, and create a new U8 preparation from successful readiness run
-  `33356725518`; the expired operator run cannot be reused. Preparation must exit at
-  `awaiting_operator` before the verified named operator completes only the new run-bound path.
+- **Next action:** Integrate the reviewed GitHub-hosted operator-Preview successor, pass exact-main
+  post-commit, deploy the exact Fashion API/Admin build, and recapture U12 readiness/Preview because
+  the harness and API changed. Then bind the new harness identity and prepare a fresh run while
+  rejecting failed run `fashion-u8-33357909651` as superseded; the fresh named-operator path must
+  receive its pre-approval Preview from a separate protected GitHub-hosted stage before approval,
+  refresh, Preview, and acceptance continue.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -89,8 +91,14 @@ historical evidence remain unchanged inside the owning plans.
   `33354226588`, and protected read-only GitHub-hosted run `33354502008` verified the enabled,
   non-expiring durable identity, protected Administrator role, accepted invitation, and matching
   successful acceptance audit. Fresh U12 readiness run `33356725518` and complete Preview/U12 run
-  `33356841096` now pass on exact candidate `fb15848c`; the remaining blocker is a reviewed harness
-  refreeze, fresh U8 preparation, named-operator action, refresh, and hosted acceptance.
+  `33356841096` now pass on exact candidate `fb15848c`. Harness `5d540645` and preparation
+  `33357909651` passed, and the named operator completed reference recovery, a real v5/v6 conflict,
+  successor creation, and validation. Its pre-approval Preview Snapshot was created, but build start
+  failed because the cloud migration had left the operator path on the retired self-hosted-only
+  hook; the dedicated Admin artifact also lacked `PUBLIC_PREVIEW_ORIGIN`. The active plan now owns
+  the bounded fixed-main GitHub-hosted operator-Preview replacement, Admin origin injection, exact
+  failed-run rejection, redeployment, fresh readiness/preparation, named-operator action, refresh,
+  and hosted acceptance.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
@@ -115,8 +123,11 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
 - **Remaining blocker:** Cloud runner/OIDC, Cloudflare credential, acceptance-token rotation,
   exact-build readiness, the prior candidate-scoped Preview/U12 baseline, and durable operator
   activation are closed. The old `awaiting_operator` boundary expired without a Snapshot; fresh U12,
-  Preview, preparation, named-operator action, refresh, and hosted acceptance remain. FS-U8.2
-  remains in progress.
+  Preview, and durable operator activation are closed. The first fresh preparation reached the
+  successor Preview boundary but exposed the retired self-hosted hook and missing Admin Preview
+  origin. The fixed-main operator-Preview successor must pass post-commit, protected deployment,
+  fresh U12/Preview, preparation, named-operator Preview/approval, refresh, and hosted acceptance.
+  FS-U8.2 remains in progress.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 

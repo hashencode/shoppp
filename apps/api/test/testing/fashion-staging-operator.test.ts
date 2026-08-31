@@ -8,6 +8,7 @@ import {
   createFashionStagingOperatorRun,
   getFashionStagingOperatorRun,
   moveFashionStagingOperatorRunToSuccessor,
+  rejectFashionStagingOperatorRun,
 } from "../../src/testing/fashion-staging-operator";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
@@ -213,6 +214,48 @@ describe.sequential("Fashion U8 named-operator run authority", () => {
         now,
       ),
     ).rejects.toThrow(/already be deployed/);
+  });
+
+  test("rejects a failed awaiting-operator run idempotently so a fresh harness can register", async () => {
+    await seedDraft("draft-fashion-u8-rejected-preview");
+    await createFashionStagingOperatorRun(
+      env.DB,
+      {
+        candidateSha: "a".repeat(40),
+        catalogReleaseId: "fashion-staging-u12-release",
+        contractTestDigest: "b".repeat(64),
+        environment: "fashion-staging",
+        expiresAt,
+        harnessManifestDigest: "c".repeat(64),
+        harnessSha: "d".repeat(40),
+        repository: "hashencode/shoppp",
+        runId: "fashion-u8-rejected-preview",
+        runManifestDigest: "e".repeat(64),
+        sourceDraftId: "draft-fashion-u8-rejected-preview",
+        u12ReadinessDigest: "f".repeat(64),
+        u12SnapshotId: "snapshot-approved-u12",
+        workflowRunAttempt: 1,
+        workflowRunId: "40000000019",
+      },
+      now,
+    );
+
+    await expect(
+      rejectFashionStagingOperatorRun(
+        env.DB,
+        "fashion-u8-rejected-preview",
+        "Replace a failed preview hook boundary with the hosted successor",
+        now,
+      ),
+    ).resolves.toMatchObject({ status: "rejected" });
+    await expect(
+      rejectFashionStagingOperatorRun(
+        env.DB,
+        "fashion-u8-rejected-preview",
+        "Replace a failed preview hook boundary with the hosted successor",
+        now,
+      ),
+    ).resolves.toMatchObject({ status: "rejected" });
   });
 
   test("enforces credentials and envelopes across the operator HTTP lifecycle", async () => {
