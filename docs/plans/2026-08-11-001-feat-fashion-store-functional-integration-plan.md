@@ -237,7 +237,11 @@ U13 add-only probe do not establish overall completion.
   activation-signing capability, resumable D1 invitation creation, notification dispatch, and
   server-side `sent` verification for the durable `Shoppp Fashion Staging Owner` invitation. The
   hosted runner exited and is not waiting for recipient action; no human password was created or
-  transmitted through Actions.
+  transmitted through Actions. The recipient then activated that durable identity outside Actions.
+  Exact main `a9b7a12a` passed post-commit run `33354226588`, and separate protected read-only
+  GitHub-hosted run `33354502008` verified the enabled, non-expiring named identity, its enabled
+  protected Administrator role, single password credential, accepted invitation, and successful
+  matching invitation-accept audit without reading credential bytes or mutating staging.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -258,13 +262,9 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** The named recipient opens the delivered Fashion staging activation
-  email, follows the one-time link, and sets the durable operator password outside Actions. After
-  the recipient confirms activation, run a separate GitHub-hosted verification against server-side
-  identity/audit state, then refresh
-  U12 readiness/Preview and create a new U8 preparation because run `fashion-u8-33302142836` expired;
-  preparation must again exit at `awaiting_operator` before the named operator completes only the
-  new run-bound path.
+- **Next concrete action:** Refresh exact-main U12 readiness and Preview, then create a new U8
+  preparation because run `fashion-u8-33302142836` expired; preparation must again exit at
+  `awaiting_operator` before the verified named operator completes only the new run-bound path.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -289,9 +289,10 @@ U13 add-only probe do not establish overall completion.
   fresh U12 readiness run `33300115340`, complete Preview/U12 run `33300205798`, and hosted U8
   preparation run `33302142836` are proven, but that operator boundary expired at
   `2026-08-30T20:39:55.000Z` without action and cannot be refreshed or accepted. The exposed token
-  is invalidated and the compromised artifact is deleted. The current blocker is the corrected
-  platform prerequisite is now narrowed to recipient activation of the delivered durable Fashion
-  invitation before generating fresh U12/U8 evidence. This is not a new U8 account;
+  is invalidated and the compromised artifact is deleted. The durable Fashion operator platform
+  prerequisite is closed by protected read-only verification run `33354502008`; the remaining
+  blocker is generating a fresh exact-main U12/Preview baseline and U8 preparation before the
+  named operator can execute the new run-bound path. This is not a new U8 account;
   creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
@@ -316,7 +317,11 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-30 after exact main `0f5d1fe6` passed fixed-image post-commit run
+- **Last reviewed:** 2026-08-31 after exact main `a9b7a12a` passed post-commit run `33354226588`
+  and protected read-only activation verification run `33354502008` proved the enabled,
+  non-expiring durable named operator, protected Administrator role, accepted invitation, and
+  matching successful invitation-accept audit without credential disclosure or staging mutation.
+  Earlier exact main `0f5d1fe6` passed fixed-image post-commit run
   `33299911627`; protected U12 run `33300115340` rotated the exposed acceptance credential and
   captured fresh readiness; the compromised artifact was deleted; and Preview run `33300205798`
   passed the real Stripe journey, retained one paid-order reference, restored both lifecycle
