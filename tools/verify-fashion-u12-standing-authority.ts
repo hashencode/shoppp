@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 
-export const FASHION_U12_AUTHORITY_BASELINE = "79fbee07f60245b036b5a4d42858227502947a5c";
+export const FASHION_U12_AUTHORITY_BASELINE = "16627f34328e02305a6b773370a785fbd8406850";
 
 const ALLOWED_PATHS = new Set([
   ".github/workflows/prepare-fashion-staging-u12.yml",

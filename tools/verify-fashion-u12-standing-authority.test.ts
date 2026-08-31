@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { assertStandingFashionU12Authority } from "./verify-fashion-u12-standing-authority";
 
-const baseline = "79fbee07f60245b036b5a4d42858227502947a5c";
+const baseline = "16627f34328e02305a6b773370a785fbd8406850";
 const head = "d2297f0f73cfbc1c7d5dc766ba1291f09b05f5b4";
 
 describe("Fashion U12 standing execution authority", () => {

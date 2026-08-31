@@ -89,6 +89,9 @@ historical evidence remain unchanged inside the owning plans.
   non-expiring durable identity, protected Administrator role, accepted invitation, and matching
   successful acceptance audit. The remaining blocker is fresh U12, Preview, U8 preparation,
   named-operator action, refresh, and hosted acceptance.
+  Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
+  standing-authority baseline still traversed already-integrated non-U12 product commits; the
+  active plan owns the bounded exact-main baseline correction and retry evidence.
   No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
   or production mutation is authorized. Detailed run and artifact evidence remains in the active
   feature plan and progress records.

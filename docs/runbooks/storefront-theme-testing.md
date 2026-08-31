@@ -72,7 +72,7 @@ must not be dispatched from a local-only authorization. Before dispatch, the ope
 4. verify the exact `fashion-staging` GitHub environment, actor/run evidence, and fixed
    `fashion-staging-preview` concurrency group without relying on unavailable reviewer metadata; and
 5. verify that current `main` descends from authority baseline
-   `79fbee07f60245b036b5a4d42858227502947a5c`, every later commit subject ends in `(U12)`, and every
+   `16627f34328e02305a6b773370a785fbd8406850`, every later commit subject ends in `(U12)`, and every
    changed path is in the workflow's explicit FS-U12 allowlist. A failing scope check requires a new
    authority decision before any mutation.
 

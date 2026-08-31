@@ -92,7 +92,7 @@ jobs:
             test "$U8_CANDIDATE_SHA" = "$PROTECTED_U8_CANDIDATE_SHA"
           else
             bun tools/verify-fashion-u12-standing-authority.ts \
-              --baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"
+              --baseline="16627f34328e02305a6b773370a785fbd8406850" --head="$GITHUB_SHA"
           fi
           test "$API_ORIGIN" = "https://shoppp-api-fashion-staging.hashencode.workers.dev"
           [[ "$STRIPE_SECRET_KEY" == sk_test_* ]]
@@ -377,7 +377,7 @@ jobs:
             --input-dir=artifacts/fashion-u12 \
             --output=artifacts/fashion-u12/readiness.json \
             --commit-sha="$GITHUB_SHA" \
-            --authority-baseline-sha="79fbee07f60245b036b5a4d42858227502947a5c" \
+            --authority-baseline-sha="16627f34328e02305a6b773370a785fbd8406850" \
             --repository="$GITHUB_REPOSITORY"
           bun tools/verify-fashion-staging-readiness.ts \
             --snapshot=artifacts/fashion-u12/readiness.json \

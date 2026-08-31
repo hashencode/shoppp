@@ -311,7 +311,7 @@ export function assertFashionStagingReadiness(
     "Fashion single-operator gate requires a manual workflow dispatch",
   );
   assert(
-    operatorGate.authorityBaselineSha === "79fbee07f60245b036b5a4d42858227502947a5c",
+    operatorGate.authorityBaselineSha === "16627f34328e02305a6b773370a785fbd8406850",
     "Fashion standing authority baseline is incorrect",
   );
   assert(operatorGate.authorityScope === "FS-U12", "Fashion standing authority scope is incorrect");

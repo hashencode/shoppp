@@ -79,7 +79,7 @@ function snapshot(): FashionStagingReadinessSnapshot {
       environment: "fashion-staging",
       operatorGate: {
         actor: "studio",
-        authorityBaselineSha: "79fbee07f60245b036b5a4d42858227502947a5c",
+        authorityBaselineSha: "16627f34328e02305a6b773370a785fbd8406850",
         authorityScope: "FS-U12",
         authorizationMode: "single-operator-standing-scope",
         concurrencyGroup: "fashion-staging-preview",

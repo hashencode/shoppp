@@ -889,7 +889,7 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain("fetch-depth: 0");
     expect(workflow).toContain("bun tools/verify-fashion-u12-standing-authority.ts");
     expect(workflow).toContain(
-      '--baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"',
+      '--baseline="16627f34328e02305a6b773370a785fbd8406850" --head="$GITHUB_SHA"',
     );
     expect(workflow).not.toContain("runner:");
     expect(workflow).not.toContain("runs-on: ${{ inputs.runner }}");
@@ -903,7 +903,7 @@ describe("governed Fashion staging preparation workflow", () => {
       workflow.indexOf("bun install --frozen-lockfile"),
     );
     expect(workflow).toContain(
-      '--authority-baseline-sha="79fbee07f60245b036b5a4d42858227502947a5c"',
+      '--authority-baseline-sha="16627f34328e02305a6b773370a785fbd8406850"',
     );
     expect(workflow).toContain("shoppp-fashion-staging --env fashion-staging --remote");
     expect(workflow).toContain('sqlite3 "$RESTORE_DB"');
