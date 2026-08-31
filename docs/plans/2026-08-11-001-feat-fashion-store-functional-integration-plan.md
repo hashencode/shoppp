@@ -308,12 +308,13 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit and pass post-commit for the frozen-manifest coverage correction
-  exposed by credential-free run `33369722510`, then freeze and bind the resulting harness identity
-  for candidate `4fe21a47`. Prepare a new immutable operator run while rejecting
-  `fashion-u8-33366227014` as superseded. The named operator must repeat the run-bound path and open
-  the authenticated Preview successfully before immutable approval, hosted refresh/Preview, and
-  acceptance continue.
+- **Next concrete action:** Commit and pass post-commit for the explicit authorized Preview-dispatch
+  boundary exposed by run `33373181740`, then freeze and bind the resulting harness identity for
+  candidate `4fe21a47`. Prepare a new immutable operator run while rejecting
+  `fashion-u8-33371168966` as superseded. The named operator must repeat the run-bound path and open
+  the authenticated Preview successfully before immutable approval. Hosted refresh must emit and
+  exit with its exact non-secret `preview-dispatch.json`; an authorized Fashion staging operator
+  must separately dispatch the fixed-main successor Preview before acceptance continues.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -331,7 +332,7 @@ U13 add-only probe do not establish overall completion.
   GitHub-hosted operator-Preview successor -> fresh U12/Preview and preparation -> named operator
   Preview exposed the Admin referrer-policy handoff defect -> protected Admin correction and
   harness refreeze -> fresh preparation and named operator Preview/approval -> separate hosted
-  refresh/Preview/acceptance ->
+  refresh -> explicit authorized fixed-main Preview dispatch -> acceptance ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
@@ -407,6 +408,22 @@ U13 add-only probe do not establish overall completion.
   candidate-content drift not yet present in the frozen path set. The bounded correction adds
   those two security-sensitive files to the canonical manifest. It does not change staging or
   authorize runner escalation.
+  Exact-main correction `f23beb65` passed post-commit run `33369967952`; preparation
+  `33371168966` registered `fashion-u8-33371168966` while superseding the prior run. The named
+  operator proved missing-reference recovery, a real v17/v18 optimistic conflict, successor
+  creation and validation, then protected pre-approval Preview run `33372206970` passed. The real
+  authenticated Preview displayed the exact Catalog/Snapshot/theme/platform/content tuple, the
+  keyboard return restored focus to the launch control, and immutable approval created Snapshot
+  `snapshot-approved-6861698d5223b5cf49e090f210638fb1` with a server-side audit while leaving the
+  production theme unchanged. Refresh run `33373145684` read that exact approval and created
+  successor build `preview-build-5223b5cf49e090f210638fb1-f1bb77ee6f824f48-1`; its legacy
+  automatic downstream run `33373181740` was correctly rejected credential-free because
+  `github-actions[bot]` is not an authorized Fashion staging operator. The bounded correction
+  removes `actions: write` and automatic dispatch from refresh, emits the exact non-secret
+  fixed-main inputs in `preview-dispatch.json`, and requires a separate authorized dispatch. The
+  approved lineage is excluded under the changed harness and must be replayed; this actor-boundary
+  defect is not runner-capability evidence and does not authorize adding the bot or escalating the
+  runner.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
@@ -429,12 +446,18 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after exact-main fix `5992f79c` passed post-commit and protected run
-  `33369474252` deployed the corrected Fashion Admin response policy. Preparation `33369722510`
-  then failed closed before protected execution because the canonical harness path set did not yet
-  freeze `_headers` and its real-browser regression. Focused red/green coverage now requires both
-  files; the correction must pass post-commit, harness refreeze, fresh preparation, and the repeated
-  operator path. Earlier hosted run `33366389096` passed the complete protected
+- **Last reviewed:** 2026-08-31 after preparation `33371168966`, the full named-operator path,
+  pre-approval Preview `33372206970`, immutable approval, and hosted refresh `33373145684` proved
+  the corrected Admin handoff and exact successor. Automatic downstream run `33373181740` then
+  failed closed credential-free because `github-actions[bot]` is not an authorized staging actor.
+  Focused red/green coverage now removes refresh `actions: write` and automatic dispatch, retains
+  the protected actor check, and requires refresh to emit `preview-dispatch.json` for a separate
+  authorized fixed-main Preview dispatch. The changed harness must pass post-commit, refreeze, fresh
+  preparation, repeated named-operator approval, refresh, authorized Preview, and acceptance.
+  Earlier exact-main fix `5992f79c` passed post-commit and protected run `33369474252` deployed the
+  corrected Fashion Admin response policy. Preparation `33369722510` then failed closed before
+  protected execution because the canonical harness path set did not yet freeze `_headers` and its
+  real-browser regression. Earlier hosted run `33366389096` passed the complete protected
   pre-approval deployment and U12/U13 lifecycle, but the real named-operator Preview launch failed
   closed because the Fashion Admin's `no-referrer` response policy suppressed the origin required
   by the grant redemption boundary. No immutable approval occurred. Focused red/green tests cover

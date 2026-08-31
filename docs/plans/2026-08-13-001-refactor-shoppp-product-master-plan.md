@@ -77,11 +77,12 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for the frozen-manifest coverage correction exposed by
-  credential-free run `33369722510`, freeze and bind the resulting harness identity for candidate
-  `4fe21a47`, prepare a fresh run while rejecting `fashion-u8-33366227014`, and repeat the
-  named-operator path through successful Preview inspection before approval, refresh, Preview, and
-  acceptance continue.
+- **Next action:** Pass post-commit for the explicit authorized Preview-dispatch boundary exposed by
+  run `33373181740`, freeze and bind the resulting harness identity for candidate `4fe21a47`,
+  prepare a fresh run while rejecting `fashion-u8-33371168966`, and repeat the named-operator path
+  through Preview inspection and immutable approval. Refresh must emit and exit with exact
+  `preview-dispatch.json`; an authorized Fashion staging operator must separately dispatch the
+  fixed-main successor Preview before acceptance continues.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -132,6 +133,15 @@ historical evidence remain unchanged inside the owning plans.
   Preparation `33369722510` failed credential-free before protected execution because `_headers`
   and its real-browser regression were not yet frozen by the canonical manifest. The active plan
   owns that bounded path-set correction, harness refreeze, supersession, and replay.
+  Exact-main correction `f23beb65` passed post-commit run `33369967952`; preparation
+  `33371168966`, the repeated named-operator edit/conflict/successor/validation path, protected
+  pre-approval Preview `33372206970`, real authenticated inspection and return, immutable approval,
+  and hosted refresh `33373145684` proved the exact approved successor. Automatic downstream run
+  `33373181740` was correctly rejected credential-free because `github-actions[bot]` is not an
+  authorized Fashion staging operator. The active plan owns the bounded replacement: refresh loses
+  `actions: write`, emits the exact non-secret fixed-main inputs in `preview-dispatch.json`, exits,
+  and requires a separate authorized Preview dispatch. The changed harness requires refreeze and
+  replay; neither bot authorization nor runner escalation is permitted.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected

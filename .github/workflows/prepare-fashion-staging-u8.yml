@@ -266,7 +266,7 @@ jobs:
     timeout-minutes: 20
     environment: fashion-staging
     permissions:
-      actions: write
+      actions: read
       contents: read
       id-token: write
     env:
@@ -373,6 +373,44 @@ jobs:
           printf 'build_id=%s\n' "$(jq -er '.data.id' artifacts/fashion-u8/build.json)" >> "$GITHUB_OUTPUT"
           printf 'snapshot_id=%s\n' "$SNAPSHOT_ID" >> "$GITHUB_OUTPUT"
           printf 'refresh_digest=%s\n' "$(sha256sum artifacts/fashion-u8/refresh-attestation.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Record the explicit authorized Preview dispatch boundary
+        env:
+          BUILD_ID: ${{ steps.refresh.outputs.build_id }}
+          REFRESH_DIGEST: ${{ steps.refresh.outputs.refresh_digest }}
+          SNAPSHOT_ID: ${{ steps.refresh.outputs.snapshot_id }}
+        run: |
+          jq --null-input --sort-keys \
+            --arg buildId "$BUILD_ID" \
+            --arg snapshotId "$SNAPSHOT_ID" \
+            --arg candidateSha "${{ inputs.candidate_sha }}" \
+            --arg readinessCommitSha "${{ inputs.u12_readiness_commit_sha }}" \
+            --arg readinessRunId "${{ inputs.u12_readiness_run_id }}" \
+            --arg readinessDigest "${{ inputs.u12_readiness_digest }}" \
+            --arg refreshRunId "$GITHUB_RUN_ID" \
+            --arg refreshArtifactName "$REFRESH_ARTIFACT_NAME" \
+            --arg refreshDigest "$REFRESH_DIGEST" \
+            --arg harnessSha "${{ inputs.harness_sha }}" \
+            '{schemaVersion:1,workflow:"preview-storefront.yml",ref:"main",
+              buildId:$buildId,snapshotId:$snapshotId,candidateSha:$candidateSha,
+              readinessCommitSha:$readinessCommitSha,readinessRunId:$readinessRunId,
+              readinessDigest:$readinessDigest,refreshRunId:$refreshRunId,
+              refreshArtifactName:$refreshArtifactName,refreshDigest:$refreshDigest,
+              harnessSha:$harnessSha}' > artifacts/fashion-u8/preview-dispatch.json
+          jq --exit-status \
+            --arg build "$BUILD_ID" --arg snapshot "$SNAPSHOT_ID" \
+            --arg candidate "${{ inputs.candidate_sha }}" --arg harness "${{ inputs.harness_sha }}" \
+            --arg refreshRun "$GITHUB_RUN_ID" --arg refreshArtifact "$REFRESH_ARTIFACT_NAME" \
+            --arg refreshDigest "$REFRESH_DIGEST" \
+            '.schemaVersion == 1 and .workflow == "preview-storefront.yml" and .ref == "main" and
+             .buildId == $build and .snapshotId == $snapshot and .candidateSha == $candidate and
+             .harnessSha == $harness and .refreshRunId == $refreshRun and
+             .refreshArtifactName == $refreshArtifact and .refreshDigest == $refreshDigest and
+             (.readinessCommitSha | test("^[a-f0-9]{40}$")) and
+             (.readinessRunId | test("^[1-9][0-9]*$")) and
+             (.readinessDigest | test("^[a-f0-9]{64}$"))' \
+            artifacts/fashion-u8/preview-dispatch.json >/dev/null
+          printf 'An authorized Fashion staging operator must separately dispatch `%s` from exact `main` using `preview-dispatch.json`.\n' \
+            "preview-storefront.yml" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ env.REFRESH_ARTIFACT_NAME }}
@@ -381,20 +419,6 @@ jobs:
             artifacts/fashion-u8/run-manifest.json
             artifacts/fashion-u8/operator-run-approved.json
             artifacts/fashion-u8/harness-manifest.json
+            artifacts/fashion-u8/preview-dispatch.json
           if-no-files-found: error
           retention-days: 30
-      - name: Dispatch exact successor to the protected Preview workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run preview-storefront.yml --ref main \
-            -f "build_id=${{ steps.refresh.outputs.build_id }}" \
-            -f "snapshot_id=${{ steps.refresh.outputs.snapshot_id }}" \
-            -f "candidate_sha=${{ inputs.candidate_sha }}" \
-            -f "readiness_commit_sha=${{ inputs.u12_readiness_commit_sha }}" \
-            -f "readiness_run_id=${{ inputs.u12_readiness_run_id }}" \
-            -f "readiness_digest=${{ inputs.u12_readiness_digest }}" \
-            -f "refresh_run_id=$GITHUB_RUN_ID" \
-            -f "refresh_artifact_name=$REFRESH_ARTIFACT_NAME" \
-            -f "refresh_digest=${{ steps.refresh.outputs.refresh_digest }}" \
-            -f "harness_sha=${{ inputs.harness_sha }}"

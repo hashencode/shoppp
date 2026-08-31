@@ -1006,7 +1006,7 @@ describe("governed Fashion U8 acceptance workflows", () => {
     ]);
     expect(preparation).toContain("group: fashion-staging-u8-${{ inputs.operation }}");
     expect(preparation).toContain("workflow_dispatch");
-    expect(preparation).toContain("actions: write");
+    expect(preparation).not.toContain("actions: write");
     expect(preparation).toContain("operation:");
     expect(preparation).toContain("- prepare");
     expect(preparation).toContain("- refresh");
@@ -1033,9 +1033,11 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain('status == "awaiting_operator"');
     expect(preparation).toContain("/snapshots/$SNAPSHOT_ID/build");
     expect(preparation).toContain("newBuildId");
-    expect(preparation).toContain("gh workflow run preview-storefront.yml");
-    expect(preparation).toContain("--ref main");
-    expect(preparation).toContain("refresh_run_id=$GITHUB_RUN_ID");
+    expect(preparation).not.toContain("gh workflow run preview-storefront.yml");
+    expect(preparation).toContain("Record the explicit authorized Preview dispatch boundary");
+    expect(preparation).toContain("artifacts/fashion-u8/preview-dispatch.json");
+    expect(preparation).toContain("refreshRunId:$refreshRunId");
+    expect(preparation).toContain("refreshDigest:$refreshDigest");
     expect(preparation).not.toContain("gh run watch");
     expect(preparation).not.toContain("human_evidence_base64:");
     expect(preparation).not.toContain("human_evidence_base64:");
