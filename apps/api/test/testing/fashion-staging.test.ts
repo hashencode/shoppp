@@ -236,8 +236,16 @@ describe.sequential("Fashion staging acceptance lifecycle", () => {
         paymentId: "pi_fashion_settle_001",
         paymentState: "approved" as const,
       });
+    const closeTestSession = vi.fn(async (sessionId: string) => {
+      expect(sessionId).toBe(providerSession);
+      expect(
+        await env.DB.prepare("SELECT id FROM orders WHERE checkout_attempt_id = ?")
+          .bind(attempt)
+          .first(),
+      ).toMatchObject({ id: expect.stringMatching(/^ord_/) });
+    });
     const app = createApp({
-      fashionTestSettlementProvider: { settleTestSession },
+      fashionTestSettlementProvider: { closeTestSession, settleTestSession },
     });
     const token = "t".repeat(40);
     const response = await app.fetch(
@@ -308,6 +316,7 @@ describe.sequential("Fashion staging acceptance lifecycle", () => {
       sessionId: providerSession,
     });
     expect(settleTestSession).toHaveBeenCalledTimes(2);
+    expect(closeTestSession).toHaveBeenCalledTimes(2);
     expect(
       await env.DB.prepare(
         "SELECT payment_status, order_status, provider_payment_id FROM orders WHERE checkout_attempt_id = ?",

@@ -167,7 +167,7 @@ describe("Stripe hosted Checkout adapter", () => {
     });
   });
 
-  test("settles an exact hosted session with an idempotent Stripe test payment and expires checkout", async () => {
+  test("settles an exact hosted session before explicitly closing the hosted checkout", async () => {
     const requests: { body: URLSearchParams | null; method: string; url: string }[] = [];
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -225,6 +225,13 @@ describe("Stripe hosted Checkout adapter", () => {
     expect(requests.map(({ method, url }) => `${method} ${url}`)).toEqual([
       "GET https://api.stripe.com/v1/checkout/sessions/cs_test_checkout_001",
       "POST https://api.stripe.com/v1/payment_intents",
+    ]);
+
+    await expect(provider.closeTestSession("cs_test_checkout_001")).resolves.toBeUndefined();
+    expect(requests.map(({ method, url }) => `${method} ${url}`)).toEqual([
+      "GET https://api.stripe.com/v1/checkout/sessions/cs_test_checkout_001",
+      "POST https://api.stripe.com/v1/payment_intents",
+      "GET https://api.stripe.com/v1/checkout/sessions/cs_test_checkout_001",
       "POST https://api.stripe.com/v1/checkout/sessions/cs_test_checkout_001/expire",
     ]);
   });

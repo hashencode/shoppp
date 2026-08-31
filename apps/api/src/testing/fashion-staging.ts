@@ -339,6 +339,7 @@ export async function settleFashionStagingTestPayment(
   if (!attempt) throw new Error("fashion_staging_test_settlement_identity_invalid");
   const existingOrderReference = await orderReferenceForAttempt(db, attempt.id);
   if (existingOrderReference) {
+    await provider.closeTestSession(attempt.provider_session_id);
     return { eventResult: "applied", orderReference: existingOrderReference, replayed: true };
   }
   const settled = await provider.settleTestSession({
@@ -375,9 +376,9 @@ export async function settleFashionStagingTestPayment(
       type: "fashion_staging_test_settlement",
     }),
   );
-  if (result.orderReference) return result;
-  const orderReference = await orderReferenceForAttempt(db, attempt.id);
+  const orderReference = result.orderReference ?? (await orderReferenceForAttempt(db, attempt.id));
   if (!orderReference) throw new Error("fashion_staging_test_settlement_order_missing");
+  await provider.closeTestSession(settled.id);
   return { ...result, orderReference };
 }
 

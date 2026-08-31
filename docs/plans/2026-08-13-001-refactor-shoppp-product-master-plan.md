@@ -91,7 +91,10 @@ historical evidence remain unchanged inside the owning plans.
   named-operator action, refresh, and hosted acceptance.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
-  active plan owns the bounded exact-main baseline correction and retry evidence.
+  active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
+  readiness run `33355358825` passed, while Preview `33355467693` restored its baseline but exposed
+  a test-settlement/session-expiry webhook race before order creation; the active plan owns the
+  bounded post-order session-close correction and fresh exact-main retry.
   No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
   or production mutation is authorized. Detailed run and artifact evidence remains in the active
   feature plan and progress records.

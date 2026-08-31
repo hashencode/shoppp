@@ -67,6 +67,7 @@ export interface StripeTestSettlementInput {
 }
 
 export interface StripeTestSettlementProvider {
+  closeTestSession(sessionId: string): Promise<void>;
   settleTestSession(input: StripeTestSettlementInput): Promise<ProviderSession>;
 }
 
@@ -406,21 +407,31 @@ export class StripePaymentProvider implements PaymentProvider {
         false,
       );
     }
-    if (session.paymentState !== "expired") {
-      const expired = stripeSessionSchema.safeParse(
-        await this.#request(`/checkout/sessions/${encodeURIComponent(input.sessionId)}/expire`, {
-          method: "POST",
-        }),
-      );
-      if (!expired.success || expired.data.status !== "expired") {
-        throw new PaymentProviderError(
-          "stripe_test_session_expiry_failed",
-          "Stripe hosted Checkout could not be closed after test settlement.",
-          true,
-        );
-      }
-    }
     return { ...session, paymentId: payment.data.id, paymentState: "approved" };
+  }
+
+  async closeTestSession(sessionId: string): Promise<void> {
+    if (!this.#secretKey.startsWith("sk_test_")) {
+      throw new PaymentProviderError(
+        "stripe_test_settlement_unavailable",
+        "Stripe test settlement is unavailable.",
+        false,
+      );
+    }
+    const session = await this.retrieveSession(sessionId);
+    if (session.paymentState === "expired") return;
+    const expired = stripeSessionSchema.safeParse(
+      await this.#request(`/checkout/sessions/${encodeURIComponent(sessionId)}/expire`, {
+        method: "POST",
+      }),
+    );
+    if (!expired.success || expired.data.status !== "expired") {
+      throw new PaymentProviderError(
+        "stripe_test_session_expiry_failed",
+        "Stripe hosted Checkout could not be closed after test settlement.",
+        true,
+      );
+    }
   }
 
   async verifyWebhook(rawPayload: string, signatureHeader: string): Promise<VerifiedProviderEvent> {

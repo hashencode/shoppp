@@ -247,7 +247,15 @@ U13 add-only probe do not establish overall completion.
   its historical baseline incorrectly included already-integrated non-U12 product commits. The
   bounded correction re-anchors standing authority at the exact-main, post-commit-proven
   `16627f34` baseline while retaining descendant, single-parent, `(U12)`, and path-allowlist checks
-  for every later commit.
+  for every later commit. Corrected exact main `6aafdc2d` passed post-commit run `33355087685`, and
+  protected readiness retry `33355358825` passed the complete backup, restore, credential rotation,
+  migration, deployment, immutable Snapshot/build, and artifact sequence. Preview run `33355467693`
+  then passed authority, provenance, deployment, U13, acceptance-lock, and baseline restoration but
+  failed the sandbox journey twice at settlement with no retained order. The retained code path
+  exposed a real webhook race: test settlement expired the hosted Checkout before paid-order
+  reconciliation, allowing `checkout.session.expired` to release the active reservation first. The
+  bounded correction separates settlement from session closure, commits the paid order before
+  closing Checkout, and makes a replay close an already-settled session safely.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
