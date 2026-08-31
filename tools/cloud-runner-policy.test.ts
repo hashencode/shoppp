@@ -9,6 +9,7 @@ const protectedFashionWorkflows = [
   "prepare-fashion-staging-u8.yml",
   "preview-storefront.yml",
   "provision-fashion-staging-operator.yml",
+  "verify-fashion-staging-operator.yml",
 ] as const;
 
 async function readWorkflow(name: string): Promise<string> {

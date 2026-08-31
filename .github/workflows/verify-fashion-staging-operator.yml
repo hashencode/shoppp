@@ -1,0 +1,134 @@
+name: Verify durable Fashion staging operator
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fashion-staging-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: none
+
+jobs:
+  reject-untrusted-dispatch:
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      github.repository != 'hashencode/shoppp' ||
+      github.event.repository.fork != false ||
+      github.ref != 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Reject untrusted Fashion staging authority
+        run: exit 1
+
+  verify-authority:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'hashencode/shoppp' &&
+      github.event.repository.fork == false &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      EXPECTED_REPOSITORY: hashencode/shoppp
+      FASHION_CANDIDATE_SHA: ${{ github.sha }}
+      FASHION_HARNESS_SHA: ${{ github.sha }}
+      FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+      GITHUB_REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Verify credential-free Fashion authority and standard runner capability
+        run: bun tools/verify-fashion-cloud-authority.ts
+
+  verify-operator:
+    needs: verify-authority
+    environment: fashion-staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Bind the protected job to GitHub OIDC claims
+        env:
+          EXPECTED_REPOSITORY: hashencode/shoppp
+          FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          RESPONSE="$(curl --retry 3 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 10 --max-time 30 --fail --silent --show-error \
+            --header "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=shoppp-fashion-staging")"
+          TOKEN="$(jq -er '.value' <<<"$RESPONSE")"
+          echo "::add-mask::$TOKEN"
+          SHOPPP_GITHUB_OIDC_TOKEN="$TOKEN" bun tools/verify-github-oidc-claims.ts
+      - run: bun install --frozen-lockfile
+      - name: Verify the server-side activation Snapshot and audit
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPERATOR_EMAIL: ${{ secrets.FASHION_STAGING_OPERATOR_EMAIL }}
+        run: |
+          test -n "$OPERATOR_EMAIL"
+          OPERATOR_EMAIL="$(bun -e 'process.stdout.write((process.env.OPERATOR_EMAIL ?? "").trim().toLowerCase())')"
+          [[ "$OPERATOR_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]
+          for attempt in {1..3}; do
+            if OUTPUT="$(cd apps/api && timeout 60s ./node_modules/.bin/wrangler d1 execute shoppp-fashion-staging --remote --json \
+              --env fashion-staging \
+              --command "SELECT json_object(
+              'identityId', identity.id,
+              'displayName', identity.display_name,
+              'principalKind', identity.principal_kind,
+              'identityEnabled', identity.enabled,
+              'identityExpiresAt', identity.expires_at,
+              'roleKey', role.key,
+              'roleEnabled', role.enabled,
+              'roleProtected', role.protected,
+              'invitationId', invitation.id,
+              'acceptedAt', invitation.accepted_at,
+              'credentialCount', (SELECT COUNT(*) FROM admin_password_credentials credential WHERE credential.identity_id = identity.id),
+              'auditId', audit.id,
+              'auditActorType', audit.actor_type,
+              'auditTargetType', audit.target_type,
+              'auditResult', audit.result
+            ) AS verification
+            FROM admin_invitations invitation
+            JOIN admin_identities identity ON identity.id = invitation.accepted_identity_id
+            JOIN admin_roles role ON role.id = identity.role_id
+            JOIN audit_events audit ON audit.target_id = invitation.id
+              AND audit.actor_id = identity.id
+              AND audit.action = 'iam.invitations.accept'
+            WHERE invitation.normalized_email = '$OPERATOR_EMAIL'
+              AND invitation.status = 'accepted'
+            ORDER BY invitation.accepted_at DESC, audit.created_at DESC
+            LIMIT 1")"; then
+              break
+            fi
+            test "$attempt" -eq 3 && exit 1
+            sleep 5
+          done
+          VERIFICATION="$(bun tools/verify-fashion-staging-operator-activation.ts <<<"$OUTPUT")"
+          jq -r '
+            "Durable Fashion staging operator activation verified.\n\n" +
+            "- Identity: `" + .identityId + "` (`" + .displayName + "`)\n" +
+            "- Invitation: `" + .invitationId + "` accepted at `" + .acceptedAt + "`\n" +
+            "- Activation audit: `" + .auditId + "` (`" + .auditResult + "`)\n" +
+            "- Credential state: exactly one password credential; no credential bytes were read"
+          ' <<<"$VERIFICATION" >> "$GITHUB_STEP_SUMMARY"

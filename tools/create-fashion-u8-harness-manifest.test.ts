@@ -18,6 +18,9 @@ describe("Fashion U8 frozen harness manifest", () => {
       ".github/workflows/provision-fashion-staging-operator.yml",
     );
     expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      ".github/workflows/verify-fashion-staging-operator.yml",
+    );
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
       "tools/capture-fashion-staging-readiness.ts",
     );
     expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain("apps/admin/wrangler.jsonc");

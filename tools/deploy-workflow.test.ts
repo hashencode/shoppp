@@ -24,6 +24,10 @@ const fashionOperatorProvisioningWorkflowPath = resolve(
   import.meta.dir,
   "../.github/workflows/provision-fashion-staging-operator.yml",
 );
+const fashionOperatorVerificationWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/verify-fashion-staging-operator.yml",
+);
 const fashionPurchaseJourneyPath = resolve(
   import.meta.dir,
   "../e2e/fashion-store-purchase.spec.ts",
@@ -109,6 +113,74 @@ describe("Fashion staging operator provisioning workflow", () => {
     expect(() => expectNoHumanPasswordInputs("--password secret")).toThrow();
     expect(() => expectNoHumanPasswordInputs("password: secret")).toThrow();
     expect(() => expectNoHumanPasswordInputs("AdminPassword=value")).toThrow();
+  });
+});
+
+describe("Fashion staging operator verification workflow", () => {
+  test("reads the enabled durable identity, accepted invitation, credential, and activation audit without mutation", async () => {
+    const workflow = await readFile(fashionOperatorVerificationWorkflowPath, "utf8");
+    const verifier = workflow.slice(
+      workflow.indexOf("  verify-authority:"),
+      workflow.indexOf("  verify-operator:"),
+    );
+    const rejection = workflow.slice(
+      workflow.indexOf("  reject-untrusted-dispatch:"),
+      workflow.indexOf("  verify-authority:"),
+    );
+    const protectedJob = workflow.slice(workflow.indexOf("  verify-operator:"));
+
+    expect(rejection).toContain("github.ref != 'refs/heads/main'");
+    expect(rejection).toContain("github.event.repository.fork != false");
+    expect(rejection).toContain("run: exit 1");
+    expect(rejection).not.toMatch(/environment:|secrets\.|id-token:\s*write|uses:/);
+    expect(verifier).not.toMatch(/environment:|secrets\.|id-token:\s*write/);
+    expect(verifier).toContain("bun tools/verify-fashion-cloud-authority.ts");
+    expect(verifier).toContain("github.ref == 'refs/heads/main'");
+    expect(verifier).toContain("github.event.repository.fork == false");
+    expect(protectedJob).toContain("needs: verify-authority");
+    expect(protectedJob).toContain("environment: fashion-staging");
+    expect(protectedJob).toContain("id-token: write");
+    expect(protectedJob.indexOf('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"')).toBeLessThan(
+      protectedJob.indexOf("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
+    );
+    expect(protectedJob).toContain("SELECT json_object(");
+    expect(protectedJob).toContain("'iam.invitations.accept'");
+    expect(protectedJob).toContain("'identityExpiresAt', identity.expires_at");
+    expect(protectedJob).toContain("'roleEnabled', role.enabled");
+    expect(protectedJob).toContain("'roleProtected', role.protected");
+    expect(protectedJob).toContain("'auditActorType', audit.actor_type");
+    expect(protectedJob).toContain("'auditTargetType', audit.target_type");
+    expect(protectedJob).toContain(
+      "JOIN admin_identities identity ON identity.id = invitation.accepted_identity_id",
+    );
+    expect(protectedJob).toContain("JOIN admin_roles role ON role.id = identity.role_id");
+    expect(protectedJob).toContain("audit.target_id = invitation.id");
+    expect(protectedJob).toContain("audit.actor_id = identity.id");
+    expect(protectedJob).toContain("credential.identity_id = identity.id");
+    expect(protectedJob).toContain("invitation.normalized_email = '$OPERATOR_EMAIL'");
+    expect(protectedJob).toContain("invitation.status = 'accepted'");
+    expect(protectedJob).toContain("admin_password_credentials");
+    expect(protectedJob).toContain("shoppp-fashion-staging");
+    expect(protectedJob).toContain("bun install --frozen-lockfile");
+    expect(protectedJob).toContain("bun tools/verify-fashion-staging-operator-activation.ts");
+    expect(protectedJob).toMatch(
+      /curl --retry 3 --retry-all-errors --retry-delay 2[\s\S]{0,160}--connect-timeout 10 --max-time 30 --fail/,
+    );
+    expect(protectedJob).toContain("for attempt in {1..3}");
+    expect(protectedJob).toContain("timeout 60s ./node_modules/.bin/wrangler d1 execute");
+    expect(protectedJob.indexOf("bun install --frozen-lockfile")).toBeLessThan(
+      protectedJob.indexOf("node_modules/.bin/wrangler d1 execute"),
+    );
+    expect(protectedJob).not.toContain("bunx wrangler d1 execute");
+    expect(protectedJob.match(/node_modules\/\.bin\/wrangler/g)).toHaveLength(1);
+    expect(protectedJob).not.toMatch(/wrangler\s+(?:deploy|secret|workflows)\b/);
+    expect(protectedJob.match(/\bcurl\b/g)).toHaveLength(1);
+    expect(protectedJob).not.toMatch(/curl\s+(?:--request|-X)\s+(?:POST|PUT|PATCH|DELETE)\b/i);
+    expect(protectedJob).not.toMatch(/curl[\s\S]*?(?:--data(?:-\w+)?|-d|--form|-F|--upload-file|-T)\b/);
+    expect(protectedJob).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER)\b/i);
+    expect(protectedJob).not.toMatch(/\b(?:git push|gh workflow run|gh api)\b/);
+    expectNoHumanPasswordInputs(protectedJob);
+    expectExternalActionsPinnedToFullShas(workflow);
   });
 });
 
