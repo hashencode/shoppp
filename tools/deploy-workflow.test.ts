@@ -1015,7 +1015,7 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain("harness_manifest_digest:");
     expect(preparation).toContain("u12_readiness_commit_sha:");
     expect(preparation).toContain("superseded_operator_run_id:");
-    expect(preparation).toContain("/reject");
+    expect(preparation).not.toContain("/$SUPERSEDED_OPERATOR_RUN_ID/reject");
     expect(preparation.indexOf("/reject")).toBeLessThan(
       preparation.indexOf('"$API_ORIGIN/internal/testing/fashion-staging/operator-runs"'),
     );
@@ -1033,6 +1033,11 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain('status == "awaiting_operator"');
     expect(preparation).toContain("/snapshots/$SNAPSHOT_ID/build");
     expect(preparation).toContain("newBuildId");
+    expect(preparation).toContain("/$SUPERSEDED_OPERATOR_RUN_ID/supersede");
+    expect(preparation).toContain("replacementHarnessSha");
+    expect(preparation).toContain("$HARNESS_SHA");
+    expect(preparation).toContain('.data.status == "rejected"');
+    expect(preparation).toContain('.data.status == "expired"');
     expect(preparation).not.toContain("gh workflow run preview-storefront.yml");
     expect(preparation).toContain("Record the explicit authorized Preview dispatch boundary");
     expect(preparation).toContain("artifacts/fashion-u8/preview-dispatch.json");

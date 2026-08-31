@@ -308,13 +308,14 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Commit and pass post-commit for the explicit authorized Preview-dispatch
-  boundary exposed by run `33373181740`, then freeze and bind the resulting harness identity for
-  candidate `4fe21a47`. Prepare a new immutable operator run while rejecting
-  `fashion-u8-33371168966` as superseded. The named operator must repeat the run-bound path and open
-  the authenticated Preview successfully before immutable approval. Hosted refresh must emit and
-  exit with its exact non-secret `preview-dispatch.json`; an authorized Fashion staging operator
-  must separately dispatch the fixed-main successor Preview before acceptance continues.
+- **Next concrete action:** Commit and pass post-commit for the evidence-preserving supersession
+  boundary exposed by preparation `33374982767`, deploy the protected Fashion API change, then
+  freeze and bind the resulting harness identity for candidate `4fe21a47`. Prepare a new immutable
+  operator run while superseding approved `fashion-u8-33371168966` to terminal `expired` without
+  clearing its Snapshot, digest, audit, or operator identity. The named operator must repeat the
+  run-bound path and authenticated Preview before approval. Hosted refresh must emit and exit with
+  exact `preview-dispatch.json`; an authorized Fashion staging operator must separately dispatch
+  the fixed-main successor Preview before acceptance continues.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -424,6 +425,15 @@ U13 add-only probe do not establish overall completion.
   approved lineage is excluded under the changed harness and must be replayed; this actor-boundary
   defect is not runner-capability evidence and does not authorize adding the bot or escalating the
   runner.
+  Exact-main dispatch-boundary fix `040dfbf3` passed post-commit run `33373986699` on attempt 2;
+  attempt 1 retained a non-deterministic worker-test `200/409` retry result while the same exact
+  commit passed the complete tier on rerun. Preparation `33374982767` then passed credential-free
+  authority, protected OIDC, and U12 provenance but failed before new-run registration because the
+  prior run is already `approved` and the historical reject endpoint correctly forbids discarding
+  immutable approval evidence. The bounded successor operation transitions an awaiting run to
+  `rejected` or an approved run to terminal `expired`, requires a different replacement harness,
+  retains every approved evidence field, and appends a deterministic supersession audit. This
+  staging state-model gap is not runner-capability evidence.
   Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
@@ -446,7 +456,14 @@ U13 add-only probe do not establish overall completion.
   Fashion plan does not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-31 after preparation `33371168966`, the full named-operator path,
+- **Last reviewed:** 2026-08-31 after exact-main dispatch fix `040dfbf3` passed post-commit run
+  `33373986699` on attempt 2. Preparation `33374982767` passed authority, OIDC, and U12 provenance,
+  then stopped before registration because approved `fashion-u8-33371168966` cannot use the
+  awaiting-only reject transition. Focused red/green coverage now requires an evidence-preserving,
+  different-harness supersession: approved becomes terminal `expired`, awaiting becomes
+  `rejected`, and a deterministic audit is appended before a fresh run can register. The protected
+  API change must pass post-commit and deployment before harness refreeze and replay. Earlier
+  preparation `33371168966`, the full named-operator path,
   pre-approval Preview `33372206970`, immutable approval, and hosted refresh `33373145684` proved
   the corrected Admin handoff and exact successor. Automatic downstream run `33373181740` then
   failed closed credential-free because `github-actions[bot]` is not an authorized staging actor.

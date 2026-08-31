@@ -191,6 +191,7 @@ import {
   getFashionStagingOperatorRun,
   getFashionStagingOperatorRunForDraft,
   rejectFashionStagingOperatorRun,
+  supersedeFashionStagingOperatorRun,
 } from "../testing/fashion-staging-operator";
 import type { ApiEnvironment } from "./context";
 import { ApiError, errorEnvelope } from "./errors";
@@ -341,6 +342,9 @@ const fashionOperatorRunConsumeSchema = z
   .strict();
 const fashionOperatorRunRejectSchema = z
   .object({ reason: z.string().trim().min(3).max(500) })
+  .strict();
+const fashionOperatorRunSupersedeSchema = fashionOperatorRunRejectSchema
+  .extend({ replacementHarnessSha: z.string().regex(/^[a-f0-9]{40}$/) })
   .strict();
 
 function validatedQuery<Schema extends z.ZodType>(
@@ -577,6 +581,18 @@ export function createApp(options: CreateAppOptions = {}) {
     const result = await rejectFashionStagingOperatorRun(
       context.env.DB,
       context.req.param("id"),
+      input.reason,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/internal/testing/fashion-staging/operator-runs/:id/supersede", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const input = await parseJson(context, fashionOperatorRunSupersedeSchema);
+    const result = await supersedeFashionStagingOperatorRun(
+      context.env.DB,
+      context.req.param("id"),
+      input.replacementHarnessSha,
       input.reason,
     );
     context.header("Cache-Control", "private, no-store");

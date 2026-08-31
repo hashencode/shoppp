@@ -1,4 +1,5 @@
 import { ApiError } from "../http/errors";
+import { sha256Hex } from "../orders/tokens";
 
 export type FashionStagingOperatorRunStatus =
   "approved" | "awaiting_operator" | "canceled" | "consumed" | "expired" | "rejected";
@@ -343,6 +344,122 @@ export async function rejectFashionStagingOperatorRun(
     )
     .bind(`audit-fashion-u8-reject-${runId}`, runId, normalizedReason, at)
     .run();
+  return mapRun((await rowByRunId(db, runId))!);
+}
+
+export async function supersedeFashionStagingOperatorRun(
+  db: D1Database,
+  runId: string,
+  replacementHarnessSha: string,
+  reason: string,
+  now = new Date(),
+) {
+  assertIdentifier(runId, "runId");
+  if (!sha.test(replacementHarnessSha)) {
+    throw new ApiError(
+      422,
+      "fashion_u8_operator_sha_invalid",
+      "The replacement harness commit is invalid.",
+    );
+  }
+  const normalizedReason = reason.trim();
+  if (normalizedReason.length < 3 || normalizedReason.length > 500) {
+    throw new ApiError(
+      422,
+      "fashion_u8_operator_supersession_invalid",
+      "Supersession reason is invalid.",
+    );
+  }
+  await expireActiveRuns(db, now);
+  const before = await rowByRunId(db, runId);
+  if (!before) {
+    throw new ApiError(404, "fashion_u8_operator_run_not_found", "Operator run not found.");
+  }
+  if (before.harness_sha === replacementHarnessSha) {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_harness_not_superseded",
+      "The replacement harness must differ from the retained run.",
+    );
+  }
+  const auditId = `audit-fashion-u8-supersede-${(
+    await sha256Hex(`${runId}:${replacementHarnessSha}`)
+  ).slice(0, 32)}`;
+  if (before.status === "expired" || before.status === "rejected") {
+    const audit = await db
+      .prepare(
+        `SELECT action, metadata_json FROM audit_events
+          WHERE id = ? AND target_id = ? AND target_type = 'fashion_staging_operator_run'`,
+      )
+      .bind(auditId, runId)
+      .first<{ action: string; metadata_json: string }>();
+    const metadata = audit ? (JSON.parse(audit.metadata_json) as Record<string, unknown>) : null;
+    if (
+      audit?.action === "themes.fashion-staging.operator.supersede" &&
+      metadata?.replacementHarnessSha === replacementHarnessSha
+    ) {
+      return mapRun(before);
+    }
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_run_not_supersedable",
+      "Operator run is terminal under a different boundary.",
+    );
+  }
+  if (before.status !== "awaiting_operator" && before.status !== "approved") {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_run_not_supersedable",
+      "Operator run is missing, immutable, or already terminal.",
+    );
+  }
+  const at = now.toISOString();
+  const nextStatus = before.status === "approved" ? "expired" : "rejected";
+  const [updated] = await db.batch([
+    db
+      .prepare(
+        `UPDATE fashion_staging_operator_runs
+            SET status = ?, updated_at = ?
+          WHERE run_id = ? AND harness_sha <> ? AND status = ?
+            AND ((? = 'awaiting_operator' AND successor_snapshot_id IS NULL
+                  AND successor_content_digest IS NULL AND approval_audit_id IS NULL
+                  AND operator_identity_id IS NULL AND approved_at IS NULL)
+              OR (? = 'approved' AND successor_snapshot_id IS NOT NULL
+                  AND successor_content_digest IS NOT NULL AND approval_audit_id IS NOT NULL
+                  AND operator_identity_id IS NOT NULL AND approved_at IS NOT NULL))`,
+      )
+      .bind(
+        nextStatus,
+        at,
+        runId,
+        replacementHarnessSha,
+        before.status,
+        before.status,
+        before.status,
+      ),
+    db
+      .prepare(
+        `INSERT INTO audit_events
+           (id, actor_type, actor_id, action, target_type, target_id, result,
+            reason, request_id, metadata_json, created_at)
+         VALUES (?, 'system', NULL, 'themes.fashion-staging.operator.supersede',
+                 'fashion_staging_operator_run', ?, 'succeeded', ?, NULL, ?, ?)`,
+      )
+      .bind(
+        auditId,
+        runId,
+        normalizedReason,
+        JSON.stringify({ previousStatus: before.status, replacementHarnessSha }),
+        at,
+      ),
+  ]);
+  if (updated?.meta.changes !== 1) {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_run_supersession_conflict",
+      "Operator run changed before its supersession evidence could be committed.",
+    );
+  }
   return mapRun((await rowByRunId(db, runId))!);
 }
 

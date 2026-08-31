@@ -9,6 +9,7 @@ import {
   getFashionStagingOperatorRun,
   moveFashionStagingOperatorRunToSuccessor,
   rejectFashionStagingOperatorRun,
+  supersedeFashionStagingOperatorRun,
 } from "../../src/testing/fashion-staging-operator";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
@@ -256,6 +257,78 @@ describe.sequential("Fashion U8 named-operator run authority", () => {
         now,
       ),
     ).resolves.toMatchObject({ status: "rejected" });
+  });
+
+  test("supersedes an approved run without replacing its immutable approval evidence", async () => {
+    const draftId = "draft-fashion-u8-approved-superseded";
+    const runId = "fashion-u8-approved-superseded";
+    const snapshotId = "snapshot-approved-u8-superseded";
+    const approvalAuditId = "audit-snapshot-approved-u8-superseded";
+    await seedDraft(draftId);
+    await createFashionStagingOperatorRun(
+      env.DB,
+      {
+        candidateSha: "a".repeat(40),
+        catalogReleaseId: "fashion-staging-u12-release",
+        contractTestDigest: "b".repeat(64),
+        environment: "fashion-staging",
+        expiresAt,
+        harnessManifestDigest: "c".repeat(64),
+        harnessSha: "d".repeat(40),
+        repository: "hashencode/shoppp",
+        runId,
+        runManifestDigest: "e".repeat(64),
+        sourceDraftId: draftId,
+        u12ReadinessDigest: "f".repeat(64),
+        u12SnapshotId: "snapshot-approved-u12",
+        workflowRunAttempt: 1,
+        workflowRunId: "40000000020",
+      },
+      now,
+    );
+    await seedApprovalEvidence(draftId, snapshotId, approvalAuditId, "superseded");
+    await approveFashionStagingOperatorRun(
+      env.DB,
+      {
+        approvalAuditId,
+        operatorIdentityId: "admin-fashion-u8-existing",
+        snapshotContentDigest: "7".repeat(64),
+        snapshotId,
+        workingDraftId: draftId,
+      },
+      now,
+    );
+
+    const supersede = () =>
+      supersedeFashionStagingOperatorRun(
+        env.DB,
+        runId,
+        "9".repeat(40),
+        "Replace an approved lineage after its reviewed harness changed",
+        now,
+      );
+    await expect(supersede()).resolves.toMatchObject({
+      approvalAuditId,
+      operatorIdentityId: "admin-fashion-u8-existing",
+      status: "expired",
+      successorContentDigest: "7".repeat(64),
+      successorSnapshotId: snapshotId,
+    });
+    await expect(supersede()).resolves.toMatchObject({ status: "expired" });
+    const audit = await env.DB.prepare(
+      `SELECT action, metadata_json, target_id FROM audit_events
+        WHERE action = 'themes.fashion-staging.operator.supersede' AND target_id = ?`,
+    )
+      .bind(runId)
+      .first<{ action: string; metadata_json: string; target_id: string }>();
+    expect(audit).toMatchObject({
+      action: "themes.fashion-staging.operator.supersede",
+      target_id: runId,
+    });
+    expect(JSON.parse(audit!.metadata_json)).toEqual({
+      previousStatus: "approved",
+      replacementHarnessSha: "9".repeat(40),
+    });
   });
 
   test("enforces credentials and envelopes across the operator HTTP lifecycle", async () => {

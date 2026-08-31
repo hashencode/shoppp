@@ -77,12 +77,13 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for the explicit authorized Preview-dispatch boundary exposed by
-  run `33373181740`, freeze and bind the resulting harness identity for candidate `4fe21a47`,
-  prepare a fresh run while rejecting `fashion-u8-33371168966`, and repeat the named-operator path
-  through Preview inspection and immutable approval. Refresh must emit and exit with exact
-  `preview-dispatch.json`; an authorized Fashion staging operator must separately dispatch the
-  fixed-main successor Preview before acceptance continues.
+- **Next action:** Pass post-commit and protected Fashion API deployment for the evidence-preserving
+  supersession boundary exposed by preparation `33374982767`, then refreeze candidate `4fe21a47`
+  and prepare a fresh run while superseding approved `fashion-u8-33371168966` to terminal
+  `expired` without clearing its immutable evidence. Repeat the named-operator path through Preview
+  and approval; refresh must emit and exit with exact `preview-dispatch.json`, after which an
+  authorized Fashion staging operator separately dispatches the fixed-main successor Preview
+  before acceptance continues.
 - **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
@@ -142,6 +143,12 @@ historical evidence remain unchanged inside the owning plans.
   `actions: write`, emits the exact non-secret fixed-main inputs in `preview-dispatch.json`, exits,
   and requires a separate authorized Preview dispatch. The changed harness requires refreeze and
   replay; neither bot authorization nor runner escalation is permitted.
+  Exact-main dispatch fix `040dfbf3` passed post-commit run `33373986699` on attempt 2; preparation
+  `33374982767` then passed authority, protected OIDC, and U12 provenance but failed before a new
+  registration because approved `fashion-u8-33371168966` cannot use the awaiting-only reject
+  transition. The active plan owns a bounded, audited supersession that retains all approved
+  evidence while releasing the old harness lineage to terminal `expired`; it then owns protected
+  API deployment, refreeze, and replay. This state-model gap does not authorize runner escalation.
   Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
   standing-authority baseline still traversed already-integrated non-U12 product commits; the
   active plan owns the bounded exact-main baseline correction and retry evidence. Corrected

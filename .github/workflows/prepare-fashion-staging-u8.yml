@@ -44,7 +44,7 @@ on:
         description: Exact preparation artifact; required for refresh
         required: false
       superseded_operator_run_id:
-        description: Failed awaiting-operator run to reject before a fresh preparation
+        description: Prior harness run to supersede before a fresh preparation
         required: false
 
 concurrency:
@@ -219,12 +219,19 @@ jobs:
             curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
               --request POST --header "Authorization: Bearer $FASHION_U12_ACCEPTANCE_TOKEN" \
               --header "Content-Type: application/json" \
-              --data '{"reason":"Superseded after the legacy preview hook failed closed; use the reviewed GitHub-hosted successor."}' \
-              "$API_ORIGIN/internal/testing/fashion-staging/operator-runs/$SUPERSEDED_OPERATOR_RUN_ID/reject" \
+              --data '{"reason":"Superseded because the reviewed GitHub-hosted harness changed; preserve any immutable approval evidence.","replacementHarnessSha":"'"$HARNESS_SHA"'"}' \
+              "$API_ORIGIN/internal/testing/fashion-staging/operator-runs/$SUPERSEDED_OPERATOR_RUN_ID/supersede" \
               > artifacts/fashion-u8/superseded-operator-run.json
             jq --exit-status --arg run "$SUPERSEDED_OPERATOR_RUN_ID" \
-              '.data.runId == $run and .data.status == "rejected" and
-               .data.successorSnapshotId == null and .data.approvalAuditId == null' \
+              '.data.runId == $run and
+               ((.data.status == "rejected" and .data.successorSnapshotId == null and
+                 .data.successorContentDigest == null and .data.approvalAuditId == null and
+                 .data.operatorIdentityId == null and .data.approvedAt == null) or
+                (.data.status == "expired" and (.data.successorSnapshotId | type == "string") and
+                 (.data.successorContentDigest | test("^[a-f0-9]{64}$")) and
+                 (.data.approvalAuditId | type == "string") and
+                 (.data.operatorIdentityId | type == "string") and
+                 (.data.approvedAt | type == "string")))' \
               artifacts/fashion-u8/superseded-operator-run.json >/dev/null
           fi
           if ! curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
