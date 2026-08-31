@@ -56,10 +56,7 @@ export function verifyFashionStagingOperatorActivation(
   assert(verification.roleProtected === 1, "operator role is not protected");
   assert(verification.credentialCount === 1, "operator password credential is missing");
   assert(verification.auditActorType === "admin", "activation audit actor is invalid");
-  assert(
-    verification.auditTargetType === "admin_invitation",
-    "activation audit target is invalid",
-  );
+  assert(verification.auditTargetType === "admin_invitation", "activation audit target is invalid");
   assert(verification.auditResult === "succeeded", "activation audit did not succeed");
   for (const [label, value] of [
     ["identity ID", verification.identityId],

@@ -21,7 +21,9 @@ const validVerification = {
 } as const;
 
 function d1Output(verification: unknown): string {
-  return JSON.stringify([{ results: [{ verification: JSON.stringify(verification) }], success: true }]);
+  return JSON.stringify([
+    { results: [{ verification: JSON.stringify(verification) }], success: true },
+  ]);
 }
 
 describe("Fashion staging operator activation verification", () => {

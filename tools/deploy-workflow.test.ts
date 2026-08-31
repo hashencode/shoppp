@@ -176,7 +176,9 @@ describe("Fashion staging operator verification workflow", () => {
     expect(protectedJob).not.toMatch(/wrangler\s+(?:deploy|secret|workflows)\b/);
     expect(protectedJob.match(/\bcurl\b/g)).toHaveLength(1);
     expect(protectedJob).not.toMatch(/curl\s+(?:--request|-X)\s+(?:POST|PUT|PATCH|DELETE)\b/i);
-    expect(protectedJob).not.toMatch(/curl[\s\S]*?(?:--data(?:-\w+)?|-d|--form|-F|--upload-file|-T)\b/);
+    expect(protectedJob).not.toMatch(
+      /curl[\s\S]*?(?:--data(?:-\w+)?|-d|--form|-F|--upload-file|-T)\b/,
+    );
     expect(protectedJob).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER)\b/i);
     expect(protectedJob).not.toMatch(/\b(?:git push|gh workflow run|gh api)\b/);
     expectNoHumanPasswordInputs(protectedJob);
