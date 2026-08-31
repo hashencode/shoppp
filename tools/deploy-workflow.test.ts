@@ -20,6 +20,10 @@ const fashionU8AcceptanceWorkflowPath = resolve(
   import.meta.dir,
   "../.github/workflows/accept-fashion-staging-u8.yml",
 );
+const fashionOperatorProvisioningWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/provision-fashion-staging-operator.yml",
+);
 const fashionPurchaseJourneyPath = resolve(
   import.meta.dir,
   "../e2e/fashion-store-purchase.spec.ts",
@@ -63,6 +67,47 @@ function expectExternalActionsPinnedToFullShas(contents: string): void {
     expect(action).toMatch(/^[^@\s]+@[0-9a-f]{40}$/);
   }
 }
+
+function expectNoHumanPasswordInputs(contents: string): void {
+  expect(contents).not.toMatch(/--password(?:\s|=)/i);
+  expect(contents).not.toMatch(/\bpassword\s*[:=]/i);
+  expect(contents).not.toMatch(/\b[A-Za-z0-9_]*password[A-Za-z0-9_]*\s*[:=]/i);
+}
+
+describe("Fashion staging operator provisioning workflow", () => {
+  test("creates only a protected password-free invitation after OIDC verification", async () => {
+    const workflow = await readFile(fashionOperatorProvisioningWorkflowPath, "utf8");
+    const verifier = workflow.slice(
+      workflow.indexOf("  verify-authority:"),
+      workflow.indexOf("  provision-operator:"),
+    );
+    const protectedJob = workflow.slice(workflow.indexOf("  provision-operator:"));
+
+    expect(verifier).not.toMatch(/environment:|secrets\.|id-token:\s*write/);
+    expect(verifier).toContain("bun tools/verify-fashion-cloud-authority.ts");
+    expect(protectedJob).toContain("needs: verify-authority");
+    expect(protectedJob).toContain("environment: fashion-staging");
+    expect(protectedJob).toContain("id-token: write");
+    expect(protectedJob.indexOf('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"')).toBeLessThan(
+      protectedJob.indexOf("CLOUDFLARE_API_TOKEN"),
+    );
+    expect(protectedJob).toContain("--environment fashion-staging");
+    expect(protectedJob).toContain("shoppp-fashion-staging-notification-delivery");
+    expect(workflow).toContain("group: fashion-staging-preview");
+    expect(protectedJob).toContain('index("AUTH_TOKEN_SECRET") != null');
+    expect(protectedJob).toContain("for attempt in {1..61}");
+    expect(protectedJob).toContain('test "$attempt" -eq 61 && break');
+    expectNoHumanPasswordInputs(protectedJob);
+    expect(protectedJob).not.toContain("FASHION_U8_VOICEOVER_RECORD_FILE");
+    expectExternalActionsPinnedToFullShas(workflow);
+  });
+
+  test("password-free assertion rejects common CLI, YAML, and mixed-case credential forms", () => {
+    expect(() => expectNoHumanPasswordInputs("--password secret")).toThrow();
+    expect(() => expectNoHumanPasswordInputs("password: secret")).toThrow();
+    expect(() => expectNoHumanPasswordInputs("AdminPassword=value")).toThrow();
+  });
+});
 
 describe("hosted full validation workflow", () => {
   test("allows the complete release gate to finish without weakening it", async () => {

@@ -77,33 +77,20 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate the strict registration-request projection correction as a new harness
-  freeze, generate and bind its canonical manifest against unchanged candidate `0f5d1fe6`, then
-  dispatch protected U8 preparation with the existing retry24 source draft and U12 readiness run
-  `33300115340`. Preparation must exit at `awaiting_operator`; resume `FS-U8.2` only through existing
-  named operator approval, separate refresh/Preview, and separate hosted acceptance.
-- **Blocker:** Successor post-commit and protected U12 OIDC authority remain proven. Exact main
-  `0f5d1fe6` passed post-commit run `33299911627`; protected U12 run `33300115340` synchronized the
-  replacement acceptance credential and captured readiness artifact `9728666247`; Preview/U12 run
-  `33300205798` passed the real Stripe journey, cleanup, fresh-session postcondition, and complete
-  verdict. Compromised artifact `9728471189` is deleted, and replacement artifact `9728806594`
-  retains no trace/zip or detected bearer header. Harness checkpoint `7f157e81` passed post-commit
-  run `33300719966`; U8 preparation run `33300954731` attempt 2 passed hosted authority, OIDC, and
-  readiness provenance but failed before server-side run creation because it read the deployed
-  digest from the intentionally pre-deployment readiness response. Exact main `3c2b01f4` corrected
-  that readback and passed post-commit run `33301201488`; preparation run `33301434967` reached the
-  server readback but failed `401` because the referenced U8-specific Admin-service secret does not
-  exist. Its artifact `9729067889` contains only the harness manifest, so no operator run exists.
-  Exact main `cbfe4f54` then mapped the existing protected U12 Admin-service identity across U8
-  preparation, refresh, and acceptance and passed
-  post-commit run `33301555441`; preparation run `33301766997` then proved deployed-build readback
-  but received `422` because its strict registration request included the local manifest's extra
-  `environment` property. Artifact `9729171238` contains the complete non-secret request and proves
-  the subsequent exact-run GET was `404`; no operator run exists. The next gated boundary removes
-  only that caller-controlled property while the server continues to set `fashion-staging`. No new
-  U8 account or credential and no fallback to the developer machine, OrbStack, self-managed runner,
-  local account, or historical artifact is authorized. Ordinary staging and all production
-  mutation remain excluded.
+- **Next action:** Integrate and dispatch the protected main-only/OIDC workflow that deploys the
+  dedicated Fashion Admin and creates the one explicitly authorized durable Fashion staging
+  operator through a password-free invitation. After the recipient activates outside Actions,
+  refresh U12 readiness/Preview and create a new U8 preparation; the expired run
+  `fashion-u8-33302142836` cannot be reused.
+- **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
+  but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
+  audit found no enabled reusable Fashion human identity; the user has therefore authorized one
+  durable platform-level Fashion staging operator. The bounded correction must deploy the dedicated
+  Fashion Admin, deliver a protected password-free invitation, and wait for recipient activation
+  before fresh U12, Preview, U8 preparation, named-operator action, refresh, and hosted acceptance.
+  No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
+  or production mutation is authorized. Detailed run and artifact evidence remains in the active
+  feature plan and progress records.
 - **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
   closure.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
@@ -117,9 +104,10 @@ The completed cloud-CI successor interlude does not replace the active Fashion s
   successor and return shared-workflow ownership to `FS-U8.2`.
 - **Remaining blocker:** Cloud runner/OIDC, Cloudflare credential, acceptance-token rotation,
   exact-build readiness, and the candidate-scoped Preview/U12 baseline are closed. The remaining FS
-  prerequisite is the bounded strict-request projection correction, exact harness refreeze, and
-  protected U8 preparation to `awaiting_operator`; runs `33300954731`, `33301434967`, and
-  `33301766997` created no operator run.
+  prerequisite is deploying the dedicated Fashion Admin and activating the authorized durable
+  human operator. The old `awaiting_operator` boundary expired without a Snapshot; fresh U12,
+  Preview, preparation, named-operator action, refresh, and hosted acceptance remain. FS-U8.2
+  remains in progress.
 
 Parallel Decor execution is complete without replacing the product-level Fashion pointer:
 

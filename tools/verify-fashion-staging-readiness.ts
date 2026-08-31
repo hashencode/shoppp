@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 
 const ACCOUNT_ID = "449e7f42fe4c4e55d5c674e2e7c57c8d";
 const API_ORIGIN = "https://shoppp-api-fashion-staging.hashencode.workers.dev";
+const ADMIN_ORIGIN = "https://shoppp-admin-fashion-staging.hashencode.workers.dev";
 const PREVIEW_ORIGIN = "https://shoppp-storefront-fashion-preview.hashencode.workers.dev";
+const ADMIN_WORKER = "shoppp-admin-fashion-staging";
 const API_WORKER = "shoppp-api-fashion-staging";
 const PREVIEW_WORKER = "shoppp-storefront-fashion-preview";
 const D1_ID = "eb1ca4ef-3121-4d02-b20e-e619eac1cecc";
@@ -10,6 +12,7 @@ const D1_NAME = "shoppp-fashion-staging";
 
 const REQUIRED_API_BINDINGS = ["CHECKOUT_RATE_LIMITER", "DB", "MEDIA", "PREVIEW_ARTIFACTS"];
 const REQUIRED_API_SECRETS = [
+  "AUTH_TOKEN_SECRET",
   "FASHION_ACCEPTANCE_TOKEN",
   "PREVIEW_BUILD_CALLBACK_TOKEN",
   "PREVIEW_SERVICE_TOKEN",
@@ -46,6 +49,7 @@ interface WorkerSnapshot {
   name: string;
   rateLimits?: { limit: number; name: string; namespaceId: string; period: number }[];
   secrets: string[];
+  services?: Record<string, string>;
   variables?: Record<string, string>;
 }
 
@@ -55,6 +59,7 @@ export interface FashionStagingReadinessSnapshot {
   environment: string;
   cloudflare: {
     accountId: string;
+    adminWorker: WorkerSnapshot;
     apiWorker: WorkerSnapshot;
     previewWorker: WorkerSnapshot;
     d1: {
@@ -179,6 +184,24 @@ export function assertFashionStagingReadiness(
   );
   assert(snapshot.cloudflare.accountId === ACCOUNT_ID, "Cloudflare account identity is incorrect");
   assert(
+    snapshot.cloudflare.adminWorker.name === ADMIN_WORKER,
+    "Fashion Admin Worker identity is incorrect",
+  );
+  requireNames(
+    snapshot.cloudflare.adminWorker.bindings,
+    ["API"],
+    "Admin Worker is missing required bindings",
+  );
+  assert(
+    snapshot.cloudflare.adminWorker.services?.API === API_WORKER,
+    "Fashion Admin Worker API binding must target the dedicated Fashion API",
+  );
+  const liveAdminOrigin = exactOrigin(
+    `https://${snapshot.cloudflare.adminWorker.variables?.ADMIN_HOSTNAME ?? ""}`,
+    "Fashion Admin Worker origin",
+  );
+  assert(liveAdminOrigin.origin === ADMIN_ORIGIN, "Fashion Admin Worker origin is incorrect");
+  assert(
     snapshot.cloudflare.apiWorker.name === API_WORKER,
     "Fashion API Worker identity is incorrect",
   );
@@ -206,6 +229,11 @@ export function assertFashionStagingReadiness(
     "Fashion API Worker checkout rate limit is not the dedicated 10/minute profile",
   );
   const workerVariables = snapshot.cloudflare.apiWorker.variables ?? {};
+  assert(
+    exactOrigin(workerVariables.ADMIN_ORIGIN ?? "", "Fashion API ADMIN_ORIGIN").origin ===
+      ADMIN_ORIGIN,
+    "Fashion API ADMIN_ORIGIN must target the dedicated Fashion Admin",
+  );
   assert(
     workerVariables.ENVIRONMENT === "staging" &&
       workerVariables.RESOURCE_NAMESPACE === "shoppp-fashion-staging",
@@ -317,7 +345,11 @@ export function assertFashionStagingReadiness(
     variables.PREVIEW_ORIGIN === PREVIEW_ORIGIN,
     "PREVIEW_ORIGIN must target the private Worker",
   );
-  exactOrigin(variables.PREVIEW_HANDOFF_ORIGIN ?? "", "PREVIEW_HANDOFF_ORIGIN");
+  assert(
+    exactOrigin(variables.PREVIEW_HANDOFF_ORIGIN ?? "", "PREVIEW_HANDOFF_ORIGIN").origin ===
+      ADMIN_ORIGIN,
+    "PREVIEW_HANDOFF_ORIGIN must target the dedicated Fashion Admin",
+  );
   assert(variables.FASHION_U13_CURRENCY === "USD", "Fashion acceptance currency must be USD");
   assert(
     new Set(["sandbox", "suppressed"]).has(variables.FASHION_U12_EMAIL_MODE ?? ""),

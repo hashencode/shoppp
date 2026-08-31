@@ -7,6 +7,7 @@ type JsonObject = Record<string, unknown>;
 
 const ACCOUNT_ID = "449e7f42fe4c4e55d5c674e2e7c57c8d";
 const D1_ID = "eb1ca4ef-3121-4d02-b20e-e619eac1cecc";
+const ADMIN_WORKER = "shoppp-admin-fashion-staging";
 const API_WORKER = "shoppp-api-fashion-staging";
 const PREVIEW_WORKER = "shoppp-storefront-fashion-preview";
 const PREVIEW_ORIGIN = "https://shoppp-storefront-fashion-preview.hashencode.workers.dev";
@@ -92,6 +93,7 @@ function bindingProfile(settings: JsonObject): {
   bindings: string[];
   rateLimits: { limit: number; name: string; namespaceId: string; period: number }[];
   secrets: string[];
+  services: Record<string, string>;
   variables: Record<string, string>;
 } {
   const result = settings.result as JsonObject | undefined;
@@ -105,6 +107,11 @@ function bindingProfile(settings: JsonObject): {
       .filter(({ type }) => type === "secret_text")
       .map(({ name }) => String(name))
       .sort(),
+    services: Object.fromEntries(
+      bindings
+        .filter(({ type }) => type === "service")
+        .map(({ name, service }) => [String(name), String(service)]),
+    ),
     rateLimits: bindings
       .filter(({ type }) => type === "ratelimit")
       .map((binding) => {
@@ -158,6 +165,7 @@ if (import.meta.main) {
     apiJson(`https://api.github.com/repos/${repository}${path}`, githubToken, "github");
 
   const [
+    adminSettings,
     apiSettings,
     previewSettings,
     mediaDomain,
@@ -177,6 +185,7 @@ if (import.meta.main) {
     stripeBalance,
     stripeWebhooks,
   ] = await Promise.all([
+    cloudflare(`/workers/scripts/${ADMIN_WORKER}/settings`),
     cloudflare(`/workers/scripts/${API_WORKER}/settings`),
     cloudflare(`/workers/scripts/${PREVIEW_WORKER}/settings`),
     cloudflare("/r2/buckets/shoppp-fashion-staging-media/domains/managed"),
@@ -198,6 +207,7 @@ if (import.meta.main) {
     jsonFile<JsonObject>(resolve(inputDirectory, "stripe-balance.json")),
     jsonFile<JsonObject>(resolve(inputDirectory, "stripe-webhooks.json")),
   ]);
+  const workerAdmin = bindingProfile(adminSettings);
   const workerApi = bindingProfile(apiSettings);
   const workerPreview = bindingProfile(previewSettings);
   const protectedVariables = variables(githubVariables);
@@ -231,6 +241,7 @@ if (import.meta.main) {
     environment: "fashion-staging",
     cloudflare: {
       accountId: ACCOUNT_ID,
+      adminWorker: { ...workerAdmin, name: ADMIN_WORKER },
       apiWorker: { ...workerApi, name: API_WORKER },
       previewWorker: { ...workerPreview, name: PREVIEW_WORKER },
       d1: {

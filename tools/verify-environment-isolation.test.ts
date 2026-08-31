@@ -72,6 +72,7 @@ function fashionProfile() {
     deploymentProfile: "fashion-staging" as const,
     runtimeEnvironment: "staging" as const,
     workers: {
+      admin: "shoppp-admin-fashion-staging",
       api: "shoppp-api-fashion-staging",
       preview: "shoppp-storefront-fashion-preview",
     },
@@ -108,10 +109,17 @@ function fashionProfile() {
       credentialReplacement: "security-event-or-operator" as const,
     },
     origins: {
+      admin: "https://shoppp-admin-fashion-staging.example.com",
       api: "https://shoppp-api-fashion-staging.example.com",
+      apiAdmin: "https://shoppp-admin-fashion-staging.example.com",
       preview: "https://shoppp-storefront-fashion-preview.example.com",
+      previewHandoff: "https://shoppp-admin-fashion-staging.example.com",
     },
     serviceBindings: {
+      ADMIN_API: {
+        service: "shoppp-api-fashion-staging",
+        intent: "admin-api" as const,
+      },
       PREVIEW_AUTH: {
         service: "shoppp-api-fashion-staging",
         intent: "preview-authorization" as const,
@@ -157,10 +165,12 @@ describe("environment isolation", () => {
         webhookUrl: "https://shoppp-api-fashion-staging.hashencode.workers.dev/webhooks/stripe",
       },
       serviceBindings: {
+        ADMIN_API: { service: "shoppp-api-fashion-staging" },
         COMMERCE_API: { service: "shoppp-api-fashion-staging" },
         PREVIEW_AUTH: { service: "shoppp-api-fashion-staging" },
       },
       workers: {
+        admin: "shoppp-admin-fashion-staging",
         api: "shoppp-api-fashion-staging",
         preview: "shoppp-storefront-fashion-preview",
       },
@@ -170,6 +180,39 @@ describe("environment isolation", () => {
       "shoppp-fashion-staging-preview-artifacts",
     ]);
     expect(() => verifyFashionEnvironmentProfile(snapshots(), profile)).not.toThrow();
+  });
+
+  test("fails closed when Fashion reuses the ordinary staging Admin", () => {
+    const profile = fashionProfile();
+    profile.workers.admin = "shoppp-admin-staging";
+    profile.origins.admin = "https://shoppp-admin-staging.example.com";
+    profile.origins.apiAdmin = profile.origins.admin;
+    profile.origins.previewHandoff = profile.origins.admin;
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), profile)).toThrow(
+      /Fashion Admin.*dedicated|reuses/i,
+    );
+  });
+
+  test("fails closed when Fashion Admin binds the ordinary staging API", () => {
+    const profile = fashionProfile();
+    profile.serviceBindings.ADMIN_API.service = "shoppp-api-staging";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), profile)).toThrow(
+      /ADMIN_API.*Fashion API/i,
+    );
+  });
+
+  test("fails closed when API or Preview crosses over to another Admin origin", () => {
+    const apiCrossover = fashionProfile();
+    apiCrossover.origins.apiAdmin = "https://admin.staging.example.com";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), apiCrossover)).toThrow(
+      /API ADMIN_ORIGIN must target the dedicated Fashion Admin/,
+    );
+
+    const previewCrossover = fashionProfile();
+    previewCrossover.origins.previewHandoff = "https://admin.staging.example.com";
+    expect(() => verifyFashionEnvironmentProfile(snapshots(), previewCrossover)).toThrow(
+      /Preview handoff must target the dedicated Fashion Admin/,
+    );
   });
 
   test("accepts distinct staging and production resources", () => {
@@ -309,6 +352,7 @@ describe("fashion-staging deployment profile", () => {
       const fixture = fashionProfile();
       fixture.workers[worker] = snapshots()[0]!.applicationNames[0]!;
       if (worker === "api") {
+        fixture.serviceBindings.ADMIN_API.service = fixture.workers.api;
         fixture.serviceBindings.PREVIEW_AUTH.service = fixture.workers.api;
         fixture.serviceBindings.COMMERCE_API.service = fixture.workers.api;
       }

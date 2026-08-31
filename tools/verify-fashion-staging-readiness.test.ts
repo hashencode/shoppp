@@ -13,6 +13,15 @@ function snapshot(): FashionStagingReadinessSnapshot {
     environment: "fashion-staging",
     cloudflare: {
       accountId: "449e7f42fe4c4e55d5c674e2e7c57c8d",
+      adminWorker: {
+        bindings: ["API"],
+        name: "shoppp-admin-fashion-staging",
+        secrets: [],
+        services: { API: "shoppp-api-fashion-staging" },
+        variables: {
+          ADMIN_HOSTNAME: "shoppp-admin-fashion-staging.hashencode.workers.dev",
+        },
+      },
       apiWorker: {
         bindings: ["CHECKOUT_RATE_LIMITER", "DB", "MEDIA", "PREVIEW_ARTIFACTS"],
         name: "shoppp-api-fashion-staging",
@@ -20,6 +29,7 @@ function snapshot(): FashionStagingReadinessSnapshot {
           { limit: 10, name: "CHECKOUT_RATE_LIMITER", namespaceId: "14001", period: 60 },
         ],
         secrets: [
+          "AUTH_TOKEN_SECRET",
           "FASHION_ACCEPTANCE_TOKEN",
           "PREVIEW_BUILD_CALLBACK_TOKEN",
           "PREVIEW_SERVICE_TOKEN",
@@ -28,6 +38,7 @@ function snapshot(): FashionStagingReadinessSnapshot {
           "TURNSTILE_SECRET",
         ],
         variables: {
+          ADMIN_ORIGIN: "https://shoppp-admin-fashion-staging.hashencode.workers.dev",
           ENVIRONMENT: "staging",
           PAYMENT_CANCEL_URL:
             "https://shoppp-storefront-fashion-preview.hashencode.workers.dev/checkout/complete?return=canceled",
@@ -102,7 +113,7 @@ function snapshot(): FashionStagingReadinessSnapshot {
         FASHION_U13_PRODUCT_ID: "prod_fashion_u12_single",
         FASHION_U13_VARIANT_ID: "var_fashion_u12_single",
         PREVIEW_API_URL: "https://shoppp-api-fashion-staging.hashencode.workers.dev",
-        PREVIEW_HANDOFF_ORIGIN: "https://shoppp-admin-staging.hashencode.workers.dev",
+        PREVIEW_HANDOFF_ORIGIN: "https://shoppp-admin-fashion-staging.hashencode.workers.dev",
         PREVIEW_ORIGIN: "https://shoppp-storefront-fashion-preview.hashencode.workers.dev",
         TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
       },
@@ -170,12 +181,26 @@ describe("Fashion staging deployment readiness", () => {
   });
 
   test("rejects missing Worker or protected-environment credentials", () => {
+    const admin = snapshot();
+    admin.cloudflare.adminWorker.services!.API = "shoppp-api-staging";
+    expect(() => assertFashionStagingReadiness(admin)).toThrow(
+      /Admin Worker API binding must target the dedicated Fashion API/,
+    );
+
     const worker = snapshot();
     worker.cloudflare.apiWorker.secrets = worker.cloudflare.apiWorker.secrets.filter(
       (name) => name !== "STRIPE_WEBHOOK_SECRET",
     );
     expect(() => assertFashionStagingReadiness(worker)).toThrow(
       /API Worker is missing required secrets: STRIPE_WEBHOOK_SECRET/,
+    );
+
+    const activation = snapshot();
+    activation.cloudflare.apiWorker.secrets = activation.cloudflare.apiWorker.secrets.filter(
+      (name) => name !== "AUTH_TOKEN_SECRET",
+    );
+    expect(() => assertFashionStagingReadiness(activation)).toThrow(
+      /API Worker is missing required secrets: AUTH_TOKEN_SECRET/,
     );
 
     const github = snapshot();
@@ -280,6 +305,13 @@ describe("Fashion staging deployment readiness", () => {
     mismatched.github.variables.FASHION_U12_WAREHOUSE_ID = "other-warehouse";
     expect(() => assertFashionStagingReadiness(mismatched)).toThrow(
       /FASHION_U12_WAREHOUSE_ID must match the seed/,
+    );
+
+    const ordinaryAdmin = snapshot();
+    ordinaryAdmin.github.variables.PREVIEW_HANDOFF_ORIGIN =
+      "https://shoppp-admin-staging.hashencode.workers.dev";
+    expect(() => assertFashionStagingReadiness(ordinaryAdmin)).toThrow(
+      /PREVIEW_HANDOFF_ORIGIN must target the dedicated Fashion Admin/,
     );
   });
 });

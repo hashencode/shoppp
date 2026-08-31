@@ -13,6 +13,18 @@ describe("Fashion U8 frozen harness manifest", () => {
     );
   });
 
+  test("freezes the dedicated Fashion Admin and operator-provisioning boundary", () => {
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      ".github/workflows/provision-fashion-staging-operator.yml",
+    );
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      "tools/capture-fashion-staging-readiness.ts",
+    );
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain("apps/admin/wrangler.jsonc");
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain("tools/bootstrap-admin.ts");
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain("tools/verify-environment-isolation.ts");
+  });
+
   test("sorts paths, hashes canonical contents, and detects self or file drift", async () => {
     const files = new Map([
       ["tools/verify-staging-latency.ts", "latency"],

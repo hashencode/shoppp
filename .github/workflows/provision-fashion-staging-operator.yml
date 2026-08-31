@@ -1,0 +1,142 @@
+name: Provision durable Fashion staging operator
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fashion-staging-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: none
+
+jobs:
+  verify-authority:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'hashencode/shoppp' &&
+      github.event.repository.fork == false &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      EXPECTED_REPOSITORY: hashencode/shoppp
+      FASHION_CANDIDATE_SHA: ${{ github.sha }}
+      FASHION_HARNESS_SHA: ${{ github.sha }}
+      FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+      GITHUB_REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Verify credential-free Fashion authority and standard runner capability
+        run: bun tools/verify-fashion-cloud-authority.ts
+
+  provision-operator:
+    needs: verify-authority
+    environment: fashion-staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Bind the protected job to GitHub OIDC claims
+        env:
+          EXPECTED_REPOSITORY: hashencode/shoppp
+          FASHION_STAGING_OPERATORS: ${{ vars.FASHION_STAGING_OPERATORS }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          RESPONSE="$(curl --fail --silent --show-error --header "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=shoppp-fashion-staging")"
+          TOKEN="$(jq -er '.value' <<<"$RESPONSE")"
+          echo "::add-mask::$TOKEN"
+          SHOPPP_GITHUB_OIDC_TOKEN="$TOKEN" bun tools/verify-github-oidc-claims.ts
+      - run: bun install --frozen-lockfile
+      - name: Verify dedicated Fashion Admin and API configuration
+        run: |
+          bun test tools/bootstrap-admin.test.ts tools/verify-environment-isolation.test.ts
+          bun run verify:environment
+      - name: Build the Fashion Admin artifact
+        run: bun run --cwd apps/admin build
+      - name: Deploy dedicated Fashion API and Admin
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          (cd apps/api && bunx wrangler deploy --env fashion-staging)
+          (cd apps/admin && bunx wrangler deploy worker-dist/index.js --env fashion-staging --no-bundle --assets dist --strict)
+          curl --connect-timeout 10 --max-time 30 --fail --silent --show-error \
+            https://shoppp-admin-fashion-staging.hashencode.workers.dev/login >/dev/null
+      - name: Ensure activation signing capability before database mutation
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SECRETS="$(cd apps/api && bunx wrangler secret list --env fashion-staging --format json)"
+          jq --exit-status 'map(.name) | index("AUTH_TOKEN_SECRET") != null' \
+            <<<"$SECRETS" >/dev/null && exit 0
+          ACTIVATION_SECRET="$(openssl rand -hex 48)"
+          echo "::add-mask::$ACTIVATION_SECRET"
+          printf '%s' "$ACTIVATION_SECRET" | \
+            (cd apps/api && bunx wrangler secret put AUTH_TOKEN_SECRET --env fashion-staging)
+          unset ACTIVATION_SECRET
+          (cd apps/api && bunx wrangler secret list --env fashion-staging --format json) \
+            | jq --exit-status 'map(.name) | index("AUTH_TOKEN_SECRET") != null' >/dev/null
+      - name: Create the password-free protected invitation
+        id: invitation
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPERATOR_DISPLAY_NAME: Shoppp Fashion Staging Owner
+          OPERATOR_EMAIL: ${{ secrets.FASHION_STAGING_OPERATOR_EMAIL }}
+        run: |
+          test -n "$OPERATOR_EMAIL"
+          test "$OPERATOR_DISPLAY_NAME" = "Shoppp Fashion Staging Owner"
+          OUTPUT="$(bun run bootstrap:admin --environment fashion-staging \
+            --database shoppp-fashion-staging --email "$OPERATOR_EMAIL" \
+            --display-name "$OPERATOR_DISPLAY_NAME")"
+          RESULT="$(grep '^SHOPPP_BOOTSTRAP_RESULT=' <<<"$OUTPUT" | tail -1 | cut -d= -f2-)"
+          INVITATION_ID="$(jq -er '.invitationId' <<<"$RESULT")"
+          JOB_ID="$(jq -er '.notificationJobId' <<<"$RESULT")"
+          echo "invitation_id=$INVITATION_ID" >> "$GITHUB_OUTPUT"
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+      - name: Send and verify the one-time activation email
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          JOB_ID: ${{ steps.invitation.outputs.job_id }}
+        run: |
+          (cd apps/api && bunx wrangler workflows trigger \
+            shoppp-fashion-staging-notification-delivery \
+            "{\"jobId\":\"$JOB_ID\"}" --env fashion-staging)
+          for attempt in {1..61}; do
+            STATUS="$(cd apps/api && bunx wrangler d1 execute shoppp-fashion-staging --remote --json \
+              --env fashion-staging \
+              --command "SELECT status FROM notification_jobs WHERE id = '$JOB_ID'" \
+              | jq -er '.[0].results[0].status')"
+            if test "$STATUS" = "sent"; then
+              printf 'Invitation `%s` was delivered without creating or transmitting a password.\n' \
+                "${{ steps.invitation.outputs.invitation_id }}" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            test "$STATUS" != "dead_letter"
+            test "$attempt" -eq 61 && break
+            sleep 5
+          done
+          echo "Activation delivery did not settle within the bounded verification window." >&2
+          exit 1

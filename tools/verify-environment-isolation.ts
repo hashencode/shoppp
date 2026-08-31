@@ -40,6 +40,7 @@ export interface FashionEnvironmentProfile {
   deploymentProfile: string;
   runtimeEnvironment: string;
   workers: {
+    admin: string;
     api: string;
     preview: string;
   };
@@ -57,10 +58,17 @@ export interface FashionEnvironmentProfile {
     credentialReplacement: string;
   };
   origins: {
+    admin: string;
     api: string;
+    apiAdmin: string;
     preview: string;
+    previewHandoff: string;
   };
   serviceBindings: {
+    ADMIN_API: {
+      service: string;
+      intent: string;
+    };
     PREVIEW_AUTH: {
       service: string;
       intent: string;
@@ -182,10 +190,15 @@ function checkoutRateLimit(
 export async function loadFashionEnvironmentProfile(
   root = ROOT,
 ): Promise<FashionEnvironmentProfile> {
-  const [api, storefront] = await Promise.all([
+  const [admin, api, storefront] = await Promise.all([
+    jsoncConfig(root, "apps/admin/wrangler.jsonc"),
     jsoncConfig(root, "apps/api/wrangler.jsonc"),
     jsoncConfig(root, "apps/storefront/wrangler.preview.jsonc"),
   ]);
+  const adminEnvironment =
+    isRecord(admin.env) && isRecord(admin.env["fashion-staging"])
+      ? admin.env["fashion-staging"]
+      : undefined;
   const apiEnvironment =
     isRecord(api.env) && isRecord(api.env["fashion-staging"])
       ? api.env["fashion-staging"]
@@ -194,6 +207,7 @@ export async function loadFashionEnvironmentProfile(
     isRecord(storefront.env) && isRecord(storefront.env["fashion-staging"])
       ? storefront.env["fashion-staging"]
       : undefined;
+  assert(isRecord(adminEnvironment), "Fashion Admin deployment profile is missing");
   assert(isRecord(apiEnvironment), "Fashion API deployment profile is missing");
   assert(isRecord(previewEnvironment), "Fashion Preview deployment profile is missing");
   const databases = Array.isArray(apiEnvironment.d1_databases)
@@ -207,6 +221,7 @@ export async function loadFashionEnvironmentProfile(
     "Fashion D1 profile must define its ID and name",
   );
   const apiVariables = stringVariables(apiEnvironment.vars);
+  const previewVariables = stringVariables(previewEnvironment.vars);
   const previewOrigin = apiVariables.PREVIEW_ORIGIN ?? "";
   const publicOrigin = apiVariables.PUBLIC_ORIGIN ?? "";
   const services = Array.isArray(previewEnvironment.services)
@@ -217,6 +232,14 @@ export async function loadFashionEnvironmentProfile(
     assert(typeof match === "string", `Fashion profile must define ${binding}`);
     return match;
   };
+  const adminServices = Array.isArray(adminEnvironment.services)
+    ? adminEnvironment.services.filter(isRecord)
+    : [];
+  const adminApi = adminServices.find((entry) => entry.binding === "API")?.service;
+  assert(typeof adminApi === "string", "Fashion Admin profile must define API");
+  const adminHostname = stringVariables(adminEnvironment.vars).ADMIN_HOSTNAME ?? "";
+  const adminOrigin = adminHostname ? `https://${adminHostname}` : "";
+  assert(typeof adminEnvironment.name === "string", "Fashion Admin Worker identity is missing");
   assert(typeof apiEnvironment.name === "string", "Fashion API Worker identity is missing");
   assert(typeof previewEnvironment.name === "string", "Fashion Preview Worker identity is missing");
   return {
@@ -239,7 +262,13 @@ export async function loadFashionEnvironmentProfile(
       ordinaryRuns: "verify-and-reuse",
       resourceProvisioning: "explicit-once",
     },
-    origins: { api: publicOrigin, preview: previewOrigin },
+    origins: {
+      admin: adminOrigin,
+      api: publicOrigin,
+      apiAdmin: apiVariables.ADMIN_ORIGIN ?? "",
+      preview: previewOrigin,
+      previewHandoff: previewVariables.PREVIEW_HANDOFF_ORIGIN ?? "",
+    },
     runtimeEnvironment: apiVariables.ENVIRONMENT ?? "",
     paymentTargets: {
       cancelUrl: apiVariables.PAYMENT_CANCEL_URL ?? "",
@@ -247,6 +276,7 @@ export async function loadFashionEnvironmentProfile(
       webhookUrl: publicOrigin ? `${publicOrigin}/webhooks/stripe` : "",
     },
     serviceBindings: {
+      ADMIN_API: { intent: "admin-api", service: adminApi },
       COMMERCE_API: { intent: "commerce-api", service: service("COMMERCE_API") },
       PREVIEW_AUTH: { intent: "preview-authorization", service: service("PREVIEW_AUTH") },
     },
@@ -255,7 +285,11 @@ export async function loadFashionEnvironmentProfile(
       ...namedResources(apiEnvironment, "r2_buckets"),
       ...namedResources(previewEnvironment, "r2_buckets"),
     ]),
-    workers: { api: apiEnvironment.name, preview: previewEnvironment.name },
+    workers: {
+      admin: adminEnvironment.name,
+      api: apiEnvironment.name,
+      preview: previewEnvironment.name,
+    },
   };
 }
 
@@ -279,6 +313,15 @@ function unique(values: string[]): string[] {
 
 function startsWith(value: string | undefined, prefix: string | undefined): boolean {
   return Boolean(value && prefix && value.startsWith(prefix));
+}
+
+function exactHttpsOrigin(value: string, label: string): URL {
+  const origin = new URL(value);
+  assert(
+    origin.protocol === "https:" && origin.origin === value,
+    `${label} must be one exact HTTPS origin`,
+  );
+  return origin;
 }
 
 export async function loadSnapshots(root = ROOT): Promise<EnvironmentSnapshot[]> {
@@ -500,15 +543,21 @@ export function verifyFashionEnvironmentProfile(
     "Fashion deployment profile must be fashion-staging, not a legacy or production target",
   );
   assert(profile.runtimeEnvironment === "staging", "Fashion API runtime must remain staging");
-  const previewOrigin = new URL(profile.origins.preview);
-  const apiOrigin = new URL(profile.origins.api);
+  const adminOrigin = exactHttpsOrigin(profile.origins.admin, "Fashion Admin origin");
+  const apiAdminOrigin = exactHttpsOrigin(profile.origins.apiAdmin, "Fashion API Admin origin");
+  const previewOrigin = exactHttpsOrigin(profile.origins.preview, "Fashion Preview origin");
+  const previewHandoffOrigin = exactHttpsOrigin(
+    profile.origins.previewHandoff,
+    "Fashion Preview handoff origin",
+  );
+  const apiOrigin = exactHttpsOrigin(profile.origins.api, "Fashion API origin");
   assert(
-    previewOrigin.protocol === "https:" && previewOrigin.origin === profile.origins.preview,
-    "Fashion Preview origin must be one exact HTTPS origin",
+    apiAdminOrigin.origin === adminOrigin.origin,
+    "Fashion API ADMIN_ORIGIN must target the dedicated Fashion Admin",
   );
   assert(
-    apiOrigin.protocol === "https:" && apiOrigin.origin === profile.origins.api,
-    "Fashion API origin must be one exact HTTPS origin",
+    previewHandoffOrigin.origin === adminOrigin.origin,
+    "Fashion Preview handoff must target the dedicated Fashion Admin",
   );
   assert(profile.checkoutProtection.turnstile.required, "Fashion checkout must require Turnstile");
   assert(
@@ -559,11 +608,16 @@ export function verifyFashionEnvironmentProfile(
     "Fashion credential replacement must require a security event or operator action",
   );
 
+  const adminWorker = profile.workers?.admin;
   const apiWorker = profile.workers?.api;
   const previewWorker = profile.workers?.preview;
+  assert(Boolean(adminWorker), "Fashion profile must define its Admin Worker identity");
   assert(Boolean(apiWorker), "Fashion profile must define its API Worker identity");
   assert(Boolean(previewWorker), "Fashion profile must define its private Preview Worker identity");
-  assert(apiWorker !== previewWorker, "Fashion API and Preview Workers must be distinct");
+  assert(
+    new Set([adminWorker, apiWorker, previewWorker]).size === 3,
+    "Fashion Admin, API, and Preview Workers must be distinct and dedicated",
+  );
   assert(Boolean(profile.databaseIdentity), "Fashion profile must define its D1 identity");
   const databaseParts = profile.databaseIdentity.split("::");
   assert(
@@ -584,10 +638,14 @@ export function verifyFashionEnvironmentProfile(
     "Fashion profile must define its service credential reference",
   );
 
+  const adminApi = profile.serviceBindings?.ADMIN_API;
   const previewAuth = profile.serviceBindings?.PREVIEW_AUTH;
   const commerceApi = profile.serviceBindings?.COMMERCE_API;
+  assert(isRecord(adminApi), "Fashion profile must define ADMIN_API");
   assert(isRecord(previewAuth), "Fashion profile must define PREVIEW_AUTH");
   assert(isRecord(commerceApi), "Fashion profile must define COMMERCE_API");
+  assert(adminApi.intent === "admin-api", "ADMIN_API must have admin-api intent");
+  assert(adminApi.service === apiWorker, "ADMIN_API must target the dedicated Fashion API Worker");
   assert(
     previewAuth.intent === "preview-authorization",
     "PREVIEW_AUTH must have preview-authorization intent",
@@ -614,6 +672,7 @@ export function verifyFashionEnvironmentProfile(
     ]),
   );
   const fashionIdentities = [
+    adminWorker,
     apiWorker,
     previewWorker,
     profile.databaseIdentity,
@@ -621,6 +680,7 @@ export function verifyFashionEnvironmentProfile(
     ...profile.storageIdentifiers,
     profile.serviceCredentialRef,
     profile.checkoutProtection.rateLimit.namespaceId,
+    ...Object.values(profile.origins),
   ];
   const crossover = unique(
     fashionIdentities.filter((identity) => existingIdentities.has(identity)),

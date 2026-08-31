@@ -7,12 +7,17 @@ required for the administrator login path.
 
 ## Environment boundaries
 
-There are exactly two shared remote databases:
+There are exactly two shared remote databases. Fashion staging is a third, isolated acceptance
+database and is never a development fallback:
 
 | Environment | D1 database         | Allowed use                                                    |
 | ----------- | ------------------- | -------------------------------------------------------------- |
 | Test        | `shoppp-staging`    | Local development, automated remote tests, and test deployment |
 | Production  | `shoppp-production` | Production only                                                |
+
+| Isolated profile | D1 database              | Allowed use                              |
+| ---------------- | ------------------------ | ---------------------------------------- |
+| Fashion staging  | `shoppp-fashion-staging` | Governed Fashion staging acceptance only |
 
 The environments also use distinct admin/API hostnames, Worker names, `AUTH_TOKEN_SECRET` values,
 service credentials, backups, and email configuration. No shared remote development database is
@@ -33,6 +38,13 @@ Create one named protected-administrator invitation against the exact environmen
 ```sh
 bun run bootstrap:admin --environment test --database shoppp-staging --email owner@example.com
 ```
+
+Fashion staging is provisioned only by the protected GitHub-hosted
+`provision-fashion-staging-operator.yml` workflow. It deploys the dedicated
+`shoppp-admin-fashion-staging` Worker, creates a named invitation in `shoppp-fashion-staging`, and
+sends its one-time activation link. The recipient sets the password outside Actions; the workflow
+never creates, accepts, logs, or transports a human password. Ordinary U8 preparation reuses this
+durable identity and must not create a run-scoped account.
 
 Production additionally requires the exact confirmation defined by the bootstrap command. The
 invitation email contains a signed, expiring activation link. The recipient sets the first password;

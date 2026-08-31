@@ -18,6 +18,18 @@
     "ADMIN_HOSTNAME": "shoppp-admin-staging.hashencode.workers.dev"
   },
   "env": {
+    "fashion-staging": {
+      "name": "shoppp-admin-fashion-staging",
+      "vars": {
+        "ADMIN_HOSTNAME": "shoppp-admin-fashion-staging.hashencode.workers.dev"
+      },
+      "services": [
+        {
+          "binding": "API",
+          "service": "shoppp-api-fashion-staging"
+        }
+      ]
+    },
     "staging": {
       "name": "shoppp-admin-staging",
       "vars": {

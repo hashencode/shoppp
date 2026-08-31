@@ -132,7 +132,7 @@
         "RESOURCE_NAMESPACE": "shoppp-fashion-staging",
         "PUBLIC_ORIGIN": "https://shoppp-api-fashion-staging.hashencode.workers.dev",
         "SERVICE_CREDENTIAL_REF": "secret://shoppp/fashion-staging/u13-service",
-        "ADMIN_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
+        "ADMIN_ORIGIN": "https://shoppp-admin-fashion-staging.hashencode.workers.dev",
         "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3418",
         "PREVIEW_ORIGIN": "https://shoppp-storefront-fashion-preview.hashencode.workers.dev",
         "MEDIA_PUBLIC_ORIGIN": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev",
@@ -150,6 +150,12 @@
         "CLOUDFLARE_ACCOUNT_ID": "449e7f42fe4c4e55d5c674e2e7c57c8d",
         "D1_DATABASE_ID": "eb1ca4ef-3121-4d02-b20e-e619eac1cecc",
       },
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "destination_address": "364461035@qq.com",
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -176,6 +182,13 @@
             "limit": 10,
             "period": 60,
           },
+        },
+      ],
+      "workflows": [
+        {
+          "name": "shoppp-fashion-staging-notification-delivery",
+          "binding": "NOTIFICATION_WORKFLOW",
+          "class_name": "NotificationDeliveryWorkflow",
         },
       ],
     },

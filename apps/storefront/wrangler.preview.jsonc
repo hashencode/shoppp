@@ -41,7 +41,7 @@
         },
       ],
       "vars": {
-        "PREVIEW_HANDOFF_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
+        "PREVIEW_HANDOFF_ORIGIN": "https://shoppp-admin-fashion-staging.hashencode.workers.dev",
         "PREVIEW_ORIGIN": "https://shoppp-storefront-fashion-preview.hashencode.workers.dev",
       },
     },

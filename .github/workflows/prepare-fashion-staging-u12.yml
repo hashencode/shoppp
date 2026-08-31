@@ -114,7 +114,7 @@ jobs:
           jq --exit-status '
             ([.[].name] | contains([
               "FASHION_ACCEPTANCE_TOKEN", "PREVIEW_BUILD_CALLBACK_TOKEN",
-              "PREVIEW_SERVICE_TOKEN", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
+              "PREVIEW_SERVICE_TOKEN", "AUTH_TOKEN_SECRET", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
               "TURNSTILE_SECRET"
             ]))' artifacts/fashion-u12/api-secrets.json >/dev/null
           jq --exit-status '([.[].name] | contains(["PREVIEW_AUTH_TOKEN"]))' \

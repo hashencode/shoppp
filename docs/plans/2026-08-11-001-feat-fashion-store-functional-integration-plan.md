@@ -212,6 +212,23 @@ U13 add-only probe do not establish overall completion.
   projected from the broader local run manifest. The bounded correction removes only that property
   from `operator-run-request.json`; the run manifest retains the protected environment identity and
   the server continues to set `fashion-staging` rather than trusting caller input.
+  That correction is integrated as exact main `acdefa9d`; fixed-image post-commit run
+  `33301912497` passed. Preparation run `33302142836` then passed credential-free authority,
+  protected OIDC, readiness provenance, exact deployed-build identity, strict registration, and
+  artifact retention. Server-side run `fashion-u8-33302142836` is `awaiting_operator` for existing
+  working draft `draft-fashion-u8-u8-20260825a-retry24-source`; operator and successor identities
+  remain null. Artifact `9729285254` retains the complete non-secret boundary, manifest digest
+  `79905da46c3be563784cd732518fde93da69862e041db8fb23c09a15d7a8f100`, and expiry
+  `2026-08-30T20:39:55.000Z`. The hosted runner exited and is not waiting for human action.
+  A 2026-08-31 read-only Fashion D1 audit proved that the plan's assumed reusable human operator
+  did not exist: the only Fashion human identity is the disabled, expired historical
+  `fashion-u8-u8_20260825a@operators.invalid` identity. The Admin hostname used during the handoff
+  was the ordinary staging Worker and its authenticated `ci-operator@shoppp.invalid` identity is a
+  CI principal against `shoppp-staging`, not authorized Fashion human authority. The user therefore
+  explicitly authorized one durable platform-level Fashion staging operator, distinct from a
+  forbidden run-scoped U8 account. The bounded correction adds a dedicated
+  `shoppp-admin-fashion-staging` Worker bound only to `shoppp-api-fashion-staging`, a protected
+  main-only/OIDC invitation workflow, and password-free activation delivery.
   Thirty browser/preflight attempts produced no passing U8 candidate. Attempt 22 retained source edits and
   failed-attempt successor `draft-a9d08f31-8b7c-4210-8a26-89b0465198ce` as excluded non-candidate
   evidence; denied and successful login audits plus explicit source-setup corrections are retained.
@@ -232,14 +249,15 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate the strict registration-request projection correction as a
-  new harness freeze, generate its canonical U8 harness manifest against unchanged candidate
-  `0f5d1fe6`, bind the exact harness SHA and manifest digest at repository and protected Environment
-  scope, and dispatch `prepare-fashion-staging-u8.yml` with existing source draft
-  `draft-fashion-u8-u8-20260825a-retry24-source`, Catalog Release
-  `fashion-staging-u12-release-2026-08-18`, and readiness run `33300115340`. Preparation must write
-  `awaiting_operator` and exit; only the existing named operator may then complete the run-bound
-  Admin path.
+- **Next concrete action:** Integrate the dedicated Fashion Admin and protected password-free
+  invitation workflow on exact `main`, configure the protected `fashion-staging` Environment with
+  the approved operator email, and dispatch that workflow once. The repository-owned display name
+  is `Shoppp Fashion Staging Owner`; the workflow must verify the existing activation-signing
+  capability before any D1 mutation. The recipient
+  activates the durable identity and sets its password outside Actions. After activation, refresh
+  U12 readiness/Preview and create a new U8 preparation because run `fashion-u8-33302142836` expired;
+  preparation must again exit at `awaiting_operator` before the named operator completes only the
+  new run-bound path.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -251,7 +269,9 @@ U13 add-only probe do not establish overall completion.
   U12 readiness -> rotate the exposed acceptance credential and close the Preview settlement
   failure -> fresh U12/Preview baseline complete -> initial U8 harness freeze -> deployed-build
   readback correction -> existing protected Admin-service credential mapping -> strict registration
-  request correction and harness refreeze ->
+  request correction and harness refreeze -> expired preparation boundary -> dedicated Fashion
+  Admin plus durable operator activation -> fresh U12/Preview -> fresh preparation at
+  `awaiting_operator` -> named operator path -> separate hosted refresh/Preview/acceptance ->
   `FS-U8.2` formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
@@ -259,14 +279,13 @@ U13 add-only probe do not establish overall completion.
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
 - **Blocker:** Cloud successor, protected immutable-ID OIDC authority, acceptance-token rotation,
-  fresh U12 readiness run `33300115340`, and complete Preview/U12 run `33300205798` are proven.
-  The exposed token is invalidated and the compromised artifact is deleted. No U12, credential,
-  cleanup, CI, or runner blocker remains. Preparation run `33300954731` attempt 2 exposed the
-  readiness/build contract mismatch, run `33301434967` exposed the nonexistent U8-specific secret
-  binding, and run `33301766997` proved both corrections before the strict server schema rejected
-  an extra request property. None created a server-side U8 operator run. The next gated boundary is
-  the bounded request projection correction, exact harness refreeze, and protected preparation to
-  `awaiting_operator`; creating a new U8 account or credential is forbidden. The authenticated
+  fresh U12 readiness run `33300115340`, complete Preview/U12 run `33300205798`, and hosted U8
+  preparation run `33302142836` are proven, but that operator boundary expired at
+  `2026-08-30T20:39:55.000Z` without action and cannot be refreshed or accepted. The exposed token
+  is invalidated and the compromised artifact is deleted. The current blocker is the corrected
+  platform prerequisite: deploy the dedicated Fashion Admin and activate the explicitly authorized
+  durable human operator before generating fresh U12/U8 evidence. This is not a new U8 account;
+  creating a run-scoped U8 identity or passing a human password to Actions remains forbidden. The authenticated
   ephemeral Preview build hook remains configured and rejects unauthorized or malformed input
   without storing a GitHub credential. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
