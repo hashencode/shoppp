@@ -5,6 +5,10 @@ import {
   FASHION_U8_SECURITY_SENSITIVE_PATHS,
 } from "./create-fashion-u8-harness-manifest";
 import { verifyFashionU8StandingAuthority } from "./verify-fashion-u8-standing-authority";
+import {
+  FASHION_U8_NON_EXECUTABLE_TAIL_PATHS,
+  FASHION_U8_RETIRED_HARNESS_PATHS,
+} from "./verify-fashion-u8-standing-authority";
 
 const candidateSha = "a".repeat(40);
 const harnessSha = "b".repeat(40);
@@ -27,6 +31,16 @@ describe("Fashion U8 standing authority", () => {
     await expect(verifyFashionU8StandingAuthority(manifest, dependencies)).resolves.toEqual(
       manifest,
     );
+    await expect(
+      verifyFashionU8StandingAuthority(manifest, {
+        ...dependencies,
+        changedPaths: [
+          ...FASHION_U8_SECURITY_SENSITIVE_PATHS,
+          ...FASHION_U8_NON_EXECUTABLE_TAIL_PATHS,
+          ...FASHION_U8_RETIRED_HARNESS_PATHS,
+        ],
+      }),
+    ).resolves.toEqual(manifest);
     await expect(
       verifyFashionU8StandingAuthority(manifest, {
         ...dependencies,

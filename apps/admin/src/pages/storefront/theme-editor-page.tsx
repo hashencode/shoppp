@@ -38,7 +38,7 @@ import {
   message,
 } from 'antd'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useBlocker, useNavigate, useParams } from 'react-router-dom'
+import { useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
@@ -68,10 +68,7 @@ import { QueryStateBlock } from '../../shared/components/query-state-block'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { CatalogMediaPicker } from './catalog-media-picker'
 import { StorefrontResourcePicker } from './storefront-resource-picker'
-import {
-  StorefrontLinkEditor,
-  type StorefrontEditorResource,
-} from './storefront-link-editor'
+import { StorefrontLinkEditor, type StorefrontEditorResource } from './storefront-link-editor'
 
 void React
 
@@ -84,6 +81,64 @@ type DraftConflict = {
   bindings: ExperienceResourceBinding[]
   draft: StorefrontExperienceDraft
   overrides: ThemeOverride[]
+}
+
+type FashionU8OperatorContext = {
+  action: 'recover-conflict-preview-approve'
+  baselineSnapshotId: string
+  expiresAt: string
+  manifestDigest: string
+  runId: string
+  sourceDraftId: string
+}
+
+type FashionU8OperatorContextState =
+  { kind: 'absent' } | { kind: 'invalid' } | { context: FashionU8OperatorContext; kind: 'valid' }
+
+const FASHION_U8_IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/
+const FASHION_U8_DIGEST = /^[a-f0-9]{64}$/
+
+export const parseFashionU8OperatorContext = (
+  search: string,
+  now = Date.now()
+): FashionU8OperatorContextState => {
+  const params = new URLSearchParams(search)
+  const keys = [
+    'u8Action',
+    'u8Baseline',
+    'u8ExpiresAt',
+    'u8ManifestDigest',
+    'u8Run',
+    'u8SourceDraft',
+  ] as const
+  if (!keys.some((key) => params.has(key))) return { kind: 'absent' }
+  if (keys.some((key) => params.getAll(key).length !== 1)) return { kind: 'invalid' }
+
+  const context = {
+    action: params.get('u8Action'),
+    baselineSnapshotId: params.get('u8Baseline'),
+    expiresAt: params.get('u8ExpiresAt'),
+    manifestDigest: params.get('u8ManifestDigest'),
+    runId: params.get('u8Run'),
+    sourceDraftId: params.get('u8SourceDraft'),
+  }
+  const expiry = Date.parse(context.expiresAt ?? '')
+  if (
+    context.action !== 'recover-conflict-preview-approve' ||
+    !context.baselineSnapshotId ||
+    !FASHION_U8_IDENTIFIER.test(context.baselineSnapshotId) ||
+    !context.manifestDigest ||
+    !FASHION_U8_DIGEST.test(context.manifestDigest) ||
+    !context.runId ||
+    !FASHION_U8_IDENTIFIER.test(context.runId) ||
+    !context.sourceDraftId ||
+    !FASHION_U8_IDENTIFIER.test(context.sourceDraftId) ||
+    !Number.isFinite(expiry) ||
+    expiry <= now
+  ) {
+    return { kind: 'invalid' }
+  }
+  return { context: context as FashionU8OperatorContext, kind: 'valid' }
 }
 
 const cloneTemplates = (templates: readonly PageTemplate[]): PageTemplate[] =>
@@ -291,13 +346,24 @@ export const ThemeEditorPage = ({
   previewOrigin = storefrontPreviewOrigin(),
 }: ThemeEditorPageProps) => {
   const { draftId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const { t } = useI18n()
   const { permissions, role } = useAuth()
-  const canWrite = hasPermission(role, 'themes.write', permissions)
-  const canPreview = hasPermission(role, 'themes.preview', permissions)
+  const [operatorValidityCheckAt, setOperatorValidityCheckAt] = useState(() => Date.now())
+  const operatorContextState = useMemo(
+    () => parseFashionU8OperatorContext(location.search, operatorValidityCheckAt),
+    [location.search, operatorValidityCheckAt]
+  )
+  const operatorContext =
+    operatorContextState.kind === 'valid' ? operatorContextState.context : null
+  const operatorContextAllowsMutation = operatorContextState.kind !== 'invalid'
+  const canWrite = operatorContextAllowsMutation && hasPermission(role, 'themes.write', permissions)
+  const canPreview =
+    operatorContextAllowsMutation && hasPermission(role, 'themes.preview', permissions)
   const canReadCatalog = hasPermission(role, 'catalog.read', permissions)
-  const canApprove = hasPermission(role, 'themes.approve', permissions)
+  const canApprove =
+    operatorContextAllowsMutation && hasPermission(role, 'themes.approve', permissions)
   const [draft, setDraft] = useState<StorefrontExperienceDraft | null>(null)
   const [theme, setTheme] = useState<AdminStorefrontTheme | null>(null)
   const [availableThemes, setAvailableThemes] = useState<AdminStorefrontTheme[]>([])
@@ -317,8 +383,16 @@ export const ThemeEditorPage = ({
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [changeReason, setChangeReason] = useState('')
-  const [approvalReason, setApprovalReason] = useState('')
+  const operatorReason = operatorContext
+    ? `Fashion U8 ${operatorContext.runId} ${operatorContext.manifestDigest}`
+    : ''
+  const [ordinaryChangeReason, setOrdinaryChangeReason] = useState('')
+  const [ordinaryApprovalReason, setOrdinaryApprovalReason] = useState('')
+  const changeReason = operatorReason || ordinaryChangeReason
+  const approvalReason = operatorReason || ordinaryApprovalReason
+  const operatorAcceptance = operatorContext
+    ? { manifestDigest: operatorContext.manifestDigest, runId: operatorContext.runId }
+    : undefined
   const [sectionMoveStatus, setSectionMoveStatus] = useState('')
   const [build, setBuild] = useState<StorefrontPreviewBuild | null>(null)
   const [previewSnapshot, setPreviewSnapshot] = useState<StorefrontExperienceSnapshot | null>(null)
@@ -344,9 +418,19 @@ export const ThemeEditorPage = ({
   const blocker = useBlocker(dirty)
 
   useEffect(() => {
+    if (!operatorContext) return
+    const remainingMs = Date.parse(operatorContext.expiresAt) - Date.now()
+    const timeout = window.setTimeout(
+      () => setOperatorValidityCheckAt(Date.now()),
+      Math.max(0, Math.min(remainingMs, 2_147_483_647))
+    )
+    return () => window.clearTimeout(timeout)
+  }, [operatorContext])
+
+  useEffect(() => {
     if (!draft?.id || draft.id === draftId || dirty) return
-    navigate(`/storefront/themes/${draft.id}`, { replace: true })
-  }, [draft?.id, draftId, dirty, navigate])
+    navigate(`/storefront/themes/${draft.id}${location.search}`, { replace: true })
+  }, [draft?.id, draftId, dirty, location.search, navigate])
 
   useEffect(() => {
     if (!conflict) return
@@ -406,7 +490,8 @@ export const ThemeEditorPage = ({
       setMigration(null)
       setConflict(null)
       const upgrade = themes.find(
-        ({ id, themeVersion }) => id === nextDraft.themeId && themeVersion !== nextDraft.themeVersion
+        ({ id, themeVersion }) =>
+          id === nextDraft.themeId && themeVersion !== nextDraft.themeVersion
       )
       setUpgradeThemeKey(
         upgrade ? `${upgrade.id}@${upgrade.themeVersion}@${upgrade.configurationSchemaVersion}` : ''
@@ -630,7 +715,13 @@ export const ThemeEditorPage = ({
     const overrides = createThemeOverrides(theme, draft, templates)
     let updated: StorefrontExperienceDraft
     try {
-      updated = await updateStorefrontExperienceDraft(draft, overrides, reason, bindings)
+      updated = await updateStorefrontExperienceDraft(
+        draft,
+        overrides,
+        reason,
+        bindings,
+        operatorAcceptance
+      )
     } catch (cause) {
       const apiError = normalizeApiError(cause)
       if (apiError.status === 409) {
@@ -649,17 +740,14 @@ export const ThemeEditorPage = ({
     return updated
   }
 
-  const validate = async (
-    target: StorefrontExperienceDraft,
-    reason: string,
-    releaseId: string
-  ) => {
+  const validate = async (target: StorefrontExperienceDraft, reason: string, releaseId: string) => {
     if (selectedReleaseIdRef.current !== releaseId) return null
     const validation = await validateStorefrontExperienceDraft(
       target.id,
       target.version,
       reason,
-      releaseId || undefined
+      releaseId || undefined,
+      operatorAcceptance
     )
     if (selectedReleaseIdRef.current !== releaseId) return null
     const validations = [
@@ -681,9 +769,7 @@ export const ThemeEditorPage = ({
   }
 
   const selectedValidation = (target: StorefrontExperienceDraft, releaseId: string) =>
-    target.validations.find(
-      ({ catalogReleaseId }) => catalogReleaseId === (releaseId || null)
-    )
+    target.validations.find(({ catalogReleaseId }) => catalogReleaseId === (releaseId || null))
 
   const runAction = async (action: () => Promise<void>) => {
     setBusy(true)
@@ -728,7 +814,11 @@ export const ThemeEditorPage = ({
     if (url.searchParams.get('preview-return') !== '1') return
     const timer = window.setTimeout(() => {
       url.searchParams.delete('preview-return')
-      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`
+      )
       previewLaunchRef.current?.focus()
     }, 0)
     return () => window.clearTimeout(timer)
@@ -748,7 +838,8 @@ export const ThemeEditorPage = ({
       target.id,
       target.version,
       reason,
-      releaseId || undefined
+      releaseId || undefined,
+      operatorAcceptance
     )
     if (selectedReleaseIdRef.current !== releaseId) return false
     setPreviewSnapshot(resolution.snapshot)
@@ -814,6 +905,46 @@ export const ThemeEditorPage = ({
 
   return (
     <main className="space-y-5">
+      {operatorContext ? (
+        <Alert
+          type="info"
+          showIcon
+          title={t('Fashion U8 operator handoff')}
+          description={
+            <Descriptions bordered size="small" column={{ xs: 1, lg: 2 }}>
+              <Descriptions.Item label={t('Run')}>{operatorContext.runId}</Descriptions.Item>
+              <Descriptions.Item label={t('U12 baseline')}>
+                {operatorContext.baselineSnapshotId}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Source draft')}>
+                {operatorContext.sourceDraftId}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Expires')}>
+                {operatorContext.expiresAt}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Allowed action')} span={2}>
+                {t(
+                  'Recover the missing reference, preserve the conflict as a successor, preview, and approve the exact successor.'
+                )}
+              </Descriptions.Item>
+            </Descriptions>
+          }
+        />
+      ) : operatorContextState.kind === 'invalid' ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t('Fashion U8 operator handoff is invalid or expired')}
+          description={t(
+            'No edit, preview, or approval action is available. Prepare a fresh run identity before continuing.'
+          )}
+          action={
+            <Button size="small" onClick={() => navigate('/storefront/themes')}>
+              {t('Back to themes')}
+            </Button>
+          }
+        />
+      ) : null}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Button
@@ -831,7 +962,9 @@ export const ThemeEditorPage = ({
             <Tag color="blue">
               {draft.themeId} {draft.themeVersion}
             </Tag>
-            <Tag>{t('Draft')} v{draft.version}</Tag>
+            <Tag>
+              {t('Draft')} v{draft.version}
+            </Tag>
             <Tag color={validationCurrent ? 'success' : 'default'}>
               {validationCurrent ? `${t('Validated')} v${draft.version}` : t('Validation required')}
             </Tag>
@@ -862,7 +995,9 @@ export const ThemeEditorPage = ({
                     const releaseId = selectedReleaseId
                     const validated = await validate(draft, changeReason, releaseId)
                     if (validated && selectedValidation(validated, releaseId)?.status === 'valid') {
-                      void message.success(t('Draft v{version} is valid.', { version: validated.version }))
+                      void message.success(
+                        t('Draft v{version} is valid.', { version: validated.version })
+                      )
                     }
                   })
                 }
@@ -886,10 +1021,13 @@ export const ThemeEditorPage = ({
                   const releaseId = selectedReleaseId
                   const saved = await save(changeReason)
                   const validated = await validate(saved, changeReason, releaseId)
-                  if (!validated || selectedValidation(validated, releaseId)?.status !== 'valid') return
+                  if (!validated || selectedValidation(validated, releaseId)?.status !== 'valid')
+                    return
                   if (!(await startPreview(validated, changeReason, releaseId))) return
                   void message.success(
-                    t('Preview requested for validated draft v{version}.', { version: validated.version })
+                    t('Preview requested for validated draft v{version}.', {
+                      version: validated.version,
+                    })
                   )
                 })
               }
@@ -905,7 +1043,9 @@ export const ThemeEditorPage = ({
           type="warning"
           showIcon
           title={t('Discard unsaved theme edits?')}
-          description={t('The destination will open only after you explicitly discard the local changes.')}
+          description={t(
+            'The destination will open only after you explicitly discard the local changes.'
+          )}
           action={
             <Space>
               <Button size="small" onClick={() => blocker.reset()}>
@@ -923,7 +1063,9 @@ export const ThemeEditorPage = ({
           type="warning"
           showIcon
           title={t('The saved draft changed while local edits were open')}
-          description={t('Your local edits are preserved. Reload and discard them, or save them as a separate successor draft for review.')}
+          description={t(
+            'Your local edits are preserved. Reload and discard them, or save them as a separate successor draft for review.'
+          )}
           action={
             <Space wrap>
               <Button
@@ -957,7 +1099,8 @@ export const ThemeEditorPage = ({
                       conflict.draft,
                       conflict.overrides,
                       changeReason,
-                      conflict.bindings
+                      conflict.bindings,
+                      operatorAcceptance
                     )
                     successorFocusTarget.current = successor.id
                     setLoading(true)
@@ -995,7 +1138,9 @@ export const ThemeEditorPage = ({
           type="info"
           showIcon
           title={t('Read-only experience')}
-          description={t('Your role can inspect the package, capabilities, validation, and versions only.')}
+          description={t(
+            'Your role can inspect the package, capabilities, validation, and versions only.'
+          )}
         />
       ) : null}
 
@@ -1004,7 +1149,9 @@ export const ThemeEditorPage = ({
           <Typography.Text className="break-all">{draft.id}</Typography.Text>
         </Descriptions.Item>
         <Descriptions.Item label={t('Preset')}>{draft.presetId}</Descriptions.Item>
-        <Descriptions.Item label={t('Schema')}>{draft.configurationSchemaVersion}</Descriptions.Item>
+        <Descriptions.Item label={t('Schema')}>
+          {draft.configurationSchemaVersion}
+        </Descriptions.Item>
         <Descriptions.Item label={t('Last saved')}>{draft.updatedAt}</Descriptions.Item>
         <Descriptions.Item label={t('Resource bindings')}>{bindings.length}</Descriptions.Item>
         <Descriptions.Item label={t('Production theme')}>{t('Unchanged')}</Descriptions.Item>
@@ -1012,72 +1159,77 @@ export const ThemeEditorPage = ({
 
       {requiresCatalogRelease ? (
         <Card title={t('Live preview context')}>
-        {!canReadCatalog ? (
-          <Alert
-            type="warning"
-            showIcon
-            title={t('Catalog access is required')}
-            description={t('Live preview requires both themes.preview and catalog.read permissions.')}
-          />
-        ) : catalogReleasesLoading ? (
-          <Space>
-            <Spin size="small" />
-            <span>{t('Loading deployed Catalog Releases…')}</span>
-          </Space>
-        ) : catalogReleasesError ? (
-          <Alert
-            type="error"
-            showIcon
-            title={t('Catalog Releases could not be loaded')}
-            description={catalogReleasesError}
-            action={
-              <Button size="small" onClick={() => setCatalogReleasesRetry((value) => value + 1)}>
-                {t('Retry Catalog Releases')}
-              </Button>
-            }
-          />
-        ) : catalogReleases.length === 0 ? (
-          <Alert
-            type="info"
-            showIcon
-            title={t('No deployed canonical Catalog Release is available in this environment.')}
-          />
-        ) : (
-          <Space orientation="vertical" className="w-full">
-            <Select
-              aria-label={t('Catalog Release')}
-              className="w-full"
-              disabled={busy}
-              value={selectedReleaseId || undefined}
-              options={catalogReleases.map((release) => ({
-                label: `${release.id} · ${release.environment} · ${release.deployedAt ?? release.approvedAt}`,
-                value: release.id,
-              }))}
-              onChange={(value) => {
-                selectedReleaseIdRef.current = value
-                setSelectedReleaseId(value)
-                window.sessionStorage.setItem('storefront-editor-catalog-release', value)
-                previewContextRequest.current += 1
-                setBuild(null)
-                setPreviewSnapshot(null)
-                setRevokedPreviewSnapshotId(null)
-              }}
+          {!canReadCatalog ? (
+            <Alert
+              type="warning"
+              showIcon
+              title={t('Catalog access is required')}
+              description={t(
+                'Live preview requires both themes.preview and catalog.read permissions.'
+              )}
             />
-            {selectedRelease ? (
-              <Typography.Text type="secondary">
-                {selectedRelease.environment} · {selectedRelease.status} · {selectedRelease.products.length}{' '}
-                {t('products')} · {selectedRelease.collections.length} {t('collections')}
-              </Typography.Text>
-            ) : null}
-          </Space>
-        )}
+          ) : catalogReleasesLoading ? (
+            <Space>
+              <Spin size="small" />
+              <span>{t('Loading deployed Catalog Releases…')}</span>
+            </Space>
+          ) : catalogReleasesError ? (
+            <Alert
+              type="error"
+              showIcon
+              title={t('Catalog Releases could not be loaded')}
+              description={catalogReleasesError}
+              action={
+                <Button size="small" onClick={() => setCatalogReleasesRetry((value) => value + 1)}>
+                  {t('Retry Catalog Releases')}
+                </Button>
+              }
+            />
+          ) : catalogReleases.length === 0 ? (
+            <Alert
+              type="info"
+              showIcon
+              title={t('No deployed canonical Catalog Release is available in this environment.')}
+            />
+          ) : (
+            <Space orientation="vertical" className="w-full">
+              <Select
+                aria-label={t('Catalog Release')}
+                className="w-full"
+                disabled={busy}
+                value={selectedReleaseId || undefined}
+                options={catalogReleases.map((release) => ({
+                  label: `${release.id} · ${release.environment} · ${release.deployedAt ?? release.approvedAt}`,
+                  value: release.id,
+                }))}
+                onChange={(value) => {
+                  selectedReleaseIdRef.current = value
+                  setSelectedReleaseId(value)
+                  window.sessionStorage.setItem('storefront-editor-catalog-release', value)
+                  previewContextRequest.current += 1
+                  setBuild(null)
+                  setPreviewSnapshot(null)
+                  setRevokedPreviewSnapshotId(null)
+                }}
+              />
+              {selectedRelease ? (
+                <Typography.Text type="secondary">
+                  {selectedRelease.environment} · {selectedRelease.status} ·{' '}
+                  {selectedRelease.products.length} {t('products')} ·{' '}
+                  {selectedRelease.collections.length} {t('collections')}
+                </Typography.Text>
+              ) : null}
+            </Space>
+          )}
         </Card>
       ) : null}
 
       <Card
         title={t('Change context')}
         extra={
-          <Typography.Text type="secondary">{t('Required for every audited action')}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('Required for every audited action')}
+          </Typography.Text>
         }
       >
         <Input.TextArea
@@ -1086,7 +1238,8 @@ export const ThemeEditorPage = ({
           value={changeReason}
           maxLength={500}
           rows={2}
-          onChange={(event) => setChangeReason(event.target.value)}
+          readOnly={Boolean(operatorContext)}
+          onChange={(event) => setOrdinaryChangeReason(event.target.value)}
         />
       </Card>
 
@@ -1095,7 +1248,9 @@ export const ThemeEditorPage = ({
           {t('Experience structure')}
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          {t('Sections keep stable IDs. Required capabilities cannot be hidden; ordering uses explicit controls for keyboard, touch, and assistive technology.')}
+          {t(
+            'Sections keep stable IDs. Required capabilities cannot be hidden; ordering uses explicit controls for keyboard, touch, and assistive technology.'
+          )}
         </Typography.Paragraph>
         <div className="sr-only" role="status">
           {sectionMoveStatus}
@@ -1126,7 +1281,9 @@ export const ThemeEditorPage = ({
                             <Space wrap>
                               <Typography.Text strong>{section.id}</Typography.Text>
                               <Tag>{section.type}</Tag>
-                              <Tag>{t('Position')} {index + 1}</Tag>
+                              <Tag>
+                                {t('Position')} {index + 1}
+                              </Tag>
                               {isRequired ? <Tag color="gold">{t('Required')}</Tag> : null}
                             </Space>
                           }
@@ -1194,7 +1351,11 @@ export const ThemeEditorPage = ({
                                     return (
                                       <label
                                         key={definition.id}
-                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        id={experienceFieldId(
+                                          template.id,
+                                          section.id,
+                                          definition.id
+                                        )}
                                         tabIndex={-1}
                                       >
                                         {fieldCopy}
@@ -1217,7 +1378,11 @@ export const ThemeEditorPage = ({
                                     return (
                                       <label
                                         key={definition.id}
-                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        id={experienceFieldId(
+                                          template.id,
+                                          section.id,
+                                          definition.id
+                                        )}
                                         tabIndex={-1}
                                       >
                                         {fieldCopy}
@@ -1245,7 +1410,11 @@ export const ThemeEditorPage = ({
                                     return (
                                       <label
                                         key={definition.id}
-                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        id={experienceFieldId(
+                                          template.id,
+                                          section.id,
+                                          definition.id
+                                        )}
                                         tabIndex={-1}
                                       >
                                         <Space>
@@ -1272,7 +1441,11 @@ export const ThemeEditorPage = ({
                                     return (
                                       <label
                                         key={definition.id}
-                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        id={experienceFieldId(
+                                          template.id,
+                                          section.id,
+                                          definition.id
+                                        )}
                                         tabIndex={-1}
                                       >
                                         {fieldCopy}
@@ -1334,7 +1507,11 @@ export const ThemeEditorPage = ({
                                     return (
                                       <div
                                         key={definition.id}
-                                        id={experienceFieldId(template.id, section.id, definition.id)}
+                                        id={experienceFieldId(
+                                          template.id,
+                                          section.id,
+                                          definition.id
+                                        )}
                                         className="min-w-0"
                                         tabIndex={-1}
                                       >
@@ -1376,20 +1553,16 @@ export const ThemeEditorPage = ({
                                                 next
                                               )
                                             } else {
-                                              updateSection(
-                                                template.id,
-                                                section.id,
-                                                (current) => {
-                                                  if (next) {
-                                                    current.settings[definition.id] = {
-                                                      id: next,
-                                                      kind: referenceKind,
-                                                    }
-                                                  } else {
-                                                    delete current.settings[definition.id]
+                                              updateSection(template.id, section.id, (current) => {
+                                                if (next) {
+                                                  current.settings[definition.id] = {
+                                                    id: next,
+                                                    kind: referenceKind,
                                                   }
+                                                } else {
+                                                  delete current.settings[definition.id]
                                                 }
-                                              )
+                                              })
                                             }
                                           }}
                                         />
@@ -1464,22 +1637,21 @@ export const ThemeEditorPage = ({
                                             resources={editorResources}
                                             value={initialLink}
                                             onChange={(next) =>
-                                              updateSection(
-                                                template.id,
-                                                section.id,
-                                                (current) => {
-                                                  current.settings[definition.id] = next
-                                                }
-                                              )
+                                              updateSection(template.id, section.id, (current) => {
+                                                current.settings[definition.id] = next
+                                              })
                                             }
                                           />
                                         ) : (
                                           <Alert
                                             type="warning"
                                             showIcon
-                                            title={t('No approved destination is available for {id}.', {
-                                              id: definition.label ?? definition.id,
-                                            })}
+                                            title={t(
+                                              'No approved destination is available for {id}.',
+                                              {
+                                                id: definition.label ?? definition.id,
+                                              }
+                                            )}
                                           />
                                         )}
                                       </React.Fragment>
@@ -1497,7 +1669,9 @@ export const ThemeEditorPage = ({
                               items={[
                                 {
                                   key: 'blocks',
-                                  label: t('{count} bounded blocks', { count: section.blocks.length }),
+                                  label: t('{count} bounded blocks', {
+                                    count: section.blocks.length,
+                                  }),
                                   children: section.blocks.map((block) => (
                                     <div key={block.id}>
                                       {block.id} · {block.type}
@@ -1527,9 +1701,12 @@ export const ThemeEditorPage = ({
             tabIndex={currentValidation.status === 'invalid' ? -1 : undefined}
           >
             <Space>
-              <Tag color={validationCurrent ? 'success' : 'warning'}>{currentValidation.status}</Tag>
+              <Tag color={validationCurrent ? 'success' : 'warning'}>
+                {currentValidation.status}
+              </Tag>
               <span id="experience-validation-summary-heading">
-                {t('Validation')} {currentValidation.id} · {t('draft')} v{currentValidation.draftVersion}
+                {t('Validation')} {currentValidation.id} · {t('draft')} v
+                {currentValidation.draftVersion}
               </span>
             </Space>
             <div className="mt-3 space-y-2">
@@ -1566,7 +1743,10 @@ export const ThemeEditorPage = ({
                                 target.focus()
                               } else {
                                 setActiveTemplateId(template!.id)
-                                window.setTimeout(() => document.getElementById(targetId)?.focus(), 0)
+                                window.setTimeout(
+                                  () => document.getElementById(targetId)?.focus(),
+                                  0
+                                )
                               }
                             }}
                           >
@@ -1614,11 +1794,7 @@ export const ThemeEditorPage = ({
                   void runAction(async () => {
                     if (!upgradeTheme) return
                     setMigration(
-                      await dryRunStorefrontExperienceMigration(
-                        draft,
-                        upgradeTheme,
-                        changeReason
-                      )
+                      await dryRunStorefrontExperienceMigration(draft, upgradeTheme, changeReason)
                     )
                   })
                 }
@@ -1673,7 +1849,10 @@ export const ThemeEditorPage = ({
         )}
       </Card>
 
-      <Card title={t('Private preview artifact')} extra={<Tag color={status.color}>{t(status.label)}</Tag>}>
+      <Card
+        title={t('Private preview artifact')}
+        extra={<Tag color={status.color}>{t(status.label)}</Tag>}
+      >
         <Space orientation="vertical" className="w-full">
           {build ? (
             <Descriptions size="small" column={{ xs: 1, lg: 3 }}>
@@ -1716,18 +1895,13 @@ export const ThemeEditorPage = ({
             <Button
               ref={previewLaunchRef}
               icon={<EyeOutlined aria-hidden />}
-              disabled={
-                !previewOrigin || busy || revokedPreviewSnapshotId === previewSnapshot.id
-              }
+              disabled={!previewOrigin || busy || revokedPreviewSnapshotId === previewSnapshot.id}
               onClick={() =>
                 void runAction(async () => {
                   if (!previewOrigin)
                     throw new Error(t('The private preview origin is not configured.'))
                   const releaseId = selectedReleaseId
-                  if (
-                    !previewContextCurrent ||
-                    selectedReleaseIdRef.current !== releaseId
-                  ) {
+                  if (!previewContextCurrent || selectedReleaseIdRef.current !== releaseId) {
                     throw new Error(t('The deployed preview no longer matches this draft context.'))
                   }
                   const grant = await createStorefrontPreviewGrant(
@@ -1769,7 +1943,9 @@ export const ThemeEditorPage = ({
               type="warning"
               showIcon
               title={t('Private preview origin is not configured')}
-              description={t('Provision PUBLIC_PREVIEW_ORIGIN for this admin environment before opening an artifact.')}
+              description={t(
+                'Provision PUBLIC_PREVIEW_ORIGIN for this admin environment before opening an artifact.'
+              )}
             />
           ) : null}
           {build && ['failed', 'expired'].includes(build.status) ? (
@@ -1795,7 +1971,9 @@ export const ThemeEditorPage = ({
           {['pending', 'building'].includes(build?.status ?? '') ? (
             <Space>
               <Spin size="small" />
-              <span>{t('Polling the immutable artifact build without locking the draft editor.')}</span>
+              <span>
+                {t('Polling the immutable artifact build without locking the draft editor.')}
+              </span>
             </Space>
           ) : null}
         </Space>
@@ -1808,7 +1986,9 @@ export const ThemeEditorPage = ({
               type="warning"
               showIcon
               title={t('Approval does not activate the production storefront theme')}
-              description={t('It records an immutable, audited snapshot for this exact validated draft version.')}
+              description={t(
+                'It records an immutable, audited snapshot for this exact validated draft version.'
+              )}
             />
             <Input.TextArea
               aria-label={t('Approval reason')}
@@ -1816,7 +1996,8 @@ export const ThemeEditorPage = ({
               value={approvalReason}
               maxLength={500}
               rows={2}
-              onChange={(event) => setApprovalReason(event.target.value)}
+              readOnly={Boolean(operatorContext)}
+              onChange={(event) => setOrdinaryApprovalReason(event.target.value)}
             />
             <Button
               type="primary"
@@ -1836,7 +2017,8 @@ export const ThemeEditorPage = ({
                     draft.id,
                     draft.version,
                     approvalReason,
-                    releaseId || undefined
+                    releaseId || undefined,
+                    operatorAcceptance
                   )
                   if (selectedReleaseIdRef.current !== releaseId) return
                   setApprovedSnapshot(snapshot)

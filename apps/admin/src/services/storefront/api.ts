@@ -260,7 +260,8 @@ export const updateStorefrontExperienceDraft = async (
   draft: StorefrontExperienceDraft,
   overrides: ThemeOverride[],
   reason: string,
-  bindings: ExperienceResourceBinding[] = draft.bindings
+  bindings: ExperienceResourceBinding[] = draft.bindings,
+  u8Acceptance?: { manifestDigest: string; runId: string }
 ): Promise<StorefrontExperienceDraft> => {
   const response = await apiClient.put<{ data: StorefrontExperienceDraft }>(
     `/admin/storefront-experiences/drafts/${draft.id}`,
@@ -269,6 +270,7 @@ export const updateStorefrontExperienceDraft = async (
       expectedVersion: draft.version,
       overrides,
       reason,
+      u8Acceptance,
     },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-draft-update') } }
   )
@@ -279,7 +281,8 @@ export const createStorefrontExperienceSuccessor = async (
   draft: StorefrontExperienceDraft,
   overrides: ThemeOverride[],
   reason: string,
-  bindings: ExperienceResourceBinding[]
+  bindings: ExperienceResourceBinding[],
+  u8Acceptance?: { manifestDigest: string; runId: string }
 ): Promise<StorefrontExperienceDraft> => {
   const response = await apiClient.post<{ data: StorefrontExperienceDraft }>(
     `/admin/storefront-experiences/drafts/${draft.id}/successors`,
@@ -288,6 +291,7 @@ export const createStorefrontExperienceSuccessor = async (
       overrides,
       reason,
       sourceVersion: draft.version,
+      u8Acceptance,
     },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-draft-successor') } }
   )
@@ -298,11 +302,12 @@ export const validateStorefrontExperienceDraft = async (
   draftId: string,
   expectedVersion: number,
   reason: string,
-  catalogReleaseId?: string
+  catalogReleaseId?: string,
+  u8Acceptance?: { manifestDigest: string; runId: string }
 ): Promise<StorefrontExperienceValidation> => {
   const response = await apiClient.post<{ data: StorefrontExperienceValidation }>(
     `/admin/storefront-experiences/drafts/${draftId}/validate`,
-    { catalogReleaseId, expectedVersion, reason },
+    { catalogReleaseId, expectedVersion, reason, u8Acceptance },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-draft-validate') } }
   )
   return response.data.data
@@ -312,11 +317,12 @@ export const previewStorefrontExperienceDraft = async (
   draftId: string,
   expectedVersion: number,
   reason: string,
-  catalogReleaseId?: string
+  catalogReleaseId?: string,
+  u8Acceptance?: { manifestDigest: string; runId: string }
 ): Promise<StorefrontPreviewResolution> => {
   const response = await apiClient.post<{ data: StorefrontPreviewResolution }>(
     `/admin/storefront-experiences/drafts/${draftId}/preview`,
-    { catalogReleaseId, expectedVersion, reason },
+    { catalogReleaseId, expectedVersion, reason, u8Acceptance },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-preview-create') } }
   )
   return response.data.data
@@ -335,11 +341,12 @@ export const approveStorefrontExperienceDraft = async (
   draftId: string,
   expectedVersion: number,
   reason: string,
-  catalogReleaseId?: string
+  catalogReleaseId?: string,
+  u8Acceptance?: { manifestDigest: string; runId: string }
 ): Promise<StorefrontExperienceSnapshot> => {
   const response = await apiClient.post<{ data: StorefrontExperienceSnapshot }>(
     `/admin/storefront-experiences/drafts/${draftId}/approve`,
-    { catalogReleaseId, confirm: true, expectedVersion, reason },
+    { catalogReleaseId, confirm: true, expectedVersion, reason, u8Acceptance },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-draft-approve') } }
   )
   return response.data.data

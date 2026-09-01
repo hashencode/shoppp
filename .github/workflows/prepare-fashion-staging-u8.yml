@@ -18,9 +18,6 @@ on:
       run_manifest_base64:
         description: Base64-encoded authoritative non-secret U8 run manifest
         required: true
-      human_evidence_base64:
-        description: Base64-encoded redacted passed human-lane evidence
-        required: true
       u12_readiness_commit_sha:
         description: Historical U12 preparation commit bound to the readiness evidence
         required: true
@@ -46,8 +43,59 @@ permissions:
   contents: read
 
 jobs:
+  verify-request:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      attestation_digest: ${{ steps.attest.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.harness_sha }}
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - name: Verify credential-free U8 refresh request
+        id: attest
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          HARNESS_SHA: ${{ inputs.harness_sha }}
+          HARNESS_MANIFEST_DIGEST: ${{ inputs.harness_manifest_digest }}
+          RUN_MANIFEST_DIGEST: ${{ inputs.run_manifest_digest }}
+          U12_READINESS_COMMIT_SHA: ${{ inputs.u12_readiness_commit_sha }}
+          U12_READINESS_DIGEST: ${{ inputs.u12_readiness_digest }}
+          U12_READINESS_RUN_ID: ${{ inputs.u12_readiness_run_id }}
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REPOSITORY" = "${{ github.event.repository.full_name }}"
+          [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$CANDIDATE_SHA" != "$HARNESS_SHA"
+          test "$GITHUB_SHA" = "$HARNESS_SHA"
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          git merge-base --is-ancestor "$CANDIDATE_SHA" "$HARNESS_SHA"
+          [[ "$HARNESS_MANIFEST_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$RUN_MANIFEST_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$U12_READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$U12_READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$U12_READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          mkdir -p artifacts/fashion-u8
+          FASHION_U8_CANDIDATE_SHA="$CANDIDATE_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
+            bun tools/create-fashion-u8-harness-manifest.ts \
+            > artifacts/fashion-u8/harness-manifest.json
+          test "$(sha256sum artifacts/fashion-u8/harness-manifest.json | cut -d ' ' -f 1)" = "$HARNESS_MANIFEST_DIGEST"
+          bun tools/verify-fashion-u8-standing-authority.ts \
+            artifacts/fashion-u8/harness-manifest.json >/dev/null
+          DIGEST="$(printf '%s\n' "$CANDIDATE_SHA" "$HARNESS_SHA" "$HARNESS_MANIFEST_DIGEST" "$RUN_MANIFEST_DIGEST" "$U12_READINESS_COMMIT_SHA" "$U12_READINESS_RUN_ID" "$U12_READINESS_DIGEST" | sha256sum | cut -d ' ' -f 1)"
+          printf 'digest=%s\n' "$DIGEST" >> "$GITHUB_OUTPUT"
+
   prepare:
-    runs-on: [self-hosted, fashion-staging-preview, fashion-staging-u8]
+    needs: verify-request
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: fashion-staging
     env:
@@ -57,19 +105,19 @@ jobs:
       HARNESS_MANIFEST_DIGEST: ${{ inputs.harness_manifest_digest }}
       RUN_MANIFEST_DIGEST: ${{ inputs.run_manifest_digest }}
       RUN_MANIFEST_BASE64: ${{ inputs.run_manifest_base64 }}
-      HUMAN_EVIDENCE_BASE64: ${{ inputs.human_evidence_base64 }}
       U12_READINESS_COMMIT_SHA: ${{ inputs.u12_readiness_commit_sha }}
       U12_READINESS_RUN_ID: ${{ inputs.u12_readiness_run_id }}
       U12_READINESS_DIGEST: ${{ inputs.u12_readiness_digest }}
       PRIOR_LEDGER_RUN_ID: ${{ inputs.prior_ledger_run_id }}
       CORRECTIVE_REASON: ${{ inputs.corrective_reason }}
       REFRESH_ARTIFACT_NAME: fashion-u8-refresh-${{ github.run_id }}-${{ github.run_attempt }}
+      VERIFIER_ATTESTATION_DIGEST: ${{ needs.verify-request.outputs.attestation_digest }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
           ref: ${{ inputs.harness_sha }}
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
       - name: Verify canonical reviewed U8 harness before package execution
@@ -88,6 +136,7 @@ jobs:
           [[ "$U12_READINESS_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "$U12_READINESS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$U12_READINESS_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          test "$(printf '%s\n' "$CANDIDATE_SHA" "$HARNESS_SHA" "$HARNESS_MANIFEST_DIGEST" "$RUN_MANIFEST_DIGEST" "$U12_READINESS_COMMIT_SHA" "$U12_READINESS_RUN_ID" "$U12_READINESS_DIGEST" | sha256sum | cut -d ' ' -f 1)" = "$VERIFIER_ATTESTATION_DIGEST"
           git merge-base --is-ancestor "$U12_READINESS_COMMIT_SHA" "$CANDIDATE_SHA"
           mkdir -p artifacts/fashion-u8
           FASHION_U8_CANDIDATE_SHA="$CANDIDATE_SHA" FASHION_U8_HARNESS_SHA="$HARNESS_SHA" \
@@ -96,12 +145,11 @@ jobs:
           test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/harness-manifest.json)" = "$HARNESS_MANIFEST_DIGEST"
           bun tools/verify-fashion-u8-standing-authority.ts \
             artifacts/fashion-u8/harness-manifest.json >/dev/null
-      - name: Decode and join the exact human and machine run evidence
+      - name: Decode the exact non-secret machine run evidence
         run: |
           node - <<'NODE'
           const fs = require("fs");
           fs.writeFileSync("artifacts/fashion-u8/run-manifest.json", Buffer.from(process.env.RUN_MANIFEST_BASE64, "base64"));
-          fs.writeFileSync("artifacts/fashion-u8/human-evidence.json", Buffer.from(process.env.HUMAN_EVIDENCE_BASE64, "base64"));
           NODE
           test "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/run-manifest.json)" = "$RUN_MANIFEST_DIGEST"
           jq --exit-status \
@@ -111,20 +159,7 @@ jobs:
              (.sourceDraftId | test("^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$")) and
              (.catalogReleaseId | test("^[A-Za-z0-9][A-Za-z0-9._:-]{2,199}$"))' \
             artifacts/fashion-u8/run-manifest.json >/dev/null
-          jq --exit-status --slurpfile manifest artifacts/fashion-u8/run-manifest.json \
-            --arg digest "$RUN_MANIFEST_DIGEST" \
-            '.manifestDigest == $digest and .runId == $manifest[0].runId and
-             .candidateSha == $manifest[0].candidateSha and .harnessSha == $manifest[0].harnessSha and
-             .catalogReleaseId == $manifest[0].catalogReleaseId and .sourceDraftId == $manifest[0].sourceDraftId and
-             (.successorSnapshotId | test("^[a-z][a-z0-9-]{2,99}$")) and
-             (.successorContentDigest | test("^[a-f0-9]{64}$")) and
-             .approvalAuditId == ("audit-" + .successorSnapshotId)' \
-            artifacts/fashion-u8/human-evidence.json >/dev/null
           printf 'CATALOG_RELEASE_ID=%s\n' "$(jq -er '.catalogReleaseId' artifacts/fashion-u8/run-manifest.json)" >> "$GITHUB_ENV"
-          printf 'SUCCESSOR_SNAPSHOT_ID=%s\n' "$(jq -er '.successorSnapshotId' artifacts/fashion-u8/human-evidence.json)" >> "$GITHUB_ENV"
-          printf 'SUCCESSOR_CONTENT_DIGEST=%s\n' "$(jq -er '.successorContentDigest' artifacts/fashion-u8/human-evidence.json)" >> "$GITHUB_ENV"
-          printf 'SUCCESSOR_AUDIT_ID=%s\n' "$(jq -er '.approvalAuditId' artifacts/fashion-u8/human-evidence.json)" >> "$GITHUB_ENV"
-          printf 'HUMAN_EVIDENCE_DIGEST=%s\n' "$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/human-evidence.json)" >> "$GITHUB_ENV"
       - name: Restore the append-only predecessor ledger
         if: ${{ inputs.prior_ledger_run_id != '' }}
         env:
@@ -172,12 +207,56 @@ jobs:
              .status == "completed" and .conclusion == "success"' \
             artifacts/fashion-u8/u12-readiness-run.json >/dev/null
       - name: Download exact historical U12 readiness evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: fashion-u12-readiness-${{ inputs.u12_readiness_commit_sha }}
           path: artifacts/fashion-u8/u12-readiness
           github-token: ${{ github.token }}
           run-id: ${{ inputs.u12_readiness_run_id }}
+      - name: Fetch consumed operator run from server authority
+        env:
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+        run: |
+          RUN_ID="$(jq -er '.runId' artifacts/fashion-u8/run-manifest.json)"
+          SOURCE_DRAFT_ID="$(jq -er '.sourceDraftId' artifacts/fashion-u8/run-manifest.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$API_ORIGIN/admin/storefront-experiences/fashion-u8/acceptance-runs/$RUN_ID?manifestDigest=$RUN_MANIFEST_DIGEST" \
+            > artifacts/fashion-u8/acceptance-run.json
+          jq --exit-status --arg run "$RUN_ID" --arg manifest "$RUN_MANIFEST_DIGEST" \
+            --arg source "$SOURCE_DRAFT_ID" --arg catalog "$CATALOG_RELEASE_ID" \
+            '.data.runId == $run and .data.manifestDigest == $manifest and
+             .data.sourceDraftId == $source and .data.catalogReleaseId == $catalog and
+             .data.environment == "fashion-staging" and .data.status == "consumed" and
+             (.data.successorDraftId | type == "string") and
+             (.data.successorSnapshotId | type == "string") and
+             (.data.approvalAuditId | type == "string") and (.data.operatorId | type == "string") and
+             (.data.consumedAt <= .data.expiresAt)' artifacts/fashion-u8/acceptance-run.json >/dev/null
+          SUCCESSOR_DRAFT_ID="$(jq -er '.data.successorDraftId' artifacts/fashion-u8/acceptance-run.json)"
+          SUCCESSOR_SNAPSHOT_ID="$(jq -er '.data.successorSnapshotId' artifacts/fashion-u8/acceptance-run.json)"
+          SUCCESSOR_AUDIT_ID="$(jq -er '.data.approvalAuditId' artifacts/fashion-u8/acceptance-run.json)"
+          OPERATOR_ID="$(jq -er '.data.operatorId' artifacts/fashion-u8/acceptance-run.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$API_ORIGIN/admin/storefront-experiences/snapshots/$SUCCESSOR_SNAPSHOT_ID" \
+            > artifacts/fashion-u8/successor-snapshot.json
+          SUCCESSOR_CONTENT_DIGEST="$(jq -er '.data.contentDigest' artifacts/fashion-u8/successor-snapshot.json)"
+          jq --null-input --arg manifestDigest "$RUN_MANIFEST_DIGEST" --arg runId "$RUN_ID" \
+            --arg candidateSha "$CANDIDATE_SHA" --arg harnessSha "$HARNESS_SHA" \
+            --arg catalogReleaseId "$CATALOG_RELEASE_ID" --arg sourceDraftId "$SOURCE_DRAFT_ID" \
+            --arg successorDraftId "$SUCCESSOR_DRAFT_ID" --arg operatorId "$OPERATOR_ID" \
+            --arg successorSnapshotId "$SUCCESSOR_SNAPSHOT_ID" \
+            --arg successorContentDigest "$SUCCESSOR_CONTENT_DIGEST" \
+            --arg approvalAuditId "$SUCCESSOR_AUDIT_ID" \
+            '{schemaVersion:1,manifestDigest:$manifestDigest,runId:$runId,candidateSha:$candidateSha,
+              harnessSha:$harnessSha,catalogReleaseId:$catalogReleaseId,sourceDraftId:$sourceDraftId,
+              successorDraftId:$successorDraftId,operatorId:$operatorId,
+              successorSnapshotId:$successorSnapshotId,successorContentDigest:$successorContentDigest,
+              approvalAuditId:$approvalAuditId}' > artifacts/fashion-u8/human-evidence.json
+          printf 'SUCCESSOR_SNAPSHOT_ID=%s\n' "$SUCCESSOR_SNAPSHOT_ID" >> "$GITHUB_ENV"
+          printf 'SUCCESSOR_CONTENT_DIGEST=%s\n' "$SUCCESSOR_CONTENT_DIGEST" >> "$GITHUB_ENV"
+          printf 'SUCCESSOR_AUDIT_ID=%s\n' "$SUCCESSOR_AUDIT_ID" >> "$GITHUB_ENV"
+          printf 'HUMAN_EVIDENCE_DIGEST=%s\n' "$(sha256sum artifacts/fashion-u8/human-evidence.json | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
       - name: Verify historical readiness and frozen U8 lineage
         env:
           ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
@@ -199,10 +278,6 @@ jobs:
              (.seed.buildId | type == "string") and
              (.seed.experienceSnapshotId | type == "string")' \
             "$READINESS_PATH" >/dev/null
-          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
-            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
-            "$API_ORIGIN/admin/storefront-experiences/snapshots/$SUCCESSOR_SNAPSHOT_ID" \
-            --output artifacts/fashion-u8/successor-snapshot.json
           jq --exit-status \
             --arg content "$SUCCESSOR_CONTENT_DIGEST" \
             --arg snapshot "$SUCCESSOR_SNAPSHOT_ID" \
@@ -344,7 +419,7 @@ jobs:
           REFRESH_DIGEST="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' artifacts/fashion-u8/refresh-attestation.json)"
           printf 'refresh_digest=%s\n' "$REFRESH_DIGEST" >> "$GITHUB_OUTPUT"
       - name: Preserve protected U8 refresh attestation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ env.REFRESH_ARTIFACT_NAME }}
           path: |
@@ -353,7 +428,7 @@ jobs:
             artifacts/fashion-u8/human-evidence.json
             artifacts/fashion-u8/harness-manifest.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
       - name: Dispatch exact U8 successor to the isolated Preview workflow
         env:
           GH_TOKEN: ${{ github.token }}
@@ -394,9 +469,9 @@ jobs:
             --attempt=artifacts/fashion-u8/attempt-event.json >/dev/null
       - name: Preserve append-only U8 preparation ledger
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: fashion-u8-preparation-ledger-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/fashion-u8/attempt-ledger.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30

@@ -67,6 +67,13 @@ function normalizedMarkdown(contents: string): string {
 }
 
 describe("local-first CI runner operations contract", () => {
+  test("marks the self-hosted procedure as historical after cloud migration", async () => {
+    const contents = await runbook;
+    expect(contents).toContain("Local-First CI Runner Operations (Retired)");
+    expect(contents).toContain("now runs on GitHub-hosted Ubuntu");
+    expect(contents).toContain("self-hosted account, listener, label, workspace, or fallback");
+  });
+
   test("requires complete acceptance before repository-controlled code", async () => {
     const contents = await runbook;
     for (const id of [
@@ -302,7 +309,7 @@ describe("local-first CI runner operations contract", () => {
 
     const ci = tableRow(register, "`CI`");
     expect(ci[3]).toContain("**Complete");
-    expect(ci[3]).toContain("CI-U11.1");
+    expect(ci[3]).toMatch(/CI-U11\.1|cloud-only decision/);
     expect(fashionCheckpoint).toContain("product execution has returned to");
     expect(fashionCheckpoint).toContain("`FS-U8.2`");
     expect(fashionCheckpoint).toContain("integrated into the current exact-main baseline");

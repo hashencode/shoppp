@@ -45,7 +45,7 @@ Shoppp is one cross-border DTC commerce product with these product areas:
 | `FS` | The `fashion-store` product template | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) |
 | `DS` | The `decor-store` product template | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) for home correction; [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) for the completed remaining-page tail |
 | `REL` | Candidate proof and production-promotion policy | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) |
-| `CI` | Repository validation plus GitHub-first release delivery | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md); the completed [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) retains bridge history |
+| `CI` | Repository validation plus GitHub-first release delivery | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md); [Cloud-Only Shared CI Execution](2026-09-01-001-refactor-cloud-only-ci-execution-plan.md) owns the bounded current post-commit migration; the completed [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) retains bridge history |
 
 `fashion-store` and `decor-store` are templates in the same product and shared theme platform. The
 older `fashion` reimplementation is retired and is not a third product template. The existing code
@@ -77,15 +77,19 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Freeze the reviewed U8 harness over exact-main candidate `dc746220`, create the
-  exact temporary U8 runner/account, complete a fresh U12 readiness/Preview baseline through the
-  gated recovery, then resume `FS-U8.2` with a fresh audited source and run identity.
-- **Blocker:** No Fashion cleanup, code, CI review, CI integration, or sequencing blocker remains.
-  The lineage and expired-readiness recovery corrections are integrated into exact `main`; governed
-  runner setup and fresh readiness preparation are the next operational actions. Ordinary staging
-  and all production mutation remain excluded.
-- **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
-  closure.
+- **Next action:** Integrate the locally verified `CCI-U1.2` shared post-commit migration and the
+  U8/U12/Preview cloud-only trust split, server-authoritative run lifecycle and successor lineage,
+  run-bound Admin handoff, and automated Chromium/Axe lane
+  into exact `main`. Retain one exact-main hosted post-commit run, freeze new U8 candidate/harness/
+  manifest identities, and then prepare a fresh U12 readiness/Preview baseline before resuming
+  `FS-U8.2`.
+- **Blocker:** The implementation has not yet been integrated into exact `main`, so no hosted runner
+  image, protected preflight, `awaiting_operator` record, operator approval, successor refresh, or
+  terminal p95 evidence exists for the new contract. No fallback to the developer machine,
+  OrbStack, self-hosted execution, or a new local account is authorized. Ordinary staging and all
+  production mutation remain excluded.
+- **Following sequence:** `CCI-U1` hosted proof and `CCI-U2` handback -> fresh `FS-U8.2` formal
+  acceptance -> `FS-U8.3` final verification and closure.
 - **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
   candidate are complete in their owning plans.
 
@@ -105,7 +109,8 @@ Parallel Decor execution is complete without replacing the product-level Fashion
   exact manifests and ref recovery were retained. This integration does not reopen DS-P1 or change
   Fashion, REL, DC, or PG scope.
 
-CI infrastructure execution is complete after its bounded bridge and steady-state review:
+CI infrastructure retains its completed baseline while the bounded cloud-only successor runs in
+parallel with the active Fashion pointer:
 
 - **Completed bridge:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
 - **Current parent/child stage:** `CI-U11.1` complete — the event-driven operating review records
@@ -113,8 +118,12 @@ CI infrastructure execution is complete after its bounded bridge and steady-stat
   triggers with required checks and fail-closed decisions. CI-GH-U1–U7 and CI-U8.3 remain complete
   without changing the 17 gates or Lighthouse thresholds. `CI-U7.3` remains incomplete historical
   work, and its missing Intel restore is not reclassified as passing evidence.
-- **Next action:** None in CI. Future material changes re-enter through the completed CI plan's
-  documented event-driven boundary; active execution belongs to `FS-U8.2`.
+- **Parallel successor:** `CCI-U1.2` —
+  [Cloud-Only Shared CI Execution](2026-09-01-001-refactor-cloud-only-ci-execution-plan.md) has the
+  shared post-commit hosted-runner implementation prepared locally. Its next action is exact-main
+  integration plus one retained hosted run, followed by `CCI-U2` handback to `FS-U8.2`.
+  Material future CI changes still re-enter through the completed parent plan's documented
+  event-driven boundary.
 - **Blocker:** None. Retained post-removal run
   `33073613728` passed all 17 gates, exact
   same-run binding, protected staging proof, p95 budgets, exact restoration, D1 reconciliation, and
@@ -289,15 +298,16 @@ focused test alone.
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
 | `DS-H1` | [Decor Store Source Parity](2026-08-10-001-feat-decor-store-source-parity-plan.md) | Decor Store source-equivalent home baseline | Complete and inherited; U1-U8 closed the home implementation and acceptance baseline | `DS` owns later home correction; `DS-P1` owns the completed secondary-page tail |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active at `FS-U8.2` — cleanup-only tranche terminal, closed CI tail integrated, and fresh formal acceptance is next on the exact-main baseline; U12 complete with governed test-environment proof** | This plan owns `FS-U8` and the remaining Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active at `FS-U8.2` — cleanup-only tranche terminal; cloud-runner and acceptance-protocol implementation prepared locally but not integrated or remotely proven; U12 complete with governed test-environment proof** | This plan owns `FS-U8` and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
-| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete — CI-U11.1 closed the GitHub-first steady-state tail; CI-U1–U3, CI-U7.1–U7.2, CI-U8.3, and CI-U12 remain complete; incomplete historical CI-U7.3 is not reclassified** | Retains repository CI policy and event-driven re-entry authority; no active product tail |
+| `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution through named successor `CCI`** | Retains historical CI evidence; `CCI` owns the bounded shared/post-commit migration |
 | `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
+| `CCI` | [Cloud-Only Shared CI Execution](2026-09-01-001-refactor-cloud-only-ci-execution-plan.md) | Bounded cloud-only successor for shared post-commit validation | **In progress at `CCI-U1.2` — implementation prepared locally; exact-main hosted run evidence pending** | Owns shared post-commit runner migration through `CCI-U2`, then returns execution to `FS-U8.2` |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 
 ## Decision hierarchy and supersessions
@@ -318,11 +328,13 @@ focused test alone.
 7. DC/PG are mandatory production-promotion policy for an immutable candidate. They do not gate
    ordinary U implementation, local preview, or a non-production development proof.
 8. The Long-Term CI plan preserves repository-owned fast/post-commit commands and completed
-   self-hosted/capsule/evidence history, but its future release authority is GitHub-first: direct
-   hosted full validation, GitHub run/attempt artifacts, protected environments, and fail-closed
-   release pause during GitHub unavailability. PR automation remains optional and deferred. The plan
-   does not supersede feature checkpoints, candidate selection, DC/PG gates, credential and approval
-   boundaries, rollback, or production-promotion authority.
+   self-hosted/capsule/evidence history, but its future execution authority is GitHub-managed-cloud
+   only. Standard GitHub-hosted runners are the default; a GitHub-hosted larger or OS-specific
+   runner requires a recorded infrastructure need. No workflow may fall back to a developer machine,
+   OrbStack, a self-hosted runner, or a new local shared/test account. GitHub unavailability pauses
+   release execution. PR automation remains optional and deferred. This rule does not supersede
+   feature checkpoints, candidate selection, DC/PG gates, credential and approval boundaries,
+   rollback, or production-promotion authority.
 9. The GitHub-First CI/CD Transition plan temporarily owns the route switch and explicitly
    supersedes the future Docker, Intel, provider-independent evidence, alternate-CD, and
    GitHub-independent release obligations it names. It preserves completed CI history and all

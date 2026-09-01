@@ -1,4 +1,9 @@
-# Local-First CI Runner Operations
+# Local-First CI Runner Operations (Retired)
+
+> Historical only. The persistent advisory runner was retired by the 2026-08-31 cloud-only
+> decision. `.github/workflows/post-commit-ci.yml` now runs on GitHub-hosted Ubuntu, and no new
+> self-hosted account, listener, label, workspace, or fallback is authorized. The material below is
+> retained solely to interpret historical evidence and must not be used to register a runner.
 
 This runbook governs the optional, persistent, non-secret macOS runner for the advisory `main`
 post-commit lane. It does not authorize registration or make this lane release, candidate, DC, PG,

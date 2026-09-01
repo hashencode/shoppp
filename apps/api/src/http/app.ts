@@ -30,6 +30,7 @@ import {
   createAdminInvitationRequestSchema,
   createAdminRoleRequestSchema,
   fulfillmentTransitionRequestSchema,
+  fashionU8AcceptanceContextSchema,
   inventoryAdjustmentRequestSchema,
   reportExportRequestSchema,
   reportingQuerySchema,
@@ -39,6 +40,7 @@ import {
   refundRequestSchema,
   shippingQuoteRequestSchema,
   publicRuntimeConfigurationSchema,
+  prepareFashionU8AcceptanceRunRequestSchema,
   redeemStorefrontPreviewGrantRequestSchema,
   revokeStorefrontPreviewAccessRequestSchema,
   resolveStorefrontExperienceDraftRequestSchema,
@@ -176,6 +178,10 @@ import {
   validateStorefrontExperienceDraft,
   type StorefrontExperienceServiceOptions,
 } from "../storefront-experience/service";
+import {
+  getFashionU8AcceptanceRun,
+  prepareFashionU8AcceptanceRun,
+} from "../storefront-experience/u8-acceptance";
 import {
   acquireFashionStagingAcceptance,
   cleanupFashionStagingAcceptance,
@@ -1209,6 +1215,58 @@ export function createApp(options: CreateAppOptions = {}) {
     },
   );
   app.post(
+    "/admin/storefront-experiences/fashion-u8/acceptance-runs",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", { type: "storefront_experience_draft" });
+      await next();
+    },
+    idempotency("storefront.experience.fashion-u8.acceptance.prepare"),
+    async (context) => {
+      if (context.env.ENVIRONMENT !== "staging") {
+        throw new ApiError(
+          409,
+          "fashion_u8_staging_environment_required",
+          "Fashion U8 preparation is available only in the protected staging environment.",
+        );
+      }
+      if (context.get("principal").principalKind !== "service") {
+        throw new ApiError(
+          403,
+          "fashion_u8_preparation_service_required",
+          "Fashion U8 preparation requires a protected service identity.",
+        );
+      }
+      const input = await parseJson(context, prepareFashionU8AcceptanceRunRequestSchema);
+      return context.json(
+        {
+          data: await prepareFashionU8AcceptanceRun(context.env.DB, input),
+          meta: { requestId: context.get("requestId") },
+        },
+        201,
+      );
+    },
+  );
+  app.get(
+    "/admin/storefront-experiences/fashion-u8/acceptance-runs/:runId",
+    async (context, next) => {
+      await requirePermission(context, "audit.read", {
+        id: context.req.param("runId"),
+        type: "storefront_experience_acceptance_run",
+      });
+      await next();
+    },
+    async (context) => {
+      const input = fashionU8AcceptanceContextSchema.parse({
+        manifestDigest: context.req.query("manifestDigest"),
+        runId: context.req.param("runId"),
+      });
+      return context.json({
+        data: await getFashionU8AcceptanceRun(context.env.DB, input),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
     "/admin/storefront-experiences/drafts/:id/successors",
     async (context, next) => {
       await requirePermission(context, "themes.write", {
@@ -1254,6 +1312,7 @@ export function createApp(options: CreateAppOptions = {}) {
           input.expectedVersion,
           input.reason,
           input.catalogReleaseId,
+          input.u8Acceptance,
           options.storefrontExperienceServiceOptions,
         ),
         meta: { requestId: context.get("requestId") },
@@ -1284,6 +1343,7 @@ export function createApp(options: CreateAppOptions = {}) {
         input.expectedVersion,
         input.reason,
         input.catalogReleaseId,
+        input.u8Acceptance,
         options.storefrontExperienceServiceOptions,
       );
       const build = await triggerStorefrontExperienceBuild(
@@ -1326,6 +1386,7 @@ export function createApp(options: CreateAppOptions = {}) {
           input.expectedVersion,
           input.reason,
           input.catalogReleaseId,
+          input.u8Acceptance,
           options.storefrontExperienceServiceOptions,
         ),
         meta: { requestId: context.get("requestId") },

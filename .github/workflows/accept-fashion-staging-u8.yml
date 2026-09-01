@@ -31,22 +31,55 @@ permissions:
   actions: read
 
 jobs:
+  verify-request:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      attestation_digest: ${{ steps.attest.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          ref: ${{ inputs.harness_sha }}
+          persist-credentials: false
+          clean: true
+      - name: Verify credential-free U8 acceptance request
+        id: attest
+        env:
+          HARNESS_SHA: ${{ inputs.harness_sha }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
+          REFRESH_ARTIFACT_NAME: ${{ inputs.refresh_artifact_name }}
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REPOSITORY" = "${{ github.event.repository.full_name }}"
+          [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$HARNESS_SHA"
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          [[ "$PREPARATION_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$REFRESH_ARTIFACT_NAME" =~ ^fashion-u8-refresh-[1-9][0-9]*-[1-9][0-9]*$ ]]
+          DIGEST="$(printf '%s\n' "$HARNESS_SHA" "$PREPARATION_RUN_ID" "$REFRESH_ARTIFACT_NAME" | sha256sum | cut -d ' ' -f 1)"
+          printf 'digest=%s\n' "$DIGEST" >> "$GITHUB_OUTPUT"
+
   accept:
-    runs-on: [self-hosted, fashion-staging-preview, fashion-staging-u8]
+    needs: verify-request
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: fashion-staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
           ref: ${{ inputs.harness_sha }}
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
       - name: Verify exact successful preparation workflow provenance
         env:
           GH_TOKEN: ${{ github.token }}
+          VERIFIER_ATTESTATION_DIGEST: ${{ needs.verify-request.outputs.attestation_digest }}
         run: |
+          test "$(printf '%s\n' '${{ inputs.harness_sha }}' '${{ inputs.preparation_run_id }}' '${{ inputs.refresh_artifact_name }}' | sha256sum | cut -d ' ' -f 1)" = "$VERIFIER_ATTESTATION_DIGEST"
           mkdir -p artifacts/fashion-u8
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/${{ inputs.preparation_run_id }}" \
             > artifacts/fashion-u8/preparation-run.json
@@ -58,7 +91,7 @@ jobs:
              $artifact == ("fashion-u8-refresh-" + (.id | tostring) + "-" + (.run_attempt | tostring))' \
             artifacts/fashion-u8/preparation-run.json >/dev/null
       - name: Download exact completed refresh attestation
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           github-token: ${{ github.token }}
           name: ${{ inputs.refresh_artifact_name }}
@@ -210,7 +243,7 @@ jobs:
             > artifacts/fashion-u8/terminal-report.json
       - name: Preserve real U8 p95 and cleanup evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: fashion-u8-terminal-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -219,7 +252,7 @@ jobs:
             artifacts/fashion-u8/terminal-manifest.json
             artifacts/fashion-u8/terminal-report.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
       - name: Enforce terminal U8 p95 and cleanup verdict
         if: ${{ always() }}
         run: |
@@ -251,9 +284,9 @@ jobs:
             --attempt=artifacts/fashion-u8/attempt-event.json >/dev/null
       - name: Preserve append-only U8 machine ledger
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: fashion-u8-machine-ledger-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/fashion-u8/attempt-ledger.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30

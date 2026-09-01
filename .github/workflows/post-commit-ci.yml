@@ -17,7 +17,7 @@ concurrency:
 jobs:
   post-commit:
     if: github.event.deleted == false && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, macOS, ARM64, shoppp-main-nonsecret]
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - name: Check out the immutable main commit
@@ -46,7 +46,7 @@ jobs:
           SHOPPP_CI_EXECUTION_ID: github-${{ github.run_id }}
           SHOPPP_CI_ATTEMPT: ${{ github.run_attempt }}
           SHOPPP_CI_TRIGGER: github-main-push
-          SHOPPP_CI_EXECUTOR_CLASS: self-hosted-macos-arm64-shoppp-main-nonsecret
+          SHOPPP_CI_EXECUTOR_CLASS: github-hosted-ubuntu-latest
         run: bun run ci:post-commit
       - name: Preserve the exact advisory report
         if: always()

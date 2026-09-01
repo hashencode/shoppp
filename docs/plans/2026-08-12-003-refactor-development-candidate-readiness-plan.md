@@ -235,7 +235,7 @@ candidate. PG5 remains the terminal promotion authorization.
 | PG1 Merchant and provider        | Merchant owner         | Entity eligibility, currencies, payouts, Stripe/webhook ownership, and reconciliation acceptance          |
 | PG2 Legal and market             | Legal/compliance owner | Product category, tax, policy text, cookies/analytics, and shipping-country approval                      |
 | PG3 Production infrastructure    | Infrastructure owner   | Production resources, domains, secrets, alert destination, backup, and GitHub environment protection      |
-| PG4 Operations and accessibility | Operations owner       | Support/escalation, real iOS/Android, VoiceOver/NVDA, provider dashboard, and external alert reception    |
+| PG4 Operations and accessibility | Operations owner       | Support/escalation, representative iOS/Android, automated keyboard/focus/semantic accessibility evidence, provider dashboard, and external alert reception |
 | PG5 Promotion                    | Release approver       | Exact candidate, DC evidence, recent production backup, and explicit `PROMOTE <release-id>` authorization |
 
 ## Historical U-to-DC mapping

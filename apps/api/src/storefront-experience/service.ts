@@ -10,6 +10,7 @@ import {
   type CreateStorefrontExperienceDraftRequest,
   type CreateStorefrontExperienceSuccessorRequest,
   type ExperienceResourceBinding,
+  type FashionU8AcceptanceContext,
   type StorefrontExperienceMigrationDryRunRequest,
   type ThemeOverride,
   type ThemePackage,
@@ -42,6 +43,12 @@ import {
   getCanonicalDeployedCatalogRelease,
   storefrontDestinationsForRelease,
 } from "./catalog-resources";
+import {
+  authorizeFashionU8OperatorMutation,
+  bindFashionU8Successor,
+  consumeFashionU8AcceptanceRun,
+  type FashionU8AcceptanceRun,
+} from "./u8-acceptance";
 
 export interface ExperienceValidationIssue {
   readonly code: string;
@@ -796,6 +803,13 @@ export async function updateStorefrontExperienceDraft(
     version: current.version + 1,
   });
   const principal = context.get("principal");
+  await authorizeFashionU8OperatorMutation(
+    context.env.DB,
+    principal,
+    id,
+    request.reason,
+    request.u8Acceptance,
+  );
   const now = new Date().toISOString();
   const updated = await context.env.DB.prepare(
     `UPDATE storefront_experience_drafts
@@ -833,6 +847,14 @@ export async function createStorefrontExperienceSuccessor(
   sourceId: string,
   request: CreateStorefrontExperienceSuccessorRequest,
 ) {
+  const principal = context.get("principal");
+  const acceptanceRun = await authorizeFashionU8OperatorMutation(
+    context.env.DB,
+    principal,
+    sourceId,
+    request.reason,
+    request.u8Acceptance,
+  );
   const source = await draftRow(context.env.DB, sourceId);
   if (request.sourceVersion > source.version) {
     throw new ApiError(
@@ -851,7 +873,6 @@ export async function createStorefrontExperienceSuccessor(
     themeVersion: source.theme_version,
     version: 1,
   });
-  const principal = context.get("principal");
   const now = new Date().toISOString();
   await context.env.DB.prepare(
     `INSERT INTO storefront_experience_drafts
@@ -891,6 +912,9 @@ export async function createStorefrontExperienceSuccessor(
     targetId: id,
     targetType: "storefront_experience_draft",
   });
+  if (acceptanceRun) {
+    await bindFashionU8Successor(context.env.DB, acceptanceRun, sourceId, id);
+  }
   return getStorefrontExperienceDraft(context.env.DB, id);
 }
 
@@ -900,8 +924,16 @@ export async function validateStorefrontExperienceDraft(
   expectedVersion: number,
   reason: string,
   catalogReleaseId?: string,
+  u8Acceptance?: FashionU8AcceptanceContext,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  await authorizeFashionU8OperatorMutation(
+    context.env.DB,
+    context.get("principal"),
+    id,
+    reason,
+    u8Acceptance,
+  );
   const row = await draftRow(context.env.DB, id);
   assertExpectedVersion(row, expectedVersion);
   const catalogRelease = catalogReleaseId
@@ -1004,6 +1036,7 @@ async function insertSnapshot(
     resolvedTemplates: ThemePackage["presets"][number]["templates"];
     row: DraftRow;
     validation: ValidationRow;
+    acceptanceRun?: FashionU8AcceptanceRun;
   },
 ) {
   const principal = context.get("principal");
@@ -1093,6 +1126,15 @@ async function insertSnapshot(
       "The immutable storefront experience snapshot could not be reconciled.",
     );
   }
+  if (input.kind === "approved" && input.acceptanceRun) {
+    await consumeFashionU8AcceptanceRun(
+      context.env.DB,
+      input.acceptanceRun,
+      principal.id,
+      input.row.id,
+      id,
+    );
+  }
   return mapSnapshot(persisted);
 }
 
@@ -1102,8 +1144,16 @@ export async function createStorefrontExperiencePreviewSnapshot(
   expectedVersion: number,
   reason: string,
   catalogReleaseId?: string,
+  u8Acceptance?: FashionU8AcceptanceContext,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  await authorizeFashionU8OperatorMutation(
+    context.env.DB,
+    context.get("principal"),
+    id,
+    reason,
+    u8Acceptance,
+  );
   const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
   return insertSnapshot(context, {
     deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:preview`,
@@ -1122,10 +1172,19 @@ export async function approveStorefrontExperienceDraft(
   expectedVersion: number,
   reason: string,
   catalogReleaseId?: string,
+  u8Acceptance?: FashionU8AcceptanceContext,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const acceptanceRun = await authorizeFashionU8OperatorMutation(
+    context.env.DB,
+    context.get("principal"),
+    id,
+    reason,
+    u8Acceptance,
+  );
   const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
   return insertSnapshot(context, {
+    ...(acceptanceRun ? { acceptanceRun } : {}),
     deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}`,
     kind: "approved",
     package: resolution.package,

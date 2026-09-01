@@ -405,6 +405,36 @@ export const fashionStagingAcceptanceResources = sqliteTable(
   ],
 );
 
+export const fashionU8AcceptanceRuns = sqliteTable(
+  "fashion_u8_acceptance_runs",
+  {
+    runId: text("run_id").primaryKey(),
+    manifestDigest: text("manifest_digest").notNull().unique(),
+    repository: text("repository").notNull(),
+    workflowRunId: text("workflow_run_id").notNull(),
+    environment: text("environment", { enum: ["fashion-staging"] }).notNull(),
+    candidateSha: text("candidate_sha").notNull(),
+    harnessSha: text("harness_sha").notNull(),
+    catalogReleaseId: text("catalog_release_id").notNull(),
+    u12SnapshotId: text("u12_snapshot_id").notNull(),
+    sourceDraftId: text("source_draft_id").notNull(),
+    successorDraftId: text("successor_draft_id"),
+    successorSnapshotId: text("successor_snapshot_id"),
+    approvalAuditId: text("approval_audit_id"),
+    operatorId: text("operator_id"),
+    status: text("status", {
+      enum: ["awaiting_operator", "active", "consumed", "rejected", "canceled", "expired"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    consumedAt: text("consumed_at"),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("fashion_u8_acceptance_status_expiry_idx").on(table.status, table.expiresAt, table.runId),
+  ],
+);
+
 export const inventoryReservations = sqliteTable(
   "inventory_reservations",
   {

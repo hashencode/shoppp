@@ -1,0 +1,178 @@
+name: Prepare Fashion staging U8 operator handoff
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact main candidate commit
+        required: true
+      harness_sha:
+        description: Reviewed U8 harness commit
+        required: true
+      run_manifest_digest:
+        description: SHA-256 of the non-secret U8 run manifest
+        required: true
+      run_manifest_base64:
+        description: Base64-encoded non-secret U8 run manifest
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fashion-staging-u8-operator-preparation
+  cancel-in-progress: false
+
+jobs:
+  verify-request:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      attestation_digest: ${{ steps.attest.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.harness_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          clean: true
+      - name: Verify credential-free operator handoff request
+        id: attest
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          HARNESS_SHA: ${{ inputs.harness_sha }}
+          RUN_MANIFEST_DIGEST: ${{ inputs.run_manifest_digest }}
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REPOSITORY" = "${{ github.event.repository.full_name }}"
+          [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$RUN_MANIFEST_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          test "$GITHUB_SHA" = "$HARNESS_SHA"
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          git merge-base --is-ancestor "$CANDIDATE_SHA" "$HARNESS_SHA"
+          DIGEST="$(printf '%s\n' "$CANDIDATE_SHA" "$HARNESS_SHA" "$RUN_MANIFEST_DIGEST" | sha256sum | cut -d ' ' -f 1)"
+          printf 'digest=%s\n' "$DIGEST" >> "$GITHUB_OUTPUT"
+
+  verify-admin-accessibility:
+    needs: verify-request
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.harness_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - name: Run credential-free Admin semantics and failure-boundary tests
+        run: bun run --cwd apps/admin test src/pages/storefront/theme-editor-page.test.tsx
+      - name: Run credential-free Admin Chromium keyboard and focus tests
+        run: bun run --cwd apps/admin test:browser -- src/pages/storefront/theme-editor-page.browser.test.tsx
+      - name: Run credential-free Admin Chromium operator flow and Axe
+        env:
+          CI: "true"
+        run: bun run --cwd apps/admin test:e2e -- e2e/storefront-theme-preview.spec.ts
+
+  prepare-operator-handoff:
+    needs: [verify-request, verify-admin-accessibility]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: fashion-staging
+    env:
+      ADMIN_ORIGIN: ${{ vars.PREVIEW_HANDOFF_ORIGIN }}
+      API_ORIGIN: ${{ vars.PREVIEW_API_URL }}
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      HARNESS_SHA: ${{ inputs.harness_sha }}
+      RUN_MANIFEST_DIGEST: ${{ inputs.run_manifest_digest }}
+      RUN_MANIFEST_BASE64: ${{ inputs.run_manifest_base64 }}
+      VERIFIER_ATTESTATION_DIGEST: ${{ needs.verify-request.outputs.attestation_digest }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.harness_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - name: Verify exact hosted handoff authority
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REPOSITORY" = "${{ github.event.repository.full_name }}"
+          [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$HARNESS_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$RUN_MANIFEST_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          test "$(printf '%s\n' "$CANDIDATE_SHA" "$HARNESS_SHA" "$RUN_MANIFEST_DIGEST" | sha256sum | cut -d ' ' -f 1)" = "$VERIFIER_ATTESTATION_DIGEST"
+          test "$CANDIDATE_SHA" = "${{ vars.FASHION_U8_CANDIDATE_SHA }}"
+          test "$HARNESS_SHA" = "${{ vars.FASHION_U8_HARNESS_SHA }}"
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          node -e 'for (const name of ["ADMIN_ORIGIN", "API_ORIGIN"]) { const url = new URL(process.env[name]); if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error(`${name} must be one canonical HTTPS origin`); }'
+      - name: Record awaiting_operator through server authority
+        env:
+          ADMIN_SERVICE_TOKEN: ${{ secrets.FASHION_U8_ADMIN_SERVICE_TOKEN }}
+        run: |
+          mkdir -p artifacts/fashion-u8
+          node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.RUN_MANIFEST_BASE64, "base64"))' \
+            artifacts/fashion-u8/run-manifest.json
+          test "$(sha256sum artifacts/fashion-u8/run-manifest.json | cut -d ' ' -f 1)" = "$RUN_MANIFEST_DIGEST"
+          jq --exit-status --arg candidate "$CANDIDATE_SHA" --arg harness "$HARNESS_SHA" \
+            '.schemaVersion == 1 and .candidateSha == $candidate and .harnessSha == $harness and
+             .themeId == "fashion-store" and (.runId | test("^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$"))' \
+            artifacts/fashion-u8/run-manifest.json >/dev/null
+          RUN_ID="$(jq -er '.runId' artifacts/fashion-u8/run-manifest.json)"
+          DRAFT_ID="$(jq -er '.sourceDraftId' artifacts/fashion-u8/run-manifest.json)"
+          CATALOG_RELEASE_ID="$(jq -er '.catalogReleaseId' artifacts/fashion-u8/run-manifest.json)"
+          U12_SNAPSHOT_ID="$(jq -er '.u12SnapshotId' artifacts/fashion-u8/run-manifest.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            "$API_ORIGIN/admin/storefront-experiences/drafts/$DRAFT_ID" \
+            > artifacts/fashion-u8/source-draft.json
+          DRAFT_VERSION="$(jq -er '.data.version' artifacts/fashion-u8/source-draft.json)"
+          curl --connect-timeout 10 --max-time 60 --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $ADMIN_SERVICE_TOKEN" \
+            --header "Content-Type: application/json" \
+            --header "Idempotency-Key: fashion-u8-awaiting-$RUN_ID" \
+            --data "$(jq --null-input --arg candidate "$CANDIDATE_SHA" \
+              --arg catalog "$CATALOG_RELEASE_ID" --arg harness "$HARNESS_SHA" \
+              --arg manifest "$RUN_MANIFEST_DIGEST" --arg repository "$GITHUB_REPOSITORY" \
+              --arg run "$RUN_ID" --arg source "$DRAFT_ID" --arg baseline "$U12_SNAPSHOT_ID" \
+              --arg workflowRun "$GITHUB_RUN_ID" \
+              '{candidateSha:$candidate,catalogReleaseId:$catalog,environment:"fashion-staging",
+                harnessSha:$harness,manifestDigest:$manifest,repository:$repository,runId:$run,
+                sourceDraftId:$source,u12SnapshotId:$baseline,workflowRunId:$workflowRun}')" \
+            "$API_ORIGIN/admin/storefront-experiences/fashion-u8/acceptance-runs" \
+            > artifacts/fashion-u8/awaiting-operator.json
+          jq --exit-status --arg run "$RUN_ID" --arg manifest "$RUN_MANIFEST_DIGEST" \
+            '.data.runId == $run and .data.manifestDigest == $manifest and
+             .data.status == "awaiting_operator" and .data.environment == "fashion-staging"' \
+            artifacts/fashion-u8/awaiting-operator.json >/dev/null
+          CREATED_AT="$(jq -er '.data.createdAt' artifacts/fashion-u8/awaiting-operator.json)"
+          EXPIRES_AT="$(jq -er '.data.expiresAt' artifacts/fashion-u8/awaiting-operator.json)"
+          OPERATOR_URL="$(node -e 'const url=new URL(`/storefront/themes/${process.argv[1]}`, process.env.ADMIN_ORIGIN); for (const [key,value] of Object.entries({u8Action:"recover-conflict-preview-approve",u8Baseline:process.argv[2],u8ExpiresAt:process.argv[3],u8ManifestDigest:process.env.RUN_MANIFEST_DIGEST,u8Run:process.argv[4],u8SourceDraft:process.argv[1]})) url.searchParams.set(key,value); process.stdout.write(url.href)' "$DRAFT_ID" "$U12_SNAPSHOT_ID" "$EXPIRES_AT" "$RUN_ID")"
+          jq --null-input --arg action fashion_u8.acceptance.prepare --arg createdAt "$CREATED_AT" \
+            --arg expiresAt "$EXPIRES_AT" --arg operatorUrl "$OPERATOR_URL" \
+            --arg runId "$RUN_ID" --arg manifestDigest "$RUN_MANIFEST_DIGEST" \
+            --arg draftId "$DRAFT_ID" --arg u12SnapshotId "$U12_SNAPSHOT_ID" \
+            --argjson draftVersion "$DRAFT_VERSION" \
+            '{schemaVersion:1,state:"awaiting_operator",action:$action,createdAt:$createdAt,
+              expiresAt:$expiresAt,runId:$runId,manifestDigest:$manifestDigest,draftId:$draftId,
+              draftVersion:$draftVersion,u12SnapshotId:$u12SnapshotId,operatorUrl:$operatorUrl}' \
+            > artifacts/fashion-u8/operator-handoff.json
+          printf 'U8 run `%s` is awaiting the existing Fashion staging operator.\n' "$RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+          printf '[Open the run-bound Admin handoff](%s) before `%s`.\n' "$OPERATOR_URL" "$EXPIRES_AT" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve non-secret operator handoff
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fashion-u8-operator-handoff-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/fashion-u8/run-manifest.json
+            artifacts/fashion-u8/operator-handoff.json
+          if-no-files-found: error
+          retention-days: 30

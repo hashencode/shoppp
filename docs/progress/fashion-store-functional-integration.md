@@ -1583,3 +1583,93 @@ Code review kept Reset feedback library-native and local (changed fields plus re
 while adding one visible Ant Design success message for async successor creation because the
 initiating control is removed during navigation. The successor route also focuses the stable editor
 heading after the new draft loads, and unit coverage verifies that message-and-focus result.
+
+## 2026-08-28 — Fashion U8 remote cleanup reconciliation
+
+An authorized Fashion-staging D1 cleanup disabled exact operator
+`identity_fashion_u8_u8_20260825a`, revoked its sessions, and then reconciled the full
+`identity_fashion_u8_%` namespace. A separate read-only verification proved zero enabled U8
+identities, zero active U8 sessions, and 23/23 U8 sessions revoked. It also established the retained
+attempt-30 state that local evidence could not reconstruct: source
+`draft-fashion-u8-u8-20260825a-retry29-source` is v3, remains attributed to the run-scoped operator,
+and has no Snapshot. The draft and its setup/validation/update audits remain excluded non-candidate
+evidence; no fresh source, approval, build, Preview, VoiceOver, or terminal-p95 attempt was started.
+
+The GitHub runner inventory still contains neither the exact runner name nor the U8-specific label,
+and UID `502` has no running process. The dedicated account `shopppu8_20260825a` and exact home
+`/Users/shopppu8_20260825a` remain intact because the `0700` home requires interactive administrator
+authorization before its tracked, untracked, and material-ignored manifests can be retained. The
+run-scoped repository-external credential file must also be destroyed during that privileged
+cleanup. This is the sole remaining cleanup blocker; the active plan and product master retain the
+current unit and next-action authority.
+
+The subsequent privileged local tranche retained 12,061 exact runner paths plus the empty
+tracked/untracked/material-ignored Git manifests expected after the checkout failure. The protected
+manifest index digest is `cd6b510e36935586038eaa8fb3b8c3ab291ca4c63cd63ab6291219f9501739b1`;
+the separately retained exact removal-command record digest is
+`538b3857638721d69b95b3ab315f51f3c47f6bba04993bea48bbfc2c2da570aa`.
+Directory contents are not copied into repository evidence. Exact runner
+`/Users/shopppu8_20260825a/actions-runner-u8-20260825a` was then moved recoverably to
+`/Users/studio/.Trash/shoppp-fashion-u8-20260825a-runner-20260828` and transferred to UID `501`.
+
+The account-removal continuation did not receive its second interactive administrator authorization
+and was cancelled, so no delayed destructive command remains pending. Account
+`shopppu8_20260825a`, home `/Users/shopppu8_20260825a`, three UID-specific macOS
+cache/metadata roots, and the intentionally unrecorded external credential file remain. UID `502`
+still has zero processes. This partial local result does not close cleanup or authorize the CI
+handoff.
+
+macOS `sysadminctl` then removed the dedicated home but returned Directory Services error `-14120`
+while committing the account record. The supported System Settings Users & Groups flow completed
+that record removal: `dscl` and `id` now report no `shopppu8_20260825a`, its home is absent, and UID
+`502` has zero processes. The protected runner manifest remains outside the repository and the
+runner directory remains recoverable in the operator account's Trash under UID `501`.
+
+The account cleanup removed the UID-specific MDServer, Spotlight, and security-analysis roots. One
+macOS per-user cache root was immediately retained/recreated at exact path
+`/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` under orphaned UID `502`. Both recursive
+deletion and ownership transfer were denied by TCC even after administrator authorization, so it
+requires a Terminal with Full Disk Access rather than a privilege bypass. The intentionally
+unrecorded external credential path also remains required. These two remnants keep FS-U8.2 cleanup
+open and CI-U8.3 waiting.
+
+The Full-Disk-Access deletion hypothesis was then disproved. Direct inspection shows the retained
+cache root carries `com.apple.rootless`; the APFS Data volume is mounted with `protect`, and System
+Integrity Protection is enabled. Both administrator-authorized deletion and recursive ownership
+transfer fail with `Operation not permitted`. The account record and home remain absent, UID `502`
+has no process, and the runner remains recoverable in Trash. The cache root is therefore classified
+as non-actionable macOS-managed metadata rather than runner/account content; disabling SIP is neither
+required nor authorized. Only the intentionally unrecorded external credential file remains an
+actionable FS cleanup blocker.
+
+Metadata-only search then found the exact 65-byte owner-only operator credential file without
+reading its contents. It was validated as a single-link regular file owned by UID `501`, mode
+`0600`, outside the repository, and deleted with an exact-path unlink; postcondition verification
+proves it absent. The separately named build-hook credential file was classified under the retained
+Preview build-hook infrastructure and deliberately preserved. The FS cleanup-only tranche is now
+terminal: remote operator/session cleanup, retry29 reconciliation, runner deregistration and
+recoverable removal, protected manifest retention, dedicated account/home removal, and operator
+credential destruction all pass. Product execution hands to `CI-U8.3` without starting a fresh FS
+acceptance run.
+
+## 2026-09-01 — FS-U8.2 cloud-only implementation tranche
+
+The locally reviewed implementation replaces the transitive U8/U12/Preview runner targets with
+GitHub-managed Ubuntu, adds credential-free fixed-main verifier attestations before every protected
+job, creates a separate `awaiting_operator` workflow with no identity provisioning, and moves the
+shared post-commit runner change under named successor `CCI`. The existing operator receives one
+run-bound Admin context that shows the exact run, U12 baseline, source draft, expiry, and allowed
+action; invalid or expired context disables every mutation. A separately dispatched refresh job
+reads one API-owned acceptance record that binds the named operator, source and successor drafts,
+exactly-once approval Snapshot/audit, manifest digest, and expiry before successor deploy and terminal
+acceptance; it no longer searches generic audit history or matches the source draft as the approved
+successor.
+
+Admin verification was selected at L4 because this is release-closeout behavior on the critical
+operator path. The final state passes 311/311 Admin Rstest tests, 12/12 real-browser tests,
+`build:test`, changed-file ESLint and Prettier, and the deterministic Chromium operator E2E with a
+zero-violation Axe result. The first Axe run exposed existing light-theme link and secondary-text
+contrast failures; shared Ant Design tokens were corrected and the final run passed. The focused
+workflow, harness, runbook, and authority suite passes 66/66. No remote workflow, staging mutation,
+human session, Snapshot, Preview build, p95 probe, or candidate freeze occurred, so this is retained
+implementation evidence only and does not advance FS-U8.2.

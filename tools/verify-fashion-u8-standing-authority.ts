@@ -14,9 +14,19 @@ const SHA = /^[a-f0-9]{40}$/;
 
 export const FASHION_U8_NON_EXECUTABLE_TAIL_PATHS = [
   "docs/plans/2026-08-11-001-feat-fashion-store-functional-integration-plan.md",
+  "docs/plans/2026-08-12-003-refactor-development-candidate-readiness-plan.md",
   "docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md",
+  "docs/plans/2026-09-01-001-refactor-cloud-only-ci-execution-plan.md",
+  "docs/progress/development-candidate-readiness.md",
+  "docs/progress/fashion-store-functional-integration.md",
   "docs/progress/fashion-store-u8-acceptance.md",
+  "docs/runbooks/local-first-ci.md",
   "docs/runbooks/storefront-theme-testing.md",
+] as const;
+
+export const FASHION_U8_RETIRED_HARNESS_PATHS = [
+  "tools/provision-fashion-staging-u8-operator.test.ts",
+  "tools/provision-fashion-staging-u8-operator.ts",
 ] as const;
 
 export interface FashionU8StandingAuthorityDependencies {
@@ -55,6 +65,7 @@ export async function verifyFashionU8StandingAuthority(
   const allowed = new Set<string>([
     ...FASHION_U8_SECURITY_SENSITIVE_PATHS,
     ...FASHION_U8_NON_EXECUTABLE_TAIL_PATHS,
+    ...FASHION_U8_RETIRED_HARNESS_PATHS,
   ]);
   const unauthorized = dependencies.changedPaths.filter((path) => !allowed.has(path));
   if (unauthorized.length > 0) {

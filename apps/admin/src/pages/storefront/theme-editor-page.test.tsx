@@ -1,7 +1,7 @@
 import type { AdminPermission, AdminStorefrontTheme } from '@shoppp/contracts'
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { afterAll, afterEach, beforeAll, describe, expect, it, rstest } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
@@ -12,6 +12,7 @@ import type { Role } from '../../shared/types/roles'
 import type { StorefrontExperienceDraft } from '../../services/storefront/api'
 import {
   createThemeOverrides,
+  parseFashionU8OperatorContext,
   previewBuildStatus,
   resolveDraftTemplates,
   resolveValidationFieldPath,
@@ -29,6 +30,34 @@ describe('validation field paths', () => {
         path: 'fashion-store-content.policy.document',
       })
     ).toEqual({ instanceId: 'fashion-store-content', settingId: 'policy.document' })
+  })
+})
+
+describe('Fashion U8 operator context parsing', () => {
+  const valid = {
+    u8Action: 'recover-conflict-preview-approve',
+    u8Baseline: 'snapshot-approved-u12',
+    u8ExpiresAt: '2099-08-31T12:00:00.000Z',
+    u8ManifestDigest: 'a'.repeat(64),
+    u8Run: 'u8-operator-42',
+    u8SourceDraft: 'draft-source',
+  }
+
+  it.each([
+    ['wrong action', { ...valid, u8Action: 'approve-only' }],
+    ['malformed digest', { ...valid, u8ManifestDigest: 'bad' }],
+    ['missing field', { ...valid, u8SourceDraft: '' }],
+    ['invalid timestamp', { ...valid, u8ExpiresAt: 'not-a-date' }],
+  ])('rejects %s', (_label, values) => {
+    expect(parseFashionU8OperatorContext(`?${new URLSearchParams(values)}`, 0)).toEqual({
+      kind: 'invalid',
+    })
+  })
+
+  it('rejects duplicate governed keys', () => {
+    const params = new URLSearchParams(valid)
+    params.append('u8Run', 'second-run')
+    expect(parseFashionU8OperatorContext(`?${params}`, 0)).toEqual({ kind: 'invalid' })
   })
 })
 
@@ -379,36 +408,33 @@ const server = setupServer(
       },
     })
   }),
-  http.post(
-    '*/admin/storefront-experiences/drafts/:id/migrations/dry-run',
-    async ({ request }) => {
-      migrationBody = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json({
-        data: {
-          approvedAt: null,
-          approvedBy: null,
-          conflicts: [
-            {
-              code: 'instance-removed',
-              instanceId: 'home-story',
-              message: 'The target package removed a stable instance with merchant overrides.',
-              templateId: 'synthetic-home',
-            },
-          ],
-          createdAt: '2026-07-30T00:20:00.000Z',
-          createdBy: 'theme-admin',
-          draftId: baseDraft.id,
-          draftVersion: 1,
-          id: 'migration-synthetic-1-2',
-          sourceConfigurationSchemaVersion: 1,
-          sourceThemeVersion: '1.0.0',
-          status: 'dry_run',
-          targetConfigurationSchemaVersion: 2,
-          targetThemeVersion: '1.1.0',
-        },
-      })
-    }
-  )
+  http.post('*/admin/storefront-experiences/drafts/:id/migrations/dry-run', async ({ request }) => {
+    migrationBody = (await request.json()) as Record<string, unknown>
+    return HttpResponse.json({
+      data: {
+        approvedAt: null,
+        approvedBy: null,
+        conflicts: [
+          {
+            code: 'instance-removed',
+            instanceId: 'home-story',
+            message: 'The target package removed a stable instance with merchant overrides.',
+            templateId: 'synthetic-home',
+          },
+        ],
+        createdAt: '2026-07-30T00:20:00.000Z',
+        createdBy: 'theme-admin',
+        draftId: baseDraft.id,
+        draftVersion: 1,
+        id: 'migration-synthetic-1-2',
+        sourceConfigurationSchemaVersion: 1,
+        sourceThemeVersion: '1.0.0',
+        status: 'dry_run',
+        targetConfigurationSchemaVersion: 2,
+        targetThemeVersion: '1.1.0',
+      },
+    })
+  })
 )
 
 const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) => ({
@@ -419,8 +445,15 @@ const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) 
   login: async () => undefined,
   logout: () => undefined,
   permissions:
-    permissionOverride ?? (role === 'admin'
-      ? (['themes.read', 'themes.write', 'themes.preview', 'themes.approve', 'catalog.read'] as const)
+    permissionOverride ??
+    (role === 'admin'
+      ? ([
+          'themes.read',
+          'themes.write',
+          'themes.preview',
+          'themes.approve',
+          'catalog.read',
+        ] as const)
       : (['themes.read'] as const)),
   principalKind: 'human' as const,
   refreshSession: async () => undefined,
@@ -433,7 +466,8 @@ const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) 
 const renderEditor = (
   role: Role = 'admin',
   pollIntervalMs = 60_000,
-  permissionOverride?: readonly AdminPermission[]
+  permissionOverride?: readonly AdminPermission[],
+  search = ''
 ) => {
   const router = createMemoryRouter(
     [
@@ -452,7 +486,7 @@ const renderEditor = (
       },
       { path: '/storefront/themes', element: <div>THEME_LIST</div> },
     ],
-    { initialEntries: [`/storefront/themes/${baseDraft.id}`] }
+    { initialEntries: [`/storefront/themes/${baseDraft.id}${search}`] }
   )
   return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
 }
@@ -479,6 +513,7 @@ const renderThemes = (role: Role = 'admin') => {
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
+  rstest.useRealTimers()
   currentDraft = structuredClone(baseDraft)
   updateBody = null
   validationBody = null
@@ -536,6 +571,119 @@ describe('ThemesPage', () => {
 })
 
 describe('ThemeEditorPage', () => {
+  it('shows and locks the exact run-bound U8 operator context before mutation', async () => {
+    const manifestDigest = 'a'.repeat(64)
+    const params = new URLSearchParams({
+      u8Action: 'recover-conflict-preview-approve',
+      u8Baseline: 'snapshot-approved-u12',
+      u8ExpiresAt: '2099-08-31T12:00:00.000Z',
+      u8ManifestDigest: manifestDigest,
+      u8Run: 'u8-operator-42',
+      u8SourceDraft: baseDraft.id,
+    })
+    renderEditor('admin', 60_000, undefined, `?${params.toString()}`)
+
+    await screen.findByText('Fashion U8 operator handoff')
+    expect(screen.getByText('u8-operator-42')).toBeTruthy()
+    expect(screen.getByText('snapshot-approved-u12')).toBeTruthy()
+    expect(screen.getAllByText(baseDraft.id)).toHaveLength(2)
+    expect(screen.getByText('2099-08-31T12:00:00.000Z')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Recover the missing reference, preserve the conflict as a successor, preview, and approve the exact successor.'
+      )
+    ).toBeTruthy()
+    const reason = `Fashion U8 u8-operator-42 ${manifestDigest}`
+    const changeReason = screen.getByRole('textbox', {
+      name: 'Change reason',
+    }) as HTMLTextAreaElement
+    const approvalReason = screen.getByRole('textbox', {
+      name: 'Approval reason',
+    }) as HTMLTextAreaElement
+    expect(changeReason.value).toBe(reason)
+    expect(changeReason.readOnly).toBe(true)
+    expect(approvalReason.value).toBe(reason)
+  })
+
+  it('keeps the locked operator reason synchronized when the handoff query changes', async () => {
+    const { router } = renderEditor()
+    await screen.findByRole('textbox', { name: 'Change reason' })
+
+    const navigateToHandoff = async (runId: string, manifestDigest: string) => {
+      const params = new URLSearchParams({
+        u8Action: 'recover-conflict-preview-approve',
+        u8Baseline: 'snapshot-approved-u12',
+        u8ExpiresAt: '2099-08-31T12:00:00.000Z',
+        u8ManifestDigest: manifestDigest,
+        u8Run: runId,
+        u8SourceDraft: baseDraft.id,
+      })
+      await router.navigate(`/storefront/themes/${baseDraft.id}?${params.toString()}`)
+    }
+
+    await navigateToHandoff('u8-operator-a', 'c'.repeat(64))
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('textbox', { name: 'Change reason' }) as HTMLTextAreaElement).value
+      ).toBe(`Fashion U8 u8-operator-a ${'c'.repeat(64)}`)
+    )
+
+    await navigateToHandoff('u8-operator-b', 'd'.repeat(64))
+    await waitFor(() => {
+      const reason = `Fashion U8 u8-operator-b ${'d'.repeat(64)}`
+      expect(
+        (screen.getByRole('textbox', { name: 'Change reason' }) as HTMLTextAreaElement).value
+      ).toBe(reason)
+      expect(
+        (screen.getByRole('textbox', { name: 'Approval reason' }) as HTMLTextAreaElement).value
+      ).toBe(reason)
+    })
+  })
+
+  it('fails closed when an open U8 operator handoff reaches its expiry', async () => {
+    rstest.useFakeTimers()
+    rstest.setSystemTime(new Date('2026-09-01T00:00:00.000Z'))
+    const params = new URLSearchParams({
+      u8Action: 'recover-conflict-preview-approve',
+      u8Baseline: 'snapshot-approved-u12',
+      u8ExpiresAt: '2026-09-01T00:00:01.000Z',
+      u8ManifestDigest: 'e'.repeat(64),
+      u8Run: 'u8-expiring',
+      u8SourceDraft: baseDraft.id,
+    })
+    renderEditor('admin', 60_000, undefined, `?${params.toString()}`)
+
+    await act(async () => {
+      await rstest.advanceTimersByTimeAsync(0)
+    })
+    expect(screen.getByText('Fashion U8 operator handoff')).toBeTruthy()
+    await act(async () => {
+      await rstest.advanceTimersByTimeAsync(1_001)
+    })
+    expect(screen.getByText('Fashion U8 operator handoff is invalid or expired')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save and preview' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Approve exact draft/ })).toBeNull()
+    rstest.useRealTimers()
+  })
+
+  it('fails closed when a U8 operator handoff is expired', async () => {
+    const params = new URLSearchParams({
+      u8Action: 'recover-conflict-preview-approve',
+      u8Baseline: 'snapshot-approved-u12',
+      u8ExpiresAt: '2020-01-01T00:00:00.000Z',
+      u8ManifestDigest: 'b'.repeat(64),
+      u8Run: 'u8-expired',
+      u8SourceDraft: baseDraft.id,
+    })
+    renderEditor('admin', 60_000, undefined, `?${params.toString()}`)
+
+    await screen.findByText('Fashion U8 operator handoff is invalid or expired')
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save and preview' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Approve exact draft/ })).toBeNull()
+  })
+
   it('derives live text, enum, asset, link, and stable reference controls from the manifest', async () => {
     const catalogTheme: AdminStorefrontTheme = {
       ...theme,
@@ -629,9 +777,7 @@ describe('ThemeEditorPage', () => {
             {
               approvedAt: '2026-08-11T00:00:00.000Z',
               collections: [],
-              destinations: [
-                { id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' },
-              ],
+              destinations: [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }],
               deployedAt: '2026-08-11T01:00:00.000Z',
               environment: 'staging',
               id: 'release-editor-1',
@@ -643,26 +789,30 @@ describe('ThemeEditorPage', () => {
           ],
         })
       ),
-      http.get(
-        '*/admin/storefront-experiences/catalog-releases/:id/resources',
-        ({ request }) => {
-          const url = new URL(request.url)
-          const kind = url.searchParams.get('kind')
-          const page = Number(url.searchParams.get('page') ?? '1')
-          const data =
-            kind === 'product'
-              ? [{
+      http.get('*/admin/storefront-experiences/catalog-releases/:id/resources', ({ request }) => {
+        const url = new URL(request.url)
+        const kind = url.searchParams.get('kind')
+        const page = Number(url.searchParams.get('page') ?? '1')
+        const data =
+          kind === 'product'
+            ? [
+                {
                   id: page === 1 ? 'product-stable-1' : 'product-stable-13',
                   kind: 'product',
                   name: page === 1 ? 'Stable product' : 'Thirteenth product',
                   path: page === 1 ? '/products/stable' : '/products/thirteenth',
-                }]
-              : kind === 'page'
-                ? [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }]
-                : []
-          return HttpResponse.json({ data, page, pageSize: 12, total: kind === 'product' ? 13 : data.length })
-        }
-      ),
+                },
+              ]
+            : kind === 'page'
+              ? [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }]
+              : []
+        return HttpResponse.json({
+          data,
+          page,
+          pageSize: 12,
+          total: kind === 'product' ? 13 : data.length,
+        })
+      }),
       http.get('*/admin/storefront-experiences/media', ({ request }) => {
         const page = Number(new URL(request.url).searchParams.get('page') ?? '1')
         return HttpResponse.json({
@@ -757,39 +907,35 @@ describe('ThemeEditorPage', () => {
     expect(previewBuildStatus({ ...build(), status: 'expired' }).label).toBe('Expired')
   })
 
-  it(
-    'supports accessible reordering, required capability protection, reset, and dirty navigation',
-    async () => {
-      renderEditor()
-      await waitFor(() =>
-        expect(
-          (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-        ).toBe('Existing headline')
-      )
-      expect(
-        (screen.getByRole('switch', { name: 'Show site-navigation' }) as HTMLButtonElement).disabled
-      ).toBe(true)
-
-      fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
-      await waitFor(() =>
-        expect(screen.getByRole('status').textContent).toContain(
-          'home-story moved to position 2 of 3'
-        )
-      )
-      fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
-        target: { value: 'Local unsaved headline' },
-      })
-      fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero' }))
+  it('supports accessible reordering, required capability protection, reset, and dirty navigation', async () => {
+    renderEditor()
+    await waitFor(() =>
       expect(
         (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-      ).toBe('Preset headline')
-      fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
-      expect(await screen.findByText('Discard unsaved theme edits?')).toBeTruthy()
-      fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
-      expect(screen.getByText('Unsaved changes')).toBeTruthy()
-    },
-    10_000
-  )
+      ).toBe('Existing headline')
+    )
+    expect(
+      (screen.getByRole('switch', { name: 'Show site-navigation' }) as HTMLButtonElement).disabled
+    ).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toContain(
+        'home-story moved to position 2 of 3'
+      )
+    )
+    fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Local unsaved headline' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero' }))
+    expect(
+      (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
+    ).toBe('Preset headline')
+    fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
+    expect(await screen.findByText('Discard unsaved theme edits?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+  }, 10_000)
 
   it('saves, validates, and previews the exact new optimistic version in order', async () => {
     renderEditor()
@@ -899,7 +1045,9 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
 
     await screen.findByText('required_capability_missing')
-    const summary = screen.getByText(/Validation validation-synthetic-invalid-2/).closest('[tabindex]')
+    const summary = screen
+      .getByText(/Validation validation-synthetic-invalid-2/)
+      .closest('[tabindex]')
     await waitFor(() => expect(document.activeElement).toBe(summary))
     const issueLink = screen.getByRole('link', {
       name: /Review affected field.*home.*home-hero.*heading/,
@@ -995,26 +1143,24 @@ describe('ThemeEditorPage', () => {
       http.get('*/admin/storefront-experiences/themes', () =>
         HttpResponse.json({ data: [theme, upgradeTheme] })
       ),
-      http.post(
-        '*/admin/storefront-experiences/drafts/:id/migrations/dry-run',
-        async () =>
-          HttpResponse.json({
-            data: {
-              approvedAt: null,
-              approvedBy: null,
-              conflicts: [],
-              createdAt: '2026-07-30T00:20:00.000Z',
-              createdBy: 'theme-admin',
-              draftId: baseDraft.id,
-              draftVersion: 1,
-              id: 'migration-synthetic-ready',
-              sourceConfigurationSchemaVersion: 1,
-              sourceThemeVersion: '1.0.0',
-              status: 'dry_run',
-              targetConfigurationSchemaVersion: 2,
-              targetThemeVersion: '1.1.0',
-            },
-          })
+      http.post('*/admin/storefront-experiences/drafts/:id/migrations/dry-run', async () =>
+        HttpResponse.json({
+          data: {
+            approvedAt: null,
+            approvedBy: null,
+            conflicts: [],
+            createdAt: '2026-07-30T00:20:00.000Z',
+            createdBy: 'theme-admin',
+            draftId: baseDraft.id,
+            draftVersion: 1,
+            id: 'migration-synthetic-ready',
+            sourceConfigurationSchemaVersion: 1,
+            sourceThemeVersion: '1.0.0',
+            status: 'dry_run',
+            targetConfigurationSchemaVersion: 2,
+            targetThemeVersion: '1.1.0',
+          },
+        })
       ),
       http.post(
         '*/admin/storefront-experiences/drafts/:id/migrations/approve',
@@ -1205,13 +1351,10 @@ describe('ThemeEditorPage', () => {
       http.get('*/admin/storefront-experiences/catalog-releases', () =>
         HttpResponse.json({ data: [catalogRelease(releaseId)] })
       ),
-      http.get(
-        '*/admin/storefront-experiences/drafts/:id/preview-context',
-        ({ request }) => {
-          previewContextQuery = new URL(request.url).search
-          return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
-        }
-      )
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', ({ request }) => {
+        previewContextQuery = new URL(request.url).search
+        return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
+      })
     )
 
     renderEditor('admin', 60_000, [
@@ -1273,17 +1416,14 @@ describe('ThemeEditorPage', () => {
       http.get('*/admin/storefront-experiences/catalog-releases', () =>
         HttpResponse.json({ data: [catalogRelease(releaseA), catalogRelease(releaseB)] })
       ),
-      http.get(
-        '*/admin/storefront-experiences/drafts/:id/preview-context',
-        ({ request }) => {
-          const releaseId = new URL(request.url).searchParams.get('catalogReleaseId')
-          if (releaseId === releaseA) {
-            releaseARequested = true
-            return delayedReleaseA
-          }
-          return HttpResponse.json({ data: deployedPreviewContext(releaseB) })
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', ({ request }) => {
+        const releaseId = new URL(request.url).searchParams.get('catalogReleaseId')
+        if (releaseId === releaseA) {
+          releaseARequested = true
+          return delayedReleaseA
         }
-      ),
+        return HttpResponse.json({ data: deployedPreviewContext(releaseB) })
+      }),
       http.post('*/admin/storefront-experiences/drafts/:id/approve', () => delayedApproval)
     )
 

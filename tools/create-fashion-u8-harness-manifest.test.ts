@@ -11,6 +11,13 @@ describe("Fashion U8 frozen harness manifest", () => {
     expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
       ".github/workflows/prepare-fashion-staging-u12.yml",
     );
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(".github/workflows/post-commit-ci.yml");
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      "apps/api/src/storefront-experience/u8-acceptance.ts",
+    );
+    expect(FASHION_U8_SECURITY_SENSITIVE_PATHS).toContain(
+      "packages/db/migrations/0023_fashion_u8_acceptance_runs.sql",
+    );
   });
 
   test("sorts paths, hashes canonical contents, and detects self or file drift", async () => {

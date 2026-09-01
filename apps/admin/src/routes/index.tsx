@@ -15,7 +15,10 @@ export const AppRouter = () => {
       theme={{
         algorithm: resolvedTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#1677ff',
+          colorPrimary: resolvedTheme === 'dark' ? '#1668dc' : '#0958d9',
+          colorLink: resolvedTheme === 'dark' ? '#69b1ff' : '#0958d9',
+          colorTextSecondary: resolvedTheme === 'dark' ? '#bfbfbf' : '#595959',
+          colorTextTertiary: resolvedTheme === 'dark' ? '#bfbfbf' : '#595959',
           borderRadius: 8,
           colorBgLayout: resolvedTheme === 'dark' ? '#141414' : '#f5f7fa',
           colorBgContainer: resolvedTheme === 'dark' ? '#1f1f1f' : '#ffffff',

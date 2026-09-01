@@ -86,13 +86,13 @@ These rows cannot become satisfied through CI alone. PG1-PG4 owner assignment an
 preparation may proceed during U and DC work, but their final approvals must bind the exact proven
 candidate.
 
-| Gate                               | Status             | Remaining authority/evidence                                                                                                         |
-| ---------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| PG1 — Merchant and provider        | Human pending      | Merchant entity, Stripe eligibility, settlement/sellable currencies, payouts, webhook ownership, and final reconciliation acceptance |
-| PG2 — Legal and market             | Human pending      | Product category, tax treatment, policy text, cookie/analytics behavior, and shipping-country allowlist                              |
-| PG3 — Production infrastructure    | Production pending | Exact production resource isolation, domains, secrets, external alert destination, current backup, and protected GitHub environments |
-| PG4 — Operations and accessibility | Human pending      | Support/escalation ownership, representative iOS/Android, VoiceOver/NVDA, provider dashboard, and human-receivable alert evidence    |
-| PG5 — Promotion                    | Production pending | Named approver, exact immutable candidate, complete DC evidence, recent approved backup, and explicit promotion confirmation         |
+| Gate                               | Status             | Remaining authority/evidence                                                                                                                                                |
+| ---------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PG1 — Merchant and provider        | Human pending      | Merchant entity, Stripe eligibility, settlement/sellable currencies, payouts, webhook ownership, and final reconciliation acceptance                                        |
+| PG2 — Legal and market             | Human pending      | Product category, tax treatment, policy text, cookie/analytics behavior, and shipping-country allowlist                                                                     |
+| PG3 — Production infrastructure    | Production pending | Exact production resource isolation, domains, secrets, external alert destination, current backup, and protected GitHub environments                                        |
+| PG4 — Operations and accessibility | Human pending      | Support/escalation ownership, representative iOS/Android, automated keyboard/focus/semantic accessibility evidence, provider dashboard, and human-receivable alert evidence |
+| PG5 — Promotion                    | Production pending | Named approver, exact immutable candidate, complete DC evidence, recent approved backup, and explicit promotion confirmation                                                |
 
 ## Evidence sources
 

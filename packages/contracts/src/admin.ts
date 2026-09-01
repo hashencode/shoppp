@@ -652,6 +652,38 @@ export const replayNotificationJobRequestSchema = z
 
 const experienceReasonSchema = z.string().trim().min(3).max(500);
 
+export const fashionU8AcceptanceContextSchema = z
+  .object({
+    manifestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    runId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(160)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/),
+  })
+  .strict();
+
+export const prepareFashionU8AcceptanceRunRequestSchema = z
+  .object({
+    candidateSha: z.string().regex(/^[a-f0-9]{40}$/),
+    catalogReleaseId: z.string().trim().min(1).max(160),
+    environment: z.literal("fashion-staging"),
+    harnessSha: z.string().regex(/^[a-f0-9]{40}$/),
+    manifestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    repository: z.string().trim().min(3).max(320),
+    runId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(160)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/),
+    sourceDraftId: z.string().trim().min(1).max(160),
+    u12SnapshotId: z.string().trim().min(1).max(160),
+    workflowRunId: z.string().trim().min(1).max(160),
+  })
+  .strict();
+
 export const adminStorefrontThemeSchema = z
   .object({
     ...storefrontThemeDescriptorSchema.shape,
@@ -690,6 +722,7 @@ export const updateStorefrontExperienceDraftRequestSchema = z
     expectedVersion: z.int().positive(),
     overrides: z.array(themeOverrideSchema).max(10),
     reason: experienceReasonSchema,
+    u8Acceptance: fashionU8AcceptanceContextSchema.optional(),
   })
   .strict();
 
@@ -703,6 +736,7 @@ export const validateStorefrontExperienceDraftRequestSchema = z
     catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     expectedVersion: z.int().positive(),
     reason: experienceReasonSchema,
+    u8Acceptance: fashionU8AcceptanceContextSchema.optional(),
   })
   .strict();
 
@@ -782,6 +816,10 @@ export const redeemStorefrontPreviewGrantRequestSchema = z
   .strict();
 
 export type AdminOrder = z.infer<typeof adminOrderSchema>;
+export type FashionU8AcceptanceContext = z.infer<typeof fashionU8AcceptanceContextSchema>;
+export type PrepareFashionU8AcceptanceRunRequest = z.infer<
+  typeof prepareFashionU8AcceptanceRunRequestSchema
+>;
 export type AdminAccountActivationRequest = z.infer<typeof adminAccountActivationRequestSchema>;
 export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
 export type AdminEnvironment = z.infer<typeof adminEnvironmentSchema>;

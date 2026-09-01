@@ -16,6 +16,10 @@ const fashionU8PreparationWorkflowPath = resolve(
   import.meta.dir,
   "../.github/workflows/prepare-fashion-staging-u8.yml",
 );
+const fashionU8OperatorPreparationWorkflowPath = resolve(
+  import.meta.dir,
+  "../.github/workflows/prepare-fashion-staging-u8-operator.yml",
+);
 const fashionU8AcceptanceWorkflowPath = resolve(
   import.meta.dir,
   "../.github/workflows/accept-fashion-staging-u8.yml",
@@ -577,8 +581,8 @@ describe("private storefront preview workflow", () => {
     expect(workflow).toContain('--arg run "$READINESS_RUN_ID"');
     expect(workflow).toContain(".commitSha == $commit");
     expect(workflow).toContain(".github.operatorGate.runId == $run");
-    expect(workflow).toContain("      - self-hosted\n      - fashion-staging-preview");
-    expect(workflow).not.toContain("runs-on: ubuntu-latest");
+    expect(workflow).toContain("runs-on: ubuntu-latest");
+    expect(workflow).not.toContain("self-hosted");
     expect(inputValidation).toBeGreaterThan(0);
     expect(download).toBeGreaterThan(inputValidation);
     expect(readiness).toBeGreaterThan(download);
@@ -765,10 +769,10 @@ describe("governed Fashion staging preparation workflow", () => {
     expect(workflow).toContain(
       '--baseline="79fbee07f60245b036b5a4d42858227502947a5c" --head="$GITHUB_SHA"',
     );
-    expect(workflow).toContain("runner:");
-    expect(workflow).toContain("default: ubuntu-latest");
-    expect(workflow).toContain("- fashion-staging-preparation");
-    expect(workflow).toContain("runs-on: ${{ inputs.runner }}");
+    expect(workflow).not.toContain("runner:");
+    expect(workflow).toContain("runs-on: ubuntu-latest");
+    expect(workflow).not.toContain("fashion-staging-preparation");
+    expect(workflow).not.toContain("fashion-staging-u8");
     expect(workflow).not.toContain("GITHUB_REF_PROTECTED");
     expect(workflow).toContain("group: fashion-staging-preview");
     expect(workflow.indexOf("Verify standing FS-U12 execution authority")).toBeLessThan(
@@ -809,10 +813,8 @@ describe("governed Fashion staging preparation workflow", () => {
 
     expect(workflow).toContain("FASHION_U12_ADMIN_SERVICE_TOKEN");
     expect(workflow).toContain("FASHION_U12_GITHUB_ADMIN_TOKEN");
-    expect(workflow).toContain("fashion-staging-u8");
     expect(workflow).toContain("u8_candidate_sha:");
     expect(workflow).toContain('test "$GITHUB_SHA" = "$U8_CANDIDATE_SHA"');
-    expect(workflow).toContain('test "$RUNNER_NAME" = "shoppp-fashion-u8-$U8_RUN_ID"');
     expect(workflow).toContain('test "$U8_CANDIDATE_SHA" = "$PROTECTED_U8_CANDIDATE_SHA"');
     expect(workflow).toContain("STRIPE_WEBHOOK_SECRET");
     expect(workflow).toContain("Rotate and synchronize the Fashion API Stripe sandbox credentials");
@@ -844,6 +846,74 @@ describe("governed Fashion staging preparation workflow", () => {
 });
 
 describe("governed Fashion U8 acceptance workflows", () => {
+  test("keeps the complete transitive U8 graph on pinned GitHub-hosted actions", async () => {
+    const workflows = await Promise.all([
+      readFile(fashionPreparationWorkflowPath, "utf8"),
+      readFile(fashionU8PreparationWorkflowPath, "utf8"),
+      readFile(fashionU8AcceptanceWorkflowPath, "utf8"),
+      readFile(fashionU8OperatorPreparationWorkflowPath, "utf8"),
+      readFile(previewWorkflowPath, "utf8"),
+    ]);
+    for (const workflow of workflows) {
+      expect(workflow).toContain("runs-on: ubuntu-latest");
+      expect(workflow).not.toContain("self-hosted");
+      for (const reference of workflow.matchAll(/uses:\s+([^\s#]+)/g)) {
+        expect(reference[1]).toMatch(/^[^@\s]+@[0-9a-f]{40}$/);
+      }
+    }
+  });
+
+  test("records awaiting_operator without creating a runner identity or accepting human evidence", async () => {
+    const [operatorPreparation, refresh] = await Promise.all([
+      readFile(fashionU8OperatorPreparationWorkflowPath, "utf8"),
+      readFile(fashionU8PreparationWorkflowPath, "utf8"),
+    ]);
+    expect(operatorPreparation).toContain("awaiting_operator");
+    expect(operatorPreparation).toContain("fashion-u8/acceptance-runs");
+    expect(operatorPreparation).toContain("fashion_u8.acceptance.prepare");
+    expect(operatorPreparation).toContain("needs: verify-request");
+    expect(operatorPreparation).toContain("verify-admin-accessibility:");
+    expect(operatorPreparation).toContain("test:browser");
+    expect(operatorPreparation).toContain("storefront-theme-preview.spec.ts");
+    expect(operatorPreparation).toContain("recover-conflict-preview-approve");
+    expect(operatorPreparation).toContain("u12SnapshotId:$u12SnapshotId");
+    expect(operatorPreparation).toContain("expiresAt:$expiresAt");
+    expect(operatorPreparation).toContain("operatorUrl:$operatorUrl");
+    const verifier = operatorPreparation.slice(
+      operatorPreparation.indexOf("  verify-request:"),
+      operatorPreparation.indexOf("  prepare-operator-handoff:"),
+    );
+    expect(verifier).not.toMatch(/environment:|secrets\./);
+    expect(operatorPreparation).not.toMatch(
+      /provision-fashion|admin_identities|self-hosted|bootstrap credential|password=/i,
+    );
+    expect(refresh).not.toContain("human_evidence_base64:");
+    expect(refresh).toContain('.data.status == "consumed"');
+    expect(refresh).toContain("Fetch consumed operator run from server authority");
+    expect(refresh).toContain(".data.successorDraftId");
+    expect(refresh).toContain(".data.operatorId");
+  });
+
+  test("keeps protected U12, U8 refresh, acceptance, and Preview jobs behind credential-free attestations", async () => {
+    const workflows = await Promise.all([
+      readFile(fashionPreparationWorkflowPath, "utf8"),
+      readFile(fashionU8PreparationWorkflowPath, "utf8"),
+      readFile(fashionU8AcceptanceWorkflowPath, "utf8"),
+      readFile(fashionU8OperatorPreparationWorkflowPath, "utf8"),
+      readFile(previewWorkflowPath, "utf8"),
+    ]);
+    for (const workflow of workflows) {
+      expect(workflow).toContain("verify-request:");
+      expect(workflow).toContain("attestation_digest:");
+      expect(workflow).toContain("VERIFIER_ATTESTATION_DIGEST");
+      const verifier = workflow.slice(
+        workflow.indexOf("  verify-request:"),
+        workflow.indexOf("\n  ", workflow.indexOf("  verify-request:") + 3),
+      );
+      expect(verifier).not.toMatch(/environment:|secrets\./);
+    }
+  });
+
   test("prepares refresh before acceptance and never waits for Preview while holding its group", async () => {
     const [preparation, acceptance] = await Promise.all([
       readFile(fashionU8PreparationWorkflowPath, "utf8"),
@@ -879,14 +949,16 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preparation).toContain('-f "readiness_commit_sha=$U12_READINESS_COMMIT_SHA"');
     expect(preparation).toContain("refresh_run_id=$GITHUB_RUN_ID");
     expect(preparation).not.toContain("gh run watch");
-    expect(preparation).toContain('.approvalAuditId == ("audit-" + .successorSnapshotId)');
+    expect(preparation).toContain("fashion-u8/acceptance-runs/$RUN_ID?manifestDigest=");
+    expect(preparation).toContain('.data.status == "consumed"');
+    expect(preparation).toContain(".data.successorDraftId");
+    expect(preparation).not.toContain("approval-audits.json");
     expect(preparation).toContain("run_manifest_base64:");
-    expect(preparation).toContain("human_evidence_base64:");
     expect(preparation).toContain("Verify exact successful U12 readiness workflow provenance");
     expect(preparation).toContain("--connect-timeout 10 --max-time 60");
     expect(acceptance).toContain("Verify exact successful preparation workflow provenance");
     expect(acceptance).toContain("humanEvidenceDigest");
-    expect(preparation).toContain("retention-days: 7");
+    expect(preparation).toContain("retention-days: 30");
     expect(preparation).not.toContain("group: fashion-staging-preview");
     expect(acceptance).toContain("group: fashion-staging-preview");
     expect(acceptance).not.toContain("workflow run preview-storefront.yml");
@@ -908,7 +980,8 @@ describe("governed Fashion U8 acceptance workflows", () => {
     expect(preview).toContain("Download exact U8 refresh attestation");
     expect(preview).toContain("Verify U8 refresh attestation before deployment mutation");
     expect(preview).toContain("current-harness-manifest.json");
-    expect(preview).toContain("'fashion-staging-u8'");
+    expect(preview).toContain("runs-on: ubuntu-latest");
+    expect(preview).not.toContain("self-hosted");
     expect(preview).toContain(".newBuildId == $build");
     expect(preview).toContain(".successorSnapshotId == $snapshot");
     expect(preview).toContain(".u12ReadinessDigest == $readiness");
@@ -924,16 +997,15 @@ describe("governed Fashion U8 acceptance workflows", () => {
     );
   });
 
-  test("uses the protected U8 runner contract and always preserves cleanup evidence", async () => {
+  test("uses a protected GitHub-hosted U8 contract and always preserves cleanup evidence", async () => {
     const acceptance = await readFile(fashionU8AcceptanceWorkflowPath, "utf8");
-    expect(acceptance).toContain(
-      "runs-on: [self-hosted, fashion-staging-preview, fashion-staging-u8]",
-    );
+    expect(acceptance).toContain("runs-on: ubuntu-latest");
+    expect(acceptance).not.toContain("self-hosted");
     expect(acceptance).toContain("environment: fashion-staging");
     expect(acceptance).toContain("timeout-minutes: 30");
     expect(acceptance).toContain("permissions:\n  contents: read");
     expect(acceptance).toContain("if: ${{ always() }}");
-    expect(acceptance).toContain("retention-days: 7");
+    expect(acceptance).toContain("retention-days: 30");
     expect(acceptance).toContain("bun tools/run-fashion-staging-u8.ts");
     expect(acceptance).toContain("Start append-only U8 machine attempt");
     expect(acceptance).toContain("Preserve append-only U8 machine ledger");

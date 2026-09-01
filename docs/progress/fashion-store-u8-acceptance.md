@@ -951,3 +951,184 @@ title` instead of `fashion-store-home merchandising-title`.
   with API code `7403`; those states remain an explicit reconciliation blocker.
 - **Retained immutable output:** failed GitHub run `32814863542` and job `97701009346`; no build or
   deployment artifact was produced after checkout failed.
+
+### cleanup-u8-20260825a-31 — started
+
+- **Kind/status:** `cleanup` / `started`
+- **Started at:** `2026-08-28T05:57:02.821Z`; this start record is retained after the fact because
+  the authorized cleanup command preceded its ledger append. That ordering deviation does not
+  authorize another cleanup or alter the observed remote result.
+- **Run manifest:** `u8-20260825a` /
+  `806d61396072c8c904cacde51fc47cc0d6317608dd244e5090884876c47129aa`
+- **Frozen code:** candidate `1e8231726d8a0ad2c9ed4c10e4d27092160fd629`; harness
+  `91e5db248f7e53c9029c73539ee7d0dfa575233a`; harness manifest
+  `b1816a408e96dcc82958144d05851607c8ae38fcd2a990e66a186f1268951c33`; contract-test
+  digest `c5baad7ff9b3ee0e73f6e4cd9557dcfb8fa92abae03b55d043a834ed88c78d`.
+- **Cleanup scope:** exact operator/session cleanup followed by namespace reconciliation and
+  read-only retry29 inspection. The local account, runner home, and external credential file are a
+  separate privileged remainder and were not mutated by this command.
+
+### cleanup-u8-20260825a-31 — partial
+
+- **Kind/status:** `cleanup` / `partial`
+- **Started/finished:** `2026-08-28T05:57:02.821Z` / `2026-08-28T06:01:44.000Z`
+- **Run manifest:** `806d61396072c8c904cacde51fc47cc0d6317608dd244e5090884876c47129aa`
+- **Remote cleanup:** `passed`. Exact operator `identity_fashion_u8_u8_20260825a` is disabled;
+  namespace reconciliation reports zero enabled `identity_fashion_u8_%` identities, zero active U8
+  sessions, and 23/23 sessions revoked.
+- **Retained failed-attempt state:** retry29 source
+  `draft-fashion-u8-u8-20260825a-retry29-source` is v3, remains attributed to the run-scoped
+  operator, and has zero Snapshots. Its setup, failed validation, and two successful update audits
+  remain excluded non-candidate evidence. No fresh source or immutable candidate output was created.
+- **Local cleanup:** `blocked-by-interactive-admin-authorization`. Read-only checks confirm exact
+  account `shopppu8_20260825a`, UID `502`, home `/Users/shopppu8_20260825a`, mode `0700`, and zero
+  running UID processes. Ordinary access cannot enumerate the required manifests, prove external
+  UID ownership, move the exact runner directory to Trash, destroy the run-scoped external
+  credential file, or remove the account. No local runner/account file was deleted.
+- **Corrective requirement:** a privileged local operator must retain the exact tracked, untracked,
+  and material-ignored manifests, destroy the external credential file, prove UID `502` owns no
+  other files or processes, move the exact runner directory to macOS Trash, and remove the account.
+  Only then may the cleanup verdict pass and execution hand to `CI-U8.3`; no fresh FS acceptance is
+  authorized first.
+
+### cleanup-u8-20260825a-31 — local continuation partial
+
+- **Kind/status:** `cleanup` / `partial`
+- **Observed at:** `2026-08-28T06:19:05.000Z`; this local continuation record is retained after the
+  first privileged command because the manifest/Trash operation preceded its ledger append. No
+  later authorization or delayed destructive process remains pending.
+- **Manifest retention:** 12,061 exact runner paths were retained locally outside the repository.
+  The runner contained zero Git checkouts after the failed checkout, so its exact
+  tracked/untracked/material-ignored Git manifests are empty. The protected manifest-index digest is
+  `cd6b510e36935586038eaa8fb3b8c3ab291ca4c63cd63ab6291219f9501739b1`; exact removal-command
+  record digest is `538b3857638721d69b95b3ab315f51f3c47f6bba04993bea48bbfc2c2da570aa`.
+  No directory contents are copied into this ledger.
+- **Runner cleanup:** `passed-recoverably`. Exact directory
+  `/Users/shopppu8_20260825a/actions-runner-u8-20260825a` is absent and recoverable directory
+  `/Users/studio/.Trash/shoppp-fashion-u8-20260825a-runner-20260828` exists under UID `501`.
+- **Account cleanup:** `incomplete`. The second macOS administrator authorization was not completed
+  and the pending prompt was cancelled. Account `shopppu8_20260825a`, its remaining home, three
+  UID-specific macOS cache/metadata roots, and the run-scoped external credential file remain. UID
+  `502` has zero running processes.
+- **Corrective requirement:** authorize the exact continuation, re-prove no UID `502` ownership
+  outside its home, remove the account/home, and provide the intentionally unrecorded credential
+  path for exact destruction. Until then this started cleanup attempt has no terminal record and
+  execution remains at FS-U8.2 rather than handing to `CI-U8.3`.
+
+### cleanup-u8-20260825a-31 — account removal partial
+
+- **Kind/status:** `cleanup` / `partial`
+- **Observed at:** `2026-08-28T06:26:05.000Z`
+- **Account/home:** `passed`. After `sysadminctl` removed the home but returned Directory Services
+  error `-14120`, the supported macOS System Settings Users & Groups flow removed the remaining
+  record. `dscl` returns `eDSRecordNotFound`, `id` reports no such user, the exact home is absent,
+  and UID `502` has zero processes.
+- **Runner evidence:** unchanged and passed-recoverably. The protected local manifests remain
+  retained, and the exact runner directory remains in
+  `/Users/studio/.Trash/shoppp-fashion-u8-20260825a-runner-20260828` under UID `501`.
+- **System-owned remainder:** MDServer, Spotlight, and security-analysis roots are absent. Exact
+  per-user cache root `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` remains under orphaned
+  UID `502`; recursive removal and ownership transfer were denied by TCC after administrator
+  authorization. It requires deletion from a Terminal with Full Disk Access, followed by a fresh UID
+  ownership/process check.
+- **Credential remainder:** the repository-external owner-only credential file remains because its
+  exact path was intentionally excluded from evidence and is not available to this task. Its exact
+  path must be supplied for destruction; no broad home search or guessed deletion is authorized.
+- **Verdict:** cleanup remains non-terminal on those two exact local remnants. Do not hand to
+  `CI-U8.3` and do not start fresh FS acceptance until both are removed and a terminal cleanup record
+  is appended.
+
+### cleanup-u8-20260825a-31 — rootless residual reclassification
+
+- **Kind/status:** `cleanup` / `partial`
+- **Observed at:** `2026-08-28T06:40:42.000Z`
+- **System evidence:** exact cache root
+  `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` carries `com.apple.rootless`; the APFS
+  Data volume is mounted with `protect`, and System Integrity Protection is enabled. Deletion from
+  an administrator-authorized and user-run Terminal plus recursive ownership transfer both failed
+  closed with `Operation not permitted`.
+- **Classification:** the prior Full-Disk-Access corrective requirement is superseded. With the
+  account record and home absent, UID `502` process count zero, the runner retained in Trash under
+  UID `501`, and exact runner manifests retained, this root is non-actionable macOS-managed metadata
+  rather than runner/account content. Do not disable SIP or continue destructive retries.
+- **Remaining blocker:** only the run-scoped external credential file remains actionable. Its exact
+  path must be supplied and the file destroyed before this cleanup attempt receives a terminal
+  record and execution hands to `CI-U8.3`.
+
+### cleanup-u8-20260825a-31 — passed
+
+- **Kind/status:** `cleanup` / `passed`
+- **Started/finished:** `2026-08-28T05:57:02.821Z` / `2026-08-28T06:47:12.000Z`
+- **Run manifest:** `806d61396072c8c904cacde51fc47cc0d6317608dd244e5090884876c47129aa`
+- **Remote verdict:** zero enabled Fashion U8 identities, zero active U8 sessions, and 23/23 U8
+  sessions revoked. Retry29 remains excluded v3 evidence with no Snapshot; no fresh source,
+  approval, build, Preview, VoiceOver, or p95 attempt was started.
+- **Runner/account verdict:** repository runner inventory contains neither the exact runner nor its
+  U8 label; protected manifests and the exact removal-command record are retained; the runner is
+  recoverable in Trash under UID `501`; the dedicated account record and home are absent; UID `502`
+  has zero processes.
+- **Credential verdict:** metadata-only search found the exact 65-byte run-scoped operator
+  credential file. It was validated as a non-symlink, single-link regular file owned by UID `501`,
+  mode `0600`, outside the repository, then deleted without reading its contents and verified
+  absent. The separately named build-hook credential file was preserved because it belongs to the
+  retained authenticated Preview build-hook infrastructure, not the human operator credential.
+- **Rootless residual:** exact macOS cache root
+  `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` remains classified as non-actionable
+  rootless/SIP-managed metadata, not runner/account content. Do not weaken SIP or retry deletion.
+- **Handoff:** the cleanup-only tranche is terminal and passes. Product execution hands to
+  `CI-U8.3`, followed by `CI-U11.1`; no fresh FS acceptance begins until that CI tail is complete and
+  integrated into `main`.
+
+## 2026-09-01 — local-migration-20260901-01 — passed-local, non-candidate
+
+- **Kind/status:** `implementation` / `passed-local`; finished `2026-08-31T16:21:00Z`. This local
+  implementation tranche was not opened as a remote acceptance attempt, so no authoritative remote
+  start timestamp exists.
+- **Authority boundary:** No GitHub workflow was dispatched, no protected environment was entered,
+  no staging or production request was sent, and no candidate, harness, run-manifest, operator,
+  Snapshot, build, Preview session, cart, order, or p95 identity was created. This record cannot
+  satisfy formal U8 acceptance.
+- **Cloud migration:** U12 preparation, U8 operator preparation, U8 refresh, Preview, and U8
+  acceptance now select GitHub-managed Ubuntu runners. Their protected jobs depend on a
+  credential-free fixed-main verifier attestation and recheck its digest before mutation. The shared
+  post-commit jobs moved to hosted Ubuntu under named successor `CCI`; no workflow contains a
+  self-hosted target.
+- **Operator boundary:** New preparation records `awaiting_operator`, retains a 30-day non-secret
+  handoff with a two-hour expiry, and produces a run-bound Admin URL for the existing named Fashion
+  staging operator. The Admin page exposes exact run, U12 baseline, source draft, expiry, and allowed
+  action before mutation; it locks the audit reason and fails closed for invalid or expired context.
+  Migration `0023_fashion_u8_acceptance_runs.sql` makes the API, rather than query text or a workflow
+  artifact, authoritative for run identity, expiry, named operator, source/successor lineage, and
+  exactly-once consumption. Canceled, rejected, expired, consumed, cross-run, wrong-operator, and
+  unknown records fail closed. The old account/password provisioning implementation and tests were
+  removed.
+- **Automated accessibility:** The credential-free hosted lane runs Admin unit semantics, real
+  Chromium keyboard/focus tests, and the deterministic operator E2E with Axe. Initial Axe execution
+  found three existing light-theme contrast failures (link 3.82:1; secondary text 3.36:1). The
+  shared Ant Design theme tokens now use AA-capable light link and secondary/tertiary colors; the
+  final operator E2E and Axe pass without page-local color overrides.
+- **Verification:** Admin L4 passed with 311/311 Rstest tests, 12/12 Browser Mode tests, the
+  Chromium operator E2E/Axe 1/1, and a successful `build:test` including `tsc -b`. Changed Admin
+  ESLint and Prettier checks pass. The focused root workflow/governance matrix passes 66/66 with
+  995 assertions; maintained workflow YAML parses; all maintained U8 actions remain pinned; and
+  `git diff --check` passes. The first host-Node test launch aborted before collection because the
+  Homebrew Node binary references missing `libsimdjson.26.dylib`; all retained results use the
+  bundled Node v24.19.0 runtime. Failed local Playwright screenshot/trace output was cleared by the
+  successful rerun and is not retained.
+- **Remaining formal evidence:** Integrate this reviewed change into exact `main`; retain one hosted
+  `CCI` post-commit run; freeze fresh candidate/harness/manifest identities; run U12 preparation and
+  Preview; record `awaiting_operator`; have the existing named operator complete invalid-reference,
+  conflict-successor, Preview, and approval; verify the server-side Snapshot/audit; refresh and
+  deploy that successor; pass terminal p95 and cleanup; then execute U8.3. Until then FS-U8.2 stays
+  in progress and Pre-DC remains blocked.
+
+### 2026-09-01 review follow-up
+
+The high-priority review findings are addressed locally. Operator mutations now require an exact
+server-side run and manifest digest, an unexpired active lifecycle, the same named human, the locked
+reason, and the currently bound source or successor. Successor creation binds lineage on the run;
+approval consumes it once with the exact successor Snapshot and audit identity. The refresh verifier
+fetches that exact consumed record and Snapshot directly, so it neither scans paginated generic audit
+history nor matches approval against the source draft. Focused API authority, Admin expiry/query,
+standing-authority, manifest, and workflow tests pass. This is local implementation evidence only;
+it creates no remote acceptance identity and does not advance the current unit.

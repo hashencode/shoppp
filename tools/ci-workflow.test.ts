@@ -38,14 +38,16 @@ describe("local-first CI workflow contracts", () => {
     await expect(workflow(legacyCiWorkflowPath)).rejects.toThrow();
   });
 
-  test("routes only a non-deletion main push to the non-secret advisory tier", async () => {
+  test("routes only a non-deletion main push to the GitHub-hosted advisory tier", async () => {
     const contents = await postCommitWorkflow;
 
     expect(contents).toMatch(/^\s+push:\n\s+branches:\n\s+- main$/m);
     expect(contents).not.toMatch(/^\s+(?:workflow_dispatch|schedule):/m);
     expect(contents).toContain("github.event.deleted == false");
     expect(contents).toContain("github.ref == 'refs/heads/main'");
-    expect(contents).toContain("runs-on: [self-hosted, macOS, ARM64, shoppp-main-nonsecret]");
+    expect(contents).toContain("runs-on: ubuntu-latest");
+    expect(contents).not.toContain("self-hosted");
+    expect(contents).toContain("SHOPPP_CI_EXECUTOR_CLASS: github-hosted-ubuntu-latest");
     expect(contents).toContain("run: bun run ci:post-commit");
     expect(contents).not.toMatch(/\$\{\{\s*secrets\./);
     expect(contents).not.toMatch(/^\s+environment:/m);

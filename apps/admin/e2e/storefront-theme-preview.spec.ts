@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { mockAdminSession } from './support'
 
@@ -136,9 +137,19 @@ test('operator saves, validates, previews, and approves one exact theme version'
       const kind = url.searchParams.get('kind')
       const data =
         kind === 'product'
-          ? [{ id: 'product-stable-e2e', kind: 'product', name: 'Stable product', path: '/products/stable-product' }]
+          ? [
+              {
+                id: 'product-stable-e2e',
+                kind: 'product',
+                name: 'Stable product',
+                path: '/products/stable-product',
+              },
+            ]
           : []
-      await route.fulfill({ contentType: 'application/json', json: { data, page: 1, pageSize: 12, total: data.length } })
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { data, page: 1, pageSize: 12, total: data.length },
+      })
       return
     }
     if (url.pathname.endsWith('/media') && request.method() === 'GET') {
@@ -295,6 +306,10 @@ test('operator saves, validates, previews, and approves one exact theme version'
   await page.setViewportSize({ width: 768, height: 900 })
 
   await expect(page.getByText(/release-fashion-e2e · staging/)).toBeVisible()
+  const initialAccessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze()
+  expect(initialAccessibility.violations).toEqual([])
   await page.getByRole('textbox', { name: 'home-hero heading' }).fill('E2E headline')
   await page.getByRole('textbox', { name: 'Change reason' }).fill('Review exact fixture version')
   await page.getByRole('button', { name: 'Save and preview' }).click()

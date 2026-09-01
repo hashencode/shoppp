@@ -144,27 +144,31 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Freeze the reviewed U8 harness over candidate `dc746220`, create the exact
-  temporary U8 runner/account, and prepare and complete a fresh exact-main U12 readiness/Preview
-  baseline. Then resume `U8.2` with a fresh audited source and run identity before the guided browser
-  lane, VoiceOver, Preview, approval, refresh, and terminal p95. The account/home are
-  removed, the exact runner directory is in the operator account's Trash, and protected manifests
-  and the removal-command record are retained.
+- **Next concrete action:** Integrate the locally verified cloud-only workflow, fixed-ref trust split,
+  server-authoritative run lifecycle, run-bound Admin handoff, automated Chromium/Axe lane, and
+  named `CCI` shared-CI successor into
+  exact `main`. Then retain one exact-main hosted post-commit run, freeze new U8 candidate, harness,
+  and manifest identities, and prepare a fresh U12 readiness/Preview baseline before resuming
+  `U8.2` with a fresh audited source and run identity.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
   deletion and ownership transfer fail closed. Do not disable SIP or treat that system cache as
   runner/account content.
 - **Cross-plan execution order:** `FS-U8.2` cleanup only -> CI-U8.3 complete -> CI-U11.1 complete ->
-  CI tail closure integrated into `main` -> fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final
+  CI tail closure integrated into `main` -> Shoppp shared/post-commit cloud-only CI successor ->
+  `FS-U8.2` transitive cloud workflow migration and fresh formal acceptance -> `FS-U8.3` final
   verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** The authenticated ephemeral Preview build hook is configured and rejects unauthorized
-  or malformed input without storing a GitHub credential; deployment remains in the protected
-  self-hosted CD workflow and does not consume GitHub-hosted runner billing. Attempt 29 exposed that
+- **Blocker:** The migration is implemented and locally verified but is not yet integrated into
+  exact `main`; therefore no GitHub-hosted runner image, protected `fashion-staging` preflight,
+  `awaiting_operator` handoff, named operator approval, successor refresh, or terminal p95 evidence
+  exists for the new contract. The authenticated ephemeral Preview build hook is configured and rejects unauthorized
+  or malformed input without storing a GitHub credential; its historical deployment path remains in
+  the protected self-hosted CD workflow and is part of the blocking transitive migration. Attempt 29 exposed that
   the competing PUT itself also needed a response barrier; harness `91e5db24` now requires its `200`
   before allowing the stale PUT, which must return `409`. Attempt 30 dispatched Preview run
   `32814863542`, which failed in checkout before any later build, deployment, or acceptance step.
@@ -175,22 +179,31 @@ U13 add-only probe do not establish overall completion.
   rootless macOS cache residual is classified as non-actionable system metadata and does not block
   cleanup. There is no remaining FS cleanup blocker; CI-U8.3 and CI-U11.1 are complete, and the
   closed CI tail plus both bounded acceptance corrections are integrated into exact `main`. No code,
-  cleanup, CI review, or sequencing blocker remains; the governed temporary-runner and fresh
-  readiness preparation are the next operational actions. Ordinary staging and production remain
-  excluded.
+  cleanup or prior-CI blocker remains. The cloud-runner and operator-boundary implementation is
+  prepared locally; exact-main integration and remote proof must complete before fresh readiness
+  preparation. Ordinary staging and production remain excluded.
 - **Next unit:** None after U8 inside this plan. U3, U4, U7, U10, U11, U12, and U13 remain completed
   dependency baselines rather than queued units.
 - **Implementation tail:** Retain the completed cleanup-only tranche and integrated CI handoff, then
-  complete U8 on the exact-main baseline. Only after every
+  integrate the named `CCI` shared post-commit successor and U8-specific cloud migration on one
+  exact-main baseline, capture their hosted evidence, and then complete U8. This Fashion plan does
+  not own unrelated Shoppp workflows or any other repository. Only after every
   required unit is complete may the selected product scope enter Pre-DC and then DC1 against a
   frozen candidate.
-- **Last reviewed:** 2026-08-28 after exact-main formal-acceptance preflight proved the historical
+- **Last reviewed:** 2026-09-01 after the cloud-only shared and U8 workflow migration, credential-free
+  verifier/protected-job split, server-owned `awaiting_operator -> active -> consumed` lifecycle,
+  exact successor lineage verification, run-bound Admin context, operator-independent Chromium/Axe
+  lane, and named `CCI` successor were implemented and locally reviewed. Formal remote evidence
+  remains absent. Earlier the user superseded the local self-hosted runner, OrbStack,
+  local-account, and manual assistive-technology acceptance paths with a GitHub-managed cloud-runner-only
+  policy and automated keyboard/focus/semantic accessibility evidence. Earlier exact-main formal-acceptance preflight proved the historical
   U12 readiness commit and post-CI U8 candidate were still incorrectly required to be identical,
   and the bounded workflow/test correction was prepared with red/green contract evidence. The same
   preflight proved the seven-day U12 readiness artifact expired with HTTP `410`; a separate
-  red/green recovery now permits fresh exact-main U12 preparation only on the exact protected U8
-  runner. Both corrections are integrated in exact `main` `dc746220`, so harness freeze and
-  temporary-runner setup are next. Before that, attempt 30 was closed conservatively from retained
+  red/green recovery permits fresh exact-main U12 preparation only through its historical protected
+  U8-runner branch. Both corrections are integrated in exact `main` `dc746220`; that runner-bound
+  branch is retained as history but must migrate to the fixed-ref GitHub-hosted trust contract before
+  any new freeze. Before that, attempt 30 was closed conservatively from retained
   GitHub evidence, its exact offline runner registration was removed, and Fashion D1 reconciliation
   disabled all U8 identities and revoked all 23 sessions. Protected local manifests were retained,
   the exact runner directory moved to Trash, the dedicated account/home removed, and the exact
@@ -206,8 +219,8 @@ U13 add-only probe do not establish overall completion.
   static, security, and environment matrix. The remaining U8 plan now binds an isolated human Admin
   lane to a terminal p95 lane on the approved U8 successor. Runner, staging IAM/API, operator,
   source-draft, and refreshed manifest setup were prepared before the failed attempt. All retained
-  attempts are terminal; the human and terminal machine proofs remain, and no new retry is
-  authorized before cleanup reconciliation.
+  attempts are terminal; the operator and terminal machine proofs remain, and no new retry is
+  authorized before cloud-capability preflight, transitive workflow migration, and a new freeze.
 
 This is a `fashion-store` implementation plan inside one Shoppp product. `decor-store` is parallel
 same-product template work and does not block this plan or a `fashion-store`-only candidate. The
@@ -251,7 +264,7 @@ without renumbering requirements, discarding prior work, or creating separate DC
 | U4 — routes and truthful page states      | Complete                              | U4.3 proves the 15-route fixture matrix and live route-state contract, Account/Wishlist unavailability and recovery, selected-release policy content and canonicals, aliases and 404s, zero unsupported mutations, accessibility, no-JavaScript behavior, source parity, SEO, first-paint theme CSS, static output, bundle isolation, lint, boundaries, and type safety. | Retain as a dependency baseline; reopen only if governed route ownership, truthful page states, policy authority, first-paint styling, or verification evidence changes. |
 | U7 — bounded Experience editing           | Complete                              | U7.3 proves the complete bounded editor and immutable preview lifecycle plus deterministic cold-load first-interaction preservation. Focused contracts and Admin coverage, live-Commerce 14/14, repository tests/Workers/lint/boundaries/type safety, the complete Fashion Store matrix and behavior evidence, and a fresh static preview all pass. | Retain as the U12 dependency baseline; reopen only if governed editor, preview, Catalog identity, or hydration behavior changes. |
 | U12 — complete deployed Commerce journey  | Complete — test-environment proven | Preparation `32383732029` bound commit `1e823172`, Catalog Release `fashion-staging-u12-release-2026-08-18`, approved Snapshot `snapshot-approved-89c1cd6696769d3a962f1029e9118892`, and the isolated readiness/build identity. Preview `32384126394` passed deployment and U13, the no-interception three-archetype and sandbox-payment journey, retained the paid order, restored inventory to 100/0/0/0, proved a fresh-session add, and enforced the complete U12 verdict. | Retain as the deployed Commerce dependency baseline for U8; rerun only when the owning surface, immutable input, or candidate identity requires it. |
-| U8 — complete test-environment acceptance | In progress — U8.2 local matrix proven | Final local evidence passes the 15-page Fashion matrix, Admin L4 gates, Axe/keyboard checks, static and bundle gates, performance, 1,000-product/5,000-variant scale, environment isolation, root tests, Workers, type safety, lint, and boundaries. The bounded runner and Fashion-staging inputs are prepared; harness `3595ffcc` closes the isolated Admin-port, login-readiness, exact development-origin, and visible Select-context assertion gaps. | Prove the representative Admin workflow from the U12 baseline to an immutable U8 successor, then retain terminal staging p95 evidence against that exact successor before U8.3 verification. |
+| U8 — complete test-environment acceptance | In progress — U8.2 cloud migration required | Final local evidence passes the 15-page Fashion matrix, Admin L4 gates, Axe/keyboard checks, static and bundle gates, performance, 1,000-product/5,000-variant scale, environment isolation, root tests, Workers, type safety, lint, and boundaries. The former bounded runner is removed; current U8 workflows and the interactive Admin harness must migrate to GitHub-managed runners and a separate staging-approval boundary before a new freeze. | Complete the cloud-runner and acceptance-protocol migration, then prove the representative Admin workflow from the U12 baseline to an immutable U8 successor and retain terminal staging p95 evidence against that exact successor before U8.3 verification. |
 
 ### Checkpoint update discipline
 
@@ -351,7 +364,7 @@ The current milestone is functional completion, not production release. It must 
 - R48. Fixture Preview identifies itself visibly as Design QA, sends no live Commerce mutations, and gives visible accessible feedback for simulated intents. Fixture intent counters and mocked responses remain diagnostic evidence only and never satisfy live functional acceptance.
 - R49. Static card composition emits `direct-add` routing only when exactly one selectable variant exists; multiple, unresolved, or selection-dependent variants emit canonical “Choose options” navigation. Hydrated runtime action state separately represents `available`, `pending`, `unavailable`, and `retry`, and Commerce revalidates availability before every add.
 - R50. Product-card pointer, keyboard, and touch activation have deterministic documented outcomes. A first touch cannot be silently consumed merely to reveal hover actions; secondary actions use explicit focusable controls.
-- R51. The product page provides a typed multi-variant selection flow covering option grouping, required and invalid selection, unavailable combinations, selection-driven price, image, and availability updates, server revalidation, add pending and recovery, keyboard and screen-reader semantics, touch behavior, focus, and a truthful no-JavaScript fallback.
+- R51. The product page provides a typed multi-variant selection flow covering option grouping, required and invalid selection, unavailable combinations, selection-driven price, image, and availability updates, server revalidation, add pending and recovery, keyboard behavior, accessible names/roles/states, touch behavior, focus, and a truthful no-JavaScript fallback.
 - R52. Preview authorization and Commerce authorization remain separate. The private Fashion Store acceptance Worker permits `connect-src` only to its configured same-origin transaction path, proxies only the request state required by each allowlisted route, and never forwards Preview credentials. Under the current credential-less Commerce contract, browser cookies and Commerce `Set-Cookie` do not cross the bridge; changing that contract requires a focused security review and test.
 - R54. Runtime product refresh, availability lookup, cart intent, and reconciliation identify products and variants by stable Commerce IDs. Slugs remain presentation and URL inputs only and cannot select mutable transaction state.
 - R55. Header search reads a build-local index generated from the selected immutable Catalog Release, resolves canonical stable references through the Composer, and performs no additional runtime catalog query. Empty, unavailable, keyboard, and no-JavaScript states remain truthful.
@@ -364,8 +377,8 @@ The current milestone is functional completion, not production release. It must 
 - R66. Paid orders are append-only business records and are never deleted, reset, or converted to an invented expiry state by staging cleanup. Test-mode orders carry a run namespace and retention classification; teardown removes only mutable precursors and records retained-order evidence.
 - R69. Payment return UX implements explicit `pending`, `confirmed`, `canceled`, `expired`, `failed`, `retry`, and duplicate-return states. Each state defines bounded polling, recovery action, authoritative cart and order behavior, focus destination, and accessible announcement without claiming success before Commerce confirms it.
 - R70. Without JavaScript, catalog and policy content, canonical destinations, price-at-build disclosure, and availability limitations remain readable. Commerce mutations render an accessible explanation that JavaScript is required plus a recovery path; this plan does not create a parallel server-form transaction stack.
-- R71. Acceptance is risk-tiered: every route receives structural, routing, basic accessibility, and smoke coverage; shared primitives and the Product, Cart, Checkout, payment-return, and critical Admin path receive the full pointer, keyboard, screen-reader, touch, and representative-breakpoint matrix. The plan does not require every input mode at both sides of every breakpoint for every route.
-- R72. Admin editing acceptance covers keyboard completion and screen-reader navigation for the representative critical path, including predictable focus, labeled controls, associated errors, live announcements, and non-color status. Supported widths remain usable; an intentionally unsupported narrow viewport presents a non-destructive limitation.
+- R71. Acceptance is risk-tiered: every route receives structural, routing, basic accessibility, and smoke coverage; shared primitives and the Product, Cart, Checkout, payment-return, and critical Admin path receive pointer, keyboard, touch, representative-breakpoint, automated semantic, and Axe coverage. The plan does not require every input mode at both sides of every breakpoint for every route.
+- R72. Admin editing acceptance covers automated keyboard completion, predictable focus, accessible names/roles/states, associated errors, status semantics, non-color cues, and Axe for the representative critical path. Supported widths remain usable; an intentionally unsupported narrow viewport presents a non-destructive limitation. No manual assistive-technology session is a completion gate.
 - R73. Final no-interception live Commerce acceptance includes canonical single-variant, multi-variant, and unavailable-product archetypes from the approved Catalog Release and proves navigation, selection or direct-add routing, runtime revalidation, cart outcome, and truthful unavailable behavior for each.
 - R74. Representative operator acceptance covers one path through text or asset editing, visibility or order, a catalog reference, invalid-reference recovery, concurrency conflict, private preview, approval, and return-to-editor without raw ID entry or developer assistance. Broader exploratory usability work is follow-up evidence rather than a blocking matrix.
 
@@ -393,9 +406,9 @@ The current milestone is functional completion, not production release. It must 
   - **Covered by:** R5, R16-R19, R25, R32, R72, R74.
 
 - F4. **Run test-environment acceptance**
-  - **Trigger:** A2 selects an approved Experience Snapshot and canonical Catalog Release for final test execution.
+  - **Trigger:** GitHub-hosted preparation freezes the approved U12 Snapshot and canonical Catalog Release, then creates a run-bound U8 successor draft in `awaiting_operator` state.
   - **Actors:** A2, A4-A6.
-  - **Steps:** The private Fashion Store acceptance origin backed by the dedicated `fashion-staging` Commerce environment runs storefront acceptance, while the fail-closed `fashion-staging` local-development gateway runs the interactive Admin acceptance lane. Both evidence sets record one U8 run identity and their exact immutable baseline or successor identities; earlier draft runs also record the optimistic-concurrency version and content digest.
+  - **Steps:** Credential-free GitHub-hosted tests prove keyboard, focus, semantic, non-color, and Axe behavior at the stable Admin boundary. The operator uses the protected staging Admin surface to complete the run-bound edit, conflict, Preview, and approval path. A later GitHub-hosted verification job reads the exact successor Snapshot and audit identity before terminal acceptance.
   - **Outcome:** Functional evidence is traceable to exact inputs without creating a production release or deployment path.
   - **Covered by:** R3-R10, R16-R23, R25, R28, R32, R35, R37, R38, R42, R43, R46, R47, R52, R56.
 
@@ -521,7 +534,7 @@ The current milestone is functional completion, not production release. It must 
 
 - AE18. **No-JavaScript and responsive truthfulness**
   - **Covers:** R22, R28, R50, R51, R55, R69-R71.
-  - **Given:** A shopper uses no JavaScript, keyboard, screen reader, touch, or a viewport adjacent to a repository breakpoint.
+  - **Given:** A shopper uses no JavaScript, keyboard, touch, or a viewport adjacent to a repository breakpoint, and automated semantic checks inspect the rendered state.
   - **When:** The shopper browses, searches, opens navigation, inspects product options, or reaches a transaction control.
   - **Then:** Content and canonical destinations remain usable, mutations are truthfully unavailable without JavaScript, and enabled interactions preserve declared focus, announcements, and touch outcomes without clipping or hover-only access.
 
@@ -533,7 +546,7 @@ The current milestone is functional completion, not production release. It must 
 
 - AE20. **Representative accessible operator path**
   - **Covers:** R16-R19, R28, R34-R36, R72, R74.
-  - **Given:** A permitted operator uses keyboard and screen reader without raw IDs or developer assistance.
+  - **Given:** Automated Admin coverage uses keyboard input and inspects application-owned semantics without raw IDs or developer assistance.
   - **When:** The operator completes the critical edit, reference recovery, conflict, preview, approval, and return path.
   - **Then:** Labels, errors, status announcements, focus transitions, permissions, immutable approval, and exact input binding remain correct on that path.
 
@@ -545,7 +558,7 @@ The current milestone is functional completion, not production release. It must 
 - Live Home renders the full approved Fashion Store composition rather than the stripped live-catalog fallback, and every mounted cart surface reflects one server-returned reactive state.
 - All 15 page contracts and generated catalog routes render truthful content, empty states, errors, SEO, and no-JavaScript output.
 - A representative operator can edit, save, recover from invalid references and conflicts, preview, migrate, and approve the bounded Experience schema against real catalog content without raw IDs, code access, or developer assistance.
-- The representative critical operator path is keyboard-completable and screen-reader navigable with deterministic focus, errors, announcements, and non-color status.
+- The representative critical operator path has automated keyboard completion, deterministic focus, associated errors, status semantics, non-color cues, and Axe evidence.
 - Final test evidence records the exact Catalog Release, approved Experience Snapshot, theme version, platform contract version, commit, and non-production origin; earlier draft evidence also records version and content digest.
 - The authenticated Fashion transaction bridge proves separate Preview authorization and Commerce service identities, a deny-by-default route and method matrix, explicit header, cookie, origin, CSRF, and CSP boundaries, and isolation from legacy staging and production.
 - The private origin resumes an approved sandbox-payment return through a short-lived `SameSite=Lax` Preview session while Commerce independently validates existing shopper authorization.
@@ -646,9 +659,9 @@ The current milestone is functional completion, not production release. It must 
 - KTD39. Treat Preview session authorization and Commerce authorization as separate boundaries. The Preview session grants artifact access only; Commerce continues to validate its existing shopper authorization through the service-bound bridge. Payment-return cookies and signed provider webhooks are implemented and tested with the full journey in U12. Governs R25, R46, R47, R52, R60, R63.
 - KTD41. Keep no-JavaScript behavior content-complete but transaction-read-only, and implement payment return as an accessible authoritative state machine rather than a success-page redirect assumption. Governs R7-R10, R28, R51, R69, R70.
 - KTD42. Make final acceptance risk-tiered: exercise the three live product archetypes and one representative operator flow; run structural and smoke checks everywhere, while reserving the complete input-mode and breakpoint matrix for shared primitives and critical Product, Cart, Checkout, payment-return, and Admin paths. Governs R16-R19, R22, R28, R50, R51, R71-R74.
-- KTD43. Split the remaining U8 proof into two causally bound lanes on the same bounded Mac: an interactive human lane starts from the approved U12 baseline and approves a U8 successor Snapshot, then a protected machine lane runs the terminal private p95 probe against that deployed immutable U8 successor. Run the Actions listener under a dedicated temporary unprivileged macOS account with no access to the human operator home, Keychain, browser profile, shell configuration, or unrelated workspace; the human browser remains in the separate operator account. The protected lane mints one non-secret U8 run manifest whose digest, candidate and harness SHAs, Catalog Release, theme/platform identity, artifact digest, U12 baseline, and explicit successor lineage are consumed by Admin preflight and recorded in build and approval audit reasons. Human passwords, Preview grants, sessions, CartTokens, and reusable browser state never enter CI or retained artifacts. Governs R16-R19, R22, R25, R35, R38, R42, R47, R71-R74.
+- KTD43. Run all U8 automation on GitHub-managed cloud runners. Use a standard GitHub-hosted runner first, upgrade only an infrastructure-incompatible job to a GitHub-hosted larger or OS-specific runner, and stop for workflow or environment redesign when neither tier can run it. Never fall back to a developer machine, OrbStack, a self-hosted runner, or a new local shared/test account. A test, lint, application, authentication, or staging failure is a product/configuration failure and cannot trigger runner escalation. The protected machine lane mints one non-secret U8 run manifest whose digest, candidate and harness SHAs, Catalog Release, theme/platform identity, artifact digest, U12 baseline, and explicit successor lineage are consumed by Admin preflight and recorded in build and approval audit reasons. (session-settled: user-directed — chosen over OrbStack or local self-hosted fallback: CI/CD must not create accounts or execute on the developer machine.) Governs R16-R19, R22, R25, R35, R38, R42, R47, R71-R74.
 - KTD44. Reuse the existing Preview grant/session boundary and the U12 acceptance lock, resource registration, cleanup, and reconciliation lifecycle for the terminal U8 p95 probe. The probe calls only the authenticated Preview `/api` bridge and runs only after immutable U8 successor approval. Because the U12 Preview attempt may be expired, complete a bounded refresh-preparation workflow before the U8 acceptance workflow acquires the Fashion concurrency group: create a fresh attempt for the exact U8 successor Snapshot and issue a U8 refresh attestation keyed to the new build attempt, original U12 readiness digest, and U8 run-manifest digest. The Preview workflow accepts that attestation only when it proves the same candidate, Catalog Release, theme/platform identity, and content-addressed theme artifact digest plus the exact U8 successor Snapshot, content digest, and approval lineage; it never equates the old readiness build ID or U12 Snapshot with the new attempt or successor. Direct Fashion API ingress and a p95 result against only the U12 baseline cannot close U8. Governs R25, R35, R37, R42, R43, R46, R47, R52, R56, R57.
-- KTD45. Run the human Admin lane through the existing local-development gateway extended for the `fashion-staging` profile. The gateway targets the Fashion API test database and uses `ADMIN_DEVELOPMENT_ORIGIN`; it does not repoint or replace the legacy staging Admin Worker. Use a run-namespaced, least-privilege human test operator with a high-entropy single-use bootstrap credential delivered through a no-echo local channel and a server-enforced expiry. Startup reconciliation disables stale U8 operators, and unconditional cleanup revokes every session and disables the identity after success, failure, timeout, or interruption; U8 fails while any stale operator remains active. Retain the approved immutable Snapshot and audit identity as classified evidence, while revoking grants and cleaning mutable precursors. For run `u8-20260825a` only, the user explicitly superseded the no-file transport detail: the generated credential may be retained temporarily in one repository-external owner-only `0600` file, may not enter evidence or repository state, and must be destroyed after operator cleanup. This run-scoped exception does not become the standing policy. Governs R16-R19, R23, R25, R35, R37, R38, R47, R56, R72-R74.
+- KTD45. Keep human approval outside the runner and create no U8 account. A GitHub-hosted preparation job records an `awaiting_operator` state and exits. The operator uses an existing named identity on the protected Fashion staging Admin surface to complete the run-bound edit, conflict, Preview, and approval path. A separately dispatched GitHub-hosted verification job accepts only the exact run ID and reads the resulting immutable Snapshot and audit identity from server-side authority. It never receives a human credential or reusable browser state. Expired, rejected, canceled, mismatched, or already-consumed runs fail closed and require a fresh preparation identity; no paid runner waits for human input. (session-settled: user-directed — chosen over an interactive local runner: human approval must not require a local CI account, listener, or new shared/test identity.) Governs R16-R19, R23, R25, R35, R37, R38, R47, R56, R72-R74.
 
 ### High-Level Technical Design
 
@@ -731,18 +744,18 @@ flowchart TB
 ```mermaid
 flowchart TB
   Identity["Exact U12-approved commit, Catalog Release, Snapshot, and artifact digest"] --> Manifest["Frozen U8 harness and authoritative run manifest"]
-  Manifest --> Human["Interactive U8 Admin lane"]
-  Human --> LocalAdmin["Local Admin gateway bound to fashion-staging"]
-  LocalAdmin --> Recovery["Invalid-reference and optimistic-conflict recovery"]
-  Recovery --> PreviewBuild["Authenticated Preview build on the bounded runner"]
-  PreviewBuild --> Approval["Keyboard and VoiceOver review, then immutable U8 approval"]
-  Approval --> Machine["Protected terminal machine lane against U8 Snapshot"]
+  Manifest --> Preflight["Credential-free GitHub-hosted verification"]
+  Preflight --> Awaiting["Server state: awaiting operator"]
+  Awaiting --> Human["Existing named operator on protected staging Admin"]
+  Human --> Recovery["Invalid-reference and optimistic-conflict recovery"]
+  Recovery --> Approval["Immutable U8 approval and server-side audit"]
+  Approval --> Machine["Separately dispatched GitHub-hosted verification"]
   Machine --> Session["Short-lived private Preview session"]
   Session --> P95["Warm-up plus 20 measured catalog, cart, and shipping samples"]
   P95 --> CartCleanup["Registered-cart cleanup and baseline verification"]
   CartCleanup --> Evidence["Redacted evidence joined by U8 run identity"]
-  Evidence --> RunnerCleanup["Revoke test access, deregister runner, remove exact runner directory"]
-  RunnerCleanup --> Verify["U8.3 full reconciliation and closure verdict"]
+  Evidence --> AccessCleanup["Revoke run sessions, grants, carts, and incomplete attempts"]
+  AccessCleanup --> Verify["U8.3 full reconciliation and closure verdict"]
 ```
 
 | Layer | Owns | Must not own |
@@ -1056,7 +1069,7 @@ R-ID, KTD-ID, and U-ID gaps are intentional because removed production-release i
   - Home, collection, and product render meaningful no-JavaScript HTML from the selected Catalog Release; transaction controls explain that JavaScript is required and expose a recovery path without pretending to submit.
   - Price, inventory, or variant changes are refreshed before add-to-cart and checkout.
   - Multi-variant products group options semantically, require a valid combination, explain unavailable combinations, and update price, image, and availability without losing the shopper's selection.
-  - Invalid or incomplete selection prevents add, associates the error with the selector, announces recovery guidance, and moves focus only when required; keyboard, screen-reader, touch, and no-JavaScript paths remain truthful.
+  - Invalid or incomplete selection prevents add, associates the error with the selector, exposes recovery guidance through application-owned status semantics, and moves focus only when required; keyboard, touch, automated semantic, and no-JavaScript paths remain truthful.
   - Add pending prevents duplicate mutation, add failure preserves the selection, and server revalidation wins when the selected variant changes or becomes unavailable.
   - Runtime timeout preserves static browsing and disables affected actions with retry guidance.
   - Cart expiry, quantity reduction, currency mismatch, checkout `422`, and payment failure preserve recoverable state and never show order success.
@@ -1177,7 +1190,7 @@ R-ID, KTD-ID, and U-ID gaps are intentional because removed production-release i
   - A draft preview report records draft ID, version, and canonical content digest; changing the draft afterward does not rewrite the completed report.
   - Admin edits change live preview and successor snapshots without changing fixture-QA output.
   - A representative operator completes the bounded text, asset, internal and external link, visibility, order, product and collection reference, invalid-reference, concurrency-conflict, migration, private-preview, approval, and return-to-editor tasks without raw ID entry, code access, or developer assistance.
-  - The full task suite is keyboard-completable and screen-reader navigable; save, validation, conflict, modal, preview-return, and migration events use predictable focus, associated errors, live announcements, and non-color status.
+  - The full task suite is keyboard-completable and exposes application-owned accessible names, roles, states, associated errors, status semantics, predictable focus, and non-color cues for save, validation, conflict, modal, preview-return, and migration events.
   - Supported Admin widths complete the task suite without clipping or unreachable actions; intentionally unsupported narrow widths present a safe limitation with no partially saved mutation.
 - **Verification:** Contract, domain, API Experience, Admin unit, browser, security, accessibility, and preview E2E suites pass.
 
@@ -1254,8 +1267,19 @@ R-ID, KTD-ID, and U-ID gaps are intentional because removed production-release i
   - `apps/storefront/e2e/performance.spec.ts`
   - `apps/admin/e2e/storefront-theme-preview.spec.ts`
   - `apps/admin/e2e/storefront-theme-preview.live.spec.ts`
+  - `apps/admin/src/pages/storefront/theme-editor-page.tsx`
+  - `apps/admin/src/pages/storefront/theme-editor-page.test.tsx`
+  - `apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx`
   - `apps/admin/playwright.fashion-staging.config.ts`
+  - `apps/admin/src/test/playwright-config.test.ts`
+  - `apps/api/src/storefront-experience/u8-acceptance.ts`
+  - `apps/api/test/storefront-experience/u8-acceptance.test.ts`
+  - `packages/contracts/src/admin.ts`
+  - `packages/db/migrations/0023_fashion_u8_acceptance_runs.sql`
+  - `packages/db/src/schema/index.ts`
   - `.github/workflows/prepare-fashion-staging-u8.yml`
+  - `.github/workflows/prepare-fashion-staging-u8-operator.yml`
+  - `.github/workflows/prepare-fashion-staging-u12.yml`
   - `.github/workflows/accept-fashion-staging-u8.yml`
   - `.github/workflows/preview-storefront.yml`
   - `tools/verify-catalog-scale.ts`
@@ -1267,26 +1291,29 @@ R-ID, KTD-ID, and U-ID gaps are intentional because removed production-release i
   - `tools/create-fashion-u8-harness-manifest.test.ts`
   - `tools/verify-fashion-u8-standing-authority.ts`
   - `tools/verify-fashion-u8-standing-authority.test.ts`
-  - `tools/provision-fashion-staging-u8-operator.ts`
-  - `tools/provision-fashion-staging-u8-operator.test.ts`
   - `tools/dev-admin.ts`
   - `tools/dev-admin.test.ts`
   - `tools/deploy-workflow.test.ts`
   - `tools/verify-environment-isolation.ts`
   - `tools/verify-environment-isolation.test.ts`
   - `docs/architecture/storefront-theme-platform.md`
+  - `docs/plans/2026-08-12-003-refactor-development-candidate-readiness-plan.md`
+  - `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md`
+  - `docs/plans/2026-09-01-001-refactor-cloud-only-ci-execution-plan.md`
+  - `docs/progress/development-candidate-readiness.md`
+  - `docs/runbooks/release.md`
   - `docs/runbooks/storefront-theme-testing.md`
   - `docs/progress/fashion-store-u8-acceptance.md`
-- **Approach:** Complete the already-green local matrix with the two remote lanes governed by KTD43-KTD45.
-  1. Add a focused U8 workflow contract that uses the protected `fashion-staging` environment, the existing Fashion concurrency boundary, minimal repository permissions, one U8-specific runner label in addition to the existing `fashion-staging-preview` label, bounded timeouts, unconditional cleanup, and seven-day protected evidence retention. Register one temporary runner on the current Mac under an exact U8 name with both labels and a dedicated unprivileged macOS account that cannot read the operator home, Keychain, browser profiles, shell configuration, or unrelated workspace. Keep the listener stopped except for the frozen expected workflow sequence, reject pull-request and fork execution, keep the registration token out of argv/logs/evidence, terminate child processes after use, and keep the runner registered across refresh preparation, Preview deployment, p95 measurement, and the interactive Admin lane. Registration, listener start/stop, deregistration, account scrubbing, and exact-directory removal are explicit operator actions outside the workflow.
-  2. Freeze the U12 candidate SHA separately from a reviewed U8 harness SHA, contract-test digest, and canonical manifest of security-sensitive workflow, tool, provisioning, redaction, and Admin-harness file hashes. Dispatch only the exact harness ref and verify its manifest before starting the listener, exposing protected environment secrets, or mutating remote state. Any executable harness change invalidates earlier evidence for every affected lane and requires a new explicit authority decision plus rerun; documentation/evidence-only amendments are classified separately. The standing-authority verifier cannot approve a change to itself or its manifest contract. Reject candidate-content drift, retain the candidate-to-harness diff, and download and verify the exact U12 readiness evidence before any remote mutation.
-  3. Have the protected preparation step mint an authoritative non-secret U8 run manifest containing the frozen harness SHA/manifest digest and U12 baseline digest. Require Admin preflight to consume that manifest, and include its digest in the test-operator namespace plus server-side Preview build and approval audit reasons so the final join proves causal use rather than matching report text.
+- **Approach:** Complete the already-green local matrix with cloud automation and a separate operator-approval boundary governed by KTD43-KTD45.
+  1. Replace every U8 and transitively invoked preparation, Preview, and deployment `self-hosted` target with an explicit GitHub-hosted image. Default portable build, contract, browser, accessibility, performance, preparation, and acceptance jobs to a pinned standard Ubuntu image. Use a GitHub-hosted OS-specific image only for an operating-system requirement, and a GitHub-hosted larger runner only after a credential-free capability preflight proves a resource, fixed-IP, or private-network requirement and confirms account entitlement, DNS/TLS, endpoint reachability, and provider callback access. Express escalation as a reviewed job/workflow choice rather than an automatic retry after test failure. If no GitHub-managed tier can run the complete transitive workflow graph, stop before candidate freeze or protected mutation and redesign the job or environment; never register a local runner or create a local account.
+  2. Split trust into two jobs defined on the fixed reviewed workflow ref. A credential-free verifier checks candidate SHA, harness SHA, candidate-to-harness diff, contract-test digest, canonical security-sensitive manifest, changed paths, and standing authority without running code from an unverified ref. Only its immutable attestation can unlock the protected job. The protected job rechecks those identities, obtains short-lived authority through GitHub Environment/OIDC after verification, and performs no checkout or execution of unverified harness code. Reject pull requests, `pull_request_target`, fork heads, non-base repositories, non-`refs/heads/main` candidates, unapproved actors, and unpinned third-party actions before environment access or mutation. Any executable harness change invalidates affected evidence and requires a new authority decision plus rerun.
+  3. Have protected preparation persist a non-secret U8 run manifest containing the frozen harness SHA/manifest digest and U12 baseline digest. The manifest is correlation evidence, never authorization. Server-side authority records the exact run ID, repository/workflow run, environment, candidate, harness, lifecycle state, creation/expiry, successor Snapshot, approval audit, and cleanup identities; expired, canceled, consumed, or cross-run records fail closed.
   4. Prepare the existing Fashion acceptance lock, registration, cleanup, and reconciliation lifecycle for the terminal p95 measurement, but do not accept latency measured only against the U12 baseline. After U8 successor approval and deployment, exclude one warm-up per operation, then retain exactly 20 measured catalog reads, 20 cart reads, and 20 shipping mutations. Preserve the current read p95 limit of 500 ms, mutation p95 limit of 800 ms, and shipping concurrency of four. Use the stable-ID catalog route, per-request timeouts, zero silent retries, and nearest-rank p95. Register every created cart before measured mutation, retain no bearer-capable value, and run cleanup even when measurement fails.
-  5. Extend the local Admin development preflight with an explicit `fashion-staging` profile that verifies the Fashion API origin and D1 identity and rejects legacy staging, production, or mismatched inputs for this run. Before provisioning, reconcile and disable every stale U8-namespaced operator. Provision one run-namespaced human test operator through a confirmation-gated test-only path with only the exact theme/catalog permissions and a bounded server-enforced expiry. Deliver its high-entropy single-use bootstrap credential through a no-echo local channel—not argv, environment variables, stdout, files, shell history, or evidence—and keep the authenticated session only in the operator-account browser. Unconditional success, failure, timeout, and interrupted-run cleanup revokes all sessions and disables the identity; U8 remains failed until reconciliation proves no stale U8 operator is active.
-  6. Start the real Admin flow from a U8-owned successor draft without changing the approved U12 Snapshot. Prepare one deterministic missing reference as setup evidence. Validation focuses an error summary whose item names and links to the affected page, section, field, and Catalog picker; the picker exposes the missing selection and, after replacement, restores focus to its trigger, clears the associated error, and announces that revalidation is required. Use two authenticated browser contexts to produce a real optimistic conflict, choose **Save local edits as successor**, verify the intended edit and announced successor identity/version, and continue that exact version through validation, Preview, authenticated context inspection, and immutable approval against the exact U12 Catalog Release.
-  7. Run the critical Admin path by keyboard and verify focus, labels, associated errors, live announcements, and non-color status automatically. Before Preview changes context, announce that it opens separately; place initial Preview focus on its heading or context bar with the bound identities before storefront content. **Return to editor** leaves or closes Preview, restores focus to the launch control, and announces the return. Complete one headed VoiceOver pass on the current Mac and retain a structured record with timestamps, frozen harness/build identities, exact checkpoints, expected and observed utterance summaries, operator identity, per-checkpoint verdicts, and non-secret audit/build links. Record deviations in place; do not retrospectively replace failed checkpoints. Do not retain traces, HAR files, request bodies, cookies, grants, passwords, CartTokens, reusable browser profiles, screenshots, or recordings from authenticated phases.
-  8. After immutable U8 successor approval, run `prepare-fashion-staging-u8.yml` to produce a refresh attestation keyed to the new build attempt, original U12 readiness digest, U8 run-manifest digest, and exact successor Snapshot/content/audit lineage. The preparation workflow uses separate bounded concurrency and finishes before `accept-fashion-staging-u8.yml` acquires the Fashion group, so it never waits for Preview while holding that group. Deploy that exact successor, establish a short-lived Preview session with the U13 grant pattern, and execute the terminal p95 contract from step 4. Join machine and human evidence through the authoritative manifest and server-side records. Retain the candidate and harness SHAs, contract-test and manifest digests, candidate-to-harness diff, Catalog Release, theme/platform identity, artifact digest, U12 baseline Snapshot, U8 source draft, validation, successor Snapshot and audit identity, raw non-secret timing samples, p95 results, request correlation IDs, cleanup outcomes, and runner cleanup proof. Treat the approved U8 source draft and immutable Snapshot lineage as classified retained evidence. Clean only explicitly identified unreferenced drafts created by failed setup before validation or approval, plus carts, Preview grants, sessions, and incomplete build attempts.
-  9. Maintain `docs/progress/fashion-store-u8-acceptance.md` as append-only evidence, never as a second current-unit queue. Record every preparation, machine-lane, human-lane, build, and cleanup attempt at start with timestamps, run-manifest and harness identities, immutable inputs, outcome, failure class, cleanup result, corrective reason before rerun, and every immutable Snapshot/audit record created. Failed-run approved Snapshots remain classified non-candidate evidence. Advance the checkpoint to U8.3 only after all attempts reconcile, the human lane and terminal successor p95 pass, and GitHub reports no runner matching the exact U8 runner name, identity, or U8-specific labels. U8.3 reruns the complete Verification Contract, verifies evidence redaction and generated-state cleanliness, records the final U8 verdict, and updates the product master pointer in the same change.
+  5. Add an explicit `fashion-staging` preflight that verifies the Fashion API origin and D1 identity and rejects legacy staging, production, or mismatched inputs. Preparation records `awaiting_operator` and exits without creating an account or holding a runner. The operator signs in through the normal protected Fashion staging Admin surface with an existing named identity. The page exposes the exact run, baseline, source draft, expiry, and allowed action before mutation. Rejected, canceled, expired, mismatched, or already-consumed runs cannot be resumed and require a fresh run identity.
+  6. The operator starts from the U8-owned successor draft without changing the approved U12 Snapshot. One deterministic missing reference supplies setup evidence. The operator completes invalid-reference recovery, a real optimistic conflict, **Save local edits as successor**, Preview inspection, and immutable approval against the exact U12 Catalog Release. The server records exact draft/version, content digest, Snapshot, audit, operator, run, and time identities; a later GitHub-hosted verifier reads those records and never receives the human session.
+  7. Run a credential-free Admin test lane on GitHub-hosted Chromium with deterministic test state. It proves keyboard completion, focus, accessible names/roles/states, associated errors, status semantics, non-color cues, and Axe results. Authenticated Preview opens in a new browser context; its context bar is the single initial focus target, and **Return to editor** closes that context and restores focus to the exact launch control. If the Preview context is already closed, the editor remains available and the launch control receives focus. Retain only frozen harness/build identities, operator-independent assertions, immutable approval audit identity, and non-secret build links. Do not retain authenticated traces, HAR files, request bodies, cookies, grants, passwords, CartTokens, reusable browser profiles, screenshots, or recordings.
+  8. After immutable U8 successor approval, run `prepare-fashion-staging-u8.yml` to produce a refresh attestation keyed to the new build attempt, original U12 readiness digest, U8 run-manifest digest, and exact successor Snapshot/content/audit lineage. The preparation workflow uses separate bounded concurrency and finishes before `accept-fashion-staging-u8.yml` acquires the Fashion group, so it never waits for Preview while holding that group. Deploy that exact successor, establish a short-lived Preview session with the U13 grant pattern, and execute the terminal p95 contract from step 4. Join GitHub-hosted machine evidence and the operator's server-side approval evidence through the authoritative manifest. Retain the candidate and harness SHAs, contract-test and manifest digests, candidate-to-harness diff, Catalog Release, theme/platform identity, artifact digest, U12 baseline Snapshot, U8 source draft, validation, successor Snapshot and audit identity, raw non-secret timing samples, p95 results, request correlation IDs, and cleanup outcomes. Treat the approved U8 source draft and immutable Snapshot lineage as classified retained evidence. Clean only explicitly identified unreferenced drafts created by failed setup before validation or approval, plus carts, Preview grants, sessions, and incomplete build attempts.
+  9. Maintain `docs/progress/fashion-store-u8-acceptance.md` as append-only evidence, never as a second current-unit queue. Record every preparation, machine lane, `awaiting_operator`, approval, verification, build, expiry/cancel/reject, and cleanup attempt with timestamps, run-manifest and harness identities, immutable inputs, outcome, failure class, cleanup result, corrective reason before rerun, and every immutable Snapshot/audit record created. Store closure-required non-secret manifest and attestation bytes in controlled content-addressed storage for at least 30 days; a missing required byte invalidates the affected lineage and forces fresh preparation before mutation. Advance the checkpoint to U8.3 only after all attempts reconcile, the operator approval and terminal successor p95 pass, every transitive U8 job reports a GitHub-hosted runner image, and GitHub reports no repository self-hosted runner registered for U8. U8.3 reruns the complete Verification Contract, verifies evidence redaction and generated-state cleanliness, records the final U8 verdict, and updates the product master pointer in the same change.
 - **Test scenarios:**
   - The deployable output excludes fixtures, preview secrets, Decor assets, the old `fashion` theme, and upstream `main.js`.
   - Fixture Preview is visibly labeled Design QA, provides accessible simulated-intent feedback, and remains excluded from live functional evidence.
@@ -1294,23 +1321,23 @@ R-ID, KTD-ID, and U-ID gaps are intentional because removed production-release i
   - Scale tests pass at 1,000 products and 5,000 variants with complete routes and segmented sitemaps.
   - Test-environment p95 thresholds and the real Fashion Store browse-to-order journey pass for the recorded Catalog and Experience inputs without request interception.
   - The U8 workflow refuses a candidate-SHA, readiness digest, Catalog Release, Snapshot, theme/platform version, content digest, artifact digest, Preview origin, service binding, or environment mismatch before creating a session or cart.
-  - Before the runner listener starts or protected secrets become available, the exact U8 harness ref and canonical security-sensitive file-hash manifest match the reviewed authority. A path-allowlisted but hash-changed workflow, tool, provisioning flow, or redaction rule fails closed and requires a new authority decision.
+  - A fixed-ref credential-free job verifies the exact U8 candidate, harness, diff, standing authority, and security-sensitive manifest before the protected job can start. The protected job rechecks the immutable attestation before OIDC/secret-broker retrieval or mutation and never executes unverified harness code.
+  - Protected U8 jobs accept only authorized `workflow_dispatch` from the base repository on exact `refs/heads/main` behind the `fashion-staging` Environment. Pull requests, `pull_request_target`, forks, unapproved actors, and unpinned third-party actions receive no environment authority and cannot mutate staging.
   - An expired U12 Preview attempt is never reused. A fresh U8 attempt is accepted only when it preserves the U12 candidate, Catalog Release, theme/platform, and content-addressed theme artifact identity while binding the exact approved U8 successor Snapshot, content digest, audit lineage, and run-manifest digest.
   - Refresh preparation finishes before the U8 acceptance workflow acquires the shared Fashion concurrency group. Its attestation binds the new build attempt to the original U12 readiness digest and U8 successor lineage without requiring the historical readiness build ID or U12 Snapshot to equal the new attempt or successor; missing, stale, cross-run, or mismatched attestations fail closed.
   - The latency probe performs one excluded warm-up and exactly 20 recorded samples for each operation, applies a bounded request timeout, records shipping concurrency four, uses no silent retry, and fails when any sample is missing or non-successful.
   - Catalog and cart reads fail above 500 ms p95; shipping mutation fails above 800 ms p95. The report retains raw non-secret durations and the nearest-rank result without retaining Preview cookies, grants, CartTokens, or request bodies.
   - A p95 result against only the U12 baseline is diagnostic and cannot close U8. The terminal report and Preview context must identify the exact immutable U8 successor Snapshot approved by the human lane.
   - Every latency cart is registered under the U8 cleanup owner before measured mutation. Success, assertion failure, timeout, and interrupted-run recovery each attempt idempotent cleanup and preserve proof failure separately from cleanup failure.
-  - The representative operator completes the critical edit, invalid-reference recovery, conflict, preview, approval, and return path without raw IDs, using keyboard and screen reader with correct focus, labels, errors, announcements, and non-color status.
+  - The existing named staging operator completes the run-bound edit, invalid-reference recovery, conflict, Preview, approval, and return path without raw IDs; a separate credential-free cloud lane proves keyboard operation, focus, accessible names/roles/states, associated errors, status semantics, Axe results, and non-color cues.
   - The Fashion Admin preflight accepts only the exact `fashion-staging` API/D1 profile for this proof and rejects the legacy staging and production profiles without starting the browser.
-  - A run-namespaced human operator can authenticate through the local same-origin gateway, has only the required theme/catalog permissions, and has a bounded server-enforced expiry. The single-use bootstrap secret reaches the browser only through the no-echo local channel. Startup reconciliation plus success, failure, timeout, and interruption cleanup disable stale identities and revoke every session; no human credential or reusable session state enters Actions or evidence.
+  - Preparation creates no user account and exits in `awaiting_operator`. The protected staging page shows the exact run and expiry to the existing named operator. Approved, rejected, canceled, expired, mismatched, and already-consumed states produce deterministic verdicts; no hosted job waits for input and no human credential or reusable session state enters Actions or evidence.
   - A deterministic missing reference blocks Preview and approval. Validation focuses an error summary that names and links to the affected page, section, field, and Catalog picker. The picker exposes the missing current selection; replacement uses no raw ID, restores focus to its trigger, clears the associated error, announces that revalidation is required, and then validates against the exact U12 Catalog Release.
   - Two authenticated contexts create a real optimistic version conflict. The stale context announces the conflict and focuses its recovery action; **Save local edits as successor** preserves the intended edit, announces the successor identity and version, and continues validation on that exact version.
-  - The authenticated Preview opens only after its build reaches `deployed` and announces the separate context before launch. Initial focus lands on the Preview heading or context bar, which exposes the bound Catalog, Experience, theme, platform, candidate, and artifact identities before storefront content. **Return to editor** leaves or closes Preview, restores focus to the launch control, and announces the return. Approval identifies the exact current validated draft version, requires a reason, and announces the immutable successor Snapshot and audit result.
-  - Keyboard-only completion and a headed VoiceOver pass verify the critical Admin path. Automated assertions cover focus and ARIA state, while the retained transcript records the spoken labels, errors, conflict status, Preview readiness, and approval result without sensitive values.
-  - The structured VoiceOver record binds every expected and observed checkpoint to timestamps, frozen harness/build identities, operator identity, and non-secret audit/build events; deviations remain visible and failed checkpoints cannot be replaced retrospectively.
+  - The authenticated Preview opens in a new browser context only after its build reaches `deployed` and exposes the separate-context transition before launch. Initial focus lands on the Preview context bar, which exposes the bound Catalog, Experience, theme, platform, candidate, and artifact identities before storefront content. **Return to editor** closes Preview and restores focus to the exact launch control; an already-closed Preview leaves the editor available with that same focus target. Approval identifies the exact current validated draft version, requires a reason, and exposes the immutable successor Snapshot and audit result.
+  - Automated keyboard completion verifies the critical Admin path, including focus, accessible names, ARIA state, associated errors, conflict status, Preview readiness, approval result, and Axe findings without sensitive values.
   - Approval retains the U8 source draft, validation, immutable Snapshot, and audit lineage. Cleanup revokes Preview access and removes only explicitly identified unreferenced failed-setup drafts and other mutable test precursors; neither U12's approved Snapshot nor any production activation pointer is changed.
-  - Shared components and critical shopper/Admin paths cover pointer, keyboard, screen reader, touch, no-JavaScript, and representative widths; other routes receive structural, basic accessibility, and smoke coverage.
+  - Shared components and critical shopper/Admin paths cover pointer, keyboard, touch, no-JavaScript, representative widths, automated semantics, and Axe; other routes receive structural, basic accessibility, and smoke coverage.
   - Test startup and E2E checks reject production API URLs, resource IDs, provider modes, credentials, or allowed origins and confirm non-production data, storage, payment, email, and challenge bindings.
   - Transaction tests verify Catalog lineage and stable IDs, use deterministic seeds, the environment-level acceptance lock, namespaced carts and retained test orders, sandbox providers, normal teardown, and startup reconciliation; failed-run evidence records only access-controlled or redacted Commerce identifiers.
   - No-interception journeys pass for canonical single-variant, multi-variant, and unavailable products, including stable-ID runtime refresh, selection or direct-add routing, cart mutation, and truthful non-mutation.
@@ -1323,7 +1350,7 @@ R-ID, KTD-ID, and U-ID gaps are intentional because removed production-release i
   - The U8 evidence bundle fails redaction when it contains a Preview grant or cookie, Admin password or session, CartToken, bearer header, HAR, authenticated request body, or reusable browser profile.
   - Focused authorization tests prove that retained run, draft, build, Snapshot, audit, and correlation identifiers are references only and cannot authorize an API request without the normal credential boundary.
   - The append-only U8 attempt ledger accounts for every started preparation, machine, human, build, and cleanup attempt. A retry without a recorded failure classification and corrective or environmental reason fails closure, and immutable outputs from failed attempts are explicitly excluded from candidate use.
-  - Runner setup proves the required Node and GNU date behavior, dedicated-account filesystem denial, exact expected workflow/ref, and stopped-until-needed listener behavior. Final cleanup terminates runner children, proves no registered runner matches the exact bounded U8 runner name, identity, or U8-specific labels, scrubs the dedicated account/workspace without touching the operator profile, and removes the exact runner directory through the recorded recoverable cleanup path; unrelated repository runners are outside the U8 verdict.
+  - The complete transitive U8 workflow graph, including U12 recovery, Preview, preparation, deployment, and acceptance, rejects `self-hosted` labels and reports an approved GitHub-hosted image. Standard hosted runners are the default; only a passed capability preflight and recorded OS, capacity, fixed-IP, or private-network requirement permit a larger or OS-specific hosted runner. Test or application failure never triggers escalation, and no local account, listener, runner directory, OrbStack machine, or developer-home mount is created.
 - **Verification:** Every applicable gate in the Verification Contract passes and the evidence identifies the Catalog Release, Experience input, theme version, commit, and test origin.
 
 ---
@@ -1425,7 +1452,7 @@ bun run test:theme-matrix
 - Every live Fashion Store affordance has one typed owner and observable outcome; deployable code contains no placeholder destination or active no-op.
 - Every supported product merchandising surface consumes the shared `PresentationProductCard` and Fashion Store card component with canonical product identity and destination.
 - Admin editing is schema-bounded, preserves stable references, handles conflicts, and cannot mutate Commerce fields.
-- A representative operator completes the critical edit, reference recovery, conflict, preview, approval, and return path with keyboard and screen reader, without raw IDs, code access, or developer assistance.
+- Credential-free automation proves keyboard, focus, accessible-name/role/state, associated-error, status-semantic, non-color, and Axe behavior for the critical Admin path; the staging operator completes the run-bound business path without raw IDs or code access.
 - Asset and link controls use the defined Catalog media, route, validation, accessibility, and permission contracts.
 - Preview authorization and evidence bind the exact Catalog, Experience, theme, platform, and non-production environment context.
 - Private artifact authorization and shopper transactions use separate `PREVIEW_AUTH` and `COMMERCE_API` bindings; sandbox-payment return, service-binding-only ingress, signed webhook, closed route/method bridge, focused CSP, and credential-redaction tests pass.
