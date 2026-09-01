@@ -98,7 +98,12 @@ U13 add-only probe do not establish overall completion.
 
 - **Current unit:** U8 — complete test-environment acceptance. U12 and the explicit product-level
   FRT interlude are complete.
-- **Current sub-stage:** U8.2 — close the bounded gaps exposed by fresh U8 reconciliation. The
+- **Current sub-stage:** U8.3 — rerun the complete Verification Contract, verify evidence redaction
+  and generated-state cleanliness, and record the final U8 closure verdict. U8.2 completed on the
+  exact candidate/harness lineage after terminal acceptance run `33468537473` passed the unchanged
+  20-sample, concurrency-4 Commerce thresholds, cleanup, Preview revocation, operator consumption,
+  and append-only ledger. The remainder of this bullet retains the historical U8.2 execution
+  narrative. The
   repaired 15-page runner now restores both generated selection files, and the complete local
   Fashion, Admin, accessibility, performance, scale, static, security, and environment matrix is
   green. The bounded runner `shoppp-fashion-u8-20260825a` registration has been removed after stale
@@ -308,14 +313,10 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Integrate and pass post-commit for the authenticated-bridge timing and
-  idempotent Preview-revocation correction, refreeze the exact-main harness for candidate
-  `4fe21a47`, then prepare a fresh immutable operator run while superseding approved
-  `fashion-u8-33462310594` without clearing its Snapshot, digest, audit, or operator identity. The
-  named operator must repeat the run-bound path and authenticated Preview before approval. Hosted
-  refresh must emit exact `preview-dispatch.json`; the separately authorized fixed-main successor
-  Preview and terminal acceptance must then pass the unchanged 20-sample/concurrency-4 500/800 ms
-  Commerce p95 thresholds, cleanup, approval consumption, and the continuous append-only ledger.
+- **Next concrete action:** Run every applicable command in the complete Verification Contract on
+  the accepted exact-main baseline, verify retained evidence remains redacted and generated state
+  is clean, then record the final U8 verdict and update this plan plus the product master pointer in
+  the same change.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -340,7 +341,9 @@ U13 add-only probe do not establish overall completion.
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** Recovery/ledger correction `80bb79af` is integrated and post-commit run `33461845421`
+- **Blocker:** None at U8.3.
+- **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` is
+  integrated and post-commit run `33461845421`
   passed. Fresh preparation `33462310594`, browser-bound missing-reference recovery, real conflict,
   successor `draft-eed61a5d-bc78-49dd-a9c3-68e94052a30f`, operator Preview `33462932654`,
   authenticated identity/return-focus proof, immutable approval
@@ -625,7 +628,7 @@ without renumbering requirements, discarding prior work, or creating separate DC
 | U4 — routes and truthful page states      | Complete                              | U4.3 proves the 15-route fixture matrix and live route-state contract, Account/Wishlist unavailability and recovery, selected-release policy content and canonicals, aliases and 404s, zero unsupported mutations, accessibility, no-JavaScript behavior, source parity, SEO, first-paint theme CSS, static output, bundle isolation, lint, boundaries, and type safety. | Retain as a dependency baseline; reopen only if governed route ownership, truthful page states, policy authority, first-paint styling, or verification evidence changes. |
 | U7 — bounded Experience editing           | Complete                              | U7.3 proves the complete bounded editor and immutable preview lifecycle plus deterministic cold-load first-interaction preservation. Focused contracts and Admin coverage, live-Commerce 14/14, repository tests/Workers/lint/boundaries/type safety, the complete Fashion Store matrix and behavior evidence, and a fresh static preview all pass. | Retain as the U12 dependency baseline; reopen only if governed editor, preview, Catalog identity, or hydration behavior changes. |
 | U12 — complete deployed Commerce journey  | Complete — test-environment proven | Preparation `32383732029` bound commit `1e823172`, Catalog Release `fashion-staging-u12-release-2026-08-18`, approved Snapshot `snapshot-approved-89c1cd6696769d3a962f1029e9118892`, and the isolated readiness/build identity. Preview `32384126394` passed deployment and U13, the no-interception three-archetype and sandbox-payment journey, retained the paid order, restored inventory to 100/0/0/0, proved a fresh-session add, and enforced the complete U12 verdict. | Retain as the deployed Commerce dependency baseline for U8; rerun only when the owning surface, immutable input, or candidate identity requires it. |
-| U8 — complete test-environment acceptance | In progress — U8.2 cloud migration required | Final local evidence passes the 15-page Fashion matrix, Admin L4 gates, Axe/keyboard checks, static and bundle gates, performance, 1,000-product/5,000-variant scale, environment isolation, root tests, Workers, type safety, lint, and boundaries. The former bounded runner is removed; current U8 workflows and the interactive Admin harness must migrate to GitHub-managed runners and a separate staging-approval boundary before a new freeze. | Complete the cloud-runner and acceptance-protocol migration, then prove the representative Admin workflow from the U12 baseline to an immutable U8 successor and retain terminal staging p95 evidence against that exact successor before U8.3 verification. |
+| U8 — complete test-environment acceptance | In progress — U8.3 final verification required | U8.2 terminal acceptance run `33468537473` passed on candidate `4fe21a47` and harness `072adc7d`, including the named-operator successor, immutable approval, exact hosted Preview/refresh lineage, 20-sample Commerce p95, cleanup, revocation, consumption, and ledger. Every transitive job used `ubuntu-24.04`, repository self-hosted runner inventory is empty, and retained terminal evidence passed file-type and redaction scans. | Rerun the complete Verification Contract, verify generated-state cleanliness, retain the final evidence, and record the U8 closure verdict. |
 
 ### Checkpoint update discipline
 

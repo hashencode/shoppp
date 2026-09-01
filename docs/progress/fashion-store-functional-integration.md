@@ -1651,3 +1651,16 @@ terminal: remote operator/session cleanup, retry29 reconciliation, runner deregi
 recoverable removal, protected manifest retention, dedicated account/home removal, and operator
 credential destruction all pass. Product execution hands to `CI-U8.3` without starting a fresh FS
 acceptance run.
+
+## 2026-09-01 — FS-U8.2 terminal acceptance passed
+
+Exact candidate `4fe21a47` and reviewed harness `072adc7d` completed the fresh cloud-only U8 path.
+Preparation `33466592253`, the named-operator missing-reference recovery and real optimistic
+conflict, successor `draft-0c37fb8a-f56c-4f60-8633-b3bd877843f2`, operator Preview
+`33466865943`, immutable approval `snapshot-approved-76aeaf69a7c416a92e115141b75c9d14`, refresh
+`33467799538`, and final Preview `33467889188` all passed on one immutable lineage. Terminal
+acceptance `33468537473` passed the unchanged 20-sample 500/800 ms Commerce p95 gates, cleanup,
+Preview revocation, operator consumption, and append-only ledger. Every transitive job used
+`ubuntu-24.04`, repository self-hosted runner inventory is empty, and retained terminal evidence
+passed file-type and redaction scans. The active checkpoint and product master now advance to
+FS-U8.3 for the complete Verification Contract and final closure verdict.

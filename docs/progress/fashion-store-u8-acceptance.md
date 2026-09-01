@@ -1109,3 +1109,44 @@ title` instead of `fashion-store-home merchandising-title`.
   exact 20-sample, concurrency-4, 500 ms read, and 800 ms shipping thresholds remain unchanged.
   Focused bridge/latency/U8/workflow tests pass 67 tests and 797 assertions; full typecheck and
   formatting pass.
+
+### cloud-u8-acceptance-20260901 — passed
+
+- **Kind/status:** `machine` / `passed`; cleanup `complete`.
+- **Frozen lineage:** candidate `4fe21a47950908489a9d892a085c484a3a619727`, harness
+  `072adc7da009bf8de1c14d0dca0bd5817e94ab15`, harness manifest
+  `ea04f8f43f84e64345cbcab15f8999d39fb5696056f09b9f1c8d6558e39429e4`, contract tests
+  `f35bbf4a181b1a5418f3e96e9447ddd4679c9cdb6a55bf02016ca585db6b6be7`, and run manifest
+  `58fe77522d921aa11273f30719a975fe1ad785511ba52c91d35ad4c943689013`.
+- **Preparation/operator evidence:** preparation `33466592253` registered
+  `fashion-u8-33466592253`. The named operator reproduced invalid validation
+  `validation-08f696d62e9cf9b841d690b4d0a3117ef5984dae`, repaired the Catalog reference, created a real
+  v32/v33 optimistic conflict, and retained local edits as successor
+  `draft-0c37fb8a-f56c-4f60-8633-b3bd877843f2` v1. Validation
+  `validation-d0c5bf969171ecbd6abb29c7d8f84ed2f6476486` passed.
+- **Preview/approval evidence:** operator Preview `33466865943` passed for
+  `snapshot-preview-fcdf4f5238c2be5d6c85532f2965f85e`, build
+  `preview-build-38c2be5d6c85532f2965f85e-f1bb77ee6f824f48-1`, and content digest
+  `049874b2d1fd6275b8fcfe8868348f2ba86f9e414108cc2067914bfa893d4b82`. The authenticated
+  context matched Catalog, Snapshot, theme, platform, and v1, and exact return-target navigation
+  restored focus to the launch control. Approval produced
+  `snapshot-approved-76aeaf69a7c416a92e115141b75c9d14`, content digest
+  `92c5fcbfebe11243d4e2f163cbfcbf5baf65b40808a3ff4b9c70d88eb1563215`, and audit
+  `audit-fashion-u8-c124089a444bb60a13cd0714ddd84535`.
+- **Refresh/deployment evidence:** refresh `33467799538` retained attestation digest
+  `8d8441fc742ef8a941985bc59144adec4f3a2175d8cb0b9c12e459902aeb1793` and exact
+  `preview-dispatch.json`. Final Preview `33467889188` deployed build
+  `preview-build-a7c416a92e115141b75c9d14-f1bb77ee6f824f48-1` with artifact digest
+  `9f3af49eb2b0af2d16ca32c994235804445fc9ba42e8f1a11c7f9fbed4256ffa`.
+- **Terminal acceptance:** run `33468537473` / `fashion-u8-33468537473-1` passed. Nearest-rank p95
+  was `402.295234 ms` for Catalog reads, `378.295757 ms` for Cart reads, and `789.823975 ms` for
+  shipping mutation, using exactly 20 samples and shipping concurrency four against the unchanged
+  500/800 ms limits. Preview revocation, U12 cleanup, attempt-ledger completion, and operator-run
+  consumption all passed. Terminal manifest digest is
+  `10047c3cbf108f87767e8f6485396247d44a9f4bea95fc8de64589af82533883`; terminal report digest is
+  `1b5f4b4227fdab1acbd4f5a24ec6fc0e063e98590fb87b8123bca88f47baa2ad`; ledger digest is
+  `ef88c25f1debe3dbffa2d488a17afb6f6f63ec619f9c9ba94f4cebda9b63ab83`.
+- **Hosted/redaction verdict:** every job in preparation, both Preview runs, refresh, and acceptance
+  reports `ubuntu-24.04`; GitHub reports zero repository self-hosted runners. Retained terminal
+  artifacts contain JSON only, no trace/HAR/screenshot/recording, and focused sensitive-marker scan
+  passed. FS-U8.2 is complete and execution advances to FS-U8.3 final verification.

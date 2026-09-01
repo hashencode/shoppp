@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-08-11-001-feat-fashion-store-functional-integration-plan.md
-current_unit: FS-U8.2
+current_unit: FS-U8.3
 ---
 
 # Shoppp Product Master Plan
@@ -67,23 +67,21 @@ historical evidence remain unchanged inside the owning plans.
 ## Current execution pointer
 
 - **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
-- **Current parent/child stage:** `FS-U8.2` — product execution has returned after CI-U11.1 closed
-  the CI tail and that change was integrated into the current exact-main baseline. The cleanup-only
-  tranche remains terminal; fresh formal acceptance must use this exact-main baseline.
-- **FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
+- **Current parent/child stage:** `FS-U8.3` — final verification and closure after fresh formal
+  acceptance passed on the exact candidate/harness lineage.
+- **Historical FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
   enabled U8 identities and 23/23 sessions revoked; retry29 remains excluded v3 evidence with no
   Snapshot. The exact runner registration is absent, protected manifests are retained, the runner
   is recoverable in Trash under UID `501`, the dedicated account/home are removed, and the
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Integrate and pass post-commit for the authenticated-bridge timing and idempotent
-  Preview-revocation correction, refreeze candidate `4fe21a47` on that exact-main harness, and
-  prepare a fresh run while superseding approved `fashion-u8-33462310594` without clearing its
-  immutable evidence. Repeat the named-operator path through Preview and approval; refresh must emit
-  exact `preview-dispatch.json`, after which the separately authorized fixed-main successor Preview
-  and terminal acceptance must pass the unchanged Commerce p95 thresholds and cleanup.
-- **Blocker:** Recovery/ledger correction `80bb79af` and post-commit `33461845421` passed. Fresh
+- **Next action:** Run the active Fashion plan's complete Verification Contract, verify retained
+  evidence redaction and generated-state cleanliness, then record the final U8 verdict and advance
+  the product pointer in the same change.
+- **Blocker:** None at `FS-U8.3`.
+- **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
+  post-commit `33461845421` passed. Fresh
   preparation `33462310594`, complete named-operator browser path, operator Preview `33462932654`,
   authenticated Preview/return-focus proof, approval Snapshot
   `snapshot-approved-3217b1b053b6b95a0bb2e7053174c2bd`, audit
@@ -409,7 +407,7 @@ focused test alone.
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
 | `DS-H1` | [Decor Store Source Parity](2026-08-10-001-feat-decor-store-source-parity-plan.md) | Decor Store source-equivalent home baseline | Complete and inherited; U1-U8 closed the home implementation and acceptance baseline | `DS` owns later home correction; `DS-P1` owns the completed secondary-page tail |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active at `FS-U8.2` — cleanup-only tranche terminal and closed CI tail integrated; cloud-runner and acceptance-protocol migration precede a new exact-main freeze; U12 complete with governed test-environment proof** | This plan owns `FS-U8` and the remaining Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active at `FS-U8.3` — fresh exact-lineage U8.2 acceptance passed; complete verification, redaction, generated-state, and final closure checks remain** | This plan owns `FS-U8` and the remaining Fashion Store tail |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
