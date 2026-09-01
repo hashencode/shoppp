@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-08-11-001-feat-fashion-store-functional-integration-plan.md
-current_unit: FS-U8.3
+current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
+current_unit: REL-Pre-DC
 ---
 
 # Shoppp Product Master Plan
@@ -66,9 +66,9 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `FS` — [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md).
-- **Current parent/child stage:** `FS-U8.3` — final verification and closure after fresh formal
-  acceptance passed on the exact candidate/harness lineage.
+- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
+- **Current parent/child stage:** `REL-Pre-DC` — reconcile the intended release capability set and
+  finish complete candidate-identity enforcement before any candidate is frozen.
 - **Historical FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
   enabled U8 identities and 23/23 sessions revoked; retry29 remains excluded v3 evidence with no
   Snapshot. The exact runner registration is absent, protected manifests are retained, the runner
@@ -76,10 +76,11 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Run the active Fashion plan's complete Verification Contract, verify retained
-  evidence redaction and generated-state cleanliness, then record the final U8 verdict and advance
-  the product pointer in the same change.
-- **Blocker:** None at `FS-U8.3`.
+- **Next action:** Audit the intended release capability set and approved deferrals against every
+  owning plan, then complete `release:validate` enforcement for the full immutable candidate
+  identity. Do not begin DC1 until every Pre-DC row passes.
+- **Blocker:** `REL-Pre-DC` remains blocked by unaudited product capability scope and incomplete
+  candidate-identity enforcement; Fashion Store U8 is no longer a blocker.
 - **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
   post-commit `33461845421` passed. Fresh
   preparation `33462310594`, complete named-operator browser path, operator Preview `33462932654`,
@@ -184,10 +185,9 @@ historical evidence remain unchanged inside the owning plans.
   No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
   or production mutation is authorized. Detailed run and artifact evidence remains in the active
   feature plan and progress records.
-- **Following sequence:** fresh `FS-U8.2` formal acceptance -> `FS-U8.3` final verification and
-  closure.
-- **Candidate state:** Pre-DC blocked. DC/PG do not begin until all capabilities selected for the
-  candidate are complete in their owning plans.
+- **Following sequence:** `REL-Pre-DC` capability and identity reconciliation -> DC1 immutable
+  candidate freeze -> DC2-DC4 -> PG1-PG5 under their named human and production authorities.
+- **Candidate state:** Pre-DC blocked. No candidate is frozen; DC/PG have not begun.
 
 The completed cloud-CI successor interlude does not replace the active Fashion status authority:
 
@@ -407,11 +407,11 @@ focused test alone.
 | `THEME-H3` | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md) | Shared reconstruction acceptance tooling | Complete and inherited | Feature plans own their own acceptance outcomes |
 | `FS-H2` | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md) | Fifteen-page presentation and route baseline | Implemented/evidenced, not audited as complete functional behavior | `FS` reconciles the inherited implementation |
 | `DS-H1` | [Decor Store Source Parity](2026-08-10-001-feat-decor-store-source-parity-plan.md) | Decor Store source-equivalent home baseline | Complete and inherited; U1-U8 closed the home implementation and acceptance baseline | `DS` owns later home correction; `DS-P1` owns the completed secondary-page tail |
-| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Active at `FS-U8.3` — fresh exact-lineage U8.2 acceptance passed; complete verification, redaction, generated-state, and final closure checks remain** | This plan owns `FS-U8` and the remaining Fashion Store tail |
+| `FS` | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) | Current Fashion Store implementation | **Complete — U1-U13 are closed within their declared boundaries; U8.2 terminal cloud acceptance and U8.3 complete verification passed on 2026-09-01** | Completed Fashion Store implementation authority; `REL` owns candidate and production gates |
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
-| `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | Blocked by unfinished selected product implementation | Candidate ledger after an immutable candidate is frozen |
+| `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Active at blocked `REL-Pre-DC` — Fashion Store implementation is complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution and requires a named successor before the next U8 freeze** | Retains historical CI evidence; the successor owns shared/post-commit cloud migration and returns control to `FS-U8.2` |
@@ -527,7 +527,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-U8.2` is the single current product execution pointer and matches the active child plan.
+- `REL-Pre-DC` is the single current product execution pointer and matches the active child plan.
 - The old `fashion` implementation, `decor-store` naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.

@@ -1664,3 +1664,22 @@ Preview revocation, operator consumption, and append-only ledger. Every transiti
 `ubuntu-24.04`, repository self-hosted runner inventory is empty, and retained terminal evidence
 passed file-type and redaction scans. The active checkpoint and product master now advance to
 FS-U8.3 for the complete Verification Contract and final closure verdict.
+
+## 2026-09-01 — FS-U8.3 verification and plan closure passed
+
+The accepted U8.2 lineage was followed by the complete Verification Contract. Root repository
+tests, Worker tests, typecheck, lint, and boundary checks passed. Storefront unit and complete
+Fashion Store suites passed, including 132 browser cases with 192 configured skips, 15-page
+behavior evidence, source equivalence, theme verification, static verification, and the explicit
+34-unit Fashion acceptance scope. Admin passed 303/303 tests on full rerun after one isolated stale
+IAM-role timeout passed its exact focused reproduction; E2E, eight accessibility cases, and mobile
+Lighthouse performance passed. Catalog scale passed with 1000 products, 5000 variants, and 1027
+indexable routes; the full Decor/Fashion theme matrix and Fashion mobile performance gate passed.
+
+The production static build temporarily changed the generated selection exactly as expected; the
+tracked Fashion preview fixture baseline was regenerated and formatted afterward, leaving a clean
+worktree and a clean `git diff --check`. Retained U8.2 evidence remains JSON-only and passed the
+recorded sensitive-marker scan; every cloud job used `ubuntu-24.04`, with zero repository
+self-hosted runners. U8 is complete, the Fashion Store functional-integration plan is closed, and
+product execution transfers to blocked `REL-Pre-DC` without freezing a candidate or authorizing DC,
+PG, or production mutation.

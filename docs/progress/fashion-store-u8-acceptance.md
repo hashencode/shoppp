@@ -1150,3 +1150,21 @@ title` instead of `fashion-store-home merchandising-title`.
   reports `ubuntu-24.04`; GitHub reports zero repository self-hosted runners. Retained terminal
   artifacts contain JSON only, no trace/HAR/screenshot/recording, and focused sensitive-marker scan
   passed. FS-U8.2 is complete and execution advances to FS-U8.3 final verification.
+
+### FS-U8.3 final verification — passed
+
+- **Repository contract:** root tests, Worker tests, typecheck, lint, and boundary checks passed.
+- **Storefront contract:** unit tests, complete Fashion Store acceptance, source equivalence, theme
+  verification, static verification, and the explicit 34-unit Fashion acceptance scope passed. The
+  browser matrix reported 132 passed and 192 configured skips, with all 15 page behavior records
+  verified.
+- **Admin and quality contract:** Admin passed 303/303 on full rerun after one isolated IAM
+  stale-role timeout passed an exact focused reproduction. E2E, eight accessibility tests, and
+  mobile Lighthouse performance passed.
+- **Scale and template contract:** the catalog-scale gate passed with 1000 products, 5000 variants,
+  and 1027 indexable routes. Decor/Fashion theme-matrix coverage and Fashion mobile performance
+  passed; one homepage cold-start Lighthouse miss passed the contract's second-attempt retry.
+- **Cleanliness/verdict:** the generated preview fixture baseline was restored after production and
+  matrix builds; `git status --short` and `git diff --check` were clean before closure. U8 is
+  complete, the FS plan is complete, and tail ownership transfers to blocked `REL-Pre-DC` without
+  creating candidate, DC, PG, or production authority.

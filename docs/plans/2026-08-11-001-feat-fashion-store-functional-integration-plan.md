@@ -8,7 +8,7 @@ artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
 execution: code
 deepened: 2026-08-12
-status: in_progress
+status: completed
 ---
 
 # Fashion Store Functional Integration - Plan
@@ -93,13 +93,14 @@ focused QA result, or a narrow deployed probe from silently satisfying a broader
 ## Execution Checkpoint
 
 This plan is the single implementation-status authority for Fashion Store functional integration.
-It is **in progress**, not candidate-ready. Commit subjects, partial green suites, and the deployed
-U13 add-only probe do not establish overall completion.
+It is **complete**. Commit subjects, partial green suites, and the deployed U13 add-only probe did
+not establish overall completion; the U8.2 terminal acceptance plus U8.3 complete Verification
+Contract do.
 
-- **Current unit:** U8 — complete test-environment acceptance. U12 and the explicit product-level
-  FRT interlude are complete.
-- **Current sub-stage:** U8.3 — rerun the complete Verification Contract, verify evidence redaction
-  and generated-state cleanliness, and record the final U8 closure verdict. U8.2 completed on the
+- **Current unit:** None. U1-U13 are complete within their declared boundaries, including U8
+  complete test-environment acceptance.
+- **Current sub-stage:** None. U8.3 completed on 2026-09-01 after the complete Verification Contract,
+  retained-evidence redaction checks, and generated-state restoration passed. U8.2 completed on the
   exact candidate/harness lineage after terminal acceptance run `33468537473` passed the unchanged
   20-sample, concurrency-4 Commerce thresholds, cleanup, Preview revocation, operator consumption,
   and append-only ledger. The remainder of this bullet retains the historical U8.2 execution
@@ -313,10 +314,9 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Run every applicable command in the complete Verification Contract on
-  the accepted exact-main baseline, verify retained evidence remains redacted and generated state
-  is clean, then record the final U8 verdict and update this plan plus the product master pointer in
-  the same change.
+- **Next concrete action:** None in this plan. Candidate-scope reconciliation, identity-tooling
+  completion, candidate freezing, DC, and PG belong to `REL`; production activation remains
+  unauthorized until those gates pass.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -335,13 +335,13 @@ U13 add-only probe do not establish overall completion.
   Preview exposed the Admin referrer-policy handoff defect -> protected Admin correction and
   harness refreeze -> fresh preparation and named operator Preview/approval -> separate hosted
   refresh -> explicit authorized fixed-main Preview dispatch -> acceptance ->
-  `FS-U8.2` formal acceptance -> `FS-U8.3` final
-  verification. The cleanup handoff does not complete or pause U8, create candidate evidence, or
+  `FS-U8.2` formal acceptance -> `FS-U8.3` final verification -> `REL` Pre-DC reconciliation. The
+  cleanup handoff did not complete or pause U8, create candidate evidence, or
   authorize REL/DC/PG;
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** None at U8.3.
+- **Blocker:** None. The Fashion Store functional-integration tail is closed.
 - **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` is
   integrated and post-commit run `33461845421`
   passed. Fresh preparation `33462310594`, browser-bound missing-reference recovery, real conflict,
@@ -628,7 +628,7 @@ without renumbering requirements, discarding prior work, or creating separate DC
 | U4 — routes and truthful page states      | Complete                              | U4.3 proves the 15-route fixture matrix and live route-state contract, Account/Wishlist unavailability and recovery, selected-release policy content and canonicals, aliases and 404s, zero unsupported mutations, accessibility, no-JavaScript behavior, source parity, SEO, first-paint theme CSS, static output, bundle isolation, lint, boundaries, and type safety. | Retain as a dependency baseline; reopen only if governed route ownership, truthful page states, policy authority, first-paint styling, or verification evidence changes. |
 | U7 — bounded Experience editing           | Complete                              | U7.3 proves the complete bounded editor and immutable preview lifecycle plus deterministic cold-load first-interaction preservation. Focused contracts and Admin coverage, live-Commerce 14/14, repository tests/Workers/lint/boundaries/type safety, the complete Fashion Store matrix and behavior evidence, and a fresh static preview all pass. | Retain as the U12 dependency baseline; reopen only if governed editor, preview, Catalog identity, or hydration behavior changes. |
 | U12 — complete deployed Commerce journey  | Complete — test-environment proven | Preparation `32383732029` bound commit `1e823172`, Catalog Release `fashion-staging-u12-release-2026-08-18`, approved Snapshot `snapshot-approved-89c1cd6696769d3a962f1029e9118892`, and the isolated readiness/build identity. Preview `32384126394` passed deployment and U13, the no-interception three-archetype and sandbox-payment journey, retained the paid order, restored inventory to 100/0/0/0, proved a fresh-session add, and enforced the complete U12 verdict. | Retain as the deployed Commerce dependency baseline for U8; rerun only when the owning surface, immutable input, or candidate identity requires it. |
-| U8 — complete test-environment acceptance | In progress — U8.3 final verification required | U8.2 terminal acceptance run `33468537473` passed on candidate `4fe21a47` and harness `072adc7d`, including the named-operator successor, immutable approval, exact hosted Preview/refresh lineage, 20-sample Commerce p95, cleanup, revocation, consumption, and ledger. Every transitive job used `ubuntu-24.04`, repository self-hosted runner inventory is empty, and retained terminal evidence passed file-type and redaction scans. | Rerun the complete Verification Contract, verify generated-state cleanliness, retain the final evidence, and record the U8 closure verdict. |
+| U8 — complete test-environment acceptance | Complete — test-environment proven | U8.2 terminal acceptance run `33468537473` passed on candidate `4fe21a47` and harness `072adc7d`, including the named-operator successor, immutable approval, exact hosted Preview/refresh lineage, 20-sample Commerce p95, cleanup, revocation, consumption, and ledger. Every transitive job used `ubuntu-24.04`, repository self-hosted runner inventory is empty, and retained terminal evidence passed file-type and redaction scans. U8.3 then passed the complete root, Worker, Storefront, Admin, E2E, accessibility, performance, scale, theme-matrix, static, boundary, type, lint, redaction, and generated-state verification contract. | Retain as the final Fashion Store implementation baseline. Reopen only if a governed FS capability or its completion evidence changes; candidate and production proof belong to `REL`. |
 
 ### Checkpoint update discipline
 

@@ -245,7 +245,7 @@ describe("GitHub-managed cloud CI operations contract", () => {
     expect(recoveryText).toContain("production mutation remains disabled");
   });
 
-  test("advances the product master pointer to FS-U8.3 after terminal acceptance", async () => {
+  test("hands the product master pointer to REL-Pre-DC after Fashion closure", async () => {
     const [contents, fashionContents] = await Promise.all([productMasterPlan, fashionPlan]);
     const frontmatter = contents.slice(0, contents.indexOf("\n---", 4) + 4);
     const pointer = markdownSection(contents, "Current execution pointer");
@@ -253,26 +253,29 @@ describe("GitHub-managed cloud CI operations contract", () => {
     const fashionCheckpoint = markdownSection(fashionContents, "Execution Checkpoint");
 
     expect(frontmatter).toContain(
-      "current_plan: 2026-08-11-001-feat-fashion-store-functional-integration-plan.md",
+      "current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md",
     );
-    expect(frontmatter).toContain("current_unit: FS-U8.3");
-    expect(pointer).toContain("**Current parent/child stage:** `FS-U8.3`");
+    expect(frontmatter).toContain("current_unit: REL-Pre-DC");
+    expect(pointer).toContain("**Current parent/child stage:** `REL-Pre-DC`");
 
     const activeRows = markdownTableRows(register).filter((row) =>
-      row.some((cell) => cell.includes("**Active at `FS-U8.3`")),
+      row.some((cell) => cell.includes("**Active at blocked `REL-Pre-DC`")),
     );
     expect(activeRows).toHaveLength(1);
-    expect(activeRows[0]![0]).toBe("`FS`");
+    expect(activeRows[0]![0]).toBe("`REL`");
 
     const fashion = tableRow(register, "`FS`");
-    expect(fashion[3]).toContain("**Active at `FS-U8.3`");
+    expect(fashion[3]).toContain("**Complete");
+    expect(fashion[3]).toContain("U8.3 complete verification passed");
 
     const ci = tableRow(register, "`CI`");
     expect(ci[3]).toContain("**Complete");
     expect(ci[3]).toContain("Complete for its governed baseline");
-    expect(fashionCheckpoint).toContain("**Current sub-stage:** U8.3");
+    expect(fashionCheckpoint).toContain("**Current sub-stage:** None");
     expect(fashionCheckpoint).toContain("terminal acceptance run `33468537473`");
-    expect(fashionCheckpoint).toContain("**Blocker:** None at U8.3");
+    expect(fashionCheckpoint).toContain(
+      "**Blocker:** None. The Fashion Store functional-integration tail is closed.",
+    );
   });
 
   test("keeps CI-U11.1 proportional to a single-maintainer project", async () => {

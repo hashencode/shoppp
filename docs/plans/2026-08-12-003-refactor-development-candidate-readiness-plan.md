@@ -87,11 +87,11 @@ DC is validation-only. DC1 remains blocked until all of the following are true:
 - `release:validate` rejects tracked and untracked non-ignored changes and can require, verify, and
   persist the complete candidate identity in its immutable report.
 
-Current blockers include the incomplete Fashion Store U12 complete deployed-Commerce journey and
-U8 test-environment acceptance, unresolved unit audits in the functional-integration plan's
-execution checkpoint, and candidate-identity fields not yet enforced by `release:validate`.
-Existing U13 evidence proves only the narrow deployed product lookup, fresh-cart, and stable-variant
-add topology.
+Fashion Store U12 and U8 are complete in their owning plan as of 2026-09-01 and no longer block
+Pre-DC. Current blockers are the unaudited product-level capability set and approved deferrals,
+reconciliation of every selected capability against its owning plan, and candidate-identity fields
+not yet fully enforced by `release:validate`. Existing U13 evidence remains a narrow deployed
+product-lookup, fresh-cart, and stable-variant-add proof rather than candidate evidence.
 
 ### Executable source-input authority
 
