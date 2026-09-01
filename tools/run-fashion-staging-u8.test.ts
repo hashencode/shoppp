@@ -6,6 +6,7 @@ import { join } from "node:path";
 import {
   appendFashionU8Attempt,
   assertFashionU8RunManifest,
+  fashionU8OwnerForRun,
   redactFashionU8Evidence,
   recordFashionU8Attempt,
   runFashionStagingU8,
@@ -46,6 +47,12 @@ const terminalManifest = (): FashionU8TerminalManifest => ({
 });
 
 describe("Fashion staging U8 run evidence", () => {
+  test("derives reconciliation ownership from the interrupted run", () => {
+    expect(fashionU8OwnerForRun("fashion-u8-33461235943-1")).toBe(
+      "fashion-u8-fashion-u8-33461235943-1",
+    );
+  });
+
   test("accepts the frozen candidate/harness split and rejects mutable or malformed identity", () => {
     expect(assertFashionU8RunManifest(manifest())).toEqual(manifest());
     expect(() => assertFashionU8RunManifest({ ...manifest(), candidateSha: "main" })).toThrow(

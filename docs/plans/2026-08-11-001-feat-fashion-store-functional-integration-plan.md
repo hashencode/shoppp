@@ -308,14 +308,14 @@ U13 add-only probe do not establish overall completion.
   Attempt 9 exposed the first generated password to a mis-targeted residual test-browser field; the
   field and browser were cleared, that password was invalidated, and the replacement credential is
   now unusable and its owner-only file deleted after operator cleanup.
-- **Next concrete action:** Pass post-commit for the explicit acceptance-candidate input correction
-  and this synchronized execution pointer, then bind that exact-main harness identity for candidate
-  `4fe21a47`. Prepare a new immutable operator run while superseding approved
-  `fashion-u8-33377459110` to terminal `expired` without clearing its Snapshot, digest, audit, or
-  operator identity. The named operator must repeat the run-bound path and authenticated Preview
-  before approval. Hosted refresh must emit and exit with exact `preview-dispatch.json`; an
-  authorized Fashion staging operator must separately dispatch the fixed-main successor Preview,
-  then acceptance must pass its terminal p95, cleanup, approval consumption, and append-only ledger.
+- **Next concrete action:** Integrate and pass post-commit for the acceptance recovery-owner and
+  current-attempt ledger-classification correction, refreeze the exact-main harness for candidate
+  `4fe21a47`, then prepare a fresh immutable operator run while superseding approved
+  `fashion-u8-33458411356` without clearing its Snapshot, digest, audit, or operator identity. The
+  named operator must repeat the run-bound path and authenticated Preview before approval. Hosted
+  refresh must emit exact `preview-dispatch.json`; the separately authorized fixed-main successor
+  Preview and terminal acceptance must then pass p95, cleanup, approval consumption, and the
+  continuous append-only ledger.
   Exact orphaned cache root
   `/private/var/folders/hb/jqrrv4rj6m50m5ggjcby7kmc0000gp` is a non-actionable macOS-managed
   residual: it has `com.apple.rootless`, the Data mount is protected, SIP is enabled, and both
@@ -340,7 +340,17 @@ U13 add-only probe do not establish overall completion.
   it prevents the expensive Fashion human, Preview, approval, and terminal-p95 evidence from being
   captured against a source baseline that the now-closed CI tail could subsequently change before
   integration.
-- **Blocker:** Cloud successor, protected immutable-ID OIDC authority, acceptance-token rotation,
+- **Blocker:** Fresh preparation `33458411356`, browser-bound validation/recovery/conflict/successor,
+  operator Preview `33459783689`, immutable approval
+  `snapshot-approved-0990751a9db11deea948c599fc0063ec`, refresh `33460520278`, and successor
+  Preview `33460584382` passed. Acceptance `33461235943` failed before a remote lock request because
+  protected variable `FASHION_U12_SEED_MANIFEST_DIGEST` was absent; its exact readiness value is now
+  configured. Governed retry `33461375025` exposed two harness defects: reconciliation derived the
+  old run owner from the new attempt, and terminal classification selected `ledger[0]` instead of
+  the current started event. Both corrections and focused regressions are local and must reach
+  exact main before a new harness/run-bound replay; the old approval cannot satisfy the changed
+  harness. Historical evidence follows. Cloud successor, protected immutable-ID OIDC authority,
+  acceptance-token rotation,
   durable operator verification run `33354502008`, fresh U12 readiness run `33356725518`, and
   complete Preview/U12 run `33356841096` are proven. Preparation `33357909651` and the named
   operator reached the exact successor Preview build boundary, where the legacy self-hosted-only

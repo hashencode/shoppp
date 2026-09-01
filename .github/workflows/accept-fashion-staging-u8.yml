@@ -316,7 +316,8 @@ jobs:
           node - <<'NODE'
           const fs = require("fs");
           const ledger = JSON.parse(fs.readFileSync("artifacts/fashion-u8/attempt-ledger.json", "utf8"));
-          const started = ledger[0];
+          const started = [...ledger].reverse().find((event) => event.status === "started");
+          if (!started) throw new Error("current machine attempt has no started event");
           let report;
           try { report = JSON.parse(fs.readFileSync("artifacts/fashion-u8/terminal-report.json", "utf8")); } catch {}
           const cleanup = report?.cleanup?.passed ? "complete" : report?.cleanup?.attempted ? "failed" : "not-required";

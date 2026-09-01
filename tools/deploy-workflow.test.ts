@@ -878,6 +878,15 @@ describe("private storefront preview workflow", () => {
     expect(metadata).toContain("continue-on-error: true");
     expect(metadata).toContain("timeout-minutes: 2");
   });
+
+  test("classifies the current U8 retry instead of reopening the first ledger attempt", async () => {
+    const workflow = await readFile(fashionU8AcceptanceWorkflowPath, "utf8");
+
+    expect(workflow).toContain(
+      'const started = [...ledger].reverse().find((event) => event.status === "started");',
+    );
+    expect(workflow).not.toContain("const started = ledger[0];");
+  });
 });
 
 describe("governed Fashion staging preparation workflow", () => {

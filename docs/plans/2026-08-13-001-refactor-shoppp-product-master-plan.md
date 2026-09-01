@@ -77,13 +77,20 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Pass post-commit for the explicit acceptance-candidate input correction and this
-  synchronized pointer, refreeze candidate `4fe21a47` on that exact-main harness, and prepare a
-  fresh run while superseding approved `fashion-u8-33377459110` to terminal `expired` without
+- **Next action:** Integrate and pass post-commit for the acceptance recovery-owner and
+  current-attempt ledger-classification correction, refreeze candidate `4fe21a47` on that exact-main
+  harness, and prepare a fresh run while superseding approved `fashion-u8-33458411356` without
   clearing its immutable evidence. Repeat the named-operator path through Preview and approval;
-  refresh must emit and exit with exact `preview-dispatch.json`, after which an authorized Fashion
-  staging operator separately dispatches the fixed-main successor Preview and terminal acceptance.
-- **Blocker:** Shared post-commit/OIDC authority and the prior U12/Preview baseline remain proven,
+  refresh must emit exact `preview-dispatch.json`, after which the separately authorized fixed-main
+  successor Preview and terminal acceptance must pass.
+- **Blocker:** Run `33458411356` completed the named-operator browser path and approval; operator
+  Preview `33459783689`, refresh `33460520278`, and successor Preview `33460584382` passed.
+  Acceptance `33461235943` stopped before its lock request because the protected seed-manifest
+  digest variable was absent; the exact readiness value is now configured. Retry `33461375025`
+  then exposed wrong-owner reconciliation and first-event ledger classification. Those harness
+  corrections are local and require exact-main integration plus a fresh run-bound replay; the old
+  approval cannot cross the harness boundary. Shared post-commit/OIDC authority and the prior
+  U12/Preview baseline remain proven,
   but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
   audit found no enabled reusable Fashion human identity; the user has therefore authorized one
   durable platform-level Fashion staging operator. The dedicated Fashion Admin and protected

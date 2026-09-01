@@ -109,6 +109,12 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+export function fashionU8OwnerForRun(runId: string): string {
+  const owner = `fashion-u8-${runId}`;
+  assert(IDENTIFIER.test(runId) && IDENTIFIER.test(owner), "runId cannot form a stable U8 owner");
+  return owner;
+}
+
 export function assertFashionU8RunManifest(value: FashionU8RunManifest): FashionU8RunManifest {
   assert(value.schemaVersion === 1, "schemaVersion must be 1");
   assert(SHA.test(value.candidateSha), "candidateSha must be one full lowercase SHA");
@@ -557,12 +563,15 @@ function lifecycleForManifest(
   manifest: FashionU8TerminalManifest,
   environment: Record<string, string | undefined>,
 ): FashionU8Lifecycle {
-  const baseEnvironment = (runId: string): Record<string, string | undefined> => ({
+  const baseEnvironment = (
+    runId: string,
+    ownerRunId = manifest.acceptanceRunId,
+  ): Record<string, string | undefined> => ({
     ...environment,
     FASHION_U12_ARTIFACT_DIGEST: manifest.successorArtifactDigest,
     FASHION_U12_CATALOG_RELEASE_ID: manifest.catalogReleaseId,
     FASHION_U12_COMMIT_SHA: manifest.candidateSha,
-    FASHION_U12_OWNER: `fashion-u8-${manifest.acceptanceRunId}`,
+    FASHION_U12_OWNER: fashionU8OwnerForRun(ownerRunId),
     FASHION_U12_RUN_ID: runId,
     FASHION_U12_SNAPSHOT_ID: manifest.successorSnapshotId,
   });
@@ -581,7 +590,7 @@ function lifecycleForManifest(
     cleanup: () => execute("cleanup"),
     failure: (failure) => execute("failure", { FASHION_U12_FAILURE: failure }),
     reconcile: (runId) =>
-      runFashionStagingU12(loadFashionStagingU12Config("reconcile", baseEnvironment(runId))),
+      runFashionStagingU12(loadFashionStagingU12Config("reconcile", baseEnvironment(runId, runId))),
     registerCart: (cartId) =>
       execute("register", {
         FASHION_U12_RESOURCE_ID: cartId,
