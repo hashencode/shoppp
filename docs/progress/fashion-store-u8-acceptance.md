@@ -1078,3 +1078,33 @@ title` instead of `fashion-store-home merchandising-title`.
 - **Handoff:** the cleanup-only tranche is terminal and passes. Product execution hands to
   `CI-U8.3`, followed by `CI-U11.1`; no fresh FS acceptance begins until that CI tail is complete and
   integrated into `main`.
+
+### cloud-u8-acceptance-20260901 — authenticated p95 diagnosis
+
+- **Kind/status:** `machine` / `failed, retained`.
+- **Frozen lineage:** candidate `4fe21a47950908489a9d892a085c484a3a619727`, harness
+  `80bb79af1d8887f1feab0b16f784c923f09ab27a`, run manifest
+  `12bc46baf5a5740dc0f9fe6feb1a2d82a6471fe72363eb599bb6ee7a3cc34247`, operator run
+  `fashion-u8-33462310594`, approved successor
+  `snapshot-approved-3217b1b053b6b95a0bb2e7053174c2bd`, and approval audit
+  `audit-fashion-u8-ddd2640ad730f83e8a50f84e26e17596`.
+- **Passing boundaries:** operator Preview `33462932654`, refresh `33463687204`, and successor
+  Preview `33463759777` passed on exact immutable inputs. The browser verified the private Preview
+  Catalog/Snapshot/theme/platform/content context and deterministic focus restoration to the launch
+  control.
+- **Terminal attempts:** `33464319476` classified `latency_probe_failed`; recovery continuation
+  `33464526468` classified `reconciliation_failed` because the prior U12 cleanup had already released
+  the lease; continuations `33464616359` and `33464880609` again classified
+  `latency_probe_failed`. Their append-only ledgers are retained and the operator approval remains
+  unconsumed.
+- **Read-only live diagnosis:** all 21 cart creations and resource registrations succeeded and the
+  U12 cleanup endpoint returned HTTP 200. The subsequent Preview revoke returned HTTP 400 because
+  the idempotent write middleware received no key. Shipping service calls were approximately
+  0.75–0.80 seconds before the separate Preview authorization hop, so the bridge client timer was
+  no longer measuring the inherited Commerce p95 metric.
+- **Correction evidence:** Preview responses now expose the actual `COMMERCE_API` service-call
+  duration in `Server-Timing`, the terminal probe consumes that duration while still calling only
+  the authenticated Preview `/api` bridge, and revoke uses a stable run-bound idempotency key. The
+  exact 20-sample, concurrency-4, 500 ms read, and 800 ms shipping thresholds remain unchanged.
+  Focused bridge/latency/U8/workflow tests pass 67 tests and 800 assertions; full typecheck and
+  formatting pass.

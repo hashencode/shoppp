@@ -92,6 +92,13 @@ async function timedRequest(
   if (!response.ok) {
     throw new Error(`${label} failed with ${response.status}`);
   }
+  const commerceDuration = /(?:^|,)\s*commerce;dur=([0-9]+(?:\.[0-9]+)?)(?:\s*(?:,|$))/.exec(
+    response.headers.get("Server-Timing") ?? "",
+  )?.[1];
+  if (commerceDuration !== undefined) {
+    const parsed = Number(commerceDuration);
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
   return duration;
 }
 

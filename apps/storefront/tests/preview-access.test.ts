@@ -128,6 +128,7 @@ describe("private Preview Commerce bridge", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(response.headers.get("Content-Type")).toBe("application/json");
     expect(response.headers.get("X-Request-Id")).toBe("request-commerce-1");
+    expect(response.headers.get("Server-Timing")).toMatch(/^commerce;dur=\d+\.\d{3}$/);
     expect(response.headers.get("Set-Cookie")).toBeNull();
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
     expect(response.headers.get("Content-Security-Policy")).toBeNull();

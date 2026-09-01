@@ -228,6 +228,9 @@ describe("Fashion staging U8 run evidence", () => {
           }
           if (url.endsWith("/revoke")) {
             expect(init?.method).toBe("POST");
+            expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+              "fashion-u8-preview-revoke-fashion-u8-acceptance-1",
+            );
             return Response.json({ data: { revoked: true } });
           }
           throw new Error(`unexpected request ${url}`);

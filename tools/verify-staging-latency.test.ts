@@ -125,6 +125,34 @@ describe("staging latency verifier", () => {
     expect(cleanupCount).toBe(1);
   });
 
+  test("uses authenticated bridge Commerce timing when the Preview response provides it", async () => {
+    let cartNumber = 0;
+    let wallClock = 0;
+    const report = await runStagingLatencyProbe(
+      stagingLatencyConfig("fashion-u8-bridge-timing"),
+      async (input, init) => {
+        const url = String(input);
+        if (url.endsWith("/api/cart") && init?.method === "POST") {
+          cartNumber += 1;
+          return Response.json({
+            data: { cart: { id: `cart-${cartNumber}` }, token: `token-${cartNumber}` },
+          });
+        }
+        wallClock += 2_000;
+        return Response.json(
+          { data: {} },
+          { headers: { "Server-Timing": "commerce;dur=125.500" } },
+        );
+      },
+      { cleanup: async () => undefined, registerCart: async () => undefined },
+      () => wallClock,
+    );
+
+    expect(report.catalogReadP95Ms).toBe(125.5);
+    expect(report.cartReadP95Ms).toBe(125.5);
+    expect(report.shippingMutationP95Ms).toBe(125.5);
+  });
+
   test("waits through in-progress replay and registers the original cart after a lost response", async () => {
     const events: string[] = [];
     let cleanupCount = 0;

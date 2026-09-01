@@ -376,6 +376,7 @@ export async function runFashionStagingU8(
             headers: {
               Authorization: `Bearer ${config.serviceToken}`,
               "Content-Type": "application/json",
+              "Idempotency-Key": `fashion-u8-preview-revoke-${manifest.acceptanceRunId}`,
             },
             method: "POST",
           },

@@ -481,12 +481,13 @@ function commerceRequestHeaders(
   return headers;
 }
 
-function commerceResponse(upstream: Response): Response {
+function commerceResponse(upstream: Response, durationMs: number): Response {
   const headers = new Headers({ "Cache-Control": "private, no-store" });
   for (const name of ["Content-Type", "Retry-After", "X-Request-Id"] as const) {
     const value = upstream.headers.get(name);
     if (value) headers.set(name, value);
   }
+  headers.set("Server-Timing", `commerce;dur=${Math.max(0, durationMs).toFixed(3)}`);
   return new Response(upstream.body, { headers, status: upstream.status });
 }
 
@@ -541,6 +542,7 @@ async function forwardCommerce(
     redirect: "manual",
   });
   let upstream: Response;
+  const commerceStartedAt = performance.now();
   try {
     if (!environment.COMMERCE_API) throw new Error("Commerce binding is missing.");
     upstream = await environment.COMMERCE_API.fetch(upstreamRequest);
@@ -550,7 +552,7 @@ async function forwardCommerce(
   if (upstream.status >= 300 && upstream.status < 400) {
     return responseWithSecurity("Commerce returned an unexpected redirect.", origin, 502);
   }
-  return commerceResponse(upstream);
+  return commerceResponse(upstream, performance.now() - commerceStartedAt);
 }
 
 async function redeemGrant(
