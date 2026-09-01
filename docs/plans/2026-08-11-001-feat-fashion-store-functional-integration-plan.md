@@ -352,9 +352,9 @@ U13 add-only probe do not establish overall completion.
   succeeded, while Preview revocation returned HTTP 400 because its write lacked an idempotency key;
   it also proved that the probe was adding Preview-session authorization time to the inherited
   Commerce-only 500/800 ms thresholds. The bounded correction adds a stable revoke idempotency key
-  and has the authenticated Preview bridge expose only its real `COMMERCE_API` service-call duration
-  through `Server-Timing`; the probe still calls only the authenticated Preview `/api` bridge and
-  retains the exact sample count, concurrency, and thresholds. Focused bridge, latency, U8,
+  and pairs every authenticated Preview `/api` sample with a same-session authenticated context
+  control so only the bridge's Commerce duration is compared with the inherited budget; the probe
+  retains the exact sample count, concurrency, and thresholds. Focused latency, U8,
   workflow, and full typecheck evidence is green locally. The correction must reach exact main and
   a new harness/run-bound replay; the old approval cannot cross the changed harness boundary.
   Historical evidence follows. Cloud successor, protected immutable-ID OIDC authority,

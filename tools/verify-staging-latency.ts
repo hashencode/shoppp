@@ -92,14 +92,27 @@ async function timedRequest(
   if (!response.ok) {
     throw new Error(`${label} failed with ${response.status}`);
   }
-  const commerceDuration = /(?:^|,)\s*commerce;dur=([0-9]+(?:\.[0-9]+)?)(?:\s*(?:,|$))/.exec(
-    response.headers.get("Server-Timing") ?? "",
-  )?.[1];
-  if (commerceDuration !== undefined) {
-    const parsed = Number(commerceDuration);
-    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
-  }
   return duration;
+}
+
+export async function timedCommerceRequest(
+  label: string,
+  fetcher: StagingLatencyFetch,
+  input: RequestInfo | URL,
+  init: RequestInit,
+  config: StagingLatencyConfig,
+  now: () => number,
+): Promise<number> {
+  const authorizationDuration = await timedRequest(
+    "preview authorization control",
+    fetcher,
+    `${config.previewOrigin}/__preview/context`,
+    { headers: { Cookie: config.previewCookie } },
+    config.timeoutMs,
+    now,
+  );
+  const totalDuration = await timedRequest(label, fetcher, input, init, config.timeoutMs, now);
+  return Math.max(0, totalDuration - authorizationDuration);
 }
 
 function assertConfig(config: StagingLatencyConfig): void {
@@ -255,28 +268,28 @@ export async function runStagingLatencyProbe(
     });
 
     const warmupToken = cartTokens[0]!;
-    await timedRequest(
+    await timedCommerceRequest(
       "catalog read",
       fetcher,
       catalogUrl,
       { headers: commonHeaders },
-      config.timeoutMs,
+      config,
       now,
     );
-    await timedRequest(
+    await timedCommerceRequest(
       "cart read",
       fetcher,
       `${config.previewOrigin}/api/cart`,
       cartInit(warmupToken),
-      config.timeoutMs,
+      config,
       now,
     );
-    await timedRequest(
+    await timedCommerceRequest(
       "shipping mutation",
       fetcher,
       `${config.previewOrigin}/api/cart/shipping`,
       shippingInit(warmupToken, 0),
-      config.timeoutMs,
+      config,
       now,
     );
 
@@ -285,22 +298,22 @@ export async function runStagingLatencyProbe(
     const cartDurationsMs: number[] = [];
     for (const token of measuredTokens) {
       catalogDurationsMs.push(
-        await timedRequest(
+        await timedCommerceRequest(
           "catalog read",
           fetcher,
           catalogUrl,
           { headers: commonHeaders },
-          config.timeoutMs,
+          config,
           now,
         ),
       );
       cartDurationsMs.push(
-        await timedRequest(
+        await timedCommerceRequest(
           "cart read",
           fetcher,
           `${config.previewOrigin}/api/cart`,
           cartInit(token),
-          config.timeoutMs,
+          config,
           now,
         ),
       );
@@ -309,12 +322,12 @@ export async function runStagingLatencyProbe(
       measuredTokens,
       config.shippingConcurrency,
       (token, index) =>
-        timedRequest(
+        timedCommerceRequest(
           "shipping mutation",
           fetcher,
           `${config.previewOrigin}/api/cart/shipping`,
           shippingInit(token, index + 1),
-          config.timeoutMs,
+          config,
           now,
         ),
     );

@@ -4,6 +4,7 @@ import {
   mapWithConcurrency,
   percentile95,
   runStagingLatencyProbe,
+  timedCommerceRequest,
   type StagingLatencyConfig,
 } from "./verify-staging-latency";
 
@@ -83,10 +84,12 @@ describe("staging latency verifier", () => {
     expect(report.shippingDurationsMs).toHaveLength(20);
     expect(registered).toHaveLength(21);
     expect(cleaned).toBe(true);
-    expect(calls).toHaveLength(84);
+    expect(calls).toHaveLength(147);
     expect(
-      calls.every(({ url }) =>
-        url.startsWith("https://shoppp-storefront-fashion-preview.example.com/api/"),
+      calls.every(
+        ({ url }) =>
+          url.startsWith("https://shoppp-storefront-fashion-preview.example.com/api/") ||
+          url.endsWith("/__preview/context"),
       ),
     ).toBe(true);
     expect(
@@ -120,37 +123,26 @@ describe("staging latency verifier", () => {
           registerCart: async () => undefined,
         },
       ),
-    ).rejects.toThrow(/catalog read failed with 503/);
+    ).rejects.toThrow(/preview authorization control failed with 503/);
     expect(calls).toBe(22);
     expect(cleanupCount).toBe(1);
   });
 
-  test("uses authenticated bridge Commerce timing when the Preview response provides it", async () => {
-    let cartNumber = 0;
-    let wallClock = 0;
-    const report = await runStagingLatencyProbe(
-      stagingLatencyConfig("fashion-u8-bridge-timing"),
-      async (input, init) => {
-        const url = String(input);
-        if (url.endsWith("/api/cart") && init?.method === "POST") {
-          cartNumber += 1;
-          return Response.json({
-            data: { cart: { id: `cart-${cartNumber}` }, token: `token-${cartNumber}` },
-          });
-        }
-        wallClock += 2_000;
-        return Response.json(
-          { data: {} },
-          { headers: { "Server-Timing": "commerce;dur=125.500" } },
-        );
+  test("subtracts a paired authenticated context control from Preview API timing", async () => {
+    let clock = 0;
+    const duration = await timedCommerceRequest(
+      "catalog read",
+      async (input) => {
+        clock += String(input).endsWith("/__preview/context") ? 100 : 350;
+        return Response.json({ data: {} });
       },
-      { cleanup: async () => undefined, registerCart: async () => undefined },
-      () => wallClock,
+      "https://shoppp-storefront-fashion-preview.example.com/api/catalog/products/by-id/product-stable/live?currency=USD",
+      { headers: { Cookie: "__Host-shoppp-preview=session-secret" } },
+      stagingLatencyConfig("fashion-u8-bridge-timing"),
+      () => clock,
     );
 
-    expect(report.catalogReadP95Ms).toBe(125.5);
-    expect(report.cartReadP95Ms).toBe(125.5);
-    expect(report.shippingMutationP95Ms).toBe(125.5);
+    expect(duration).toBe(250);
   });
 
   test("waits through in-progress replay and registers the original cart after a lost response", async () => {
@@ -254,6 +246,7 @@ describe("staging latency verifier", () => {
               data: { cart: { id: `cart-${cartNumber}` }, token: `token-${cartNumber}` },
             });
           }
+          if (url.endsWith("/__preview/context")) return Response.json({ data: {} });
           clock += url.includes("/shipping")
             ? durations.shipping
             : url.includes("/catalog/")

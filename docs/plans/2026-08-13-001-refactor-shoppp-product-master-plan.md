@@ -92,8 +92,8 @@ historical evidence remain unchanged inside the owning plans.
   `33464616359`, and `33464880609` failed terminally without consuming approval. Live Worker tail
   proved U12 cleanup succeeded but Preview revoke returned HTTP 400 without an idempotency key, and
   the probe had combined Preview authorization overhead with the inherited Commerce-only p95
-  budget. The bounded local correction adds idempotent revocation and authenticated-bridge
-  `COMMERCE_API` timing while retaining the exact 20 samples, concurrency 4, and 500/800 ms
+  budget. The bounded local correction adds idempotent revocation and a paired same-session
+  authenticated context control while retaining the exact 20 samples, concurrency 4, and 500/800 ms
   thresholds. It requires exact-main integration and a fresh run-bound replay; the old approval
   cannot cross the harness boundary. Shared post-commit/OIDC authority and the prior
   U12/Preview baseline remain proven,

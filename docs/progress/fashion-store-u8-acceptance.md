@@ -1102,9 +1102,10 @@ title` instead of `fashion-store-home merchandising-title`.
   the idempotent write middleware received no key. Shipping service calls were approximately
   0.75–0.80 seconds before the separate Preview authorization hop, so the bridge client timer was
   no longer measuring the inherited Commerce p95 metric.
-- **Correction evidence:** Preview responses now expose the actual `COMMERCE_API` service-call
-  duration in `Server-Timing`, the terminal probe consumes that duration while still calling only
-  the authenticated Preview `/api` bridge, and revoke uses a stable run-bound idempotency key. The
+- **Correction evidence:** every authenticated Preview `/api` sample is paired with a same-session
+  authenticated context control, so the terminal probe compares only the bridge's Commerce duration
+  while continuing to use the protected Preview boundary; revoke uses a stable run-bound
+  idempotency key. The
   exact 20-sample, concurrency-4, 500 ms read, and 800 ms shipping thresholds remain unchanged.
-  Focused bridge/latency/U8/workflow tests pass 67 tests and 800 assertions; full typecheck and
+  Focused bridge/latency/U8/workflow tests pass 67 tests and 797 assertions; full typecheck and
   formatting pass.
