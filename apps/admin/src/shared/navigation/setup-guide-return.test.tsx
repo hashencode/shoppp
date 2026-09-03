@@ -46,6 +46,6 @@ describe('SetupGuideReturn', () => {
   })
   it('preserves the deployment base in the fixed return link', () => {
     renderReturn('/admin/settings/shipping?from=setup-guide', true, '/admin')
-    expect(screen.getByRole('link')).toHaveAttribute('href', '/admin/welcome')
+    expect(screen.getByRole('link').getAttribute('href')).toBe('/admin/welcome')
   })
 })

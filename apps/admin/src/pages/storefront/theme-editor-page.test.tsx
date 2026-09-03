@@ -508,7 +508,7 @@ afterAll(async () => {
 describe('ThemesPage', () => {
   it('preserves the guide marker when opening an existing draft', async () => {
     const { router } = renderThemes('admin', '?from=setup-guide')
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit', exact: true }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
     await screen.findByText('CREATED_EDITOR')
     expect(router.state.location.search).toBe('?from=setup-guide')
   })
@@ -554,7 +554,7 @@ describe('ThemesPage', () => {
 describe('ThemeEditorPage', () => {
   it('preserves the guide marker when returning to the theme list', async () => {
     const { router } = renderEditor('admin', 60_000, undefined, '?from=setup-guide')
-    fireEvent.click(await screen.findByRole('button', { name: 'Storefront themes', exact: true }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Storefront themes' }))
     await screen.findByText('THEME_LIST')
     expect(router.state.location.search).toBe('?from=setup-guide')
   })

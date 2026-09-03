@@ -108,7 +108,7 @@ describe('LaunchSettingsPage', () => {
     fireEvent.change(screen.getByLabelText('Change reason'), {
       target: { value: 'Change default currency' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
       expect(submitted).toEqual([
         {
@@ -126,8 +126,8 @@ describe('LaunchSettingsPage', () => {
   it('disables fields and hard-blocks a forced readonly form submission', async () => {
     renderPage(false)
     const email = await screen.findByLabelText('Support email')
-    expect(email).toBeDisabled()
-    expect(screen.queryByRole('button', { name: 'Save', exact: true })).toBeNull()
+    expect((email as HTMLInputElement).disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     fireEvent.change(screen.getByLabelText('Change reason'), {
       target: { value: 'Forced readonly request' },
     })
@@ -149,7 +149,7 @@ describe('LaunchSettingsPage', () => {
     expect(await screen.findByText('Healthy')).toBeTruthy()
     expect(screen.queryByLabelText('Support email')).toBeNull()
     server.use(http.get('*/admin/settings/launch', () => HttpResponse.json({ data: status })))
-    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByLabelText('Support email')).toBeTruthy()
   })
   it('keeps unsaved inputs and offers recovery when saving fails', async () => {
@@ -166,9 +166,11 @@ describe('LaunchSettingsPage', () => {
     fireEvent.change(screen.getByLabelText('Change reason'), {
       target: { value: 'Keep this reason' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Request failed. Please try again later.')).toBeTruthy()
-    expect(screen.getByLabelText('Change reason')).toHaveValue('Keep this reason')
-    expect(screen.getByRole('button', { name: 'Save', exact: true })).not.toBeDisabled()
+    expect((screen.getByLabelText('Change reason') as HTMLTextAreaElement).value).toBe(
+      'Keep this reason'
+    )
+    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(false)
   })
 })

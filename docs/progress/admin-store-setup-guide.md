@@ -47,3 +47,41 @@ Guide simplification ran all three ce-simplify-code personas. No reuse/quality f
 Host Rstest: launch-settings, setup-guide-return, catalog-list, catalog-form, theme-editor, standard-list-page-recipe, app-shell and shipping-settings: 8 files / 90 tests passed. This includes complete payload/reason saving with a failed health request, readonly forced-submit blocking, independent recovery, failed-save input retention, fixed return route allowlisting and basename, catalog form returns, and successor draft query preservation. The shared list callback is optional; existing default navigation continues through its original hook and shared recipe suite.
 
 U3 simplification completed all three personas. Reused the canonical FormMode type (type-only change); no quality findings. Deferred the optional request-cancellation suggestion for the two settings reads: existing request counters already protect state, these loads do not poll or repeatedly overlap, and retry is exposed after failure. No permission or stale-result guard was removed. Final build verifies the type-only adjustment. Shared-file staging includes only the nine new guide-return/settings keys and AppShell's return component, leaving other concurrent translations and breadcrumb work untouched.
+
+## Browser and final static verification
+
+The retained Playwright suite uses explicit mock administrator sessions and API fixtures. Its save handler parses the existing update contract and verifies the reason and idempotency header. The desktop and mobile journeys change USD to EUR, save, return to a fresh 12/13 summary, and traverse browser back/forward. A failed operational-health request does not block the save. Other cases cover restricted fixed progress, readonly settings, unknown return markers, staff homepage fallback, revoked guide access and Chinese dark-mode collapse/expand. A settings link is activated with the keyboard. Document and content widths are checked for overflow.
+
+- Root deployment: setup-guide and scaffold-smoke, 7/7 passed; the final English mobile readonly variant also passed independently.
+- `/admin` deployment: the same 7/7 passed after final link-affordance styling. The configured web server ran `tsc -b` and the test build successfully before the suite.
+- Desktop 1440×900, mobile 390×844, Chinese dark mobile and lower policy/manual-task screenshots were visually inspected. Links were underlined after the first inspection; final desktop and dark mobile screenshots were inspected again. Local images are retained under `/Users/studio/.codex/visualizations/2026/09/03/01a065f2-30e1-7f60-b4d5-cec6bd2d460a/` as `guide-desktop.png`, `guide-mobile.png`, `guide-mobile-zh-dark.png` and `guide-mobile-zh-dark-policies.png`.
+- The first Admin build caught test-only typing errors: unsupported RTL role-query `exact` options and matchers absent from Rstest's types. Tests now use exact role names and equivalent native element properties. The four affected suites passed again: 4 files / 44 tests. The explicit Admin `build:test` then passed, including TypeScript.
+- Changed-file Admin/API ESLint and Admin/backend Prettier checks passed. API and contracts typechecks passed; Admin typing is covered by the build. No broad cross-template or release acceptance run was used as feature evidence.
+
+Local logs: `/tmp/shoppp-setup-root-browser.log`, `/tmp/shoppp-setup-mobile-restricted.log`, `/tmp/shoppp-setup-subpath-browser.log`, `/tmp/shoppp-setup-final-rtl.log` and `/tmp/shoppp-setup-build.log`. The Playwright Node harness reports its existing NO_COLOR/FORCE_COLOR conflict; this is not an application console failure. Task preview servers were stopped after verification. Nothing was deployed.
+
+## Requirement closure
+
+| Requirement | Implementation and evidence |
+| --- | --- |
+| R1 | Settings readers land on the guide; authorized-home/route/menu suites and browser staff fallback preserve other users' entry and deep links. |
+| R2 | Six freely accessible steps with text status and permitted destinations; guide suite and desktop/mobile browser journeys. |
+| R3 | Existing commercial-settings URL, four anchored groups and full audited save; settings tests and browser save/return journey. |
+| R4 | Server-side saved configuration, authoritative SKU availability, shipping association and environment facts; Workers and contract fixtures. |
+| R5 | Distinct passed/action/unavailable/restricted/loading states; isolated domain failures, denied access and retry fixtures. |
+| R6 | Contract-enforced fixed 13 checks; restricted and failed checks retain the denominator in API, page and browser coverage. |
+| R7 | Initial/return/manual reload, cancellation and response-identity guard; A→B→A regression, changed-currency return and history tests. |
+| R8 | Manual preview/policy/shopping-flow prompts remain separate; all-green fixture still displays manual verification. No completion record or launch operation was added. |
+| R9 | Domain queries and links honor permissions, credentials are excluded, readonly forced submit is blocked; Workers, contracts, settings and browser permission cases. |
+| R10 | Page-local collapse with visible summary and reopen on issues/failure; page suite and Chinese mobile browser interactions. |
+| R11 | Existing page recipes, translated labels, responsive layout and Ant Design controls; locale/layout suites, visual inspection and independent health recovery. |
+
+F1–F3 and AE1–AE6 are represented by the default/return journeys, fresh-result and permission-failure tests above. No implementation question remains unresolved. The maintenance runbook records check limits, extension points, manual verification and deployment-owner recovery. These local results do not establish real-account, provider-connectivity, candidate or production readiness.
+
+## Completed code review
+
+`ce-code-review mode:agent` completed with `status: complete`, run ID `20260903-adm-setup`, artifact directory `/tmp/ce-code-review/20260903-adm-setup`. All 11 selected reviewers completed: correctness, security, project standards, testing, maintainability, API contract, SQL performance, reliability, adversarial, frontend races and learnings. Actionable findings: none; no fix batches or unresolved actionable residuals. All R1–R11 were assessed as met. The local adversarial reviewer substituted for an unavailable independent model route; no cross-model independence is claimed.
+
+The review covered feature commits above base `61eab54e`, the final test-typing/link-style working changes, and the new E2E/runbook files. It excluded concurrent dashboard/report/breadcrumb/AI-rule/generated-experience changes. A non-blocking coverage observation remains: the legacy launch endpoint does not have a separate populated active/inactive fixture for every extracted aggregate; its endpoint baseline and the new endpoint's detailed extracted-check fixtures passed, and review found no changed legacy semantics. This observation did not produce an actionable finding or require another broad test run.
+
+Final document references resolve and `git diff --check` passed. Delivery uses local commits on the existing primary branch; no push, PR, deployment, or candidate/production gate advancement is part of this work.

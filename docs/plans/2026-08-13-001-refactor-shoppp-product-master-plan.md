@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-09-03-1445-feat-admin-store-setup-guide-plan.md
-current_unit: ADM-SETUP-U4
+current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
+current_unit: REL-Pre-DC
 ---
 
 # Shoppp Product Master Plan
@@ -66,9 +66,10 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `ADM-SETUP` — [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md), authorized for implementation on 2026-09-03.
-- **Current parent/child stage:** `ADM-SETUP-U4` — verify browser journeys and permission boundaries.
-- **Product order and tail:** Complete ADM-SETUP implementation and local verification, then return to REL-Pre-DC; REL retains candidate and production authority.
+- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
+- **Current parent/child stage:** `REL-Pre-DC` — reconcile the intended release capability set and
+  finish complete candidate-identity enforcement before any candidate is frozen.
+- **Feature handoff:** `ADM-SETUP` completed its authorized guide implementation, local verification and documentation on 2026-09-03. Its plan retains completed feature evidence; product execution returns to REL-Pre-DC without advancing candidate or production gates.
 - **Corrective handoff:** `FS-F2` completed its shared-style correction on 2026-09-03 and returned the pointer to `REL-Pre-DC`; it retains correction evidence and does not change candidate or production gates.
 - **Historical FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
   enabled U8 identities and 23/23 sessions revoked; retry29 remains excluded v3 evidence with no
@@ -77,8 +78,11 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Verify desktop/mobile and /admin subpath journeys, then complete scoped quality gates.
-- **Blocker:** None for ADM-SETUP; REL still requires capability-scope reconciliation and candidate-identity enforcement before DC1.
+- **Next action:** Audit the intended release capability set and approved deferrals against every
+  owning plan, then complete `release:validate` enforcement for the full immutable candidate
+  identity. Do not begin DC1 until every Pre-DC row passes.
+- **Blocker:** `REL-Pre-DC` remains blocked by unaudited product capability scope and incomplete
+  candidate-identity enforcement; Fashion Store U8 is no longer a blocker.
 - **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
   post-commit `33461845421` passed. Fresh
   preparation `33462310594`, complete named-operator browser path, operator Preview `33462932654`,
@@ -417,7 +421,7 @@ focused test alone.
 | `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
 | `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **Complete — corrected post-commit run `33234977617` and protected OIDC proof in U12 run `33235176429` passed** | Verified baseline returned to `FS-U8.2`; the later invalid Cloudflare credential is a Fashion environment blocker |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
-| `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md) | Bounded Admin onboarding feature over COM/THEME/IAM | Active at U4; authorized setup-guide implementation, then return to REL-Pre-DC | Owns guide implementation and verification; existing product contracts and REL retain their authority |
+| `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md) | Bounded Admin onboarding feature over COM/THEME/IAM | Complete — U1–U5 closed on 2026-09-03; guide implementation, local verification and maintenance documentation delivered | Retains completed guide evidence with no implementation tail; existing product contracts and REL retain their authority |
 
 ## Decision hierarchy and supersessions
 
@@ -449,7 +453,10 @@ focused test alone.
    GitHub-independent release obligations it names. It preserves completed CI history and all
    release-quality, exact-source, protected-deployment, rollback, credential, REL, DC, PG, and
    production-approval boundaries. On closure it returns tail ownership to `CI-U8.3`, followed by
-   `CI-U11.1`, rather than becoming a second permanent CI plan.
+  `CI-U11.1`, rather than becoming a second permanent CI plan.
+10. The completed Admin Store Setup Guide replaces the default root landing for settings readers,
+    the welcome content and the location of setup-check presentation. Existing commercial rules,
+    audited saves, launch API semantics, theme workflows and REL/DC/PG authority remain inherited.
 
 The 2026-08-13 product decision explicitly supersedes earlier wording that retained only
 `fashion-store` and removed both `fashion` and `decor`:

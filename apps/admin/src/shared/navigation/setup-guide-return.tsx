@@ -28,7 +28,7 @@ export const SetupGuideReturn = () => {
   )
     return null
   return (
-    <Link className="mb-3 inline-block" to="/welcome">
+    <Link className="mb-3 inline-block underline underline-offset-4" to="/welcome">
       {t('Back to store setup guide')}
     </Link>
   )

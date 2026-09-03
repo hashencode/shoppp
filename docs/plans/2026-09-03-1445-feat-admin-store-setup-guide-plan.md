@@ -16,7 +16,7 @@ plan_role: active-feature
 - **目标：** 管理员打开后台即可知道开店前需要完成哪些准备、哪些配置存在问题，以及下一步在哪里处理。
 - **方法：** 将欢迎入口建设为六步开店指南，复用商业配置和既有校验，补充最小商品、配送检查，并链接已有编辑页面。
 - **范围：** Admin 页面、权限内只读检查摘要、原上线设置的分组与返回导航；保留支付、主题预览和发布流程。
-- **执行：** 用户已于 2026-09-03 授权实施。在现有主工作树按 U1 → U2 → U3 → U4 → U5 执行，使用本地验证及仓库 branch/main 流程。
+- **执行：** 用户于 2026-09-03 授权实施，U1 → U2 → U3 → U4 → U5 已在现有主工作树完成，使用本地验证及本地提交交付。
 - **尾项：** 本计划拥有引导功能、回归和交付文档；候选及生产批准继续由 REL 治理。
 - **停止条件：** 如实施需要新增真实支付操作、修改发布门禁、扩张读写权限或引入独立店铺模型，先记录范围冲突。
 
@@ -26,19 +26,20 @@ plan_role: active-feature
 
 - **上游产品权威：** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` 管理注册和产品顺序；`docs/plans/2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md` 的 COM-R29、R30、R33、R34、R43–R45、R47 与 KTD14 继续约束商业配置、权限、政策和人工判断。
 - **继承基线：** COM-U12 已有上线配置与运行健康能力；`docs/plans/2026-08-04-001-feat-multi-user-admin-access-plan.md` 的 IAM-R7、R9、R10、R12、R19、KTD11 及后续有效认证实现；`docs/plans/2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md` 的 THEME-R6–R10 和其 2026-08-12 状态增补。所有原 R/F/AE/KTD/U 标识保留原义。
-- **明确替代：** 本计划激活并交付后，仅替代有设置读取权限用户的默认首页落点、欢迎内容，以及“上线设置”中的准备检查展示位置。商业规则、保存审计、现有 API 契约和正式发布条件不被替代。
+- **明确替代：** 本计划已交付，仅替代有设置读取权限用户的默认首页落点、欢迎内容，以及“上线设置”中的准备检查展示位置。商业规则、保存审计、现有 API 契约和正式发布条件不被替代。
 - **并行计划：** FS-F2 样式修正已完成；本计划作为用户授权的实施插入项，完成后返回 REL-Pre-DC；Admin 已有能力适配、DS 和 CI 的既有职责继续有效。本计划不是这些计划的完成证据。
-- **注册与尾项：** 主计划登记别名 `ADM-SETUP`，分类 Active，当前执行 ADM-SETUP-U4，完成后返回 REL-Pre-DC。激活时同步更新主计划指针和本文检查点；新增 U 及相关修补均归本文。
+- **注册与尾项：** 主计划登记别名 `ADM-SETUP`，分类 Complete，产品执行指针已交回 REL-Pre-DC。本文保留本功能的完成证据和检查口径；无未完成实施尾项。后续本功能修补由本文或明确命名的后继计划负责，候选及生产门禁由 REL 负责。
 - **模板边界：** Shoppp 是一个产品，模板为 `fashion-store` 和 `decor-store`（代码 ID `decor`）。引导不要求两个模板同时完成，不从任意草稿或预览推断线上模板；正式跨模板回归属于 DC3。
 
 ---
 
 ## Execution Checkpoint
 
-- **分类：** Active；用户已授权实施。
-- **当前单元：** U1–U3 Complete；U4 In progress；U5 Not started。
+- **分类：** Complete；2026-09-03 完成授权范围内的实施、验证和交付文档。
+- **当前单元：** 无；U1、U2、U3、U4、U5 均为 Complete。
 - **阻塞：** 无。
-- **下一具体动作：** 执行 U4 的桌面、移动端与 /admin 子路径浏览器旅程及最终质量门禁。
+- **下一具体动作：** 本计划无待执行动作；产品指针交回 REL-Pre-DC 的能力范围与候选身份核对，不因本功能完成而推进 DC/PG。
+- **完成依据：** [验证证据](../progress/admin-store-setup-guide.md) 记录 R1–R11 闭环、Workers/contracts/Admin 测试、根路径及 /admin 浏览器结果、构建与完整代码审查回执；[维护说明](../runbooks/admin-store-setup-guide.md) 记录口径与恢复方式。本地提交仅包含本任务内容，保留其他任务未提交改动。
 - **更新规则：** 状态、当前/下一单元、执行顺序或尾项改变时，同步本文与主计划；测试和截图证据写入 `docs/progress/admin-store-setup-guide.md`，不另建单元队列。
 
 ---
@@ -170,7 +171,7 @@ stateDiagram-v2
 - `apps/admin/docs/ai/README.md`、`ai-rules.md`、`page-recipes.yaml`、`component-catalog.yaml` 与 `apps/admin/docs/testing-standards.md`：页面及验证约定，实施前按 Admin AGENTS 的次序阅读。
 - `docs/solutions/workflow-issues/github-first-release-resilience-for-solo-maintainers-2026-08-28.md`：配置检查与正式发布证据分离的相邻经验。
 
-现有本地代码足以确定该方案，不新增外部服务集成或库选型。本次未执行连通性检测、测试或构建。
+规划阶段以现有本地代码确定方案，未新增外部服务集成或库选型，未执行连通性检测、测试或构建。实施阶段的实际验证见完成证据。
 
 ---
 
@@ -261,7 +262,7 @@ stateDiagram-v2
 
 ## Verification Contract
 
-- **本次规划为 L0：** 仅检查文档 diff、格式、引用和主计划注册；不运行测试、typecheck 或 build。
+- **规划阶段为 L0：** 仅检查文档 diff、格式、引用和主计划注册；当时不运行测试、typecheck 或 build。
 - **实施为 L3：** 按 `apps/admin/docs/testing-standards.md`，以 import/reference、barrel 和 workspace 依赖列出消费者及 suites；最少覆盖指南、设置、相关导航、权限、API、contracts。不能只测新页面。
 - **定向单测：** 使用 Admin `bun run test <files>`、API `bun run test:workers <files>` 和 contracts `bun test <files>` 各自已有入口，文件由 U1–U4 指定。复用原配置和配送测试证明兼容。
 - **浏览器：** 通过 Admin `test:e2e` 定向执行 setup-guide 和受影响 smoke；按现有约定先构建预览或连接明确的已构建候选。需要本地构建时使用包含 typecheck 的 build，不再重复 Admin typecheck。

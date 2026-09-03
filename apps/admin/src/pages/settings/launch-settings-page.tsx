@@ -123,7 +123,9 @@ export const LaunchSettingsPage = () => {
     <div className="space-y-4">
       {canRead && status ? <Tag>{t(ENVIRONMENT_LABEL[status.environment])}</Tag> : null}
       {canRead && new URLSearchParams(location.search).get('from') !== 'setup-guide' ? (
-        <Link to="/welcome">{t('View store setup checks')}</Link>
+        <Link className="underline underline-offset-4" to="/welcome">
+          {t('View store setup checks')}
+        </Link>
       ) : null}
       <BasicCrudFormRecipe<FormValues>
         spec={{

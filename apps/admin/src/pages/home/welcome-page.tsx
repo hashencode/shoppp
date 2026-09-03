@@ -230,6 +230,7 @@ export const WelcomePage = () => {
 
   return (
     <CustomPageRecipe
+      className="[&_a]:underline [&_a]:underline-offset-4"
       extra={
         can('reporting.read') ? <Link to="/dashboard">{t('Commerce dashboard')}</Link> : undefined
       }

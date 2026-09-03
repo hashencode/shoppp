@@ -145,7 +145,7 @@ describe('Catalog setup navigation', () => {
       </AuthTestProvider>
     )
     await screen.findByText('Carry-on')
-    fireEvent.click(screen.getByRole('button', { name: label, exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: label }))
     await waitFor(() =>
       expect(
         screen.getByText(
