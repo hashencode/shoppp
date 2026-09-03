@@ -11,6 +11,8 @@ import type { AuthContextValue } from '../../infrastructure/auth/auth-context'
 import { renderInLocale } from '../../test/render-in-locale'
 import { LANGUAGE_STORAGE_KEY, type AppLocale } from '../contexts/i18n-context'
 
+import { templateRoutes } from '../../routes/routes.config'
+
 void React
 
 if (!window.matchMedia) {
@@ -119,6 +121,20 @@ const renderShellWithRouteMeta = () =>
 describe('AppShell', () => {
   beforeEach(() => {
     window.localStorage.clear()
+  })
+
+  it('replaces the old welcome menu with one authorized setup guide entry', () => {
+    renderShell({ routes: templateRoutes })
+    expect(screen.getAllByRole('menuitem', { name: /开店指南/ })).toHaveLength(1)
+    expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: /商业设置/ })).toBeTruthy()
+  })
+
+  it('omits setup navigation for staff without settings access', () => {
+    renderShell({ routes: templateRoutes, auth: { permissions: ['catalog.read'] } })
+    expect(screen.queryByRole('menuitem', { name: /开店指南/ })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: /商品目录/ })).toBeTruthy()
   })
 
   it('shows the account name next to the avatar and copies it from the user menu', async () => {

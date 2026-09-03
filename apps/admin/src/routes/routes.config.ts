@@ -14,6 +14,7 @@ import {
   GlobalOutlined,
   TeamOutlined,
   KeyOutlined,
+  SmileOutlined,
 } from '@ant-design/icons'
 import { createElement, type ReactNode } from 'react'
 import { type PermissionKey } from '../infrastructure/auth/permissions'
@@ -34,6 +35,19 @@ export type TemplateRoute = {
 }
 
 const commerceRoutes: TemplateRoute[] = [
+  {
+    key: 'setup-guide',
+    path: '/welcome',
+    title: 'Store setup guide',
+    icon: createElement(SmileOutlined),
+    permission: 'settings.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    component: () =>
+      lazyPage(() =>
+        import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))
+      ),
+  },
   {
     key: 'commerce-dashboard',
     path: '/dashboard',
@@ -210,12 +224,12 @@ const commerceRoutes: TemplateRoute[] = [
   {
     key: 'launch-settings',
     path: '/settings/launch',
-    title: 'Launch settings',
+    title: 'Commercial settings',
     icon: createElement(SettingOutlined),
     permission: 'settings.read',
     inMenu: true,
     menuMode: 'standalone',
-    breadcrumb: ['Settings', 'Launch'],
+    breadcrumb: ['Settings', 'Commercial settings'],
     component: () =>
       lazyPage(() =>
         import('../pages/settings/launch-settings-page').then((m) => ({
@@ -281,9 +295,7 @@ const commerceRoutes: TemplateRoute[] = [
     menuGroup: 'Access management',
     breadcrumb: ['Access management', 'Users & invitations'],
     component: () =>
-      lazyPage(() =>
-        import('../pages/iam/users-page').then((m) => ({ default: m.UsersPage }))
-      ),
+      lazyPage(() => import('../pages/iam/users-page').then((m) => ({ default: m.UsersPage }))),
   },
   {
     key: 'iam-user-detail',
@@ -308,9 +320,7 @@ const commerceRoutes: TemplateRoute[] = [
     menuGroup: 'Access management',
     breadcrumb: ['Access management', 'Roles'],
     component: () =>
-      lazyPage(() =>
-        import('../pages/iam/roles-page').then((m) => ({ default: m.RolesPage }))
-      ),
+      lazyPage(() => import('../pages/iam/roles-page').then((m) => ({ default: m.RolesPage }))),
   },
   {
     key: 'iam-role-detail',

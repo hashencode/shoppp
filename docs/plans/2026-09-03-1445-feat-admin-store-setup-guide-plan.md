@@ -28,7 +28,7 @@ plan_role: active-feature
 - **继承基线：** COM-U12 已有上线配置与运行健康能力；`docs/plans/2026-08-04-001-feat-multi-user-admin-access-plan.md` 的 IAM-R7、R9、R10、R12、R19、KTD11 及后续有效认证实现；`docs/plans/2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md` 的 THEME-R6–R10 和其 2026-08-12 状态增补。所有原 R/F/AE/KTD/U 标识保留原义。
 - **明确替代：** 本计划激活并交付后，仅替代有设置读取权限用户的默认首页落点、欢迎内容，以及“上线设置”中的准备检查展示位置。商业规则、保存审计、现有 API 契约和正式发布条件不被替代。
 - **并行计划：** FS-F2 样式修正已完成；本计划作为用户授权的实施插入项，完成后返回 REL-Pre-DC；Admin 已有能力适配、DS 和 CI 的既有职责继续有效。本计划不是这些计划的完成证据。
-- **注册与尾项：** 主计划登记别名 `ADM-SETUP`，分类 Active，当前执行 ADM-SETUP-U2，完成后返回 REL-Pre-DC。激活时同步更新主计划指针和本文检查点；新增 U 及相关修补均归本文。
+- **注册与尾项：** 主计划登记别名 `ADM-SETUP`，分类 Active，当前执行 ADM-SETUP-U3，完成后返回 REL-Pre-DC。激活时同步更新主计划指针和本文检查点；新增 U 及相关修补均归本文。
 - **模板边界：** Shoppp 是一个产品，模板为 `fashion-store` 和 `decor-store`（代码 ID `decor`）。引导不要求两个模板同时完成，不从任意草稿或预览推断线上模板；正式跨模板回归属于 DC3。
 
 ---
@@ -36,9 +36,9 @@ plan_role: active-feature
 ## Execution Checkpoint
 
 - **分类：** Active；用户已授权实施。
-- **当前单元：** U1 Complete；U2 In progress；U3–U5 Not started。
+- **当前单元：** U1–U2 Complete；U3 In progress；U4–U5 Not started。
 - **阻塞：** 无。
-- **下一具体动作：** 实现 U2 的六步指南、授权首页和菜单，并完成定向页面测试。
+- **下一具体动作：** 实现 U3 的商业设置分组、只读保护、独立健康加载及返回指南旅程。
 - **更新规则：** 状态、当前/下一单元、执行顺序或尾项改变时，同步本文与主计划；测试和截图证据写入 `docs/progress/admin-store-setup-guide.md`，不另建单元队列。
 
 ---

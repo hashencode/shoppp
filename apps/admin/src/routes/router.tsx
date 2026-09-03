@@ -3,13 +3,11 @@ import { LoginPage } from '../pages/auth/login-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { ResetPasswordPage } from '../pages/auth/reset-password-page'
 import { ActivateAccountPage } from '../pages/auth/activate-account-page'
-import { ForbiddenPage } from '../pages/forbidden-page'
-import { hasPermission } from '../infrastructure/auth/permissions'
-import { useAuth } from '../infrastructure/auth/use-auth'
 import { PermissionGuard } from '../shared/components/permission-guard'
 import { RouteErrorBoundary } from '../shared/components/route-error-boundary'
 import { AppShell } from '../shared/layout/app-shell'
 import { APP_BASE_PATH } from '../shared/utils/app-base'
+import { AuthorizedHome } from './authorized-home'
 import { RedirectIfAuthenticated, RequireAuth } from './auth-route-guards'
 import { templateRoutes, type TemplateRoute } from './routes.config'
 
@@ -61,87 +59,90 @@ const toRootChildPath = (path: string) => {
   return path.slice(1)
 }
 
-const AuthorizedHome = () => {
-  const { permissions, role } = useAuth()
-  const target = templateRoutes.find(
-    (route) => route.inMenu && hasPermission(role, route.permission, permissions)
-  )?.path
-  return target ? <Navigate to={target} replace /> : <ForbiddenPage />
-}
-
 const routeIssues = validateTemplateRoutes(templateRoutes)
 const routerOptions = APP_BASE_PATH ? { basename: APP_BASE_PATH } : undefined
-const invalidRouter = createBrowserRouter([
-  {
-    path: '*',
-    element: (
-      <RouteErrorBoundary
-        errorCode={routeIssues[0]?.code ?? 'ROUTE_INVALID'}
-        detail={routeIssues.map((issue) => issue.message).join('; ')}
-      />
-    ),
-  },
-], routerOptions)
+const invalidRouter = createBrowserRouter(
+  [
+    {
+      path: '*',
+      element: (
+        <RouteErrorBoundary
+          errorCode={routeIssues[0]?.code ?? 'ROUTE_INVALID'}
+          detail={routeIssues.map((issue) => issue.message).join('; ')}
+        />
+      ),
+    },
+  ],
+  routerOptions
+)
 
-const validRouter = createBrowserRouter([
-  {
-    path: '/login',
-    element: (
-      <RedirectIfAuthenticated>
-        <LoginPage />
-      </RedirectIfAuthenticated>
-    ),
-  },
-  {
-    path: '/forgot-password',
-    element: (
-      <RedirectIfAuthenticated>
-        <ForgotPasswordPage />
-      </RedirectIfAuthenticated>
-    ),
-  },
-  {
-    path: '/reset-password',
-    element: (
-      <RedirectIfAuthenticated>
-        <ResetPasswordPage />
-      </RedirectIfAuthenticated>
-    ),
-  },
-  {
-    path: '/activate',
-    element: (
-      <RedirectIfAuthenticated>
-        <ActivateAccountPage />
-      </RedirectIfAuthenticated>
-    ),
-  },
-  {
-    path: '/',
-    element: (
-      <RequireAuth>
-        <AppShell routes={templateRoutes} />
-      </RequireAuth>
-    ),
-    children: [
-      {
-        index: true,
-        element: <AuthorizedHome />,
-      },
-      ...templateRoutes
-        .filter(
-          (route) => route.path !== '*' && !route.path.startsWith('/dev') && !route.path.startsWith('/template')
-        )
-        .map((route) => ({
-          path: toRootChildPath(route.path),
-          element: <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>,
-        })),
-    ],
-  },
-  {
-    path: '*',
-    element: <Navigate to="/" replace />,
-  },
-], routerOptions)
+const validRouter = createBrowserRouter(
+  [
+    {
+      path: '/login',
+      element: (
+        <RedirectIfAuthenticated>
+          <LoginPage />
+        </RedirectIfAuthenticated>
+      ),
+    },
+    {
+      path: '/forgot-password',
+      element: (
+        <RedirectIfAuthenticated>
+          <ForgotPasswordPage />
+        </RedirectIfAuthenticated>
+      ),
+    },
+    {
+      path: '/reset-password',
+      element: (
+        <RedirectIfAuthenticated>
+          <ResetPasswordPage />
+        </RedirectIfAuthenticated>
+      ),
+    },
+    {
+      path: '/activate',
+      element: (
+        <RedirectIfAuthenticated>
+          <ActivateAccountPage />
+        </RedirectIfAuthenticated>
+      ),
+    },
+    {
+      path: '/',
+      element: (
+        <RequireAuth>
+          <AppShell routes={templateRoutes} />
+        </RequireAuth>
+      ),
+      children: [
+        {
+          index: true,
+          element: <AuthorizedHome />,
+        },
+        ...templateRoutes
+          .filter(
+            (route) =>
+              route.path !== '*' &&
+              !route.path.startsWith('/dev') &&
+              !route.path.startsWith('/template')
+          )
+          .map((route) => ({
+            path: toRootChildPath(route.path),
+            element: (
+              <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>
+            ),
+          })),
+      ],
+    },
+    {
+      path: '*',
+      element: <Navigate to="/" replace />,
+    },
+  ],
+  routerOptions
+)
 
 export const router = routeIssues.length > 0 ? invalidRouter : validRouter

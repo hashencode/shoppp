@@ -1,4 +1,90 @@
 export const zhCNMessages: Record<string, string> = {
+  'Store setup guide': '开店指南',
+  'Commercial settings': '商业设置',
+  'Basics and contacts': '基础与联系方式',
+  'Confirm the contact details used by shoppers and privacy requests.':
+    '确认面向顾客及隐私请求的联系信息。',
+  'Prepare products': '准备商品',
+  'At least one published SKU needs a current price and available stock in the configured default currency. This does not check the entire catalog.':
+    '当前默认币种下，至少一个已发布 SKU 需要有效价格和可用库存。此检查不涵盖全部商品。',
+  'Set up delivery': '设置配送',
+  'Every enabled country needs a selected, active shipping method in its zone. Verify actual cart quotes with a test order.':
+    '每个启用国家都需要关联所在区域中已选且有效的配送方式。实际购物车报价需通过试单核验。',
+  'Set up payments': '设置收款',
+  'Configuration checks cover credential formats and the environment payment mode. They do not verify a payment or webhook delivery.':
+    '配置检查涵盖凭证格式和当前环境的支付模式，不验证实际支付或回调送达。',
+  'Storefront and policies': '店面与政策',
+  'Check policy links and approval, then review the storefront through the existing theme workflow.':
+    '检查政策链接与确认状态，再通过现有主题流程检查店面。',
+  'Review before launch': '上线前复核',
+  'Review inventory and runtime settings, then complete the manual checks. Production release follows the existing process.':
+    '复核库存与运行配置，然后完成人工检查。正式发布仍按现有流程进行。',
+  'Commercial configuration saved': '商业配置已保存',
+  'Contact email formats': '联系邮箱格式',
+  'At least one sellable SKU': '至少一个可售 SKU',
+  'Price lists for enabled currencies': '销售币种的价格表',
+  'Enabled shipping countries': '启用的配送国家',
+  'Selected shipping methods': '已选配送方式',
+  'Country and shipping method links': '国家与配送方式关联',
+  'Payment configuration': '支付配置',
+  'Policy configuration': '政策配置',
+  'Inventory reservation duration': '库存预留时长',
+  'Turnstile configuration': 'Turnstile 配置',
+  'Backup configuration': '备份配置',
+  Passed: '通过',
+  'Needs action': '待处理',
+  'Unable to check': '无法检查',
+  'No permission to check': '无权检查',
+  'Default configuration has not been confirmed. Review and save commercial settings.':
+    '默认配置尚未保存确认，请检查并保存商业设置。',
+  'Enter valid support and privacy contact email addresses.':
+    '请输入有效的客服邮箱与隐私联系邮箱。',
+  'No published SKU has a current price and available stock in the default currency.':
+    '默认币种下没有同时具备有效价格与可用库存的已发布 SKU。',
+  'Enter valid policy links.': '请输入有效的政策链接。',
+  'These countries have no selected active shipping method in their zone: {countries}.':
+    '以下国家在所属区域中没有已选且有效的配送方式：{countries}。',
+  'The current configuration could not be read. Retry the check.': '无法读取当前配置，请重新检查。',
+  'This check could not be completed. Retry the check.': '此项检查未能完成，请重新检查。',
+  'Your account does not have permission to read this check.': '当前账号无权读取此项检查。',
+  'This check needs further attention. Review the corresponding settings.':
+    '此检查需要进一步处理，请查看对应设置。',
+  'Contact settings': '联系方式设置',
+  'Manage products': '管理商品',
+  'View inventory': '查看库存',
+  'Sales settings': '销售设置',
+  'Sales and delivery scope': '销售与配送范围',
+  'Payment settings': '支付设置',
+  'Manage storefront themes': '管理店面主题',
+  'Policy settings': '政策设置',
+  'Inventory and reservation settings': '库存与预留设置',
+  'View orders': '查看订单',
+  'Checking {total} automatic checks…': '正在执行 {total} 项自动检查…',
+  'Automatic checks passed: {passed}/{total}': '自动检查已通过：{passed}/{total}',
+  'Needs action: {action} · Unable to check: {unavailable} · No permission: {restricted}':
+    '待处理：{action} · 无法检查：{unavailable} · 无权检查：{restricted}',
+  Recheck: '重新检查',
+  'Collapse guide': '折叠指南',
+  'Expand guide': '展开指南',
+  'Environment: {environment} · Checked: {time}': '环境：{environment} · 检查时间：{time}',
+  'Default currency: {currency} · Configuration saved: {time}':
+    '默认币种：{currency} · 配置保存时间：{time}',
+  'Not yet saved': '尚未保存',
+  'Configuration context is unavailable.': '无法读取本次配置上下文。',
+  'Current configuration checks passed; manual verification is still required.':
+    '当前配置检查通过，仍需人工核验。',
+  'Setup checks are not authorized.': '无权执行开店检查。',
+  'Setup checks could not be loaded.': '开店检查加载失败。',
+  'Previous results have been cleared. Recheck after access or connectivity is restored.':
+    '已清除之前的结果，请在权限或连接恢复后重新检查。',
+  'Verify session': '验证登录状态',
+  'Checking…': '正在检查…',
+  'Ask the deployment maintainer to configure the environment credentials.':
+    '请由部署维护者配置当前环境的凭证。',
+  'Preview the storefront and confirm the brand content and policy text.':
+    '预览店面并确认品牌内容与政策正文。',
+  'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.':
+    '通过现有试单流程核验完整购物路径，包括配送、支付和订单确认。',
   Welcome: '欢迎',
   'Commerce dashboard': '商业仪表盘',
   'Revenue report': '收入报表',

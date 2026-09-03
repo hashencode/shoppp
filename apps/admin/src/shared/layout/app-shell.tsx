@@ -455,12 +455,16 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
               selectedKeys={selectedKey ? [selectedKey] : []}
               defaultOpenKeys={collapsed ? [] : activeGroupKey ? [activeGroupKey] : []}
               items={[
-                {
-                  key: 'home',
-                  icon: <SmileOutlined />,
-                  label: t('Welcome'),
-                  onClick: () => navigate('/'),
-                },
+                ...(routes.some((route) => route.path === '/welcome')
+                  ? []
+                  : [
+                      {
+                        key: 'home',
+                        icon: <SmileOutlined />,
+                        label: t('Welcome'),
+                        onClick: () => navigate('/'),
+                      },
+                    ]),
                 ...groupedMenuItems,
               ]}
             />

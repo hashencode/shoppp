@@ -4,11 +4,18 @@ import type {
   LaunchConfiguration,
   LaunchConfigurationStatus,
   OperationalHealth,
+  SetupGuideSummary,
   PrivacyRequest,
   CreatePrivacyRequest,
 } from '@shoppp/contracts'
+import { setupGuideSummarySchema } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
 import { saveBlob, toBlobFileName } from '../../shared/utils/download'
+
+export const fetchSetupGuide = async (): Promise<SetupGuideSummary> => {
+  const response = await apiClient.get<{ data: SetupGuideSummary }>('/admin/settings/setup-guide')
+  return setupGuideSummarySchema.parse(response.data.data)
+}
 
 export const fetchLaunchConfiguration = async (): Promise<LaunchConfigurationStatus> => {
   const response = await apiClient.get<{ data: LaunchConfigurationStatus }>(

@@ -33,3 +33,9 @@ Proof-first: the new endpoint test initially returned 404 instead of 200. Host v
 Contracts typecheck passed. A test binding type mismatch was found by API typecheck and repaired in the fixture; the final API typecheck passed. One initial root-wrapper test command failed to forward the file selector and was interrupted before test results; all retained results use explicit package working directories.
 
 Backend simplification used the ce-simplify-code reuse, quality and efficiency personas. Applied one reuse finding (the existing permission predicate) and three bounded-query improvements: requested currencies/countries/methods only, and an existence query for oversell. No quality findings or skipped findings. Domain failure isolation and legacy issue outputs remain unchanged. The 12 setup/legacy Workers tests, API typecheck and scoped ESLint passed afterward. Contracts had no subsequent code changes.
+
+## Guide and entry verification
+
+Host Rstest verification: welcome-page, authorized-home, app-shell, auth-route-guards and locale index: 5 files / 48 tests passed. Evidence covers six destinations, fixed denominator including partial/unknown/restricted results, 500/403 retry, 401 session recovery, permission changes with late responses, authorized homepage fallback, and return navigation under an application basename. A history A→B→A test reproduced reuse of the old A result before the request identity changed from a string to a fresh dependency-bound reference; it passed after the fix.
+
+Shared files were committed selectively: only guide translations, the menu replacement and its two tests (plus their required route import). Pre-existing breadcrumb rules/tests, dashboard/report work and later demo-mode strings remain working-tree work owned elsewhere.
