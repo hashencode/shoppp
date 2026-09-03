@@ -19,7 +19,12 @@ import { cartSchema } from "../src/cart";
 import { productSchema } from "../src/catalog";
 import { checkoutRequestSchema } from "../src/checkout";
 import { inventoryAdjustmentRequestSchema, inventoryReservationSchema } from "../src/inventory";
-import { commerceFunnelEventSchema, publicRuntimeConfigurationSchema } from "../src/platform";
+import {
+  commerceFunnelEventSchema,
+  publicRuntimeConfigurationSchema,
+  SETUP_GUIDE_CHECKS,
+  setupGuideSummarySchema,
+} from "../src/platform";
 
 const product = {
   description: "A durable travel bottle.",
@@ -357,5 +362,36 @@ describe("admin IAM contracts", () => {
         serviceName: "ci-test",
       }),
     ).toThrow();
+  });
+});
+
+describe("setup guide summary contract", () => {
+  test("keeps the complete denominator, rejects duplicates and permits new reason codes", () => {
+    const summary = {
+      checkedAt: "2026-09-03T00:00:00.000Z",
+      environment: "staging",
+      configuration: null,
+      checks: SETUP_GUIDE_CHECKS.map((check) => ({
+        ...check,
+        status: "unavailable",
+        reasons: [{ code: "future_backend_reason" }],
+      })),
+    };
+    expect(setupGuideSummarySchema.safeParse(summary).success).toBe(true);
+    expect(
+      setupGuideSummarySchema.safeParse({ ...summary, checks: summary.checks.slice(1) }).success,
+    ).toBe(false);
+    expect(
+      setupGuideSummarySchema.safeParse({
+        ...summary,
+        checks: summary.checks.map(() => summary.checks[0]),
+      }).success,
+    ).toBe(false);
+    expect(
+      setupGuideSummarySchema.safeParse({
+        ...summary,
+        configuration: { defaultCurrency: "USD", updatedAt: null, secret: "must not leak" },
+      }).success,
+    ).toBe(false);
   });
 });

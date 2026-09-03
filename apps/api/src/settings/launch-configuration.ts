@@ -49,16 +49,14 @@ function defaultConfiguration(context: Context<ApiEnvironment>): LaunchConfigura
   };
 }
 
-async function readiness(
-  db: D1Database,
+export function runtimeReadiness(
   configuration: LaunchConfiguration,
   environment: ApiEnvironment["Bindings"]["ENVIRONMENT"],
-  configuredReservationTtl: string | undefined,
   turnstileRequired: string | undefined,
   turnstileSiteKey: string | undefined,
   turnstileSecret: string | undefined,
   backupConfigured: boolean,
-): Promise<LaunchConfigurationStatus["issues"]> {
+): LaunchConfigurationStatus["issues"] {
   const issues: LaunchConfigurationStatus["issues"] = [];
   if (!configuration.legalApproved) {
     issues.push({
@@ -111,37 +109,17 @@ async function readiness(
       message: "The scheduled D1 export credential or target binding is not configured.",
     });
   }
-  const [currencies, countries, methods, oversell] = await Promise.all([
-    db
-      .prepare(
-        `SELECT DISTINCT currency
-           FROM price_lists
-          WHERE status = 'active'
-          ORDER BY currency`,
-      )
-      .all<{ currency: string }>(),
-    db
-      .prepare(
-        `SELECT DISTINCT szc.country_code
-           FROM shipping_zone_countries szc
-           JOIN shipping_zones sz ON sz.id = szc.zone_id
-          WHERE sz.status = 'active'
-          ORDER BY szc.country_code`,
-      )
-      .all<{ country_code: string }>(),
-    db
-      .prepare(
-        `SELECT sm.id
-           FROM shipping_methods sm
-           JOIN shipping_zones sz ON sz.id = sm.zone_id
-          WHERE sm.status = 'active' AND sz.status = 'active'
-          ORDER BY sm.id`,
-      )
-      .all<{ id: string }>(),
-    db
-      .prepare("SELECT COUNT(*) AS count FROM inventory_items WHERE oversell_limit > 0")
-      .first<{ count: number }>(),
-  ]);
+  return issues;
+}
+
+export async function currencyReadiness(
+  db: D1Database,
+  configuration: LaunchConfiguration,
+): Promise<LaunchConfigurationStatus["issues"]> {
+  const issues: LaunchConfigurationStatus["issues"] = [];
+  const currencies = await db
+    .prepare("SELECT DISTINCT currency FROM price_lists WHERE status = 'active' ORDER BY currency")
+    .all<{ currency: string }>();
   const activeCurrencies = new Set(currencies.results.map(({ currency }) => currency));
   if (configuration.sellableCurrencies.some((currency) => !activeCurrencies.has(currency))) {
     issues.push({
@@ -149,6 +127,26 @@ async function readiness(
       message: "Every sellable currency must have an active price list.",
     });
   }
+  return issues;
+}
+
+export async function shippingReadiness(
+  db: D1Database,
+  configuration: LaunchConfiguration,
+): Promise<LaunchConfigurationStatus["issues"]> {
+  const issues: LaunchConfigurationStatus["issues"] = [];
+  const [countries, methods] = await Promise.all([
+    db
+      .prepare(
+        "SELECT DISTINCT szc.country_code FROM shipping_zone_countries szc JOIN shipping_zones sz ON sz.id = szc.zone_id WHERE sz.status = 'active' ORDER BY szc.country_code",
+      )
+      .all<{ country_code: string }>(),
+    db
+      .prepare(
+        "SELECT sm.id FROM shipping_methods sm JOIN shipping_zones sz ON sz.id = sm.zone_id WHERE sm.status = 'active' AND sz.status = 'active' ORDER BY sm.id",
+      )
+      .all<{ id: string }>(),
+  ]);
   const activeCountries = new Set(countries.results.map(({ country_code }) => country_code));
   if (configuration.shippingCountries.some((country) => !activeCountries.has(country))) {
     issues.push({
@@ -163,12 +161,31 @@ async function readiness(
       message: "Every enabled shipping method must exist in an active shipping zone.",
     });
   }
+  return issues;
+}
+
+export async function oversellReadiness(
+  db: D1Database,
+  configuration: LaunchConfiguration,
+): Promise<LaunchConfigurationStatus["issues"]> {
+  const issues: LaunchConfigurationStatus["issues"] = [];
+  const oversell = await db
+    .prepare("SELECT COUNT(*) AS count FROM inventory_items WHERE oversell_limit > 0")
+    .first<{ count: number }>();
   if (configuration.oversellPolicy === "deny" && (oversell?.count ?? 0) > 0) {
     issues.push({
       code: "oversell_policy_mismatch",
       message: "Inventory oversell limits must be zero when the launch policy denies oversell.",
     });
   }
+  return issues;
+}
+
+export function reservationReadiness(
+  configuration: LaunchConfiguration,
+  configuredReservationTtl: string | undefined,
+): LaunchConfigurationStatus["issues"] {
+  const issues: LaunchConfigurationStatus["issues"] = [];
   if (
     configuredReservationTtl &&
     Number(configuredReservationTtl) !== configuration.reservationTtlMinutes
@@ -181,9 +198,9 @@ async function readiness(
   return issues;
 }
 
-export async function getLaunchConfiguration(
+export async function readLaunchConfiguration(
   context: Context<ApiEnvironment>,
-): Promise<LaunchConfigurationStatus> {
+): Promise<Pick<LaunchConfigurationStatus, "configuration" | "updatedAt">> {
   const row = await context.env.DB.prepare(
     "SELECT value_json, updated_at FROM settings WHERE key = ?",
   )
@@ -197,11 +214,16 @@ export async function getLaunchConfiguration(
     providerConfigured: stripeProviderConfigured(context.env.STRIPE_SECRET_KEY),
     webhookConfigured: stripeWebhookConfigured(context.env.STRIPE_WEBHOOK_SECRET),
   };
-  const issues = await readiness(
-    context.env.DB,
+  return { configuration, updatedAt: row?.updated_at ?? null };
+}
+
+export async function getLaunchConfiguration(
+  context: Context<ApiEnvironment>,
+): Promise<LaunchConfigurationStatus> {
+  const { configuration, updatedAt } = await readLaunchConfiguration(context);
+  const runtime = runtimeReadiness(
     configuration,
     context.env.ENVIRONMENT,
-    context.env.RESERVATION_TTL_MINUTES,
     context.env.TURNSTILE_REQUIRED,
     context.env.TURNSTILE_SITE_KEY,
     context.env.TURNSTILE_SECRET,
@@ -212,12 +234,24 @@ export async function getLaunchConfiguration(
       context.env.BACKUP_BUCKET,
     ),
   );
+  const [currencies, shipping, oversell] = await Promise.all([
+    currencyReadiness(context.env.DB, configuration),
+    shippingReadiness(context.env.DB, configuration),
+    oversellReadiness(context.env.DB, configuration),
+  ]);
+  const issues = [
+    ...runtime,
+    ...currencies,
+    ...shipping,
+    ...oversell,
+    ...reservationReadiness(configuration, context.env.RESERVATION_TTL_MINUTES),
+  ];
   return {
     configuration,
     environment: context.env.ENVIRONMENT,
     issues,
     ready: issues.length === 0,
-    updatedAt: row?.updated_at ?? null,
+    updatedAt,
   };
 }
 

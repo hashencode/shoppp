@@ -206,3 +206,67 @@ export type PublicRuntimeConfiguration = z.infer<typeof publicRuntimeConfigurati
 export type UpdateLaunchConfigurationRequest = z.infer<
   typeof updateLaunchConfigurationRequestSchema
 >;
+
+/** Fixed denominator for the automatic setup checks; manual tasks are excluded. */
+export const SETUP_GUIDE_CHECKS = [
+  { id: "configuration_saved", step: "contacts" },
+  { id: "contact_details", step: "contacts" },
+  { id: "sellable_sku", step: "products" },
+  { id: "sellable_currencies", step: "products" },
+  { id: "shipping_countries", step: "shipping" },
+  { id: "shipping_methods", step: "shipping" },
+  { id: "shipping_country_methods", step: "shipping" },
+  { id: "payment_configuration", step: "payment" },
+  { id: "policy_configuration", step: "storefront" },
+  { id: "oversell_policy", step: "review" },
+  { id: "reservation_ttl", step: "review" },
+  { id: "turnstile_configuration", step: "review" },
+  { id: "backup_configuration", step: "review" },
+] as const;
+
+export const setupGuideCheckSchema = z
+  .object({
+    id: z.enum(SETUP_GUIDE_CHECKS.map((check) => check.id)),
+    step: z.enum(["contacts", "products", "shipping", "payment", "storefront", "review"]),
+    status: z.enum(["passed", "needs_action", "unavailable", "restricted"]),
+    reasons: z.array(
+      z
+        .object({
+          // Open reason codes allow older clients to show a truthful generic fallback.
+          code: z.string().min(1),
+          countries: z.array(countryCodeSchema).optional(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
+export const setupGuideSummarySchema = z
+  .object({
+    checkedAt: isoDateTimeSchema,
+    environment: z.enum(["development", "staging", "production"]),
+    configuration: z
+      .object({
+        updatedAt: isoDateTimeSchema.nullable(),
+        defaultCurrency: currencyCodeSchema,
+      })
+      .strict()
+      .nullable(),
+    checks: z.array(setupGuideCheckSchema).length(SETUP_GUIDE_CHECKS.length),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    for (const expected of SETUP_GUIDE_CHECKS) {
+      const matches = value.checks.filter((check) => check.id === expected.id);
+      if (matches.length !== 1 || matches[0]?.step !== expected.step) {
+        context.addIssue({
+          code: "custom",
+          message: "Every setup check must occur once in its assigned step.",
+          path: ["checks"],
+        });
+      }
+    }
+  });
+
+export type SetupGuideCheck = z.infer<typeof setupGuideCheckSchema>;
+export type SetupGuideSummary = z.infer<typeof setupGuideSummarySchema>;

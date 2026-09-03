@@ -30,6 +30,34 @@ interface PublicMediaRow {
   width: number;
 }
 
+// Shared SQL uses the same variant alias as the public product query below.
+const availableQuantitySql = `COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+  i.reserved_quantity - i.backordered_quantity) FROM inventory_items i WHERE i.variant_id = v.id), 0)`;
+const eligiblePriceSql = `SELECT eligible_price.id FROM prices eligible_price
+  JOIN price_lists pl ON pl.id = eligible_price.price_list_id
+  WHERE eligible_price.variant_id = v.id AND pl.currency = ? AND pl.status = 'active'
+    AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
+    AND (pl.ends_at IS NULL OR pl.ends_at > ?)
+  ORDER BY pl.code LIMIT 1`;
+
+export async function hasSellableSku(
+  db: D1Database,
+  currency: string,
+  checkedAt: string,
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT 1 AS found FROM product_variants v
+    JOIN products p ON p.id = v.product_id
+    JOIN prices pr ON pr.id = (${eligiblePriceSql})
+    WHERE p.status = 'published' AND v.status = 'active' AND ${availableQuantitySql} > 0
+    LIMIT 1`,
+    )
+    .bind(currency, checkedAt, checkedAt)
+    .first<{ found: number }>();
+  return row !== null;
+}
+
 async function getLiveProductBy(
   db: D1Database,
   lookup: { id: string } | { slug: string },
@@ -49,23 +77,11 @@ async function getLiveProductBy(
     db
       .prepare(
         `SELECT v.id, v.sku, v.title, v.option_values_json, pr.amount AS price_amount,
-                COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
-                                           i.reserved_quantity - i.backordered_quantity)
-                            FROM inventory_items i WHERE i.variant_id = v.id), 0)
+                ${availableQuantitySql}
                   AS available_quantity
            FROM product_variants v
            JOIN products p ON p.id = v.product_id
-           JOIN prices pr ON pr.id = (
-             SELECT eligible_price.id
-               FROM prices eligible_price
-               JOIN price_lists pl ON pl.id = eligible_price.price_list_id
-              WHERE eligible_price.variant_id = v.id
-                AND pl.currency = ? AND pl.status = 'active'
-                AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
-                AND (pl.ends_at IS NULL OR pl.ends_at > ?)
-              ORDER BY pl.code
-              LIMIT 1
-           )
+           JOIN prices pr ON pr.id = (${eligiblePriceSql})
           WHERE p.${column} = ? AND p.status = 'published' AND v.status = 'active'
           ORDER BY v.created_at, v.id`,
       )

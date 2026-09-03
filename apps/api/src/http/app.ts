@@ -79,6 +79,7 @@ import {
   revokeAdminInvitation,
 } from "../iam/invitations";
 import { requirePermission } from "../iam/permissions";
+import { getSetupGuide } from "../settings/setup-guide";
 import {
   activateAdminAccount,
   changePassword,
@@ -1613,6 +1614,14 @@ export function createApp(options: CreateAppOptions = {}) {
       });
     },
   );
+  app.get("/admin/settings/setup-guide", async (context) => {
+    await requirePermission(context, "settings.read", { type: "setting" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await getSetupGuide(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.get("/admin/settings/launch", async (context) => {
     await requirePermission(context, "settings.read", { type: "setting" });
     return context.json({

@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
-current_unit: REL-Pre-DC
+current_plan: 2026-09-03-1445-feat-admin-store-setup-guide-plan.md
+current_unit: ADM-SETUP-U2
 ---
 
 # Shoppp Product Master Plan
@@ -66,9 +66,9 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
-- **Current parent/child stage:** `REL-Pre-DC` — reconcile the intended release capability set and
-  finish complete candidate-identity enforcement before any candidate is frozen.
+- **Active product plan:** `ADM-SETUP` — [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md), authorized for implementation on 2026-09-03.
+- **Current parent/child stage:** `ADM-SETUP-U2` — implement the six-step guide and authorized entry.
+- **Product order and tail:** Complete ADM-SETUP implementation and local verification, then return to REL-Pre-DC; REL retains candidate and production authority.
 - **Corrective handoff:** `FS-F2` completed its shared-style correction on 2026-09-03 and returned the pointer to `REL-Pre-DC`; it retains correction evidence and does not change candidate or production gates.
 - **Historical FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
   enabled U8 identities and 23/23 sessions revoked; retry29 remains excluded v3 evidence with no
@@ -77,11 +77,8 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Audit the intended release capability set and approved deferrals against every
-  owning plan, then complete `release:validate` enforcement for the full immutable candidate
-  identity. Do not begin DC1 until every Pre-DC row passes.
-- **Blocker:** `REL-Pre-DC` remains blocked by unaudited product capability scope and incomplete
-  candidate-identity enforcement; Fashion Store U8 is no longer a blocker.
+- **Next action:** Implement the six-step guide, authorized root navigation and focused Admin tests.
+- **Blocker:** None for ADM-SETUP; REL still requires capability-scope reconciliation and candidate-identity enforcement before DC1.
 - **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
   post-commit `33461845421` passed. Fresh
   preparation `33462310594`, complete named-operator browser path, operator Preview `33462932654`,
@@ -420,6 +417,7 @@ focused test alone.
 | `CI-GH` | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) | Temporary CI route-switch bridge | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs** | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority |
 | `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **Complete — corrected post-commit run `33234977617` and protected OIDC proof in U12 run `33235176429` passed** | Verified baseline returned to `FS-U8.2`; the later invalid Cloudflare credential is a Fashion environment blocker |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
+| `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md) | Bounded Admin onboarding feature over COM/THEME/IAM | Active at U2; authorized setup-guide implementation, then return to REL-Pre-DC | Owns guide implementation and verification; existing product contracts and REL retain their authority |
 
 ## Decision hierarchy and supersessions
 
