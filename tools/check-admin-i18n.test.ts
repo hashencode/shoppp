@@ -120,6 +120,18 @@ describe("Admin translation coverage", () => {
   test("covers every recognized production call and registered catalog with nonempty matching Chinese translations", () => {
     const audit = auditAdminI18n(fileURLToPath(new URL("..", import.meta.url)), zhCNMessages);
     expect(audit.messages.length).toBeGreaterThan(500);
+    for (const key of [
+      "{id} moved to position {position} of {count} on {pageType}.",
+      "Unknown validation status ({code}).",
+      "Unknown theme diagnostic. Review the technical code before continuing.",
+      "{explanation} ({code})",
+      "The exact draft package is not loaded.",
+      "The catalog reference is missing from the selected Catalog Release.",
+      "The target package removed a setting with local overrides.",
+      "The private preview build failed. Review the build diagnostics and retry.",
+    ]) {
+      expect(audit.messages.some((message) => message.key === key)).toBe(true);
+    }
     expect(audit.issues).toEqual([]);
     // Arbitrary dynamic calls remain visible as limitations, never counted as translated keys.
     expect(audit.unresolvedDynamic.some((entry) => entry.expression === "permission.label")).toBe(

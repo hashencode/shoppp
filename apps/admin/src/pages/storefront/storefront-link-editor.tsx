@@ -6,6 +6,8 @@ import {
 } from '@shoppp/contracts'
 import { Alert, Input, Select, Space, Typography } from 'antd'
 import React from 'react'
+import { useI18n } from '../../shared/contexts/i18n-context'
+import { resourceKindMessages } from './theme-feedback'
 
 void React
 
@@ -34,13 +36,13 @@ export const StorefrontLinkEditor = ({
   resources: StorefrontEditorResource[]
   value: StorefrontLink
 }) => {
+  const { t } = useI18n()
   const reference = value.target.kind === 'internal' ? value.target.reference : null
   const allowedResources = resources.filter(({ kind }) => allowedTargets.includes(kind))
   const matchingResources = reference
     ? allowedResources.filter(({ kind }) => kind === reference.kind)
     : []
-  const missingReference =
-    reference && !matchingResources.some(({ id }) => id === reference.id)
+  const missingReference = reference && !matchingResources.some(({ id }) => id === reference.id)
 
   const setInternalKind = (kind: StorefrontResourceReference['kind']) => {
     const first = allowedResources.find((resource) => resource.kind === kind)
@@ -56,9 +58,9 @@ export const StorefrontLinkEditor = ({
       <legend className="px-1 text-sm font-medium">{label}</legend>
       <Space orientation="vertical" className="w-full">
         <label>
-          <Typography.Text>Link label</Typography.Text>
+          <Typography.Text>{t('Link label')}</Typography.Text>
           <Input
-            aria-label={`${label} label`}
+            aria-label={t('{label} label', { label })}
             disabled={disabled}
             maxLength={120}
             value={value.label}
@@ -66,18 +68,18 @@ export const StorefrontLinkEditor = ({
           />
         </label>
         <label>
-          <Typography.Text>Destination type</Typography.Text>
+          <Typography.Text>{t('Destination type')}</Typography.Text>
           <Select
-            aria-label={`${label} destination type`}
+            aria-label={t('{label} destination type', { label })}
             className="w-full"
             disabled={disabled}
             value={value.target.kind}
             options={[
               ...(allowedResources.length > 0
-                ? [{ label: 'Internal resource', value: 'internal' }]
+                ? [{ label: t('Internal resource'), value: 'internal' }]
                 : []),
               ...(allowedTargets.includes('external')
-                ? [{ label: 'External HTTPS URL', value: 'external' }]
+                ? [{ label: t('External HTTPS URL'), value: 'external' }]
                 : []),
             ]}
             onChange={(kind) => {
@@ -103,22 +105,27 @@ export const StorefrontLinkEditor = ({
         {value.target.kind === 'internal' && reference ? (
           <>
             <label>
-              <Typography.Text>Resource type</Typography.Text>
+              <Typography.Text>{t('Resource type')}</Typography.Text>
               <Select
-                aria-label={`${label} resource type`}
+                aria-label={t('{label} resource type', { label })}
                 className="w-full"
                 disabled={disabled}
                 value={reference.kind}
                 options={storefrontResourceKindSchema.options
                   .filter((kind) => allowedTargets.includes(kind))
-                  .map((kind) => ({ label: kind, value: kind }))}
+                  .map((kind) => ({
+                    label: Object.hasOwn(resourceKindMessages, kind)
+                      ? t(resourceKindMessages[kind])
+                      : kind,
+                    value: kind,
+                  }))}
                 onChange={setInternalKind}
               />
             </label>
             <label>
-              <Typography.Text>Destination</Typography.Text>
+              <Typography.Text>{t('Destination')}</Typography.Text>
               <Select
-                aria-label={`${label} destination`}
+                aria-label={t('{label} destination', { label })}
                 className="w-full"
                 disabled={disabled || matchingResources.length === 0}
                 showSearch
@@ -140,16 +147,16 @@ export const StorefrontLinkEditor = ({
               <Alert
                 type="error"
                 showIcon
-                title="The selected destination is missing from the current release."
-                description="Choose a replacement before preview or approval."
+                title={t('The selected destination is missing from the current release.')}
+                description={t('Choose a replacement before preview or approval.')}
               />
             ) : null}
           </>
         ) : value.target.kind === 'external' ? (
           <label>
-            <Typography.Text>HTTPS URL</Typography.Text>
+            <Typography.Text>{t('HTTPS URL')}</Typography.Text>
             <Input
-              aria-label={`${label} external URL`}
+              aria-label={t('{label} external URL', { label })}
               disabled={disabled}
               value={value.target.url}
               placeholder="https://example.com"
@@ -160,14 +167,14 @@ export const StorefrontLinkEditor = ({
           </label>
         ) : null}
         <label>
-          <Typography.Text>Open behavior</Typography.Text>
+          <Typography.Text>{t('Open behavior')}</Typography.Text>
           <Select
-            aria-label={`${label} open behavior`}
+            aria-label={t('{label} open behavior', { label })}
             className="w-full"
             disabled={disabled}
             value={value.targetBehavior}
             options={storefrontLinkTargetBehaviorSchema.options.map((targetBehavior) => ({
-              label: targetBehaviorLabels[targetBehavior],
+              label: t(targetBehaviorLabels[targetBehavior]),
               value: targetBehavior,
             }))}
             onChange={(targetBehavior) => onChange({ ...value, targetBehavior })}

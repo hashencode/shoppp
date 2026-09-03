@@ -1,6 +1,6 @@
 import type { AdminPermission, AdminStorefrontTheme } from '@shoppp/contracts'
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -8,6 +8,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { renderInLocale } from '../../test/render-in-locale'
+import { useI18n } from '../../shared/contexts/i18n-context'
 import type { Role } from '../../shared/types/roles'
 import type { StorefrontExperienceDraft } from '../../services/storefront/api'
 import {
@@ -202,6 +203,7 @@ let migrationBody: Record<string, unknown> | null = null
 let createDraftBody: Record<string, unknown> | null = null
 let successorBody: Record<string, unknown> | null = null
 let buildStatus: 'building' | 'deployed' = 'building'
+const requestLog: string[] = []
 
 const validValidation = {
   catalogReleaseId: null,
@@ -394,6 +396,13 @@ const server = setupServer(
             instanceId: 'home-story',
             message: 'The target package removed a stable instance with merchant overrides.',
             templateId: 'synthetic-home',
+            settingId: 'raw-setting',
+            operationIndex: 0,
+          },
+          {
+            code: 'future-migration',
+            instanceId: 'raw-instance',
+            message: 'Private migration sentence',
           },
         ],
         createdAt: '2026-07-30T00:20:00.000Z',
@@ -437,6 +446,15 @@ const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) 
   status: 'authenticated' as const,
 })
 
+const LocaleSwitch = () => {
+  const { locale, setLocale } = useI18n()
+  return (
+    <button onClick={() => setLocale(locale === 'en-US' ? 'zh-CN' : 'en-US')}>
+      Switch language
+    </button>
+  )
+}
+
 const renderEditor = (
   role: Role = 'admin',
   pollIntervalMs = 60_000,
@@ -462,8 +480,41 @@ const renderEditor = (
     ],
     { initialEntries: [`/storefront/themes/${baseDraft.id}${search}`] }
   )
-  return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
+  return {
+    router,
+    ...renderInLocale(
+      <>
+        <LocaleSwitch />
+        <RouterProvider router={router} />
+      </>,
+      'en-US'
+    ),
+  }
 }
+
+it('should preserve dirty editor state without requests when language changes', async () => {
+  let reads = 0
+  server.use(
+    http.get('*/admin/storefront-experiences/drafts/:id', () => {
+      reads += 1
+      return HttpResponse.json({ data: currentDraft })
+    })
+  )
+  renderEditor()
+  const heading = await screen.findByRole('textbox', { name: 'home-hero heading' })
+  fireEvent.change(heading, { target: { value: 'Merchant unsaved 中文' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+  await screen.findByRole('button', { name: '保存', exact: true })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 80))
+  })
+  expect(reads).toBe(1)
+  expect(
+    (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLInputElement).value
+  ).toBe('Merchant unsaved 中文')
+  expect(updateBody).toBeNull()
+  expect(previewBody).toBeNull()
+})
 
 const renderThemes = (role: Role = 'admin', search = '') => {
   const router = createMemoryRouter(
@@ -485,8 +536,14 @@ const renderThemes = (role: Role = 'admin', search = '') => {
   return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
 }
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => {
+  server.events.on('request:start', ({ request }) =>
+    requestLog.push(`${request.method} ${request.url}`)
+  )
+  server.listen({ onUnhandledRequest: 'error' })
+})
 afterEach(() => {
+  requestLog.length = 0
   currentDraft = structuredClone(baseDraft)
   updateBody = null
   validationBody = null
@@ -552,6 +609,180 @@ describe('ThemesPage', () => {
 })
 
 describe('ThemeEditorPage', () => {
+  it('should use current language for pending save success without replaying an old toast', async () => {
+    let complete!: (response: HttpResponse<Record<string, unknown>>) => void
+    const pending = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+      complete = resolve
+    })
+    let saves = 0
+    server.use(
+      http.put('*/admin/storefront-experiences/drafts/:id', async ({ request }) => {
+        saves += 1
+        updateBody = (await request.json()) as Record<string, unknown>
+        return pending
+      })
+    )
+    renderEditor()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Pending merchant draft' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Pending save reason' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    await waitFor(() => expect(saves).toBe(1))
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog).toHaveLength(beforeSwitch)
+    expect(screen.getByDisplayValue('Pending merchant draft')).toBeTruthy()
+    complete(
+      HttpResponse.json({ data: { ...currentDraft, overrides: updateBody!.overrides, version: 2 } })
+    )
+    expect(await screen.findByText('草稿已保存为新版本。')).toBeTruthy()
+    const toast = screen.getByText('草稿已保存为新版本。')
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    expect(screen.getByText('草稿已保存为新版本。')).toBe(toast)
+    expect(screen.queryByText('Draft saved with a new version.')).toBeNull()
+    expect(saves).toBe(1)
+  })
+
+  it('should retranslate persistent errors and show a pending failure in the current language', async () => {
+    let fail!: (response: HttpResponse<Record<string, unknown>>) => void
+    const pending = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+      fail = resolve
+    })
+    let validations = 0
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', () => {
+        validations += 1
+        return pending
+      })
+    )
+    renderEditor()
+    await screen.findByDisplayValue('Existing headline')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Validate current draft' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Validate saved version' }))
+    await waitFor(() => expect(validations).toBe(1))
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    fail(
+      HttpResponse.json(
+        {
+          error: {
+            code: 'storefront_experience_validation_stale',
+            message: 'Private server sentence',
+          },
+        },
+        { status: 422 }
+      )
+    )
+    await screen.findByText('请先验证当前草稿版本，再创建快照。')
+    expect(screen.queryByText('Private server sentence')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await screen.findByText('Validate the current draft version before creating a snapshot.')
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog).toHaveLength(beforeSwitch)
+    expect(previewBody).toBeNull()
+    expect(approvalBody).toBeNull()
+  })
+
+  it('should retranslate a local missing-package precondition without retrying the load', async () => {
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () => HttpResponse.json({ data: [] }))
+    )
+    renderEditor()
+    await screen.findByText('The exact approved theme package is no longer available.')
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await screen.findByText('对应的已批准主题包已不可用。')
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog).toHaveLength(beforeSwitch)
+  })
+
+  it('should keep and reload local conflict edits using the Chinese recovery choices', async () => {
+    server.use(
+      http.put('*/admin/storefront-experiences/drafts/:id', () =>
+        HttpResponse.json(
+          { error: { code: 'storefront_experience_draft_conflict', message: 'Raw conflict' } },
+          { status: 409 }
+        )
+      )
+    )
+    renderEditor()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Keep and then discard' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Conflict recovery' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    await screen.findByRole('button', { name: 'Keep local edits' })
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    const beforeKeep = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: '保留本地修改' }))
+    expect(screen.getByDisplayValue('Keep and then discard')).toBeTruthy()
+    expect(requestLog).toHaveLength(beforeKeep)
+    fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }))
+    fireEvent.click(await screen.findByRole('button', { name: '重新加载并放弃本地修改' }))
+    await screen.findByDisplayValue('Existing headline')
+    expect(screen.queryByDisplayValue('Keep and then discard')).toBeNull()
+    expect(successorBody).toBeNull()
+    expect(previewBody).toBeNull()
+    expect(approvalBody).toBeNull()
+  })
+
+  it('should preserve unknown diagnostics and technical locations without interpreting server sentences', async () => {
+    const invalid = {
+      ...validValidation,
+      draftVersion: 1,
+      status: 'invalid' as const,
+      issues: [
+        {
+          code: 'future-validation',
+          message: 'Private diagnostic sentence',
+          path: 'raw-template/path',
+          instanceId: 'raw-instance',
+          templateId: 'raw-template',
+        },
+      ],
+    }
+    currentDraft = { ...currentDraft, validation: invalid, validations: [invalid] }
+    server.use(
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
+        HttpResponse.json({
+          data: {
+            snapshot: previewSnapshot,
+            build: { ...build(), status: 'failed', failureCode: 'future-preview' },
+          },
+        })
+      )
+    )
+    renderEditor()
+    await screen.findByText(/Unknown theme diagnostic.*future-validation/)
+    await screen.findByText(/Unknown theme diagnostic.*future-preview/)
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await screen.findByText('未知主题诊断，请检查技术代码后再继续。（future-validation）')
+    expect(screen.getByText('raw-template · raw-instance · raw-template/path')).toBeTruthy()
+    expect(
+      screen.getByText('未知主题诊断，请检查技术代码后再继续。（future-preview）')
+    ).toBeTruthy()
+    expect(screen.queryByText('Private diagnostic sentence')).toBeNull()
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog).toHaveLength(beforeSwitch)
+    expect(previewBody).toBeNull()
+  })
   it('preserves the guide marker when returning to the theme list', async () => {
     const { router } = renderEditor('admin', 60_000, undefined, '?from=setup-guide')
     fireEvent.click(await screen.findByRole('button', { name: 'Storefront themes' }))
@@ -720,6 +951,9 @@ describe('ThemeEditorPage', () => {
           total: kind === 'product' ? 13 : data.length,
         })
       }),
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
+        HttpResponse.json({ data: deployedPreviewContext('release-editor-1') })
+      ),
       http.get('*/admin/storefront-experiences/media', ({ request }) => {
         const page = Number(new URL(request.url).searchParams.get('page') ?? '1')
         return HttpResponse.json({
@@ -782,6 +1016,47 @@ describe('ThemeEditorPage', () => {
     expect(
       screen.getByLabelText('home-hero cta destination', { selector: 'input,select,textarea' })
     ).toBeTruthy()
+    fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Dirty catalog editor text' },
+    })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'home-hero featured-product' }))
+    fireEvent.click((await screen.findAllByText('Stable product · /products/stable')).at(-1)!)
+    await screen.findByText('preview-build-release-editor-1')
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog).toHaveLength(beforeSwitch)
+    expect(screen.getByDisplayValue('Dirty catalog editor text')).toBeTruthy()
+    expect(
+      screen
+        .getByRole('combobox', { name: 'home-hero featured-product' })
+        .closest('[title]')
+        ?.getAttribute('title')
+    ).toBe('Stable product · /products/stable')
+    expect(screen.getByText('preview-build-release-editor-1')).toBeTruthy()
+    expect(screen.getAllByText(/release-editor-1/).length).toBeGreaterThan(0)
+    expect(updateBody).toBeNull()
+    expect(previewBody).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: '变更原因' }), {
+      target: { value: 'Verify retained binding' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }))
+    await waitFor(() =>
+      expect(updateBody).toMatchObject({
+        bindings: expect.arrayContaining([
+          {
+            id: 'catalog-home-hero-featured-product',
+            kind: 'catalog',
+            instanceId: 'home-hero',
+            settingId: 'featured-product',
+            reference: { id: 'product-stable-1', kind: 'product' },
+          },
+        ]),
+      })
+    )
+    expect(JSON.stringify(updateBody?.overrides)).toContain('Dirty catalog editor text')
     view.unmount()
   }, 20_000)
 
@@ -843,6 +1118,13 @@ describe('ThemeEditorPage', () => {
         'home-story moved to position 2 of 3'
       )
     )
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    expect(screen.getByRole('status').textContent).toBe(
+      'home-story 已移到 home 中的第 2 位，共 3 位。'
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    expect(requestLog).toHaveLength(beforeSwitch)
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Local unsaved headline' },
     })
@@ -909,11 +1191,17 @@ describe('ThemeEditorPage', () => {
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Keep local edits' }))
     )
     expect(screen.getByRole('button', { name: 'Reload and discard local edits' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Save local edits as successor' }))
+    const beforeSwitch = requestLog.length
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await screen.findByText('本地编辑期间，已保存的草稿发生了变化')
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog).toHaveLength(beforeSwitch)
+    expect(screen.getByDisplayValue('Keep this local edit')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '将本地修改保存为后继草稿' }))
     await screen.findByText('draft-successor-1')
-    expect(
-      await screen.findByText('Successor draft draft-successor-1 created for review.')
-    ).toBeTruthy()
+    expect(await screen.findByText('已创建后继草稿 draft-successor-1，等待审核。')).toBeTruthy()
     await waitFor(() =>
       expect(`${router.state.location.pathname}${router.state.location.search}`).toBe(
         '/storefront/themes/draft-successor-1?from=setup-guide'
@@ -965,13 +1253,16 @@ describe('ThemeEditorPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
 
-    await screen.findByText('required_capability_missing')
-    const summary = screen
-      .getByText(/Validation validation-synthetic-invalid-2/)
-      .closest('[tabindex]')
+    await screen.findByText(
+      /The template is missing a required capability.*required_capability_missing/
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await screen.findByText('模板缺少必需能力。（required_capability_missing）')
+    expect(screen.queryByText('Required navigation capability is missing.')).toBeNull()
+    const summary = screen.getByText(/验证 validation-synthetic-invalid-2/).closest('[tabindex]')
     await waitFor(() => expect(document.activeElement).toBe(summary))
     const issueLink = screen.getByRole('link', {
-      name: /Review affected field.*home.*home-hero.*heading/,
+      name: /检查受影响字段.*home.*home-hero.*heading/,
     })
     fireEvent.click(issueLink)
     await waitFor(() =>
@@ -1043,8 +1334,15 @@ describe('ThemeEditorPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Assess upgrade conflicts' }))
 
-    await screen.findByText('instance-removed')
-    expect(screen.getByText('1 conflicts')).toBeTruthy()
+    await screen.findByText(/The target package removed an instance.*instance-removed/)
+    expect(screen.getByText('2 conflicts')).toBeTruthy()
+    expect(screen.getByText('synthetic-home · home-story · raw-setting · 0')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await screen.findByText('目标主题包移除了带有本地覆盖配置的实例。（instance-removed）')
+    expect(
+      screen.getByText('未知主题诊断，请检查技术代码后再继续。（future-migration）')
+    ).toBeTruthy()
+    expect(screen.queryByText('Private migration sentence')).toBeNull()
     expect(migrationBody).toMatchObject({
       expectedVersion: 1,
       targetConfigurationSchemaVersion: 2,

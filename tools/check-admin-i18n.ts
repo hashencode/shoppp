@@ -136,6 +136,37 @@ export const scanTranslationCalls = (filePath: string, text: string) => {
 // These are catalogs of application-owned messages, not arbitrary API/user strings.
 // U3/U4 add their finite theme/timeline catalogs here when those modules are implemented.
 export const dynamicCatalogs = [
+  { filePath: "apps/admin/src/pages/storefront/theme-feedback.ts", variable: "diagnosticMessages" },
+  { filePath: "apps/admin/src/pages/storefront/theme-feedback.ts", variable: "localThemeMessages" },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
+    variable: "validationStatusMessages",
+  },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
+    variable: "validationIssueMessages",
+  },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
+    variable: "migrationConflictMessages",
+  },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
+    variable: "previewFailureMessages",
+  },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
+    variable: "resourceKindMessages",
+  },
+  {
+    filePath: "apps/admin/src/pages/storefront/storefront-link-editor.tsx",
+    variable: "targetBehaviorLabels",
+  },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+    variable: "moveSection",
+    fields: ["message"],
+  },
   {
     filePath: "packages/contracts/src/admin.ts",
     variable: "ADMIN_PERMISSION_CATALOG",

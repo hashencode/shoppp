@@ -1,4 +1,5 @@
 import type { AssetReference } from '@shoppp/contracts'
+import { CloseCircleFilled } from '@ant-design/icons'
 import { Alert, Button, Input, Space, Spin, Typography } from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
 import {
@@ -6,6 +7,8 @@ import {
   type StorefrontCatalogMedia,
 } from '../../services/storefront/api'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useI18n } from '../../shared/contexts/i18n-context'
+import { localizeApiError } from '../../shared/i18n/api-error'
 
 void React
 
@@ -24,12 +27,13 @@ export const CatalogMediaPicker = ({
   onChange: (value: AssetReference) => void
   value: AssetReference
 }) => {
+  const { t } = useI18n()
   const [items, setItems] = useState<StorefrontCatalogMedia[]>([])
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -39,7 +43,7 @@ export const CatalogMediaPicker = ({
       setItems(result.data)
       setTotal(result.total)
     } catch (cause) {
-      setError(normalizeApiError(cause).message)
+      setError(normalizeApiError(cause))
     } finally {
       setLoading(false)
     }
@@ -54,7 +58,7 @@ export const CatalogMediaPicker = ({
   const currentDescription =
     value.kind === 'catalog'
       ? `${value.alt} · ${value.width} × ${value.height}`
-      : `Theme asset · ${value.width} × ${value.height}`
+      : t('Theme asset · {width} × {height}', { width: value.width, height: value.height })
 
   return (
     <fieldset aria-label={label} className="min-w-0 rounded border border-slate-200 p-3">
@@ -62,10 +66,11 @@ export const CatalogMediaPicker = ({
       <Space orientation="vertical" className="w-full">
         <Typography.Text type="secondary">{currentDescription}</Typography.Text>
         <Input.Search
-          aria-label={`${label} Search approved Catalog media`}
-          allowClear
+          aria-label={t('{label} Search approved Catalog media', { label })}
+          allowClear={{ clearIcon: <CloseCircleFilled aria-label={t('Clear search')} /> }}
           disabled={disabled}
-          placeholder="Search approved Catalog media"
+          placeholder={t('Search approved Catalog media')}
+          enterButton={t('Search')}
           onSearch={(next) => {
             setPage(1)
             setQuery(next.trim())
@@ -74,29 +79,29 @@ export const CatalogMediaPicker = ({
         {loading ? (
           <Space>
             <Spin size="small" />
-            <span>Loading approved Catalog media…</span>
+            <span>{t('Loading approved Catalog media…')}</span>
           </Space>
         ) : error ? (
           <Alert
             type="error"
             showIcon
-            title="Catalog media could not be loaded"
-            description={error}
+            title={t('Catalog media could not be loaded')}
+            description={localizeApiError(error, t)}
             action={
               <Button size="small" onClick={() => void load()}>
-                Retry media
+                {t('Retry media')}
               </Button>
             }
           />
         ) : items.length === 0 ? (
-          <Alert type="info" showIcon title="No approved Catalog media matches this search." />
+          <Alert type="info" showIcon title={t('No approved Catalog media matches this search.')} />
         ) : (
           <ul className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             {items.map((item) => (
               <li key={item.key}>
                 <button
                   type="button"
-                  aria-label={`Select ${item.alt}`}
+                  aria-label={t('Select {name}', { name: item.alt })}
                   className="w-full rounded border border-slate-200 p-2 text-left disabled:opacity-50"
                   disabled={disabled}
                   onClick={() =>
@@ -127,32 +132,32 @@ export const CatalogMediaPicker = ({
         )}
         <Space wrap>
           <Button
-            aria-label="Previous media page"
+            aria-label={t('Previous media page')}
             disabled={disabled || loading || page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {t('Previous')}
           </Button>
           <Typography.Text>
-            Page {page} of {pageCount}
+            {t('Page {page} of {pages}', { page, pages: pageCount })}
           </Typography.Text>
           <Button
-            aria-label="Next media page"
+            aria-label={t('Next media page')}
             disabled={disabled || loading || page >= pageCount}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {t('Next')}
           </Button>
           <Button
-            aria-label={`Reset ${label}`}
+            aria-label={t('Reset {label}', { label })}
             disabled={disabled}
             onClick={() => onChange(structuredClone(defaultValue))}
           >
-            Reset asset
+            {t('Reset asset')}
           </Button>
         </Space>
         <Typography.Text type="secondary">
-          Uploads remain in the Catalog media workflow.
+          {t('Uploads remain in the Catalog media workflow.')}
         </Typography.Text>
       </Space>
     </fieldset>

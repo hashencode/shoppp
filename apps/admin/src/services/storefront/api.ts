@@ -137,7 +137,14 @@ export type StorefrontPreviewResolution = {
 export type StorefrontExperienceMigration = {
   approvedAt: string | null
   approvedBy: string | null
-  conflicts: Array<{ code: string; instanceId?: string; message: string; templateId?: string }>
+  conflicts: Array<{
+    code: string
+    instanceId?: string
+    message?: string
+    templateId?: string
+    settingId?: string
+    operationIndex?: number
+  }>
   createdAt: string
   createdBy: string
   draftId: string
@@ -184,7 +191,12 @@ export const fetchStorefrontCatalogResources = async (input: {
   pageSize: number
   query: string
   releaseId: string
-}): Promise<{ data: StorefrontCatalogResource[]; page: number; pageSize: number; total: number }> => {
+}): Promise<{
+  data: StorefrontCatalogResource[]
+  page: number
+  pageSize: number
+  total: number
+}> => {
   const response = await apiClient.get<{
     data: StorefrontCatalogResource[]
     page: number
@@ -207,10 +219,7 @@ export const fetchStorefrontCatalogMedia = async (
   const response = await apiClient.get<{
     data: StorefrontCatalogMedia[]
     meta?: { page?: number; pageSize?: number; total?: number }
-  }>(
-    '/admin/storefront-experiences/media',
-    { params: input }
-  )
+  }>('/admin/storefront-experiences/media', { params: input })
   return {
     data: response.data.data,
     page: response.data.meta?.page ?? input.page ?? 1,
@@ -219,9 +228,7 @@ export const fetchStorefrontCatalogMedia = async (
   }
 }
 
-export const fetchStorefrontExperienceDrafts = async (): Promise<
-  StorefrontExperienceDraft[]
-> => {
+export const fetchStorefrontExperienceDrafts = async (): Promise<StorefrontExperienceDraft[]> => {
   const response = await apiClient.get<{ data: StorefrontExperienceDraft[] }>(
     '/admin/storefront-experiences/drafts'
   )

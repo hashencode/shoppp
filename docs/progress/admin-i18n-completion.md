@@ -44,3 +44,13 @@ Verification results will be appended only after observation. This inventory its
 ## U1–U2 simplification receipt
 
 Three read-only ce-simplify-code reviewers completed (reuse, quality, efficiency). No code changes applied. Reuse/efficiency found no worthwhile changes. One quality suggestion to remove the opposite navigator preference from the IAM fixture was skipped: retain the explicit fixture condition while recording that it is not native-browser locale evidence. No new shared date framework or test helper was introduced. Required focused checks passed; project-wide Admin lint/typecheck is not duplicated here under the repository's L3 proportional-verification rule.
+
+## U3 — Theme feedback and editor preservation
+
+- Red proof: the full editor's locale-switch regression observed two draft GETs instead of one before removing translation from the loading dependency. The fixed test preserves unsaved text, resource binding, selected Catalog Release and hydrated preview, then verifies the explicit save payload.
+- Persistent feedback now retains transport errors or local message keys; renders and pending-operation toasts use the current language without replaying old toasts. Existing 409 keep/reload/successor paths, validation field targeting, preview and approval rules remain intact.
+- Media/resource/link controls translate owned labels, search, loading, empty, error, recovery and pagination text while preserving resource names, URLs, target enum values and off-page selections. Query/page/selection survive locale changes without requests.
+- Finite request error codes were traced to theme service/build/catalog-resource/preview and operator-approval sources. Timeout/404/5xx priority, status/details and repeated normalization identity are tested through the real interceptor. Callback-only error codes remain excluded. Successful validation/migration/preview payloads have separate finite diagnostic maps; unknown codes use safe explanations plus technical codes and locations, not server prose.
+- Necessary type-only seam: the Admin migration conflict type now reflects the API's optional message and setting/operation location fields. No API endpoint or payload producer changed in this unit.
+- Host authoritative direct run: seven suites (HTTP client, API error helper, theme feedback, three controls, full editor) passed **54/54**. Thirteen selected shared-consumer suites listed above passed **62/62**. Scanner passed **8/8 (32 assertions)**, including discovery of fallback/local-precondition/move-status keys. Root tools typecheck, changed-file ESLint/Prettier and diff whitespace checks passed.
+- These are local behavior results, not browser evidence, release evidence or a full-Admin-suite claim.

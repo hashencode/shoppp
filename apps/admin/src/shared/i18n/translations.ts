@@ -1,4 +1,132 @@
 export const zhCNMessages: Record<string, string> = {
+  '{version} · schema {schema}': '{version} · 架构 {schema}',
+  'The operator acceptance run was canceled.': '操作员验收运行已取消。',
+  'The operator acceptance run has already been consumed.': '操作员验收运行已使用。',
+  'The operator acceptance run has expired.': '操作员验收运行已过期。',
+  'The operator acceptance run was rejected.': '操作员验收运行已被拒绝。',
+  'Clear search': '清空搜索',
+  'Clear selection': '清除选择',
+  'The request does not match the private preview origin.': '请求与私密预览来源不匹配。',
+  Previous: '上一页',
+  Next: '下一页',
+  Page: '页面',
+  Article: '文章',
+  'Theme asset · {width} × {height}': '主题资源 · {width} × {height}',
+  '{label} Search approved Catalog media': '{label} 搜索已批准的商品目录媒体',
+  'Search approved Catalog media': '搜索已批准的商品目录媒体',
+  'Loading approved Catalog media…': '正在加载已批准的商品目录媒体…',
+  'Catalog media could not be loaded': '无法加载商品目录媒体',
+  'Retry media': '重试加载媒体',
+  'No approved Catalog media matches this search.': '没有符合搜索条件的已批准商品目录媒体。',
+  'Select {name}': '选择 {name}',
+  'Previous media page': '上一页媒体',
+  'Next media page': '下一页媒体',
+  'Page {page} of {pages}': '第 {page} 页，共 {pages} 页',
+  'Reset {label}': '重置 {label}',
+  'Reset asset': '重置资源',
+  'Uploads remain in the Catalog media workflow.': '请继续通过商品目录媒体流程上传。',
+  '{label} Search': '{label} 搜索',
+  'Search {kind}': '搜索{kind}',
+  'Loading references…': '正在加载引用…',
+  'References could not be loaded': '无法加载引用',
+  'Retry references': '重试加载引用',
+  'No matching {kind} references.': '没有匹配的{kind}引用。',
+  'The selected reference is missing from the current release. Choose a replacement.':
+    '当前版本中缺少所选引用，请选择替代项。',
+  'Previous references': '上一页引用',
+  'Next references': '下一页引用',
+  'Link label': '链接文字',
+  'Destination type': '目标类型',
+  '{label} label': '{label} 文字',
+  '{label} destination type': '{label} 目标类型',
+  'Internal resource': '内部资源',
+  'External HTTPS URL': '外部 HTTPS URL',
+  'Resource type': '资源类型',
+  '{label} resource type': '{label} 资源类型',
+  Destination: '目标',
+  '{label} destination': '{label} 目标',
+  'The selected destination is missing from the current release.': '当前版本中缺少所选目标。',
+  'Choose a replacement before preview or approval.': '请先选择替代项，再预览或批准。',
+  'HTTPS URL': 'HTTPS URL',
+  '{label} external URL': '{label} 外部 URL',
+  'Open behavior': '打开方式',
+  '{label} open behavior': '{label} 打开方式',
+  'New window': '新窗口',
+  'Same window': '当前窗口',
+  Collection: '集合',
+  Policy: '政策',
+  Valid: '有效',
+  Invalid: '无效',
+  'Unknown validation status ({code}).': '未知验证状态（{code}）。',
+  'Unknown theme diagnostic. Review the technical code before continuing.':
+    '未知主题诊断，请检查技术代码后再继续。',
+  '{explanation} ({code})': '{explanation}（{code}）',
+  'Select a deployed Catalog Release.': '请选择已部署的商品目录版本。',
+  'The deployed Catalog Release is invalid.': '已部署的商品目录版本无效。',
+  'The selected theme package version is not available.': '所选主题包版本不可用。',
+  'The selected theme package is invalid.': '所选主题包无效。',
+  'The selected theme package is incompatible with this platform contract.':
+    '所选主题包与当前平台契约不兼容。',
+  'The selected preset is not available in this theme package.': '此主题包中没有所选预设。',
+  'The storefront experience draft changed. Reload it before saving again.':
+    '店面体验草稿已变更，请重新加载后再保存。',
+  'The successor source version is newer than the saved draft.':
+    '后继草稿的来源版本比已保存草稿更新。',
+  'Validate the current draft version before creating a snapshot.':
+    '请先验证当前草稿版本，再创建快照。',
+  'The validated draft no longer resolves safely.': '已验证的草稿已无法安全解析，请重新验证。',
+  'The immutable storefront experience snapshot could not be reconciled.':
+    '无法核对不可变店面体验快照，请重新加载后重试。',
+  'No configuration migration is available for these schema versions.':
+    '这些架构版本之间没有可用的配置迁移。',
+  'The target package and configuration schema versions do not match.':
+    '目标主题包与配置架构版本不匹配。',
+  'The migration does not belong to the current draft version.':
+    '此迁移不属于当前草稿版本，请重新预演。',
+  'Resolve stable-instance migration conflicts before approval.':
+    '请先解决稳定实例的迁移冲突，再批准。',
+  'The migrated configuration does not satisfy the target package.':
+    '迁移后的配置不符合目标主题包要求。',
+  'The migration successor changed concurrently.': '迁移后继草稿已被同时修改，请重新加载。',
+  'The preview build does not match its immutable Catalog input.':
+    '预览构建与不可变商品目录输入不匹配。',
+  'The preview build could not allocate an attempt after concurrent requests.':
+    '并发请求后无法分配预览构建尝试，请重试。',
+  'A current immutable preview artifact is required before issuing access.':
+    '必须先生成当前不可变预览产物，才能授予访问权限。',
+  'The operator run changed before approval was recorded.': '记录批准前，操作员验收运行已变更。',
+  'Approval must use the Catalog Release frozen by the operator run.':
+    '批准必须使用操作员验收运行冻结的商品目录版本。',
+  'The existing operator approval does not match this request.': '现有操作员批准与本次请求不匹配。',
+  'The draft configuration schema does not match its exact theme package.':
+    '草稿配置架构与其精确主题包不匹配。',
+  'The selected preset is not declared by the theme package.': '主题包未声明所选预设。',
+  'The override does not match the selected preset schema.': '覆盖配置与所选预设架构不匹配。',
+  'The template has more than one override.': '该模板存在多个覆盖配置。',
+  'The override references an unknown template.': '覆盖配置引用了未知模板。',
+  'The template is missing a required capability.': '模板缺少必需能力。',
+  'The override could not be resolved.': '无法解析覆盖配置。',
+  'The resolved template does not satisfy the theme schema.': '解析后的模板不符合主题架构。',
+  'Resource binding IDs must be unique.': '资源绑定标识必须唯一。',
+  'Fixture bindings must be unique.': '示例数据绑定必须唯一。',
+  'Each catalog reference field may have only one binding.': '每个商品目录引用字段只能有一个绑定。',
+  'The resource binding references an unknown instance.': '资源绑定引用了未知实例。',
+  'The visible instance has no fixture binding.': '可见实例没有示例数据绑定。',
+  'The catalog binding does not match a declared reference field.':
+    '商品目录绑定与声明的引用字段不匹配。',
+  'The catalog reference is missing from the selected Catalog Release.':
+    '所选商品目录版本中缺少此商品目录引用。',
+  'A required catalog reference is missing.': '缺少必填的商品目录引用。',
+  'The content destination is missing from the selected Catalog Release.':
+    '所选商品目录版本中缺少此内容目标。',
+  'The target package removed an instance with local overrides.':
+    '目标主题包移除了带有本地覆盖配置的实例。',
+  'The target package removed a setting with local overrides.':
+    '目标主题包移除了带有本地覆盖配置的设置。',
+  'The private preview build failed. Review the build diagnostics and retry.':
+    '私密预览构建失败，请检查构建诊断后重试。',
+  'The storefront preview build could not be started.': '无法启动店面预览构建。',
+  'The storefront preview build hook is not configured.': '尚未配置店面预览构建钩子。',
   'Select a deployed Catalog Release before previewing.': '预览前请选择已部署的商品目录发布版本。',
   'The saved draft changed while local edits were open': '本地编辑期间，已保存的草稿发生了变化',
   'Your local edits are preserved. Reload and discard them, or save them as a separate successor draft for review.':

@@ -67,7 +67,15 @@ import {
   type StorefrontCatalogRelease,
 } from '../../services/storefront/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
-import { useI18n } from '../../shared/contexts/i18n-context'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import {
+  LocalThemeError,
+  localThemeMessages,
+  localizeThemeError,
+  themeDiagnosticMessage,
+  validationStatusMessage,
+  type ThemeMessage,
+} from './theme-feedback'
 import { CatalogMediaPicker } from './catalog-media-picker'
 import { StorefrontResourcePicker } from './storefront-resource-picker'
 import { StorefrontLinkEditor, type StorefrontEditorResource } from './storefront-link-editor'
@@ -303,6 +311,7 @@ export const ThemeEditorPage = ({
   const [searchParams] = useSearchParams()
   const guideSearch = searchParams.get('from') === 'setup-guide' ? '?from=setup-guide' : ''
   const { t } = useI18n()
+  const currentT = useCurrentTranslate()
   const { permissions, role } = useAuth()
   const canWrite = hasPermission(role, 'themes.write', permissions)
   const canPreview = hasPermission(role, 'themes.preview', permissions)
@@ -318,7 +327,7 @@ export const ThemeEditorPage = ({
   const [savedBindings, setSavedBindings] = useState<ExperienceResourceBinding[]>([])
   const [catalogReleases, setCatalogReleases] = useState<StorefrontCatalogRelease[]>([])
   const [catalogReleasesLoading, setCatalogReleasesLoading] = useState(false)
-  const [catalogReleasesError, setCatalogReleasesError] = useState<string | null>(null)
+  const [catalogReleasesError, setCatalogReleasesError] = useState<Error | null>(null)
   const [catalogReleasesRetry, setCatalogReleasesRetry] = useState(0)
   const [selectedReleaseId, setSelectedReleaseId] = useState(
     () => window.sessionStorage.getItem('storefront-editor-catalog-release') ?? ''
@@ -327,10 +336,10 @@ export const ThemeEditorPage = ({
   const [activeTemplateId, setActiveTemplateId] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
   const [changeReason, setChangeReason] = useState('')
   const [approvalReason, setApprovalReason] = useState('')
-  const [sectionMoveStatus, setSectionMoveStatus] = useState('')
+  const [sectionMoveStatus, setSectionMoveStatus] = useState<ThemeMessage | null>(null)
   const [build, setBuild] = useState<StorefrontPreviewBuild | null>(null)
   const [previewSnapshot, setPreviewSnapshot] = useState<StorefrontExperienceSnapshot | null>(null)
   const [revokedPreviewSnapshotId, setRevokedPreviewSnapshotId] = useState<string | null>(null)
@@ -380,7 +389,7 @@ export const ThemeEditorPage = ({
   const load = useCallback(async () => {
     const request = ++loadRequest.current
     if (!draftId) {
-      setError(t('The experience draft ID is missing.'))
+      setError(new LocalThemeError(localThemeMessages.missingDraft))
       setLoading(false)
       return
     }
@@ -396,7 +405,7 @@ export const ThemeEditorPage = ({
         ({ id, themeVersion }) =>
           id === nextDraft.themeId && themeVersion === nextDraft.themeVersion
       )
-      if (!nextTheme) throw new Error(t('The exact approved theme package is no longer available.'))
+      if (!nextTheme) throw new LocalThemeError(localThemeMessages.missingTheme)
       if (request !== loadRequest.current) return
       const nextTemplates = resolveDraftTemplates(nextTheme, nextDraft)
       setDraft(nextDraft)
@@ -438,11 +447,11 @@ export const ThemeEditorPage = ({
       )
     } catch (cause) {
       if (request !== loadRequest.current) return
-      setError(normalizeApiError(cause).message)
+      setError(cause instanceof LocalThemeError ? cause : normalizeApiError(cause))
     } finally {
       if (request === loadRequest.current) setLoading(false)
     }
-  }, [draftId, t])
+  }, [draftId])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
@@ -475,7 +484,7 @@ export const ThemeEditorPage = ({
           })
         })
         .catch((cause) => {
-          if (!cancelled) setCatalogReleasesError(normalizeApiError(cause).message)
+          if (!cancelled) setCatalogReleasesError(normalizeApiError(cause))
         })
         .finally(() => {
           if (!cancelled) setCatalogReleasesLoading(false)
@@ -509,7 +518,7 @@ export const ThemeEditorPage = ({
           setBuild((current) => (current?.id === buildId ? nextBuild : current))
         }
       } catch (cause) {
-        if (!cancelled) setError(normalizeApiError(cause).message)
+        if (!cancelled) setError(normalizeApiError(cause))
       }
     }, pollIntervalMs)
     return () => {
@@ -553,7 +562,7 @@ export const ThemeEditorPage = ({
           request === previewContextRequest.current &&
           releaseId === selectedReleaseIdRef.current
         ) {
-          setError(normalizeApiError(cause).message)
+          setError(normalizeApiError(cause))
         }
       })
     return () => {
@@ -628,14 +637,15 @@ export const ThemeEditorPage = ({
       if (!template || index < 0 || target < 0 || target >= template.sections.length) return current
       const [section] = template.sections.splice(index, 1)
       template.sections.splice(target, 0, section)
-      setSectionMoveStatus(
-        t('{id} moved to position {position} of {count} on {pageType}.', {
+      setSectionMoveStatus({
+        message: '{id} moved to position {position} of {count} on {pageType}.',
+        values: {
           id: section.id,
           position: target + 1,
           count: template.sections.length,
           pageType: template.pageType,
-        })
-      )
+        },
+      })
       return next
     })
   }
@@ -654,7 +664,7 @@ export const ThemeEditorPage = ({
   }
 
   const save = async (reason: string): Promise<StorefrontExperienceDraft> => {
-    if (!draft || !theme) throw new Error(t('The exact draft package is not loaded.'))
+    if (!draft || !theme) throw new LocalThemeError(localThemeMessages.unloadedDraft)
     if (!dirty) return draft
     const overrides = createThemeOverrides(theme, draft, templates)
     let updated: StorefrontExperienceDraft
@@ -714,7 +724,7 @@ export const ThemeEditorPage = ({
     try {
       await action()
     } catch (cause) {
-      setError(normalizeApiError(cause).message)
+      setError(cause instanceof LocalThemeError ? cause : normalizeApiError(cause))
     } finally {
       setBusy(false)
     }
@@ -768,7 +778,7 @@ export const ThemeEditorPage = ({
   ) => {
     if (selectedReleaseIdRef.current !== releaseId) return false
     if (requiresCatalogRelease && !releaseId) {
-      throw new Error(t('Select a deployed Catalog Release before previewing.'))
+      throw new LocalThemeError(localThemeMessages.missingRelease)
     }
     previewContextRequest.current += 1
     const resolution = await previewStorefrontExperienceDraft(
@@ -829,7 +839,7 @@ export const ThemeEditorPage = ({
       <QueryStateBlock
         state="error"
         title={t('Experience editor could not be loaded')}
-        description={error}
+        description={localizeThemeError(error, t)}
         primaryActionLabel={t('Reload')}
         onPrimaryAction={() => void load()}
         secondaryActionLabel={t('Back to themes')}
@@ -877,7 +887,7 @@ export const ThemeEditorPage = ({
                 onClick={() =>
                   void runAction(async () => {
                     await save(changeReason)
-                    void message.success(t('Draft saved with a new version.'))
+                    void message.success(currentT('Draft saved with a new version.'))
                   })
                 }
               >
@@ -892,7 +902,7 @@ export const ThemeEditorPage = ({
                     const validated = await validate(draft, changeReason, releaseId)
                     if (validated && selectedValidation(validated, releaseId)?.status === 'valid') {
                       void message.success(
-                        t('Draft v{version} is valid.', { version: validated.version })
+                        currentT('Draft v{version} is valid.', { version: validated.version })
                       )
                     }
                   })
@@ -921,7 +931,7 @@ export const ThemeEditorPage = ({
                     return
                   if (!(await startPreview(validated, changeReason, releaseId))) return
                   void message.success(
-                    t('Preview requested for validated draft v{version}.', {
+                    currentT('Preview requested for validated draft v{version}.', {
                       version: validated.version,
                     })
                   )
@@ -1005,7 +1015,7 @@ export const ThemeEditorPage = ({
                     setBindings(structuredClone(successor.bindings))
                     setSavedBindings(structuredClone(successor.bindings))
                     void message.success(
-                      t('Successor draft {id} created for review.', { id: successor.id })
+                      currentT('Successor draft {id} created for review.', { id: successor.id })
                     )
                   })
                 }
@@ -1020,7 +1030,7 @@ export const ThemeEditorPage = ({
           type="error"
           showIcon
           title={t('The last operation did not complete')}
-          description={error}
+          description={localizeThemeError(error, t)}
           action={
             <Button size="small" icon={<ReloadOutlined aria-hidden />} onClick={reloadSavedDraft}>
               {t('Reload saved draft')}
@@ -1048,7 +1058,9 @@ export const ThemeEditorPage = ({
             <Descriptions size="small" column={{ xs: 1, lg: 2 }}>
               <Descriptions.Item label={t('Run')}>{operatorRun.runId}</Descriptions.Item>
               <Descriptions.Item label={t('State')}>
-                {t(operatorRunStatusMessages[operatorRun.status])}
+                {Object.hasOwn(operatorRunStatusMessages, operatorRun.status)
+                  ? t(operatorRunStatusMessages[operatorRun.status])
+                  : operatorRun.status}
               </Descriptions.Item>
               <Descriptions.Item label={t('U12 baseline')}>
                 {operatorRun.u12SnapshotId}
@@ -1104,7 +1116,7 @@ export const ThemeEditorPage = ({
               type="error"
               showIcon
               title={t('Catalog Releases could not be loaded')}
-              description={catalogReleasesError}
+              description={localizeThemeError(catalogReleasesError, t)}
               action={
                 <Button size="small" onClick={() => setCatalogReleasesRetry((value) => value + 1)}>
                   {t('Retry Catalog Releases')}
@@ -1183,7 +1195,7 @@ export const ThemeEditorPage = ({
           )}
         </Typography.Paragraph>
         <div className="sr-only" role="status">
-          {sectionMoveStatus}
+          {sectionMoveStatus ? t(sectionMoveStatus.message, sectionMoveStatus.values) : null}
         </div>
         <Tabs
           activeKey={activeTemplate.id}
@@ -1632,7 +1644,7 @@ export const ThemeEditorPage = ({
           >
             <Space>
               <Tag color={validationCurrent ? 'success' : 'warning'}>
-                {currentValidation.status}
+                {validationStatusMessage(currentValidation.status, t)}
               </Tag>
               <span id="experience-validation-summary-heading">
                 {t('Validation')} {currentValidation.id} · {t('draft')} v
@@ -1659,10 +1671,14 @@ export const ThemeEditorPage = ({
                     key={`${issue.code}-${issue.path ?? issue.templateId ?? ''}-${issue.instanceId ?? ''}`}
                     type="error"
                     showIcon
-                    title={issue.code}
+                    title={themeDiagnosticMessage('validation', issue.code, t)}
                     description={
                       <Space orientation="vertical" size={2}>
-                        <span>{issue.message}</span>
+                        <span>
+                          {[issue.templateId, issue.instanceId, issue.path]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
                         {targetId ? (
                           <a
                             href={`#${targetId}`}
@@ -1710,7 +1726,10 @@ export const ThemeEditorPage = ({
                 className="min-w-64"
                 value={upgradeThemeKey}
                 options={upgradeCandidates.map((candidate) => ({
-                  label: `${candidate.themeVersion} · schema ${candidate.configurationSchemaVersion}`,
+                  label: t('{version} · schema {schema}', {
+                    version: candidate.themeVersion,
+                    schema: candidate.configurationSchemaVersion,
+                  }),
                   value: `${candidate.id}@${candidate.themeVersion}@${candidate.configurationSchemaVersion}`,
                 }))}
                 onChange={(value) => {
@@ -1755,7 +1774,7 @@ export const ThemeEditorPage = ({
                         setLoading(true)
                         setMigration(null)
                         void message.success(
-                          t('Successor draft {id} created for review.', { id: successor.id })
+                          currentT('Successor draft {id} created for review.', { id: successor.id })
                         )
                         navigate(`/storefront/themes/${successor.id}${guideSearch}`, {
                           replace: true,
@@ -1771,8 +1790,15 @@ export const ThemeEditorPage = ({
                     key={`${conflict.code}-${conflict.templateId ?? ''}-${conflict.instanceId ?? ''}`}
                     type="warning"
                     showIcon
-                    title={conflict.code}
-                    description={conflict.message}
+                    title={themeDiagnosticMessage('migration', conflict.code, t)}
+                    description={[
+                      conflict.templateId,
+                      conflict.instanceId,
+                      conflict.settingId,
+                      conflict.operationIndex,
+                    ]
+                      .filter((value) => value !== undefined)
+                      .join(' · ')}
                   />
                 ))}
               </>
@@ -1812,7 +1838,9 @@ export const ThemeEditorPage = ({
                 {build.inputIdentity?.themeVersion ?? draft.themeVersion}
               </Descriptions.Item>
               {build.failureCode ? (
-                <Descriptions.Item label={t('Failure')}>{build.failureCode}</Descriptions.Item>
+                <Descriptions.Item label={t('Failure')}>
+                  {themeDiagnosticMessage('preview', build.failureCode, t)}
+                </Descriptions.Item>
               ) : null}
               {build.expiresAt ? (
                 <Descriptions.Item label={t('Expires')}>{build.expiresAt}</Descriptions.Item>
@@ -1831,10 +1859,10 @@ export const ThemeEditorPage = ({
               onClick={() =>
                 void runAction(async () => {
                   if (!previewOrigin)
-                    throw new Error(t('The private preview origin is not configured.'))
+                    throw new LocalThemeError(localThemeMessages.missingPreviewOrigin)
                   const releaseId = selectedReleaseId
                   if (!previewContextCurrent || selectedReleaseIdRef.current !== releaseId) {
-                    throw new Error(t('The deployed preview no longer matches this draft context.'))
+                    throw new LocalThemeError(localThemeMessages.stalePreview)
                   }
                   const grant = await createStorefrontPreviewGrant(
                     previewSnapshot.id,
@@ -1960,7 +1988,9 @@ export const ThemeEditorPage = ({
                       // The immutable approval remains authoritative; a reload can retry this read.
                     }
                   }
-                  void message.success(t('Immutable experience snapshot approved and audited.'))
+                  void message.success(
+                    currentT('Immutable experience snapshot approved and audited.')
+                  )
                 })
               }
             >

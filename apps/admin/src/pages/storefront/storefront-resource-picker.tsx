@@ -1,7 +1,11 @@
 import { Alert, Button, Input, Select, Space, Spin, Typography } from 'antd'
+import { CloseCircleFilled } from '@ant-design/icons'
 import type { GetRef } from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { useI18n } from '../../shared/contexts/i18n-context'
+import { localizeApiError } from '../../shared/i18n/api-error'
+import { resourceKindMessages } from './theme-feedback'
 import {
   fetchStorefrontCatalogResources,
   type StorefrontCatalogResource,
@@ -30,13 +34,15 @@ export const StorefrontResourcePicker = ({
   selected?: StorefrontCatalogResource
   value?: string
 }) => {
+  const { t } = useI18n()
+  const kindLabel = Object.hasOwn(resourceKindMessages, kind) ? t(resourceKindMessages[kind]) : kind
   const selectRef = React.useRef<GetRef<typeof Select>>(null)
   const [items, setItems] = useState<StorefrontCatalogResource[]>([])
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
   const load = useCallback(async () => {
     if (!releaseId) {
@@ -57,7 +63,7 @@ export const StorefrontResourcePicker = ({
       setItems(result.data)
       setTotal(result.total)
     } catch (cause) {
-      setError(normalizeApiError(cause).message)
+      setError(normalizeApiError(cause))
     } finally {
       setLoading(false)
     }
@@ -77,19 +83,20 @@ export const StorefrontResourcePicker = ({
       <legend className="px-1 text-sm font-medium">{label}</legend>
       <Space orientation="vertical" className="w-full">
         <Input.Search
-          aria-label={`${label} Search`}
-          allowClear
+          aria-label={t('{label} Search', { label })}
+          allowClear={{ clearIcon: <CloseCircleFilled aria-label={t('Clear search')} /> }}
           disabled={disabled || !releaseId}
           onSearch={(next) => {
             setPage(1)
             setQuery(next.trim())
           }}
-          placeholder={`Search ${kind}`}
+          placeholder={t('Search {kind}', { kind: kindLabel })}
+          enterButton={t('Search')}
         />
         <Select
           ref={selectRef}
           aria-label={label}
-          allowClear
+          allowClear={{ clearIcon: <CloseCircleFilled aria-label={t('Clear selection')} /> }}
           className="w-full"
           disabled={disabled || !releaseId || loading}
           loading={loading}
@@ -105,30 +112,45 @@ export const StorefrontResourcePicker = ({
           }}
         />
         {loading ? (
-          <Space><Spin size="small" /><span>Loading references…</span></Space>
+          <Space>
+            <Spin size="small" />
+            <span>{t('Loading references…')}</span>
+          </Space>
         ) : error ? (
           <Alert
             type="error"
             showIcon
-            title="References could not be loaded"
-            description={error}
-            action={<Button size="small" onClick={() => void load()}>Retry references</Button>}
+            title={t('References could not be loaded')}
+            description={localizeApiError(error, t)}
+            action={
+              <Button size="small" onClick={() => void load()}>
+                {t('Retry references')}
+              </Button>
+            }
           />
         ) : items.length === 0 ? (
-          <Typography.Text type="secondary">No matching {kind} references.</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('No matching {kind} references.', { kind: kindLabel })}
+          </Typography.Text>
         ) : null}
         {missing ? (
           <Typography.Text type="danger">
-            The selected reference is missing from the current release. Choose a replacement.
+            {t('The selected reference is missing from the current release. Choose a replacement.')}
           </Typography.Text>
         ) : null}
         <Space wrap>
-          <Button disabled={disabled || loading || page <= 1} onClick={() => setPage((value) => value - 1)}>
-            Previous references
+          <Button
+            disabled={disabled || loading || page <= 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            {t('Previous references')}
           </Button>
-          <span>Page {page} of {pages}</span>
-          <Button disabled={disabled || loading || page >= pages} onClick={() => setPage((value) => value + 1)}>
-            Next references
+          <span>{t('Page {page} of {pages}', { page, pages })}</span>
+          <Button
+            disabled={disabled || loading || page >= pages}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            {t('Next references')}
           </Button>
         </Space>
       </Space>

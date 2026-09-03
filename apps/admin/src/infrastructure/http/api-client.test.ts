@@ -86,6 +86,67 @@ const createAxiosError = ({
 }
 
 describe('normalizeApiError', () => {
+  it('should preserve reachable theme errors and details through the interceptor and repeated normalization', async () => {
+    const original = createAxiosError({
+      status: 409,
+      data: {
+        error: {
+          code: 'storefront_experience_validation_stale',
+          message: 'Private server prose',
+          details: { expectedVersion: 2 },
+        },
+      },
+    })
+    let caught: unknown
+    try {
+      await apiClient.get('/admin/storefront-experiences/drafts/id', {
+        adapter: async () => {
+          throw original
+        },
+      })
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toMatchObject({
+      code: 'storefront_experience_validation_stale',
+      status: 409,
+      details: { expectedVersion: 2 },
+      cause: original,
+    })
+    expect(normalizeApiError(caught)).toBe(caught)
+  })
+
+  it('should keep timeout, 404 and server priorities above nested theme codes and reject callback-only codes', () => {
+    for (const [status, code, expected] of [
+      [409, undefined, 'storefront_experience_draft_conflict'],
+      [404, undefined, 'RESOURCE_NOT_FOUND'],
+      [503, undefined, 'QUERY_SERVER_ERROR'],
+      [503, 'ECONNABORTED', 'QUERY_TIMEOUT'],
+    ] as const) {
+      const normalized = normalizeApiError(
+        createAxiosError({
+          status,
+          code,
+          data: {
+            error: {
+              code: 'storefront_experience_draft_conflict',
+              message: 'Raw conflict',
+              details: { version: 4 },
+            },
+          },
+        })
+      )
+      expect(normalized).toMatchObject({ code: expected, status, details: { version: 4 } })
+      expect(normalizeApiError(normalized)).toBe(normalized)
+    }
+    for (const code of ['unknown-theme-error', 'storefront_preview_build_result_conflict']) {
+      const normalized = normalizeApiError(
+        createAxiosError({ status: 409, data: { error: { code, message: 'Unsafe server text' } } })
+      )
+      expect(normalized.code).toBe('UNKNOWN_ERROR')
+      expect(normalized.status).toBe(409)
+    }
+  })
   it('maps axios timeout to QUERY_TIMEOUT with status', () => {
     const normalized = normalizeApiError(
       createAxiosError({
