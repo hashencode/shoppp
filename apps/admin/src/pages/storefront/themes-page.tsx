@@ -17,7 +17,7 @@ import {
   App,
 } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
@@ -43,6 +43,8 @@ const themeKey = (theme: AdminStorefrontTheme) => `${theme.id}@${theme.themeVers
 export const ThemesPage = () => {
   const { message } = App.useApp()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const guideSearch = searchParams.get('from') === 'setup-guide' ? '?from=setup-guide' : ''
   const { t } = useI18n()
   const { permissions, role } = useAuth()
   const canWrite = hasPermission(role, 'themes.write', permissions)
@@ -208,7 +210,7 @@ export const ThemesPage = () => {
                 <Button
                   type="link"
                   icon={<EditOutlined aria-hidden />}
-                  onClick={() => navigate(`/storefront/themes/${draft.id}`)}
+                  onClick={() => navigate(`/storefront/themes/${draft.id}${guideSearch}`)}
                 >
                   {t(canWrite ? 'Edit' : 'View')}
                 </Button>
@@ -253,7 +255,7 @@ export const ThemesPage = () => {
               )
               void message.success(t('Experience draft created.'))
               setCreateOpen(false)
-              navigate(`/storefront/themes/${draft.id}`)
+              navigate(`/storefront/themes/${draft.id}${guideSearch}`)
             } catch (cause) {
               void message.error(normalizeApiError(cause).message)
             } finally {

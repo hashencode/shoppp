@@ -1,7 +1,7 @@
 import { Button, Form, Input, InputNumber, Select, Upload, App } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
 import {
@@ -170,6 +170,8 @@ export const CatalogFormPage = () => {
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const fromSetupGuide = searchParams.get('from') === 'setup-guide'
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const { role, permissions } = useAuth()
   const { publishRefresh } = useListRefreshChannel({
@@ -240,7 +242,10 @@ export const CatalogFormPage = () => {
         submitBlockedMessage: t('Readonly mode does not allow catalog changes.'),
         submitSuccessMessage: t(isAddMode ? 'Product created' : 'Product saved'),
       },
-      onBackToList: () => goBackOrCloseWindow('/catalog/products'),
+      onBackToList: () =>
+        fromSetupGuide
+          ? navigate('/catalog/products?from=setup-guide')
+          : goBackOrCloseWindow('/catalog/products'),
       onRetryDetail: () => void loadDetail(),
       onResetAll: () => {
         setPendingFile(null)
@@ -451,6 +456,8 @@ export const CatalogFormPage = () => {
       detailError,
       detailLoading,
       form,
+      fromSetupGuide,
+      navigate,
       isAddMode,
       isReadonly,
       loadDetail,

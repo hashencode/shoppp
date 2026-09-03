@@ -6,6 +6,7 @@ import type { ListStateCopyContract } from '../contracts/page-state-contract'
 import type { TemplateListFilterField } from '../list/template-list-filter-form'
 import type { StandardPaginationConfig } from '../../hooks/use-standard-pagination'
 import type { PermissionKey } from '../../../infrastructure/auth/permissions'
+import type { FormMode } from '../../../routes/form-route-contract'
 
 type StandardListToolbarExtra =
   | {
@@ -30,6 +31,7 @@ export type StandardListPageSpec<
   cardTitle?: string
   tableId: string
   formRoute: string
+  openFormPage?: (mode: FormMode, resourceKey?: string) => void
   initialFilters: TRequestFilters
   toFilters: (values: TFilterValues) => TRequestFilters
   buildRequestFilters?: (context: {
@@ -49,7 +51,7 @@ export type StandardListPageSpec<
   }
   filterFields: TemplateListFilterField<TFilterValues>[]
   buildColumns: (helpers: {
-    openFormPage: (mode: 'add' | 'modify' | 'readonly', resourceKey?: string) => void
+    openFormPage: (mode: FormMode, resourceKey?: string) => void
     reload: () => Promise<void>
     resolveActionColumnWidth: (baseWidth: number, maxWidth?: number) => number
   }) => ColumnsType<TItem>

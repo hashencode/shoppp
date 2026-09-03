@@ -38,7 +38,7 @@ import {
   App,
 } from 'antd'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useBlocker, useNavigate, useParams } from 'react-router-dom'
+import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
@@ -300,6 +300,8 @@ export const ThemeEditorPage = ({
   const { message } = App.useApp()
   const { draftId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const guideSearch = searchParams.get('from') === 'setup-guide' ? '?from=setup-guide' : ''
   const { t } = useI18n()
   const { permissions, role } = useAuth()
   const canWrite = hasPermission(role, 'themes.write', permissions)
@@ -354,8 +356,8 @@ export const ThemeEditorPage = ({
 
   useEffect(() => {
     if (!draft?.id || draft.id === draftId || dirty) return
-    navigate(`/storefront/themes/${draft.id}`, { replace: true })
-  }, [draft?.id, draftId, dirty, navigate])
+    navigate(`/storefront/themes/${draft.id}${guideSearch}`, { replace: true })
+  }, [draft?.id, draftId, dirty, guideSearch, navigate])
 
   useEffect(() => {
     if (!conflict) return
@@ -831,7 +833,7 @@ export const ThemeEditorPage = ({
         primaryActionLabel={t('Reload')}
         onPrimaryAction={() => void load()}
         secondaryActionLabel={t('Back to themes')}
-        onSecondaryAction={() => navigate('/storefront/themes')}
+        onSecondaryAction={() => navigate(`/storefront/themes${guideSearch}`)}
       />
     )
   }
@@ -845,7 +847,7 @@ export const ThemeEditorPage = ({
             type="link"
             className="!-ml-4"
             icon={<ArrowLeftOutlined aria-hidden />}
-            onClick={() => navigate('/storefront/themes')}
+            onClick={() => navigate(`/storefront/themes${guideSearch}`)}
           >
             {t('Storefront themes')}
           </Button>
@@ -1755,7 +1757,9 @@ export const ThemeEditorPage = ({
                         void message.success(
                           t('Successor draft {id} created for review.', { id: successor.id })
                         )
-                        navigate(`/storefront/themes/${successor.id}`, { replace: true })
+                        navigate(`/storefront/themes/${successor.id}${guideSearch}`, {
+                          replace: true,
+                        })
                       })
                     }
                   >

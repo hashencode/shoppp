@@ -1,9 +1,9 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { CatalogFormPage } from './catalog-form-page'
@@ -110,4 +110,33 @@ describe('CatalogFormPage', () => {
     renderReadonly()
     await waitFor(() => expect(screen.getByText('请返回列表重新选择记录。')).toBeTruthy())
   })
+})
+
+const ReturnProbe = () => {
+  const location = useLocation()
+  return (
+    <div>
+      {location.pathname}
+      {location.search}
+    </div>
+  )
+}
+it('returns to the catalog list in the same guide journey', async () => {
+  render(
+    <AuthTestProvider permissions={['catalog.read']}>
+      <ThemeProvider>
+        <MemoryRouter
+          initialEntries={['/catalog/products/form?mode=readonly&id=product-001&from=setup-guide']}
+        >
+          <Routes>
+            <Route path="/catalog/products/form" element={<CatalogFormPage />} />
+            <Route path="/catalog/products" element={<ReturnProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    </AuthTestProvider>
+  )
+  await screen.findByDisplayValue('Carry-on')
+  fireEvent.click(screen.getByLabelText('返回'))
+  expect(await screen.findByText('/catalog/products?from=setup-guide')).toBeTruthy()
 })

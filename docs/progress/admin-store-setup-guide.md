@@ -41,3 +41,9 @@ Host Rstest verification: welcome-page, authorized-home, app-shell, auth-route-g
 Shared files were committed selectively: only guide translations, the menu replacement and its two tests (plus their required route import). Pre-existing breadcrumb rules/tests, dashboard/report work and later demo-mode strings remain working-tree work owned elsewhere.
 
 Guide simplification ran all three ce-simplify-code personas. No reuse/quality findings; applied one efficiency finding by canceling superseded HTTP requests with AbortController while retaining the tested response-identity guard. The eight guide tests and scoped ESLint passed again. Admin static typing remains part of the final build gate.
+
+## Settings and return verification
+
+Host Rstest: launch-settings, setup-guide-return, catalog-list, catalog-form, theme-editor, standard-list-page-recipe, app-shell and shipping-settings: 8 files / 90 tests passed. This includes complete payload/reason saving with a failed health request, readonly forced-submit blocking, independent recovery, failed-save input retention, fixed return route allowlisting and basename, catalog form returns, and successor draft query preservation. The shared list callback is optional; existing default navigation continues through its original hook and shared recipe suite.
+
+U3 simplification completed all three personas. Reused the canonical FormMode type (type-only change); no quality findings. Deferred the optional request-cancellation suggestion for the two settings reads: existing request counters already protect state, these loads do not poll or repeatedly overlap, and retry is exposed after failure. No permission or stale-result guard was removed. Final build verifies the type-only adjustment. Shared-file staging includes only the nine new guide-return/settings keys and AppShell's return component, leaving other concurrent translations and breadcrumb work untouched.

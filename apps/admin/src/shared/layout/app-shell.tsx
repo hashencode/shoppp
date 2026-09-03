@@ -14,6 +14,7 @@ import { Avatar, Breadcrumb, Dropdown, Layout, Menu, App, theme, Typography } fr
 import type { MenuProps } from 'antd'
 import React, { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { SetupGuideReturn } from '../navigation/setup-guide-return'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { RoutePageMetaProvider, type RouteBreadcrumbItem } from './route-page-meta-context'
@@ -488,6 +489,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
               scrollbarGutter: 'stable both-edges',
             }}
           >
+            <SetupGuideReturn />
             {shouldShowBreadcrumb && (
               <div className="mb-3 bg-transparent p-0 [&_.ant-breadcrumb]:text-[13px]">
                 <Breadcrumb items={breadcrumbItems.map((item) => ({ title: item }))} />

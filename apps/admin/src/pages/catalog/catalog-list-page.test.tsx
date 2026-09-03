@@ -1,4 +1,5 @@
 import React from 'react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import type { AdminPermission } from '@shoppp/contracts'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
@@ -63,7 +64,9 @@ const renderPage = (
   renderInLocale(
     <AuthTestProvider role="catalog_operator" permissions={permissions}>
       <ThemeProvider>
-        <CatalogListPage />
+        <MemoryRouter>
+          <CatalogListPage />
+        </MemoryRouter>
       </ThemeProvider>
     </AuthTestProvider>
   )
@@ -111,5 +114,44 @@ describe('CatalogListPage', () => {
     expect(screen.queryByText('Edit')).toBeNull()
     expect(screen.queryByText('Publish')).toBeNull()
     expect(screen.getByText('View')).toBeTruthy()
+  })
+})
+
+const NavigationProbe = () => {
+  const location = useLocation()
+  return (
+    <div>
+      {location.pathname}
+      {location.search}
+    </div>
+  )
+}
+describe('Catalog setup navigation', () => {
+  it.each([
+    ['New product', 'add'],
+    ['Edit', 'modify'],
+    ['View', 'readonly'],
+  ])('keeps the fixed guide marker for %s in this tab', async (label, mode) => {
+    renderInLocale(
+      <AuthTestProvider>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/catalog/products?from=setup-guide']}>
+            <Routes>
+              <Route path="/catalog/products" element={<CatalogListPage />} />
+              <Route path="/catalog/products/form" element={<NavigationProbe />} />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await screen.findByText('Carry-on')
+    fireEvent.click(screen.getByRole('button', { name: label, exact: true }))
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          `/catalog/products/form?mode=${mode}&from=setup-guide${mode === 'add' ? '' : '&id=product-001'}`
+        )
+      ).toBeTruthy()
+    )
   })
 })

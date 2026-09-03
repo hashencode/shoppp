@@ -1,4 +1,14 @@
 export const zhCNMessages: Record<string, string> = {
+  'Back to store setup guide': '返回开店指南',
+  'View store setup checks': '查看开店检查',
+  Contacts: '联系方式',
+  'Sales and inventory': '销售与库存',
+  Payments: '支付',
+  Policies: '政策',
+  'Loading operational health…': '正在检查运行健康…',
+  'Operational health could not be loaded': '无法加载运行健康',
+  'Retry health check': '重新检查运行健康',
+
   'Store setup guide': '开店指南',
   'Commercial settings': '商业设置',
   'Basics and contacts': '基础与联系方式',

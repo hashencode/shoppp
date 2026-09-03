@@ -1,5 +1,6 @@
 import { Button, Input, Modal, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import React, { useCallback, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -93,6 +94,9 @@ const toFilters = (values: CatalogSearchValues): CatalogListFilters => ({
 
 export const CatalogListPage = () => {
   const { message } = App.useApp()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromSetupGuide = searchParams.get('from') === 'setup-guide'
   const { role, permissions } = useAuth()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
@@ -168,6 +172,14 @@ export const CatalogListPage = () => {
       cardTitle: t('Products'),
       tableId: 'catalog-products',
       formRoute: '/catalog/products/form',
+      // The setup journey stays in this tab; ordinary list navigation retains its default.
+      openFormPage: fromSetupGuide
+        ? (mode, id) => {
+            const params = new URLSearchParams({ mode, from: 'setup-guide' })
+            if (id) params.set('id', id)
+            navigate(`/catalog/products/form?${params.toString()}`)
+          }
+        : undefined,
       initialFilters: {},
       pagination: { includeAllDataOption: false, maxPageSize: 100 },
       toFilters,
@@ -295,7 +307,7 @@ export const CatalogListPage = () => {
         emptyDescription: t('Reset the filters or create the first product.'),
       },
     }),
-    [canPublish, canWrite, filters, handlePreview, handlePublish, t]
+    [canPublish, canWrite, filters, fromSetupGuide, handlePreview, handlePublish, navigate, t]
   )
 
   return <StandardListPageRecipe spec={spec} />

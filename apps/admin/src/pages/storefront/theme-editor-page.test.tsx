@@ -440,7 +440,8 @@ const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) 
 const renderEditor = (
   role: Role = 'admin',
   pollIntervalMs = 60_000,
-  permissionOverride?: readonly AdminPermission[]
+  permissionOverride?: readonly AdminPermission[],
+  search = ''
 ) => {
   const router = createMemoryRouter(
     [
@@ -459,12 +460,12 @@ const renderEditor = (
       },
       { path: '/storefront/themes', element: <div>THEME_LIST</div> },
     ],
-    { initialEntries: [`/storefront/themes/${baseDraft.id}`] }
+    { initialEntries: [`/storefront/themes/${baseDraft.id}${search}`] }
   )
   return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
 }
 
-const renderThemes = (role: Role = 'admin') => {
+const renderThemes = (role: Role = 'admin', search = '') => {
   const router = createMemoryRouter(
     [
       {
@@ -479,7 +480,7 @@ const renderThemes = (role: Role = 'admin') => {
       },
       { path: '/storefront/themes/:draftId', element: <div>CREATED_EDITOR</div> },
     ],
-    { initialEntries: ['/storefront/themes'] }
+    { initialEntries: [`/storefront/themes${search}`] }
   )
   return { router, ...renderInLocale(<RouterProvider router={router} />, 'en-US') }
 }
@@ -505,8 +506,15 @@ afterAll(async () => {
 })
 
 describe('ThemesPage', () => {
+  it('preserves the guide marker when opening an existing draft', async () => {
+    const { router } = renderThemes('admin', '?from=setup-guide')
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit', exact: true }))
+    await screen.findByText('CREATED_EDITOR')
+    expect(router.state.location.search).toBe('?from=setup-guide')
+  })
+
   it('lists API-approved packages and creates the selected preset draft', async () => {
-    renderThemes()
+    const { router } = renderThemes('admin', '?from=setup-guide')
     await screen.findByText('Approved packages')
     expect(screen.getByText('synthetic')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Use package' }))
@@ -516,6 +524,7 @@ describe('ThemesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
 
     await screen.findByText('CREATED_EDITOR')
+    expect(router.state.location.search).toBe('?from=setup-guide')
     expect(createDraftBody).toMatchObject({
       draft: {
         experienceId: 'storefront-synthetic',
@@ -543,6 +552,13 @@ describe('ThemesPage', () => {
 })
 
 describe('ThemeEditorPage', () => {
+  it('preserves the guide marker when returning to the theme list', async () => {
+    const { router } = renderEditor('admin', 60_000, undefined, '?from=setup-guide')
+    fireEvent.click(await screen.findByRole('button', { name: 'Storefront themes', exact: true }))
+    await screen.findByText('THEME_LIST')
+    expect(router.state.location.search).toBe('?from=setup-guide')
+  })
+
   it('shows the exact awaiting_operator run without exposing an account or credential', async () => {
     server.use(
       http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () =>
@@ -873,7 +889,7 @@ describe('ThemeEditorPage', () => {
         )
       )
     )
-    const { router } = renderEditor()
+    const { router } = renderEditor('admin', 60_000, undefined, '?from=setup-guide')
     await screen.findByDisplayValue('Existing headline')
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Keep this local edit' },
@@ -899,7 +915,9 @@ describe('ThemeEditorPage', () => {
       await screen.findByText('Successor draft draft-successor-1 created for review.')
     ).toBeTruthy()
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe('/storefront/themes/draft-successor-1')
+      expect(`${router.state.location.pathname}${router.state.location.search}`).toBe(
+        '/storefront/themes/draft-successor-1?from=setup-guide'
+      )
     )
     await waitFor(() =>
       expect(document.activeElement).toBe(
