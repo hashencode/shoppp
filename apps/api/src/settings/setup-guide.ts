@@ -9,6 +9,7 @@ import type { Context } from "hono";
 
 import { hasSellableSku } from "../catalog/public";
 import type { ApiEnvironment } from "../http/context";
+import { hasPermission } from "../iam/permissions";
 import {
   currencyReadiness,
   oversellReadiness,
@@ -56,7 +57,7 @@ export async function getSetupGuide(context: Context<ApiEnvironment>): Promise<S
     required: AdminPermission[],
     run: () => Promise<void>,
   ): Promise<void> {
-    if (required.some((permission) => !permissions.includes(permission))) {
+    if (required.some((permission) => !hasPermission(permissions, permission))) {
       ids.forEach((id) => set(id, [{ code: "permission_denied" }], "restricted"));
       return;
     }

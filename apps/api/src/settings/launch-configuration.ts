@@ -118,7 +118,12 @@ export async function currencyReadiness(
 ): Promise<LaunchConfigurationStatus["issues"]> {
   const issues: LaunchConfigurationStatus["issues"] = [];
   const currencies = await db
-    .prepare("SELECT DISTINCT currency FROM price_lists WHERE status = 'active' ORDER BY currency")
+    .prepare(
+      `SELECT DISTINCT currency FROM price_lists
+      WHERE status = 'active' AND currency IN (SELECT value FROM json_each(?))
+      ORDER BY currency`,
+    )
+    .bind(JSON.stringify(configuration.sellableCurrencies))
     .all<{ currency: string }>();
   const activeCurrencies = new Set(currencies.results.map(({ currency }) => currency));
   if (configuration.sellableCurrencies.some((currency) => !activeCurrencies.has(currency))) {
@@ -138,13 +143,20 @@ export async function shippingReadiness(
   const [countries, methods] = await Promise.all([
     db
       .prepare(
-        "SELECT DISTINCT szc.country_code FROM shipping_zone_countries szc JOIN shipping_zones sz ON sz.id = szc.zone_id WHERE sz.status = 'active' ORDER BY szc.country_code",
+        `SELECT DISTINCT szc.country_code FROM shipping_zone_countries szc
+          JOIN shipping_zones sz ON sz.id = szc.zone_id
+          WHERE sz.status = 'active' AND szc.country_code IN (SELECT value FROM json_each(?))
+          ORDER BY szc.country_code`,
       )
+      .bind(JSON.stringify(configuration.shippingCountries))
       .all<{ country_code: string }>(),
     db
       .prepare(
-        "SELECT sm.id FROM shipping_methods sm JOIN shipping_zones sz ON sz.id = sm.zone_id WHERE sm.status = 'active' AND sz.status = 'active' ORDER BY sm.id",
+        `SELECT sm.id FROM shipping_methods sm JOIN shipping_zones sz ON sz.id = sm.zone_id
+          WHERE sm.status = 'active' AND sz.status = 'active'
+            AND sm.id IN (SELECT value FROM json_each(?)) ORDER BY sm.id`,
       )
+      .bind(JSON.stringify(configuration.shippingMethodIds))
       .all<{ id: string }>(),
   ]);
   const activeCountries = new Set(countries.results.map(({ country_code }) => country_code));
@@ -170,9 +182,9 @@ export async function oversellReadiness(
 ): Promise<LaunchConfigurationStatus["issues"]> {
   const issues: LaunchConfigurationStatus["issues"] = [];
   const oversell = await db
-    .prepare("SELECT COUNT(*) AS count FROM inventory_items WHERE oversell_limit > 0")
-    .first<{ count: number }>();
-  if (configuration.oversellPolicy === "deny" && (oversell?.count ?? 0) > 0) {
+    .prepare("SELECT 1 AS found FROM inventory_items WHERE oversell_limit > 0 LIMIT 1")
+    .first<{ found: number }>();
+  if (configuration.oversellPolicy === "deny" && oversell !== null) {
     issues.push({
       code: "oversell_policy_mismatch",
       message: "Inventory oversell limits must be zero when the launch policy denies oversell.",
