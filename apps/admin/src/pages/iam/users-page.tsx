@@ -87,7 +87,7 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
 export const UsersPage = () => {
   const { message } = App.useApp()
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.users.write', permissions)
   const canReadRoles = hasPermission(roleKey, 'iam.roles.read', permissions)
@@ -202,7 +202,7 @@ export const UsersPage = () => {
       key: 'expires',
       title: t('Expires'),
       render: (_: unknown, invitation: AdminInvitation) =>
-        new Date(invitation.expiresAt).toLocaleDateString(),
+        new Date(invitation.expiresAt).toLocaleDateString(locale),
     },
     {
       key: 'status',

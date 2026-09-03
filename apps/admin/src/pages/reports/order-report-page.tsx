@@ -1,6 +1,7 @@
 import type { ReportExport, ReportOrderRow, ReportingQuery } from '@shoppp/contracts'
 import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -14,6 +15,7 @@ import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context
 import { formatMinorCurrency } from '../../shared/i18n/format-currency'
 
 void React
+dayjs.extend(utc)
 
 const paramsQuery = (): ReportingQuery => {
   const params = new URLSearchParams(window.location.search)
@@ -80,7 +82,7 @@ export const OrderReportPage = () => {
         key: 'created',
         title: t('Created (UTC)'),
         width: 190,
-        render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+        render: (value: string) => dayjs.utc(value).format('YYYY-MM-DD HH:mm'),
       },
       { dataIndex: 'email', key: 'email', title: t('Customer'), width: 220 },
       {

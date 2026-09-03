@@ -1,10 +1,11 @@
 import React from 'react'
 import type { AdminPermission, ReportExport, ReportOrderRow } from '@shoppp/contracts'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { useI18n } from '../../shared/contexts/i18n-context'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { renderInLocale } from '../../test/render-in-locale'
 import { OrderReportPage } from './order-report-page'
@@ -57,10 +58,12 @@ const readyExport: ReportExport = {
 
 let exportBody: unknown
 let exportIdempotencyKey: string | null
+let orderQueries: Record<string, string>[] = []
 const server = setupServer(
-  http.get('*/admin/reporting/orders', () =>
-    HttpResponse.json({ data: [order], meta: { page: 1, pageSize: 20, total: 1 } })
-  ),
+  http.get('*/admin/reporting/orders', ({ request }) => {
+    orderQueries.push(Object.fromEntries(new URL(request.url).searchParams))
+    return HttpResponse.json({ data: [order], meta: { page: 1, pageSize: 20, total: 1 } })
+  }),
   http.post('*/admin/reporting/exports', async ({ request }) => {
     exportBody = await request.json()
     exportIdempotencyKey = request.headers.get('Idempotency-Key')
@@ -68,10 +71,20 @@ const server = setupServer(
   })
 )
 
+const LocaleSwitch = () => {
+  const { locale, setLocale } = useI18n()
+  return (
+    <button onClick={() => setLocale(locale === 'en-US' ? 'zh-CN' : 'en-US')}>
+      Switch language
+    </button>
+  )
+}
+
 const renderPage = (permissions: readonly AdminPermission[]) =>
   renderInLocale(
     <AuthTestProvider role="reporting_operator" permissions={permissions}>
       <ThemeProvider>
+        <LocaleSwitch />
         <OrderReportPage />
       </ThemeProvider>
     </AuthTestProvider>
@@ -81,11 +94,41 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   exportBody = undefined
   exportIdempotencyKey = null
+  orderQueries = []
+  window.history.replaceState(null, '', '/')
   server.resetHandlers()
 })
 afterAll(() => server.close())
 
 describe('OrderReportPage', () => {
+  it('keeps UTC timestamps across the local date boundary and language changes without reloading', async () => {
+    server.use(
+      http.get('*/admin/reporting/orders', ({ request }) => {
+        orderQueries.push(Object.fromEntries(new URL(request.url).searchParams))
+        return HttpResponse.json({
+          data: [
+            { ...order, createdAt: '2026-09-03T00:00:00.000Z' },
+            { ...order, publicReference: 'ORD-BOUNDARY', createdAt: '2026-09-03T23:30:00.000Z' },
+          ],
+          meta: { page: 1, pageSize: 20, total: 2 },
+        })
+      })
+    )
+    renderPage(['reporting.read'])
+    await screen.findByText('ORD-BOUNDARY')
+    expect(screen.getByText('2026-09-03 00:00')).toBeTruthy()
+    expect(screen.getByText('2026-09-03 23:30')).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: 'Created (UTC)' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    expect(screen.getByRole('columnheader', { name: '创建时间（UTC）' })).toBeTruthy()
+    expect(screen.getByText('2026-09-03 00:00')).toBeTruthy()
+    expect(screen.getByText('2026-09-03 23:30')).toBeTruthy()
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(orderQueries).toHaveLength(1)
+  })
+
   it('shows reconcilable rows while hiding export from a read-only operator', async () => {
     renderPage(['reporting.read'])
     await waitFor(() => expect(screen.getByText('ORD-REPORT01')).toBeTruthy())
@@ -100,8 +143,32 @@ describe('OrderReportPage', () => {
   })
 
   it('requires a reason and explicit confirmation before creating an audited export', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/reports/orders?currency=USD&startDate=2026-09-01&endDate=2026-09-03&timeZone=America%2FNew_York'
+    )
     renderPage(['reporting.read', 'reporting.export'])
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Export CSV' })).toBeTruthy())
+    await screen.findByText('ORD-REPORT01')
+    expect(orderQueries).toEqual([
+      {
+        currency: 'USD',
+        startDate: '2026-09-01',
+        endDate: '2026-09-03',
+        timeZone: 'America/New_York',
+        page: '1',
+        pageSize: '20',
+      },
+    ])
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search report orders' }), {
+      target: { value: '  ORD-REPORT01  ' },
+    })
+    fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Search report orders' }), {
+      key: 'Enter',
+      code: 'Enter',
+    })
+    await waitFor(() => expect(orderQueries).toHaveLength(2))
+    expect(orderQueries[1]).toEqual({ ...orderQueries[0], query: 'ORD-REPORT01' })
     fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
     expect(
       screen.getByText(
@@ -114,10 +181,14 @@ describe('OrderReportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm export' }))
 
     await waitFor(() =>
-      expect(exportBody).toMatchObject({
+      expect(exportBody).toEqual({
         confirm: true,
         currency: 'USD',
         reason: 'Month-end reconciliation',
+        startDate: '2026-09-01',
+        endDate: '2026-09-03',
+        timeZone: 'America/New_York',
+        query: 'ORD-REPORT01',
       })
     )
     expect(exportIdempotencyKey).toMatch(/^report-export-/)

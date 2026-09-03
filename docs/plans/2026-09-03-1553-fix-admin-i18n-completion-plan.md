@@ -37,10 +37,11 @@ plan_role: active-feature
 ## Execution Checkpoint
 
 - **分类：** Active；2026-09-03 用户授权实施。
-- **当前执行单元：** U2 In progress；U1 Complete；U3–U6 Not started。
+- **当前执行单元：** U3 In progress；U1–U2 Complete；U4–U6 Not started。
 - **阻塞：** 无。实施基线 HEAD `a1ba0125`；既有前台生成文件修改保留且不纳入本任务，计划和主计划登记是本任务既有修改。
-- **下一具体动作：** 为 U2 建立非 UTC 报表及应用语言不同于浏览器的日期失败证明，修正显示而不改变查询参数。
+- **下一具体动作：** 为 U3 复现语言切换重载/丢草稿，分离主题反馈数据与当前语言展示，补齐三个资源控件及已知错误/结果映射。
 - **完成证据：** U1 的缺词/占位符红证明、8 项工具测试和 21 项 Admin 测试记录于 [实施证据](../progress/admin-i18n-completion.md#u1--coverage-and-dictionaries)。
+- **日期证据：** U2 的 5 项预期红测试、Shanghai/UTC 各 18 项通过及查询/导出不变记录于同一实施证据；真实浏览器语言/时区组合仍由 U5 验证。
 - **计划内顺序：** U1 → U2 → U3 → U4 → U5 → U6；单开发者串行，不要求新工作树。
 - **更新规则：** 单元状态、当前/下一单元、阻塞造成的顺序变化和完成/重开只在本文维护；产品级变化同步主计划。`docs/progress/admin-i18n-completion.md` 仅存证据，不维护第二队列。commit、分支和单项测试不是完成权威。
 

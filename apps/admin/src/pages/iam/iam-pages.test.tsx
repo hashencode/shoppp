@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -14,7 +14,7 @@ import { UsersPage } from './users-page'
 import { PermissionGuard } from '../../shared/components/permission-guard'
 import { renderInLocale } from '../../test/render-in-locale'
 import { PermissionChecklist } from './permission-checklist'
-import { useI18n } from '../../shared/contexts/i18n-context'
+import { useI18n, type AppLocale } from '../../shared/contexts/i18n-context'
 import type { AdminPermission } from '@shoppp/contracts'
 
 void React
@@ -108,6 +108,8 @@ const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items
 let inviteAttempts = 0
 let userDetailLoads = 0
 let roleDetailLoads = 0
+let invitationLoads = 0
+const originalLanguages = Object.getOwnPropertyDescriptor(window.navigator, 'languages')
 
 const server = setupServer(
   http.get('*/admin/iam/users', () => {
@@ -117,7 +119,10 @@ const server = setupServer(
     userDetailLoads += 1
     return HttpResponse.json({ data: params.id === alice.id ? alice : disabledUser })
   }),
-  http.get('*/admin/iam/invitations', () => HttpResponse.json({ data: page([expiredInvitation]) })),
+  http.get('*/admin/iam/invitations', () => {
+    invitationLoads += 1
+    return HttpResponse.json({ data: page([expiredInvitation]) })
+  }),
   http.get('*/admin/iam/roles', () => {
     return HttpResponse.json({ data: page([adminRole, supportRole]) })
   }),
@@ -161,12 +166,15 @@ afterEach(() => {
   inviteAttempts = 0
   userDetailLoads = 0
   roleDetailLoads = 0
+  invitationLoads = 0
+  if (originalLanguages) Object.defineProperty(window.navigator, 'languages', originalLanguages)
+  else Reflect.deleteProperty(window.navigator, 'languages')
 })
 afterAll(() => server.close())
 
 const renderPage = (
   element: React.ReactNode,
-  options: { path?: string; permissions?: string[]; identityId?: string } = {}
+  options: { path?: string; permissions?: string[]; identityId?: string; locale?: AppLocale } = {}
 ) => {
   const path = options.path ?? '/access/users'
   const permissions = options.permissions ?? [
@@ -198,11 +206,95 @@ const renderPage = (
           <Route path="/access/roles/:id" element={element} />
         </Routes>
       </MemoryRouter>
-    </AuthContext.Provider>
+    </AuthContext.Provider>,
+    options.locale
+  )
+}
+
+const LocaleSwitch = () => {
+  const { locale, setLocale } = useI18n()
+  return (
+    <button onClick={() => setLocale(locale === 'en-US' ? 'zh-CN' : 'en-US')}>
+      Switch language
+    </button>
   )
 }
 
 describe('IAM management pages', () => {
+  it.each(['zh-CN', 'en-US'] as const)(
+    'formats invitation expiry using %s and retranslates without fetching',
+    async (locale) => {
+      const otherLocale = locale === 'zh-CN' ? 'en-US' : 'zh-CN'
+      Object.defineProperty(window.navigator, 'languages', {
+        configurable: true,
+        value: [otherLocale],
+      })
+      const expiresAt = '2026-09-03T23:30:00.000Z'
+      server.use(
+        http.get('*/admin/iam/invitations', () => {
+          invitationLoads += 1
+          return HttpResponse.json({ data: page([{ ...expiredInvitation, expiresAt }]) })
+        })
+      )
+      renderPage(
+        <>
+          <LocaleSwitch />
+          <UsersPage />
+        </>,
+        { locale }
+      )
+      await screen.findByText('Alice Admin')
+      fireEvent.click(
+        screen.getByRole('tab', { name: locale === 'zh-CN' ? '邀请' : 'Invitations' })
+      )
+      await screen.findByText('expired@example.test')
+      expect(screen.getByText(new Date(expiresAt).toLocaleDateString(locale))).toBeTruthy()
+      fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+      expect(screen.getByText(new Date(expiresAt).toLocaleDateString(otherLocale))).toBeTruthy()
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 0))
+      })
+      expect(invitationLoads).toBe(1)
+    }
+  )
+
+  it.each(['zh-CN', 'en-US'] as const)(
+    'formats user updates using %s while preserving local time and unsaved edits',
+    async (locale) => {
+      const otherLocale = locale === 'zh-CN' ? 'en-US' : 'zh-CN'
+      Object.defineProperty(window.navigator, 'languages', {
+        configurable: true,
+        value: [otherLocale],
+      })
+      const updatedAt = '2026-09-03T23:30:00.000Z'
+      server.use(
+        http.get('*/admin/iam/users/:id', () => {
+          userDetailLoads += 1
+          return HttpResponse.json({ data: { ...disabledUser, updatedAt } })
+        })
+      )
+      renderPage(
+        <>
+          <LocaleSwitch />
+          <UserDetailPage />
+        </>,
+        { locale, path: `/access/users/${disabledUser.id}` }
+      )
+      await screen.findByDisplayValue('Disabled User')
+      expect(screen.getByText(new Date(updatedAt).toLocaleString(locale))).toBeTruthy()
+      fireEvent.change(screen.getByDisplayValue('Disabled User'), {
+        target: { value: 'Unsaved name' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+      expect(screen.getByText(new Date(updatedAt).toLocaleString(otherLocale))).toBeTruthy()
+      expect(screen.getByDisplayValue('Unsaved name')).toBeTruthy()
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 0))
+      })
+      expect(userDetailLoads).toBe(1)
+    }
+  )
+
   it('localizes permission read/write labels while preserving selected permission IDs across language changes', () => {
     let selected: readonly AdminPermission[] = []
     const PermissionProbe = () => {

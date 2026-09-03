@@ -32,3 +32,15 @@ Verification results will be appended only after observation. This inventory its
 - Added 77 different messages on this baseline: 27 theme literals, 47 permission messages, 3 preview labels. Current inventory: 131 production files, 930 message uses / 738 different keys, zero issues. 83 unresolved dynamic calls remain exposed, not claimed covered; no arbitrary API/user string is treated as a catalog.
 - Host-authoritative verification: root `bun test tools/check-admin-i18n.test.ts` passed 8/8; Admin `bun run test src/shared/contexts/i18n-context.test.tsx src/pages/iam/iam-pages.test.tsx src/pages/operations/jobs/notification-jobs-page.test.tsx` passed 21/21. These assert permission read/write selection and language-switch preservation, plus the actual `failed` jobs query code and no extra language-triggered request.
 - Root `bunx tsc --noEmit -p tsconfig.tools.json` and changed-tool ESLint/Prettier passed. Admin changed-file ESLint passed; formatting follows subtree conventions. No runtime dependency or CI workflow was added.
+
+## U2 — UTC and application-locale dates
+
+- Three production formatter sites changed: report uses `dayjs.utc` with the existing layout, invitation expiry uses `toLocaleDateString(locale)`, user update time uses `toLocaleString(locale)`. IAM timezone remains local. No query, permission or transaction production code changed.
+- Worker red proof: `TZ=Asia/Shanghai bun run test src/pages/reports/order-report-page.test.tsx src/pages/iam/iam-pages.test.tsx` failed on five new cases and passed 13 existing cases before the fix.
+- Host authoritative runs of the same two suites under both `TZ=Asia/Shanghai` and `TZ=UTC` passed 18/18 each. Midnight and next-local-day cases, both initial application languages, language-switch state/request preservation and exact query/export payloads are covered.
+- Changed-file Admin ESLint and diff whitespace checks passed. Full Admin typecheck remains the planned final stable-code gate.
+- Browser limitation: jsdom tests set the navigator language preference opposite the application language; native browser Intl locale/timezone evidence is reserved for U5, not inferred from this preference override.
+
+## U1–U2 simplification receipt
+
+Three read-only ce-simplify-code reviewers completed (reuse, quality, efficiency). No code changes applied. Reuse/efficiency found no worthwhile changes. One quality suggestion to remove the opposite navigator preference from the IAM fixture was skipped: retain the explicit fixture condition while recording that it is not native-browser locale evidence. No new shared date framework or test helper was introduced. Required focused checks passed; project-wide Admin lint/typecheck is not duplicated here under the repository's L3 proportional-verification rule.

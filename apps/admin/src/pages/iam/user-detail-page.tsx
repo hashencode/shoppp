@@ -28,7 +28,7 @@ export const UserDetailPage = () => {
   const { message, modal } = App.useApp()
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.users.write', permissions)
   const canReadRoles = hasPermission(roleKey, 'iam.roles.read', permissions)
@@ -167,7 +167,7 @@ export const UserDetailPage = () => {
             </Descriptions.Item>
             <Descriptions.Item label={t('Version')}>{user.version}</Descriptions.Item>
             <Descriptions.Item label={t('Updated')}>
-              {new Date(user.updatedAt).toLocaleString()}
+              {new Date(user.updatedAt).toLocaleString(locale)}
             </Descriptions.Item>
           </Descriptions>
           <Form<UserValues>
