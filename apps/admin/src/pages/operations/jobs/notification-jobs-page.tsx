@@ -179,7 +179,7 @@ export const NotificationJobsPage = () => {
           aria-label={t('Filter notification status')}
           allowClear
           value={status}
-          placeholder="Status"
+          placeholder={t('Status')}
           className="w-44"
           options={['pending', 'processing', 'sent', 'failed', 'dead_letter'].map((value) => ({
             label: t(value),

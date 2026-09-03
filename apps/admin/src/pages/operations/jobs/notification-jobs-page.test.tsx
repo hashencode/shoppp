@@ -8,6 +8,7 @@ import { ThemeProvider } from '../../../shared/contexts/theme-context'
 import { AuthTestProvider } from '../../../test/auth-context-fixture'
 import { renderInLocale } from '../../../test/render-in-locale'
 import { NotificationJobsPage } from './notification-jobs-page'
+import { useI18n } from '../../../shared/contexts/i18n-context'
 
 void React
 
@@ -99,6 +100,42 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('NotificationJobsPage', () => {
+  it('localizes the status filter and keeps its submitted code when the language changes', async () => {
+    const requests: string[] = []
+    server.use(
+      http.get('*/admin/operations/jobs', ({ request }) => {
+        requests.push(new URL(request.url).searchParams.get('status') ?? '')
+        return HttpResponse.json({ data: [deadLetter], meta: { page: 1, pageSize: 20, total: 1 } })
+      })
+    )
+    const LanguageSwitch = () => {
+      const { setLocale } = useI18n()
+      return <button onClick={() => setLocale('en-US')}>English</button>
+    }
+    renderInLocale(
+      <AuthTestProvider role="operations_operator" permissions={['operations.jobs.read']}>
+        <ThemeProvider>
+          <LanguageSwitch />
+          <NotificationJobsPage />
+        </ThemeProvider>
+      </AuthTestProvider>,
+      'zh-CN'
+    )
+    await screen.findByText('notify-dead-letter-001')
+    const filter = screen.getByRole('combobox', { name: '筛选通知状态' })
+    expect(filter.closest('.ant-select')?.textContent).toContain('状态')
+    fireEvent.mouseDown(filter)
+    fireEvent.click((await screen.findAllByText('失败')).at(-1)!)
+    await waitFor(() => expect(requests).toEqual(['', 'failed']))
+    fireEvent.click(screen.getByText('English'))
+    expect(
+      screen.getByRole('combobox', { name: 'Filter notification status' }).closest('.ant-select')
+        ?.textContent
+    ).toContain('failed')
+    await waitFor(() => expect(requests).toEqual(['', 'failed']))
+    expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
+  })
+
   it('shows masked recovery facts and hides replay from viewers', async () => {
     renderPage(['operations.jobs.read'])
 

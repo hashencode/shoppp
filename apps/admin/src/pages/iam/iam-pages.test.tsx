@@ -13,6 +13,9 @@ import { UserDetailPage } from './user-detail-page'
 import { UsersPage } from './users-page'
 import { PermissionGuard } from '../../shared/components/permission-guard'
 import { renderInLocale } from '../../test/render-in-locale'
+import { PermissionChecklist } from './permission-checklist'
+import { useI18n } from '../../shared/contexts/i18n-context'
+import type { AdminPermission } from '@shoppp/contracts'
 
 void React
 
@@ -114,9 +117,7 @@ const server = setupServer(
     userDetailLoads += 1
     return HttpResponse.json({ data: params.id === alice.id ? alice : disabledUser })
   }),
-  http.get('*/admin/iam/invitations', () =>
-    HttpResponse.json({ data: page([expiredInvitation]) })
-  ),
+  http.get('*/admin/iam/invitations', () => HttpResponse.json({ data: page([expiredInvitation]) })),
   http.get('*/admin/iam/roles', () => {
     return HttpResponse.json({ data: page([adminRole, supportRole]) })
   }),
@@ -202,6 +203,41 @@ const renderPage = (
 }
 
 describe('IAM management pages', () => {
+  it('localizes permission read/write labels while preserving selected permission IDs across language changes', () => {
+    let selected: readonly AdminPermission[] = []
+    const PermissionProbe = () => {
+      const { setLocale } = useI18n()
+      const [value, setValue] = React.useState<AdminPermission[]>(['catalog.read'])
+      return (
+        <>
+          <button onClick={() => setLocale('en-US')}>English</button>
+          <PermissionChecklist
+            permitted={['catalog.read', 'catalog.write']}
+            value={value}
+            onChange={(next) => {
+              selected = next
+              setValue(next)
+            }}
+          />
+        </>
+      )
+    }
+    renderInLocale(<PermissionProbe />, 'zh-CN')
+    expect(screen.getByText('查看商品及商品目录内容。')).toBeTruthy()
+    expect(screen.getByText('创建和编辑商品目录内容。')).toBeTruthy()
+    expect(
+      (screen.getByRole('checkbox', { name: /查看商品目录/ }) as HTMLInputElement).checked
+    ).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: /编辑商品目录/ }))
+    expect(selected).toEqual(['catalog.read', 'catalog.write'])
+    fireEvent.click(screen.getByText('English'))
+    expect(
+      (screen.getByRole('checkbox', { name: /Edit catalog/ }) as HTMLInputElement).checked
+    ).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: /View catalog/ }))
+    expect(selected).toEqual(['catalog.write'])
+  })
+
   it('renders active, disabled, expired, and empty-safe user lifecycle states for a read-only manager', async () => {
     renderPage(<UsersPage />, {
       permissions: ['iam.users.read', 'iam.roles.read'],
@@ -253,7 +289,10 @@ describe('IAM management pages', () => {
     })
     await waitFor(() => expect(screen.getByDisplayValue('Disabled User')).toBeTruthy())
     expect(
-      screen.getByLabelText('Role').closest('.ant-select')?.classList.contains('ant-select-disabled')
+      screen
+        .getByLabelText('Role')
+        .closest('.ant-select')
+        ?.classList.contains('ant-select-disabled')
     ).toBe(true)
     fireEvent.change(screen.getByLabelText('Display name'), { target: { value: 'Renamed User' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))

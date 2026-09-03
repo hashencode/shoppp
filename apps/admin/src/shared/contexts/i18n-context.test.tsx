@@ -2,12 +2,9 @@ import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core'
 import dayjs from 'dayjs'
-import {
-  I18nProvider,
-  LANGUAGE_STORAGE_KEY,
-  translateMessage,
-  useI18n,
-} from './i18n-context'
+import { ADMIN_PERMISSION_CATALOG } from '@shoppp/contracts'
+import { zhCNMessages } from '../i18n/translations'
+import { I18nProvider, LANGUAGE_STORAGE_KEY, translateMessage, useI18n } from './i18n-context'
 
 void React
 
@@ -156,5 +153,19 @@ describe('I18nProvider', () => {
       expect(translateMessage('en-US', message)).toBe(message)
     }
     expect(translateMessage('zh-CN', 'Unknown future message')).toBe('Unknown future message')
+  })
+
+  it('covers every permission label, explanation and category without translating permission IDs', () => {
+    for (const permission of ADMIN_PERMISSION_CATALOG) {
+      for (const key of [permission.label, permission.description, permission.category]) {
+        expect(Object.hasOwn(zhCNMessages, key)).toBe(true)
+        expect(translateMessage('zh-CN', key)).toBe(zhCNMessages[key])
+        expect(translateMessage('en-US', key)).toBe(key)
+      }
+      expect(translateMessage('zh-CN', permission.key)).toBe(permission.key)
+    }
+    expect(
+      translateMessage('zh-CN', 'Successor draft {id} created for review.', { id: 'draft_ABC' })
+    ).toBe('已创建后继草稿 draft_ABC，等待审核。')
   })
 })

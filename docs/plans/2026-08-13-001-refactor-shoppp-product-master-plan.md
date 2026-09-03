@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
-current_unit: REL-Pre-DC
+current_plan: 2026-09-03-1553-fix-admin-i18n-completion-plan.md
+current_unit: ADM-I18N-U2
 ---
 
 # Shoppp Product Master Plan
@@ -66,9 +66,8 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
-- **Current parent/child stage:** `REL-Pre-DC` — reconcile the intended release capability set and
-  finish complete candidate-identity enforcement before any candidate is frozen.
+- **Active product plan:** `ADM-I18N` — [Admin Internationalization Completion](2026-09-03-1553-fix-admin-i18n-completion-plan.md), authorized on 2026-09-03; implementation and local-verification tail only.
+- **Current parent/child stage:** `ADM-I18N-U2` — correct UTC report and application-locale IAM date formatting. Return to `REL-Pre-DC` after this bounded correction.
 - **Feature handoff:** `ADM-SETUP` completed its authorized guide implementation, local verification and documentation on 2026-09-03. Its plan retains completed feature evidence; product execution returns to REL-Pre-DC without advancing candidate or production gates.
 - **Corrective handoff:** `FS-F2` completed its shared-style correction on 2026-09-03 and returned the pointer to `REL-Pre-DC`; it retains correction evidence and does not change candidate or production gates.
 - **Historical FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
@@ -78,10 +77,8 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Audit the intended release capability set and approved deferrals against every
-  owning plan, then complete `release:validate` enforcement for the full immutable candidate
-  identity. Do not begin DC1 until every Pre-DC row passes.
-- **Blocker:** `REL-Pre-DC` remains blocked by unaudited product capability scope and incomplete
+- **Next action:** Prove the non-UTC report and browser/application language mismatch, then correct display without changing query parameters under ADM-I18N U2.
+- **Blocker:** No ADM-I18N implementation blocker identified. The hand-back `REL-Pre-DC` remains blocked by unaudited product capability scope and incomplete
   candidate-identity enforcement; Fashion Store U8 is no longer a blocker.
 - **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
   post-commit `33461845421` passed. Fresh
@@ -187,7 +184,7 @@ historical evidence remain unchanged inside the owning plans.
   No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
   or production mutation is authorized. Detailed run and artifact evidence remains in the active
   feature plan and progress records.
-- **Following sequence:** `REL-Pre-DC` capability and identity reconciliation -> DC1 immutable
+- **Following sequence:** `ADM-I18N` U1–U6 correction and local verification -> `REL-Pre-DC` capability and identity reconciliation -> DC1 immutable
   candidate freeze -> DC2-DC4 -> PG1-PG5 under their named human and production authorities.
 - **Candidate state:** Pre-DC blocked. No candidate is frozen; DC/PG have not begun.
 
@@ -414,7 +411,7 @@ focused test alone.
 | `FS-F2` | [Fashion Store Shared Style Ownership](2026-09-03-1417-fix-fashion-store-shared-styles-plan.md) | Bounded corrective follow-up to `FS` | Complete — U1-U4 closed on 2026-09-03; shared-style correction and local verification complete | Retains completed correction evidence; `REL` owns candidate and production gates |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
-| `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Active at blocked `REL-Pre-DC` — Fashion Store implementation and FS-F2 correction are complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
+| `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Hand-back after ADM-I18N at blocked `REL-Pre-DC` — Fashion Store implementation and FS-F2 correction are complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution and requires a named successor before the next U8 freeze** | Retains historical CI evidence; the successor owns shared/post-commit cloud migration and returns control to `FS-U8.2` |
@@ -422,6 +419,7 @@ focused test alone.
 | `CI-CLOUD` | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) | Shared/post-commit and current-workflow cloud-runner successor | **Complete — corrected post-commit run `33234977617` and protected OIDC proof in U12 run `33235176429` passed** | Verified baseline returned to `FS-U8.2`; the later invalid Cloudflare credential is a Fashion environment blocker |
 | `MASTER` | This plan | Whole-product navigation, lineage and active pointer | Active product authority | Updated with every product-level pointer or classification change |
 | `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md) | Bounded Admin onboarding feature over COM/THEME/IAM | Complete — U1–U5 closed on 2026-09-03; guide implementation, local verification and maintenance documentation delivered | Retains completed guide evidence with no implementation tail; existing product contracts and REL retain their authority |
+| `ADM-I18N` | [Admin Internationalization Completion](2026-09-03-1553-fix-admin-i18n-completion-plan.md) | Bounded Admin localization correction over COM/THEME/IAM | Active at U2 on 2026-09-03 | Owns audit remediation and local verification; returns to REL-Pre-DC without advancing candidate or production authority |
 
 ## Decision hierarchy and supersessions
 
@@ -534,7 +532,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `REL-Pre-DC` is the single current product execution pointer and matches the active child plan.
+- `ADM-I18N-U2` is the single current product execution pointer and matches the active child plan; its hand-back is `REL-Pre-DC`.
 - The old `fashion` implementation, `decor-store` naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.
