@@ -504,7 +504,7 @@ it('should preserve dirty editor state without requests when language changes', 
   const heading = await screen.findByRole('textbox', { name: 'home-hero heading' })
   fireEvent.change(heading, { target: { value: 'Merchant unsaved 中文' } })
   fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
-  await screen.findByRole('button', { name: '保存', exact: true })
+  await screen.findByRole('button', { name: '保存' })
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 80))
   })
@@ -629,7 +629,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
       target: { value: 'Pending save reason' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(saves).toBe(1))
     const beforeSwitch = requestLog.length
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
@@ -724,14 +724,14 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
       target: { value: 'Conflict recovery' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByRole('button', { name: 'Keep local edits' })
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
     const beforeKeep = requestLog.length
     fireEvent.click(screen.getByRole('button', { name: '保留本地修改' }))
     expect(screen.getByDisplayValue('Keep and then discard')).toBeTruthy()
     expect(requestLog).toHaveLength(beforeKeep)
-    fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
     fireEvent.click(await screen.findByRole('button', { name: '重新加载并放弃本地修改' }))
     await screen.findByDisplayValue('Existing headline')
     expect(screen.queryByDisplayValue('Keep and then discard')).toBeNull()
@@ -1042,7 +1042,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: '变更原因' }), {
       target: { value: 'Verify retained binding' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
     await waitFor(() =>
       expect(updateBody).toMatchObject({
         bindings: expect.arrayContaining([

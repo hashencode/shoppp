@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["rsbuild.config.ts", "rstest.config.ts"]
+  "include": ["rsbuild.config.ts", "rstest.config.ts", "rstest.i18n-browser.config.ts"]
 }

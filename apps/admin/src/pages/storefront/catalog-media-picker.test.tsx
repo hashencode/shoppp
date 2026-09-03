@@ -50,7 +50,7 @@ const server = setupServer(
   })
 )
 const Harness = () => {
-  const [value, setValue] = useState(original)
+  const [value, setValue] = useState<AssetReference>(original)
   const { locale, setLocale } = useI18n()
   return (
     <>
@@ -84,7 +84,7 @@ describe('CatalogMediaPicker', () => {
     expect(screen.getByText('Real Product / 名字')).toBeTruthy()
     const search = screen.getByRole('searchbox', { name: 'hero image 搜索已批准的商品目录媒体' })
     fireEvent.change(search, { target: { value: 'merchant' } })
-    fireEvent.click(screen.getByRole('button', { name: /查\s*询/, exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: /^查\s*询$/ }))
     await waitFor(() => expect(requests.at(-1)?.searchParams.get('query')).toBe('merchant'))
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '下一页媒体' }).hasAttribute('disabled')).toBe(
@@ -112,7 +112,7 @@ describe('CatalogMediaPicker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset hero image' }))
     expect(screen.getByRole('status').textContent).toContain('assets/hero.webp')
     fireEvent.change(search, { target: { value: 'none' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Search', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
     await screen.findByText('No approved Catalog media matches this search.')
     fireEvent.click(screen.getByLabelText('Clear search'))
     await waitFor(() => expect(requests.at(-1)?.searchParams.get('query')).toBe(''))

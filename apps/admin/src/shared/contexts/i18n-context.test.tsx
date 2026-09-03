@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from '@rstest/core'
 import dayjs from 'dayjs'
 import { ADMIN_PERMISSION_CATALOG } from '@shoppp/contracts'
 import { zhCNMessages } from '../i18n/translations'
-import { I18nProvider, LANGUAGE_STORAGE_KEY, translateMessage, useI18n } from './i18n-context'
+import {
+  I18nProvider,
+  LANGUAGE_STORAGE_KEY,
+  translateMessage,
+  useCurrentTranslate,
+  useI18n,
+} from './i18n-context'
 
 void React
 
@@ -153,6 +159,36 @@ describe('I18nProvider', () => {
       expect(translateMessage('en-US', message)).toBe(message)
     }
     expect(translateMessage('zh-CN', 'Unknown future message')).toBe('Unknown future message')
+  })
+
+  it('keeps the current translator stable while an existing consumer reads the new language', () => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'en-US')
+    let retainedTranslate: ReturnType<typeof useCurrentTranslate> | undefined
+    let effectRuns = 0
+    const CurrentTranslatorProbe = () => {
+      const translateNow = useCurrentTranslate()
+      const { setLocale } = useI18n()
+      React.useEffect(() => {
+        effectRuns += 1
+        retainedTranslate = translateNow
+      }, [translateNow])
+      return <button onClick={() => setLocale('zh-CN')}>Chinese</button>
+    }
+    render(
+      <I18nProvider>
+        <CurrentTranslatorProbe />
+      </I18nProvider>
+    )
+    const initialTranslate = retainedTranslate
+    expect(initialTranslate?.('Welcome')).toBe('Welcome')
+    expect(effectRuns).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Chinese' }))
+    expect(retainedTranslate).toBe(initialTranslate)
+    expect(effectRuns).toBe(1)
+    expect(initialTranslate?.('Welcome')).toBe('欢迎')
+    expect(initialTranslate?.('Successor draft {id} created for review.', { id: 'Refund' })).toBe(
+      '已创建后继草稿 Refund，等待审核。'
+    )
   })
 
   it('covers every permission label, explanation and category without translating permission IDs', () => {

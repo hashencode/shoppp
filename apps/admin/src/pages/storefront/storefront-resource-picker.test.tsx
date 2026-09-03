@@ -92,7 +92,7 @@ describe('StorefrontResourcePicker', () => {
     expect(screen.getByText('Merchant original · /products/original')).toBeTruthy()
     const search = screen.getByRole('searchbox', { name: 'Featured product 搜索' })
     fireEvent.change(search, { target: { value: 'merchant' } })
-    fireEvent.click(screen.getByRole('button', { name: /查\s*询/, exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: /^查\s*询$/ }))
     await waitFor(() => expect(requests.at(-1)?.searchParams.get('query')).toBe('merchant'))
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '下一页引用' }).hasAttribute('disabled')).toBe(
@@ -123,7 +123,7 @@ describe('StorefrontResourcePicker', () => {
     fireEvent.click((await screen.findAllByText('New Product 中文 · /products/new-path')).at(-1)!)
     expect(screen.getByRole('status').textContent).toBe('replacement-id')
     fireEvent.change(search, { target: { value: 'none' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Search', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
     await screen.findByText('No matching Product references.')
   })
 
