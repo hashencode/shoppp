@@ -546,8 +546,11 @@ onBeforeUnmount(() => {
                     :aria-label="`Payment method ${index + 1}`"
                     ><img
                       :src="sourceAsset(payment)"
-                      class="h-30px"
-                      :class="{ 'me-5px mb-5px': payment !== data.payments.at(-1) }"
+                      class="h-30px mb-5px"
+                      :class="{
+                        'me-5px': payment !== data.payments.at(-1),
+                        'fashion-product-payment-card': payment === 'images/union-pay.svg',
+                      }"
                       alt=""
                   /></span>
                 </div>

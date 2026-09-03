@@ -131,6 +131,15 @@
   margin-right: 4.203125px;
 }
 
+[data-fashion-store-product] .fashion-product-payment-card {
+  width: 48px;
+  padding: 3px 5px;
+  border: 1px solid var(--extra-medium-gray);
+  border-radius: 3px;
+  background-color: #fff;
+  object-fit: contain;
+}
+
 [data-fashion-store-product] .fashion-product-tabs {
   padding-bottom: 90px;
 }
