@@ -16,7 +16,7 @@ plan_role: active-feature
 - **目标：** 管理员使用中文或英文处理主题、权限、订单和报表时，能读懂操作、状态与恢复提示，并获得与标注一致的时间信息。
 - **方法：** 保留现有国际化基础，修复审计发现，增加词条覆盖检查和交互回归（KTD1–KTD6）。
 - **权威：** 产品主计划管理全局顺序；本文 `ADM-I18N` 管理本次修复的需求、单元和本地验证尾项。
-- **执行：** 用户于 2026-09-03 授权按计划实施；ADM-I18N 已激活，implementation-ready 仍只表示文档完整。
+- **执行：** 用户于 2026-09-03 授权按计划实施；U1–U6 已完成本地交付，产品指针交回 REL-Pre-DC。implementation-ready 仍只表示文档完整，执行结果以下方检查点为准。
 - **交付：** 现有主工作树内的代码、定向测试与文档；遵循单开发者 branch/main 流程，不默认创建 PR。
 - **停止条件：** 若必须改变权限、支付/退款规则、主题批准/发布、存储结构或正式发布门禁，先报告范围冲突。
 
@@ -27,7 +27,7 @@ plan_role: active-feature
 - **上游产品权威：** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` 管理产品地图、计划注册及活动指针。
 - **继承基线：** `docs/plans/2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md` 的订单/报表能力；`docs/plans/2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md` 的编辑、验证、冲突和预览契约；`docs/plans/2026-08-04-001-feat-multi-user-admin-access-plan.md` 的身份/权限契约。原 R/F/AE/KTD/U 标识与业务含义不变，本文标识均局部隶属 `ADM-I18N`。
 - **审计输入：** `docs/progress/2026-09-03-admin-dashboard-i18n-audit.md`。已完成的 Dashboard/面包屑/预览修正是继承行为；开放发现的修复与证据尾项由本文接管，旧报告验证不作为本次结果。
-- **明确替代：** 激活并交付后，仅替代本次范围内的缺词、硬编码控件文字、原始业务状态/错误展示和错误日期格式化，不替代 COM/THEME/IAM 的业务权威。
+- **明确替代：** 本次交付仅替代范围内的缺词、硬编码控件文字、原始业务状态/错误展示和错误日期格式化，不替代 COM/THEME/IAM 的业务权威。
 - **并行计划：** 写入前重新读取确认 `ADM-SETUP` 已于 2026-09-03 关闭 U1–U5，主指针返回 `REL-Pre-DC`；其开店指南实现为继承基线。FS-F2、DS、CI 保持原职责。
 - **注册与尾项：** 用户授权后从 `REL-Pre-DC` 插入并激活 `ADM-I18N`，完成后恢复到 `REL-Pre-DC` 的能力范围与候选身份核对。本文拥有实现、本地验证和审计关闭；REL 始终拥有候选/生产权威，本文完成不推进 Pre-DC/DC/PG。
 - **模板边界：** 修复共享管理后台，不改变 `fashion-store` / `decor-store` 的身份或候选范围。正式跨模板回归仍归 DC3。
@@ -36,15 +36,16 @@ plan_role: active-feature
 
 ## Execution Checkpoint
 
-- **分类：** Active；2026-09-03 用户授权实施。
-- **当前执行单元：** U6 In progress；U1–U5 Complete。
-- **阻塞：** 无。实施基线 HEAD `a1ba0125`；既有前台生成文件修改保留且不纳入本任务，计划和主计划登记是本任务既有修改。
-- **下一具体动作：** 将审计八项发现映射到已通过的验证，记录国际化规范及覆盖限制，关闭本计划并同步主指针返回 REL-Pre-DC。
+- **分类：** Complete；2026-09-03 完成本次授权的实现、本地验证与文档收尾，未部署。
+- **当前执行单元：** 无；U1、U2、U3、U4、U5、U6 均 Complete。
+- **阻塞：** 无本计划实现阻塞或未归属尾项。实施基线 HEAD `a1ba0125`；既有前台生成文件修改保留且未纳入本任务。独立审查能力限制见下方证据，不代表审查通过。
+- **下一具体动作：** 本计划无需继续实现；主指针交回 REL-Pre-DC，核对产品能力范围、批准延期及完整候选身份执行约束。该承接仍阻塞，不由本计划解除。
 - **完成证据：** U1 的缺词/占位符红证明、8 项工具测试和 21 项 Admin 测试记录于 [实施证据](../progress/admin-i18n-completion.md#u1--coverage-and-dictionaries)。
 - **日期证据：** U2 的 5 项预期红测试、Shanghai/UTC 各 18 项通过及查询/导出不变记录于同一实施证据；U5 原生浏览器语言/时区组合通过。
 - **主题证据：** U3 语言切换额外 GET 的红证明、54 项直接测试、62 项共享消费者回归与 8 项 scanner 测试通过；U5 完整编辑器浏览器恢复验证通过。
 - **时间线证据：** U4 契约 6 项、API 8 项、Admin 11 项与 scanner 8 项通过；新旧兼容、动作后详情和精确历史保留有证据。U3–U4 简化审查无需修改。
 - **浏览器与收口证据：** U5 默认、1280px/en-US/Shanghai、390px/zh-CN/UTC 三组各 11/11；provider/context 10/10；测试类型修正后相关三套件 32/32 及最终 Admin typecheck 通过。独立审查因终态收集能力缺失未执行，主代理 diff 复核及限制记录于实施证据；不宣称独立审查通过。
+- **审计关闭证据：** 原报告八项发现已链接修复；R1–R10/AE1–AE5 证据映射、国际化规范、最终 882 键零问题及 87 未解析动态调用的覆盖限制均已记录。本文不宣称全后台语言审校或候选/生产门禁通过。
 - **计划内顺序：** U1 → U2 → U3 → U4 → U5 → U6；单开发者串行，不要求新工作树。
 - **更新规则：** 单元状态、当前/下一单元、阻塞造成的顺序变化和完成/重开只在本文维护；产品级变化同步主计划。`docs/progress/admin-i18n-completion.md` 仅存证据，不维护第二队列。commit、分支和单项测试不是完成权威。
 
@@ -144,7 +145,7 @@ U4 沿 barrel、类型引用和工作区依赖复核消费者，证明现有 Adm
 
 ### Risks and Implementation Notes
 
-- 工作树仍有既有 Dashboard、词典、布局和生成文件修改；开店指南刚完成并提交，实施时以新 diff 为准，不能沿用审计旧 HEAD 或覆盖用户修改。
+- 规划时工作树包含既有 Dashboard、词典、布局和生成文件修改；实施以检查点的 `a1ba0125` 为实际基线，已提交的 Dashboard/开店指南为继承行为，未覆盖剩余用户生成文件修改。
 - 本地 `Error(t(...))` 不能直接归入未知错误而丢失恢复说明；区分本地消息与传输错误。
 - 权限术语保留读/写区别；主题的草稿、版本、验证、快照、预览和发布不得混译。词条存在不能替代人工语义审校。
 - theme package 作者文字不等于应用枚举，只映射可证明的应用语义。
@@ -275,7 +276,7 @@ U4 沿 barrel、类型引用和工作区依赖复核消费者，证明现有 Adm
 | --- | --- | --- |
 | 词条工具 | 根 Bun 定向运行 `tools/check-admin-i18n.test.ts`，现有根 test 自动纳入 | fixture 与真实源码断言通过 |
 | Admin 行为 | `apps/admin` 的 `bun run test`，限定 U1–U4 文件及消费者 suites | 中文交互、英文兼容、错误/冲突、请求和数据保留通过 |
-| Browser Mode | `apps/admin` 的 `bun run test:browser`，限定 U5 文件 | 真实 provider/时区/完整页面通过，孤立排序控件不等于完整编辑器 |
+| Browser Mode | `apps/admin` 的 `bun run test:browser` 限定 U5 文件；固定矩阵使用 `bunx rstest run -c rstest.i18n-browser.config.ts`，窄屏加 `ADMIN_I18N_BROWSER_PROFILE=narrow` | 真实 provider/时区/完整页面通过，孤立排序控件不等于完整编辑器 |
 | contracts | `packages/contracts` 的定向 Bun 测试及 `bun run typecheck` | 新旧 payload/schema 边界通过 |
 | API | `apps/api` 的 `bun run test:workers` 限定 `test/operations/orders.test.ts`，以及其 typecheck | 详情投影、历史、动作后返回及权限不变 |
 | 工具与质量 | `tsconfig.tools.json` 对应类型检查；changed-file ESLint/Prettier、限定 diff 检查 | 新工具在原类型链中有效，改动静态质量通过 |
@@ -302,7 +303,7 @@ U5 默认 Browser Mode，不默认新增登录 E2E/真实后端写入；若必�
 
 - `docs/progress/2026-09-03-admin-dashboard-i18n-audit.md`：已知缺口与历史修正。
 - `apps/admin/src/shared/contexts/i18n-context.tsx`、`apps/admin/src/routes/admin-ui-provider.tsx`、`apps/admin/src/test/render-in-locale.tsx`：语言状态、即时翻译和装配边界。
-- `apps/admin/src/pages/storefront/theme-editor-page.tsx`、`apps/admin/src/infrastructure/http/api-client.ts`：翻译依赖加载与错误码丢失；仅源码证据，未运行验证。
+- `apps/admin/src/pages/storefront/theme-editor-page.tsx`、`apps/admin/src/infrastructure/http/api-client.ts`：规划阶段观察翻译依赖加载与错误码丢失；实施红/绿证明见进度证据。
 - `apps/api/src/storefront-experience/service.ts`、`apps/api/src/storefront-experience/build.ts`、`packages/contracts/src/storefront-experience.ts`：U3 真实错误/结果来源。
 - `apps/api/src/orders/queries.ts`、`packages/contracts/src/admin.ts`、`apps/admin/src/services/orders/api.ts`：时间线来源、schema 与消费方式。
 - `apps/admin/src/test/table-width-audit.ts`、`tools/ci-validate.ts`、根和相关 package manifests：AST 模式及现有测试链。

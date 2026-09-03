@@ -74,7 +74,12 @@ Keep genuinely new information such as unapplied filters, failure, or data limit
   regression. Code review: skipped (ce-code-review unavailable) — the required terminal-outcome
   collector is not available in this harness. No commit, PR, deployment or plan-status change.
 
-## Audit conclusion: not yet complete or high quality
+## Historical audit conclusion: not yet complete or high quality
+
+The original localization findings below were subsequently remediated under
+[ADM-I18N](../plans/2026-09-03-1553-fix-admin-i18n-completion-plan.md).
+See [localization audit closure](#localization-audit-closure--2026-09-03) for the current disposition;
+the Dashboard iteration notes and original counts remain historical evidence.
 
 ### Preview delivery correction
 
@@ -157,19 +162,20 @@ separate tab and navigated to it again: the demo notice and `+US$250.00`, `−US
 count remained visible. No one-shot interception remains necessary. Local changes remain uncommitted;
 the previously recorded independent-review limitation is unchanged.
 
-The table below records findings, not a second execution queue. Outside the implemented display
-scope above these are diagnosed, **not fixed**. Sources refer to the inspected tree on this date.
+The table below records the original diagnosed findings, not a second execution queue. They were
+**not fixed by the Dashboard polish**; the later ADM-I18N closure is recorded below. Sources and
+counts refer to the originally inspected tree, not the post-remediation inventory.
 
-| Area / route | Evidence | User-visible defect |
-| --- | --- | --- |
-| Theme editor `/storefront/themes/:draftId` | `apps/admin/src/pages/storefront/theme-editor-page.tsx`, conflict recovery around lines 959–1011; literal-call AST/dictionary comparison | 27 unique missing translation keys (28 call sites), including conflict recovery choices, resource binding and preview feedback. Missing keys silently fall back to English. |
-| Theme resource controls | `catalog-media-picker.tsx`, `storefront-resource-picker.tsx`, `storefront-link-editor.tsx` under the same directory; mounted by the production editor | Search, loading/error/retry, empty states, pagination and accessible names contain hardcoded English. These are not demo-only components. |
-| Roles `/access/roles` and `/access/roles/:id` | `apps/admin/src/pages/iam/permission-checklist.tsx:49`; `packages/contracts/src/admin.ts` permission catalog | Of 25 permissions, 24 labels and all 25 descriptions are absent from the Chinese dictionary: 49 missing dynamic keys. Categories are translated. |
-| Order timeline `/orders/:reference` | `apps/admin/src/pages/orders/order-detail.tsx:252`; backend construction in `apps/api/src/orders/queries.ts` | `kind`, `label`, `status` are rendered raw, exposing values such as `refund`, `fulfillment`, `succeeded`, `shipped`. Business status needs localization; user reasons, carriers and tracking numbers must remain untouched. |
-| Theme errors | `theme-editor-page.tsx` catch paths around 439/476/510/554/715, media/resource pickers | `normalizeApiError(...).message` bypasses the localized error helper, mixing API English with Chinese fallback and retaining old-language error strings. |
-| Automation recovery `/operations/jobs` | `apps/admin/src/pages/operations/jobs/notification-jobs-page.tsx:182` | `placeholder="Status"` remains English although adjacent names/options are localized. |
-| Revenue report `/reports/orders` | `apps/admin/src/pages/reports/order-report-page.tsx:81` | Column says `Created (UTC)` but formats in browser local time. Reproduction under `TZ=Asia/Shanghai`: `2026-09-03T00:00:00.000Z` becomes `2026-09-03 08:00`. This is a correctness issue, not merely word choice. |
-| IAM dates | `apps/admin/src/pages/iam/users-page.tsx:205`, `user-detail-page.tsx:170` | `toLocaleDateString()` / `toLocaleString()` omit the application locale, so language selection can disagree with browser-language formatting. |
+| Area / route                                  | Evidence                                                                                                                                              | User-visible defect                                                                                                                                                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Theme editor `/storefront/themes/:draftId`    | `apps/admin/src/pages/storefront/theme-editor-page.tsx`, conflict recovery around lines 959–1011; literal-call AST/dictionary comparison              | 27 unique missing translation keys (28 call sites), including conflict recovery choices, resource binding and preview feedback. Missing keys silently fall back to English.                                                 |
+| Theme resource controls                       | `catalog-media-picker.tsx`, `storefront-resource-picker.tsx`, `storefront-link-editor.tsx` under the same directory; mounted by the production editor | Search, loading/error/retry, empty states, pagination and accessible names contain hardcoded English. These are not demo-only components.                                                                                   |
+| Roles `/access/roles` and `/access/roles/:id` | `apps/admin/src/pages/iam/permission-checklist.tsx:49`; `packages/contracts/src/admin.ts` permission catalog                                          | Of 25 permissions, 24 labels and all 25 descriptions are absent from the Chinese dictionary: 49 missing dynamic keys. Categories are translated.                                                                            |
+| Order timeline `/orders/:reference`           | `apps/admin/src/pages/orders/order-detail.tsx:252`; backend construction in `apps/api/src/orders/queries.ts`                                          | `kind`, `label`, `status` are rendered raw, exposing values such as `refund`, `fulfillment`, `succeeded`, `shipped`. Business status needs localization; user reasons, carriers and tracking numbers must remain untouched. |
+| Theme errors                                  | `theme-editor-page.tsx` catch paths around 439/476/510/554/715, media/resource pickers                                                                | `normalizeApiError(...).message` bypasses the localized error helper, mixing API English with Chinese fallback and retaining old-language error strings.                                                                    |
+| Automation recovery `/operations/jobs`        | `apps/admin/src/pages/operations/jobs/notification-jobs-page.tsx:182`                                                                                 | `placeholder="Status"` remains English although adjacent names/options are localized.                                                                                                                                       |
+| Revenue report `/reports/orders`              | `apps/admin/src/pages/reports/order-report-page.tsx:81`                                                                                               | Column says `Created (UTC)` but formats in browser local time. Reproduction under `TZ=Asia/Shanghai`: `2026-09-03T00:00:00.000Z` becomes `2026-09-03 08:00`. This is a correctness issue, not merely word choice.           |
+| IAM dates                                     | `apps/admin/src/pages/iam/users-page.tsx:205`, `user-detail-page.tsx:170`                                                                             | `toLocaleDateString()` / `toLocaleString()` omit the application locale, so language selection can disagree with browser-language formatting.                                                                               |
 
 The base `AdminUiProvider` / Ant Design `ConfigProvider` locale connection exists and should be
 preserved. Unmounted `pages/templates/**` examples and fixture data are not counted as production
@@ -226,4 +232,30 @@ Final checks from `apps/admin`:
 
 That initial pass remained local and uncommitted; the final retirement note above supersedes its
 delivery state. No production UI verification or deployment was performed.
-The audit findings above remain open; their presence does not imply a new product execution queue.
+The original open disposition is superseded by the bounded localization closure below; this
+historical report does not own a product execution queue.
+
+## Localization audit closure — 2026-09-03
+
+The user authorized implementation of [ADM-I18N](../plans/2026-09-03-1553-fix-admin-i18n-completion-plan.md).
+Its [implementation evidence](admin-i18n-completion.md) records new verification rather than reusing
+the Dashboard results above. All eight diagnosed areas are closed for this plan's local scope:
+
+| Original finding                  | Remediation and evidence                                                                                                                                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Theme editor missing messages     | U1 dictionary/AST gate; U3 localized validation, migration, preview and recovery; U5 complete-editor language-switch tests                                                                                                    |
+| Resource/media/link controls      | U3 owned labels, search/pagination, empty/failure/retry and lost-reference messages; U5 Chinese controls and viewport assertions                                                                                              |
+| Permission names/descriptions     | U1 finite catalog coverage and read/write selection; U5 native-browser Chinese descriptions and keyboard/click behavior. Historical 49-key count is retained; implementation baseline needed 47 distinct permission messages. |
+| Raw order timeline                | U4 domain maps plus additive optional shipment fields; contracts/API/Admin tests and U5 exact raw/legacy data preservation                                                                                                    |
+| Theme errors                      | U3 finite safe error/diagnostic mapping, current-language persistent feedback and stable draft loading; U5 conflict/error recovery without language-triggered requests                                                        |
+| Jobs status placeholder           | U1 translated placeholder and unchanged `failed` request-value regression                                                                                                                                                     |
+| Incorrect UTC report display      | U2 explicit UTC formatting and unchanged query/export contracts; U5 native Asia/Shanghai midnight/day-boundary display                                                                                                        |
+| IAM dates follow browser language | U2 explicit application locale with local timezone; U5 opposite-native-language dates and preserved dirty input                                                                                                               |
+
+The completed audit scope is not a claim that all Admin hardcoded text or third-party theme metadata
+has received exhaustive linguistic review. Final source inventory: 133 production files, 882 distinct
+identified message keys, zero missing/empty/placeholder issues; 87 unresolved dynamic call sites are
+reported rather than silently treated as covered. User data and technical strings remain intentional.
+Dedicated code review could not run because its required terminal-outcome collector is unavailable;
+the evidence records the explicit skip and manual diff scan, not an independent passing receipt.
+No deployment, candidate freeze, DC or PG result is implied. The product master owns the return to REL.

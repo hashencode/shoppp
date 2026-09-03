@@ -74,10 +74,10 @@ Real I18nProvider, ThemeProvider and AdminUiProvider wrap the complete editor, I
 
 Commands below run from `apps/admin`. The dedicated configuration fixes the native context, while each application starts in the opposite language and switches both ways.
 
-| Command | Native context | Host-observed result |
-| --- | --- | --- |
-| `bunx rstest run -c rstest.i18n-browser.config.ts` | Chromium, 1280×900, en-US, Asia/Shanghai | 4 files, 11/11 passed |
-| `ADMIN_I18N_BROWSER_PROFILE=narrow bunx rstest run -c rstest.i18n-browser.config.ts` | Chromium, 390×844, zh-CN, UTC | 4 files, 11/11 passed |
+| Command                                                                                                                                                                                                                     | Native context                                                       | Host-observed result  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------- |
+| `bunx rstest run -c rstest.i18n-browser.config.ts`                                                                                                                                                                          | Chromium, 1280×900, en-US, Asia/Shanghai                             | 4 files, 11/11 passed |
+| `ADMIN_I18N_BROWSER_PROFILE=narrow bunx rstest run -c rstest.i18n-browser.config.ts`                                                                                                                                        | Chromium, 390×844, zh-CN, UTC                                        | 4 files, 11/11 passed |
 | `bun run test:browser src/pages/storefront/theme-editor-page.browser.test.tsx src/pages/iam/iam-pages.browser.test.tsx src/pages/orders/order-detail.browser.test.tsx src/pages/reports/order-report-page.browser.test.tsx` | Existing default Browser Mode configuration, no forced-context claim | 4 files, 11/11 passed |
 
 - Editor: dirty heading/link/reason, replacement product binding, selected release, media failure/retry/empty state, 409 and persistent errors survive language changes without extra GET or PUT. Chinese recovery keeps edits or executes the existing confirmed reload. Recovery controls and resource fieldsets fit the narrow viewport; the document does not overflow.
@@ -94,3 +94,30 @@ Commands below run from `apps/admin`. The dedicated configuration fixes the nati
 - Manual main-agent diff scan against `a1ba0125` covered changed production code, finite dictionaries/catalogs, optional shipment projection, browser fixtures and test-only type corrections. No additional actionable finding was identified. Request guards, permission/approval branches, raw data and query semantics were compared with the baseline; tests above supply behavioral evidence. This is not an independent review.
 - Top-level ce-code-review workflow attempt: `mode:agent base:a1ba0125`, plan ADM-I18N, local-aligned code/test scope excluding the pre-existing Storefront generated file. Capability preflight ended with `{"status":"failed","reason":"The harness has no blocking collector that accepts an agent launch ID and returns its terminal outcome."}`. Live tool discovery found only notification-summary agent waits, which the skill explicitly disallows as a collection substitute. No reviewer or external peer was launched, and no detached work was left behind.
 - **Code review: skipped (ce-code-review unavailable)** — required terminal-result collection is unavailable. The completed simplification receipts and manual scan are retained but are not represented as a completed dedicated-review receipt.
+
+## U6 — Audit closure and requirement trace
+
+The original audit now links each of its eight findings to remediation without deleting the Dashboard history or rewriting historical counts. Admin AI rules record owned/raw content boundaries, current-language feedback, finite dynamic catalogs and separate locale/timezone semantics. No additional runtime behavior was added in this documentation unit. The five delivery documents' 46 relative file links resolve; checkpoint/master pointer reconciliation and scoped whitespace checks passed.
+
+| Requirement / example | Verified behavior and retained evidence                                                                                                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1, R8 / AE1          | U1 missing/empty/placeholder red proof, real-source scanner, permission and jobs tests; U3 controls and U5 native Chinese interaction                                                           |
+| R2, R6 / AE3          | U4 domain-specific known/unknown mapping, additive optional fields and exact raw/legacy/history assertions; U5 actual scrolling timeline                                                        |
+| R3 / AE2              | U3 no language-triggered draft reload, preserved dirty/binding/release/preview state and pending feedback; U5 complete-editor recovery plus stable provider/toast tests                         |
+| R4, R5 / AE5          | U3 real interceptor priority/details, known/unknown/local errors, validation/migration/preview diagnostic locations and conflict choices; U5 safe persistent failure and recovery               |
+| R7 / AE4              | U2 Shanghai/UTC formatter and exact query/export tests; U5 opposite native/app locale, Shanghai day boundary and explicit UTC report rows                                                       |
+| R9                    | U1–U4 proof-first regressions, scoped consumers and U5 default/desktop/narrow native-browser matrix; limitations recorded below                                                                 |
+| R10                   | U3 permission/approval and shared-consumer regressions; U4 action-response/GET parity and idempotency/permissions; U5 no unintended requests, unchanged component-library interaction ownership |
+
+Final inventory re-read: **133 production files, 1088 message uses, 882 distinct identified keys, zero missing/empty/placeholder issues, 87 unresolved dynamic calls**. These unresolved sites include expressions supported by separately registered catalogs; they are not 87 proven omissions, nor proof of universal dynamic coverage. Test/helpers, fixtures and unmounted template examples are excluded by documented scope. No all-Admin linguistic audit, live backend/browser acceptance, full repository gate, independent code-review approval or production verification is claimed.
+
+No known in-scope implementation or local-verification tail is left unowned. Future arbitrary dynamic-expression discovery, third-party theme metadata translation and out-of-audit UI review remain outside this bounded plan, as originally specified. The existing Storefront generated-file modification is preserved and excluded from task commits. Local commits do not select or deploy a candidate.
+
+## Post-Deploy Monitoring & Validation
+
+For the next separately authorized deployment only; no monitor, deployment or backend mutation was started by this task. Owner: the single developer/release operator under REL. Window: the first operator smoke session and the following 24 hours of normal operation.
+
+- Inspect existing Admin network/error telemetry and API logs for `/admin/storefront-experiences/drafts`, `storefront_experience_draft_conflict`, `storefront_experience_validation_stale`, `/admin/reporting/orders` and `/admin/orders/`. Correlate existing request IDs; do not add credentials, user reasons or tracking values to logs.
+- Watch the normal request/error dashboard for duplicate draft GET/PUT spikes and unexpected 4xx/5xx changes. An intentional conflict should retain edits and show localized recovery, not increase writes when switching language. Verify both app languages, a non-UTC browser, report midnight UTC text and IAM dates.
+- With an approved non-destructive fixture/session, compare shipment field presence and raw values across API/Admin versions. Complete structured Chinese shipment display needs both updated API and Admin; old API mode must retain its original mixed label safely.
+- Healthy: no locale-triggered business requests, no lost dirty state, safe current-language feedback, unchanged date-only filters/UTC text and exact carrier/tracking values. Failure triggers: data loss, unintended writes, unsafe server prose or shifted UTC display. Stop the affected workflow and use REL's approved rollback to the prior compatible Admin artifact; revert the additive API projection if needed. There is no database migration to reverse. Do not perform a rollback or destructive test without its separate operational authority.
