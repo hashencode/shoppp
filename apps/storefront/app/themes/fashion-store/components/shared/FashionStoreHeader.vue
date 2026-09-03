@@ -15,6 +15,7 @@ type SearchOverlayHandle = {
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
+  homeLayout?: boolean;
   announcement?: string;
   announcementLink?: HomeViewModel["announcementLink"];
   configuration?: HomeViewModel["shell"]["header"];
@@ -110,6 +111,7 @@ defineExpose({ closeTransient });
 <template>
   <header
     class="header-with-topbar"
+    :class="{ 'fashion-store-header-home': homeLayout }"
     data-fashion-store-header="true"
     @click="handleHeaderNavigation"
   >
@@ -744,10 +746,97 @@ defineExpose({ closeTransient });
                 ><span class="d-none d-xxl-inline-block">Account</span></a
               >
             </div>
-            <FashionStoreMiniCart ref="miniCart" :source-asset="sourceAsset" />
+            <FashionStoreMiniCart
+              ref="miniCart"
+              :home-layout="homeLayout"
+              :source-asset="sourceAsset"
+            />
           </div>
         </div>
       </div>
     </nav>
   </header>
 </template>
+
+<style scoped>
+.fashion-store-source-action {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+:where(.fashion-store-header-home) .container,
+:where(.fashion-store-header-home) .container-fluid,
+:where(.fashion-store-header-home) .container-lg,
+:where(.fashion-store-header-home) .container-md,
+:where(.fashion-store-header-home) .container-sm,
+:where(.fashion-store-header-home) .container-xl,
+:where(.fashion-store-header-home) .container-xxl {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+:where(.fashion-store-header-home) .row {
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+:where(.fashion-store-header-home) .row > * {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+:where(.fashion-store-header-home) .navbar {
+  line-height: 32px;
+  padding: 0;
+}
+
+/* Preserve Crafto's breakpoint-specific navigation gutters after the scoped
+   Bootstrap gutter normalization above. */
+.fashion-store-header-home .navbar > .container-fluid {
+  padding-right: 45px;
+  padding-left: 45px;
+}
+
+@media (max-width: 1199px) {
+  .fashion-store-header-home .navbar > .container-fluid {
+    padding-right: 35px;
+    padding-left: 35px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .fashion-store-header-home .navbar {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+}
+
+@media (max-width: 991px) {
+  .fashion-store-header-home .navbar > .container-fluid {
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
+@media (min-width: 992px) {
+  .navbar.disable-fixed {
+    top: 40px !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .navbar.disable-fixed {
+    top: 41px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .navbar.disable-fixed {
+    top: 0 !important;
+  }
+}
+</style>

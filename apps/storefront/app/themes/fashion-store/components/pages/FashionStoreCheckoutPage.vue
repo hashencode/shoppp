@@ -372,7 +372,6 @@ onBeforeUnmount(() => {
 <template>
   <FashionStoreShell
     :announcement="initialFixtureData?.announcement"
-    body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >

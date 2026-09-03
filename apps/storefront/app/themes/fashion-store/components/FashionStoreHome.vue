@@ -156,6 +156,7 @@ onBeforeUnmount(() => {
 
 <template>
   <FashionStoreShell
+    variant="home"
     :announcement="data.announcement"
     :preload-image="properties.resolveAsset('fashion-store.slider-01')"
     :preview-intent-count="actionIntentCount"

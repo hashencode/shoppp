@@ -32,7 +32,6 @@ function retainPaginationPresentation(): void {
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :preload-image="sourceAsset(data.posts[0]!.sourceImage)"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"

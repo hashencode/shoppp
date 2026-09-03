@@ -37,7 +37,6 @@ function submitComment(): void {
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :preload-image="sourceAsset(data.media[0]!)"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"

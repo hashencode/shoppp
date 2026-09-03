@@ -600,6 +600,8 @@ test("live Home preserves all sections and card outcomes across input modes", as
   expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
     true,
   );
+  await expect(page.locator("body")).toHaveClass(/fashion-store-home/);
+  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
   const home = page.locator("[data-fashion-store-live-home]");
   await expect(home).toHaveCount(1);
   await expect(home.locator("[data-home-section]")).toHaveCount(10);
@@ -661,6 +663,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
   await directAdd.focus();
   await expect(directAdd).toBeFocused();
   await expect(directAdd).toHaveCSS("visibility", "visible");
+  await expect(directCard.getByRole("button", { name: "Add to wishlist" })).toHaveCount(0);
   await directAdd.press("Enter");
   await expect(directCard).toHaveAttribute("data-action-state", "succeeded");
   await expect(directCard.getByRole("status")).toContainText("was added to your cart");
@@ -686,6 +689,9 @@ test("live Home preserves all sections and card outcomes across input modes", as
   await expect(title).toBeFocused();
   await title.press("Enter");
   await expect(page).toHaveURL(/\/products\/relaxed-corduroy-shirt$/);
+  await expect(page.locator("body")).not.toHaveClass(/fashion-store-home/);
+  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "18px");
+  await expect(page.getByRole("link", { name: "Account", exact: true })).toHaveCount(0);
 
   const touchContext = await browser.newContext({
     hasTouch: true,
@@ -849,6 +855,7 @@ test("live build-local search clears stale results and supports keyboard navigat
   });
 
   await page.goto("/", { waitUntil: "networkidle" });
+  const timeOrigin = await page.evaluate(() => performance.timeOrigin);
   await page.getByRole("link", { name: "Search" }).click();
   const input = page.getByPlaceholder("Enter your keywords...");
   await expect(input).toBeFocused();
@@ -875,6 +882,17 @@ test("live build-local search clears stale results and supports keyboard navigat
   await input.press("ArrowDown");
   await input.press("Enter");
   await expect(page).toHaveURL(/\/products\/atlas-carry-on$/);
+  expect(await page.evaluate(() => performance.timeOrigin)).toBe(timeOrigin);
+  await expect(page.locator("body")).not.toHaveClass(/fashion-store-home|show-search-popup/);
+  await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
+    "data-runtime-instance-count",
+    "1",
+  );
+  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "18px");
+  await page.goBack();
+  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await expect(page.locator("body")).toHaveClass(/fashion-store-home/);
+  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
 });
 
 test("live routes keep unsupported pages truthful and policies Catalog-bound", async ({ page }) => {

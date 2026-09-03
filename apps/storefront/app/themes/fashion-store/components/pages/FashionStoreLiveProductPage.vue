@@ -215,7 +215,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <FashionStoreShell body-class="" :resolve-asset="resolveAsset" :show-sticky-socials="false">
+  <FashionStoreShell :resolve-asset="resolveAsset" :show-sticky-socials="false">
     <main
       id="fashion-store-main"
       data-fashion-store-live-product

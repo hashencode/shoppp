@@ -1,0 +1,383 @@
+{
+  "date": "2026-09-03",
+  "baseline": "8eaa6a7fe3f6c520b6353a91833b60c1961facb2",
+  "scope": "Fashion Store shared component regions; excludes intentionally repaired scroll control",
+  "channelTolerance": 16,
+  "artifacts": [
+    "apps/storefront/test-results/shared-regions-before",
+    "apps/storefront/test-results/shared-regions-after",
+    "apps/storefront/test-results/shared-mobile-before",
+    "apps/storefront/test-results/shared-mobile-after"
+  ],
+  "note": "Mobile Product capture supersedes original pair: viewport height fits Footer to avoid including fixed offscreen controls. Source and repaired implementation use matching capture settings.",
+  "results": [
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-laptop",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-laptop",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-laptop",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-laptop",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-laptop",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-tablet",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-tablet",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-tablet",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-tablet",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-tablet",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-tablet",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-tablet",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-tablet",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-tablet",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-laptop",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-laptop",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-laptop",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-laptop",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-laptop",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-laptop",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-laptop",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-laptop",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-laptop",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-mobile",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-mobile",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-mobile",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-mobile",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-desktop",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-desktop",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-desktop",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-f5230-ce-and-controls-collections-fashion-store-desktop",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-desktop",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-desktop",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-desktop",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-desktop",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-desktop",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-desktop",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-desktop",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-desktop",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-desktop",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-desktop",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-tablet",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-tablet",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-tablet",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-tablet",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-tablet",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-mobile",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-mobile",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-mobile",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-mobile",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-shell-appearance-and-controls--fashion-store-mobile",
+      "region": "geometry",
+      "equal": true
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-mobile",
+      "region": "product-card.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-mobile",
+      "region": "header.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-mobile",
+      "region": "footer.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-mobile",
+      "region": "mini-cart.png",
+      "dimensionsMatch": true,
+      "changedPixelRatio": 0,
+      "diffBounds": null
+    },
+    {
+      "case": "fashion-store-theme-shared-6c49d-ucts-relaxed-corduroy-shirt-fashion-store-mobile",
+      "region": "geometry",
+      "equal": true
+    }
+  ]
+}

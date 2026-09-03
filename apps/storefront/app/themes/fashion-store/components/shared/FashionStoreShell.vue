@@ -16,7 +16,7 @@ const properties = withDefaults(
   defineProps<{
     announcement?: string;
     announcementLink?: PresentationShellViewModel["announcementLink"];
-    bodyClass?: string;
+    variant?: "home" | "page";
     footer?: PresentationShellViewModel["footer"];
     header?: PresentationShellViewModel["header"];
     preloadImage?: string;
@@ -25,7 +25,7 @@ const properties = withDefaults(
     showStickySocials?: boolean;
   }>(),
   {
-    bodyClass: "fashion-store-home",
+    variant: "page",
     previewIntentCount: 0,
     showStickySocials: true,
   },
@@ -65,7 +65,10 @@ function scrollToTop(): void {
 useHead(() => ({
   bodyAttrs: {
     class:
-      [properties.bodyClass, searchOpen.value ? "show-search-popup" : ""]
+      [
+        properties.variant === "home" ? "fashion-store-home" : "",
+        searchOpen.value ? "show-search-popup" : "",
+      ]
         .filter(Boolean)
         .join(" ") || undefined,
     "data-mobile-nav-style": "classic",
@@ -128,12 +131,14 @@ onMounted(() => {
     :announcement="announcement"
     :announcement-link="announcementLink"
     :configuration="header"
+    :home-layout="variant === 'home'"
     :resolve-asset="resolveAsset"
     @search-open-change="searchOpen = $event"
   />
   <slot />
   <FashionStoreFooter
     :configuration="footer"
+    :home-layout="variant === 'home'"
     :resolve-asset="resolveAsset"
     :source-asset="sourceAsset"
   />
@@ -242,3 +247,17 @@ onMounted(() => {
     </button>
   </div>
 </template>
+
+<style scoped>
+.scroll-progress .scroll-top {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.scroll-progress .scroll-point {
+  height: calc(var(--fashion-store-scroll-progress, 0) * 100%);
+}
+</style>

@@ -93,7 +93,6 @@ onBeforeUnmount(stopArrivalAutoplay);
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >

@@ -169,3 +169,13 @@ defineExpose({ closeSearch, openSearch });
     </div>
   </div>
 </template>
+
+<style scoped>
+.search-form-icon {
+  display: inline-flex;
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+}
+</style>

@@ -77,7 +77,6 @@ function handleProductIntent(productId: string, kind: "cart" | "quickView" | "wi
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :preload-image="sourceAsset(data.products[0]!.sourceImage)"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"

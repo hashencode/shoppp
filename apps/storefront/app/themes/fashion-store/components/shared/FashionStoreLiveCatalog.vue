@@ -13,7 +13,7 @@ defineProps<{
 </script>
 
 <template>
-  <FashionStoreShell body-class="" :resolve-asset="resolveAsset">
+  <FashionStoreShell :resolve-asset="resolveAsset">
     <main
       id="fashion-store-main"
       data-fashion-store-live-catalog

@@ -40,7 +40,6 @@ function moveCategory(event: KeyboardEvent, step: number): void {
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >

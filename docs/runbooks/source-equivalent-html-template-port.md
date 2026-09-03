@@ -511,6 +511,21 @@ Evidence artifact fields, command details, failure triage, and runner routing ar
 non-normative
 [Source-equivalence acceptance system reference](../reference/source-equivalence-acceptance-system.md).
 
+## Shared component style ownership
+
+- Keep required control resets, internal state styling, and responsive rules with their owning
+  component. Vue scoped styles are preferred; inherited theme tokens and upstream design rules
+  stay in theme CSS. Check selector specificity and child-component boundaries when moving CSS.
+- Shell defaults describe an ordinary page. Home opts into its identity explicitly; preserve
+  intentional shared layout differences through a named prop/variant rather than a Home ancestor
+  selector reaching into shared controls. Page CSS owns external section placement and spacing.
+- For a shared-style fix, reproduce the computed-style failure on an inner page first. Check Home
+  and an inner route, actual open/focused/hovered states, navigation/history reuse, and both sides
+  of the component's display breakpoint. Static screenshots that hide the control are insufficient.
+- Reuse the existing capture and comparison tools. Keep source files and approved baselines intact;
+  compare matched component regions before and after ownership-only migrations. Do not duplicate
+  primitive-library interaction or accessibility behavior merely to fix a style dependency.
+
 ## Handoff checklist
 
 - Equivalence scope and source revision are explicit.

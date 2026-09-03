@@ -330,7 +330,6 @@ if (import.meta.client) {
     <component
       :is="themeRegistry.platformShell"
       v-else-if="activeExperienceSnapshot && rendersPlatformRoute && themeRegistry.platformShell"
-      body-class=""
       :resolve-asset="resolveThemeAsset"
       :show-sticky-socials="false"
     >

@@ -281,3 +281,11 @@ watch(
     </div>
   </li>
 </template>
+
+<style scoped>
+.shop-hover button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+}
+</style>

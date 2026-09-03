@@ -46,7 +46,6 @@ function sourceAsset(sourcePath: string): string {
   <FashionStoreShell
     v-else
     :announcement="data.announcement"
-    body-class=""
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >

@@ -10,6 +10,7 @@ import { resolveFashionStoreEditorMedia } from "../../resources";
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
+  homeLayout?: boolean;
   configuration?: HomeViewModel["shell"]["footer"];
   resolveAsset: ThemeAssetResolver;
   sourceAsset: (sourcePath: string) => string;
@@ -37,7 +38,7 @@ function configuredLogo(): string | undefined {
 </script>
 
 <template>
-  <footer class="footer-dark bg-dark-gray p-0">
+  <footer class="footer-dark bg-dark-gray p-0" :class="{ 'fashion-store-footer-home': homeLayout }">
     <div class="container">
       <div class="row align-items-center pt-35px pb-35px">
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">
@@ -359,3 +360,38 @@ function configuredLogo(): string | undefined {
     </div>
   </footer>
 </template>
+
+<style scoped>
+:where(.fashion-store-footer-home) .container,
+:where(.fashion-store-footer-home) .container-fluid,
+:where(.fashion-store-footer-home) .container-lg,
+:where(.fashion-store-footer-home) .container-md,
+:where(.fashion-store-footer-home) .container-sm,
+:where(.fashion-store-footer-home) .container-xl,
+:where(.fashion-store-footer-home) .container-xxl {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+:where(.fashion-store-footer-home) .row {
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+:where(.fashion-store-footer-home) .row > * {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+ul a,
+a[href^="tel:"],
+a[href^="mailto:"],
+.mb-15px,
+.input-small,
+.input-small::placeholder,
+p,
+.col-lg-5 > span {
+  color: #a8a8a8 !important;
+  opacity: 1;
+}
+</style>

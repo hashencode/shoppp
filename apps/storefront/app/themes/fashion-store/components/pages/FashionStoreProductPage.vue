@@ -223,7 +223,6 @@ onBeforeUnmount(() => {
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :preload-image="sourceAsset(data.gallery[0]!)"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"

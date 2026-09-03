@@ -27,34 +27,6 @@
   font: inherit;
 }
 
-[data-fashion-store-header] .fashion-store-source-action {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-}
-
-[data-fashion-store-header] .header-cart > .fashion-store-source-action {
-  position: relative;
-  padding-left: 18px;
-  color: var(--dark-gray);
-  font-size: 17px;
-}
-
-[data-fashion-store-header] .cart-item .fashion-store-source-action.close {
-  min-width: 32px;
-  min-height: 32px;
-  line-height: 32px;
-}
-
-[data-fashion-store-product-card] .shop-hover button {
-  appearance: none;
-  border: 0;
-  padding: 0;
-}
-
 [data-fashion-store-product] .top-space-margin {
   margin-top: 118px;
 }
@@ -397,7 +369,7 @@
   line-height: 32px;
 }
 
-.fashion-store-home .shop-hover button {
+.fashion-store-home .shop-hover:not(:where([data-fashion-store-product-card] *)) button {
   appearance: none;
   border: 0;
   padding: 0;
@@ -414,51 +386,28 @@
   outline-offset: 2px;
 }
 
-.fashion-store-home .navbar {
-  line-height: 32px;
-  padding: 0;
-}
-
-.fashion-store-home .container,
-.fashion-store-home .container-fluid,
-.fashion-store-home .container-lg,
-.fashion-store-home .container-md,
-.fashion-store-home .container-sm,
-.fashion-store-home .container-xl,
-.fashion-store-home .container-xxl {
+.fashion-store-home .container:not(:where(header *, footer *)),
+.fashion-store-home .container-fluid:not(:where(header *, footer *)),
+.fashion-store-home .container-lg:not(:where(header *, footer *)),
+.fashion-store-home .container-md:not(:where(header *, footer *)),
+.fashion-store-home .container-sm:not(:where(header *, footer *)),
+.fashion-store-home .container-xl:not(:where(header *, footer *)),
+.fashion-store-home .container-xxl:not(:where(header *, footer *)) {
   padding-right: 15px;
   padding-left: 15px;
 }
 
-.fashion-store-home .row {
+.fashion-store-home .row:not(:where(header *, footer *)) {
   margin-right: -15px;
   margin-left: -15px;
 }
 
-.fashion-store-home .row > * {
+.fashion-store-home .row > *:not(:where(header *, footer *)) {
   padding-right: 15px;
   padding-left: 15px;
 }
 
-/* Preserve Crafto's breakpoint-specific navigation gutters after the scoped
-   Bootstrap gutter normalization above. */
-.fashion-store-home .header-with-topbar .navbar > .container-fluid {
-  padding-right: 45px;
-  padding-left: 45px;
-}
-
-.fashion-store-home .header-cart > .fashion-store-source-action {
-  position: relative;
-  padding-left: 14px;
-  color: var(--dark-gray);
-  font-size: 17px;
-}
-
 @media (min-width: 992px) {
-  .fashion-store-home .header-with-topbar .navbar {
-    top: 40px !important;
-  }
-
   .fashion-store-home .swiper.top-space-margin {
     height: calc(100vh - 118px) !important;
     margin-top: 118px;
@@ -551,18 +500,6 @@
   width: calc((100% - 90px) / 4) !important;
 }
 
-.fashion-store-home .scroll-progress .scroll-top {
-  appearance: none;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-
-.fashion-store-home .scroll-progress .scroll-point {
-  height: calc(var(--fashion-store-scroll-progress, 0) * 100%);
-}
-
 /* Keep the source marquee moving even when the optional vendor runtime is not
    available (for example, during Vite development). Two identical runs make
    the -50% reset visually seamless. */
@@ -590,11 +527,6 @@
 }
 
 @media (max-width: 1199px) {
-  .fashion-store-home .header-with-topbar .navbar > .container-fluid {
-    padding-right: 35px;
-    padding-left: 35px;
-  }
-
   .fashion-store-home section:nth-of-type(4) .shop-wrapper {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -630,12 +562,6 @@
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
-  .fashion-store-home .header-with-topbar .navbar {
-    padding-right: 15px;
-    padding-left: 15px;
-    top: 41px !important;
-  }
-
   .fashion-store-home .swiper.top-space-margin {
     margin-top: 119px;
   }
@@ -658,11 +584,6 @@
 }
 
 @media (max-width: 991px) {
-  .fashion-store-home .header-with-topbar .navbar > .container-fluid {
-    padding-right: 0;
-    padding-left: 0;
-  }
-
   .fashion-store-home section:nth-of-type(4) .shop-wrapper,
   .fashion-store-home section:nth-of-type(8) .shop-wrapper {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -750,10 +671,6 @@
     max-width: 360px;
     top: 0;
     left: 0;
-  }
-
-  .fashion-store-home .header-with-topbar .navbar {
-    top: 0 !important;
   }
 
   .fashion-store-home .swiper.top-space-margin {
@@ -1559,20 +1476,12 @@
 }
 
 @media (min-width: 992px) {
-  [data-fashion-store-header] .navbar.disable-fixed {
-    top: 40px !important;
-  }
-
   [data-fashion-store-header] + main > .top-space-margin {
     margin-top: 118px;
   }
 }
 
 @media (max-width: 991px) {
-  [data-fashion-store-header] .navbar.disable-fixed {
-    top: 41px !important;
-  }
-
   [data-fashion-store-header] + main > .top-space-margin {
     margin-top: 119px;
   }
@@ -1637,10 +1546,6 @@
 }
 
 @media (max-width: 767px) {
-  [data-fashion-store-header] .navbar.disable-fixed {
-    top: 0 !important;
-  }
-
   [data-fashion-store-header] + main > .top-space-margin {
     margin-top: 79px;
   }
@@ -1736,7 +1641,6 @@
   background-color: #08783f;
 }
 
-[data-fashion-store-header] .search-form-icon,
 [data-fashion-store-shop] .slider-one-slide-prev-1,
 [data-fashion-store-shop] .slider-one-slide-next-1,
 [data-fashion-store-product] .qty-minus,
@@ -1748,16 +1652,4 @@
   min-height: 24px;
   align-items: center;
   justify-content: center;
-}
-
-.footer-dark ul a,
-.footer-dark a[href^="tel:"],
-.footer-dark a[href^="mailto:"],
-.footer-dark .mb-15px,
-.footer-dark .input-small,
-.footer-dark .input-small::placeholder,
-.footer-dark p,
-.footer-dark .col-lg-5 > span {
-  color: #a8a8a8 !important;
-  opacity: 1;
 }

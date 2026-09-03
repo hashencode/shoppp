@@ -68,7 +68,6 @@ function recordLocalSubmission(event: Event): void {
 <template>
   <FashionStoreShell
     :announcement="data.announcement"
-    body-class=""
     :preload-image="sourceAsset('images/demo-fashion-store-contatc-01.png')"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"

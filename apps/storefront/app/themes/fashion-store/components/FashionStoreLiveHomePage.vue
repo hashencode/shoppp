@@ -76,6 +76,7 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
 
 <template>
   <FashionStoreShell
+    variant="home"
     :announcement="viewModel.announcement"
     :announcement-link="viewModel.announcementLink"
     :footer="viewModel.shell.footer"

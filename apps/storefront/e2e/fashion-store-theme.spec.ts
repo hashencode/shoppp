@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { readFileSync, writeFileSync } from "node:fs";
+import { fashionStorePageContracts } from "../app/themes/fashion-store/page-contracts";
 import {
   assertThemeScreenshotDifference,
   compareThemeScreenshots,
@@ -872,4 +873,249 @@ test("captures the four-viewport Fashion Store initial-home evidence", async ({
   test.skip(!process.env.THEME_FIDELITY_CAPTURE_ROOT);
   await ready(page, "/");
   await captureThemeEvidence(page, testInfo, "fashion-store");
+});
+
+async function attachSharedRegion(
+  locator: Locator,
+  name: string,
+  testInfo: TestInfo,
+): Promise<void> {
+  const path = testInfo.outputPath(`${name}.png`);
+  await locator.screenshot({ path, animations: "disabled" });
+  await testInfo.attach(name, { path, contentType: "image/png" });
+}
+
+// These checks intentionally bypass ready(): its static capture CSS hides the scroll control.
+for (const route of ["/", "/products/relaxed-corduroy-shirt", "/collections"]) {
+  test(`shared shell appearance and controls: ${route}`, async ({ page }, testInfo) => {
+    await page.goto(route, { waitUntil: "networkidle" });
+    await page.evaluate(async () => document.fonts.ready);
+    const header = page.locator("header.header-with-topbar nav.navbar");
+    await expect(header).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(route === "/" ? /fashion-store-home/ : /^$/);
+    await attachSharedRegion(header, "header", testInfo);
+    const search = page.getByRole("link", { name: "Search", exact: true });
+    await search.click();
+    await expect(page.getByPlaceholder("Enter your keywords...")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".search-form-wrapper")).toBeHidden();
+    await expect(search).toBeFocused();
+    await expect(search).toHaveCSS("outline-style", "solid");
+
+    const cart = page.locator(".header-cart");
+    const cartTrigger = cart.getByRole("button", { name: "Open preview cart" });
+    await cartTrigger.focus();
+    await page.keyboard.press("Enter");
+    await expect(cartTrigger).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(cartTrigger).toHaveCSS("padding-left", route === "/" ? "14px" : "18px");
+    await expect(cart.locator(".cart-item-list")).toBeVisible();
+    await attachSharedRegion(cart.locator(".cart-item-list"), "mini-cart", testInfo);
+    const geometry = await page.evaluate(() => {
+      const inspect = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector)!;
+        const style = getComputedStyle(element);
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return {
+          rect: { x, y, width, height },
+          top: style.top,
+          padding: style.padding,
+          lineHeight: style.lineHeight,
+          fontSize: style.fontSize,
+          marginTop: style.marginTop,
+        };
+      };
+      return {
+        nav: inspect("header.header-with-topbar nav.navbar"),
+        navContainer: inspect("header nav.navbar > .container-fluid"),
+        cartTrigger: inspect(".header-cart > .fashion-store-source-action"),
+        cartCTA: inspect(".header-cart .cart-total .btn.btn-large"),
+        footer: inspect("footer.footer-dark"),
+        footerContainer: inspect("footer.footer-dark > .container"),
+        footerRow: inspect("footer.footer-dark > .container > .row"),
+      };
+    });
+    const geometryPath = testInfo.outputPath("geometry.json");
+    writeFileSync(geometryPath, JSON.stringify(geometry, null, 2));
+    await testInfo.attach("geometry", { path: geometryPath, contentType: "application/json" });
+    await search.focus();
+    await expect(cart.locator(".cart-item-list")).toBeHidden();
+    const cookie = page.locator("#cookies-model");
+    await expect(cookie).toBeVisible();
+    await cookie.getByRole("button", { name: "Allow cookies" }).click();
+    await expect(cookie).toBeHidden();
+    const card = page.locator(".shop-box").first();
+    if (await card.count()) {
+      await attachSharedRegion(card, "product-card", testInfo);
+      const action = card.locator(".shop-hover button").first();
+      if (await action.count()) {
+        await card.hover();
+        await action.focus();
+        await expect(action).toBeVisible();
+        await expect(action).toHaveCSS("border-top-width", "0px");
+        await expect(action).toHaveCSS("padding", "0px");
+      }
+    }
+    const footer = page.locator("footer.footer-dark");
+    const viewport = page.viewportSize()!;
+    const footerHeight = await footer.evaluate((element) => element.clientHeight);
+    // Keep the entire region in-view so offscreen fixed controls cannot enter the capture.
+    await page.setViewportSize({
+      ...viewport,
+      height: Math.max(viewport.height, footerHeight + 40),
+    });
+    await footer.getByText("Categories", { exact: true }).click();
+    await attachSharedRegion(footer, "footer", testInfo);
+  });
+
+  test(`shared scroll control follows page progress: ${route}`, async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto(route, { waitUntil: "networkidle" });
+    await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
+      "data-runtime-status",
+      "ready",
+    );
+    await page.evaluate(async () => document.fonts.ready);
+    await page.evaluate(() =>
+      window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) / 2),
+    );
+    const progress = page.locator(".scroll-progress");
+    if (page.viewportSize()!.width < 1400) {
+      await expect(progress).toBeHidden();
+      expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
+      return;
+    }
+    await expect(progress).toHaveClass(/visible/);
+    const button = progress.getByRole("button", { name: "Back to top" });
+    await expect(button).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(button).toHaveCSS("border-top-width", "0px");
+    const point = progress.locator(".scroll-point");
+    const fraction = () =>
+      point.evaluate(
+        (node) =>
+          node.getBoundingClientRect().height / node.parentElement!.getBoundingClientRect().height,
+      );
+    await expect.poll(fraction).toBeGreaterThan(0.4);
+    await expect.poll(fraction).toBeLessThan(0.6);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(fraction).toBeGreaterThan(0.98);
+    await attachSharedRegion(progress, "scroll-control", testInfo);
+    await button.click();
+    await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+    await expect(page).toHaveURL(new RegExp(`${route.replaceAll("/", "\\/")}$`));
+  });
+}
+
+for (const { id, path } of fashionStorePageContracts) {
+  test(`shared shell route smoke: ${id}`, async ({ page }) => {
+    await page.goto(path, { waitUntil: "networkidle" });
+    await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(1);
+    // Reduced-motion Home intentionally defers hydration until interaction.
+    if (id === "home") {
+      await page.getByRole("link", { name: "Search", exact: true }).click();
+      await expect(page.getByPlaceholder("Enter your keywords...")).toBeFocused();
+      await page.keyboard.press("Escape");
+    }
+    await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
+      "data-runtime-instance-count",
+      "1",
+    );
+    await expect(page.locator("header.header-with-topbar nav.navbar")).toBeVisible();
+    await expect(page.locator("footer.footer-dark")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Search", exact: true })).toBeVisible();
+    await expect(
+      page.locator(".header-cart").getByRole("button", { name: "Open preview cart" }),
+    ).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(id === "home" ? /fashion-store-home/ : /^$/);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+    ).toBeLessThanOrEqual(1);
+  });
+}
+
+test("shared shell survives link navigation and browser history", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/", { waitUntil: "networkidle" });
+  const verifyRoute = async (path: string) => {
+    await expect(page).toHaveURL((url) => url.pathname === path);
+    const marker = page.locator("[data-fashion-store-source-parity]");
+    await expect(marker).toHaveCount(1);
+    await expect(marker).toHaveAttribute("data-runtime-status", "ready");
+    await expect(marker).toHaveAttribute("data-runtime-instance-count", "1");
+    await expect(page.locator("body")).toHaveClass(path === "/" ? /fashion-store-home/ : /^$/);
+    await page.evaluate(async () => document.fonts.ready);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+    ).toBeLessThanOrEqual(1);
+    await page.evaluate(() =>
+      window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) / 2),
+    );
+    const progress = page.locator(".scroll-progress");
+    await expect(progress).toBeVisible();
+    const button = progress.getByRole("button", { name: "Back to top" });
+    await expect(button).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(button).toHaveCSS("border-top-width", "0px");
+    await expect
+      .poll(() =>
+        progress.locator(".scroll-point").evaluate((point) => {
+          const actual =
+            point.getBoundingClientRect().height /
+            point.parentElement!.getBoundingClientRect().height;
+          const expected = scrollY / (document.documentElement.scrollHeight - innerHeight);
+          return Math.abs(actual - expected);
+        }),
+      )
+      .toBeLessThan(0.025);
+  };
+
+  await verifyRoute("/");
+  await page.locator('.shop-footer a[href="/products/relaxed-corduroy-shirt"]').first().click();
+  await verifyRoute("/products/relaxed-corduroy-shirt");
+  await page.locator('footer a[href="/collections"]').click();
+  await verifyRoute("/collections");
+  await page.locator('header a.navbar-brand[href="/"]').click();
+  await verifyRoute("/");
+  await page.goBack();
+  await verifyRoute("/collections");
+  await page.goBack();
+  await verifyRoute("/products/relaxed-corduroy-shirt");
+  await page.goForward();
+  await verifyRoute("/collections");
+  await page.goForward();
+  await verifyRoute("/");
+});
+
+test("shared scroll control preserves the 1400px visibility boundary", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/products/relaxed-corduroy-shirt", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
+    "data-runtime-status",
+    "ready",
+  );
+  for (const width of [1399, 1400]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() =>
+      window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) / 2),
+    );
+    const progress = page.locator(".scroll-progress");
+    await expect(progress).toHaveClass(/visible/);
+    if (width < 1400) {
+      await expect(progress).toBeHidden();
+    } else {
+      await expect(progress).toBeVisible();
+      await expect(progress.getByRole("button", { name: "Back to top" })).toHaveCSS(
+        "background-color",
+        "rgba(0, 0, 0, 0)",
+      );
+      await attachSharedRegion(progress, "scroll-control-1400", testInfo);
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+    ).toBeLessThanOrEqual(1);
+  }
 });
