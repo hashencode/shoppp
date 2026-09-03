@@ -141,7 +141,8 @@ export const WelcomePage = () => {
   useEffect(() => {
     if (!canRead) return
     let active = true
-    void fetchSetupGuide().then(
+    const controller = new AbortController()
+    void fetchSetupGuide(controller.signal).then(
       (summary) => {
         if (!active) return
         setResult({ request, summary })
@@ -160,6 +161,7 @@ export const WelcomePage = () => {
     )
     return () => {
       active = false
+      controller.abort()
     }
   }, [canRead, request])
 
