@@ -276,6 +276,7 @@ export async function getOrderDetail(
     })),
     ...fulfillmentEvents.results.map((event) => ({
       actor: event.actor,
+      carrier: event.carrier,
       createdAt: event.created_at,
       id: event.id,
       kind: "fulfillment" as const,
@@ -285,6 +286,7 @@ export async function getOrderDetail(
           : event.to_status,
       reason: event.reason,
       status: event.to_status,
+      trackingNumber: event.tracking_number,
     })),
     ...refunds.results.map((refund) => ({
       actor: refund.actor,

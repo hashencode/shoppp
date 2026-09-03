@@ -1,6 +1,6 @@
 import React from 'react'
 import type { AdminOrderDetail, AdminPermission } from '@shoppp/contracts'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { renderInLocale } from '../../test/render-in-locale'
+import { useI18n, type AppLocale } from '../../shared/contexts/i18n-context'
 import { OrderDetailPage } from './order-detail'
 
 void React
@@ -100,9 +101,15 @@ const server = setupServer(
   })
 )
 
-const renderPage = (permissions: readonly AdminPermission[]) =>
+const LocaleSwitch = () => {
+  const { setLocale } = useI18n()
+  return <button onClick={() => setLocale('en-US')}>English</button>
+}
+
+const renderPage = (permissions: readonly AdminPermission[], locale: AppLocale = 'en-US') =>
   renderInLocale(
     <AuthTestProvider role="order_operator" permissions={permissions}>
+      <LocaleSwitch />
       <ThemeProvider>
         <MemoryRouter initialEntries={['/orders/ORD-TEST001']}>
           <Routes>
@@ -110,7 +117,8 @@ const renderPage = (permissions: readonly AdminPermission[]) =>
           </Routes>
         </MemoryRouter>
       </ThemeProvider>
-    </AuthTestProvider>
+    </AuthTestProvider>,
+    locale
   )
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
@@ -126,11 +134,67 @@ describe('OrderDetailPage', () => {
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'ORD-TEST001' })).toBeTruthy())
     expect(screen.getByText('Atlas Carry-on')).toBeTruthy()
-    expect(screen.getByText('order_receipt')).toBeTruthy()
+    expect(screen.getByText('Order receipt')).toBeTruthy()
     expect(screen.getByText('Payment · paid')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Refund' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Cancel order' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Mark picking' })).toBeNull()
+  })
+
+  it('localizes structured shipment semantics on language change but preserves raw and legacy data', async () => {
+    let reads = 0
+    const shipment = {
+      createdAt: '2026-09-03T00:00:00.000Z',
+      kind: 'fulfillment',
+      label: 'shipped · Refund  Tracking / # 42 ',
+      status: 'shipped',
+      actor: 'Refund',
+      reason: 'Order',
+    }
+    server.use(
+      http.get('*/admin/orders/ORD-TEST001', () => {
+        reads += 1
+        return HttpResponse.json({
+          data: {
+            ...detail,
+            timeline: [
+              {
+                ...shipment,
+                id: 'structured',
+                carrier: 'Refund',
+                trackingNumber: ' Tracking / # 42 ',
+              },
+              { ...shipment, id: 'legacy' },
+              { ...shipment, id: 'empty', carrier: '', trackingNumber: null },
+              { ...shipment, id: 'spaces', carrier: '   ', trackingNumber: 'Order' },
+            ],
+          },
+        })
+      })
+    )
+    renderPage(['orders.read'], 'zh-CN')
+    await waitFor(() => expect(screen.getByRole('columnheader', { name: '承运商' })).toBeTruthy())
+    const row = (id: string) => document.querySelector(`tr[data-row-key="${id}"]`) as HTMLElement
+    const structured = within(row('structured'))
+    expect(structured.getAllByText('已发货')).toHaveLength(2)
+    expect(structured.getAllByText('Refund')).toHaveLength(2)
+    expect(structured.getByText('Order')).toBeTruthy()
+    expect(structured.getByText('Tracking / # 42').textContent).toBe(' Tracking / # 42 ')
+    expect(
+      within(row('legacy')).getByText(shipment.label, { normalizer: (text) => text }).textContent
+    ).toBe(shipment.label)
+    const emptyCells = within(row('empty')).getAllByRole('cell')
+    expect(emptyCells[4]?.textContent).toBe('')
+    expect(emptyCells[5]?.textContent).toBe('—')
+    expect(within(row('spaces')).getAllByRole('cell')[4]?.textContent).toBe('   ')
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+    await waitFor(() =>
+      expect(within(row('structured')).getAllByText('Shipment dispatched')).toHaveLength(2)
+    )
+    expect(
+      within(row('legacy')).getByText(shipment.label, { normalizer: (text) => text }).textContent
+    ).toBe(shipment.label)
+    expect(reads).toBe(1)
   })
 
   it('requires explicit confirmation, amount, and reason before an authorized refund', async () => {
@@ -138,9 +202,7 @@ describe('OrderDetailPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refund' })).toBeTruthy())
 
     fireEvent.click(screen.getByRole('button', { name: 'Refund' }))
-    expect(
-      screen.getByText('This action is audited and cannot be silently reversed.')
-    ).toBeTruthy()
+    expect(screen.getByText('This action is audited and cannot be silently reversed.')).toBeTruthy()
     fireEvent.change(screen.getByRole('spinbutton', { name: /Amount in minor units/ }), {
       target: { value: '500' },
     })

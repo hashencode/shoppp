@@ -524,12 +524,14 @@ export const orderTimelineEntrySchema = z
   .object({
     actor: z.string().nullable().optional(),
     amount: z.int().nonnegative().optional(),
+    carrier: z.string().nullable().optional(),
     createdAt: isoDateTimeSchema,
     id: z.string().min(1),
     kind: z.enum(["payment", "order", "fulfillment", "refund", "notification", "audit"]),
     label: z.string().min(1),
     reason: z.string().nullable().optional(),
     status: z.string().nullable().optional(),
+    trackingNumber: z.string().nullable().optional(),
   })
   .strict();
 

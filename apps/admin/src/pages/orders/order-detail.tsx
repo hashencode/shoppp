@@ -1,4 +1,8 @@
-import type { AdminOrderDetail, FulfillmentTransitionRequest } from '@shoppp/contracts'
+import type {
+  AdminOrderDetail,
+  FulfillmentTransitionRequest,
+  OrderTimelineEntry,
+} from '@shoppp/contracts'
 import {
   Alert,
   Button,
@@ -27,6 +31,12 @@ import {
   transitionFulfillment,
 } from '../../services/orders/api'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import {
+  hasShipmentDetails,
+  timelineKind,
+  timelineLabel,
+  timelineStatus,
+} from './order-timeline-messages'
 
 void React
 
@@ -240,7 +250,7 @@ export const OrderDetailPage = () => {
           pagination={false}
           dataSource={detail.timeline}
           locale={{ emptyText: t('No operational events recorded.') }}
-          scroll={{ x: 900 }}
+          scroll={{ x: 1500 }}
           columns={[
             {
               key: 'created',
@@ -249,9 +259,47 @@ export const OrderDetailPage = () => {
               width: 170,
               render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
             },
-            { key: 'kind', title: t('Dimension'), dataIndex: 'kind', width: 130 },
-            { key: 'label', title: t('Event'), dataIndex: 'label', width: 240 },
-            { key: 'status', title: t('Result / state'), dataIndex: 'status', width: 150 },
+            {
+              key: 'kind',
+              title: t('Dimension'),
+              dataIndex: 'kind',
+              width: 130,
+              render: (value: string) => timelineKind(value, t),
+            },
+            {
+              key: 'label',
+              title: t('Event'),
+              width: 240,
+              render: (_: unknown, entry: OrderTimelineEntry) => (
+                <span className="whitespace-pre-wrap break-words">{timelineLabel(entry, t)}</span>
+              ),
+            },
+            {
+              key: 'status',
+              title: t('Result / state'),
+              width: 150,
+              render: (_: unknown, entry: OrderTimelineEntry) => timelineStatus(entry, t),
+            },
+            {
+              key: 'carrier',
+              title: t('Carrier'),
+              width: 180,
+              render: (_: unknown, entry: OrderTimelineEntry) => (
+                <span className="whitespace-pre-wrap break-words">
+                  {hasShipmentDetails(entry) ? (entry.carrier ?? '—') : '—'}
+                </span>
+              ),
+            },
+            {
+              key: 'tracking',
+              title: t('Tracking number'),
+              width: 220,
+              render: (_: unknown, entry: OrderTimelineEntry) => (
+                <span className="whitespace-pre-wrap break-words">
+                  {hasShipmentDetails(entry) ? (entry.trackingNumber ?? '—') : '—'}
+                </span>
+              ),
+            },
             { key: 'actor', title: t('Actor'), dataIndex: 'actor', width: 150 },
             { key: 'reason', title: t('Reason'), dataIndex: 'reason', width: 260 },
           ]}

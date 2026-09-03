@@ -134,8 +134,18 @@ export const scanTranslationCalls = (filePath: string, text: string) => {
 };
 
 // These are catalogs of application-owned messages, not arbitrary API/user strings.
-// U3/U4 add their finite theme/timeline catalogs here when those modules are implemented.
 export const dynamicCatalogs = [
+  { filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts", variable: "kindMessages" },
+  { filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts", variable: "orderMessages" },
+  {
+    filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts",
+    variable: "fulfillmentMessages",
+  },
+  { filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts", variable: "labelMessages" },
+  {
+    filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts",
+    variable: "statusMessages",
+  },
   { filePath: "apps/admin/src/pages/storefront/theme-feedback.ts", variable: "diagnosticMessages" },
   { filePath: "apps/admin/src/pages/storefront/theme-feedback.ts", variable: "localThemeMessages" },
   {

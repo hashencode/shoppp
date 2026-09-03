@@ -122,6 +122,14 @@ describe("Admin translation coverage", () => {
     expect(audit.messages.length).toBeGreaterThan(500);
     for (const key of [
       "{id} moved to position {position} of {count} on {pageType}.",
+      "Checkout payment succeeded",
+      "Payment event applied",
+      "Order confirmed",
+      "Shipment dispatched",
+      "Refund succeeded",
+      "Notification exhausted retries",
+      "Update fulfillment",
+      "Operation denied",
       "Unknown validation status ({code}).",
       "Unknown theme diagnostic. Review the technical code before continuing.",
       "{explanation} ({code})",

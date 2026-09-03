@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { adminOrderDetailSchema } from "@shoppp/contracts";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
@@ -282,6 +283,27 @@ describe("order operations", () => {
         env,
       );
       expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(adminOrderDetailSchema.safeParse((body as { data: unknown }).data).success).toBe(true);
+      expect(body).toMatchObject({
+        data: {
+          timeline: expect.arrayContaining([
+            expect.objectContaining({
+              kind: "fulfillment",
+              status: input.toStatus,
+              carrier: "carrier" in input ? input.carrier : null,
+              trackingNumber: "trackingNumber" in input ? input.trackingNumber : null,
+            }),
+          ]),
+        },
+      });
+      const refreshed = await app.fetch(
+        request(`/admin/orders/${operation.reference}`, "order-operator"),
+        env,
+      );
+      expect(((await refreshed.json()) as { data: unknown }).data).toEqual(
+        (body as { data: unknown }).data,
+      );
     }
 
     const replayedShipment = await app.fetch(
@@ -339,6 +361,84 @@ describe("order operations", () => {
         .bind(operation.orderId)
         .first(),
     ).toEqual({ fulfillment_status: "shipped", order_status: "processing" });
+  });
+
+  test("adds shipment fields without rewriting immutable labels, timestamps, IDs or sort order", async () => {
+    const operation = await seedOperationalOrder("history");
+    const shipments = [
+      {
+        id: "z_history",
+        from: "unfulfilled",
+        to: "picking",
+        carrier: null,
+        tracking: null,
+        createdAt: NOW,
+      },
+      { id: "a_history", from: "picking", to: "packed", carrier: "", tracking: "", createdAt: NOW },
+      {
+        id: "b_history",
+        from: "packed",
+        to: "shipped",
+        carrier: " Carrier · Express ",
+        tracking: "  # / · 42  ",
+        createdAt: "2026-07-31T00:00:00.000Z",
+      },
+      {
+        id: "c_history",
+        from: "shipped",
+        to: "delivered",
+        carrier: "  ",
+        tracking: "Order",
+        createdAt: "2026-08-01T00:00:00.000Z",
+      },
+    ];
+    await env.DB.batch(
+      shipments.map((entry) =>
+        env.DB.prepare(
+          `INSERT INTO fulfillment_events
+       (id, order_id, from_status, to_status, carrier, tracking_number, actor_id, reason, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'admin-order-operator', 'Order', ?)`,
+        ).bind(
+          entry.id,
+          operation.orderId,
+          entry.from,
+          entry.to,
+          entry.carrier,
+          entry.tracking,
+          entry.createdAt,
+        ),
+      ),
+    );
+    const app = appFor("order-operator");
+    const response = await app.fetch(
+      request(`/admin/orders/${operation.reference}`, "order-operator"),
+      env,
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { data: { timeline: unknown[] } };
+    expect(adminOrderDetailSchema.safeParse(body.data).success).toBe(true);
+    const expected = [...shipments]
+      .sort(
+        (left, right) =>
+          left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+      )
+      .map((entry) => ({
+        actor: "order-operator",
+        carrier: entry.carrier,
+        createdAt: entry.createdAt,
+        id: entry.id,
+        kind: "fulfillment",
+        label: entry.to === "shipped" ? `shipped · ${entry.carrier} ${entry.tracking}` : entry.to,
+        reason: "Order",
+        status: entry.to,
+        trackingNumber: entry.tracking,
+      }));
+    expect(body.data.timeline).toEqual(expected);
+    const reread = await app.fetch(
+      request(`/admin/orders/${operation.reference}`, "order-operator"),
+      env,
+    );
+    expect(((await reread.json()) as { data: unknown }).data).toEqual(body.data);
   });
 
   test("denies fulfillment before approval and audits the invalid transition", async () => {
@@ -434,6 +534,24 @@ describe("order operations", () => {
     const replay = await app.fetch(refundRequest(), env);
 
     expect(first.status, await first.clone().text()).toBe(200);
+    const refunded = (await first.clone().json()) as { data: unknown };
+    expect(adminOrderDetailSchema.safeParse(refunded.data).success).toBe(true);
+    expect(refunded.data).toMatchObject({
+      timeline: expect.arrayContaining([
+        expect.objectContaining({
+          kind: "refund",
+          label: "refund",
+          status: "succeeded",
+          amount: 500,
+        }),
+        expect.objectContaining({ kind: "audit", label: "orders.refund", status: "succeeded" }),
+      ]),
+    });
+    const refreshed = await app.fetch(
+      request(`/admin/orders/${operation.reference}`, "order-operator"),
+      env,
+    );
+    expect(((await refreshed.json()) as { data: unknown }).data).toEqual(refunded.data);
     expect(replay.status).toBe(200);
     expect(await replay.text()).toBe(await first.text());
     expect(provider.createRefund).toHaveBeenCalledTimes(1);
@@ -500,6 +618,19 @@ describe("order operations", () => {
     const replay = await app.fetch(cancelRequest(), env);
 
     expect(first.status, await first.clone().text()).toBe(200);
+    const canceled = (await first.clone().json()) as { data: unknown };
+    expect(adminOrderDetailSchema.safeParse(canceled.data).success).toBe(true);
+    expect(canceled.data).toMatchObject({
+      timeline: expect.arrayContaining([
+        expect.objectContaining({ kind: "order", label: "canceled", status: "canceled" }),
+        expect.objectContaining({ kind: "audit", label: "orders.cancel", status: "succeeded" }),
+      ]),
+    });
+    const refreshed = await app.fetch(
+      request(`/admin/orders/${operation.reference}`, "order-operator"),
+      env,
+    );
+    expect(((await refreshed.json()) as { data: unknown }).data).toEqual(canceled.data);
     expect(replay.status).toBe(200);
     expect(await replay.text()).toBe(await first.text());
     expect(provider.createRefund).toHaveBeenCalledTimes(1);
