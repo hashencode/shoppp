@@ -1,5 +1,5 @@
 import { SettingOutlined } from '@ant-design/icons'
-import { Button, Dropdown, message, theme } from 'antd'
+import { Button, Dropdown, App, theme } from 'antd'
 import type { MenuProps } from 'antd'
 import { FoldHorizontal, RefreshCcw } from 'lucide-react'
 import React, { useMemo } from 'react'
@@ -36,6 +36,7 @@ const buildIndicatorLabel = (
 )
 
 export const ListSearchSettingsDropdown = ({ compactLayout }: SearchSettingsDropdownProps) => {
+  const { message } = App.useApp()
   const { token } = theme.useToken()
   const { t } = useI18n()
   const { listAutoRefreshEnabled, setListAutoRefreshEnabled } = useTheme()

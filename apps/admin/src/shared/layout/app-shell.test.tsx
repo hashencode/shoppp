@@ -166,6 +166,7 @@ describe('AppShell', () => {
     await waitFor(() => {
       expect(screen.getByText('Welcome')).toBeTruthy()
       expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('en-US')
+      expect(screen.getAllByText('Language changed to English.')).toHaveLength(1)
     })
   })
 
@@ -181,6 +182,7 @@ describe('AppShell', () => {
     await waitFor(() => {
       expect(screen.getByText('欢迎')).toBeTruthy()
       expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('zh-CN')
+      expect(screen.getAllByText('语言已切换为简体中文。')).toHaveLength(1)
     })
   })
 
@@ -221,7 +223,9 @@ describe('AppShell', () => {
   it('provides current route title and breadcrumb meta to content recipes', () => {
     renderShellWithRouteMeta()
 
-    expect(screen.getByTestId('route-meta-probe').textContent).toBe('Alpha 页面|一级导航>Alpha 页面')
+    expect(screen.getByTestId('route-meta-probe').textContent).toBe(
+      'Alpha 页面|一级导航>Alpha 页面'
+    )
     expect(screen.getAllByText('一级导航').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Alpha 页面').length).toBeGreaterThan(0)
   })

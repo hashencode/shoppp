@@ -1,5 +1,5 @@
 import type { AdminOrder } from '@shoppp/contracts'
-import { Button, Input, Select, Space, Table, Tag, message } from 'antd'
+import { Button, Input, Select, Space, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -13,6 +13,7 @@ const money = (amount: number, currency: string, locale: string) =>
   new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount / 100)
 
 export const OrderListPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { locale, t } = useI18n()
   const localizeError = useLocalizedApiError()
@@ -46,7 +47,7 @@ export const OrderListPage = () => {
         setLoading(false)
       }
     },
-    [committedQuery, fulfillmentStatus, localizeError, paymentStatus]
+    [message, committedQuery, fulfillmentStatus, localizeError, paymentStatus]
   )
 
   useEffect(() => {

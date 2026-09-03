@@ -1,5 +1,10 @@
 import { describe, expect, it } from '@rstest/core'
-import { AxiosError, AxiosHeaders, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
+import {
+  AxiosError,
+  AxiosHeaders,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 import {
   apiClient,
   EXPORT_REQUEST_TIMEOUT_MS,
@@ -48,6 +53,7 @@ describe('request timeout policy', () => {
 type ErrorBody = {
   message?: string
   errorCode?: ApiErrorCode
+  error?: { code: string; details?: unknown; message: string }
 }
 
 const createAxiosError = ({
@@ -167,5 +173,46 @@ describe('resolveApiBaseUrl', () => {
 
   it('should fallback to the environment-isolated same-origin API gateway', () => {
     expect(resolveApiBaseUrl(undefined)).toBe('/api')
+  })
+})
+
+describe('normalization provenance', () => {
+  it('preserves the same normalized object, details and transport cause', () => {
+    for (const status of [400, 401, 404, 500]) {
+      const original = createAxiosError({
+        status,
+        data: {
+          error: {
+            code: 'stale_user_version',
+            message: 'Conflict',
+            details: { version: 4 },
+          },
+        },
+      })
+      const normalized = normalizeApiError(original)
+      expect(normalized.cause).toBe(original)
+      expect(normalized.details).toEqual({ version: 4 })
+      expect(normalizeApiError(normalized)).toBe(normalized)
+      expect(normalizeApiError(normalized).message).toBe('Conflict')
+    }
+  })
+
+  it('keeps 401 authentication errors in the request owner', async () => {
+    const original = createAxiosError({
+      status: 401,
+      data: {
+        error: {
+          code: 'admin_login_required',
+          message: 'Administrator login is required.',
+        },
+      },
+    })
+    await expect(
+      apiClient.get('/session', {
+        adapter: async () => {
+          throw original
+        },
+      })
+    ).rejects.toMatchObject({ code: 'admin_login_required', status: 401, cause: original })
   })
 })

@@ -1,5 +1,5 @@
 import { DownloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Image, Modal, Spin, message, theme } from 'antd'
+import { Alert, Button, Image, Modal, Spin, App, theme } from 'antd'
 import type { ModalProps } from 'antd'
 import React, {
   useCallback,
@@ -57,14 +57,8 @@ const MP4_CONTENT_TYPES = new Set([
   'video/quicktime',
   'video/x-m4v',
 ])
-const HLS_CONTENT_TYPES = new Set([
-  'application/vnd.apple.mpegurl',
-  'application/x-mpegurl',
-])
-const GENERIC_CONTENT_TYPES = new Set([
-  'application/octet-stream',
-  'binary/octet-stream',
-])
+const HLS_CONTENT_TYPES = new Set(['application/vnd.apple.mpegurl', 'application/x-mpegurl'])
+const GENERIC_CONTENT_TYPES = new Set(['application/octet-stream', 'binary/octet-stream'])
 
 const stripQueryAndHash = (value: string) => value.split(/[?#]/)[0] || value
 
@@ -91,7 +85,11 @@ const readExtension = (value?: string | null) => {
       return stripQueryAndHash(value)
     }
   })()
-  return decodePath(stripQueryAndHash(path)).toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || ''
+  return (
+    decodePath(stripQueryAndHash(path))
+      .toLowerCase()
+      .match(/\.([a-z0-9]+)$/)?.[1] || ''
+  )
 }
 
 const resolveTypeFromExtension = (extension: string): FilePreviewType => {
@@ -194,8 +192,7 @@ const buildDownloadFileName = (
   source: string,
   fileName: string | undefined,
   type: FilePreviewType
-) =>
-  withExpectedExtension(fileName?.trim() || readFileNameFromSource(source) || 'File', type)
+) => withExpectedExtension(fileName?.trim() || readFileNameFromSource(source) || 'File', type)
 
 const downloadPreviewFile = async ({
   source,
@@ -226,13 +223,7 @@ const downloadPreviewFile = async ({
   })
 }
 
-const FilePreviewUnavailable = ({
-  title,
-  description,
-}: {
-  title: string
-  description: string
-}) => (
+const FilePreviewUnavailable = ({ title, description }: { title: string; description: string }) => (
   <div className="flex min-h-[360px] items-center justify-center p-6">
     <Alert showIcon type="warning" title={title} description={description} />
   </div>
@@ -295,6 +286,7 @@ export const FilePreview = ({
   onOpenChange,
   modalStyles,
 }: FilePreviewProps) => {
+  const { message } = App.useApp()
   const { token } = theme.useToken()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()

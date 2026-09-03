@@ -1,8 +1,12 @@
-import { message } from 'antd'
+import { App } from 'antd'
 import { useCallback } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
-type UseBatchStatusActionOptions<TEntity extends { id: number; name: string }, TStatus, TError extends { message: string }> = {
+type UseBatchStatusActionOptions<
+  TEntity extends { id: number; name: string },
+  TStatus,
+  TError extends { message: string },
+> = {
   entityLabel: string
   statusValue: TStatus
   emptySelectionMessage: string
@@ -23,11 +27,9 @@ export const useBatchStatusAction = <
   reload,
   mapError,
 }: UseBatchStatusActionOptions<TEntity, TStatus, TError>) => {
+  const { message } = App.useApp()
   const handleSingleStatusAction = useCallback(
-    async (
-      entity: TEntity,
-      setSelectedRows?: Dispatch<SetStateAction<TEntity[]>>
-    ) => {
+    async (entity: TEntity, setSelectedRows?: Dispatch<SetStateAction<TEntity[]>>) => {
       try {
         await updateStatus(entity.id, statusValue)
         message.success(`已删除${entityLabel}：${entity.name}`)
@@ -38,14 +40,11 @@ export const useBatchStatusAction = <
         message.error(apiError.message)
       }
     },
-    [entityLabel, mapError, reload, statusValue, updateStatus]
+    [message, entityLabel, mapError, reload, statusValue, updateStatus]
   )
 
   const handleBatchStatusAction = useCallback(
-    async (
-      selectedRows: TEntity[],
-      setSelectedRows: Dispatch<SetStateAction<TEntity[]>>
-    ) => {
+    async (selectedRows: TEntity[], setSelectedRows: Dispatch<SetStateAction<TEntity[]>>) => {
       if (selectedRows.length === 0) {
         message.info(emptySelectionMessage)
         return
@@ -61,7 +60,7 @@ export const useBatchStatusAction = <
         message.error(apiError.message)
       }
     },
-    [emptySelectionMessage, entityLabel, mapError, reload, statusValue, updateStatus]
+    [message, emptySelectionMessage, entityLabel, mapError, reload, statusValue, updateStatus]
   )
 
   return {

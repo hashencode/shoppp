@@ -1,6 +1,7 @@
+import { render } from '../../../test/render-with-app'
 import React from 'react'
 import { ADMIN_PERMISSION_KEYS, type AdminPermission } from '@shoppp/contracts'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import type { TablePaginationConfig } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -475,11 +476,10 @@ describe('StandardListPageRecipe', () => {
     const refreshButton = screen.getByRole('button', { name: '刷新' })
     const divider = document.querySelector('.ant-card-extra .ant-divider-vertical')
     const createBeforeDivider = Boolean(
-      divider &&
-        (createButton.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING)
+      divider && createButton.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING
     )
     const dividerBeforeRefresh = Boolean(
-      divider && (divider.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING)
+      divider && divider.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING
     )
 
     expect(divider).toBeTruthy()
@@ -530,7 +530,9 @@ describe('StandardListPageRecipe', () => {
     expect(
       searchSettingsButton.compareDocumentPosition(resetButton) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
-    expect(resetButton.compareDocumentPosition(queryButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      resetButton.compareDocumentPosition(queryButton) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
 
     await act(async () => {
       fireEvent.click(searchSettingsButton)
@@ -575,8 +577,12 @@ describe('StandardListPageRecipe', () => {
     const divider = document.querySelector('.ant-card-extra .ant-divider-vertical')
 
     expect(divider).toBeTruthy()
-    expect(exportButton.compareDocumentPosition(divider!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(divider!.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      exportButton.compareDocumentPosition(divider!) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      divider!.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
 
     unmount()
 

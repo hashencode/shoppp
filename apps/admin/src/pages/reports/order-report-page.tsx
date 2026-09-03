@@ -1,5 +1,5 @@
 import type { ReportExport, ReportOrderRow, ReportingQuery } from '@shoppp/contracts'
-import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd'
+import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -26,6 +26,7 @@ const paramsQuery = (): ReportingQuery => {
 }
 
 export const OrderReportPage = () => {
+  const { message } = App.useApp()
   const { role, permissions } = useAuth()
   const { locale, t } = useI18n()
   const translateNow = useCurrentTranslate()
@@ -63,7 +64,7 @@ export const OrderReportPage = () => {
         setLoading(false)
       }
     },
-    [committedSearch, localizeError, query]
+    [message, committedSearch, localizeError, query]
   )
 
   useEffect(() => {

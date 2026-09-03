@@ -1,5 +1,5 @@
 import type { AdminPermission, AdminRole } from '@shoppp/contracts'
-import { Alert, Button, Form, Input, Modal, Space, Table, Tag, message } from 'antd'
+import { Alert, Button, Form, Input, Modal, Space, Table, Tag, App } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,9 +12,15 @@ import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
-type RoleValues = { description?: string; key: string; name: string; permissions: AdminPermission[] }
+type RoleValues = {
+  description?: string
+  key: string
+  name: string
+  permissions: AdminPermission[]
+}
 
 export const RolesPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { t } = useI18n()
   const { permissions, role: roleKey } = useAuth()
@@ -67,13 +73,21 @@ export const RolesPage = () => {
         ),
       },
       { key: 'description', title: t('Description'), dataIndex: 'description' },
-      { key: 'permissions', title: t('Permissions'), render: (_: unknown, role: AdminRole) => role.permissions.length },
+      {
+        key: 'permissions',
+        title: t('Permissions'),
+        render: (_: unknown, role: AdminRole) => role.permissions.length,
+      },
       {
         key: 'actions',
         title: t('Actions'),
         width: 100,
         render: (_: unknown, role: AdminRole) => (
-          <Button type="link" className="!px-0" onClick={() => navigate(`/access/roles/${role.id}`)}>
+          <Button
+            type="link"
+            className="!px-0"
+            onClick={() => navigate(`/access/roles/${role.id}`)}
+          >
             {t('Inspect')}
           </Button>
         ),
@@ -87,16 +101,41 @@ export const RolesPage = () => {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{t('Roles')}</h1>
-          <p className="text-slate-500">{t('Role permissions are authoritative on each protected API request.')}</p>
+          <p className="text-slate-500">
+            {t('Role permissions are authoritative on each protected API request.')}
+          </p>
         </div>
         {canWrite ? (
-          <Button type="primary" onClick={() => { form.resetFields(); form.setFieldValue('permissions', []); setCreateError(null); setOpen(true) }}>
+          <Button
+            type="primary"
+            onClick={() => {
+              form.resetFields()
+              form.setFieldValue('permissions', [])
+              setCreateError(null)
+              setOpen(true)
+            }}
+          >
             {t('New role')}
           </Button>
         ) : null}
       </div>
-      {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>{t('Retry')}</Button>} /> : null}
-      <Input.Search allowClear aria-label={t('Search roles')} placeholder={t('Search by role name or key')} onSearch={(value) => { setSearch(value.trim()); setPage(1) }} />
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          title={error}
+          action={<Button onClick={() => void load()}>{t('Retry')}</Button>}
+        />
+      ) : null}
+      <Input.Search
+        allowClear
+        aria-label={t('Search roles')}
+        placeholder={t('Search by role name or key')}
+        onSearch={(value) => {
+          setSearch(value.trim())
+          setPage(1)
+        }}
+      />
       <Table<AdminRole>
         rowKey="id"
         columns={columns}
@@ -143,7 +182,17 @@ export const RolesPage = () => {
             }
           }}
         >
-          <Form.Item name="key" label={t('Role key')} rules={[{ required: true }, { pattern: /^[a-z][a-z0-9_]*$/, message: t('Use lowercase letters, numbers, and underscores.') }]}>
+          <Form.Item
+            name="key"
+            label={t('Role key')}
+            rules={[
+              { required: true },
+              {
+                pattern: /^[a-z][a-z0-9_]*$/,
+                message: t('Use lowercase letters, numbers, and underscores.'),
+              },
+            ]}
+          >
             <Input autoComplete="off" />
           </Form.Item>
           <Form.Item name="name" label={t('Role name')} rules={[{ required: true }]}>

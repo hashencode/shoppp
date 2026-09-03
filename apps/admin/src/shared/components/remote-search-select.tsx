@@ -64,6 +64,22 @@ const uniqueByValue = <TRaw, TValue extends RemoteSearchSelectValue>(
   })
 }
 
+const upsertByValue = <TRaw, TValue extends RemoteSearchSelectValue>(
+  current: RemoteSearchSelectOption<TRaw, TValue>[],
+  next: RemoteSearchSelectOption<TRaw, TValue>[]
+) => {
+  const optionsByValue = new Map(current.map((item) => [item.value, item]))
+  next.forEach((item) => optionsByValue.set(item.value, item))
+  return Array.from(optionsByValue.values())
+}
+
+const toSelectedValueSet = <TValue extends RemoteSearchSelectValue>(value: unknown) => {
+  const values = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value]
+  return new Set(
+    values.filter((item): item is TValue => typeof item === 'string' || typeof item === 'number')
+  )
+}
+
 export const RemoteSearchSelect = <
   TRaw = unknown,
   TValue extends RemoteSearchSelectValue = RemoteSearchSelectValue,
@@ -87,6 +103,8 @@ export const RemoteSearchSelect = <
   ...props
 }: RemoteSearchSelectProps<TRaw, TValue, TMode>) => {
   const { t } = useI18n()
+  const isControlled = Object.hasOwn(props, 'value')
+  const { value, defaultValue } = props
   const [options, setOptions] = useState<RemoteSearchSelectOption<TRaw, TValue>[]>(
     defaultOptions ?? []
   )
@@ -104,25 +122,63 @@ export const RemoteSearchSelect = <
   const fetchOptionsRef = useRef(fetchOptions)
   const onFetchErrorRef = useRef(onFetchError)
   const defaultOptionsRef = useRef(defaultOptions ?? [])
+  const knownOptionsRef = useRef(defaultOptions ?? [])
+  const remoteOptionsRef = useRef<RemoteSearchSelectOption<TRaw, TValue>[]>([])
+  const selectedValuesRef = useRef(toSelectedValueSet<TValue>(isControlled ? value : defaultValue))
 
   useEffect(() => {
     fetchOptionsRef.current = fetchOptions
     onFetchErrorRef.current = onFetchError
+  }, [fetchOptions, onFetchError])
+
+  useEffect(() => {
     defaultOptionsRef.current = defaultOptions ?? []
-  }, [defaultOptions, fetchOptions, onFetchError])
+    knownOptionsRef.current = upsertByValue(knownOptionsRef.current, defaultOptions ?? [])
+  }, [defaultOptions])
+
+  const getVisibleOptions = useCallback((preserveDefaultOptions: boolean) => {
+    const selectedOptions = knownOptionsRef.current.filter((item) =>
+      selectedValuesRef.current.has(item.value)
+    )
+    return uniqueByValue([
+      ...(preserveDefaultOptions ? defaultOptionsRef.current : []),
+      ...remoteOptionsRef.current,
+      ...selectedOptions,
+    ])
+  }, [])
+
+  const updateOptions = useCallback(
+    (nextOptions: RemoteSearchSelectOption<TRaw, TValue>[]) => {
+      setOptions((current) =>
+        nextOptions.length === current.length &&
+        nextOptions.every((item, index) => item === current[index])
+          ? current
+          : nextOptions
+      )
+    },
+    [setOptions]
+  )
+
+  useEffect(() => {
+    if (isControlled) {
+      selectedValuesRef.current = toSelectedValueSet<TValue>(value)
+      updateOptions(getVisibleOptions(currentKeyword.current.trim().length === 0))
+    }
+  }, [getVisibleOptions, isControlled, updateOptions, value])
 
   const mergeOptions = useCallback(
-    (nextOptions: RemoteSearchSelectOption<TRaw, TValue>[], replace = false) => {
-      setOptions((current) => {
-        const merged = uniqueByValue(
-          replace ? [...defaultOptionsRef.current, ...nextOptions] : [...current, ...nextOptions]
-        )
-        return merged.length === current.length && merged.every((item, index) => item === current[index])
-          ? current
-          : merged
-      })
+    (
+      nextOptions: RemoteSearchSelectOption<TRaw, TValue>[],
+      replace = false,
+      preserveDefaultOptions = false
+    ) => {
+      knownOptionsRef.current = upsertByValue(knownOptionsRef.current, nextOptions)
+      remoteOptionsRef.current = replace
+        ? upsertByValue([], nextOptions)
+        : upsertByValue(remoteOptionsRef.current, nextOptions)
+      updateOptions(getVisibleOptions(preserveDefaultOptions))
     },
-    []
+    [getVisibleOptions, updateOptions]
   )
 
   const loadPage = useCallback(
@@ -146,7 +202,7 @@ export const RemoteSearchSelect = <
 
         currentPage.current = page
         hasMore.current = nextOptions.length > 0
-        mergeOptions(nextOptions, replace)
+        mergeOptions(nextOptions, replace, keyword.trim().length === 0)
       } catch (error) {
         if (!mounted.current || activeRequestId.current !== requestId) {
           return
@@ -162,21 +218,17 @@ export const RemoteSearchSelect = <
         }
       }
     },
-    [mergeOptions]
+    [mergeOptions, setLoading, setLoadError]
   )
 
   useEffect(() => {
-    if (!defaultOptions?.length) {
-      return
-    }
-
     const timer = window.setTimeout(() => {
       if (mounted.current) {
-        mergeOptions(defaultOptions)
+        updateOptions(getVisibleOptions(currentKeyword.current.trim().length === 0))
       }
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [defaultOptions, mergeOptions])
+  }, [defaultOptions, getVisibleOptions, updateOptions])
 
   useEffect(() => {
     if (!loadOnMount) {
@@ -251,9 +303,13 @@ export const RemoteSearchSelect = <
     >
   >(
     (nextValue, option) => {
+      if (!isControlled) {
+        selectedValuesRef.current = toSelectedValueSet<TValue>(nextValue)
+        updateOptions(getVisibleOptions(currentKeyword.current.trim().length === 0))
+      }
       onChange?.(nextValue, option)
     },
-    [onChange]
+    [getVisibleOptions, isControlled, onChange, updateOptions]
   )
 
   const handlePopupScroll = useCallback(
@@ -283,12 +339,7 @@ export const RemoteSearchSelect = <
   const handleOpenChange = useCallback(
     (open: boolean) => {
       onOpenChange?.(open)
-      if (
-        open &&
-        loadOnOpen &&
-        (!hasRequested.current || loadError) &&
-        !loadingRef.current
-      ) {
+      if (open && loadOnOpen && (!hasRequested.current || loadError) && !loadingRef.current) {
         currentKeyword.current = ''
         currentPage.current = DEFAULT_PAGE
         hasMore.current = true

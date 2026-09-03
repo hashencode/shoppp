@@ -1,5 +1,5 @@
 import type { AdminPermission, AdminRole } from '@shoppp/contracts'
-import { Alert, Button, Card, Form, Input, Modal, Popconfirm, Space, Spin, Tag, message } from 'antd'
+import { Alert, Button, Card, Form, Input, Popconfirm, Space, Spin, Tag, App } from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -16,6 +16,7 @@ type RoleValues = { description?: string; name: string; permissions: AdminPermis
 type DependencyDetails = { identities?: number; pendingInvitations?: number }
 
 export const RoleDetailPage = () => {
+  const { message, modal } = App.useApp()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { t } = useI18n()
@@ -64,16 +65,23 @@ export const RoleDetailPage = () => {
       const apiError = normalizeApiError(cause)
       if (apiError.code === 'stale_role_version') {
         await load()
-        setError(t('This role changed by another administrator. The latest state has been loaded; review it before retrying.'))
+        setError(
+          t(
+            'This role changed by another administrator. The latest state has been loaded; review it before retrying.'
+          )
+        )
         return
       }
       if (apiError.code === 'role_has_dependencies') {
         const details = (apiError.details ?? {}) as DependencyDetails
         setError(
-          t('This role cannot be archived because it has {identities} assigned identities and {invitations} pending invitations. Reassign or revoke them first.', {
-            identities: details.identities ?? 0,
-            invitations: details.pendingInvitations ?? 0,
-          })
+          t(
+            'This role cannot be archived because it has {identities} assigned identities and {invitations} pending invitations. Reassign or revoke them first.',
+            {
+              identities: details.identities ?? 0,
+              invitations: details.pendingInvitations ?? 0,
+            }
+          )
         )
         return
       }
@@ -117,9 +125,8 @@ export const RoleDetailPage = () => {
 
   const selectedPermissions = Form.useWatch('permissions', form)
   const removesPermissions =
-    role?.permissions.some(
-      (permission) => !(selectedPermissions ?? []).includes(permission)
-    ) ?? false
+    role?.permissions.some((permission) => !(selectedPermissions ?? []).includes(permission)) ??
+    false
 
   if (loading && !role) return <Spin description={t('Loading role')} />
 
@@ -133,18 +140,43 @@ export const RoleDetailPage = () => {
             {role?.system && !role.protected ? <Tag>{t('System role')}</Tag> : null}
             {role && !role.enabled ? <Tag>{t('Archived')}</Tag> : null}
           </Space>
-          <p className="text-slate-500">{t('Effective permissions are resolved from D1 for every request.')}</p>
+          <p className="text-slate-500">
+            {t('Effective permissions are resolved from D1 for every request.')}
+          </p>
         </div>
         <Button onClick={() => navigate('/access/roles')}>{t('Back to roles')}</Button>
       </div>
-      {error ? <Alert type="error" showIcon title={error} action={<Button onClick={() => void load()}>{t('Reload')}</Button>} /> : null}
-      {role?.protected ? <Alert type="info" showIcon title={t('The protected administrator role always contains the complete permission catalog and cannot be changed.')} /> : null}
-      {isOwnRole ? <Alert type="info" showIcon title={t('You cannot edit the role that authorizes your current session.')} /> : null}
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          title={error}
+          action={<Button onClick={() => void load()}>{t('Reload')}</Button>}
+        />
+      ) : null}
+      {role?.protected ? (
+        <Alert
+          type="info"
+          showIcon
+          title={t(
+            'The protected administrator role always contains the complete permission catalog and cannot be changed.'
+          )}
+        />
+      ) : null}
+      {isOwnRole ? (
+        <Alert
+          type="info"
+          showIcon
+          title={t('You cannot edit the role that authorizes your current session.')}
+        />
+      ) : null}
       {role && !isWithinAuthority ? (
         <Alert
           type="warning"
           showIcon
-          title={t('This role contains permissions outside your current authority and cannot be edited by this session.')}
+          title={t(
+            'This role contains permissions outside your current authority and cannot be edited by this session.'
+          )}
         />
       ) : null}
       {role ? (
@@ -158,9 +190,11 @@ export const RoleDetailPage = () => {
                 void save(values)
                 return
               }
-              Modal.confirm({
+              modal.confirm({
                 title: t('Confirm permission reduction'),
-                content: t('Removed permissions take effect for assigned principals on their next API request.'),
+                content: t(
+                  'Removed permissions take effect for assigned principals on their next API request.'
+                ),
                 okText: t('Confirm reduction'),
                 okButtonProps: { danger: true },
                 onOk: () => save(values),
@@ -181,7 +215,9 @@ export const RoleDetailPage = () => {
             </Form.Item>
             {canWrite ? (
               <Space wrap>
-                <Button type="primary" htmlType="submit" loading={saving} disabled={!canEdit}>{t('Save changes')}</Button>
+                <Button type="primary" htmlType="submit" loading={saving} disabled={!canEdit}>
+                  {t('Save changes')}
+                </Button>
                 {canArchive ? (
                   <Popconfirm
                     title={t('Archive this role?')}
@@ -191,7 +227,10 @@ export const RoleDetailPage = () => {
                       setSaving(true)
                       setError(null)
                       try {
-                        await updateAdminRole(role.id, { enabled: false, expectedVersion: role.version })
+                        await updateAdminRole(role.id, {
+                          enabled: false,
+                          expectedVersion: role.version,
+                        })
                         void message.success(t('Role archived.'))
                         await load()
                       } catch (cause) {
@@ -201,7 +240,9 @@ export const RoleDetailPage = () => {
                       }
                     }}
                   >
-                    <Button danger disabled={saving}>{t('Archive role')}</Button>
+                    <Button danger disabled={saving}>
+                      {t('Archive role')}
+                    </Button>
                   </Popconfirm>
                 ) : null}
               </Space>

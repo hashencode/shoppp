@@ -1,4 +1,4 @@
-import { message } from 'antd'
+import { App } from 'antd'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { useListAutoRefresh } from '../../hooks/use-list-auto-refresh'
@@ -56,6 +56,7 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
   TItem,
   TError
 >): UseTemplateListControllerResult<TResponse, TItem, TError> => {
+  const { message } = App.useApp()
   const [response, setResponse] = useState<TResponse | null>(null)
   const [extendedLoading, setExtendedLoading] = useState(false)
   const transformResponseRef = useRef(transformResponse)
@@ -136,7 +137,7 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
         void message.success('刷新成功')
       }
     },
-    [filters, runRequest]
+    [message, filters, runRequest]
   )
 
   useEffect(() => {

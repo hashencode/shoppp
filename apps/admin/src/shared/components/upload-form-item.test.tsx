@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render } from '../../test/render-with-app'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, rstest } from '@rstest/core'
-import { Upload, message } from 'antd'
+import { Upload } from 'antd'
 import React, { useState } from 'react'
 import { normalizeUploadUrl, UploadFormItem, type UploadFormItemValue } from './upload-form-item'
 
@@ -111,13 +112,7 @@ describe('UploadFormItem', () => {
     )
     expect(container.querySelector('.ax-upload-form-item--card')).toBeTruthy()
 
-    rerender(
-      <UploadFormItem
-        accept=".jpg"
-        displayMode="button"
-        uploadFile={uploadFile}
-      />
-    )
+    rerender(<UploadFormItem accept=".jpg" displayMode="button" uploadFile={uploadFile} />)
     expect(container.querySelector('.ax-upload-form-item--button')).toBeTruthy()
 
     rerender(<UploadFormItem accept=".pdf" listType="picture-card" uploadFile={uploadFile} />)
@@ -164,7 +159,6 @@ describe('UploadFormItem', () => {
   })
 
   it('preserves external rejections and reports its own rejection exactly once without side effects', async () => {
-    const errorSpy = rstest.spyOn(message, 'error')
     const externalResults: Array<boolean | string> = []
     let uploadCount = 0
     let changeCount = 0
@@ -193,7 +187,7 @@ describe('UploadFormItem', () => {
       },
     })
     await waitFor(() => expect(externalResults).toEqual([Upload.LIST_IGNORE, false]))
-    expect(errorSpy).not.toHaveBeenCalled()
+    expect(document.querySelectorAll('.ant-message-notice')).toHaveLength(0)
 
     rerender(
       <UploadFormItem
@@ -208,11 +202,13 @@ describe('UploadFormItem', () => {
         }}
       />
     )
-    await waitFor(() => expect(container.querySelector('a[href="/uploads/existing.jpg"]')).toBeTruthy())
+    await waitFor(() =>
+      expect(container.querySelector('a[href="/uploads/existing.jpg"]')).toBeTruthy()
+    )
     fireEvent.change(getUploadInput(container), {
       target: { files: [new File(['image'], 'rejected.heic', { type: 'image/heic' })] },
     })
-    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(document.querySelectorAll('.ant-message-notice')).toHaveLength(1))
     expect(uploadCount).toBe(0)
     expect(changeCount).toBe(0)
     expect(container.querySelector('a[href="/uploads/existing.jpg"]')).toBeTruthy()
@@ -283,8 +279,12 @@ describe('UploadFormItem', () => {
   })
 
   it('normalizes host-only upload urls for preview display', () => {
-    expect(normalizeUploadUrl('oss.example.com/license.png')).toBe('https://oss.example.com/license.png')
-    expect(normalizeUploadUrl('//oss.example.com/license.png')).toBe('https://oss.example.com/license.png')
+    expect(normalizeUploadUrl('oss.example.com/license.png')).toBe(
+      'https://oss.example.com/license.png'
+    )
+    expect(normalizeUploadUrl('//oss.example.com/license.png')).toBe(
+      'https://oss.example.com/license.png'
+    )
     expect(normalizeUploadUrl('/uploads/license.png')).toBe('/uploads/license.png')
     expect(normalizeUploadUrl('uploads/license.png')).toBe('uploads/license.png')
   })
@@ -311,7 +311,11 @@ describe('UploadFormItem', () => {
   it('renders tooltip with upload spacing in button mode', () => {
     const tooltip = '请上传格式为jpg、jpeg、png格式，大小不超过10MB的文件'
     const { container } = render(
-      <UploadFormItem displayMode="button" tooltip={tooltip} uploadFile={async () => 'https://oss.example.com/license.png'} />
+      <UploadFormItem
+        displayMode="button"
+        tooltip={tooltip}
+        uploadFile={async () => 'https://oss.example.com/license.png'}
+      />
     )
 
     const hint = screen.getByText(tooltip)
@@ -387,7 +391,8 @@ describe('UploadFormItem', () => {
   it('keeps both files when concurrent uploads finish out of order', async () => {
     const changes: Array<UploadFormItemValue | undefined> = []
     const pending = new Map<string, (url: string) => void>()
-    const uploadFile = (file: File) => new Promise<string>((resolve) => pending.set(file.name, resolve))
+    const uploadFile = (file: File) =>
+      new Promise<string>((resolve) => pending.set(file.name, resolve))
     const Wrapper = () => {
       const [value, setValue] = useState<string[]>([])
       return (
@@ -413,12 +418,17 @@ describe('UploadFormItem', () => {
     pending.get('b.pdf')?.('/uploads/b.pdf')
     pending.get('a.pdf')?.('/uploads/a.pdf')
 
-    await waitFor(() => expect([...(changes.at(-1) as string[])].sort()).toEqual(['/uploads/a.pdf', '/uploads/b.pdf']))
+    await waitFor(() =>
+      expect([...(changes.at(-1) as string[])].sort()).toEqual(['/uploads/a.pdf', '/uploads/b.pdf'])
+    )
   })
 
   it('does not roll back a successful sibling when another concurrent upload fails', async () => {
     const changes: Array<UploadFormItemValue | undefined> = []
-    const pending = new Map<string, { resolve: (url: string) => void; reject: (error: Error) => void }>()
+    const pending = new Map<
+      string,
+      { resolve: (url: string) => void; reject: (error: Error) => void }
+    >()
     const uploadFile = (file: File) =>
       new Promise<string>((resolve, reject) => pending.set(file.name, { resolve, reject }))
     const { container } = render(
@@ -444,12 +454,17 @@ describe('UploadFormItem', () => {
   it('keeps an external controlled value authoritative while an upload is pending', async () => {
     const changes: Array<UploadFormItemValue | undefined> = []
     let resolveUpload: ((url: string) => void) | undefined
-    const uploadFile = () => new Promise<string>((resolve) => { resolveUpload = resolve })
+    const uploadFile = () =>
+      new Promise<string>((resolve) => {
+        resolveUpload = resolve
+      })
     const Wrapper = () => {
       const [value, setValue] = useState<string[]>([])
       return (
         <>
-          <button type="button" onClick={() => setValue(['/uploads/external.pdf'])}>外部更新</button>
+          <button type="button" onClick={() => setValue(['/uploads/external.pdf'])}>
+            外部更新
+          </button>
           <UploadFormItem
             accept=".pdf"
             multiple
@@ -478,7 +493,10 @@ describe('UploadFormItem', () => {
   it('does not restore a removed in-flight file after its upload succeeds', async () => {
     const changes: Array<UploadFormItemValue | undefined> = []
     let resolveUpload: ((url: string) => void) | undefined
-    const uploadFile = () => new Promise<string>((resolve) => { resolveUpload = resolve })
+    const uploadFile = () =>
+      new Promise<string>((resolve) => {
+        resolveUpload = resolve
+      })
     const { container } = render(
       <UploadFormItem
         accept=".pdf"
@@ -487,7 +505,9 @@ describe('UploadFormItem', () => {
         uploadFile={uploadFile}
         onChange={(value) => changes.push(value)}
         itemRender={(_, __, ___, actions) => (
-          <button type="button" onClick={actions.remove}>移除上传文件</button>
+          <button type="button" onClick={actions.remove}>
+            移除上传文件
+          </button>
         )}
       />
     )
@@ -505,9 +525,16 @@ describe('UploadFormItem', () => {
   it('does not emit a late upload result after unmount', async () => {
     const changes: Array<UploadFormItemValue | undefined> = []
     let resolveUpload: ((url: string) => void) | undefined
-    const uploadFile = () => new Promise<string>((resolve) => { resolveUpload = resolve })
+    const uploadFile = () =>
+      new Promise<string>((resolve) => {
+        resolveUpload = resolve
+      })
     const { container, unmount } = render(
-      <UploadFormItem accept=".pdf" uploadFile={uploadFile} onChange={(value) => changes.push(value)} />
+      <UploadFormItem
+        accept=".pdf"
+        uploadFile={uploadFile}
+        onChange={(value) => changes.push(value)}
+      />
     )
 
     fireEvent.change(getUploadInput(container), { target: { files: [new File(['a'], 'a.pdf')] } })

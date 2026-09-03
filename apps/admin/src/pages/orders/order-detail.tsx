@@ -12,7 +12,7 @@ import {
   Space,
   Table,
   Tag,
-  message,
+  App,
 } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -56,6 +56,7 @@ const actionTitle = (
 }
 
 export const OrderDetailPage = () => {
+  const { message } = App.useApp()
   const { reference = '' } = useParams()
   const { role, permissions } = useAuth()
   const { locale, t } = useI18n()

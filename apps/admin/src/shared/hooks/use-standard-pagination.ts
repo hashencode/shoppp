@@ -4,6 +4,7 @@ import { translateMessage, useI18n, type AppLocale } from '../contexts/i18n-cont
 
 export type StandardPaginationConfig = {
   defaultPageSize?: number
+  includeAllDataOption?: boolean
   maxPageSize?: number
   pageSizeOptions?: number[]
 }
@@ -45,10 +46,16 @@ export const buildStandardPageSizeSelectProps = (
 
 const toPositiveInteger = (value: number | string, fallback: number) => {
   const normalizedValue = Number(value)
-  return Number.isFinite(normalizedValue) && normalizedValue > 0 ? Math.floor(normalizedValue) : fallback
+  return Number.isFinite(normalizedValue) && normalizedValue > 0
+    ? Math.floor(normalizedValue)
+    : fallback
 }
 
-const clampPageSize = (nextPageSize: number | string, maxPageSize: number, defaultPageSize: number) => {
+const clampPageSize = (
+  nextPageSize: number | string,
+  maxPageSize: number,
+  defaultPageSize: number
+) => {
   return Math.min(toPositiveInteger(nextPageSize, defaultPageSize), maxPageSize)
 }
 
@@ -63,6 +70,7 @@ const getMaxPage = (total: number, pageSize: number) => {
 export const useStandardPagination = ({
   total,
   defaultPageSize = DEFAULT_PAGE_SIZE,
+  includeAllDataOption = true,
   maxPageSize = DEFAULT_MAX_PAGE_SIZE,
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 }: UseStandardPaginationOptions): StandardPaginationResult => {
@@ -72,12 +80,16 @@ export const useStandardPagination = ({
     const merged = new Set(
       pageSizeOptions
         .map((value) => toPositiveInteger(value, safeDefaultPageSize))
-        .filter((value) => value <= maxPageSize)
+        .filter(
+          (value) => value <= maxPageSize && (includeAllDataOption || value !== ALL_DATA_PAGE_SIZE)
+        )
     )
     merged.add(safeDefaultPageSize)
-    merged.add(ALL_DATA_PAGE_SIZE)
+    if (includeAllDataOption) {
+      merged.add(ALL_DATA_PAGE_SIZE)
+    }
     return [...merged].sort((a, b) => a - b)
-  }, [maxPageSize, pageSizeOptions, safeDefaultPageSize])
+  }, [includeAllDataOption, maxPageSize, pageSizeOptions, safeDefaultPageSize])
 
   const sizeChangerProps = useMemo(
     () => buildStandardPageSizeSelectProps(safePageSizeOptions, locale),
@@ -87,13 +99,10 @@ export const useStandardPagination = ({
   const [requestedPage, setRequestedPage] = useState(1)
   const [pageSize, setPageSize] = useState(safeDefaultPageSize)
 
-  const current = useMemo(
-    () => {
-      const maxPage = getMaxPage(total, pageSize)
-      return Math.min(Math.max(toPositiveInteger(requestedPage, 1), 1), maxPage)
-    },
-    [pageSize, requestedPage, total]
-  )
+  const current = useMemo(() => {
+    const maxPage = getMaxPage(total, pageSize)
+    return Math.min(Math.max(toPositiveInteger(requestedPage, 1), 1), maxPage)
+  }, [pageSize, requestedPage, total])
 
   const resetPage = useCallback(() => {
     setRequestedPage(1)
@@ -119,7 +128,15 @@ export const useStandardPagination = ({
         setRequestedPage(normalizedPageSize === pageSize ? nextPage : 1)
       },
     }),
-    [current, maxPageSize, pageSize, safeDefaultPageSize, safePageSizeOptions, sizeChangerProps, total]
+    [
+      current,
+      maxPageSize,
+      pageSize,
+      safeDefaultPageSize,
+      safePageSizeOptions,
+      sizeChangerProps,
+      total,
+    ]
   )
 
   return {

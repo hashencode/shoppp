@@ -1,5 +1,5 @@
 import type { AdminOrder } from '@shoppp/contracts'
-import { Button, Table, Tag, message } from 'antd'
+import { Button, Table, Tag, App } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
@@ -9,6 +9,7 @@ import { useI18n } from '../../shared/contexts/i18n-context'
 void React
 
 export const FulfillmentPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { t } = useI18n()
   const localizeError = useLocalizedApiError()
@@ -33,7 +34,7 @@ export const FulfillmentPage = () => {
       }
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [localizeError])
+  }, [message, localizeError])
 
   return (
     <div className="space-y-4">

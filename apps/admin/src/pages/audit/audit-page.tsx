@@ -1,5 +1,5 @@
 import type { AuditEvent, AuditQuery } from '@shoppp/contracts'
-import { Button, Input, Select, Space, Table, Tag, message } from 'antd'
+import { Button, Input, Select, Space, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
@@ -9,6 +9,7 @@ import { useI18n } from '../../shared/contexts/i18n-context'
 void React
 
 export const AuditPage = () => {
+  const { message } = App.useApp()
   const { t } = useI18n()
   const localizeError = useLocalizedApiError()
   const [items, setItems] = useState<AuditEvent[]>([])
@@ -32,7 +33,7 @@ export const AuditPage = () => {
         setLoading(false)
       }
     },
-    [filters, localizeError]
+    [message, filters, localizeError]
   )
 
   useEffect(() => {

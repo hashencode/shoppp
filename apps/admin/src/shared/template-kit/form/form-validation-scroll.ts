@@ -6,11 +6,17 @@ export const FORM_ERROR_SCROLL_OPTIONS = {
   focus: true,
 } as const
 
-type FormValidationError<TValues extends object> = {
+type ScrollableFormValidationError<TValues extends object> = {
   errorFields?: Array<{
     name?: Parameters<FormInstance<TValues>['scrollToField']>[0]
   }>
 }
+
+export const isFormValidationError = (error: unknown): error is { errorFields: unknown[] } =>
+  error !== null &&
+  typeof error === 'object' &&
+  'errorFields' in error &&
+  Array.isArray(error.errorFields)
 
 export const validateFieldsWithScroll = async <TValues extends object>(
   form: FormInstance<TValues>,
@@ -19,10 +25,13 @@ export const validateFieldsWithScroll = async <TValues extends object>(
   try {
     return await form.validateFields(...args)
   } catch (error) {
-    const firstErrorName = (error as FormValidationError<TValues>).errorFields?.[0]?.name
+    if (isFormValidationError(error)) {
+      const firstErrorName = (error as ScrollableFormValidationError<TValues>).errorFields?.[0]
+        ?.name
 
-    if (firstErrorName) {
-      form.scrollToField(firstErrorName, FORM_ERROR_SCROLL_OPTIONS)
+      if (firstErrorName) {
+        form.scrollToField(firstErrorName, FORM_ERROR_SCROLL_OPTIONS)
+      }
     }
 
     throw error

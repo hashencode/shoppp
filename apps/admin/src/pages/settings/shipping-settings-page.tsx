@@ -1,5 +1,5 @@
 import type { ShippingMethodConfiguration, ShippingZoneConfiguration } from '@shoppp/contracts'
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd'
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, App } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -32,6 +32,7 @@ const emptyMethod = (): EditableMethod => ({
 })
 
 export const ShippingSettingsPage = () => {
+  const { message } = App.useApp()
   const { role, permissions } = useAuth()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
@@ -52,7 +53,7 @@ export const ShippingSettingsPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [localizeError])
+  }, [message, localizeError])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)

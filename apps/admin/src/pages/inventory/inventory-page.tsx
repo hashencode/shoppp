@@ -1,4 +1,4 @@
-import { Button, Form, Input, InputNumber, Modal, Space, Table, Tag, message } from 'antd'
+import { Button, Form, Input, InputNumber, Modal, Space, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -21,6 +21,7 @@ type AdjustmentValues = {
 }
 
 export const InventoryPage = () => {
+  const { message } = App.useApp()
   const { role, permissions } = useAuth()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
@@ -36,37 +37,43 @@ export const InventoryPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<AdjustmentValues>()
 
-  const load = useCallback(async (nextQuery: string) => {
-    setLoading(true)
-    try {
-      const response = await fetchInventory({
-        page: 1,
-        pageSize: 100,
-        query: nextQuery.trim() || undefined,
-      })
-      setItems(response.data)
-    } catch (error) {
-      void message.error(localizeError(error))
-    } finally {
-      setLoading(false)
-    }
-  }, [localizeError])
+  const load = useCallback(
+    async (nextQuery: string) => {
+      setLoading(true)
+      try {
+        const response = await fetchInventory({
+          page: 1,
+          pageSize: 100,
+          query: nextQuery.trim() || undefined,
+        })
+        setItems(response.data)
+      } catch (error) {
+        void message.error(localizeError(error))
+      } finally {
+        setLoading(false)
+      }
+    },
+    [message, localizeError]
+  )
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(''), 0)
     return () => window.clearTimeout(timer)
   }, [load])
 
-  const openHistory = useCallback(async (item: InventoryListItem) => {
-    setSelected(item)
-    setHistoryOpen(true)
-    setDetail(null)
-    try {
-      setDetail(await fetchInventoryDetail(item.variantId, item.warehouseId))
-    } catch (error) {
-      void message.error(localizeError(error))
-    }
-  }, [localizeError])
+  const openHistory = useCallback(
+    async (item: InventoryListItem) => {
+      setSelected(item)
+      setHistoryOpen(true)
+      setDetail(null)
+      try {
+        setDetail(await fetchInventoryDetail(item.variantId, item.warehouseId))
+      } catch (error) {
+        void message.error(localizeError(error))
+      }
+    },
+    [message, localizeError]
+  )
 
   const columns = useMemo(
     () => [

@@ -1,10 +1,7 @@
 import React, { useState } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
-import {
-  RemoteSearchSelect,
-  type RemoteSearchSelectOption,
-} from './remote-search-select'
+import { RemoteSearchSelect, type RemoteSearchSelectOption } from './remote-search-select'
 
 void React
 
@@ -57,6 +54,38 @@ const waitForSearchDebounce = async () => {
   })
 }
 
+const getOptionLabels = () =>
+  Array.from(document.querySelectorAll('.ant-select-item-option-content')).map(
+    (element) => element.textContent
+  )
+
+const expectArrayValueSearchOptions = async (mode: 'multiple' | 'tags') => {
+  render(
+    <RemoteSearchSelect
+      open
+      mode={mode}
+      value={['selected-1', 'selected-2']}
+      defaultOptions={[
+        { label: '已选项一', value: 'selected-1' },
+        { label: '已选项二', value: 'selected-2' },
+        { label: '无关默认项', value: 'unrelated' },
+      ]}
+      fetchOptions={async () => [{ label: '远程匹配项', value: 'remote' }]}
+      loadOnMount={false}
+    />
+  )
+
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+  await waitForSearchDebounce()
+  await screen.findByText('远程匹配项')
+
+  const optionLabels = getOptionLabels()
+  expect(optionLabels).toContain('已选项一')
+  expect(optionLabels).toContain('已选项二')
+  expect(optionLabels).toContain('远程匹配项')
+  expect(optionLabels).not.toContain('无关默认项')
+}
+
 describe('RemoteSearchSelect', () => {
   it('reloads empty-keyword options when clear is clicked', async () => {
     const requestLog: Array<[string, number | undefined]> = []
@@ -107,13 +136,7 @@ describe('RemoteSearchSelect', () => {
       return deferred.promise
     }
 
-    render(
-      <RemoteSearchSelect
-        open
-        fetchOptions={fetchOptions}
-        loadOnMount={false}
-      />
-    )
+    render(<RemoteSearchSelect open fetchOptions={fetchOptions} loadOnMount={false} />)
 
     const input = screen.getByRole('combobox')
 
@@ -215,7 +238,9 @@ describe('RemoteSearchSelect', () => {
     fireEvent.scroll(scrollHolder)
     await waitFor(() => expect(requestedPages).toEqual([1, 2, 3]))
     fireEvent.scroll(scrollHolder)
-    await act(async () => { await Promise.resolve() })
+    await act(async () => {
+      await Promise.resolve()
+    })
     expect(requestedPages).toEqual([1, 2, 3])
   })
 
@@ -229,10 +254,7 @@ describe('RemoteSearchSelect', () => {
 
     render(
       <React.StrictMode>
-        <RemoteSearchSelect
-          fetchOptions={fetchOptions}
-          loadOnMount={false}
-        />
+        <RemoteSearchSelect fetchOptions={fetchOptions} loadOnMount={false} />
       </React.StrictMode>
     )
 
@@ -250,14 +272,26 @@ describe('RemoteSearchSelect', () => {
     const firstCalls: string[] = []
     const secondCalls: string[] = []
     const { rerender } = render(
-      <RemoteSearchSelect fetchOptions={async (keyword) => { firstCalls.push(keyword); return [] }} />
+      <RemoteSearchSelect
+        fetchOptions={async (keyword) => {
+          firstCalls.push(keyword)
+          return []
+        }}
+      />
     )
     await waitFor(() => expect(firstCalls).toEqual(['']))
 
     rerender(
-      <RemoteSearchSelect fetchOptions={async (keyword) => { secondCalls.push(keyword); return [] }} />
+      <RemoteSearchSelect
+        fetchOptions={async (keyword) => {
+          secondCalls.push(keyword)
+          return []
+        }}
+      />
     )
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)) })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
     expect(secondCalls).toEqual([])
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'latest' } })
@@ -299,7 +333,9 @@ describe('RemoteSearchSelect', () => {
         defaultOptions={[{ label: '初始选项', value: 1 }]}
         fetchOptions={async () => [{ label: '远程选项', value: 2 }]}
         showSearch={{ onSearch: (keyword) => searches.push(keyword) }}
-        onPopupScroll={() => { scrollCount += 1 }}
+        onPopupScroll={() => {
+          scrollCount += 1
+        }}
       />
     )
 
@@ -385,6 +421,324 @@ describe('RemoteSearchSelect', () => {
     )
     expect(await screen.findByText('更新后的默认项')).toBeTruthy()
   })
+
+  it('replaces unrelated default options while preserving the selected option during search', async () => {
+    render(
+      <RemoteSearchSelect
+        open
+        value={99}
+        defaultOptions={[
+          { label: '已选默认项', value: 99 },
+          { label: '无关默认项', value: 2 },
+        ]}
+        fetchOptions={async (keyword) => (keyword ? [{ label: '匹配搜索项', value: 1 }] : [])}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+    await waitForSearchDebounce()
+    await screen.findByText('匹配搜索项')
+
+    const optionLabels = getOptionLabels()
+    expect(optionLabels).toContain('匹配搜索项')
+    expect(optionLabels).toContain('已选默认项')
+    expect(optionLabels).not.toContain('无关默认项')
+  })
+
+  it('preserves an uncontrolled default value option during search', async () => {
+    render(
+      <RemoteSearchSelect
+        open
+        defaultValue={99}
+        defaultOptions={[
+          { label: '非受控已选项', value: 99 },
+          { label: '非受控无关项', value: 2 },
+        ]}
+        fetchOptions={async () => [{ label: '非受控搜索结果', value: 1 }]}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+    await waitForSearchDebounce()
+    await screen.findByText('非受控搜索结果')
+
+    expect(screen.getByRole('combobox').parentElement?.getAttribute('title')).toBe('非受控已选项')
+    expect(getOptionLabels()).toContain('非受控已选项')
+    expect(getOptionLabels()).not.toContain('非受控无关项')
+  })
+
+  it('restores a default option label when the controlled value changes during search', async () => {
+    const defaultOptions = [
+      { label: '默认项一', value: 1 },
+      { label: '默认项二', value: 2 },
+    ]
+    const fetchOptions = async () => [{ label: '匹配搜索项', value: 3 }]
+    const { rerender } = render(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={defaultOptions}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+    await waitForSearchDebounce()
+    await screen.findByText('匹配搜索项')
+    expect(getOptionLabels()).not.toContain('默认项二')
+
+    rerender(
+      <RemoteSearchSelect
+        open
+        value={2}
+        defaultOptions={defaultOptions}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('combobox').parentElement?.getAttribute('title')).toBe('默认项二')
+    )
+  })
+
+  it('keeps the actual controlled option when the parent rejects a proposed change', async () => {
+    const changes: number[] = []
+    render(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={[{ label: '父层实际选中项', value: 1 }]}
+        fetchOptions={async (keyword) => [
+          keyword === '第一次'
+            ? { label: '父层未接受项', value: 2 }
+            : { label: '第二次搜索项', value: 3 },
+        ]}
+        loadOnMount={false}
+        onChange={(nextValue) => changes.push(nextValue)}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '第一次' } })
+    await waitForSearchDebounce()
+    fireEvent.click(await screen.findByText('父层未接受项'))
+    expect(changes).toEqual([2])
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '第二次' } })
+    await waitForSearchDebounce()
+    await screen.findByText('第二次搜索项')
+
+    expect(getOptionLabels()).toContain('父层实际选中项')
+    expect(getOptionLabels()).not.toContain('父层未接受项')
+  })
+
+  it('refreshes a selected default option label during a non-empty search', async () => {
+    const fetchOptions = async () => [{ label: '远程匹配项', value: 2 }]
+    const { rerender } = render(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={[{ label: '旧默认标签', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+    await waitForSearchDebounce()
+    await screen.findByText('远程匹配项')
+
+    rerender(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={[{ label: '新默认标签', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    await waitFor(() => expect(getOptionLabels()).toContain('新默认标签'))
+    expect(getOptionLabels()).not.toContain('旧默认标签')
+  })
+
+  it('restores a previously loaded option label after later searches replace it', async () => {
+    const fetchOptions = async (keyword: string) => [
+      keyword === '第一次' ? { label: '首次远程项', value: 2 } : { label: '后续远程项', value: 3 },
+    ]
+    const { rerender } = render(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={[{ label: '默认项', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '第一次' } })
+    await waitForSearchDebounce()
+    await screen.findByText('首次远程项')
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '第二次' } })
+    await waitForSearchDebounce()
+    await screen.findByText('后续远程项')
+
+    rerender(
+      <RemoteSearchSelect
+        open
+        value={2}
+        defaultOptions={[{ label: '默认项', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('combobox').parentElement?.getAttribute('title')).toBe('首次远程项')
+    )
+  })
+
+  it('keeps the selected remote option label when search is cleared', async () => {
+    const fetchOptions = async (keyword: string) =>
+      keyword ? [{ label: '历史远程项', value: 2 }] : [{ label: '空关键词远程项', value: 3 }]
+    const { rerender } = render(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={[{ label: '默认项', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '历史' } })
+    await waitForSearchDebounce()
+    await screen.findByText('历史远程项')
+
+    rerender(
+      <RemoteSearchSelect
+        open
+        value={2}
+        defaultOptions={[{ label: '默认项', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } })
+    await waitForSearchDebounce()
+    await screen.findByText('空关键词远程项')
+
+    expect(screen.getByRole('combobox').parentElement?.getAttribute('title')).toBe('历史远程项')
+    expect(getOptionLabels()).toContain('历史远程项')
+    expect(getOptionLabels()).toContain('默认项')
+  })
+
+  it('does not expose unrelated defaults added during a non-empty search', async () => {
+    const fetchOptions = async () => [{ label: '远程匹配项', value: 3 }]
+    const { rerender } = render(
+      <RemoteSearchSelect
+        open
+        value={1}
+        defaultOptions={[{ label: '已选默认项', value: 1 }]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+    await waitForSearchDebounce()
+    await screen.findByText('远程匹配项')
+
+    rerender(
+      <RemoteSearchSelect
+        open
+        value={5}
+        defaultOptions={[
+          { label: '动态已选默认项', value: 5 },
+          { label: '动态无关默认项', value: 4 },
+        ]}
+        fetchOptions={fetchOptions}
+        loadOnMount={false}
+      />
+    )
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox').parentElement?.getAttribute('title')).toBe(
+        '动态已选默认项'
+      )
+    )
+    expect(getOptionLabels()).not.toContain('动态无关默认项')
+    expect(getOptionLabels()).toContain('动态已选默认项')
+    expect(getOptionLabels()).toContain('远程匹配项')
+  })
+
+  it('preserves every selected option during multiple-mode search', async () => {
+    await expectArrayValueSearchOptions('multiple')
+  })
+
+  it('preserves every selected option during tags-mode search', async () => {
+    await expectArrayValueSearchOptions('tags')
+  })
+
+  it('does not retain a proposed option when a controlled undefined value rejects it', async () => {
+    const changes: number[] = []
+    render(
+      <RemoteSearchSelect<unknown, number>
+        open
+        value={undefined}
+        loadOnMount={false}
+        onChange={(value) => changes.push(value)}
+        fetchOptions={async (keyword) => [
+          keyword === 'first'
+            ? { label: 'Rejected selection', value: 1 }
+            : { label: 'Next result', value: 2 },
+        ]}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'first' } })
+    await waitForSearchDebounce()
+    fireEvent.click(await screen.findByText('Rejected selection'))
+    expect(changes).toEqual([1])
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'next' } })
+    await waitForSearchDebounce()
+    await screen.findByText('Next result')
+    expect(getOptionLabels()).not.toContain('Rejected selection')
+  })
+
+  it.each([undefined, 'multiple', 'tags'] as const)(
+    'retains an uncontrolled remote selection across searches and removes it on clear in %s mode',
+    async (mode) => {
+      const { container } = render(
+        <RemoteSearchSelect
+          open
+          mode={mode}
+          loadOnMount={false}
+          fetchOptions={async (keyword) =>
+            keyword === 'first'
+              ? [{ label: 'Selected remote result', value: 'selected' }]
+              : [{ label: 'Replacement result', value: 'replacement' }]
+          }
+        />
+      )
+
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'first' } })
+      await waitForSearchDebounce()
+      fireEvent.click(await screen.findByText('Selected remote result'))
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'next' } })
+      await waitForSearchDebounce()
+      await screen.findByText('Replacement result')
+      expect(getOptionLabels()).toContain('Selected remote result')
+
+      const clear = container.querySelector('.ant-select-clear') as HTMLElement
+      expect(clear).toBeTruthy()
+      fireEvent.mouseDown(clear)
+      fireEvent.click(clear)
+      await waitFor(() => expect(getOptionLabels()).not.toContain('Selected remote result'))
+    }
+  )
 
   it('renders custom empty content and composes external loading state', async () => {
     const { container } = render(

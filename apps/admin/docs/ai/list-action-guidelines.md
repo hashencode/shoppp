@@ -46,7 +46,8 @@
 
 ### 3.4 危险操作确认规则
 
-- 危险操作必须统一使用 `Popconfirm`
+- 普通行危险动作使用 `ListRowActions.confirm`，由共享组件渲染 `Popconfirm`。
+- IAM、主题发布等需要 recent-auth、operation ID、冲突恢复或不可撤销页面流程的行动作保留现有安全 Modal，不因位于列表内而降级。
 - 确认文案必须描述业务后果，不能只写泛化提示
 
 ### 3.5 操作列宽度规则

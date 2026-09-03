@@ -1,5 +1,6 @@
+import { render } from '../../test/render-with-app'
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { describe, expect, it, rstest } from '@rstest/core'
 import { FilePreview } from './file-preview'
 

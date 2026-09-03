@@ -11,14 +11,20 @@ import {
   Statistic,
   theme,
 } from 'antd'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  isFormValidationError,
   StepFormRecipe,
   type StepFormSpec,
   validateFieldsWithScroll,
 } from '../../../shared/template-kit/form'
-import { stepFormInitialValues, stepFormPayAccountOptions } from '../../../infrastructure/msw/handlers/form'
+import {
+  stepFormInitialValues,
+  stepFormPayAccountOptions,
+} from '../../../infrastructure/msw/handlers/form'
+
+void React
 
 type StepValues = {
   payAccount: string
@@ -29,14 +35,24 @@ type StepValues = {
   password?: string
 }
 
-const StepDescriptions = ({ values, bordered = false }: { values: StepValues; bordered?: boolean }) => {
+const StepDescriptions = ({
+  values,
+  bordered = false,
+}: {
+  values: StepValues
+  bordered?: boolean
+}) => {
   return (
     <Descriptions column={1} bordered={bordered} size="small">
       <Descriptions.Item label="付款账户">{values.payAccount}</Descriptions.Item>
       <Descriptions.Item label="收款账户">{values.receiverAccount}</Descriptions.Item>
       <Descriptions.Item label="收款人姓名">{values.receiverName}</Descriptions.Item>
       <Descriptions.Item label="转账金额">
-        <Statistic value={values.amount} precision={2} suffix={<span className="text-sm">元</span>} />
+        <Statistic
+          value={values.amount}
+          precision={2}
+          suffix={<span className="text-sm">元</span>}
+        />
       </Descriptions.Item>
     </Descriptions>
   )
@@ -85,6 +101,10 @@ export const StepFormPage = () => {
       setSubmitting(true)
       try {
         await goNext()
+      } catch (error) {
+        if (!isFormValidationError(error)) {
+          throw error
+        }
       } finally {
         setSubmitting(false)
       }
@@ -93,13 +113,21 @@ export const StepFormPage = () => {
       if (current === 0) {
         return (
           <>
-            <Form.Item label="付款账户" name="payAccount" rules={[{ required: true, message: '请选择付款账户' }]}>
+            <Form.Item
+              label="付款账户"
+              name="payAccount"
+              rules={[{ required: true, message: '请选择付款账户' }]}
+            >
               <Select className="md:!w-[320px]" options={stepFormPayAccountOptions} />
             </Form.Item>
 
             <Form.Item label="收款账户" required className="!mb-2">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-[180px_1fr]">
-                <Form.Item name="receiverMode" noStyle rules={[{ required: true, message: '请选择账户类型' }]}>
+                <Form.Item
+                  name="receiverMode"
+                  noStyle
+                  rules={[{ required: true, message: '请选择账户类型' }]}
+                >
                   <Select
                     options={[
                       { value: 'alipay', label: '支付宝' },
@@ -120,7 +148,11 @@ export const StepFormPage = () => {
               </div>
             </Form.Item>
 
-            <Form.Item label="收款人姓名" name="receiverName" rules={[{ required: true, message: '请输入收款人姓名' }]}>
+            <Form.Item
+              label="收款人姓名"
+              name="receiverName"
+              rules={[{ required: true, message: '请输入收款人姓名' }]}
+            >
               <Input className="md:!w-[320px]" placeholder="请输入收款人姓名" />
             </Form.Item>
 
@@ -132,7 +164,13 @@ export const StepFormPage = () => {
                 { type: 'number', min: 0.01, message: '金额必须大于 0' },
               ]}
             >
-              <InputNumber className="md:!w-[320px]" min={0.01} precision={2} prefix="￥" placeholder="请输入金额" />
+              <InputNumber
+                className="md:!w-[320px]"
+                min={0.01}
+                precision={2}
+                prefix="￥"
+                placeholder="请输入金额"
+              />
             </Form.Item>
           </>
         )
@@ -141,7 +179,12 @@ export const StepFormPage = () => {
       if (current === 1) {
         return (
           <div className="space-y-4">
-            <Alert showIcon closable type="warning" title="确认转账后，资金将直接打入对方账户，无法退回。" />
+            <Alert
+              showIcon
+              closable
+              type="warning"
+              title="确认转账后，资金将直接打入对方账户，无法退回。"
+            />
             <StepDescriptions values={stepData} bordered />
             <Divider className="!my-6" />
             <Form.Item

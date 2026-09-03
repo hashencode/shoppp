@@ -1,5 +1,6 @@
+import { render } from '../../test/render-with-app'
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, rstest } from '@rstest/core'
 import { Button } from 'antd'
 import { FilePreview } from './file-preview'
@@ -193,9 +194,7 @@ describe('FilePreview', () => {
     fireEvent.click(screen.getByRole('button', { name: '模拟视频错误' }))
     expect(await screen.findByText('视频预览加载失败')).toBeTruthy()
 
-    view.rerender(
-      <FilePreview title="视频预览" source="/updated.m3u8" fileName="更新视频.m3u8" />
-    )
+    view.rerender(<FilePreview title="视频预览" source="/updated.m3u8" fileName="更新视频.m3u8" />)
     expect((await screen.findByTestId('video-player')).getAttribute('data-source-kind')).toBe('hls')
     expect(screen.queryByText('视频预览加载失败')).toBeNull()
   })
@@ -239,11 +238,7 @@ describe('FilePreview', () => {
     expect((screen.getByRole('button', { name: '预览' }) as HTMLButtonElement).disabled).toBe(true)
 
     view.rerender(
-      <FilePreview
-        title="附件预览"
-        source="data:text/plain;base64,dGVzdA=="
-        fileName="资料.zip"
-      />
+      <FilePreview title="附件预览" source="data:text/plain;base64,dGVzdA==" fileName="资料.zip" />
     )
     expect((screen.getByRole('button', { name: '预览' }) as HTMLButtonElement).disabled).toBe(true)
     expect(windowOpenCalled).toBe(0)

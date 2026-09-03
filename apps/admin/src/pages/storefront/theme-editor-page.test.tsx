@@ -382,36 +382,33 @@ const server = setupServer(
       },
     })
   }),
-  http.post(
-    '*/admin/storefront-experiences/drafts/:id/migrations/dry-run',
-    async ({ request }) => {
-      migrationBody = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json({
-        data: {
-          approvedAt: null,
-          approvedBy: null,
-          conflicts: [
-            {
-              code: 'instance-removed',
-              instanceId: 'home-story',
-              message: 'The target package removed a stable instance with merchant overrides.',
-              templateId: 'synthetic-home',
-            },
-          ],
-          createdAt: '2026-07-30T00:20:00.000Z',
-          createdBy: 'theme-admin',
-          draftId: baseDraft.id,
-          draftVersion: 1,
-          id: 'migration-synthetic-1-2',
-          sourceConfigurationSchemaVersion: 1,
-          sourceThemeVersion: '1.0.0',
-          status: 'dry_run',
-          targetConfigurationSchemaVersion: 2,
-          targetThemeVersion: '1.1.0',
-        },
-      })
-    }
-  )
+  http.post('*/admin/storefront-experiences/drafts/:id/migrations/dry-run', async ({ request }) => {
+    migrationBody = (await request.json()) as Record<string, unknown>
+    return HttpResponse.json({
+      data: {
+        approvedAt: null,
+        approvedBy: null,
+        conflicts: [
+          {
+            code: 'instance-removed',
+            instanceId: 'home-story',
+            message: 'The target package removed a stable instance with merchant overrides.',
+            templateId: 'synthetic-home',
+          },
+        ],
+        createdAt: '2026-07-30T00:20:00.000Z',
+        createdBy: 'theme-admin',
+        draftId: baseDraft.id,
+        draftVersion: 1,
+        id: 'migration-synthetic-1-2',
+        sourceConfigurationSchemaVersion: 1,
+        sourceThemeVersion: '1.0.0',
+        status: 'dry_run',
+        targetConfigurationSchemaVersion: 2,
+        targetThemeVersion: '1.1.0',
+      },
+    })
+  })
 )
 
 const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) => ({
@@ -422,8 +419,15 @@ const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) 
   login: async () => undefined,
   logout: () => undefined,
   permissions:
-    permissionOverride ?? (role === 'admin'
-      ? (['themes.read', 'themes.write', 'themes.preview', 'themes.approve', 'catalog.read'] as const)
+    permissionOverride ??
+    (role === 'admin'
+      ? ([
+          'themes.read',
+          'themes.write',
+          'themes.preview',
+          'themes.approve',
+          'catalog.read',
+        ] as const)
       : (['themes.read'] as const)),
   principalKind: 'human' as const,
   refreshSession: async () => undefined,
@@ -664,9 +668,7 @@ describe('ThemeEditorPage', () => {
             {
               approvedAt: '2026-08-11T00:00:00.000Z',
               collections: [],
-              destinations: [
-                { id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' },
-              ],
+              destinations: [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }],
               deployedAt: '2026-08-11T01:00:00.000Z',
               environment: 'staging',
               id: 'release-editor-1',
@@ -678,26 +680,30 @@ describe('ThemeEditorPage', () => {
           ],
         })
       ),
-      http.get(
-        '*/admin/storefront-experiences/catalog-releases/:id/resources',
-        ({ request }) => {
-          const url = new URL(request.url)
-          const kind = url.searchParams.get('kind')
-          const page = Number(url.searchParams.get('page') ?? '1')
-          const data =
-            kind === 'product'
-              ? [{
+      http.get('*/admin/storefront-experiences/catalog-releases/:id/resources', ({ request }) => {
+        const url = new URL(request.url)
+        const kind = url.searchParams.get('kind')
+        const page = Number(url.searchParams.get('page') ?? '1')
+        const data =
+          kind === 'product'
+            ? [
+                {
                   id: page === 1 ? 'product-stable-1' : 'product-stable-13',
                   kind: 'product',
                   name: page === 1 ? 'Stable product' : 'Thirteenth product',
                   path: page === 1 ? '/products/stable' : '/products/thirteenth',
-                }]
-              : kind === 'page'
-                ? [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }]
-                : []
-          return HttpResponse.json({ data, page, pageSize: 12, total: kind === 'product' ? 13 : data.length })
-        }
-      ),
+                },
+              ]
+            : kind === 'page'
+              ? [{ id: 'page.shop', kind: 'page', name: 'Shop', path: '/shop' }]
+              : []
+        return HttpResponse.json({
+          data,
+          page,
+          pageSize: 12,
+          total: kind === 'product' ? 13 : data.length,
+        })
+      }),
       http.get('*/admin/storefront-experiences/media', ({ request }) => {
         const page = Number(new URL(request.url).searchParams.get('page') ?? '1')
         return HttpResponse.json({
@@ -729,25 +735,37 @@ describe('ThemeEditorPage', () => {
 
     const view = renderEditor()
     expect(
-      await screen.findByRole('combobox', { name: 'Catalog Release' }, { timeout: 5_000 })
+      await screen.findByLabelText('Catalog Release', { selector: 'input,select,textarea' })
     ).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: 'home-hero heading' })).toBeTruthy()
-    expect(screen.getByRole('combobox', { name: 'home-hero alignment' })).toBeTruthy()
-    expect(screen.getByRole('combobox', { name: 'home-hero featured-product' })).toBeTruthy()
+    expect(
+      screen.getByLabelText('home-hero heading', { selector: 'input,select,textarea' })
+    ).toBeTruthy()
+    expect(
+      screen.getByLabelText('home-hero alignment', { selector: 'input,select,textarea' })
+    ).toBeTruthy()
+    expect(
+      screen.getByLabelText('home-hero featured-product', { selector: 'input,select,textarea' })
+    ).toBeTruthy()
     expect(await screen.findByText('Page 1 of 2')).toBeTruthy()
     expect(screen.getByRole('group', { name: 'home-hero image' })).toBeTruthy()
-    expect(await screen.findByRole('img', { name: 'Approved hero' })).toBeTruthy()
+    expect(await screen.findByAltText('Approved hero')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Select Approved hero' }))
     expect(screen.getByText('800 × 600')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Next media page' }))
-    expect(await screen.findByRole('img', { name: 'Approved detail' })).toBeTruthy()
+    expect(await screen.findByAltText('Approved detail')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero image' }))
     expect(screen.getByText('Theme asset · 800 × 600')).toBeTruthy()
     expect(screen.getByRole('group', { name: 'home-hero cta' })).toBeTruthy()
     expect(
-      (screen.getByRole('textbox', { name: 'home-hero cta label' }) as HTMLInputElement).value
+      (
+        screen.getByLabelText('home-hero cta label', {
+          selector: 'input,select,textarea',
+        }) as HTMLInputElement
+      ).value
     ).toBe('Shop now')
-    expect(screen.getByRole('combobox', { name: 'home-hero cta destination' })).toBeTruthy()
+    expect(
+      screen.getByLabelText('home-hero cta destination', { selector: 'input,select,textarea' })
+    ).toBeTruthy()
     view.unmount()
   }, 20_000)
 
@@ -792,39 +810,35 @@ describe('ThemeEditorPage', () => {
     expect(previewBuildStatus({ ...build(), status: 'expired' }).label).toBe('Expired')
   })
 
-  it(
-    'supports accessible reordering, required capability protection, reset, and dirty navigation',
-    async () => {
-      renderEditor()
-      await waitFor(() =>
-        expect(
-          (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-        ).toBe('Existing headline')
-      )
-      expect(
-        (screen.getByRole('switch', { name: 'Show site-navigation' }) as HTMLButtonElement).disabled
-      ).toBe(true)
-
-      fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
-      await waitFor(() =>
-        expect(screen.getByRole('status').textContent).toContain(
-          'home-story moved to position 2 of 3'
-        )
-      )
-      fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
-        target: { value: 'Local unsaved headline' },
-      })
-      fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero' }))
+  it('supports accessible reordering, required capability protection, reset, and dirty navigation', async () => {
+    renderEditor()
+    await waitFor(() =>
       expect(
         (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
-      ).toBe('Preset headline')
-      fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
-      expect(await screen.findByText('Discard unsaved theme edits?')).toBeTruthy()
-      fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
-      expect(screen.getByText('Unsaved changes')).toBeTruthy()
-    },
-    10_000
-  )
+      ).toBe('Existing headline')
+    )
+    expect(
+      (screen.getByRole('switch', { name: 'Show site-navigation' }) as HTMLButtonElement).disabled
+    ).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move home-story before' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toContain(
+        'home-story moved to position 2 of 3'
+      )
+    )
+    fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Local unsaved headline' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero' }))
+    expect(
+      (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).value
+    ).toBe('Preset headline')
+    fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
+    expect(await screen.findByText('Discard unsaved theme edits?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+  }, 10_000)
 
   it('saves, validates, and previews the exact new optimistic version in order', async () => {
     renderEditor()
@@ -934,7 +948,9 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
 
     await screen.findByText('required_capability_missing')
-    const summary = screen.getByText(/Validation validation-synthetic-invalid-2/).closest('[tabindex]')
+    const summary = screen
+      .getByText(/Validation validation-synthetic-invalid-2/)
+      .closest('[tabindex]')
     await waitFor(() => expect(document.activeElement).toBe(summary))
     const issueLink = screen.getByRole('link', {
       name: /Review affected field.*home.*home-hero.*heading/,
@@ -1030,26 +1046,24 @@ describe('ThemeEditorPage', () => {
       http.get('*/admin/storefront-experiences/themes', () =>
         HttpResponse.json({ data: [theme, upgradeTheme] })
       ),
-      http.post(
-        '*/admin/storefront-experiences/drafts/:id/migrations/dry-run',
-        async () =>
-          HttpResponse.json({
-            data: {
-              approvedAt: null,
-              approvedBy: null,
-              conflicts: [],
-              createdAt: '2026-07-30T00:20:00.000Z',
-              createdBy: 'theme-admin',
-              draftId: baseDraft.id,
-              draftVersion: 1,
-              id: 'migration-synthetic-ready',
-              sourceConfigurationSchemaVersion: 1,
-              sourceThemeVersion: '1.0.0',
-              status: 'dry_run',
-              targetConfigurationSchemaVersion: 2,
-              targetThemeVersion: '1.1.0',
-            },
-          })
+      http.post('*/admin/storefront-experiences/drafts/:id/migrations/dry-run', async () =>
+        HttpResponse.json({
+          data: {
+            approvedAt: null,
+            approvedBy: null,
+            conflicts: [],
+            createdAt: '2026-07-30T00:20:00.000Z',
+            createdBy: 'theme-admin',
+            draftId: baseDraft.id,
+            draftVersion: 1,
+            id: 'migration-synthetic-ready',
+            sourceConfigurationSchemaVersion: 1,
+            sourceThemeVersion: '1.0.0',
+            status: 'dry_run',
+            targetConfigurationSchemaVersion: 2,
+            targetThemeVersion: '1.1.0',
+          },
+        })
       ),
       http.post(
         '*/admin/storefront-experiences/drafts/:id/migrations/approve',
@@ -1200,8 +1214,7 @@ describe('ThemeEditorPage', () => {
         operatorRunReads += 1
         return HttpResponse.json({
           data: {
-            allowedAction:
-              operatorRunReads === 1 ? 'complete_run_bound_editor_path' : null,
+            allowedAction: operatorRunReads === 1 ? 'complete_run_bound_editor_path' : null,
             approvalAuditId:
               operatorRunReads === 1 ? null : 'audit-snapshot-approved-fashion-store',
             approvedAt: operatorRunReads === 1 ? null : '2026-07-30T00:15:00.000Z',
@@ -1212,8 +1225,7 @@ describe('ThemeEditorPage', () => {
             runId: 'fashion-u8-cloud-approval',
             sourceDraftId: baseDraft.id,
             status: operatorRunReads === 1 ? 'awaiting_operator' : 'approved',
-            successorSnapshotId:
-              operatorRunReads === 1 ? null : 'snapshot-approved-fashion-store',
+            successorSnapshotId: operatorRunReads === 1 ? null : 'snapshot-approved-fashion-store',
             u12SnapshotId: 'snapshot-fashion-u12',
             workingDraftId: baseDraft.id,
           },
@@ -1284,13 +1296,10 @@ describe('ThemeEditorPage', () => {
           },
         })
       ),
-      http.get(
-        '*/admin/storefront-experiences/drafts/:id/preview-context',
-        ({ request }) => {
-          previewContextQuery = new URL(request.url).search
-          return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
-        }
-      )
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', ({ request }) => {
+        previewContextQuery = new URL(request.url).search
+        return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
+      })
     )
 
     renderEditor('admin', 60_000, [
@@ -1355,17 +1364,14 @@ describe('ThemeEditorPage', () => {
       http.get('*/admin/storefront-experiences/catalog-releases', () =>
         HttpResponse.json({ data: [catalogRelease(releaseA), catalogRelease(releaseB)] })
       ),
-      http.get(
-        '*/admin/storefront-experiences/drafts/:id/preview-context',
-        ({ request }) => {
-          const releaseId = new URL(request.url).searchParams.get('catalogReleaseId')
-          if (releaseId === releaseA) {
-            releaseARequested = true
-            return delayedReleaseA
-          }
-          return HttpResponse.json({ data: deployedPreviewContext(releaseB) })
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', ({ request }) => {
+        const releaseId = new URL(request.url).searchParams.get('catalogReleaseId')
+        if (releaseId === releaseA) {
+          releaseARequested = true
+          return delayedReleaseA
         }
-      ),
+        return HttpResponse.json({ data: deployedPreviewContext(releaseB) })
+      }),
       http.post('*/admin/storefront-experiences/drafts/:id/approve', () => delayedApproval)
     )
 

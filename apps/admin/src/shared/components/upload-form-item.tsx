@@ -2,7 +2,7 @@ import './upload-form-item.css'
 
 import { CloudUploadOutlined } from '@ant-design/icons'
 import { FileUp } from 'lucide-react'
-import { Button, Upload, message } from 'antd'
+import { Button, Upload, App } from 'antd'
 import classNames from 'classnames'
 import type { UploadFile, UploadProps } from 'antd'
 import type { RcFile } from 'antd/es/upload'
@@ -127,18 +127,22 @@ const isImageAsset = (value: string) => {
 
 const readAcceptTypes = (accept: UploadProps['accept']) => {
   const acceptFormat = typeof accept === 'string' ? accept : accept?.format
-  return acceptFormat
-    ?.split(',')
-    .map((item) => item.trim())
-    .filter(Boolean) ?? []
+  return (
+    acceptFormat
+      ?.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean) ?? []
+  )
 }
 
 const isImageOnlyAccept = (accept: UploadProps['accept']) => {
   const acceptTypes = readAcceptTypes(accept).map((item) => item.toLowerCase())
-  return acceptTypes.length > 0 &&
+  return (
+    acceptTypes.length > 0 &&
     acceptTypes.every(
       (item) => IMAGE_EXTENSIONS.includes(item) || IMAGE_MIME_TYPE_PATTERN.test(item)
     )
+  )
 }
 
 const matchesAcceptedType = (file: File, accept: UploadProps['accept']) => {
@@ -158,8 +162,10 @@ const matchesAcceptedType = (file: File, accept: UploadProps['accept']) => {
     }
     if (item.endsWith('/*')) {
       const mimePrefix = item.slice(0, -1)
-      return fileType.startsWith(mimePrefix) ||
+      return (
+        fileType.startsWith(mimePrefix) ||
         (item === 'image/*' && IMAGE_EXTENSIONS.some((extension) => fileName.endsWith(extension)))
+      )
     }
     return fileType === item
   })
@@ -201,7 +207,10 @@ const normalizeValueToUrls = (value: UploadFormItemValue | undefined, multipleMo
     .filter(Boolean)
 }
 
-const toUploadValue = (fileList: UploadFile[], multipleMode: boolean): UploadFormItemValue | undefined => {
+const toUploadValue = (
+  fileList: UploadFile[],
+  multipleMode: boolean
+): UploadFormItemValue | undefined => {
   const urls = fileList
     .map((item) => item.url)
     .filter((item): item is string => typeof item === 'string' && item.length > 0)
@@ -220,7 +229,10 @@ const isSameUploadValue = (
 ) => {
   const leftUrls = normalizeValueToUrls(left, multipleMode).map(normalizeUploadUrl).sort()
   const rightUrls = normalizeValueToUrls(right, multipleMode).map(normalizeUploadUrl).sort()
-  return leftUrls.length === rightUrls.length && leftUrls.every((item, index) => item === rightUrls[index])
+  return (
+    leftUrls.length === rightUrls.length &&
+    leftUrls.every((item, index) => item === rightUrls[index])
+  )
 }
 
 const normalizeUploadError = (error: unknown) => {
@@ -228,9 +240,15 @@ const normalizeUploadError = (error: unknown) => {
 }
 
 const areUploadFileListsEqual = (left: UploadFile[], right: UploadFile[]) =>
-  left.length === right.length && left.every((item, index) => {
+  left.length === right.length &&
+  left.every((item, index) => {
     const other = right[index]
-    return item.uid === other?.uid && item.name === other.name && item.status === other.status && item.url === other.url
+    return (
+      item.uid === other?.uid &&
+      item.name === other.name &&
+      item.status === other.status &&
+      item.url === other.url
+    )
   })
 
 export const UploadFormItem = ({
@@ -252,6 +270,7 @@ export const UploadFormItem = ({
   children,
   ...restProps
 }: UploadFormItemProps) => {
+  const { message } = App.useApp()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const multipleMode = Boolean(restProps.multiple) || maxCount > 1
@@ -261,8 +280,11 @@ export const UploadFormItem = ({
     displayMode !== 'auto'
       ? displayMode
       : listType
-        ? listType === 'picture-card' ? 'card' : 'button'
-        : isImageOnlyAccept(accept) || valueUrls.some((url) => isImageAsset(normalizeUploadUrl(url)))
+        ? listType === 'picture-card'
+          ? 'card'
+          : 'button'
+        : isImageOnlyAccept(accept) ||
+            valueUrls.some((url) => isImageAsset(normalizeUploadUrl(url)))
           ? 'card'
           : 'button'
   const resolvedListType =
@@ -272,9 +294,7 @@ export const UploadFormItem = ({
         ? 'picture-card'
         : 'text'
   const [fileList, setFileList] = useState<UploadFile[]>(() =>
-    valueUrls.map((url) =>
-      toUploadFile(url, resolvedDisplayMode === 'card', t('Uploaded file'))
-    )
+    valueUrls.map((url) => toUploadFile(url, resolvedDisplayMode === 'card', t('Uploaded file')))
   )
   const fileListRef = useRef(fileList)
   const lastEmittedValueRef = useRef<UploadFormItemValue | undefined>(value)
@@ -310,9 +330,13 @@ export const UploadFormItem = ({
       : []
     const nextFileList = [
       ...valueFiles,
-      ...pendingFiles.filter((pendingFile) => !valueFiles.some((item) => item.uid === pendingFile.uid)),
+      ...pendingFiles.filter(
+        (pendingFile) => !valueFiles.some((item) => item.uid === pendingFile.uid)
+      ),
     ].slice(0, maxCount)
-    replaceFileList((current) => areUploadFileListsEqual(current, nextFileList) ? current : nextFileList)
+    replaceFileList((current) =>
+      areUploadFileListsEqual(current, nextFileList) ? current : nextFileList
+    )
   }, [maxCount, multipleMode, replaceFileList, resolvedDisplayMode, t, value, valueUrls])
 
   const emitChange = useCallback(
@@ -360,7 +384,9 @@ export const UploadFormItem = ({
         return false
       }
 
-      const nextFileList = replaceFileList((current) => current.filter((item) => item.uid !== target.uid))
+      const nextFileList = replaceFileList((current) =>
+        current.filter((item) => item.uid !== target.uid)
+      )
       emitChange(nextFileList)
       return true
     },
@@ -388,7 +414,9 @@ export const UploadFormItem = ({
           status: 'uploading',
         }
         const withoutCurrentFile = current.filter((item) => item.uid !== fileUid)
-        return multipleMode ? [...withoutCurrentFile, uploadingItem].slice(0, maxCount) : [uploadingItem]
+        return multipleMode
+          ? [...withoutCurrentFile, uploadingItem].slice(0, maxCount)
+          : [uploadingItem]
       })
 
       try {
@@ -417,7 +445,9 @@ export const UploadFormItem = ({
           }
 
           committed = true
-          return multipleMode ? current.map((item) => (item.uid === fileUid ? doneFile : item)) : [doneFile]
+          return multipleMode
+            ? current.map((item) => (item.uid === fileUid ? doneFile : item))
+            : [doneFile]
         })
         if (committed) {
           emitChange(nextFileList)
@@ -444,6 +474,7 @@ export const UploadFormItem = ({
       }
     },
     [
+      message,
       emitChange,
       fileSizeLimitMB,
       maxCount,
@@ -524,9 +555,10 @@ export const UploadFormItem = ({
                   externalResult instanceof File ? externalResult.name : file.name,
                   {
                     type: externalResult.type || file.type,
-                    lastModified: externalResult instanceof File
-                      ? externalResult.lastModified
-                      : file.lastModified,
+                    lastModified:
+                      externalResult instanceof File
+                        ? externalResult.lastModified
+                        : file.lastModified,
                   }
                 )
                 candidateFile = Object.assign(transformedFile, { uid: file.uid }) as RcFile
@@ -546,9 +578,7 @@ export const UploadFormItem = ({
           try {
             const nextFile = await compressImage(candidateFile)
             if (nextFile.size > fileSizeLimitMB * 1024 * 1024) {
-              void message.error(
-                t('File size cannot exceed {size} MB.', { size: fileSizeLimitMB })
-              )
+              void message.error(t('File size cannot exceed {size} MB.', { size: fileSizeLimitMB }))
               return false
             }
             return nextFile
@@ -561,7 +591,7 @@ export const UploadFormItem = ({
         onPreview={handlePreview}
         onRemove={handleRemove}
       >
-        {shouldShowTrigger ? children ?? defaultTrigger : null}
+        {shouldShowTrigger ? (children ?? defaultTrigger) : null}
       </Upload>
       {helperText ? <div className="mt-2 text-description">{helperText}</div> : null}
       {previewFile?.url ? (

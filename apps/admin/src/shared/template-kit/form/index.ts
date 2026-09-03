@@ -1,7 +1,11 @@
 export { useTemplateFormController } from './use-template-form-controller'
 export { useDynamicFormReset } from './use-dynamic-form-reset'
 export { TemplateFormStateGate } from './template-form-state-gate'
-export { FORM_ERROR_SCROLL_OPTIONS, validateFieldsWithScroll } from './form-validation-scroll'
+export {
+  FORM_ERROR_SCROLL_OPTIONS,
+  isFormValidationError,
+  validateFieldsWithScroll,
+} from './form-validation-scroll'
 export {
   FORM_CARD_BODY_WIDTH_CLASS_NAME,
   FORM_CONTENT_ALIGN_CLASS_NAME,

@@ -16,7 +16,7 @@ import {
   Space,
   Switch,
   Tag,
-  message,
+  App,
 } from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
@@ -60,17 +60,15 @@ const LAUNCH_ISSUE_MESSAGE: Record<LaunchIssueCode, string> = {
     'Every enabled shipping method must exist in an active shipping zone.',
   oversell_policy_mismatch:
     'Inventory oversell limits must be zero when the launch policy denies oversell.',
-  reservation_ttl_mismatch:
-    'The launch reservation duration must match the Worker runtime value.',
+  reservation_ttl_mismatch: 'The launch reservation duration must match the Worker runtime value.',
   turnstile_site_key_missing:
     'Turnstile is required but its environment-specific public site key is missing.',
-  turnstile_secret_missing:
-    'Turnstile is required but its server-side secret is not configured.',
-  backup_export_missing:
-    'The scheduled D1 export credential or target binding is not configured.',
+  turnstile_secret_missing: 'Turnstile is required but its server-side secret is not configured.',
+  backup_export_missing: 'The scheduled D1 export credential or target binding is not configured.',
 }
 
 export const LaunchSettingsPage = () => {
+  const { message } = App.useApp()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
@@ -95,7 +93,7 @@ export const LaunchSettingsPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [form, localizeError])
+  }, [message, form, localizeError])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)

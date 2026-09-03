@@ -1,22 +1,19 @@
-import {
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Select,
-  Tooltip,
-  message,
-  theme,
-} from 'antd'
+import { DatePicker, Form, Input, InputNumber, Radio, Select, Tooltip, App, theme } from 'antd'
 import type { RadioChangeEvent } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import React, { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { normalizeApiError, type ApiError } from '../../../infrastructure/http/api-client'
 import { useAuth } from '../../../infrastructure/auth/use-auth'
-import { LIST_REFRESH_CHANNEL, LIST_REFRESH_EVENT } from '../../../shared/constants/list-refresh-channel'
-import { BasicCrudFormRecipe, useTemplateFormController, type BasicCrudFormSpec } from '../../../shared/template-kit/form'
+import {
+  LIST_REFRESH_CHANNEL,
+  LIST_REFRESH_EVENT,
+} from '../../../shared/constants/list-refresh-channel'
+import {
+  BasicCrudFormRecipe,
+  useTemplateFormController,
+  type BasicCrudFormSpec,
+} from '../../../shared/template-kit/form'
 import {
   goBackOrCloseWindow,
   useFormModeAccess,
@@ -70,6 +67,7 @@ const toFormPayload = (values: BasicFormValues): FormPayload => ({
 })
 
 export const BasicFormPage = () => {
+  const { message } = App.useApp()
   const [form] = Form.useForm<BasicFormValues>()
   const [searchParams] = useSearchParams()
   const { role, permissions } = useAuth()
@@ -154,22 +152,37 @@ export const BasicFormPage = () => {
             <Input placeholder="给目标起个名字" />
           </Form.Item>
 
-          <Form.Item label="起止日期" name="dateRange" rules={[{ required: true, message: '请选择起止日期' }]}>
+          <Form.Item
+            label="起止日期"
+            name="dateRange"
+            rules={[{ required: true, message: '请选择起止日期' }]}
+          >
             <RangePicker className="w-full" />
           </Form.Item>
 
-          <Form.Item label="目标描述" name="goal" rules={[{ required: true, message: '请输入目标描述' }]}>
+          <Form.Item
+            label="目标描述"
+            name="goal"
+            rules={[{ required: true, message: '请输入目标描述' }]}
+          >
             <Input.TextArea rows={4} placeholder="请输入你的阶段性工作目标" />
           </Form.Item>
 
-          <Form.Item label="衡量标准" name="standard" rules={[{ required: true, message: '请输入衡量标准' }]}>
+          <Form.Item
+            label="衡量标准"
+            name="standard"
+            rules={[{ required: true, message: '请输入衡量标准' }]}
+          >
             <Input.TextArea rows={4} placeholder="请输入衡量标准" />
           </Form.Item>
 
           <Form.Item
             label={
               <span>
-                客户 <em className="ml-1 text-xs not-italic" style={{ color: token.colorTextTertiary }}>(选填)</em>
+                客户{' '}
+                <em className="ml-1 text-xs not-italic" style={{ color: token.colorTextTertiary }}>
+                  (选填)
+                </em>
               </span>
             }
             tooltip="目标的服务对象"
@@ -181,7 +194,10 @@ export const BasicFormPage = () => {
           <Form.Item
             label={
               <span>
-                邀评人 <em className="ml-1 text-xs not-italic" style={{ color: token.colorTextTertiary }}>(选填)</em>
+                邀评人{' '}
+                <em className="ml-1 text-xs not-italic" style={{ color: token.colorTextTertiary }}>
+                  (选填)
+                </em>
               </span>
             }
             name="invites"
@@ -192,7 +208,10 @@ export const BasicFormPage = () => {
           <Form.Item
             label={
               <span>
-                权重 <em className="ml-1 text-xs not-italic" style={{ color: token.colorTextTertiary }}>(选填)</em>
+                权重{' '}
+                <em className="ml-1 text-xs not-italic" style={{ color: token.colorTextTertiary }}>
+                  (选填)
+                </em>
               </span>
             }
             name="weight"
@@ -218,7 +237,9 @@ export const BasicFormPage = () => {
                 { value: '2', label: '部分公开' },
                 { value: '3', label: '不公开' },
               ]}
-              onChange={(event: RadioChangeEvent) => form.setFieldValue('publicType', event.target.value)}
+              onChange={(event: RadioChangeEvent) =>
+                form.setFieldValue('publicType', event.target.value)
+              }
             />
           </Form.Item>
 
@@ -253,6 +274,7 @@ export const BasicFormPage = () => {
       ),
     }),
     [
+      message,
       defaultValues,
       detailError,
       detailLoading,

@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Drawer, Space, Table, Tag, Typography, message } from 'antd'
+import { Button, Drawer, Space, Table, Tag, Typography, App } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { normalizeApiError, type ApiError } from '../../../infrastructure/http/api-client'
@@ -91,6 +91,7 @@ const toFilters = (values: RuleSearchFormValues): RuleListFilters => ({
 })
 
 export const TableQueryPage = () => {
+  const { message } = App.useApp()
   const [selectedRows, setSelectedRows] = useState<RuleItem[]>([])
   const [drawerRow, setDrawerRow] = useState<RuleItem | null>(null)
   const [deletedRuleKeys, setDeletedRuleKeys] = useState<string[]>([])
@@ -120,7 +121,7 @@ export const TableQueryPage = () => {
       await reload()
       void message.success(`已删除规则：${rule.name}`)
     },
-    [deletedRuleKeys]
+    [message, deletedRuleKeys]
   )
 
   const filterFields = useMemo<TemplateListFilterField<RuleSearchFormValues>[]>(
@@ -211,7 +212,18 @@ export const TableQueryPage = () => {
       request: fetchRuleList,
       selectItems: (response) => response?.data ?? [],
       isPartial: (response) => Boolean(response?.partial),
-      mapError: normalizeApiError,
+      mapError: (error) => {
+        const normalized = normalizeApiError(error)
+        // The template owns its generic server-failure copy; normalization is idempotent.
+        return normalized.code === 'QUERY_SERVER_ERROR'
+          ? Object.assign(new Error('请求失败，请稍后重试。'), {
+              code: normalized.code,
+              status: normalized.status,
+              details: normalized.details,
+              cause: normalized,
+            })
+          : normalized
+      },
       onError: (requestError) => {
         console.error('[rule-list] fetch failed', {
           current: paginationMetaRef.current.current,

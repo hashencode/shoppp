@@ -1,8 +1,9 @@
+import { render } from '../../test/render-with-app'
 import '../../index.css'
 
 import { expect, it, describe } from '@rstest/core'
 import { page } from '@rstest/browser'
-import { render, waitFor } from '@testing-library/react'
+import { waitFor } from '@testing-library/react'
 import React from 'react'
 import { UploadFormItem } from './upload-form-item'
 
@@ -51,7 +52,9 @@ describe('UploadFormItem Browser Mode', () => {
     )
 
     await expect.element(page.locator('.ax-upload-form-item .ant-upload-select')).toBeVisible()
-    await expect.element(page.getByText('请上传格式为jpg、jpeg、png格式，大小不超过10MB的文件')).toBeVisible()
+    await expect
+      .element(page.getByText('请上传格式为jpg、jpeg、png格式，大小不超过10MB的文件'))
+      .toBeVisible()
 
     const uploadSelect = document.querySelector('.ax-upload-form-item .ant-upload-select')
     const tooltip = document.querySelector('.mt-2.text-description')

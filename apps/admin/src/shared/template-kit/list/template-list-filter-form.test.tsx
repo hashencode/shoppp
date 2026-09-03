@@ -115,9 +115,7 @@ describe('TemplateListFilterForm', () => {
       )
     }
 
-    render(
-      <Demo />
-    )
+    render(<Demo />)
 
     expect(screen.getByRole('button', { name: /查\s*询/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /重\s*置/ })).toBeTruthy()
@@ -194,6 +192,52 @@ describe('TemplateListFilterForm', () => {
 
     await waitFor(() => expect(requestLog).toContainEqual(['', 1]))
     expect(submittedValues).toEqual([])
+  })
+
+  it('keeps the form-selected remote label across searches without submitting filters', async () => {
+    const submittedValues: DemoValues[] = []
+    const fields: TemplateListFilterField<DemoValues>[] = [
+      {
+        type: 'remote-select',
+        name: 'status',
+        label: '状态',
+        defaultOptions: [
+          { label: '当前状态', value: 1 },
+          { label: '无关状态', value: 2 },
+        ],
+        fetchOptions: async () => [{ label: '匹配状态', value: 3 }],
+        remoteSelectProps: { open: true, loadOnMount: false },
+      },
+    ]
+    const Demo = () => {
+      const [form] = Form.useForm<DemoValues>()
+      return (
+        <TemplateListFilterForm<DemoValues>
+          form={form}
+          fields={fields}
+          formProps={{ initialValues: { status: 1 } }}
+          onSubmit={(values) => submittedValues.push(values)}
+          onReset={() => form.resetFields()}
+          {...baseLayoutProps}
+        />
+      )
+    }
+
+    render(<Demo />)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '匹配' } })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350))
+    })
+    await screen.findByText('匹配状态')
+    const optionLabels = Array.from(
+      document.querySelectorAll('.ant-select-item-option-content')
+    ).map((option) => option.textContent)
+    expect(optionLabels).toContain('当前状态')
+    expect(optionLabels).not.toContain('无关状态')
+    expect(submittedValues).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }))
+    await waitFor(() => expect(submittedValues).toEqual([{ status: 1 }]))
   })
 
   it('renders conditional field only when visibleWhen is satisfied', async () => {
@@ -303,7 +347,9 @@ describe('TemplateListFilterForm', () => {
 
       return (
         <>
-          <Button onClick={() => form.setFieldValue('updatedAt', String(Date.now()))}>set-unrelated</Button>
+          <Button onClick={() => form.setFieldValue('updatedAt', String(Date.now()))}>
+            set-unrelated
+          </Button>
           <Button onClick={() => form.setFieldValue('name', `name-${Date.now()}`)}>set-name</Button>
           <TemplateListFilterForm<DemoValues>
             form={form}

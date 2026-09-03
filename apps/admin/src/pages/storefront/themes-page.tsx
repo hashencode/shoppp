@@ -14,7 +14,7 @@ import {
   Space,
   Tag,
   Typography,
-  message,
+  App,
 } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -41,6 +41,7 @@ type CreateValues = {
 const themeKey = (theme: AdminStorefrontTheme) => `${theme.id}@${theme.themeVersion}`
 
 export const ThemesPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { t } = useI18n()
   const { permissions, role } = useAuth()
@@ -113,7 +114,9 @@ export const ThemesPage = () => {
             {t('Storefront themes')}
           </Typography.Title>
           <Typography.Paragraph type="secondary" className="!mb-0">
-            {t('Configure fixture-backed Fashion and Decor experiences. Production keeps its current theme.')}
+            {t(
+              'Configure fixture-backed Fashion and Decor experiences. Production keeps its current theme.'
+            )}
           </Typography.Paragraph>
         </div>
         {canWrite && themes.length > 0 ? (
@@ -127,7 +130,9 @@ export const ThemesPage = () => {
         <QueryStateBlock
           state="empty"
           title={t('No compatible approved theme packages')}
-          description={t('A source-controlled package must pass compatibility and release validation before it appears here.')}
+          description={t(
+            'A source-controlled package must pass compatibility and release validation before it appears here.'
+          )}
           primaryActionLabel={t('Reload')}
           onPrimaryAction={() => void load()}
         />
@@ -218,7 +223,9 @@ export const ThemesPage = () => {
           type="info"
           showIcon
           title={t('Read-only theme access')}
-          description={t('Your role can inspect compatible packages and drafts but cannot change, preview, or approve them.')}
+          description={t(
+            'Your role can inspect compatible packages and drafts but cannot change, preview, or approve them.'
+          )}
         />
       ) : null}
 

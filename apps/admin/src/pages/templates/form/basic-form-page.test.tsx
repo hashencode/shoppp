@@ -1,5 +1,6 @@
+import { render } from '../../../test/render-with-app'
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, beforeAll, afterAll, afterEach, beforeEach } from '@rstest/core'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
@@ -149,10 +150,7 @@ describe('BasicFormPage', () => {
   it('does not publish list refresh when add submit fails', async () => {
     server.use(
       http.post('*/api/template/forms', () =>
-        HttpResponse.json(
-          { errorCode: 'QUERY_SERVER_ERROR', message: '提交失败' },
-          { status: 500 }
-        )
+        HttpResponse.json({ errorCode: 'QUERY_SERVER_ERROR', message: '提交失败' }, { status: 500 })
       )
     )
 

@@ -1,17 +1,5 @@
 import type { ReportingQuery, RevenueMetrics, RevenueReport } from '@shoppp/contracts'
-import {
-  Button,
-  Card,
-  Col,
-  Empty,
-  Row,
-  Select,
-  Skeleton,
-  Space,
-  Statistic,
-  Table,
-  message,
-} from 'antd'
+import { Button, Card, Col, Empty, Row, Select, Skeleton, Space, Statistic, Table, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -61,6 +49,7 @@ const MetricCard = ({
 )
 
 export const DashboardPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { locale, t } = useI18n()
   const localizeError = useLocalizedApiError()
@@ -78,7 +67,7 @@ export const DashboardPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [localizeError, query])
+  }, [message, localizeError, query])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)

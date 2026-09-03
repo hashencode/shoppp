@@ -1,5 +1,5 @@
 version: 1
-updatedAt: "2026-07-29"
+updatedAt: '2026-07-29'
 project: codex-admin-quick-start
 
 pageModules:
@@ -115,7 +115,8 @@ componentCatalog:
     type: list-row-actions
     responsibilities:
       - 渲染表格行操作
-      - 统一危险操作确认，并直接展示所有可见操作项
+      - 普通行危险动作通过 confirm 渲染 Popconfirm，并直接展示所有可见操作项
+      - recent-auth、operation ID、冲突恢复和不可撤销页面流程保留现有安全 Modal
       - 为站内根相对链接补齐可选应用部署前缀
     useWhen:
       - 表格行需要查看、编辑、删除等文本动作

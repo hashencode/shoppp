@@ -1,3 +1,5 @@
+import { AxiosError, AxiosHeaders } from 'axios'
+import { normalizeApiError } from '../../infrastructure/http/api-client'
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core'
 import { buildDownloadUrl, downloadBlob, toBlobFileName } from './download'
 
@@ -18,10 +20,7 @@ const makeAxiosNetworkError = (code = 'ERR_NETWORK') =>
   Object.assign(new Error('Network Error'), { isAxiosError: true, code, request: {} })
 
 const makeNormalizedTransportError = () =>
-  Object.assign(new Error('请求失败，请稍后重试。'), {
-    code: 'UNKNOWN_ERROR',
-    cause: makeAxiosNetworkError(),
-  })
+  normalizeApiError(new AxiosError('Network Error', 'ERR_NETWORK', undefined, {}))
 
 beforeEach(() => {
   createObjectUrlCalled = 0
@@ -60,9 +59,15 @@ afterEach(() => {
 
 describe('download utils', () => {
   it('parses UTF-8, plain, missing, and malformed content-disposition filenames', () => {
-    expect(toBlobFileName("attachment; filename*=UTF-8''%E5%AD%A6%E5%91%98.xlsx", 'fallback.xlsx')).toBe('学员.xlsx')
-    expect(toBlobFileName('attachment; filename="student.xlsx"', 'fallback.xlsx')).toBe('student.xlsx')
-    expect(toBlobFileName("attachment; filename*=UTF-8''%E0%A4%A", 'fallback.xlsx')).toBe('fallback.xlsx')
+    expect(
+      toBlobFileName("attachment; filename*=UTF-8''%E5%AD%A6%E5%91%98.xlsx", 'fallback.xlsx')
+    ).toBe('学员.xlsx')
+    expect(toBlobFileName('attachment; filename="student.xlsx"', 'fallback.xlsx')).toBe(
+      'student.xlsx'
+    )
+    expect(toBlobFileName("attachment; filename*=UTF-8''%E0%A4%A", 'fallback.xlsx')).toBe(
+      'fallback.xlsx'
+    )
   })
 
   it('downloads blob response and reads content-disposition file name', async () => {
@@ -130,7 +135,9 @@ describe('download utils', () => {
     for (const error of [new TypeError('Failed to fetch'), makeNormalizedTransportError()]) {
       openedUrl = ''
       const result = await downloadBlob({
-        request: async () => { throw error },
+        request: async () => {
+          throw error
+        },
         fallbackFileName: 'fallback.xlsx',
         fallbackUrl: 'https://oss.example.com/fallback.xlsx',
       })
@@ -145,15 +152,34 @@ describe('download utils', () => {
       Object.assign(new Error('接口返回错误'), { response: { status: 500 } }),
       Object.assign(new Error('业务错误'), { code: 'AUTH_EXPIRED' }),
       new Error('request failed'),
+      normalizeApiError(
+        new AxiosError(
+          'Business failure',
+          'ERR_BAD_REQUEST',
+          undefined,
+          {},
+          {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: {},
+            config: { headers: new AxiosHeaders() },
+            data: { error: { code: 'stale_user_version', message: 'Conflict' } },
+          }
+        )
+      ),
     ]
 
     for (const error of errors) {
       openedUrl = ''
-      await expect(downloadBlob({
-        request: async () => { throw error },
-        fallbackFileName: 'fallback.xlsx',
-        fallbackUrl: '/download/fallback',
-      })).rejects.toThrow(error.message)
+      await expect(
+        downloadBlob({
+          request: async () => {
+            throw error
+          },
+          fallbackFileName: 'fallback.xlsx',
+          fallbackUrl: '/download/fallback',
+        })
+      ).rejects.toThrow(error.message)
       expect(openedUrl).toBe('')
     }
   })
@@ -166,22 +192,30 @@ describe('download utils', () => {
       'https://user:pass@oss.example.com/a.xlsx',
       '//user:pass@oss.example.com/a.xlsx',
     ]) {
-      await expect(downloadBlob({
-        request: async () => { throw makeAxiosNetworkError() },
-        fallbackFileName: 'fallback.xlsx',
-        fallbackUrl,
-      })).rejects.toThrow('兜底下载地址不安全')
+      await expect(
+        downloadBlob({
+          request: async () => {
+            throw makeAxiosNetworkError()
+          },
+          fallbackFileName: 'fallback.xlsx',
+          fallbackUrl,
+        })
+      ).rejects.toThrow('兜底下载地址不安全')
       expect(openedUrl).toBe('')
     }
   })
 
   it('rejects when fallback window opening throws', async () => {
     windowOpenError = new Error('blocked')
-    await expect(downloadBlob({
-      request: async () => { throw makeAxiosNetworkError() },
-      fallbackFileName: 'fallback.xlsx',
-      fallbackUrl: '/download/fallback',
-    })).rejects.toThrow('兜底下载窗口打开失败')
+    await expect(
+      downloadBlob({
+        request: async () => {
+          throw makeAxiosNetworkError()
+        },
+        fallbackFileName: 'fallback.xlsx',
+        fallbackUrl: '/download/fallback',
+      })
+    ).rejects.toThrow('兜底下载窗口打开失败')
   })
 
   it('rejects without opening a fallback window when no fallback url is provided', async () => {
@@ -224,14 +258,18 @@ describe('download utils', () => {
       })
     ).toBe('/api/export?status=2&size=9999&keyword=abc')
 
-    expect(buildDownloadUrl('templates/import.xlsx?version=old#download', {
-      version: 'new',
-      page: 0,
-      enabled: false,
-    })).toBe('templates/import.xlsx?version=new&page=0&enabled=false#download')
+    expect(
+      buildDownloadUrl('templates/import.xlsx?version=old#download', {
+        version: 'new',
+        page: 0,
+        enabled: false,
+      })
+    ).toBe('templates/import.xlsx?version=new&page=0&enabled=false#download')
 
-    expect(buildDownloadUrl('https://oss.example.com/import.xlsx?version=old#download', {
-      version: 'new',
-    })).toBe('https://oss.example.com/import.xlsx?version=new#download')
+    expect(
+      buildDownloadUrl('https://oss.example.com/import.xlsx?version=old#download', {
+        version: 'new',
+      })
+    ).toBe('https://oss.example.com/import.xlsx?version=new#download')
   })
 })

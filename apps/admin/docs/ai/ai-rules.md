@@ -1,12 +1,15 @@
 # AI Implementation Rules
 
 ## 1. Goal
+
 让 AI 在这个项目里稳定地做到三件事：
+
 - 先识别业务属于哪个页面类型
 - 再复用已存在模板与组件
 - 最后按现有规范交付可测试代码
 
 ## 2. Mandatory Inputs (每次生成代码前必须读取)
+
 1. `docs/ai/business-map.yaml`
 2. `docs/ai/page-recipes.yaml`
 3. `docs/ai/page-guardrail-recipes.md`
@@ -16,6 +19,7 @@
 7. `src/infrastructure/auth/permissions.ts`
 
 ## 3. Engineering Constraints
+
 - 路由、菜单、权限都走已有 route contract。
 - 新页面先复用 `src/pages/templates/*` 与 `src/shared/template-kit/*`。
 - 若需求是“从其他项目迁移页面”，优先阅读 `docs/ai/form-migration-rules.md` 或 `docs/ai/list-migration-rules.md`，先做旧新对照清单，再决定是否接入 recipe。
@@ -40,7 +44,7 @@
 - 尽量少写死样式值（颜色、背景、边框、阴影）；优先使用主题 token、组件变量或语义 class，以适配 `light/dark/system`。
 - 操作列必须直接展示所有可见操作项；宽度禁止运行时动态推算，必须在开发阶段按“同一时刻全部直出”的按钮组合一次性计算后写成固定值，并在代码注释说明计算过程。
 - 同域列表的主标识列和时间列应尽量统一宽度；若同类资源编号列已形成稳定宽度，新页面默认沿用。
-- 列表中的危险操作必须使用 `Popconfirm` 去实现二次确认。
+- 普通行危险动作必须使用 `ListRowActions.confirm`（内部 Popconfirm）描述后果并二次确认。IAM、主题发布等涉及 recent-auth、operation ID、冲突恢复或不可撤销页面流程时，保留现有安全 Modal；不得降级为行确认。
 - 动态表单中“上移/下移/删除/编号”操作必须复用统一组件 `sort-action-group`，禁止页面内重复散装实现。
 - 复杂字段（如 `Cascader/TreeSelect/RemoteSearchSelect`）默认同构复用，禁止无依据降级为 `Input/普通Select`。
 - 重置行为必须是“全状态重置”：除表单字段外，需同步重置复杂组件状态（如树勾选/半勾选、展开态、搜索关键字、临时列表缓存）。
@@ -64,6 +68,7 @@
 - 代码卫生约束：禁止保留未使用的 import/变量；提交前必须通过 ESLint（包含 `unused-imports` 规则）。
 
 ## 4. Design Baseline (Authoritative)
+
 以下规则是本项目 UI/UX 的唯一执行标准。
 
 - 状态反馈必须覆盖 `readonly / loading / empty / error / partial`。
@@ -100,7 +105,9 @@
 ## 5.1 操作列固定宽度规则（强制）
 
 详细口径见 `docs/ai/list-column-width-rules.md`。本节保留必须遵守的摘要规则。
+
 1. 固定计算口径：
+
 - 2 个汉字 = 28px（14px/字）
 - 4 个汉字 = 56px（14px/字）
 - 按钮间距默认 13px（需计入）
@@ -108,23 +115,28 @@
 - 操作列不设默认宽度上限；只有明确业务约束要求时才允许传入页面级上限
 
 2. 计算基线：
+
 - 以“同一时刻全部直出按钮集合”的最宽组合计算（含权限放开、状态分支命中）
 - 对互斥按钮（如“启用/禁用”“通过/驳回”）按单分支计入，不得把互斥分支叠加为同屏宽度
 - 使用 `Divider` 分隔时，必须计入分隔占位，不得只按文案估算
 
 3. 代码要求：
+
 - 宽度写成常量（如 `ACTION_COLUMN_WIDTH`），禁止运行时动态推算
 - 常量上方必须有注释，明确计算过程与各项像素来源
 - 注释中的计算过程必须与常量值一致
 
 ## 6. File Placement Convention
+
 - 新业务页面: `src/pages/templates/<domain>/`
 - 模板化复用逻辑: `src/shared/template-kit/`
 - 页面 API: `src/pages/templates/<domain>/api.ts`
 - 路由配置: `src/routes/routes.config.ts`
 
 ## 7. Output Contract for AI
+
 AI 在输出实现方案时，必须包含：
+
 1. 业务归类（对应 business domain / recipe）
 2. 页面模块划分（至少标出筛选区/内容区/反馈区/权限区中适用项）
 3. 表单选型结论（基础/分步/高级）及判别依据
@@ -138,7 +150,9 @@ AI 在输出实现方案时，必须包含：
 11. 是否覆盖参数非法、权限分支、查询交互三个关键风险点
 
 ## 8. Rejection Rules
+
 如果 AI 方案出现以下任一项，视为不合格并重做：
+
 - 新造一个和 template-kit 重复的控制器
 - 忽略权限声明
 - 忽略 `mode` 参数校验

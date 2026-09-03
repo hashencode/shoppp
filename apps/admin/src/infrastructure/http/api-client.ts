@@ -25,10 +25,7 @@ type LocalApiErrorCode = (typeof LOCAL_API_ERROR_CODES)[number]
 export type ApiErrorCode = AdminAuthErrorCode | LocalApiErrorCode
 
 function isLocalApiErrorCode(value: unknown): value is LocalApiErrorCode {
-  return (
-    typeof value === 'string' &&
-    LOCAL_API_ERROR_CODES.some((candidate) => candidate === value)
-  )
+  return typeof value === 'string' && LOCAL_API_ERROR_CODES.some((candidate) => candidate === value)
 }
 
 function parseApiErrorCode(value: unknown): ApiErrorCode | undefined {
@@ -42,6 +39,7 @@ export type ApiError = Error & {
   code: ApiErrorCode
   details?: unknown
   status?: number
+  cause?: unknown
 }
 
 export const resolveApiBaseUrl = (apiBase?: string): string => {
@@ -49,6 +47,15 @@ export const resolveApiBaseUrl = (apiBase?: string): string => {
 }
 
 export const normalizeApiError = (error: unknown): ApiError => {
+  if (
+    error instanceof Error &&
+    !axios.isAxiosError(error) &&
+    'code' in error &&
+    parseApiErrorCode(error.code)
+  ) {
+    return error as ApiError
+  }
+
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{
       message?: string
@@ -62,10 +69,14 @@ export const normalizeApiError = (error: unknown): ApiError => {
       axiosError.message ??
       '请求失败，请稍后重试。'
 
+    const details = axiosError.response?.data?.error?.details
+
     if (axiosError.code === 'ECONNABORTED') {
       return Object.assign(new Error(message), {
         code: 'QUERY_TIMEOUT' as const,
         status,
+        details,
+        cause: error,
       })
     }
 
@@ -73,6 +84,8 @@ export const normalizeApiError = (error: unknown): ApiError => {
       return Object.assign(new Error(message), {
         code: 'RESOURCE_NOT_FOUND' as const,
         status,
+        details,
+        cause: error,
       })
     }
 
@@ -80,48 +93,42 @@ export const normalizeApiError = (error: unknown): ApiError => {
       return Object.assign(new Error(message), {
         code: 'QUERY_SERVER_ERROR' as const,
         status,
+        details,
+        cause: error,
       })
     }
 
     const errorCode = parseApiErrorCode(
       axiosError.response?.data?.errorCode ?? axiosError.response?.data?.error?.code
     )
-    const details = axiosError.response?.data?.error?.details
-
     if (errorCode) {
       return Object.assign(new Error(message), {
         code: errorCode,
         details,
         status,
+        cause: error,
       })
     }
 
     return Object.assign(new Error(message), {
       code: 'UNKNOWN_ERROR' as const,
       status,
+      details,
+      cause: error,
     })
   }
 
   if (error instanceof Error && 'code' in error) {
-    const candidate = error as Error & { code?: unknown; status?: number }
-    const errorCode = parseApiErrorCode(candidate.code)
-    if (!errorCode) {
-      return Object.assign(new Error(candidate.message), {
-        code: 'UNKNOWN_ERROR' as const,
-        status: candidate.status,
-      })
-    }
-    if (errorCode === 'QUERY_SERVER_ERROR') {
-      return Object.assign(new Error('请求失败，请稍后重试。'), {
-        code: 'QUERY_SERVER_ERROR' as const,
-        status: candidate.status,
-      })
-    }
-    return Object.assign(candidate, { code: errorCode })
+    return Object.assign(new Error(error.message), {
+      code: 'UNKNOWN_ERROR' as const,
+      status: (error as Error & { status?: number }).status,
+      cause: error,
+    })
   }
 
   return Object.assign(new Error('请求失败，请稍后重试。'), {
     code: 'UNKNOWN_ERROR' as const,
+    cause: error,
   })
 }
 

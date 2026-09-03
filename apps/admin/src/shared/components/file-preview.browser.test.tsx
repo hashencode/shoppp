@@ -1,7 +1,8 @@
+import { render } from '../../test/render-with-app'
 import { ConfigProvider, theme } from 'antd'
 import { page } from '@rstest/browser'
 import { afterEach, describe, expect, it } from '@rstest/core'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 import { FilePreview } from './file-preview'
 
@@ -22,13 +23,7 @@ afterEach(() => {
 
 describe('FilePreview browser rendering', () => {
   it('keeps the real image toolbar available and restores focus after close', async () => {
-    render(
-      <FilePreview
-        title="图片预览"
-        source={IMAGE_SOURCE}
-        fileName="学习记录.png"
-      />
-    )
+    render(<FilePreview title="图片预览" source={IMAGE_SOURCE} fileName="学习记录.png" />)
 
     const trigger = page.getByRole('button', { name: '预览' })
     await trigger.focus()
@@ -64,33 +59,29 @@ describe('FilePreview browser rendering', () => {
     expect(getComputedStyle(modal as HTMLElement).color).not.toBe('')
   })
 
-  it(
-    'mounts the video player only while open and destroys it after close',
-    async () => {
-      render(
-        <FilePreview
-          title="视频预览"
-          source={HLS_SOURCE}
-          fileName="课程视频.m3u8"
-          contentType="application/vnd.apple.mpegurl"
-        />
-      )
+  it('mounts the video player only while open and destroys it after close', async () => {
+    render(
+      <FilePreview
+        title="视频预览"
+        source={HLS_SOURCE}
+        fileName="课程视频.m3u8"
+        contentType="application/vnd.apple.mpegurl"
+      />
+    )
 
+    expect(document.querySelector('.video-player-stage.xgplayer')).toBeNull()
+    await page.getByRole('button', { name: '预览' }).click()
+
+    await waitFor(
+      () => {
+        expect(document.querySelector('.video-player-stage.xgplayer')).toBeTruthy()
+      },
+      { timeout: 10_000 }
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /关\s*闭/ }))
+    await waitFor(() => {
       expect(document.querySelector('.video-player-stage.xgplayer')).toBeNull()
-      await page.getByRole('button', { name: '预览' }).click()
-
-      await waitFor(
-        () => {
-          expect(document.querySelector('.video-player-stage.xgplayer')).toBeTruthy()
-        },
-        { timeout: 10_000 }
-      )
-
-      fireEvent.click(screen.getByRole('button', { name: /关\s*闭/ }))
-      await waitFor(() => {
-        expect(document.querySelector('.video-player-stage.xgplayer')).toBeNull()
-      })
-    },
-    20_000
-  )
+    })
+  }, 20_000)
 })

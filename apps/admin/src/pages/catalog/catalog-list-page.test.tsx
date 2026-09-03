@@ -37,9 +37,11 @@ if (!window.ResizeObserver) {
 }
 
 let requestCount = 0
+let requestedPageSizes: number[] = []
 const server = setupServer(
-  http.get('*/admin/catalog/products', () => {
+  http.get('*/admin/catalog/products', ({ request }) => {
     requestCount += 1
+    requestedPageSizes.push(Number(new URL(request.url).searchParams.get('pageSize')))
     return HttpResponse.json({
       data: [
         {
@@ -69,11 +71,25 @@ const renderPage = (
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   requestCount = 0
+  requestedPageSizes = []
   server.resetHandlers()
 })
 afterAll(() => server.close())
 
 describe('CatalogListPage', () => {
+  it('should offer only supported page sizes and request at most 100 products', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
+    expect(requestedPageSizes).toEqual([10])
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Page Size' }))
+    await waitFor(() => expect(screen.getByText('100 per page')).toBeTruthy())
+    expect(screen.queryByText('All data')).toBeNull()
+    fireEvent.click(screen.getByText('100 per page'))
+
+    await waitFor(() => expect(requestedPageSizes).toEqual([10, 100]))
+  })
+
   it('loads products and only queries changed filters after submit', async () => {
     renderPage()
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())

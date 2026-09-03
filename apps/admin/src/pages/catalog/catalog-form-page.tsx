@@ -1,4 +1,4 @@
-import { Button, Form, Input, InputNumber, Select, Upload, message } from 'antd'
+import { Button, Form, Input, InputNumber, Select, Upload, App } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -165,6 +165,7 @@ const safeMediaKey = (file: File) => {
 }
 
 export const CatalogFormPage = () => {
+  const { message } = App.useApp()
   const [form] = Form.useForm<CatalogFormValues>()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
@@ -446,6 +447,7 @@ export const CatalogFormPage = () => {
       ],
     }),
     [
+      message,
       detailError,
       detailLoading,
       form,

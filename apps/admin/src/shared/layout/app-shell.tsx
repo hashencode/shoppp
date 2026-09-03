@@ -10,31 +10,15 @@ import {
   SmileOutlined,
   SunOutlined,
 } from '@ant-design/icons'
-import {
-  Avatar,
-  Breadcrumb,
-  Dropdown,
-  Layout,
-  Menu,
-  message,
-  theme,
-  Typography,
-} from 'antd'
+import { Avatar, Breadcrumb, Dropdown, Layout, Menu, App, theme, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import React, { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission } from '../../infrastructure/auth/permissions'
-import {
-  RoutePageMetaProvider,
-  type RouteBreadcrumbItem,
-} from './route-page-meta-context'
+import { RoutePageMetaProvider, type RouteBreadcrumbItem } from './route-page-meta-context'
 import { useTheme, type FormContentAlign, type ThemeMode } from '../contexts/theme-context'
-import {
-  useCurrentTranslate,
-  useI18n,
-  type AppLocale,
-} from '../contexts/i18n-context'
+import { useCurrentTranslate, useI18n, type AppLocale } from '../contexts/i18n-context'
 import { getDisplayNameAvatarText, normalizeDisplayName } from '../utils/display-name'
 import { ChangePasswordModal } from '../../pages/auth/change-password-modal'
 
@@ -82,18 +66,13 @@ type AppShellProps = {
 }
 
 export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const location = useLocation()
   const { role, permissions, displayName, accountName, logout, principalKind } = useAuth()
   const { locale, setLocale, t } = useI18n()
   const translateNow = useCurrentTranslate()
-  const {
-    formContentAlign,
-    mode,
-    resolvedTheme,
-    setFormContentAlign,
-    setMode,
-  } = useTheme()
+  const { formContentAlign, mode, resolvedTheme, setFormContentAlign, setMode } = useTheme()
   const { token } = theme.useToken()
 
   const [collapsed, setCollapsed] = useState(false)
@@ -349,6 +328,33 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     },
   ]
 
+  // A local pending result runs after the new theme/locale has committed.
+  const preferenceResultRef = React.useRef<
+    | { kind: 'theme'; value: ThemeMode }
+    | { kind: 'alignment'; value: FormContentAlign }
+    | { kind: 'language'; value: AppLocale; persisted: boolean }
+    | null
+  >(null)
+  React.useEffect(() => {
+    const preferenceResult = preferenceResultRef.current
+    if (!preferenceResult) return
+    preferenceResultRef.current = null
+    const content =
+      preferenceResult.kind === 'theme'
+        ? t('Switched to {mode}.', { mode: t(THEME_MODE_LABEL[preferenceResult.value]) })
+        : preferenceResult.kind === 'alignment'
+          ? t('Form alignment changed to {alignment}.', {
+              alignment: t(FORM_CONTENT_ALIGN_LABEL[preferenceResult.value]),
+            })
+          : t(
+              preferenceResult.persisted
+                ? 'Language changed to {language}.'
+                : 'Language changed to {language} for this session, but the preference could not be saved.',
+              { language: t(LANGUAGE_LABEL[preferenceResult.value]) }
+            )
+    void message.success(content)
+  }, [formContentAlign, locale, message, mode, t])
+
   const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'profile-account') {
       void copyAccount()
@@ -368,143 +374,129 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
     if (key === 'theme-light' || key === 'theme-dark' || key === 'theme-system') {
       const nextMode = key.replace('theme-', '') as ThemeMode
       setMode(nextMode)
-      void message.success(t('Switched to {mode}.', { mode: t(THEME_MODE_LABEL[nextMode]) }))
+      preferenceResultRef.current = { kind: 'theme', value: nextMode }
       return
     }
 
     if (key === 'form-align-left' || key === 'form-align-center' || key === 'form-align-right') {
       const nextAlign = key.replace('form-align-', '') as FormContentAlign
       setFormContentAlign(nextAlign)
-      void message.success(
-        t('Form alignment changed to {alignment}.', {
-          alignment: t(FORM_CONTENT_ALIGN_LABEL[nextAlign]),
-        })
-      )
+      preferenceResultRef.current = { kind: 'alignment', value: nextAlign }
       return
     }
 
     if (key === 'language-zh-CN' || key === 'language-en-US') {
       const nextLocale = key.replace('language-', '') as AppLocale
       const persisted = setLocale(nextLocale)
-      const language = LANGUAGE_LABEL[nextLocale]
-      void message.success(
-        persisted
-          ? translateNow('Language changed to {language}.', {
-              language: translateNow(language),
-            })
-          : translateNow(
-              'Language changed to {language} for this session, but the preference could not be saved.',
-              { language: translateNow(language) }
-            )
-      )
+      preferenceResultRef.current = { kind: 'language', value: nextLocale, persisted }
     }
   }
 
   return (
     <>
       <Layout className="h-screen overflow-hidden" style={appShellStyle}>
-      <Header
-        className="flex h-14 items-center justify-between gap-3 px-5 pl-4 shadow-none"
-        style={{
-          background: token.colorBgContainer,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        }}
-      >
-        <div className="flex min-w-0 items-center">
-          <div
-            className="flex cursor-pointer items-center gap-2.5 pr-4"
-            style={{ color: token.colorText }}
-            onClick={() => navigate('/')}
-          >
-            <span className="text-base tracking-[0.2px]">Shoppp Operations</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {headerExtra}
-          <Dropdown
-            menu={{ items: userMenuItems, onClick: handleUserMenuClick, expandIcon: null }}
-            placement="bottomRight"
-            trigger={['click']}
-          >
-            <div className="flex max-w-[220px] cursor-pointer items-center gap-2">
-              <Avatar size={36}>{avatarText}</Avatar>
-              <Typography.Text className="min-w-0" ellipsis style={{ color: token.colorText }}>
-                {accountDisplayName}
-              </Typography.Text>
-            </div>
-          </Dropdown>
-        </div>
-      </Header>
-
-      <Layout
-        className="min-h-0 flex-1 overflow-hidden"
-        style={{ background: token.colorBgLayout }}
-      >
-        <Sider
-          width={APP_SHELL_SIDER_WIDTH}
-          collapsible
-          collapsed={collapsed}
-          trigger={null}
-          className="flex h-full flex-col overflow-hidden [&_.ant-layout-sider-children]:flex [&_.ant-layout-sider-children]:h-full [&_.ant-layout-sider-children]:min-h-0 [&_.ant-layout-sider-children]:flex-col"
+        <Header
+          className="flex h-14 items-center justify-between gap-3 px-5 pl-4 shadow-none"
           style={{
             background: token.colorBgContainer,
-            borderRight: `1px solid ${token.colorBorderSecondary}`,
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
           }}
-          breakpoint="lg"
-          onBreakpoint={(broken) => setCollapsed(broken)}
         >
-          <Menu
-            key={`menu-${collapsed ? 'collapsed' : (activeGroupKey ?? 'default')}`}
-            className="min-h-0 flex-1 overflow-auto !border-e-0 pt-2.5 [&_.ant-menu-item-group-title]:!hidden"
-            style={{ background: token.colorBgContainer }}
-            theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
-            mode="inline"
-            selectedKeys={selectedKey ? [selectedKey] : []}
-            defaultOpenKeys={collapsed ? [] : activeGroupKey ? [activeGroupKey] : []}
-            items={[
-              {
-                key: 'home',
-                icon: <SmileOutlined />,
-                label: t('Welcome'),
-                onClick: () => navigate('/'),
-              },
-              ...groupedMenuItems,
-            ]}
-          />
-          <div
-            className="sticky bottom-0 z-[2] flex h-11 cursor-pointer items-center justify-center hover:opacity-90"
+          <div className="flex min-w-0 items-center">
+            <div
+              className="flex cursor-pointer items-center gap-2.5 pr-4"
+              style={{ color: token.colorText }}
+              onClick={() => navigate('/')}
+            >
+              <span className="text-base tracking-[0.2px]">Shoppp Operations</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {headerExtra}
+            <Dropdown
+              menu={{ items: userMenuItems, onClick: handleUserMenuClick, expandIcon: null }}
+              placement="bottomRight"
+              trigger={['click']}
+            >
+              <div className="flex max-w-[220px] cursor-pointer items-center gap-2">
+                <Avatar size={36}>{avatarText}</Avatar>
+                <Typography.Text className="min-w-0" ellipsis style={{ color: token.colorText }}>
+                  {accountDisplayName}
+                </Typography.Text>
+              </div>
+            </Dropdown>
+          </div>
+        </Header>
+
+        <Layout
+          className="min-h-0 flex-1 overflow-hidden"
+          style={{ background: token.colorBgLayout }}
+        >
+          <Sider
+            width={APP_SHELL_SIDER_WIDTH}
+            collapsible
+            collapsed={collapsed}
+            trigger={null}
+            className="flex h-full flex-col overflow-hidden [&_.ant-layout-sider-children]:flex [&_.ant-layout-sider-children]:h-full [&_.ant-layout-sider-children]:min-h-0 [&_.ant-layout-sider-children]:flex-col"
             style={{
               background: token.colorBgContainer,
-              borderTop: `1px solid ${token.colorBorderSecondary}`,
-              color: token.colorTextSecondary,
+              borderRight: `1px solid ${token.colorBorderSecondary}`,
             }}
-            onClick={() => setCollapsed((value) => !value)}
+            breakpoint="lg"
+            onBreakpoint={(broken) => setCollapsed(broken)}
           >
-            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </div>
-        </Sider>
-
-        <Content
-          className="min-h-0 overflow-y-auto p-6"
-          style={{
-            background: token.colorBgLayout,
-            scrollbarGutter: 'stable both-edges',
-          }}
-        >
-          {shouldShowBreadcrumb && (
-            <div className="mb-3 bg-transparent p-0 [&_.ant-breadcrumb]:text-[13px]">
-              <Breadcrumb items={breadcrumbItems.map((item) => ({ title: item }))} />
+            <Menu
+              key={`menu-${collapsed ? 'collapsed' : (activeGroupKey ?? 'default')}`}
+              className="min-h-0 flex-1 overflow-auto !border-e-0 pt-2.5 [&_.ant-menu-item-group-title]:!hidden"
+              style={{ background: token.colorBgContainer }}
+              theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+              mode="inline"
+              selectedKeys={selectedKey ? [selectedKey] : []}
+              defaultOpenKeys={collapsed ? [] : activeGroupKey ? [activeGroupKey] : []}
+              items={[
+                {
+                  key: 'home',
+                  icon: <SmileOutlined />,
+                  label: t('Welcome'),
+                  onClick: () => navigate('/'),
+                },
+                ...groupedMenuItems,
+              ]}
+            />
+            <div
+              className="sticky bottom-0 z-[2] flex h-11 cursor-pointer items-center justify-center hover:opacity-90"
+              style={{
+                background: token.colorBgContainer,
+                borderTop: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorTextSecondary,
+              }}
+              onClick={() => setCollapsed((value) => !value)}
+            >
+              {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </div>
-          )}
+          </Sider>
 
-          <div className="flex flex-col gap-4 [&_.ant-card_.ant-card-body]:p-6 [&_.ant-card_.ant-card-head]:min-h-[50px] [&_.ant-card_.ant-card-head]:px-6 [&_.ant-card]:rounded-lg [&_.ant-card]:shadow-none [&_.ant-result]:mx-auto [&_.ant-result]:max-w-[920px] [&_.ant-result]:px-0 [&_.ant-result]:pt-8 [&_.ant-result]:pb-3 [&_.ant-statistic-content]:text-[28px] [&_.ant-table-wrapper_.ant-table]:rounded-lg">
-            <RoutePageMetaProvider value={routePageMeta}>
-              <Outlet />
-            </RoutePageMetaProvider>
-          </div>
-        </Content>
-      </Layout>
+          <Content
+            className="min-h-0 overflow-y-auto p-6"
+            style={{
+              background: token.colorBgLayout,
+              scrollbarGutter: 'stable both-edges',
+            }}
+          >
+            {shouldShowBreadcrumb && (
+              <div className="mb-3 bg-transparent p-0 [&_.ant-breadcrumb]:text-[13px]">
+                <Breadcrumb items={breadcrumbItems.map((item) => ({ title: item }))} />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-4 [&_.ant-card_.ant-card-body]:p-6 [&_.ant-card_.ant-card-head]:min-h-[50px] [&_.ant-card_.ant-card-head]:px-6 [&_.ant-card]:rounded-lg [&_.ant-card]:shadow-none [&_.ant-result]:mx-auto [&_.ant-result]:max-w-[920px] [&_.ant-result]:px-0 [&_.ant-result]:pt-8 [&_.ant-result]:pb-3 [&_.ant-statistic-content]:text-[28px] [&_.ant-table-wrapper_.ant-table]:rounded-lg">
+              <RoutePageMetaProvider value={routePageMeta}>
+                <Outlet />
+              </RoutePageMetaProvider>
+            </div>
+          </Content>
+        </Layout>
       </Layout>
       <ChangePasswordModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
     </>

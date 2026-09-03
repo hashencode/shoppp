@@ -1,7 +1,4 @@
-import {
-  CloseCircleOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { CloseCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
@@ -15,7 +12,7 @@ import {
   Space,
   Table,
   TimePicker,
-  message,
+  App,
   theme,
 } from 'antd'
 import type { Dayjs } from 'dayjs'
@@ -69,6 +66,7 @@ const initialMembers: MemberItem[] = [
 ]
 
 export const AdvancedFormPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const [form] = Form.useForm<AdvancedValues>()
   const [errorFields, setErrorFields] = useState<{ name: string; errors: string[] }[]>([])

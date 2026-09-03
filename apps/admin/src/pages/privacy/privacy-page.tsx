@@ -1,5 +1,5 @@
 import type { CreatePrivacyRequest, PrivacyRequest } from '@shoppp/contracts'
-import { Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd'
+import { Button, Form, Input, Modal, Select, Space, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
@@ -18,6 +18,7 @@ type FormValues = Omit<CreatePrivacyRequest, 'confirm' | 'correction'> & {
 }
 
 export const PrivacyPage = () => {
+  const { message } = App.useApp()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
@@ -37,7 +38,7 @@ export const PrivacyPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [localizeError])
+  }, [message, localizeError])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)

@@ -1,5 +1,6 @@
+import { render } from '../../../test/render-with-app'
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import type { ColumnsType } from 'antd/es/table'
 import { ThemeProvider } from '../../contexts/theme-context'

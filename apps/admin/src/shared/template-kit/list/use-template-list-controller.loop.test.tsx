@@ -1,6 +1,7 @@
+import { render } from '../../../test/render-with-app'
 import React from 'react'
 import { useCallback, useEffect, useMemo } from 'react'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import { useTemplateListController } from './use-template-list-controller'
 

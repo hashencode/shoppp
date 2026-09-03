@@ -1,4 +1,10 @@
-import type { AdminInvitation, AdminInvitationStatus, AdminRole, AdminUser, AdminUserStatus } from '@shoppp/contracts'
+import type {
+  AdminInvitation,
+  AdminInvitationStatus,
+  AdminRole,
+  AdminUser,
+  AdminUserStatus,
+} from '@shoppp/contracts'
 import {
   Alert,
   Button,
@@ -11,7 +17,7 @@ import {
   Table,
   Tabs,
   Tag,
-  message,
+  App,
 } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -73,10 +79,13 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
     processing: 'processing',
     sent: 'success',
   } as const
-  return <Tag color={colors[invitation.delivery.status]}>{t(labels[invitation.delivery.status])}</Tag>
+  return (
+    <Tag color={colors[invitation.delivery.status]}>{t(labels[invitation.delivery.status])}</Tag>
+  )
 }
 
 export const UsersPage = () => {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { t } = useI18n()
   const { permissions, role: roleKey, session } = useAuth()
@@ -106,7 +115,12 @@ export const UsersPage = () => {
     setLoadError(null)
     try {
       const [userResult, invitationResult, roleResult] = await Promise.all([
-        fetchAdminUsers({ page: userPage, pageSize: 25, search: search || undefined, status: userStatus }),
+        fetchAdminUsers({
+          page: userPage,
+          pageSize: 25,
+          search: search || undefined,
+          status: userStatus,
+        }),
         fetchAdminInvitations({
           page: invitationPage,
           pageSize: 25,
@@ -151,7 +165,11 @@ export const UsersPage = () => {
       ),
     },
     { key: 'role', title: t('Role'), render: (_: unknown, user: AdminUser) => user.role.name },
-    { key: 'status', title: t('Status'), render: (_: unknown, user: AdminUser) => statusTag(user.status, t) },
+    {
+      key: 'status',
+      title: t('Status'),
+      render: (_: unknown, user: AdminUser) => statusTag(user.status, t),
+    },
     {
       key: 'actions',
       title: t('Actions'),
@@ -175,11 +193,16 @@ export const UsersPage = () => {
         </div>
       ),
     },
-    { key: 'role', title: t('Role'), render: (_: unknown, invitation: AdminInvitation) => invitation.role.name },
+    {
+      key: 'role',
+      title: t('Role'),
+      render: (_: unknown, invitation: AdminInvitation) => invitation.role.name,
+    },
     {
       key: 'expires',
       title: t('Expires'),
-      render: (_: unknown, invitation: AdminInvitation) => new Date(invitation.expiresAt).toLocaleDateString(),
+      render: (_: unknown, invitation: AdminInvitation) =>
+        new Date(invitation.expiresAt).toLocaleDateString(),
     },
     {
       key: 'status',
@@ -222,7 +245,9 @@ export const UsersPage = () => {
               okText={t('Confirm revoke')}
               onConfirm={async () => {
                 try {
-                  await revokeAdminInvitation(invitation.id, { expectedVersion: invitation.version })
+                  await revokeAdminInvitation(invitation.id, {
+                    expectedVersion: invitation.version,
+                  })
                   void message.success(t('Invitation revoked.'))
                   await load()
                 } catch (error) {
@@ -230,7 +255,9 @@ export const UsersPage = () => {
                 }
               }}
             >
-              <Button danger type="link" className="!px-0">{t('Revoke')}</Button>
+              <Button danger type="link" className="!px-0">
+                {t('Revoke')}
+              </Button>
             </Popconfirm>
           </Space>
         ) : null,
@@ -242,7 +269,9 @@ export const UsersPage = () => {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{t('Users and invitations')}</h1>
-          <p className="text-slate-500">{t('Manage human accounts, activation, status, and role assignment.')}</p>
+          <p className="text-slate-500">
+            {t('Manage human accounts, activation, status, and role assignment.')}
+          </p>
         </div>
         {canInvite ? (
           <Button
@@ -263,11 +292,20 @@ export const UsersPage = () => {
         <Alert
           type="info"
           showIcon
-          title={t('Invitation creation requires role visibility. You can still resend or revoke existing invitations.')}
+          title={t(
+            'Invitation creation requires role visibility. You can still resend or revoke existing invitations.'
+          )}
         />
       ) : null}
 
-      {loadError ? <Alert type="error" showIcon title={loadError} action={<Button onClick={() => void load()}>{t('Retry')}</Button>} /> : null}
+      {loadError ? (
+        <Alert
+          type="error"
+          showIcon
+          title={loadError}
+          action={<Button onClick={() => void load()}>{t('Retry')}</Button>}
+        />
+      ) : null}
       <Input.Search
         allowClear
         aria-label={t('Search users and invitations')}
@@ -290,8 +328,14 @@ export const UsersPage = () => {
                   aria-label={t('User status')}
                   className="min-w-40"
                   placeholder={t('All user states')}
-                  options={[{ label: t('Active'), value: 'active' }, { label: t('Disabled'), value: 'disabled' }]}
-                  onChange={(value) => { setUserStatus(value); setUserPage(1) }}
+                  options={[
+                    { label: t('Active'), value: 'active' },
+                    { label: t('Disabled'), value: 'disabled' },
+                  ]}
+                  onChange={(value) => {
+                    setUserStatus(value)
+                    setUserPage(1)
+                  }}
                 />
                 <Table<AdminUser>
                   rowKey="id"
@@ -299,7 +343,12 @@ export const UsersPage = () => {
                   dataSource={users}
                   loading={loading}
                   locale={{ emptyText: t('No users match these filters.') }}
-                  pagination={{ current: userPage, pageSize: 25, total: userTotal, onChange: setUserPage }}
+                  pagination={{
+                    current: userPage,
+                    pageSize: 25,
+                    total: userTotal,
+                    onChange: setUserPage,
+                  }}
                   scroll={{ x: 720 }}
                 />
               </Space>
@@ -315,8 +364,14 @@ export const UsersPage = () => {
                   aria-label={t('Invitation status')}
                   className="min-w-40"
                   placeholder={t('All invitation states')}
-                  options={['pending', 'accepted', 'revoked', 'expired'].map((value) => ({ label: t(value[0].toUpperCase() + value.slice(1)), value }))}
-                  onChange={(value) => { setInvitationStatus(value); setInvitationPage(1) }}
+                  options={['pending', 'accepted', 'revoked', 'expired'].map((value) => ({
+                    label: t(value[0].toUpperCase() + value.slice(1)),
+                    value,
+                  }))}
+                  onChange={(value) => {
+                    setInvitationStatus(value)
+                    setInvitationPage(1)
+                  }}
                 />
                 <Table<AdminInvitation>
                   rowKey="id"
@@ -324,7 +379,12 @@ export const UsersPage = () => {
                   dataSource={invitations}
                   loading={loading}
                   locale={{ emptyText: t('No invitations match these filters.') }}
-                  pagination={{ current: invitationPage, pageSize: 25, total: invitationTotal, onChange: setInvitationPage }}
+                  pagination={{
+                    current: invitationPage,
+                    pageSize: 25,
+                    total: invitationTotal,
+                    onChange: setInvitationPage,
+                  }}
                   scroll={{ x: 860 }}
                 />
               </Space>
@@ -375,7 +435,10 @@ export const UsersPage = () => {
           </Form.Item>
           <Form.Item name="roleId" label={t('Role')} rules={[{ required: true }]}>
             <Select
-              options={assignableRoles.map((candidate) => ({ label: candidate.name, value: candidate.id }))}
+              options={assignableRoles.map((candidate) => ({
+                label: candidate.name,
+                value: candidate.id,
+              }))}
               placeholder={t(assignableRoles.length ? 'Select a role' : 'No assignable roles')}
             />
           </Form.Item>

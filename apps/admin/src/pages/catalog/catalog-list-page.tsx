@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Table, Tag, message } from 'antd'
+import { Button, Input, Modal, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useMemo, useState } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -92,6 +92,7 @@ const toFilters = (values: CatalogSearchValues): CatalogListFilters => ({
 })
 
 export const CatalogListPage = () => {
+  const { message } = App.useApp()
   const { role, permissions } = useAuth()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
@@ -133,22 +134,25 @@ export const CatalogListPage = () => {
         void message.error(localizeError(error))
       }
     },
-    [localizeError, translateNow]
+    [message, localizeError, translateNow]
   )
 
-  const handlePreview = useCallback(async (product: CatalogProductListItem) => {
-    try {
-      const preview = await previewCatalogProduct(product.id)
-      const origin = import.meta.env.PUBLIC_STOREFRONT_ORIGIN?.replace(/\/$/, '') ?? ''
-      window.open(
-        `${origin}/preview?token=${encodeURIComponent(preview.token)}`,
-        '_blank',
-        'noopener'
-      )
-    } catch (error) {
-      void message.error(localizeError(error))
-    }
-  }, [localizeError])
+  const handlePreview = useCallback(
+    async (product: CatalogProductListItem) => {
+      try {
+        const preview = await previewCatalogProduct(product.id)
+        const origin = import.meta.env.PUBLIC_STOREFRONT_ORIGIN?.replace(/\/$/, '') ?? ''
+        window.open(
+          `${origin}/preview?token=${encodeURIComponent(preview.token)}`,
+          '_blank',
+          'noopener'
+        )
+      } catch (error) {
+        void message.error(localizeError(error))
+      }
+    },
+    [message, localizeError]
+  )
 
   const spec = useMemo<
     StandardListPageSpec<
@@ -165,6 +169,7 @@ export const CatalogListPage = () => {
       tableId: 'catalog-products',
       formRoute: '/catalog/products/form',
       initialFilters: {},
+      pagination: { includeAllDataOption: false, maxPageSize: 100 },
       toFilters,
       buildRequestFilters: ({ filters: submitted, current, pageSize }) => ({
         ...submitted,
