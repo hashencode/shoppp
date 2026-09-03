@@ -155,11 +155,6 @@ export const OrderReportPage = () => {
           )}
         </p>
       </div>
-      <Alert
-        type="info"
-        showIcon
-        message={`${t('Reporting basis:')} ${query.currency} · ${query.timeZone} · ${query.startDate}–${query.endDate}`}
-      />
       <Space wrap align="end">
         <Input.Search
           aria-label={t('Search report orders')}

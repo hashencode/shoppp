@@ -93,6 +93,9 @@ describe('OrderReportPage', () => {
     expect(screen.getByText('$25.00')).toBeTruthy()
     expect(screen.getByText('$5.00')).toBeTruthy()
     expect(screen.getByText('$20.00')).toBeTruthy()
+    expect(screen.queryByText(/Reporting basis:/)).toBeNull()
+    expect(screen.getByRole('combobox', { name: 'Report currency' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'Report time zone' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull()
   })
 

@@ -54,7 +54,7 @@
 - 当页面已使用 `PageHeaderWithBack` 承载主标题时，页面主容器 `Card` 不得重复设置同义 `title`；基础表单页与分步表单页必须去掉主 `Card title`。
 - 标准一级列表页主标题由 `StandardListPageRecipe.pageTitle` 承载，并应与 route `title` 保持同义。
 - 一级业务 override / 自定义页必须使用 `CustomPageRecipe` 承载内容区主标题；默认标题来自 `AppShell` 暴露的当前 route title，可通过 `title` 显式覆盖，禁止页面内散装手写同义 `Typography.Title`。
-- 面包屑只由 `AppShell` 渲染，页面内容区不得重复渲染面包屑；`Card title` 只用于表达内容分区。
+- 面包屑只由 `AppShell` 渲染，独立一级入口和不足两级的路径不显示；完整 contract 见 `page-guardrail-recipes.md` §5.5。页面内容区不得重复渲染面包屑；`Card title` 只用于表达内容分区。
 - 自定义表单内容容器必须复用 `FORM_CONTENT_ALIGN_CLASS_NAME` 或 `FORM_CARD_BODY_WIDTH_CLASS_NAME`，避免覆盖用户在 `AppShell` 中选择的表单左/中/右对齐偏好。
 - 旧页迁移或业务接入中，启用/禁用、状态切换、审核、绑定、过滤等非表单写动作必须冻结请求合同：`endpoint / method / payload 来源 / 完整对象更新还是局部 patch / 状态值映射 / null 与 undefined 处理 / 成功判定`。
 - 默认值必须区分三层：用户首屏看到什么、组件/表单内部持有什么值、请求 payload 实际发什么；三层不一致时必须在边界层显式映射。
@@ -87,6 +87,7 @@
 - 普通单列编辑页字段控件默认填满表单内容列；禁止用 `md:!w-[360px]`、`md:!w-[480px]` 等字段级固定宽度替代模板内容宽度。
 - 主题必须支持 `light / dark / system`，并使用同一主题上下文。
 - 新增样式优先使用 Ant Design token 或语义化 CSS 变量；避免硬编码颜色、背景、边框、阴影。
+- 信息只在最接近操作或决策的位置展示一次。筛选控件已经清楚表达币种、时区、日期等条件时，禁止再增加同义“报表口径”卡片、摘要行或说明块；指标定义放在对应指标旁的问号 Tooltip 中，并使用当前语言。只有新增决策信息（如筛选尚未应用、加载失败、数据限制）才保留局部提示，不重复罗列条件。此约定来自 2026-09-03 Dashboard 反馈。
 - 若出现临时硬编码样式，必须在 `TODOS.md` 记录迁移任务。
 - 可访问性基线：键盘焦点顺序与视觉顺序一致，状态文案可被屏幕阅读器清晰理解；Ant Design
   与现有共享组件负责通用角色、键盘行为、弹层焦点和常规 live feedback，业务页不得重复实现。

@@ -10,7 +10,6 @@ import { authContextFixture } from '../../test/auth-context-fixture'
 import type { AuthContextValue } from '../../infrastructure/auth/auth-context'
 import { renderInLocale } from '../../test/render-in-locale'
 import { LANGUAGE_STORAGE_KEY, type AppLocale } from '../contexts/i18n-context'
-
 import { templateRoutes } from '../../routes/routes.config'
 
 void React
@@ -97,7 +96,10 @@ const RouteMetaProbe = () => {
   )
 }
 
-const renderShellWithRouteMeta = () =>
+const renderShellWithRouteMeta = (
+  routes: React.ComponentProps<typeof AppShell>['routes'] = routeMetaRoutes,
+  pathname = '/alpha'
+) =>
   renderInLocale(
     <AuthContext.Provider
       value={authContextFixture({
@@ -106,10 +108,11 @@ const renderShellWithRouteMeta = () =>
       })}
     >
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/alpha']}>
+        <MemoryRouter initialEntries={[pathname]}>
           <Routes>
-            <Route path="/" element={<AppShell routes={routeMetaRoutes} />}>
-              <Route path="alpha" element={<RouteMetaProbe />} />
+            <Route path="/" element={<AppShell routes={routes} />}>
+              <Route index element={<RouteMetaProbe />} />
+              <Route path="*" element={<RouteMetaProbe />} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -135,6 +138,59 @@ describe('AppShell', () => {
     expect(screen.queryByRole('menuitem', { name: /开店指南/ })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
     expect(screen.getByRole('menuitem', { name: /商品目录/ })).toBeTruthy()
+  })
+
+  it('does not use the fallback route as home breadcrumb metadata', () => {
+    const { container } = renderShellWithRouteMeta(templateRoutes, '/')
+    expect(container.querySelector('.ant-breadcrumb')).toBeNull()
+    expect(screen.getByTestId('route-meta-probe').textContent).toBe('欢迎|')
+  })
+
+  it.each(templateRoutes.filter((route) => route.inMenu && route.menuMode === 'standalone'))(
+    'omits redundant breadcrumbs on the registered standalone route $path',
+    (route) => {
+      const { container } = renderShellWithRouteMeta(templateRoutes, route.path)
+      expect(container.querySelector('.ant-breadcrumb')).toBeNull()
+    }
+  )
+
+  it.each([[], ['Alpha 页面'], ['一级导航', 'Alpha 页面']].map((breadcrumb) => ({ breadcrumb })))(
+    'hides breadcrumbs for standalone entries regardless of classification labels: %j',
+    ({ breadcrumb }) => {
+      const { container } = renderShellWithRouteMeta([
+        { ...routeMetaRoutes[0]!, menuMode: 'standalone', breadcrumb },
+      ])
+      expect(container.querySelector('.ant-breadcrumb')).toBeNull()
+      expect(screen.getByTestId('route-meta-probe').textContent).toBe(
+        `Alpha 页面|${breadcrumb.join('>')}`
+      )
+    }
+  )
+
+  it('hides a single breadcrumb even for grouped entries', () => {
+    const { container } = renderShellWithRouteMeta([
+      { ...routeMetaRoutes[0]!, breadcrumb: ['Alpha 页面'] },
+    ])
+    expect(container.querySelector('.ant-breadcrumb')).toBeNull()
+  })
+
+  it('retains real grouped hierarchy and resolves dynamic detail metadata', () => {
+    const { container } = renderShellWithRouteMeta(
+      [
+        ...routeMetaRoutes,
+        {
+          ...routeMetaRoutes[0]!,
+          key: 'detail',
+          path: '/alpha/:id',
+          inMenu: false,
+          title: '详情',
+          breadcrumb: ['Alpha 页面', '详情'],
+        },
+      ],
+      '/alpha/123'
+    )
+    expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain('Alpha 页面')
+    expect(screen.getByTestId('route-meta-probe').textContent).toBe('详情|Alpha 页面>详情')
   })
 
   it('shows the account name next to the avatar and copies it from the user menu', async () => {
@@ -237,7 +293,8 @@ describe('AppShell', () => {
   })
 
   it('provides current route title and breadcrumb meta to content recipes', () => {
-    renderShellWithRouteMeta()
+    const { container } = renderShellWithRouteMeta()
+    expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain('一级导航')
 
     expect(screen.getByTestId('route-meta-probe').textContent).toBe(
       'Alpha 页面|一级导航>Alpha 页面'

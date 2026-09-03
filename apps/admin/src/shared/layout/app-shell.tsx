@@ -13,7 +13,7 @@ import {
 import { Avatar, Breadcrumb, Dropdown, Layout, Menu, App, theme, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import React, { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { matchRoutes, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { SetupGuideReturn } from '../navigation/setup-guide-return'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -179,23 +179,28 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
         ? `group-${getMenuGroup(selectedRoute)}`
         : undefined
     : undefined
+  const currentRoute = useMemo(
+    () =>
+      matchRoutes(
+        routes.filter((route) => route.path !== '*'),
+        location.pathname
+      )?.at(-1)?.route,
+    [location.pathname, routes]
+  )
   const currentRouteTitle = useMemo(() => {
     if (location.pathname === '/') {
       return t('Welcome')
     }
 
-    const title =
-      routes.find((route) => route.path === location.pathname)?.title ?? selectedRoute?.title
+    const title = currentRoute?.title ?? selectedRoute?.title
     return title ? t(title) : undefined
-  }, [location.pathname, routes, selectedRoute?.title, t])
+  }, [location.pathname, currentRoute?.title, selectedRoute?.title, t])
   const breadcrumbItems = useMemo(
-    () =>
-      (routes.find((route) => route.path === location.pathname)?.breadcrumb ?? []).map((item) =>
-        t(item)
-      ),
-    [location.pathname, routes, t]
+    () => (currentRoute?.breadcrumb ?? []).map((item) => t(item)),
+    [currentRoute?.breadcrumb, t]
   )
-  const shouldShowBreadcrumb = breadcrumbItems.length > 0
+  const shouldShowBreadcrumb =
+    breadcrumbItems.length > 1 && !(currentRoute?.inMenu && isStandaloneMenuItem(currentRoute))
   const routeBreadcrumbItems = useMemo<RouteBreadcrumbItem[]>(
     () =>
       breadcrumbItems.map((item) => ({

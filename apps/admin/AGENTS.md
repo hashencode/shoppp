@@ -35,6 +35,10 @@ delivery conditions apply.
 
 ## Accessibility ownership
 
+Shared page-title and breadcrumb behavior follows `docs/ai/page-guardrail-recipes.md` §5.5.
+Independent top-level entries must not repeat the page title in a breadcrumb. Keep this rule in
+`AppShell`, not in page-specific visibility flags or duplicate content headers.
+
 - Ant Design v6 and its underlying component primitives own standard control roles, keyboard
   behavior, popup and modal focus management, and ordinary live feedback. Feature pages preserve
   those contracts instead of layering parallel ARIA or focus protocols over them.

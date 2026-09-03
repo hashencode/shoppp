@@ -373,8 +373,7 @@ export const zhCNMessages: Record<string, string> = {
   'Immutable experience snapshot approved and audited.': '不可变体验快照已批准并记入审计。',
   'Approve exact draft v{version}': '批准草稿 v{version}',
   'Immutable snapshot approved': '不可变快照已批准',
-  '{id} · source draft v{version} · audit succeeded':
-    '{id} · 源草稿 v{version} · 审计成功',
+  '{id} · source draft v{version} · audit succeeded': '{id} · 源草稿 v{version} · 审计成功',
   Template: '模板',
   Dev: '开发',
   General: '通用',
@@ -462,8 +461,7 @@ export const zhCNMessages: Record<string, string> = {
   'Administrator authentication is not configured.': '管理员认证尚未配置。',
   'Administrator login is required.': '需要管理员登录。',
   'Too many login attempts. Please try again later.': '登录尝试过多，请稍后重试。',
-  'Your administrator session is invalid. Please sign in again.':
-    '管理员会话无效，请重新登录。',
+  'Your administrator session is invalid. Please sign in again.': '管理员会话无效，请重新登录。',
   'The current password is incorrect.': '当前密码不正确。',
   'A human administrator account is required.': '此操作需要人工管理员账号。',
   'This administrator account is disabled.': '此管理员账号已停用。',
@@ -471,8 +469,7 @@ export const zhCNMessages: Record<string, string> = {
   'The last protected administrator cannot be changed.': '不能变更最后一个受保护管理员。',
   'The password changed concurrently. Please try again.': '密码已并发变更，请重试。',
   'This password reset link is invalid or expired.': '此密码重置链接无效或已过期。',
-  'Online reset is disabled for protected administrators.':
-    '受保护管理员不能在线重置密码。',
+  'Online reset is disabled for protected administrators.': '受保护管理员不能在线重置密码。',
   'This role is still assigned and cannot be archived.': '此角色仍被使用，无法归档。',
   'You cannot change your own role assignment.': '不能修改自己的角色分配。',
   'The service credential is invalid.': '服务凭据无效。',
@@ -530,7 +527,22 @@ export const zhCNMessages: Record<string, string> = {
   Result: '结果',
   'Next page': '下一页',
   'Previous {window}: {value}': '上一周期 {window}：{value}',
-  'Gross sales': '商品总额',
+  'Gross sales': '销售总额',
+  'About {metric}': '{metric}说明',
+  Increase: '上升',
+  Decrease: '下降',
+  'Order totals counted once when paid orders are created. Later cancellations and refunds do not change this amount.':
+    '已支付订单创建时，按订单总额计入一次；后续取消或退款不改变该金额。',
+  'Successful refunds counted by their completion time, including partial refunds and refunds for canceled orders.':
+    '按退款成功时间统计退款金额，包括部分退款和取消订单的退款。',
+  'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.':
+    '销售总额减去所选周期内成功的退款金额；退款超过销售额时可为负数。',
+  'Paid orders created in the selected period. Failed checkouts and test orders are excluded.':
+    '所选周期内创建的已支付订单数，不含失败的结账尝试和测试订单。',
+  'Gross sales divided by paid order count, rounded to the currency’s smallest unit. Zero when there are no paid orders.':
+    '销售总额除以已支付订单数，四舍五入到该币种的最小单位；没有已支付订单时为零。',
+  'Select a start and end date.': '请选择开始和结束日期。',
+  'Loading report…': '正在加载报表…',
   Refunds: '退款',
   'Net sales': '净销售额',
   'Paid orders': '已支付订单',
@@ -540,6 +552,7 @@ export const zhCNMessages: Record<string, string> = {
   Currency: '币种',
   'Time zone': '时区',
   'Start date': '开始日期',
+  'Date range': '日期范围',
   'End date': '结束日期',
   Apply: '应用',
   'Start date must not be after end date.': '开始日期不能晚于结束日期。',
@@ -548,7 +561,7 @@ export const zhCNMessages: Record<string, string> = {
   'View underlying orders': '查看明细订单',
   'No commerce events in this window.': '此时间段内没有商业事件。',
   'Local date': '本地日期',
-  'Gross ({currency})': '商品总额（{currency}）',
+  'Gross ({currency})': '销售总额（{currency}）',
   'Refunds ({currency})': '退款（{currency}）',
   'Net ({currency})': '净额（{currency}）',
   'Metric definitions': '指标定义',
@@ -913,16 +926,12 @@ export const zhCNMessages: Record<string, string> = {
   'Dead-letter jobs': '死信任务',
   'Payment event failures': '支付事件失败',
   'Report export failures': '报表导出失败',
-  'Legal approval for the published policies is required.':
-    '必须完成已发布政策的法务审批。',
+  'Legal approval for the published policies is required.': '必须完成已发布政策的法务审批。',
   'The payment provider credential is not configured.': '尚未配置支付服务商凭证。',
   'The payment webhook credential is not configured.': '尚未配置支付 Webhook 凭证。',
-  'Production must use the live payment provider mode.':
-    '生产环境必须使用支付服务商的正式模式。',
-  'Production policy links cannot use placeholder domains.':
-    '生产环境的政策链接不能使用占位域名。',
-  'Every sellable currency must have an active price list.':
-    '每种可售币种都必须有启用的价格表。',
+  'Production must use the live payment provider mode.': '生产环境必须使用支付服务商的正式模式。',
+  'Production policy links cannot use placeholder domains.': '生产环境的政策链接不能使用占位域名。',
+  'Every sellable currency must have an active price list.': '每种可售币种都必须有启用的价格表。',
   'Every enabled country must belong to an active shipping zone.':
     '每个启用的国家或地区都必须属于启用的配送区域。',
   'Every enabled shipping method must exist in an active shipping zone.':
