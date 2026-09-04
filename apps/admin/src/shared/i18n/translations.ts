@@ -319,7 +319,7 @@ export const zhCNMessages: Record<string, string> = {
   'Policy settings': '政策设置',
   'Inventory settings': '库存设置',
   'View orders': '查看订单',
-  'Automatic checks passed': '自动检查已通过',
+  'Passed automatic checks': '已通过检查项',
   Recheck: '重新检查',
   'Environment: {environment} · Checked: {time}': '环境：{environment} · 检查时间：{time}',
   'Default currency: {currency} · Configuration saved: {time}':

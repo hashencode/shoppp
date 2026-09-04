@@ -129,8 +129,10 @@ for (const viewport of [
     const fixture = await mockCommerce(page)
     await page.goto(path('/'))
     await expect(page).toHaveURL(new RegExp(`${appBase}/welcome$`))
-    await expect(page.getByText('Automatic checks passed')).toBeVisible()
+    await expect(page.getByText('Passed automatic checks')).toBeVisible()
     await expect(page.locator('.ant-statistic-content')).toHaveText('13/13')
+    await expect(page.locator('.ant-collapse-header[aria-expanded="true"]')).toHaveCount(0)
+    await expect(page.getByText(/Environment:|Default currency:/)).toHaveCount(0)
     await expect(
       page.getByText('Current configuration checks passed; manual verification is still required.')
     ).toBeVisible()
@@ -150,6 +152,10 @@ for (const viewport of [
       path: testInfo.outputPath(`guide-${viewport.name}.png`),
       fullPage: true,
     })
+    await page.getByText('2. Prepare products', { exact: true }).click()
+    await expect(
+      page.getByRole('list').filter({ hasText: 'At least one sellable SKU' })
+    ).toHaveCSS('list-style-type', 'disc')
     const salesLink = page.getByRole('link', { name: 'Sales settings', exact: true })
     await expect(salesLink).toHaveClass(/ant-btn-default/)
     await expect(salesLink).not.toHaveClass(/ant-btn-(sm|lg)/)
@@ -167,7 +173,7 @@ for (const viewport of [
     await expect.poll(fixture.saves).toBe(1)
     await page.getByRole('link', { name: 'Back to store setup guide', exact: true }).click()
     await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
-    await expect(page.getByText(/Default currency: EUR/)).toBeVisible()
+    await expect(page.getByText(/Environment:|Default currency:/)).toHaveCount(0)
     await expect(
       page.getByText(
         'No published SKU has a current price and available stock in the default currency.'
@@ -207,6 +213,7 @@ test('settings reader has fixed restricted progress and a readonly commercial fo
     )
   ).toBe(true)
   await expect(page.getByRole('link', { name: 'Manage products' })).toHaveCount(0)
+  await page.getByText('1. Basics and contacts', { exact: true }).click()
   await page.getByRole('link', { name: 'Contact settings' }).click()
   await expect(page.getByLabel('Support email', { exact: true })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
@@ -252,10 +259,19 @@ test('Chinese dark guide remains readable on mobile', async ({ page }, testInfo)
   await mockAdminSession(page, ['settings.read'])
   await mockCommerce(page, true)
   await page.goto(path('/welcome'))
-  await expect(page.getByText('自动检查已通过')).toBeVisible()
+  await expect(page.getByText('已通过检查项')).toBeVisible()
   await expect(page.locator('.ant-statistic-content')).toHaveText('10/13')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.getByText('1. 基础与联系方式')).toBeVisible()
+  await expect(
+    page.locator('.ant-collapse-header').filter({ hasText: '1. 基础与联系方式' })
+  ).toHaveAttribute('aria-expanded', 'false')
+  await expect(
+    page.locator('.ant-collapse-header').filter({ hasText: '2. 准备商品' })
+  ).toHaveAttribute('aria-expanded', 'true')
+  await expect(
+    page.locator('.ant-collapse-header').filter({ hasText: '6. 上线前复核' })
+  ).toHaveAttribute('aria-expanded', 'true')
   expect(
     await page.evaluate(() =>
       [...document.querySelectorAll('.ant-layout-content')].every(
@@ -265,7 +281,9 @@ test('Chinese dark guide remains readable on mobile', async ({ page }, testInfo)
   ).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('guide-mobile-zh-dark.png'), fullPage: true })
   await expect(page.getByRole('button', { name: '折叠指南', exact: true })).toHaveCount(0)
+  await page.getByText('1. 基础与联系方式', { exact: true }).click()
   await expect(page.getByRole('link', { name: '联系方式设置' })).toHaveClass(/ant-btn-default/)
+  await page.getByText('5. 店面与政策', { exact: true }).click()
   await page.getByRole('link', { name: '政策设置' }).scrollIntoViewIfNeeded()
   await expect(page.getByText('预览店面并确认品牌内容与政策正文。')).toBeVisible()
   await page.screenshot({

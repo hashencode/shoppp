@@ -41,13 +41,27 @@ const renderGuide = (locale: 'en-US' | 'zh-CN' = 'en-US') =>
     locale
   )
 
+const STEPS_FOR_TEST = [
+  '1. Basics and contacts',
+  '2. Prepare products',
+  '3. Set up delivery',
+  '4. Set up payments',
+  '5. Storefront and policies',
+  '6. Review before launch',
+]
+
 describe('WelcomePage setup guide', () => {
   it('should keep manual verification and all guide destinations available when automatic checks pass', async () => {
     const view = renderGuide()
-    expect(await screen.findByText('Automatic checks passed')).toBeTruthy()
+    expect(await screen.findByText('Passed automatic checks')).toBeTruthy()
     await waitFor(() =>
       expect(view.container.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
     )
+    for (const step of STEPS_FOR_TEST) {
+      const header = screen.getByText(step).closest('.ant-collapse-header')
+      expect(header?.getAttribute('aria-expanded')).toBe('false')
+      fireEvent.click(header!)
+    }
     expect(
       screen.getByText('Preview the storefront and confirm the brand content and policy text.')
     ).toBeTruthy()
@@ -117,14 +131,25 @@ describe('WelcomePage setup guide', () => {
     }
     server.use(http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: result })))
     const view = renderGuide('zh-CN')
-    expect(await screen.findByText('自动检查已通过')).toBeTruthy()
+    expect(await screen.findByText('已通过检查项')).toBeTruthy()
     await waitFor(() =>
       expect(view.container.querySelector('.ant-statistic-content')?.textContent).toBe('9/13')
     )
     expect(screen.queryByText('待处理：2 · 无法检查：1 · 无权检查：1')).toBeNull()
     expect(screen.getByText('默认配置尚未保存确认，请检查并保存商业设置。')).toBeTruthy()
     expect(screen.getByText('此检查需要进一步处理，请查看对应设置。')).toBeTruthy()
-    expect(screen.getByText(/默认币种：EUR/)).toBeTruthy()
+    expect(screen.queryByText(/默认币种：EUR/)).toBeNull()
+    expect(
+      screen.getByText('1. 基础与联系方式').closest('.ant-collapse-header')?.getAttribute(
+        'aria-expanded'
+      )
+    ).toBe('true')
+    expect(
+      screen.getByText('5. 店面与政策').closest('.ant-collapse-header')?.getAttribute(
+        'aria-expanded'
+      )
+    ).toBe('false')
+    expect(view.container.querySelector('ul.list-disc')).toBeTruthy()
   })
 
   it.each([500, 403])(
@@ -151,7 +176,7 @@ describe('WelcomePage setup guide', () => {
       await screen.findByText(
         status === 403 ? 'Setup checks are not authorized.' : 'Setup checks could not be loaded.'
       )
-      expect(screen.getByText('Automatic checks passed')).toBeTruthy()
+      expect(screen.getByText('Passed automatic checks')).toBeTruthy()
       expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('0/13')
       expect(screen.queryByText(/Default currency: USD/)).toBeNull()
       expect(screen.queryByText(/Needs action:|Unable to check:|No permission:/)).toBeNull()
@@ -311,6 +336,7 @@ describe('WelcomePage setup guide', () => {
     await waitFor(() =>
       expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
     )
+    fireEvent.click(screen.getByText('4. Set up payments'))
     expect(screen.getByRole('link', { name: 'Payment settings' }).getAttribute('href')).toBe(
       '/admin/settings/launch?from=setup-guide#payment'
     )
@@ -320,6 +346,7 @@ describe('WelcomePage setup guide', () => {
       expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
     )
     expect(requests).toBe(2)
+    fireEvent.click(screen.getByText('4. Set up payments'))
     expect(screen.getByRole('link', { name: 'Payment settings' })).toBeTruthy()
   })
 })

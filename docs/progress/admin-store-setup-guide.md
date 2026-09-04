@@ -62,19 +62,19 @@ Local logs: `/tmp/shoppp-setup-root-browser.log`, `/tmp/shoppp-setup-mobile-rest
 
 ## Requirement closure
 
-| Requirement | Implementation and evidence |
-| --- | --- |
-| R1 | Settings readers land on the guide; authorized-home/route/menu suites and browser staff fallback preserve other users' entry and deep links. |
-| R2 | Six freely accessible steps with text status and permitted destinations; guide suite and desktop/mobile browser journeys. |
-| R3 | Existing commercial-settings URL, four anchored groups and full audited save; settings tests and browser save/return journey. |
-| R4 | Server-side saved configuration, authoritative SKU availability, shipping association and environment facts; Workers and contract fixtures. |
-| R5 | Distinct passed/action/unavailable/restricted/loading states; isolated domain failures, denied access and retry fixtures. |
-| R6 | Contract-enforced fixed 13 checks; restricted and failed checks retain the denominator in API, page and browser coverage. |
-| R7 | Initial/return/manual reload, cancellation and response-identity guard; A→B→A regression, changed-currency return and history tests. |
-| R8 | Manual preview/policy/shopping-flow prompts remain separate; all-green fixture still displays manual verification. No completion record or launch operation was added. |
-| R9 | Domain queries and links honor permissions, credentials are excluded, readonly forced submit is blocked; Workers, contracts, settings and browser permission cases. |
-| R10 | Page-local collapse with visible summary and reopen on issues/failure; page suite and Chinese mobile browser interactions. |
-| R11 | Existing page recipes, translated labels, responsive layout and Ant Design controls; locale/layout suites, visual inspection and independent health recovery. |
+| Requirement | Implementation and evidence                                                                                                                                            |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1          | Settings readers land on the guide; authorized-home/route/menu suites and browser staff fallback preserve other users' entry and deep links.                           |
+| R2          | Six freely accessible steps with text status and permitted destinations; guide suite and desktop/mobile browser journeys.                                              |
+| R3          | Existing commercial-settings URL, four anchored groups and full audited save; settings tests and browser save/return journey.                                          |
+| R4          | Server-side saved configuration, authoritative SKU availability, shipping association and environment facts; Workers and contract fixtures.                            |
+| R5          | Distinct passed/action/unavailable/restricted/loading states; isolated domain failures, denied access and retry fixtures.                                              |
+| R6          | Contract-enforced fixed 13 checks; restricted and failed checks retain the denominator in API, page and browser coverage.                                              |
+| R7          | Initial/return/manual reload, cancellation and response-identity guard; A→B→A regression, changed-currency return and history tests.                                   |
+| R8          | Manual preview/policy/shopping-flow prompts remain separate; all-green fixture still displays manual verification. No completion record or launch operation was added. |
+| R9          | Domain queries and links honor permissions, credentials are excluded, readonly forced submit is blocked; Workers, contracts, settings and browser permission cases.    |
+| R10         | Page-local collapse with visible summary and reopen on issues/failure; page suite and Chinese mobile browser interactions.                                             |
+| R11         | Existing page recipes, translated labels, responsive layout and Ant Design controls; locale/layout suites, visual inspection and independent health recovery.          |
 
 F1–F3 and AE1–AE6 are represented by the default/return journeys, fresh-result and permission-failure tests above. No implementation question remains unresolved. The maintenance runbook records check limits, extension points, manual verification and deployment-owner recovery. These local results do not establish real-account, provider-connectivity, candidate or production readiness.
 
@@ -109,3 +109,9 @@ From that clean ref, the two focused Workers suites passed 12/12, API TypeScript
 Live verification used the existing authenticated Admin session at `http://127.0.0.1:3418/welcome`. “重新检查” changed the former whole-request 404 state into a current `8/13` Statistic with `staging`, USD configuration context and individual passed/needs-action results. This proves the deployed route is available behind the shared authentication middleware and resolves the reported version mismatch. The exact pre-cleanup path manifests and removal command are retained in `docs/progress/admin-store-setup-guide-deploy-worktree-manifest.txt`.
 
 The scoped code review completed under run `20260904-adm-setup-statistic` at `/tmp/ce-code-review/20260904-adm-setup-statistic`. Correctness, project-standards and local adversarial reviewers found no actionable defect; the testing reviewer and independent validator found one P1 test synchronization defect: the Statistic title exists while its value is still loading, so it was not a valid boundary before replacing the API handler. The test now waits for the actual `13/13` content, re-queries the enabled Recheck control and confirms that the second request fired. The 500 and 403 cases each passed in isolation, and the complete page suite passed 8/8 afterward. The cross-model adversarial route did not run because no attested different-family command was installed; the local fallback completed. No actionable review residual remains.
+
+### 2026-09-04 summary wording, step folding and list correction
+
+The Statistic title now labels the value as passed check items rather than presenting a success conclusion, so a partial value such as `8/13` cannot be read as all checks passing. Environment, check time, default currency and configuration-save time were removed from the page summary. Each step derives its initial expanded state from its own checks: steps with any non-passed result open automatically, while fully passed steps remain collapsed and can still be opened manually. Check items retain native `ul`/`li` semantics and now show disc markers.
+
+The focused WelcomePage suite passed 8/8. It verifies all-passed steps are collapsed, affected steps open for partial results, passed steps stay collapsed, metadata is absent and the unordered list styling is present. The browser suite rebuilt Admin with TypeScript and passed 6/6 across desktop, mobile, permissions and dark-mode flows; the final focused mobile case also passed with explicit browser assertions that passed steps are collapsed and restricted steps are expanded.

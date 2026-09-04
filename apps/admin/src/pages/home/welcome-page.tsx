@@ -105,11 +105,6 @@ const REASON_MESSAGE: Record<string, string> = {
   check_failed: 'This check could not be completed. Retry the check.',
   permission_denied: 'Your account does not have permission to read this check.',
 }
-const ENVIRONMENT_LABEL: Record<SetupGuideSummary['environment'], string> = {
-  development: 'Development',
-  staging: 'Staging',
-  production: 'Production',
-}
 const ALL_STEPS = STEPS.map((step) => step.key)
 const failedChecks = (status: 'unavailable' | 'restricted'): SetupGuideCheck[] =>
   SETUP_GUIDE_CHECKS.map((check) => ({
@@ -131,12 +126,12 @@ const GuideAction = ({ children, to }: { children: React.ReactNode; to: string }
 }
 
 export const WelcomePage = () => {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const { permissions, role, refreshSession } = useAuth()
   const location = useLocation()
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<CheckResult | null>(null)
-  const [expanded, setExpanded] = useState<string[]>(ALL_STEPS)
+  const [expanded, setExpanded] = useState<string[]>([])
   const canRead = hasPermission(role, 'settings.read', permissions)
   const requestKey = `${location.key}:${attempt}:${[...(permissions ?? [])].sort().join(',')}`
   // History can reuse a location key; each transition needs a fresh request identity.
@@ -150,9 +145,13 @@ export const WelcomePage = () => {
       (summary) => {
         if (!active) return
         setResult({ request, summary })
-        if (summary.checks.some((check) => check.status !== 'passed')) {
-          setExpanded(ALL_STEPS)
-        }
+        setExpanded(
+          STEPS.filter((step) =>
+            summary.checks.some(
+              (check) => check.step === step.key && check.status !== 'passed'
+            )
+          ).map((step) => step.key)
+        )
       },
       (error: unknown) => {
         if (!active) return
@@ -177,7 +176,6 @@ export const WelcomePage = () => {
   const passedCount = checks.filter((check) => check.status === 'passed').length
   const can = (permission: PermissionKey) =>
     !restricted && hasPermission(role, permission, permissions)
-  const date = (value: string) => new Date(value).toLocaleString(locale)
   const statusTag = (status: CheckStatus) => (
     <Tag color={STATUS_COLOR[status]}>{t(STATUS_LABEL[status])}</Tag>
   )
@@ -243,7 +241,7 @@ export const WelcomePage = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <Statistic
             loading={loading}
-            title={t('Automatic checks passed')}
+            title={t('Passed automatic checks')}
             value={passedCount}
             suffix={`/${SETUP_GUIDE_CHECKS.length}`}
           />
@@ -253,23 +251,6 @@ export const WelcomePage = () => {
             </Button>
           ) : null}
         </div>
-        {summary ? (
-          <Typography.Paragraph type="secondary" className="!mb-0">
-            {t('Environment: {environment} · Checked: {time}', {
-              environment: t(ENVIRONMENT_LABEL[summary.environment]),
-              time: date(summary.checkedAt),
-            })}
-            <br />
-            {summary.configuration
-              ? t('Default currency: {currency} · Configuration saved: {time}', {
-                  currency: summary.configuration.defaultCurrency,
-                  time: summary.configuration.updatedAt
-                    ? date(summary.configuration.updatedAt)
-                    : t('Not yet saved'),
-                })
-              : t('Configuration context is unavailable.')}
-          </Typography.Paragraph>
-        ) : null}
         {passedCount === SETUP_GUIDE_CHECKS.length ? (
           <Typography.Paragraph className="!mb-0 mt-3">
             {t('Current configuration checks passed; manual verification is still required.')}
@@ -309,7 +290,7 @@ export const WelcomePage = () => {
             children: (
               <div className="space-y-3">
                 <Typography.Paragraph>{t(step.description)}</Typography.Paragraph>
-                <ul className="m-0 list-none space-y-3 p-0">
+                <ul className="m-0 list-disc space-y-3 pl-5">
                   {stepChecks.map((check) => (
                     <li key={check.id}>
                       <div className="flex flex-wrap items-center gap-2">
