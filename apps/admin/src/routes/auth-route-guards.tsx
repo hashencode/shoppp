@@ -5,7 +5,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../infrastructure/auth/use-auth'
 void React
 
-const AUTH_LOADING_INDICATOR_DELAY_MS = 1_000
+const AUTH_LOADING_INDICATOR_DELAY_MS = 3_000
 
 const DelayedAuthSpinner = () => {
   const [visible, setVisible] = useState(false)
@@ -19,7 +19,7 @@ const DelayedAuthSpinner = () => {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       data-testid="auth-loading-indicator"
     >
       <Spin size="large" />

@@ -54,7 +54,7 @@ const renderWithAuth = (status: AuthContextValue['status'], entry: string) =>
   )
 
 describe('auth-route-guards', () => {
-  it('waits one second before rendering a centered text-free session spinner', async () => {
+  it('waits three seconds before rendering a viewport-centered text-free session spinner', async () => {
     rstest.useFakeTimers()
     try {
       const view = renderWithAuth('loading', '/protected')
@@ -62,11 +62,13 @@ describe('auth-route-guards', () => {
       expect(screen.queryByText('Verifying login status…')).toBeNull()
       expect(view.container.querySelector('.ant-spin')).toBeNull()
 
-      await act(async () => rstest.advanceTimersByTime(999))
+      await act(async () => rstest.advanceTimersByTime(2_999))
       expect(view.container.querySelector('.ant-spin')).toBeNull()
 
       await act(async () => rstest.advanceTimersByTime(1))
       expect(view.container.querySelector('.ant-spin')).toBeTruthy()
+      expect(screen.getByTestId('auth-loading-indicator').className).toContain('fixed')
+      expect(screen.getByTestId('auth-loading-indicator').className).toContain('inset-0')
       expect(screen.getByTestId('auth-loading-indicator').className).toContain('items-center')
       expect(screen.getByTestId('auth-loading-indicator').className).toContain('justify-center')
       expect(screen.queryByText('Verifying login status…')).toBeNull()
