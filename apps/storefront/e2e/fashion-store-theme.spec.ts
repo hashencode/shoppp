@@ -750,6 +750,51 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   expect(errors).toEqual([]);
 });
 
+for (const choice of ["Reject cookies", "Allow cookies"] as const) {
+  test(`${choice} keeps the cookie notice dismissed after reload without setting a cookie`, async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveClass(/^js$/, { timeout: 30_000 });
+    await page.waitForLoadState("networkidle");
+    const cookieNotice = page.locator("#cookies-model");
+    const cookiesBefore = await page.context().cookies();
+    const urlBeforeChoice = page.url();
+    const choiceRequests: string[] = [];
+    const recordChoiceRequest = (request: { url(): string }) => choiceRequests.push(request.url());
+
+    await expect(cookieNotice).toBeVisible({ timeout: 20_000 });
+    page.on("request", recordChoiceRequest);
+    await cookieNotice.getByRole("button", { name: choice }).click();
+    await expect(cookieNotice).toBeHidden();
+    page.off("request", recordChoiceRequest);
+    expect(await page.context().cookies()).toEqual(cookiesBefore);
+    expect(choiceRequests).toEqual([]);
+    expect(page.url()).toBe(urlBeforeChoice);
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("shoppp.fashion-store.cookie-notice-dismissed"),
+      ),
+    ).toBe("true");
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveClass(/^js$/, { timeout: 30_000 });
+    await expect(cookieNotice).toHaveCount(0);
+  });
+}
+
+test("cookie notice is omitted before hydration", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#cookies-model")).toHaveCount(0);
+
+  await context.close();
+});
+
 test("internal navigation and product actions stay Nuxt-owned", async ({ page }, testInfo) => {
   await ready(page, "/");
   const marker = page.locator("[data-fashion-store-source-parity]");

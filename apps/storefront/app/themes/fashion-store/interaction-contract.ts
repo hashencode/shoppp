@@ -526,17 +526,19 @@ const sharedRows = [
   {
     behaviorId: "shared-cookie-consent",
     breakpoints: ["all"],
-    candidate: "#cookies-model .accept_cookies_btn",
+    candidate: "#cookies-model [data-cookie-choice]",
     disposition: local("cookie-consent"),
     evidence: ["cookie-banner-dismissed"],
-    fallback: "The cookie policy link remains available without JavaScript.",
+    fallback:
+      "The notice is omitted without JavaScript because its local choices require JavaScript.",
     id: "fashion-store-cookie-consent",
     inputModes: ["pointer", "keyboard", "touch", "reduced-motion", "no-js"],
     inputOutcomes: inputOutcomes(
-      "The local cookie notice closes without a network request.",
-      "The notice remains visible and its policy link stays usable without JavaScript.",
+      "Either local cookie choice closes the notice without a network request and suppresses it on later visits.",
+      "The notice is omitted without JavaScript because its choices require JavaScript.",
     ),
-    outcome: "Accepting the local notice dismisses it for the current rendered session.",
+    outcome:
+      "Rejecting or accepting the local notice records the same dismissal marker and does not apply a consent choice.",
     owner: "fashion-store",
     parity: ["structural", "behavioral", "absence"],
     role: "local-state",

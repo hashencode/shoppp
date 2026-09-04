@@ -44,7 +44,8 @@ const footer = computed(() => properties.footer ?? experienceShell?.value?.foote
 const header = computed(() => properties.header ?? experienceShell?.value?.header);
 
 const router = useRouter();
-const cookieVisible = ref(true);
+const cookieNoticeStorageKey = "shoppp.fashion-store.cookie-notice-dismissed";
+const cookieVisible = ref(false);
 const documentReadyClass = ref<"js" | "no-js">("no-js");
 const headerHandle = ref<HeaderHandle>();
 const searchOpen = ref(false);
@@ -63,6 +64,15 @@ function sourceAsset(sourcePath: string): string {
 function scrollToTop(): void {
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   window.scrollTo({ behavior: reducedMotion ? "auto" : "smooth", top: 0 });
+}
+
+function dismissCookieNotice(): void {
+  try {
+    localStorage.setItem(cookieNoticeStorageKey, "true");
+  } catch {
+    // The notice still dismisses for this page when browser storage is unavailable.
+  }
+  cookieVisible.value = false;
 }
 
 useHead(() => ({
@@ -124,6 +134,11 @@ watch(
 );
 
 onMounted(() => {
+  try {
+    cookieVisible.value = localStorage.getItem(cookieNoticeStorageKey) !== "true";
+  } catch {
+    cookieVisible.value = true;
+  }
   documentReadyClass.value = "js";
   nextTick(() => {
     document.documentElement.classList.remove("no-js");
@@ -168,26 +183,27 @@ onMounted(() => {
     style="display: block"
   >
     <div class="cookie-description fs-14 text-white mb-20px lh-22">
-      We use cookies to enhance your browsing experience, serve personalized ads or content, and
-      analyze our traffic. By clicking "Allow cookies" you consent to our use of cookies.
+      Choose either option to hide this notice in this browser. No cookie preference is applied.
     </div>
     <div class="cookie-btn">
-      <a
-        href="/policies/cookies"
-        data-fashion-store-route
+      <button
+        type="button"
         class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px"
-        aria-label="Cookie policy"
+        data-cookie-choice="reject"
+        aria-label="Reject cookies"
+        @click="dismissCookieNotice"
       >
         <span>
-          <span class="btn-double-text" data-text="Cookie policy">Cookie policy</span>
+          <span class="btn-double-text" data-text="Reject cookies">Reject cookies</span>
         </span>
-      </a>
+      </button>
       <button
         type="button"
         class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100"
         data-accept-btn=""
+        data-cookie-choice="accept"
         aria-label="Allow cookies"
-        @click="cookieVisible = false"
+        @click="dismissCookieNotice"
       >
         <span>
           <span class="btn-double-text" data-text="Allow cookies">Allow cookies</span>
