@@ -1,17 +1,38 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import type { PropsWithChildren } from 'react'
+import { Spin } from 'antd'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../infrastructure/auth/use-auth'
-import { useI18n } from '../shared/contexts/i18n-context'
 void React
+
+const AUTH_LOADING_INDICATOR_DELAY_MS = 1_000
+
+const DelayedAuthSpinner = () => {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), AUTH_LOADING_INDICATOR_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center"
+      data-testid="auth-loading-indicator"
+    >
+      <Spin size="large" />
+    </div>
+  )
+}
 
 export const RequireAuth = ({ children }: PropsWithChildren) => {
   const { isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
-  const { t } = useI18n()
 
   if (isLoading) {
-    return <div role="status" aria-live="polite">{t('Verifying login status…')}</div>
+    return <DelayedAuthSpinner />
   }
 
   if (!isAuthenticated) {
@@ -23,10 +44,9 @@ export const RequireAuth = ({ children }: PropsWithChildren) => {
 
 export const RedirectIfAuthenticated = ({ children }: PropsWithChildren) => {
   const { isAuthenticated, isLoading } = useAuth()
-  const { t } = useI18n()
 
   if (isLoading) {
-    return <div role="status" aria-live="polite">{t('Verifying login status…')}</div>
+    return <DelayedAuthSpinner />
   }
 
   if (isAuthenticated) {

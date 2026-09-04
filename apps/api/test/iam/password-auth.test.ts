@@ -240,6 +240,60 @@ describe("administrator password authentication", () => {
     });
   });
 
+  test("throttles last-seen writes for recently active password sessions", async () => {
+    await seedPasswordUser({
+      email: "recent-session@example.test",
+      id: "identity-password-recent-session",
+      roleId: ADMIN_ROLE_IDS.operations,
+    });
+    const app = createApp();
+    const login = await app.fetch(
+      request("/admin/auth/login", {
+        email: "recent-session@example.test",
+        password: PASSWORD,
+      }),
+      env,
+    );
+    const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+    const recentLastSeenAt = new Date(Date.now() - 60_000).toISOString();
+    await env.DB.prepare(
+      "UPDATE admin_sessions SET last_seen_at = ? WHERE identity_id = 'identity-password-recent-session'",
+    )
+      .bind(recentLastSeenAt)
+      .run();
+
+    const recentSession = await app.fetch(
+      new Request("https://api.example.test/admin/session", { headers: { Cookie: cookie } }),
+      env,
+    );
+    expect(recentSession.status).toBe(200);
+    expect(
+      await env.DB.prepare(
+        "SELECT last_seen_at FROM admin_sessions WHERE identity_id = 'identity-password-recent-session'",
+      ).first(),
+    ).toEqual({ last_seen_at: recentLastSeenAt });
+
+    const staleLastSeenAt = new Date(Date.now() - 10 * 60_000).toISOString();
+    await env.DB.prepare(
+      "UPDATE admin_sessions SET last_seen_at = ? WHERE identity_id = 'identity-password-recent-session'",
+    )
+      .bind(staleLastSeenAt)
+      .run();
+
+    const staleSession = await app.fetch(
+      new Request("https://api.example.test/admin/session", { headers: { Cookie: cookie } }),
+      env,
+    );
+    expect(staleSession.status).toBe(200);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT last_seen_at FROM admin_sessions WHERE identity_id = 'identity-password-recent-session'",
+        ).first<{ last_seen_at: string }>()
+      )?.last_seen_at,
+    ).not.toBe(staleLastSeenAt);
+  });
+
   test("rejects an expired human identity at login and invalidates its existing session", async () => {
     await seedPasswordUser({
       email: "expiring-operator@example.test",

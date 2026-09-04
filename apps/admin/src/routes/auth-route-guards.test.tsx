@@ -1,6 +1,6 @@
 import React from 'react'
-import { screen } from '@testing-library/react'
-import { describe, expect, it } from '@rstest/core'
+import { act, screen } from '@testing-library/react'
+import { describe, expect, it, rstest } from '@rstest/core'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthContext, type AuthContextValue } from '../infrastructure/auth/auth-context'
 import { PermissionGuard } from '../shared/components/permission-guard'
@@ -54,9 +54,25 @@ const renderWithAuth = (status: AuthContextValue['status'], entry: string) =>
   )
 
 describe('auth-route-guards', () => {
-  it('renders a loading state while verifying the session', () => {
-    renderWithAuth('loading', '/protected')
-    expect(screen.getByRole('status')).toBeTruthy()
+  it('waits one second before rendering a centered text-free session spinner', async () => {
+    rstest.useFakeTimers()
+    try {
+      const view = renderWithAuth('loading', '/protected')
+
+      expect(screen.queryByText('Verifying login status…')).toBeNull()
+      expect(view.container.querySelector('.ant-spin')).toBeNull()
+
+      await act(async () => rstest.advanceTimersByTime(999))
+      expect(view.container.querySelector('.ant-spin')).toBeNull()
+
+      await act(async () => rstest.advanceTimersByTime(1))
+      expect(view.container.querySelector('.ant-spin')).toBeTruthy()
+      expect(screen.getByTestId('auth-loading-indicator').className).toContain('items-center')
+      expect(screen.getByTestId('auth-loading-indicator').className).toContain('justify-center')
+      expect(screen.queryByText('Verifying login status…')).toBeNull()
+    } finally {
+      rstest.useRealTimers()
+    }
   })
 
   it.each(['login-required', 'disabled', 'forbidden'] as const)(
@@ -73,16 +89,12 @@ describe('auth-route-guards', () => {
   })
 
   it('registers lazy read-guarded routes for theme selection and exact draft editing', () => {
-    expect(
-      templateRoutes.find(({ key }) => key === 'storefront-themes')
-    ).toMatchObject({
+    expect(templateRoutes.find(({ key }) => key === 'storefront-themes')).toMatchObject({
       inMenu: true,
       path: '/storefront/themes',
       permission: 'themes.read',
     })
-    expect(
-      templateRoutes.find(({ key }) => key === 'storefront-theme-editor')
-    ).toMatchObject({
+    expect(templateRoutes.find(({ key }) => key === 'storefront-theme-editor')).toMatchObject({
       inMenu: false,
       path: '/storefront/themes/:draftId',
       permission: 'themes.read',

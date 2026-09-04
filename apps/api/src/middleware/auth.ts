@@ -39,6 +39,7 @@ interface PrincipalRow {
 
 const registeredPermissions = new Set<string>(ADMIN_PERMISSION_KEYS);
 export const ADMIN_SESSION_COOKIE = "shoppp_admin_session";
+const SESSION_LAST_SEEN_TOUCH_INTERVAL_MS = 5 * 60 * 1_000;
 type ApiContext = Context<ApiEnvironment>;
 
 export function logAuthenticationDenial(
@@ -75,25 +76,11 @@ async function auditMappedDenial(
   });
 }
 
-export async function resolvePrincipal(
+async function principalFromRow(
   context: ApiContext,
-  identity: AdminIdentityClaim,
-): Promise<Principal | null> {
-  const row = await context.env.DB.prepare(
-    `SELECT identity.id, identity.principal_kind, identity.access_subject,
-            identity.normalized_email, identity.display_name, identity.enabled,
-            identity.expires_at,
-            role.id AS role_id, role.key AS role_key, role.name AS role_name,
-            role.protected AS role_protected, role.system AS role_system,
-            role.enabled AS role_enabled, role.version AS role_version
-       FROM admin_identities identity
-       JOIN admin_roles role ON role.id = identity.role_id
-      WHERE identity.access_subject = ?`,
-  )
-    .bind(identity.subject)
-    .first<PrincipalRow>();
-  if (!row) return null;
-
+  row: PrincipalRow,
+  identity?: AdminIdentityClaim,
+): Promise<Principal> {
   if (row.enabled !== 1 || row.role_enabled !== 1) {
     await auditMappedDenial(context, row, "identity_or_role_disabled");
     throw new ApiError(401, "identity_not_enabled", "The administrator identity is not enabled.");
@@ -102,7 +89,7 @@ export async function resolvePrincipal(
     await auditMappedDenial(context, row, "identity_expired");
     throw new ApiError(401, "identity_expired", "The administrator identity has expired.");
   }
-  if (row.principal_kind !== identity.principalKind) {
+  if (identity && row.principal_kind !== identity.principalKind) {
     await auditMappedDenial(context, row, "principal_kind_mismatch");
     throw new ApiError(
       401,
@@ -111,7 +98,7 @@ export async function resolvePrincipal(
     );
   }
   if (
-    identity.principalKind === "human" &&
+    identity?.principalKind === "human" &&
     row.normalized_email !== identity.email.trim().toLowerCase()
   ) {
     await auditMappedDenial(context, row, "verified_email_mismatch");
@@ -173,44 +160,59 @@ export async function resolvePrincipal(
     },
     subject: row.access_subject,
   } as const;
-  return identity.principalKind === "human"
-    ? { ...base, email: identity.email, principalKind: "human" }
+  return row.principal_kind === "human"
+    ? {
+        ...base,
+        email: identity?.principalKind === "human" ? identity.email : (row.normalized_email ?? ""),
+        principalKind: "human",
+      }
     : {
         ...base,
         principalKind: "service",
-        serviceName: identity.serviceName,
+        serviceName:
+          identity?.principalKind === "service" ? identity.serviceName : row.access_subject,
       };
+}
+
+async function findPrincipalRow(
+  context: ApiContext,
+  lookup: { field: "access_subject" | "id"; value: string },
+): Promise<PrincipalRow | null> {
+  const column = lookup.field === "id" ? "identity.id" : "identity.access_subject";
+  return context.env.DB.prepare(
+    `SELECT identity.id, identity.principal_kind, identity.access_subject,
+            identity.normalized_email, identity.display_name, identity.enabled,
+            identity.expires_at,
+            role.id AS role_id, role.key AS role_key, role.name AS role_name,
+            role.protected AS role_protected, role.system AS role_system,
+            role.enabled AS role_enabled, role.version AS role_version
+       FROM admin_identities identity
+       JOIN admin_roles role ON role.id = identity.role_id
+      WHERE ${column} = ?`,
+  )
+    .bind(lookup.value)
+    .first<PrincipalRow>();
+}
+
+export async function resolvePrincipal(
+  context: ApiContext,
+  identity: AdminIdentityClaim,
+): Promise<Principal | null> {
+  const row = await findPrincipalRow(context, {
+    field: "access_subject",
+    value: identity.subject,
+  });
+  if (!row) return null;
+  return principalFromRow(context, row, identity);
 }
 
 export async function resolvePrincipalById(
   context: ApiContext,
   identityId: string,
 ): Promise<Principal | null> {
-  const identity = await context.env.DB.prepare(
-    `SELECT access_subject, normalized_email, principal_kind
-       FROM admin_identities WHERE id = ?`,
-  )
-    .bind(identityId)
-    .first<{
-      access_subject: string;
-      normalized_email: string | null;
-      principal_kind: "human" | "service";
-    }>();
-  if (!identity) return null;
-  return resolvePrincipal(
-    context,
-    identity.principal_kind === "human"
-      ? {
-          email: identity.normalized_email ?? "",
-          principalKind: "human",
-          subject: identity.access_subject,
-        }
-      : {
-          principalKind: "service",
-          serviceName: identity.access_subject,
-          subject: identity.access_subject,
-        },
-  );
+  const row = await findPrincipalRow(context, { field: "id", value: identityId });
+  if (!row) return null;
+  return principalFromRow(context, row);
 }
 
 async function resolvePasswordSession(
@@ -220,22 +222,38 @@ async function resolvePasswordSession(
   const tokenHash = await hashOpaqueToken(token);
   const now = new Date().toISOString();
   const session = await context.env.DB.prepare(
-    `SELECT session.id, session.identity_id
+    `SELECT session.id AS session_id, session.last_seen_at,
+            identity.id, identity.principal_kind, identity.access_subject,
+            identity.normalized_email, identity.display_name, identity.enabled,
+            identity.expires_at,
+            role.id AS role_id, role.key AS role_key, role.name AS role_name,
+            role.protected AS role_protected, role.system AS role_system,
+            role.enabled AS role_enabled, role.version AS role_version
        FROM admin_sessions session
        JOIN admin_password_credentials credential ON credential.identity_id = session.identity_id
+       JOIN admin_identities identity ON identity.id = session.identity_id
+       JOIN admin_roles role ON role.id = identity.role_id
       WHERE session.token_hash = ?
         AND session.revoked_at IS NULL
         AND session.expires_at > ?
         AND session.password_version = credential.password_version`,
   )
     .bind(tokenHash, now)
-    .first<{ id: string; identity_id: string }>();
+    .first<PrincipalRow & { last_seen_at: string; session_id: string }>();
   if (!session) return null;
-  const principal = await resolvePrincipalById(context, session.identity_id);
-  if (!principal || principal.principalKind !== "human") return null;
-  await context.env.DB.prepare("UPDATE admin_sessions SET last_seen_at = ? WHERE id = ?")
-    .bind(now, session.id)
-    .run();
+  const principal = await principalFromRow(context, session);
+  if (principal.principalKind !== "human") return null;
+  const lastSeenAt = Date.parse(session.last_seen_at);
+  if (
+    !Number.isFinite(lastSeenAt) ||
+    Date.parse(now) - lastSeenAt >= SESSION_LAST_SEEN_TOUCH_INTERVAL_MS
+  ) {
+    await context.env.DB.prepare(
+      "UPDATE admin_sessions SET last_seen_at = ? WHERE id = ? AND last_seen_at = ?",
+    )
+      .bind(now, session.session_id, session.last_seen_at)
+      .run();
+  }
   return principal;
 }
 
