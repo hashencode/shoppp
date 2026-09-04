@@ -30,3 +30,9 @@ The fixture Product gallery now uses a dedicated two-Swiper composition because 
 Shop creates one shared carousel only when a sidebar and its two three-product arrival groups exist. It retains 5 second autoplay, 300ms transition and external previous/next controls; the no-sidebar route creates no hidden instance. About renders its six images with 2/3/4 responsive slides, the recorded gaps, 2 second autoplay and rewind. Its `calc(100% + 30vw)` container geometry remains the owner of the approved trailing white region.
 
 Across these pages, Swiper now owns drag, loop/rewind, track sizing and resize. Page-local intervals, pointer thresholds, wrapper transforms and thumbnail measurement code were removed. Product lightbox state remains an additional local pause reason.
+
+## FS-F3 bounded Product correction
+
+The completed FS-R1-U6 migration remains the two-Swiper ownership baseline, but its Product-specific 2 second autoplay intent, reserved active-class binding, and unconditional thumbnail `slideTo(index)` synchronization are superseded by [FS-F3](../plans/2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md). The bounded correction uses a 5 second Product cadence, one application-owned active marker paired with `aria-current`, and visibility-aware leading/trailing thumbnail reveal with Swiper boundary clamping. Home, Shop, and About configuration is unchanged.
+
+Focused retained evidence is in [the Product gallery correction record](fashion-store-product-gallery-carousel.md). Timing, unique selection, rail geometry, desktop/mobile input and lightbox behavior, failure recovery, reduced-motion/remount, Home/Shop/About carousel smoke, and the generic no-JavaScript shell passed. An exploratory all-Product run retained three unrelated responsive breadcrumb-y failures outside FS-F3's gallery scope; this evidence does not claim those checks, formal Decor Store regression, candidate freeze, DC, or PG progress.

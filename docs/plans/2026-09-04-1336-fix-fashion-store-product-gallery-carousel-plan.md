@@ -25,16 +25,16 @@ plan_role: corrective-follow-up
 - **Upstream product authority:** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` owns the product map and active pointer. `docs/plans/2026-08-11-001-feat-fashion-store-functional-integration-plan.md` continues to govern Fashion Store product behavior.
 - **Inherited baseline:** `docs/plans/2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md` completed FS-R1-U6 with Swiper 11.2.10, one semantic `realIndex`, a two-Swiper gallery, responsive thumbnail orientation, lightbox synchronization, pause reasons, reduced-motion behavior, and single-image fallback. Stable upstream R/F/AE/KTD/U identifiers keep their original meaning.
 - **Explicit supersession:** This plan supersedes only FS-R1-U6's two-second Product autoplay intent and its manual thumbnail active-class and unconditional `slideTo(index)` synchronization. It does not reopen or renumber FS-R1-U6, and it does not supersede other FS-R1 carousel timing or geometry decisions.
-- **Parallel plans:** REL remains the active product plan at Pre-DC. Decor, Commerce, IAM, AI, and CI plans retain the responsibilities recorded in the product master. Formal cross-template regression remains DC3 work unless a future candidate matrix includes this correction.
+- **Parallel plans:** REL remained paused at Pre-DC while FS-F3 executed and resumed afterward. Decor, Commerce, IAM, AI, and CI plans retain the responsibilities recorded in the product master. Formal cross-template regression remains DC3 work unless a future candidate matrix includes this correction.
 - **Tail ownership:** FS-F3 owns U1–U3 and `docs/progress/fashion-store-product-gallery-carousel.md`. After local completion it returns the result to REL without advancing candidate or production state.
 
 ## Activation Checkpoint
 
-- **Plan classification:** Active corrective implementation. The user approved the scope, five-second autoplay decision, and implementation start on 2026-09-04.
-- **Current unit:** U3 — reconcile regression evidence and hand back to REL.
-- **Unit state:** U1 and U2 are Complete; U3 is In Progress.
+- **Plan classification:** Complete corrective follow-up. The user approved the scope, five-second autoplay decision, and implementation start on 2026-09-04; U1–U3 closed on 2026-09-04.
+- **Current unit:** None — FS-F3 has returned execution to REL-Pre-DC.
+- **Unit state:** U1, U2, and U3 are Complete.
 - **Blocker:** None.
-- **Next concrete action:** Run the Product verification matrix, focused non-target carousel smoke, and browser geometry inspection; record durable evidence and then reconcile FS-F3 completion with the product master.
+- **Next concrete action:** REL resumes its existing Pre-DC capability-scope and candidate-identity reconciliation; FS-F3 has no implementation tail.
 - **Update rule:** This plan is the only authority for FS-F3's current unit, unit state, blocker, next action, and implementation tail. Update this checkpoint and the product master pointer together whenever those facts change. Evidence under `docs/progress/` must not duplicate the unit queue.
 
 ## Product Contract

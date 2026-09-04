@@ -48,6 +48,24 @@ async function thumbnailGeometry(page: Page, index: number) {
   return { rail, railBox: railBox!, slideBox: slideBox!, trackTransform };
 }
 
+async function expectThumbnailFullyVisible(page: Page, index: number): Promise<void> {
+  await expect
+    .poll(async () => {
+      const { railBox, slideBox } = await thumbnailGeometry(page, index);
+      const horizontal = await page
+        .locator(".product-image-thumb")
+        .evaluate((element) => element.classList.contains("swiper-horizontal"));
+      const railStart = horizontal ? railBox.x : railBox.y;
+      const railEnd = railStart + (horizontal ? railBox.width : railBox.height);
+      const slideStart = horizontal ? slideBox.x : slideBox.y;
+      const slideEnd = slideStart + (horizontal ? slideBox.width : slideBox.height);
+      return (
+        slideStart >= railStart - geometryTolerancePx && slideEnd <= railEnd + geometryTolerancePx
+      );
+    })
+    .toBe(true);
+}
+
 async function setThumbnailTranslate(
   page: Page,
   requestedTranslate: number | "max",
@@ -355,6 +373,50 @@ test("Product gallery reveals thumbnails minimally and clamps the trailing edge"
   });
 });
 
+test("Product gallery keeps the selected thumbnail visible through responsive resize", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Responsive resize evidence runs once.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await prepareProduct(page);
+  const gallery = page.locator(".product-image-slider");
+  await gallery.focus();
+  await selectProductThumbnail(page, 5);
+
+  await page.setViewportSize({ width: 1300, height: 850 });
+  await expect(page.locator(".product-image-thumb")).toHaveClass(/swiper-vertical/);
+  await expectThumbnailFullyVisible(page, 5);
+
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await expect(page.locator(".product-image-thumb")).toHaveClass(/swiper-horizontal/);
+  await expectThumbnailFullyVisible(page, 5);
+  await expectSemanticThumbnailSelection(page, gallery);
+});
+
+test("Product gallery replaces an interrupted thumbnail reveal", async ({ page }, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Transition overlap evidence runs once.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await prepareProduct(page);
+  const gallery = page.locator(".product-image-slider");
+  await gallery.focus();
+
+  await productThumbnail(page, 5).dispatchEvent("click");
+  await page.waitForTimeout(50);
+  await productThumbnail(page, 1).dispatchEvent("click");
+
+  await expect(gallery).toHaveAttribute("data-gallery-index", "1");
+  await page.waitForTimeout(galleryTransitionMs + 50);
+  await expectThumbnailFullyVisible(page, 1);
+  await expectSemanticThumbnailSelection(page, gallery);
+  await expect
+    .poll(() =>
+      page
+        .locator(".product-image-thumb")
+        .evaluate((element) => element.swiper?.animating ?? false),
+    )
+    .toBe(false);
+});
+
 test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, touch, and lightbox", async ({
   page,
 }, testInfo) => {
@@ -371,6 +433,10 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
     await page.getByRole("button", { name: "Close product image preview" }).tap();
     await productThumbnail(page, 1).tap();
     await expect(gallery).toHaveAttribute("data-gallery-index", "1");
+    await productThumbnail(page, 5).tap();
+    await expect(gallery).toHaveAttribute("data-gallery-index", "5");
+    await expectThumbnailFullyVisible(page, 5);
+    await expectSemanticThumbnailSelection(page, gallery);
     recordThemeBehaviorEvidence(testInfo, {
       actionOutcome: true,
       behaviorId: "product-gallery",

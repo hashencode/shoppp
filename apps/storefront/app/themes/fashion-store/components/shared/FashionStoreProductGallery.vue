@@ -6,6 +6,9 @@ import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { fashionStoreAssetId } from "../../resources";
 
 type PauseReason = "document-hidden" | "focus" | "hover" | "lightbox" | "reduced-motion";
+type InterruptibleSwiper = SwiperInstance & {
+  onTranslateToWrapperTransitionEnd?: EventListener | null;
+};
 
 const properties = defineProps<{
   images: readonly string[];
@@ -48,6 +51,18 @@ function setPause(reason: PauseReason, paused: boolean): void {
 function revealActiveThumbnail(swiper = thumbnailSwiper.value): void {
   const slide = swiper?.slides[activeIndex.value];
   if (!swiper || !slide) return;
+  if (swiper.animating) {
+    const renderedTranslate = Number(swiper.getTranslate());
+    // Swiper stores this cleanup hook outside its public type; remove it when replacing the motion.
+    const interruptibleSwiper = swiper as InterruptibleSwiper;
+    const transitionEnd = interruptibleSwiper.onTranslateToWrapperTransitionEnd;
+    if (transitionEnd) {
+      swiper.wrapperEl.removeEventListener("transitionend", transitionEnd);
+      delete interruptibleSwiper.onTranslateToWrapperTransitionEnd;
+    }
+    swiper.animating = false;
+    swiper.translateTo(renderedTranslate, 0, false, true);
+  }
   const fullyVisibleClass = swiper.params.slideFullyVisibleClass;
   if (fullyVisibleClass && slide.classList.contains(fullyVisibleClass)) return;
 
@@ -84,6 +99,12 @@ function handleMainSwiper(swiper: SwiperInstance): void {
 function handleThumbnailSwiper(swiper: SwiperInstance): void {
   thumbnailSwiper.value = swiper;
   revealActiveThumbnail(swiper);
+}
+
+function handleThumbnailResize(swiper: SwiperInstance): void {
+  void nextTick(() => {
+    if (!swiper.destroyed) revealActiveThumbnail(swiper);
+  });
 }
 
 function select(index: number): void {
@@ -219,6 +240,7 @@ defineExpose({ select });
         :watch-overflow="true"
         @swiper="handleThumbnailSwiper"
         @breakpoint="revealActiveThumbnail"
+        @resize="handleThumbnailResize"
       >
         <SwiperSlide
           v-for="(image, index) in images"
