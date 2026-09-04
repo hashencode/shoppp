@@ -1,5 +1,5 @@
 import { isFashionStoreViewport } from "./support/fashion-store-project";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 
@@ -7,12 +7,88 @@ const sourceOrigin = `http://127.0.0.1:${Number(
   process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427,
 )}`;
 const productRoute = "/products/relaxed-corduroy-shirt";
+const galleryTransitionMs = 300;
+const galleryAutoplayDelayMs = 5_000;
+const geometryTolerancePx = 2;
 
 async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
   await page.goto(productRoute, { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-product][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
   if (dismissCookie) await page.getByRole("button", { name: "Allow cookies" }).click();
+}
+
+async function galleryIndex(gallery: Locator): Promise<number> {
+  return Number(await gallery.getAttribute("data-gallery-index"));
+}
+
+async function expectSemanticThumbnailSelection(page: Page, gallery: Locator): Promise<void> {
+  const index = await galleryIndex(gallery);
+  const thumbnails = page.locator(".product-image-thumb .swiper-slide");
+  const activeMarkers = page.locator('.product-image-thumb .swiper-slide[data-active="true"]');
+  const currentControls = thumbnails.locator('button[aria-current="true"]');
+
+  await expect(activeMarkers).toHaveCount(1);
+  await expect(currentControls).toHaveCount(1);
+  await expect(thumbnails.nth(index)).toHaveAttribute("data-active", "true");
+  await expect(productThumbnail(page, index)).toHaveAttribute("aria-current", "true");
+}
+
+async function thumbnailGeometry(page: Page, index: number) {
+  const rail = page.locator(".product-image-thumb");
+  const slide = rail.locator(".swiper-slide").nth(index);
+  const track = rail.locator(".swiper-wrapper");
+  const [railBox, slideBox, trackTransform] = await Promise.all([
+    rail.boundingBox(),
+    slide.boundingBox(),
+    track.evaluate((element) => getComputedStyle(element).transform),
+  ]);
+
+  expect(railBox).not.toBeNull();
+  expect(slideBox).not.toBeNull();
+  return { rail, railBox: railBox!, slide, slideBox: slideBox!, track, trackTransform };
+}
+
+async function setThumbnailTranslate(
+  page: Page,
+  requestedTranslate: number | "max",
+): Promise<{ max: number; min: number; translate: number }> {
+  const rail = page.locator(".product-image-thumb");
+  return rail.evaluate((element, requested) => {
+    const swiper = (
+      element as HTMLElement & {
+        swiper?: {
+          maxTranslate: () => number;
+          minTranslate: () => number;
+          translate: number;
+          translateTo: (
+            translate: number,
+            speed: number,
+            runCallbacks: boolean,
+            translateBounds: boolean,
+          ) => void;
+          updateProgress: () => void;
+          updateSlidesProgress: () => void;
+        };
+      }
+    ).swiper;
+    if (!swiper) throw new Error("Thumbnail Swiper is not ready");
+    const min = swiper.minTranslate();
+    const max = swiper.maxTranslate();
+    swiper.translateTo(requested === "max" ? max : requested, 0, false, true);
+    swiper.updateProgress();
+    swiper.updateSlidesProgress();
+    return { max, min, translate: swiper.translate };
+  }, requestedTranslate);
+}
+
+async function selectProductThumbnail(page: Page, index: number): Promise<void> {
+  await productThumbnail(page, index).dispatchEvent("click");
+  await expect(page.locator(".product-image-slider")).toHaveAttribute(
+    "data-gallery-index",
+    String(index),
+  );
+  await page.waitForTimeout(galleryTransitionMs + 50);
 }
 
 const cart = (quantity: number) => ({
@@ -122,26 +198,163 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   }
 });
 
-test("product-gallery-slide-2 temporal: gallery advances and pauses without reduced-motion drift", async ({
+test("product-gallery temporal: gallery waits five seconds after an explicit restart", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Temporal evidence runs once.");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepareProduct(page);
   const gallery = page.locator(".product-image-slider");
-  const before = Number(await gallery.getAttribute("data-gallery-index"));
-  await expect
-    .poll(() => gallery.getAttribute("data-gallery-index"), { timeout: 6_500 })
-    .not.toBe("0");
-  const after = Number(await gallery.getAttribute("data-gallery-index"));
   await gallery.focus();
-  const pausedAt = await gallery.getAttribute("data-gallery-index");
-  await page.waitForTimeout(5_250);
-  await expect(gallery).toHaveAttribute("data-gallery-index", pausedAt!);
+  await page.waitForTimeout(galleryTransitionMs + 50);
+  const pausedAt = await galleryIndex(gallery);
+  await gallery.evaluate((element) => (element as HTMLElement).blur());
+  const restartedAt = Date.now();
+
+  await page.waitForTimeout(galleryAutoplayDelayMs - 250);
+  await expect(gallery).toHaveAttribute("data-gallery-index", String(pausedAt));
+
+  const expectedNext = (pausedAt + 1) % 6;
+  await expect.poll(() => galleryIndex(gallery), { timeout: 1_000 }).toBe(expectedNext);
+  const elapsedMs = Date.now() - restartedAt;
+  await page.waitForTimeout(galleryTransitionMs + 50);
+  await expect(gallery).toHaveAttribute("data-gallery-index", String(expectedNext));
   recordThemeBehaviorEvidence(testInfo, {
     behaviorId: "product-gallery",
     mode: "temporal",
-    temporalSamples: { after, before, elapsedMs: 5_000 },
+    temporalSamples: { after: expectedNext, before: pausedAt, elapsedMs },
+  });
+});
+
+test("Product gallery keeps one application-owned semantic thumbnail selection", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Selection evidence runs once.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await prepareProduct(page);
+  const gallery = page.locator(".product-image-slider");
+  await gallery.focus();
+
+  for (const index of [1, 4, 2, 5, 1]) {
+    await selectProductThumbnail(page, index);
+    await expectSemanticThumbnailSelection(page, gallery);
+  }
+});
+
+test("Product gallery reveals thumbnails minimally and clamps the trailing edge", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Geometry evidence runs once.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await prepareProduct(page);
+  const gallery = page.locator(".product-image-slider");
+  await gallery.focus();
+
+  await test.step("a fully visible thumbnail does not move the rail", async () => {
+    const before = await thumbnailGeometry(page, 1);
+    expect(before.slideBox.y).toBeGreaterThanOrEqual(before.railBox.y - geometryTolerancePx);
+    expect(before.slideBox.y + before.slideBox.height).toBeLessThanOrEqual(
+      before.railBox.y + before.railBox.height + geometryTolerancePx,
+    );
+    await selectProductThumbnail(page, 1);
+    const after = await thumbnailGeometry(page, 1);
+    expect.soft(after.trackTransform).toBe(before.trackTransform);
+  });
+
+  await test.step("a partially clipped thumbnail receives only its missing trailing reveal", async () => {
+    const position = await setThumbnailTranslate(page, 0);
+    expect(position.translate).toBeLessThanOrEqual(position.min);
+    expect(position.translate).toBeGreaterThanOrEqual(position.max);
+    const before = await thumbnailGeometry(page, 4);
+    expect(before.slideBox.y).toBeGreaterThan(before.railBox.y);
+    expect(before.slideBox.y + before.slideBox.height).toBeGreaterThan(
+      before.railBox.y + before.railBox.height,
+    );
+    await selectProductThumbnail(page, 4);
+    const after = await thumbnailGeometry(page, 4);
+    const requiredMovement =
+      before.slideBox.y + before.slideBox.height - (before.railBox.y + before.railBox.height);
+    expect
+      .soft(
+        Math.abs(
+          after.slideBox.y + after.slideBox.height - (after.railBox.y + after.railBox.height),
+        ),
+      )
+      .toBeLessThanOrEqual(geometryTolerancePx);
+    expect
+      .soft(Math.abs(before.slideBox.y - after.slideBox.y - requiredMovement))
+      .toBeLessThanOrEqual(geometryTolerancePx);
+  });
+
+  await test.step("an intermediate offscreen thumbnail reveals its trailing edge", async () => {
+    await setThumbnailTranslate(page, 0);
+    const before = await thumbnailGeometry(page, 5);
+    expect(before.slideBox.y).toBeGreaterThan(before.railBox.y + before.railBox.height);
+    await selectProductThumbnail(page, 5);
+    const after = await thumbnailGeometry(page, 5);
+    const requiredMovement =
+      before.slideBox.y + before.slideBox.height - (before.railBox.y + before.railBox.height);
+    expect
+      .soft(
+        Math.abs(
+          after.slideBox.y + after.slideBox.height - (after.railBox.y + after.railBox.height),
+        ),
+      )
+      .toBeLessThanOrEqual(geometryTolerancePx);
+    expect
+      .soft(Math.abs(before.slideBox.y - after.slideBox.y - requiredMovement))
+      .toBeLessThanOrEqual(geometryTolerancePx);
+  });
+
+  await test.step("a preceding partially clipped thumbnail receives only its missing leading reveal", async () => {
+    const position = await setThumbnailTranslate(page, -200);
+    expect(position.translate).toBeLessThanOrEqual(position.min);
+    expect(position.translate).toBeGreaterThanOrEqual(position.max);
+    const before = await thumbnailGeometry(page, 1);
+    expect(before.slideBox.y).toBeLessThan(before.railBox.y);
+    expect(before.slideBox.y + before.slideBox.height).toBeGreaterThan(before.railBox.y);
+    await selectProductThumbnail(page, 1);
+    const after = await thumbnailGeometry(page, 1);
+    const requiredMovement = before.railBox.y - before.slideBox.y;
+    expect
+      .soft(Math.abs(after.slideBox.y - after.railBox.y))
+      .toBeLessThanOrEqual(geometryTolerancePx);
+    expect
+      .soft(Math.abs(after.slideBox.y - before.slideBox.y - requiredMovement))
+      .toBeLessThanOrEqual(geometryTolerancePx);
+  });
+
+  await test.step("a preceding offscreen thumbnail reveals its leading edge", async () => {
+    const position = await setThumbnailTranslate(page, "max");
+    expect(position.translate).toBe(position.max);
+    const before = await thumbnailGeometry(page, 0);
+    expect(before.slideBox.y + before.slideBox.height).toBeLessThan(before.railBox.y);
+    await selectProductThumbnail(page, 0);
+    const after = await thumbnailGeometry(page, 0);
+    expect
+      .soft(Math.abs(after.slideBox.y - after.railBox.y))
+      .toBeLessThanOrEqual(geometryTolerancePx);
+  });
+
+  await test.step("the sixth thumbnail stops at the filled trailing boundary", async () => {
+    await setThumbnailTranslate(page, 0);
+    await selectProductThumbnail(page, 5);
+    const last = await thumbnailGeometry(page, 5);
+    const slides = await last.rail.locator(".swiper-slide").evaluateAll((elements) =>
+      elements.map((element) => {
+        const box = element.getBoundingClientRect();
+        return { bottom: box.bottom, top: box.top };
+      }),
+    );
+    const railBottom = last.railBox.y + last.railBox.height;
+    const visiblePredecessors = slides
+      .slice(0, -1)
+      .filter((slide) => slide.bottom > last.railBox.y && slide.top < railBottom);
+    expect
+      .soft(Math.abs(last.slideBox.y + last.slideBox.height - railBottom))
+      .toBeLessThanOrEqual(geometryTolerancePx);
+    expect.soft(visiblePredecessors.length).toBeGreaterThanOrEqual(3);
+    expect.soft(slides[0]!.top).toBeLessThanOrEqual(last.railBox.y + geometryTolerancePx);
   });
 });
 

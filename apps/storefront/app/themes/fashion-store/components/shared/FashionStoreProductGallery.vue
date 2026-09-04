@@ -18,6 +18,7 @@ const emit = defineEmits<{
   open: [];
 }>();
 
+const productGalleryAutoplayDelayMs = 5_000;
 const mainSwiper = shallowRef<SwiperInstance>();
 const thumbnailSwiper = shallowRef<SwiperInstance>();
 const activeIndex = ref(0);
@@ -44,11 +45,30 @@ function setPause(reason: PauseReason, paused: boolean): void {
   syncAutoplay();
 }
 
+function revealActiveThumbnail(swiper = thumbnailSwiper.value): void {
+  const slide = swiper?.slides[activeIndex.value];
+  if (!swiper || !slide) return;
+
+  const viewportBox = swiper.el.getBoundingClientRect();
+  const slideBox = slide.getBoundingClientRect();
+  const horizontal = swiper.isHorizontal();
+  const viewportStart = horizontal ? viewportBox.left : viewportBox.top;
+  const viewportEnd = horizontal ? viewportBox.right : viewportBox.bottom;
+  const slideStart = horizontal ? slideBox.left : slideBox.top;
+  const slideEnd = horizontal ? slideBox.right : slideBox.bottom;
+  if (slideStart >= viewportStart && slideEnd <= viewportEnd) return;
+
+  const viewportDelta =
+    slideStart < viewportStart ? viewportStart - slideStart : viewportEnd - slideEnd;
+  const translateDelta = horizontal && swiper.rtlTranslate ? -viewportDelta : viewportDelta;
+  swiper.translateTo(swiper.translate + translateDelta, Number(swiper.params.speed), false, true);
+}
+
 function syncActiveIndex(swiper = mainSwiper.value): void {
   if (!swiper) return;
   const index = swiper.realIndex;
   activeIndex.value = index;
-  thumbnailSwiper.value?.slideTo(index);
+  revealActiveThumbnail();
   emit("activeIndexChange", index);
 }
 
@@ -60,7 +80,10 @@ function handleMainSwiper(swiper: SwiperInstance): void {
 
 function handleThumbnailSwiper(swiper: SwiperInstance): void {
   thumbnailSwiper.value = swiper;
-  swiper.slideTo(activeIndex.value);
+  (swiper as SwiperInstance & { setTransition: (duration: number) => void }).setTransition(
+    Number(swiper.params.speed),
+  );
+  revealActiveThumbnail(swiper);
 }
 
 function select(index: number): void {
@@ -137,13 +160,18 @@ defineExpose({ select });
         aria-label="Product gallery"
         :modules="[Autoplay, Keyboard]"
         :loop="loopEnabled"
-        :autoplay="loopEnabled ? { delay: 2000, disableOnInteraction: false } : false"
+        :autoplay="
+          loopEnabled
+            ? { delay: productGalleryAutoplayDelayMs, disableOnInteraction: false }
+            : false
+        "
         :keyboard="{ enabled: false, onlyInViewport: true }"
         :speed="300"
         :watch-overflow="true"
         :prevent-clicks="true"
         :prevent-clicks-propagation="true"
         :data-gallery-index="activeIndex"
+        :data-autoplay-delay="loopEnabled ? productGalleryAutoplayDelayMs : undefined"
         @swiper="handleMainSwiper"
         @slide-change="syncActiveIndex"
         @mouseenter="setPause('hover', true)"
@@ -183,16 +211,19 @@ defineExpose({ select });
     <div class="col-12 col-lg-2 order-lg-1 position-relative single-product-thumb">
       <Swiper
         class="product-image-thumb slider-vertical"
-        :slides-per-view="4"
+        slides-per-view="auto"
         :space-between="15"
-        :breakpoints="{ 992: { direction: 'vertical', slidesPerView: 3 } }"
+        :breakpoints="{ 992: { direction: 'vertical' } }"
+        :speed="300"
+        :watch-slides-progress="true"
         :watch-overflow="true"
         @swiper="handleThumbnailSwiper"
+        @breakpoint="revealActiveThumbnail"
       >
         <SwiperSlide
           v-for="(image, index) in images"
           :key="image"
-          :class="{ 'swiper-slide-thumb-active': index === activeIndex }"
+          :data-active="index === activeIndex ? 'true' : undefined"
         >
           <img
             class="w-100"

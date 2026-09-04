@@ -86,7 +86,6 @@
 
 [data-fashion-store-product] .product-image-thumb .swiper-slide {
   position: relative;
-  width: 100%;
   border: 1px solid transparent;
   opacity: 1;
   cursor: pointer;
@@ -102,7 +101,7 @@
   cursor: pointer;
 }
 
-[data-fashion-store-product] .product-image-thumb .swiper-slide-thumb-active {
+[data-fashion-store-product] .product-image-thumb .swiper-slide[data-active="true"] {
   border-color: var(--light-gray);
   opacity: 1;
 }
@@ -154,6 +153,14 @@
 @media (max-width: 991px) {
   [data-fashion-store-product] .top-space-margin {
     margin-top: 79px;
+  }
+
+  [data-fashion-store-product] .product-image-thumb .swiper-slide[data-active="true"] {
+    border-color: transparent;
+  }
+
+  [data-fashion-store-product] .product-image-thumb .swiper-slide[data-active="true"] img {
+    border-color: var(--light-gray);
   }
 
   [data-fashion-store-product] .fashion-product-reviews article {
