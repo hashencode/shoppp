@@ -31,10 +31,10 @@ plan_role: corrective-follow-up
 ## Activation Checkpoint
 
 - **Plan classification:** Active corrective implementation. The user approved the scope, five-second autoplay decision, and implementation start on 2026-09-04.
-- **Current unit:** U2 — correct Product gallery coordination.
-- **Unit state:** U1 is Complete with retained pre-fix browser failures; U2 is In Progress; U3 is Planned.
+- **Current unit:** U3 — reconcile regression evidence and hand back to REL.
+- **Unit state:** U1 and U2 are Complete; U3 is In Progress.
 - **Blocker:** None.
-- **Next concrete action:** Implement the five-second cadence, application-owned single selection marker, and fully-visible direction-aware thumbnail reveal until U1's focused browser regressions pass.
+- **Next concrete action:** Run the Product verification matrix, focused non-target carousel smoke, and browser geometry inspection; record durable evidence and then reconcile FS-F3 completion with the product master.
 - **Update rule:** This plan is the only authority for FS-F3's current unit, unit state, blocker, next action, and implementation tail. Update this checkpoint and the product master pointer together whenever those facts change. Evidence under `docs/progress/` must not duplicate the unit queue.
 
 ## Product Contract
