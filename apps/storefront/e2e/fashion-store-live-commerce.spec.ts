@@ -290,7 +290,10 @@ test("live non-Home and platform routes share Experience presentation around aut
   });
 
   await page.goto("/products/atlas-carry-on", { waitUntil: "networkidle" });
-  await expect(page.locator(".header-top-bar")).toContainText("Live Experience announcement");
+  await expect(page.locator(".header-top-bar")).toHaveCount(0);
+  await expect(page.locator("[data-fashion-store-header]")).not.toContainText(
+    "Live Experience announcement",
+  );
   await expect(page.locator("[data-fashion-store-header]")).toContainText(
     "Live Experience header support",
   );
@@ -446,6 +449,7 @@ test("live Product requires a valid grouped option combination and stays truthfu
   page,
 }) => {
   let submitted: Record<string, unknown> | undefined;
+  let addRequests = 0;
   await installLiveCommerce(page, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^\/api/, "");
@@ -465,8 +469,12 @@ test("live Product requires a valid grouped option combination and stays truthfu
       return;
     }
     if (path === "/cart/lines" && request.method() === "POST") {
+      addRequests += 1;
       submitted = request.postDataJSON() as Record<string, unknown>;
-      await route.fulfill({ contentType: "application/json", json: { data: cart() } });
+      await route.fulfill({
+        contentType: "application/json",
+        json: { data: cart({ quantity: Number(submitted.quantity) }) },
+      });
       return;
     }
     await route.abort();
@@ -485,9 +493,14 @@ test("live Product requires a valid grouped option combination and stays truthfu
   await expect(product.getByRole("radio", { name: "M" })).toBeDisabled();
   await product.getByRole("radio", { name: "XL" }).check();
   await expect(product.locator("[data-live-product-price]")).toContainText("$67.00");
+  await product.getByLabel("Quantity", { exact: true }).fill("3.8");
+  await product.getByLabel("Quantity", { exact: true }).press("Tab");
+  await expect(product.getByLabel("Quantity", { exact: true })).toHaveValue("3");
+  expect(addRequests).toBe(0);
   await product.getByRole("button", { name: "Add to cart" }).click();
   await expect(product.getByRole("status")).toContainText("was added to your cart");
-  expect(submitted).toMatchObject({ quantity: 1, variantId });
+  expect(submitted).toMatchObject({ quantity: 3, variantId });
+  expect(addRequests).toBe(1);
 
   const accessibility = await new AxeBuilder({ page })
     .include("[data-fashion-store-live-product]")
@@ -1038,6 +1051,7 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
   page,
 }) => {
   let currentCart = cart();
+  const updates: unknown[] = [];
   await installLiveCommerce(page, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^\/api/, "");
@@ -1046,7 +1060,9 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
       return;
     }
     if (path === `/cart/lines/${variantId}` && request.method() === "PATCH") {
-      currentCart = cart({ quantity: 2 });
+      const input = request.postDataJSON() as { quantity: number };
+      updates.push(input);
+      currentCart = cart({ quantity: input.quantity });
       await route.fulfill({ contentType: "application/json", json: { data: currentCart } });
       return;
     }
@@ -1068,6 +1084,7 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
   await expect(
     page.getByRole("spinbutton", { name: "Relaxed corduroy shirt quantity" }),
   ).toHaveValue("2");
+  expect(updates).toEqual([{ quantity: 2 }]);
 
   await headerCart.hover();
   await expect(headerCart.locator(".cart-count")).toHaveText("2");
@@ -1085,4 +1102,60 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
   await expect(page.locator(".total-price-table")).toContainText("$0.00");
   await expect(headerCart.locator(".cart-count")).toHaveText("0");
   await expect(headerCart.locator(".cart-item-list")).toContainText("Your cart is empty.");
+});
+
+test("live quantity commits once, restores the authoritative value after failure, and retries", async ({
+  page,
+}) => {
+  let currentCart = cart();
+  const updates: number[] = [];
+  let releaseFailure!: () => void;
+  const pendingFailure = new Promise<void>((resolve) => {
+    releaseFailure = resolve;
+  });
+  await installLiveCommerce(page, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace(/^\/api/, "");
+    if (path === "/cart" && request.method() === "GET") {
+      await route.fulfill({ json: { data: currentCart } });
+      return;
+    }
+    if (path === `/cart/lines/${variantId}` && request.method() === "PATCH") {
+      const { quantity } = request.postDataJSON() as { quantity: number };
+      updates.push(quantity);
+      if (updates.length === 1) {
+        await pendingFailure;
+        await route.abort("failed");
+      } else {
+        currentCart = cart({ quantity });
+        await route.fulfill({ json: { data: currentCart } });
+      }
+      return;
+    }
+    await route.abort();
+  });
+  await page.goto("/cart", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Allow cookies" }).click();
+  const input = page.getByRole("spinbutton", { name: "Relaxed corduroy shirt quantity" });
+  await input.fill("2");
+  await input.press("Tab");
+  await expect(input).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Increase Relaxed corduroy shirt quantity" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Decrease Relaxed corduroy shirt quantity" }),
+  ).toBeDisabled();
+  expect(updates).toEqual([2]);
+  releaseFailure();
+  await expect(input).toBeEnabled();
+  await expect(input).toHaveValue("1");
+  await expect(page.locator(".cart-count")).toHaveText("1");
+  await input.fill("3.8");
+  await input.press("Tab");
+  await expect(input).toHaveValue("3");
+  expect(updates).toEqual([2, 3]);
+  await expect(page.locator(".cart-count")).toHaveText("3");
+  await page.locator(".header-cart").hover();
+  await expect(page.locator(".header-cart .cart-total")).toContainText("$195.00");
 });

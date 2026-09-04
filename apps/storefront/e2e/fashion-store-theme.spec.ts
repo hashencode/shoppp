@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -283,7 +284,7 @@ test("complete source home renders every static region and local image", async (
 });
 
 test("Fashion Store home has no serious accessibility violations", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/");
   await page.evaluate(async () => {
     for (let top = 0; top < document.documentElement.scrollHeight; top += innerHeight * 0.75) {
@@ -323,7 +324,7 @@ test("Fashion Store home has no serious accessibility violations", async ({ page
 test("reduced motion defers home hydration without deferring readable content", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "networkidle" });
 
@@ -344,11 +345,11 @@ test("reduced motion defers home hydration without deferring readable content", 
 test("visual capabilities initialize once and leave no runtime residue", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/", false);
   const marker = page.locator("[data-fashion-store-source-parity]");
   await expect(marker).toHaveAttribute("data-runtime-status", "ready");
-  await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(2);
+  await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
   await expect(page.locator(".grid-loading")).toHaveCount(0);
   await expect(page.locator("[data-fashion-store-collection-carousel]")).toHaveAttribute(
     "data-collection-index",
@@ -356,7 +357,7 @@ test("visual capabilities initialize once and leave no runtime residue", async (
   );
   expect(
     await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
-  ).toEqual({ jquery: true, swiper: true });
+  ).toEqual({ jquery: false, swiper: false });
 
   await page.goto("/checkout/complete");
   await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
@@ -367,12 +368,12 @@ test("visual capabilities initialize once and leave no runtime residue", async (
 
   await page.goBack({ waitUntil: "networkidle" });
   await expect(marker).toHaveAttribute("data-runtime-status", "ready");
-  await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(2);
+  await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
   await expect(marker).toHaveAttribute("data-runtime-instance-count", "1");
 });
 
 test("collection carousel and edge rails remain interactive", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
   await page.evaluate(async () => document.fonts.ready);
@@ -392,8 +393,9 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
   const heroAfter = Number(await hero.getAttribute("data-motion-active-index"));
   await expect(hero.locator('.fashion-store-hero-slide[data-active="true"]')).toHaveCount(1);
   const interactionTarget = (heroAfter + 1) % 3;
+  await page.waitForTimeout(1_050);
   await hero.focus();
-  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowDown");
   await expect(hero).toHaveAttribute("data-motion-active-index", String(interactionTarget));
 
   const socialRail = page.locator(".sticky-wrap");
@@ -439,22 +441,44 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
   );
 });
 
-test("collection loop ignores extra advance input until its clone reset completes", async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+test("collection loop remains continuous with semantic indices", async ({ page }, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/");
   const carousel = page.locator("[data-fashion-store-collection-carousel]");
   await carousel.focus();
-  for (let index = 0; index < 4; index += 1) await page.keyboard.press("ArrowRight");
-  await expect(carousel).toHaveAttribute("data-collection-index", "4");
-  await page.keyboard.press("ArrowRight");
-  await expect(carousel).toHaveAttribute("data-collection-index", "4");
-  await expect(carousel).toHaveAttribute("data-collection-index", "0", { timeout: 1_200 });
+  for (let index = 0; index < 5; index += 1) {
+    await page.keyboard.press("ArrowRight");
+    await expect(carousel).toHaveAttribute("data-collection-index", String((index + 1) % 4));
+    await page.waitForTimeout(700);
+  }
+  expect(await carousel.locator(".swiper-slide-visible").count()).toBeGreaterThan(0);
+});
+
+test("collection autoplay resumes only after every local pause reason clears", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/", { waitUntil: "networkidle" });
+  const carousel = page.locator("[data-fashion-store-collection-carousel]");
+  await carousel.hover();
+  await expect(carousel).toHaveAttribute("data-motion-paused", /hover/);
+  await carousel.focus();
+  await page.mouse.move(0, 0);
+  await expect(carousel).not.toHaveAttribute("data-motion-paused", /hover/);
+  await expect(carousel).toHaveAttribute("data-motion-paused", /focus/);
+  const pausedIndex = await carousel.getAttribute("data-collection-index");
+  await page.waitForTimeout(4_300);
+  await expect(carousel).toHaveAttribute("data-collection-index", pausedIndex!);
+  await carousel.blur();
+  await expect(carousel).toHaveAttribute("data-motion-paused", "");
+  await expect
+    .poll(() => carousel.getAttribute("data-collection-index"), { timeout: 5_500 })
+    .not.toBe(pausedIndex);
 });
 
 test("hero retains the approved native cursor adaptation", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/", false);
   const result = await probeNativeCursorVisibility(page, ".swiper.full-screen");
   expect(result.visible).toBe(true);
@@ -466,20 +490,57 @@ test("hero retains the approved native cursor adaptation", async ({ page }, test
   });
 });
 
-test("runtime load failure exposes stable static content", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
-  await page.route(/jquery(?:\.[^/]+)?\.js(?:\?.*)?$/, (route) => route.abort());
+test("hero drag changes only its own carousel and collection drag does not follow a link", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ready(page, "/");
+  const hero = page.locator(".swiper.full-screen");
+  const collection = page.locator("[data-fashion-store-collection-carousel]");
+  await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
+  await hero.scrollIntoViewIfNeeded();
+  const heroBox = (await hero.boundingBox())!;
+  await page.mouse.move(heroBox.x + heroBox.width * 0.8, heroBox.y + 200);
+  await page.mouse.down();
+  await page.mouse.move(heroBox.x + heroBox.width * 0.2, heroBox.y + 200, { steps: 12 });
+  await page.mouse.up();
+  await expect(hero).toHaveAttribute("data-motion-active-index", "1");
+  await expect(collection).toHaveAttribute("data-collection-index", "0");
+  await collection.scrollIntoViewIfNeeded();
+  const collectionBox = (await collection.boundingBox())!;
+  await page.mouse.move(collectionBox.x + collectionBox.width * 0.8, collectionBox.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(collectionBox.x + collectionBox.width * 0.2, collectionBox.y + 100, {
+    steps: 12,
+  });
+  await page.mouse.up();
+  await expect(collection).toHaveAttribute("data-collection-index", "1");
+  await expect(hero).toHaveAttribute("data-motion-active-index", "1");
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test("legacy runtime requests are absent while static content remains usable", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
+  const legacyRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/(?:jquery|vendors\.min)(?:\.[^/]+)?\.js(?:\?.*)?$/.test(request.url())) {
+      legacyRequests.push(request.url());
+    }
+  });
   await ready(page, "/", false);
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
     "data-runtime-status",
-    "fallback",
+    "ready",
   );
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
+  await expect(page.locator("[data-fashion-store-source-parity]")).not.toHaveAttribute(
     "data-runtime-error",
     /.+/,
   );
   await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
+  expect(legacyRequests).toEqual([]);
   expect(
     await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
   ).toEqual({ jquery: false, swiper: false });
@@ -584,21 +645,20 @@ test("runtime load failure exposes stable static content", async ({ page }, test
   recordThemeBehaviorEvidence(testInfo, ...evidence);
 });
 
-test("partial runtime load failure removes earlier scripts and globals", async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
-  await page.route(/vendors\.min(?:\.[^/]+)?\.js(?:\?.*)?$/, (route) => route.abort());
+test("route remount never installs legacy scripts or globals", async ({ page }, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/", false);
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
     "data-runtime-status",
-    "fallback",
+    "ready",
   );
   await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
   expect(
     await page.evaluate(() => ({ jquery: "jQuery" in window, swiper: "Swiper" in window })),
   ).toEqual({ jquery: false, swiper: false });
-  await expect(page.locator("section:nth-of-type(10)")).toBeVisible();
+  await page.goto("/shop", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-fashion-store-runtime-script]")).toHaveCount(0);
+  await expect(page.locator("[data-fashion-store-shop] .shop-modern")).toBeVisible();
 });
 
 test("runtime and typed preview action remain clean and Nuxt-owned", async ({ page }, testInfo) => {
@@ -730,7 +790,7 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
 test("header search and preview cart reproduce the source interactions", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/");
 
   const searchTrigger = page.getByRole("link", { name: "Search" });
@@ -759,7 +819,7 @@ test("header search and preview cart reproduce the source interactions", async (
 test("mobile menu closes through Nuxt handling and restores toggle focus", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-mobile");
+  test.skip(!isFashionStoreViewport(testInfo, "mobile"));
   await ready(page, "/");
   const toggle = page.getByRole("button", { name: "Toggle navigation" });
   await toggle.focus();
@@ -810,7 +870,7 @@ test("mobile menu closes through Nuxt handling and restores toggle focus", async
 test("compact scroll-progress branch stays hidden while native scrolling remains usable", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name === "fashion-store-desktop");
+  test.skip(isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/");
   const progress = page.locator(".scroll-progress");
   await expect(progress).toBeHidden();
@@ -837,7 +897,11 @@ test("compact scroll-progress branch stays hidden while native scrolling remains
   );
 });
 
-test("approved local fonts and glyph family are active", async ({ browser, page }) => {
+test("approved local fonts and SVG icons are active", async ({ browser, page }) => {
+  const fontRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/\.(?:woff2?|ttf)(?:[?#]|$)/i.test(request.url())) fontRequests.push(request.url());
+  });
   const source = await browser.newPage({ viewport: page.viewportSize()! });
   await Promise.all([ready(source, sourceURL), ready(page, "/")]);
   const probes = [
@@ -854,17 +918,99 @@ test("approved local fonts and glyph family are active", async ({ browser, page 
   ]);
   expect(compareFontContractSnapshots(reference, implementation)).toEqual([]);
   expect(await page.evaluate(() => document.fonts.check("600 120px Outfit", "Women's"))).toBe(true);
-  expect(
-    await page
-      .locator(".add-to-cart .feather")
-      .first()
-      .evaluate((element) => {
-        const style = getComputedStyle(element, "::before");
-        const glyph = style.content.replaceAll('"', "");
-        return { codePoint: glyph.codePointAt(0), family: style.fontFamily };
-      }),
-  ).toEqual({ codePoint: 0xe926, family: "feather" });
+  const cartIcon = page.locator('.add-to-cart [data-fashion-store-icon="shopping-bag"]');
+  await page.locator("section:nth-of-type(4) .shop-box").first().hover();
+  await expect(cartIcon.first().locator("svg")).toBeVisible();
+  await expect(cartIcon.first()).toHaveAttribute("aria-hidden", "true");
+  expect(fontRequests.filter((url) => !/(figtree|outfit)-/i.test(url))).toEqual([]);
   await source.close();
+});
+
+test("all fixture routes use SVG controls without legacy icon font requests", async ({ page }) => {
+  test.setTimeout(90_000);
+  const fontRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/\.(?:woff2?|ttf)(?:[?#]|$)/i.test(request.url())) fontRequests.push(request.url());
+  });
+  for (const { path } of fashionStorePageContracts) {
+    await page.goto(path, { waitUntil: "networkidle" });
+    await page.evaluate(async () => document.fonts.ready);
+    expect(await page.locator("[data-fashion-store-icon] svg").count()).toBeGreaterThan(0);
+    await expect(
+      page.locator('i[class*="icon-feather-"], i[class*="bi-"], i[class*="fa-"], i[class*="ti-"]'),
+    ).toHaveCount(0);
+  }
+  expect(fontRequests.filter((url) => !/(figtree|outfit)-/i.test(url))).toEqual([]);
+});
+
+test("local tooltip supports focus, Escape and route cleanup with reduced motion", async ({
+  page,
+}) => {
+  await ready(page, "/");
+  const trigger = page
+    .locator("section:nth-of-type(4)")
+    .getByRole("button", { name: "Add to wishlist", exact: true })
+    .first();
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.focus();
+  const tooltip = page.getByRole("tooltip", { name: "Add to wishlist", exact: true });
+  await expect(tooltip).toBeVisible();
+  const tooltipId = await tooltip.getAttribute("id");
+  expect(tooltipId).not.toBeNull();
+  await expect(trigger).toHaveAttribute("aria-describedby", tooltipId!);
+  await trigger.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.blur();
+  await trigger.locator("xpath=ancestor::div[contains(@class, 'shop-box')]").hover();
+  await trigger.hover();
+  await expect(tooltip).toBeVisible();
+  await trigger.focus();
+  await page.mouse.move(0, 0);
+  await expect(tooltip).toBeVisible();
+  await trigger.blur();
+  await expect(tooltip).toHaveCount(0);
+  await trigger.focus();
+  await expect(tooltip).toBeVisible();
+  const box = await tooltip.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await trigger.blur();
+  const originalStyle = await trigger.getAttribute("style");
+  await trigger.evaluate((element) => {
+    const style = (element as HTMLElement).style;
+    Object.assign(style, {
+      left: "0px",
+      position: "fixed",
+      top: "50%",
+      zIndex: "2000",
+    });
+    style.transform = `translateX(${-element.getBoundingClientRect().left}px)`;
+  });
+  expect((await trigger.boundingBox())!.x).toBeLessThanOrEqual(1);
+  await trigger.focus();
+  await expect(tooltip).toHaveAttribute("data-placement", "right");
+  const edgeBox = await tooltip.boundingBox();
+  expect(edgeBox!.x).toBeGreaterThanOrEqual(0);
+  expect(edgeBox!.x + edgeBox!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await trigger.blur();
+  await trigger.evaluate((element, style) => {
+    if (style === null) element.removeAttribute("style");
+    else element.setAttribute("style", style);
+  }, originalStyle);
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.focus();
+  await page.evaluate(() => scrollTo(0, 0));
+  await expect(tooltip).toHaveCount(0);
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.blur();
+  await trigger.focus();
+  await expect(tooltip).toBeVisible();
+  await page.locator("section:nth-of-type(4) .shop-footer a").first().click();
+  await expect(page).toHaveURL(/\/products\//);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
 });
 
 test("captures the four-viewport Fashion Store initial-home evidence", async ({
@@ -1033,7 +1179,7 @@ for (const { id, path } of fashionStorePageContracts) {
 }
 
 test("shared shell survives link navigation and browser history", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
@@ -1089,7 +1235,7 @@ test("shared shell survives link navigation and browser history", async ({ page 
 test("shared scroll control preserves the 1400px visibility boundary", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/products/relaxed-corduroy-shirt", { waitUntil: "networkidle" });

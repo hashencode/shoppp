@@ -1,0 +1,277 @@
+{
+  "date": "2026-09-04",
+  "scope": "Chromium 151 desktop no-preference cold route resource comparison; same local static server and compatibility probe as U1",
+  "baselineHead": "ff2f10239ac518bc34d597f1104b27a7eb8a2da8",
+  "routes": [
+    {
+      "route": "/",
+      "browserVersion": "151.0.7922.34",
+      "before": {
+        "encodedBodyBytes": 1432403,
+        "transferBytes": 1445603,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 394667,
+            "transferBytes": 404867,
+            "requests": 34
+          },
+          "css": {
+            "encodedBodyBytes": 199819,
+            "transferBytes": 201019,
+            "requests": 4
+          },
+          "font": {
+            "encodedBodyBytes": 837917,
+            "transferBytes": 839717,
+            "requests": 6
+          }
+        }
+      },
+      "after": {
+        "encodedBodyBytes": 431124,
+        "transferBytes": 443424,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 242930,
+            "transferBytes": 253130,
+            "requests": 34
+          },
+          "css": {
+            "encodedBodyBytes": 135931,
+            "transferBytes": 137431,
+            "requests": 5
+          },
+          "font": {
+            "encodedBodyBytes": 52263,
+            "transferBytes": 52863,
+            "requests": 2
+          }
+        }
+      },
+      "encodedBodyDelta": -1001279,
+      "encodedBodyReductionPercent": 69.9
+    },
+    {
+      "route": "/cart",
+      "browserVersion": "151.0.7922.34",
+      "before": {
+        "encodedBodyBytes": 920363,
+        "transferBytes": 933563,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 390985,
+            "transferBytes": 401485,
+            "requests": 35
+          },
+          "css": {
+            "encodedBodyBytes": 199819,
+            "transferBytes": 201019,
+            "requests": 4
+          },
+          "font": {
+            "encodedBodyBytes": 329559,
+            "transferBytes": 331059,
+            "requests": 5
+          }
+        }
+      },
+      "after": {
+        "encodedBodyBytes": 401657,
+        "transferBytes": 414257,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 213463,
+            "transferBytes": 223963,
+            "requests": 35
+          },
+          "css": {
+            "encodedBodyBytes": 135931,
+            "transferBytes": 137431,
+            "requests": 5
+          },
+          "font": {
+            "encodedBodyBytes": 52263,
+            "transferBytes": 52863,
+            "requests": 2
+          }
+        }
+      },
+      "encodedBodyDelta": -518706,
+      "encodedBodyReductionPercent": 56.4
+    },
+    {
+      "route": "/checkout",
+      "browserVersion": "151.0.7922.34",
+      "before": {
+        "encodedBodyBytes": 924587,
+        "transferBytes": 938087,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 395209,
+            "transferBytes": 406009,
+            "requests": 36
+          },
+          "css": {
+            "encodedBodyBytes": 199819,
+            "transferBytes": 201019,
+            "requests": 4
+          },
+          "font": {
+            "encodedBodyBytes": 329559,
+            "transferBytes": 331059,
+            "requests": 5
+          }
+        }
+      },
+      "after": {
+        "encodedBodyBytes": 405192,
+        "transferBytes": 417792,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "css": {
+            "encodedBodyBytes": 135931,
+            "transferBytes": 137431,
+            "requests": 5
+          },
+          "js": {
+            "encodedBodyBytes": 216998,
+            "transferBytes": 227498,
+            "requests": 35
+          },
+          "font": {
+            "encodedBodyBytes": 52263,
+            "transferBytes": 52863,
+            "requests": 2
+          }
+        }
+      },
+      "encodedBodyDelta": -519395,
+      "encodedBodyReductionPercent": 56.2
+    },
+    {
+      "route": "/products/relaxed-corduroy-shirt",
+      "browserVersion": "151.0.7922.34",
+      "before": {
+        "encodedBodyBytes": 1110279,
+        "transferBytes": 1125279,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 397949,
+            "transferBytes": 409049,
+            "requests": 37
+          },
+          "css": {
+            "encodedBodyBytes": 200727,
+            "transferBytes": 202527,
+            "requests": 6
+          },
+          "font": {
+            "encodedBodyBytes": 511603,
+            "transferBytes": 513703,
+            "requests": 7
+          }
+        }
+      },
+      "after": {
+        "encodedBodyBytes": 443905,
+        "transferBytes": 458005,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "css": {
+            "encodedBodyBytes": 136835,
+            "transferBytes": 138935,
+            "requests": 7
+          },
+          "js": {
+            "encodedBodyBytes": 254807,
+            "transferBytes": 266207,
+            "requests": 38
+          },
+          "font": {
+            "encodedBodyBytes": 52263,
+            "transferBytes": 52863,
+            "requests": 2
+          }
+        }
+      },
+      "encodedBodyDelta": -666374,
+      "encodedBodyReductionPercent": 60.0
+    },
+    {
+      "route": "/shop",
+      "browserVersion": "151.0.7922.34",
+      "before": {
+        "encodedBodyBytes": 1075817,
+        "transferBytes": 1089917,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 389875,
+            "transferBytes": 400975,
+            "requests": 37
+          },
+          "css": {
+            "encodedBodyBytes": 199819,
+            "transferBytes": 201019,
+            "requests": 4
+          },
+          "font": {
+            "encodedBodyBytes": 486123,
+            "transferBytes": 487923,
+            "requests": 6
+          }
+        }
+      },
+      "after": {
+        "encodedBodyBytes": 428828,
+        "transferBytes": 442028,
+        "origins": [
+          "http://127.0.0.1:3426"
+        ],
+        "byType": {
+          "js": {
+            "encodedBodyBytes": 240634,
+            "transferBytes": 251734,
+            "requests": 37
+          },
+          "css": {
+            "encodedBodyBytes": 135931,
+            "transferBytes": 137431,
+            "requests": 5
+          },
+          "font": {
+            "encodedBodyBytes": 52263,
+            "transferBytes": 52863,
+            "requests": 2
+          }
+        }
+      },
+      "encodedBodyDelta": -646989,
+      "encodedBodyReductionPercent": 60.1
+    }
+  ]
+}

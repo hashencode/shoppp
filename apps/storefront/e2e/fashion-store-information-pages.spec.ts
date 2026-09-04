@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -58,7 +59,7 @@ test("About, FAQ, and Contact preserve source inventories across responsive view
 test("about-carousel-ready temporal: scoped autoplay advances and reports real elapsed motion", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Temporal evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Temporal evidence runs once.");
   await prepare(page, "/about", "no-preference");
   const about = page.locator("[data-fashion-store-about]");
   const before = Number(await about.getAttribute("data-carousel-index"));
@@ -76,7 +77,7 @@ test("about-carousel-ready temporal: scoped autoplay advances and reports real e
 test("about-carousel-ready interaction: carousel and mission controls support every input branch", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepare(page, "/about", "no-preference");
   const about = page.locator("[data-fashion-store-about]");
   const carousel = page.locator(".fashion-about-carousel");
@@ -84,9 +85,20 @@ test("about-carousel-ready interaction: carousel and mission controls support ev
   await carousel.focus();
   await page.keyboard.press("ArrowRight");
   await expect(about).toHaveAttribute("data-carousel-index", String((initial + 1) % 6));
-  await carousel.dispatchEvent("pointerdown", { clientX: 200, pointerType: "touch" });
-  await carousel.dispatchEvent("pointerup", { clientX: 100, pointerType: "touch" });
-  await expect(about).toHaveAttribute("data-carousel-index", String((initial + 2) % 6));
+  const dragStartIndex = await about.getAttribute("data-carousel-index");
+  const carouselBox = (await carousel.boundingBox())!;
+  await page.mouse.move(
+    carouselBox.x + carouselBox.width * 0.8,
+    carouselBox.y + carouselBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    carouselBox.x + carouselBox.width * 0.2,
+    carouselBox.y + carouselBox.height / 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => about.getAttribute("data-carousel-index")).not.toBe(dragStartIndex);
 
   const missionButtons = page.locator(".fashion-about-mission .fashion-accordion-trigger");
   await missionButtons.nth(1).click();
@@ -125,7 +137,7 @@ test("about-carousel-ready interaction: carousel and mission controls support ev
 test("About fallback freezes motion, retains content, and resets state on remount", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepare(page, "/about", "reduce");
   const about = page.locator("[data-fashion-store-about]");
   await page.waitForTimeout(2_200);
@@ -147,7 +159,7 @@ test("About fallback freezes motion, retains content, and resets state on remoun
 test("faq-secondary-tab interaction: tabs and accordions support pointer, keyboard, and touch", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepare(page, "/faq");
   const faq = page.locator("[data-fashion-store-faq]");
   const tabs = page.locator(".fashion-faq-content [role='tab']");
@@ -196,7 +208,7 @@ test("faq-secondary-tab interaction: tabs and accordions support pointer, keyboa
 test("FAQ fallback keeps one source question set and resets local state on remount", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepare(page, "/faq", "reduce");
   await page.locator(".fashion-faq-content [role='tab']").nth(4).click();
   await page.locator(".fashion-faq-content .fashion-accordion-trigger").nth(2).click();
@@ -215,10 +227,7 @@ test("FAQ fallback keeps one source question set and resets local state on remou
 test("contact-map-ready static: local map presentation loads without a remote map runtime", async ({
   page,
 }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "fashion-store-desktop",
-    "Focused static evidence runs once.",
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Focused static evidence runs once.");
   await prepare(page, "/contact");
   await expect(page.locator(".fashion-contact-map > img")).toBeVisible();
   await expect(page.locator(".fashion-contact-marker")).toHaveCount(2);
@@ -240,7 +249,7 @@ test("contact-map-ready static: local map presentation loads without a remote ma
 test("Contact form validates required, email, and phone fields without transmitting data", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepare(page, "/contact");
   const nonGetRequests: string[] = [];
   page.on("request", (request) => {
@@ -281,7 +290,7 @@ test("Contact form validates required, email, and phone fields without transmitt
 test("Contact fallback preserves map, fields, and empty remount state", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepare(page, "/contact", "reduce");
   await page.locator("#fashion-contact-name").fill("Reader");
   await page.reload({ waitUntil: "networkidle" });

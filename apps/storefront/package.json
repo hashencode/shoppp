@@ -40,8 +40,10 @@
     "@nuxt/image": "2.1.0",
     "@pinia/nuxt": "1.0.1",
     "@shoppp/contracts": "workspace:*",
+    "bootstrap": "5.3.2",
     "nuxt": "4.5.1",
     "pinia": "4.0.2",
+    "swiper": "11.2.10",
     "vue": "3.5.40",
     "vue-router": "5.2.0",
     "zod": "4.4.3"

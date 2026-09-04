@@ -182,6 +182,8 @@ export const fashionStoreSourceContract = {
   homeSectionCount: 10,
   htmlClassAfterHydration: "js",
   regionOrder: fashionStoreSourceRegionOrder,
+  // Independent Crafto reference order. The application intentionally omits its icon font CSS
+  // from both application entries; do not rewrite the comparison source to match.
   stylesheetOrder: [
     "css/vendors.min.css",
     "css/icon.min.css",

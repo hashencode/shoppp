@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import {
-  formatCommerceMoney,
+  formatCommerceMoney as money,
   liveCommerceModeKey,
 } from "../../../../theme-engine/runtime-commerce";
 import { fashionStoreRoutePaths } from "../../page-contracts";
@@ -59,10 +60,6 @@ function closeCart(): void {
   touchActivation = false;
 }
 
-function money(amount: number, currency: string): string {
-  return formatCommerceMoney(amount, currency);
-}
-
 async function removeLiveLine(variantId: string): Promise<void> {
   if (!actionAdapter || liveCartBusy.value) return;
   liveCartBusy.value = true;
@@ -116,10 +113,10 @@ defineExpose({ closeCart });
         @keydown="prepareCartToggle"
         @pointerdown="prepareCartToggle"
       >
-        <i class="feather icon-feather-shopping-bag"></i
-        ><span class="cart-count alt-font text-white bg-dark-gray">{{
-          liveCommerceMode ? liveCartCount : 2
-        }}</span>
+        <FashionStoreIcon name="shopping-bag" /><span
+          class="cart-count alt-font text-white bg-dark-gray"
+          >{{ liveCommerceMode ? liveCartCount : 2 }}</span
+        >
       </button>
       <ul v-if="liveCommerceMode" class="cart-item-list" aria-live="polite">
         <li v-if="liveCartError" class="cart-item" role="alert">{{ liveCartError }}</li>

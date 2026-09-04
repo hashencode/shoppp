@@ -1,5 +1,4 @@
-import "./upstream/css/vendors.min.css";
-import "./upstream/css/icon.min.css";
+import "./styles/vendor.css";
 import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";
 import "./upstream/demos/fashion-store/fashion-store.css";

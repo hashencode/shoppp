@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
@@ -189,12 +190,15 @@ function configuredLogo(): string | undefined {
         >
           <span class="fw-500 d-block text-white mb-10px fs-17">Quick contact</span>
           <div>
-            <i class="feather icon-feather-phone-call fs-16 text-white me-10px xs-me-5px"></i
-            ><a :href="fashionStoreDestinations.phone">123 456 7890</a>
+            <FashionStoreIcon name="phone-call" class="fs-16 text-white me-10px xs-me-5px" /><a
+              :href="fashionStoreDestinations.phone"
+              >123 456 7890</a
+            >
           </div>
           <div class="mb-15px">
-            <i class="feather icon-feather-mail fs-16 text-white me-10px xs-me-5px"></i
-            ><a :href="fashionStoreDestinations.supportEmail" class="text-decoration-line-bottom"
+            <FashionStoreIcon name="mail" class="fs-16 text-white me-10px xs-me-5px" /><a
+              :href="fashionStoreDestinations.supportEmail"
+              class="text-decoration-line-bottom"
               >info@domain.com</a
             >
           </div>
@@ -208,8 +212,8 @@ function configuredLogo(): string | undefined {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
-                  ><i class="fa-brands fa-facebook-f"></i
-                ></a>
+                  ><FashionStoreIcon name="facebook"
+                /></a>
               </li>
               {{
                 sourceInlineGap
@@ -221,8 +225,8 @@ function configuredLogo(): string | undefined {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Dribbble"
-                  ><i class="fa-brands fa-dribbble"></i
-                ></a>
+                  ><FashionStoreIcon name="dribbble"
+                /></a>
               </li>
               {{
                 sourceInlineGap
@@ -234,8 +238,8 @@ function configuredLogo(): string | undefined {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Twitter"
-                  ><i class="fa-brands fa-twitter"></i
-                ></a>
+                  ><FashionStoreIcon name="twitter"
+                /></a>
               </li>
               {{
                 sourceInlineGap
@@ -247,8 +251,8 @@ function configuredLogo(): string | undefined {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  ><i class="fa-brands fa-instagram"></i
-                ></a>
+                  ><FashionStoreIcon name="instagram"
+                /></a>
               </li>
             </ul>
           </div>
@@ -270,7 +274,7 @@ function configuredLogo(): string | undefined {
               />
               <input type="hidden" name="redirect" value="" />
               <button class="btn pe-20px submit" aria-label="submit">
-                <i class="icon bi bi-envelope icon-small text-white"></i>
+                <FashionStoreIcon name="mail" class="icon icon-small text-white" />
               </button>
               <div
                 class="form-results border-radius-4px pt-5px pb-5px ps-15px pe-15px fs-14 lh-22 mt-10px w-100 text-center position-absolute d-none"

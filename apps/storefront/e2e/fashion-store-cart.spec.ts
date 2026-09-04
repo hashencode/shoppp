@@ -1,3 +1,4 @@
+import { fashionStoreViewport, isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -89,18 +90,13 @@ test("Cart preserves source rows, totals, controls, and responsive geometry", as
   expect(Math.abs(referenceBox!.x - implementationBox!.x)).toBeLessThanOrEqual(2);
   await source.close();
 
-  expect([
-    "fashion-store-desktop",
-    "fashion-store-laptop",
-    "fashion-store-tablet",
-    "fashion-store-mobile",
-  ]).toContain(testInfo.project.name);
+  expect(fashionStoreViewport(testInfo)).toBeDefined();
 });
 
 test("cart-first-line-quantity-2 interaction: fixture quantity and removal stay local", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Mutation evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Mutation evidence runs once.");
   let patchCount = 0;
   let deleteCount = 0;
   await page.route("**/api/cart/lines/**", async (route) => {
@@ -151,10 +147,52 @@ test("cart-first-line-quantity-2 interaction: fixture quantity and removal stay 
   });
 });
 
+test("Cart fixture quantity normalization preserves bounded values without Commerce", async ({
+  page,
+}) => {
+  const commerceRequests: string[] = [];
+  await page.route(/\/api\/(?:cart|products)(?:[/?]|$)/, async (route) => {
+    commerceRequests.push(`${route.request().method()} ${route.request().url()}`);
+    await route.abort();
+  });
+  await prepareCart(page);
+  const cartPage = page.locator("[data-fashion-store-cart]");
+  const quantity = page.getByRole("spinbutton", { name: "Textured sweater quantity" });
+  const cases = [
+    { name: "empty at minimum", initial: 1, input: "", expected: 1 },
+    { name: "zero at minimum", initial: 1, input: "0", expected: 1 },
+    { name: "negative at minimum", initial: 1, input: "-2", expected: 1 },
+    { name: "fraction below minimum", initial: 1, input: "0.4", expected: 1 },
+    { name: "fraction floors once", initial: 1, input: "3.8", expected: 3 },
+    { name: "above maximum", initial: 1, input: "99", expected: 20 },
+    { name: "above unchanged maximum", initial: 20, input: "99", expected: 20 },
+  ];
+  for (const sample of cases) {
+    await test.step(sample.name, async () => {
+      await quantity.fill(String(sample.initial));
+      await quantity.press("Tab");
+      await expect(quantity).toHaveValue(String(sample.initial));
+      const before = Number(await cartPage.getAttribute("data-mutation-count"));
+      await quantity.fill(sample.input);
+      await quantity.press("Tab");
+      await expect.soft(quantity, sample.name).toHaveValue(String(sample.expected), {
+        timeout: 1_000,
+      });
+      await expect
+        .soft(cartPage, sample.name)
+        .toHaveAttribute(
+          "data-mutation-count",
+          String(before + Number(sample.expected !== sample.initial)),
+        );
+    });
+  }
+  expect(commerceRequests).toEqual([]);
+});
+
 test("cart-shipping-open interaction: fixture calculator validates locally without a quote", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Shipping evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Shipping evidence runs once.");
   let quoteCount = 0;
   await page.route("**/api/cart/shipping", async (route) => {
     quoteCount += 1;
@@ -197,7 +235,7 @@ test("cart-shipping-open interaction: fixture calculator validates locally witho
 test("cart-coupon-invalid interaction: local controls never post coupon data and checkout carries the guest boundary", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Local-control evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Local-control evidence runs once.");
   const requests: string[] = [];
   page.on("request", (request) => {
     if (request.method() !== "GET") requests.push(request.url());
@@ -238,7 +276,7 @@ test("cart-coupon-invalid interaction: local controls never post coupon data and
 test("Cart fallback keeps native lines, calculator, local controls, and checkout destination readable", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await prepareCart(page);
   await expect(page.locator(".cart-products tbody tr")).toHaveCount(3);

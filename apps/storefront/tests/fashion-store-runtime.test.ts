@@ -72,7 +72,6 @@ describe("Fashion Store runtime lifecycle", () => {
     const mountedCallbacks: LifecycleCallback[] = [];
     const beforeUnmountCallbacks: LifecycleCallback[] = [];
     const visibilityListeners = new Set<Listener>();
-    const directionQuery = new MediaQueryFixture(false);
     const reducedMotionQuery = new MediaQueryFixture(true);
     const bodyAttributes = new Map<string, string>();
     const fixtureGlobalKeys = [
@@ -107,8 +106,7 @@ describe("Fashion Store runtime lifecycle", () => {
         querySelector: () => null,
         querySelectorAll: () => [],
       },
-      matchMedia: (query: string) =>
-        query === "(prefers-reduced-motion: reduce)" ? reducedMotionQuery : directionQuery,
+      matchMedia: () => reducedMotionQuery,
       onBeforeUnmount: (callback: LifecycleCallback) => {
         beforeUnmountCallbacks.push(callback);
       },
@@ -122,41 +120,24 @@ describe("Fashion Store runtime lifecycle", () => {
     });
 
     try {
-      const { useFashionStoreRuntime } =
-        await import("../app/themes/fashion-store/composables/useFashionStoreRuntime");
       const { useFashionStoreVisualRuntime } =
         await import("../app/themes/fashion-store/composables/useFashionStoreVisualRuntime");
-      const runtime = useFashionStoreRuntime({
-        autoplayMs: 4_000,
-        breakpointPx: 1_199,
-        count: 3,
-        speedMs: 1_000,
-      });
       const visualRuntime = useFashionStoreVisualRuntime();
 
-      expect(runtime.hydrated.value).toBe(false);
       expect(visualRuntime.liveInstances.value).toBe(0);
       await Promise.all(mountedCallbacks.map((callback) => callback()));
-      expect(runtime.hydrated.value).toBe(true);
       expect(visualRuntime.liveInstances.value).toBe(1);
-      expect(runtime.motion.value.pausedReasons).toEqual(["reduced-motion"]);
       expect(visualRuntime.status.value).toBe("static");
-      expect(runtime.direction.value).toBe("horizontal");
       expect(bodyAttributes.get("data-fashion-store-visual-runtime")).toBe("static");
 
-      directionQuery.emit(true);
-      expect(runtime.direction.value).toBe("vertical");
-      expect(directionQuery.listenerCount()).toBe(1);
-      expect(reducedMotionQuery.listenerCount()).toBe(1);
-      expect(visibilityListeners.size).toBe(1);
+      expect(reducedMotionQuery.listenerCount()).toBe(0);
+      expect(visibilityListeners.size).toBe(0);
 
       for (const callback of beforeUnmountCallbacks) await callback();
       expect(visualRuntime.liveInstances.value).toBe(0);
-      expect(directionQuery.listenerCount()).toBe(0);
       expect(reducedMotionQuery.listenerCount()).toBe(0);
       expect(visibilityListeners.size).toBe(0);
       expect(bodyAttributes.has("data-fashion-store-visual-runtime")).toBe(false);
-      expect(runtime.select(1)).toBe(false);
     } finally {
       for (const key of fixtureGlobalKeys) {
         const descriptor = originalGlobalDescriptors.get(key);

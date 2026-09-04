@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreContentData } from "../../fixtures/pages/content";
@@ -129,13 +130,13 @@ function recordLocalSubmission(event: Event): void {
                   class="fashion-contact-marker fashion-contact-marker-london"
                   aria-hidden="true"
                   ><span class="fashion-contact-marker-core"
-                    ><i class="fa-solid fa-location-dot"></i></span
+                    ><FashionStoreIcon name="map-pin" /></span
                 ></span>
                 <span
                   class="fashion-contact-marker fashion-contact-marker-new-york"
                   aria-hidden="true"
                   ><span class="fashion-contact-marker-core"
-                    ><i class="fa-solid fa-location-dot"></i></span
+                    ><FashionStoreIcon name="map-pin" /></span
                 ></span>
               </div>
             </div>
@@ -174,7 +175,10 @@ function recordLocalSubmission(event: Event): void {
                     </h2>
                   </div>
                   <div class="col-2 text-end">
-                    <i class="bi bi-send icon-large text-dark-gray animation-float"></i>
+                    <FashionStoreIcon
+                      name="send"
+                      class="icon-large text-dark-gray animation-float"
+                    />
                   </div>
                 </div>
                 <form
@@ -190,7 +194,7 @@ function recordLocalSubmission(event: Event): void {
                         >Enter your name*</label
                       >
                       <div class="position-relative form-group mb-25px">
-                        <span class="form-icon"><i class="bi bi-emoji-smile"></i></span>
+                        <span class="form-icon"><FashionStoreIcon name="smile" /></span>
                         <input
                           id="fashion-contact-name"
                           class="ps-0 border-radius-0px border-color-extra-medium-gray bg-transparent form-control"
@@ -208,7 +212,7 @@ function recordLocalSubmission(event: Event): void {
                         >Email address*</label
                       >
                       <div class="position-relative form-group mb-25px">
-                        <span class="form-icon"><i class="bi bi-envelope"></i></span>
+                        <span class="form-icon"><FashionStoreIcon name="mail" /></span>
                         <input
                           id="fashion-contact-email"
                           class="ps-0 border-radius-0px border-color-extra-medium-gray bg-transparent form-control"
@@ -226,7 +230,7 @@ function recordLocalSubmission(event: Event): void {
                         >Phone number*</label
                       >
                       <div class="position-relative form-group mb-25px">
-                        <span class="form-icon"><i class="bi bi-telephone"></i></span>
+                        <span class="form-icon"><FashionStoreIcon name="phone" /></span>
                         <input
                           id="fashion-contact-phone"
                           class="ps-0 border-radius-0px border-color-extra-medium-gray bg-transparent form-control"
@@ -245,7 +249,7 @@ function recordLocalSubmission(event: Event): void {
                         >Subject</label
                       >
                       <div class="position-relative form-group mb-25px">
-                        <span class="form-icon"><i class="bi bi-journals"></i></span>
+                        <span class="form-icon"><FashionStoreIcon name="notebook-tabs" /></span>
                         <input
                           id="fashion-contact-subject"
                           class="ps-0 border-radius-0px border-color-extra-medium-gray bg-transparent form-control"
@@ -269,7 +273,9 @@ function recordLocalSubmission(event: Event): void {
                           placeholder="Describe about your project"
                           rows="4"
                         ></textarea>
-                        <span class="form-icon"><i class="bi bi-chat-square-dots"></i></span>
+                        <span class="form-icon"
+                          ><FashionStoreIcon name="message-square-more"
+                        /></span>
                       </div>
                     </div>
                     <div class="col-md-6">

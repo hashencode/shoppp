@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontPresentationShellKey } from "../../../../theme-engine/presentation-context";
 import type { PresentationShellViewModel } from "../../../../theme-engine/view-models";
@@ -118,11 +119,10 @@ onMounted(() => {
   <a class="skip-link" href="#fashion-store-main">Skip to content</a>
   <noscript v-html="noScriptMarkup" />
   <span
-    class="sr-only"
+    class="visually-hidden"
     data-fashion-store-source-parity="true"
     :data-preview-intent-count="previewIntentCount"
     :data-runtime-instance-count="visualRuntime.liveInstances.value"
-    :data-runtime-error="visualRuntime.failure.value || undefined"
     :data-runtime-status="visualRuntime.status.value"
   />
   <slot name="prelude" />
@@ -191,7 +191,7 @@ onMounted(() => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <i class="fa-brands fa-facebook-f me-10px"></i>
+            <FashionStoreIcon name="facebook" class="me-10px" />
             <span class="alt-font">Facebook</span>
           </a>
         </li>
@@ -205,7 +205,7 @@ onMounted(() => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <i class="fa-brands fa-dribbble me-10px"></i>
+            <FashionStoreIcon name="dribbble" class="me-10px" />
             <span class="alt-font">Dribbble</span>
           </a>
         </li>
@@ -219,7 +219,7 @@ onMounted(() => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <i class="fa-brands fa-twitter me-10px"></i>
+            <FashionStoreIcon name="twitter" class="me-10px" />
             <span class="alt-font">Twitter</span>
           </a>
         </li>
@@ -233,7 +233,7 @@ onMounted(() => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <i class="fa-brands fa-instagram me-10px"></i>
+            <FashionStoreIcon name="instagram" class="me-10px" />
             <span class="alt-font">Instagram</span>
           </a>
         </li>

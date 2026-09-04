@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import {
   catalogSearchIndexKey,
   resolveCatalogSearchState,
@@ -105,8 +106,9 @@ defineExpose({ closeSearch, openSearch });
       aria-controls="fashion-store-search"
       :aria-expanded="searchOpen"
       @click.prevent="openSearch"
-      ><i class="feather icon-feather-search me-5px"></i
-      ><span class="d-none d-xxl-inline-block">Search</span></a
+      ><FashionStoreIcon name="search" class="me-5px" /><span class="d-none d-xxl-inline-block"
+        >Search</span
+      ></a
     >
     <div
       id="fashion-store-search"
@@ -143,7 +145,7 @@ defineExpose({ closeSearch, openSearch });
             @keydown.enter.prevent="openActiveResult"
           />
           <button type="submit" class="search-button">
-            <i class="feather icon-feather-search" aria-hidden="true"></i>
+            <FashionStoreIcon name="search" aria-hidden="true" />
           </button>
         </div>
         <p v-if="searchStatus === 'loading'" role="status">Searching published catalog…</p>
@@ -161,7 +163,7 @@ defineExpose({ closeSearch, openSearch });
               :aria-current="index === activeResult ? 'true' : undefined"
               @focus="activeResult = index"
             >
-              {{ result.label }} <span class="sr-only">({{ result.kind }})</span>
+              {{ result.label }} <span class="visually-hidden">({{ result.kind }})</span>
             </a>
           </li>
         </ul>

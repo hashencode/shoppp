@@ -526,6 +526,25 @@ non-normative
   compare matched component regions before and after ownership-only migrations. Do not duplicate
   primitive-library interaction or accessibility behavior merely to fix a style dependency.
 
+## Fashion Store dependency boundary
+
+- Route ordinary icons through `FashionStoreIcon.vue`, carousels through
+  `FashionStoreCarousel.vue`, synchronized product media through `FashionStoreProductGallery.vue`,
+  quantities through `FashionStoreQuantityInput.vue`, and hints through `FashionStoreTooltip.vue`.
+  Preserve documented page variants as inputs to those components instead of creating parallel
+  engines.
+- Keep Swiper and Bootstrap versions exact. Load their CSS once through
+  `themes/fashion-store/styles/vendor.css`; dynamically import Bootstrap Modal JavaScript only from
+  the product lightbox. Do not restore jQuery, the monolithic vendor bundle, icon fonts, remote
+  fonts, or component-level duplicate Swiper CSS.
+- Package-CSS replacement can remove legacy utility classes even when screenshots initially look
+  unchanged. Recheck hidden text, focus helpers, responsive display utilities and state classes in
+  live and no-JavaScript output; Fashion Store uses Bootstrap 5's `visually-hidden` utility.
+- Dependency updates must retain the approved minimum-version implementation targets and rerun the
+  actual available-engine matrix, live/fixture commerce boundaries, source-region comparisons,
+  cumulative resource probe, static budget and performance checks. See
+  `docs/progress/fashion-store-dependency-maintenance.md` for the exact update checklist.
+
 ## Handoff checklist
 
 - Equivalence scope and source revision are explicit.

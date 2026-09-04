@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreContentData } from "../../fixtures/pages/content";
@@ -55,7 +56,10 @@ function submitRegister(): void {
               aria-label="Breadcrumb"
             >
               <ul>
-                <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                <li>
+                  <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a
+                  ><FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
                 {{
                   " "
                 }}

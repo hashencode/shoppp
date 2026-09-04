@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontCartStateKey, type StorefrontCart } from "../../../../theme-engine/cart-state";
 import { storefrontCheckoutAdapterKey } from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
+import { formatCommerceMoney as money } from "../../../../theme-engine/runtime-commerce";
 import type { FashionStoreLegacyCartData, FashionStoreLegacyCartLine } from "../../contracts/cart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
+import FashionStoreQuantityInput from "../shared/FashionStoreQuantityInput.vue";
 
 const properties = defineProps<{
   resolveAsset: ThemeAssetResolver;
@@ -109,10 +111,6 @@ function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function money(amount: number, currency: string): string {
-  return formatCommerceMoney(amount, currency);
-}
-
 function applyOwnerCart(cart: StorefrontCart): void {
   if (!ownerCart) {
     lines.value = cart.lines.map(presentLine);
@@ -138,10 +136,9 @@ function applyFixtureCart(): void {
 
 async function updateQuantity(
   line: FashionStoreLegacyCartLine,
-  nextQuantity: number,
+  quantity: number,
 ): Promise<void> {
   if (busy.value) return;
-  const quantity = Math.min(20, Math.max(1, Math.floor(nextQuantity || 1)));
   if (quantity === line.quantity) return;
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.update, "fashion-store.cart.quantity");
@@ -353,7 +350,10 @@ onMounted(async () => {
               aria-label="Breadcrumb"
             >
               <ul>
-                <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                <li>
+                  <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a
+                  ><FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
                 {{
                   " "
                 }}
@@ -442,41 +442,17 @@ onMounted(async () => {
                         </td>
                         <td class="product-price" data-title="Price">{{ line.price }}</td>
                         <td class="product-quantity" data-title="Quantity">
-                          <div class="quantity">
-                            <button
-                              type="button"
-                              class="qty-minus"
-                              :aria-label="`Decrease ${line.name} quantity`"
-                              :disabled="liveTransactionDisabled || busy || line.quantity <= 1"
-                              @click="updateQuantity(line, line.quantity - 1)"
-                            >
-                              -
-                            </button>
-                            <input
-                              class="qty-text"
-                              type="number"
-                              min="1"
-                              max="20"
-                              :value="line.quantity"
-                              :aria-label="`${line.name} quantity`"
-                              :disabled="liveTransactionDisabled || busy"
-                              @change="
-                                updateQuantity(
-                                  line,
-                                  Number(($event.target as HTMLInputElement).value),
-                                )
-                              "
-                            />
-                            <button
-                              type="button"
-                              class="qty-plus"
-                              :aria-label="`Increase ${line.name} quantity`"
-                              :disabled="liveTransactionDisabled || busy"
-                              @click="updateQuantity(line, line.quantity + 1)"
-                            >
-                              +
-                            </button>
-                          </div>
+                          <FashionStoreQuantityInput
+                            variant="cart"
+                            :model-value="line.quantity"
+                            :min="1"
+                            :max="20"
+                            :label="`${line.name} quantity`"
+                            :decrement-label="`Decrease ${line.name} quantity`"
+                            :increment-label="`Increase ${line.name} quantity`"
+                            :disabled="liveTransactionDisabled || busy"
+                            @commit="updateQuantity(line, $event)"
+                          />
                         </td>
                         <td class="product-subtotal" data-title="Total">{{ line.total }}</td>
                       </tr>
@@ -487,6 +463,7 @@ onMounted(async () => {
               <div class="row mt-20px">
                 <div class="col-xl-6 col-xxl-7 col-md-6">
                   <div class="coupon-code-panel">
+                    <FashionStoreIcon name="ticket" class="fashion-coupon-icon" />
                     <input
                       id="fashion-cart-coupon"
                       v-model="coupon"
@@ -574,9 +551,10 @@ onMounted(async () => {
                           @click="shippingOpen = !shippingOpen"
                         >
                           <span class="fw-600 w-100 mb-0 text-dark-gray">Calculate shipping</span>
-                          <i
-                            class="feather icon-feather-chevron-down text-dark-gray icon-small align-middle"
-                          ></i>
+                          <FashionStoreIcon
+                            name="chevron-down"
+                            class="text-dark-gray icon-small align-middle"
+                          />
                         </button>
                         <div
                           id="shipping-accordion"

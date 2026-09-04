@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -43,7 +44,7 @@ test("Magazine and article preserve independent source structure across responsi
   await expect(article.locator(".fashion-article-share a")).toHaveCount(5);
   await expect(article.locator(".fashion-article-comment-form form")).toHaveCount(1);
 
-  if (testInfo.project.name === "fashion-store-desktop") {
+  if (isFashionStoreViewport(testInfo, "desktop")) {
     const source = await page.context().newPage();
     try {
       await source.goto(`${sourceOrigin}/demo-fashion-store-blog-single-creative.html`, {
@@ -64,10 +65,7 @@ test("Magazine and article preserve independent source structure across responsi
 test("magazine-grid-ready static: the twelve-card source grid is capture-ready", async ({
   page,
 }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "fashion-store-desktop",
-    "Focused static evidence runs once.",
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Focused static evidence runs once.");
   await prepare(page, "/magazine");
   await expect(page.locator(".fashion-magazine-grid > .grid-item")).toHaveCount(12);
 });
@@ -75,7 +73,7 @@ test("magazine-grid-ready static: the twelve-card source grid is capture-ready",
 test("Magazine card, article navigation, and pagination interactions remain deterministic", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepare(page, "/magazine");
   const firstCard = page.locator(".fashion-magazine-grid > .grid-item").first();
@@ -151,7 +149,7 @@ test("Magazine card, article navigation, and pagination interactions remain dete
 test("Magazine fallback preserves copy, active pagination, and reduced-motion readability", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await prepare(page, "/magazine");
   const firstCard = page.locator(".fashion-magazine-grid > .grid-item").first();
@@ -171,10 +169,7 @@ test("Magazine fallback preserves copy, active pagination, and reduced-motion re
 test("article-body-ready static: article body and three media sections are capture-ready", async ({
   page,
 }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "fashion-store-desktop",
-    "Focused static evidence runs once.",
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Focused static evidence runs once.");
   await prepare(page, articlePath);
   await expect(page.locator(".fashion-article-body")).toBeVisible();
   await expect(page.locator(".fashion-article-media")).toHaveCount(3);
@@ -183,7 +178,7 @@ test("article-body-ready static: article body and three media sections are captu
 test("Article navigation, external sharing, and local comments preserve their owners", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepare(page, articlePath);
   const nonGetRequests: string[] = [];
   page.on("request", (request) => {
@@ -263,7 +258,7 @@ test("Article navigation, external sharing, and local comments preserve their ow
 test("Article fallback preserves source order and resets local comment state on remount", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepare(page, articlePath);
   await page.locator("#fashion-comment-name").fill("Reader");
   await page.reload({ waitUntil: "networkidle" });

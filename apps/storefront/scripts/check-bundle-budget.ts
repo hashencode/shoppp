@@ -77,7 +77,7 @@ export function assertSourceRuntimePolicy({
       `${selectedThemeId} output contains Decor Store Revolution runtime in ${file}.`,
     );
   }
-  if (selectedThemeId !== "fashion-store" && fashionRuntimeName) {
+  if (fashionRuntimeName) {
     throw new Error(`${selectedThemeId} output contains Fashion Store source runtime in ${file}.`);
   }
   return null;
@@ -255,9 +255,6 @@ async function main(): Promise<void> {
       throw new Error(`${activeThemeId} output is missing its selected reference image set.`);
     if (!files.some((file) => extname(file) === ".woff2" && /(?:figtree|outfit)-latin/i.test(file)))
       throw new Error(`${activeThemeId} output is missing its selected self-hosted font.`);
-    for (const runtime of [/jquery/i, /vendors\.min/i])
-      if (!files.some((file) => extname(file) === ".js" && runtime.test(file)))
-        throw new Error(`fashion-store output is missing approved source runtime ${runtime}.`);
     const outputText = (
       await Promise.all(
         files

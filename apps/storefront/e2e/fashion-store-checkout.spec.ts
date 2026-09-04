@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -226,7 +227,7 @@ test("Checkout preserves source billing, order, delivery, payment, and responsiv
   await expect(checkout.locator(".fashion-payment-option")).toHaveCount(4);
   await expect(checkout.locator(".your-order-box")).toContainText("$405.00");
 
-  if (testInfo.project.name === "fashion-store-desktop") {
+  if (isFashionStoreViewport(testInfo, "desktop")) {
     const source = await page.context().newPage();
     try {
       await source.goto(`${sourceOrigin}/demo-fashion-store-checkout.html`, {
@@ -250,10 +251,7 @@ test("Checkout preserves source billing, order, delivery, payment, and responsiv
 test("checkout-account-open interaction: optional account and shipping fields stay local", async ({
   page,
 }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "fashion-store-desktop",
-    "Dependent-field evidence runs once.",
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Dependent-field evidence runs once.");
   const mutations: string[] = [];
   page.on("request", (request) => {
     if (request.method() !== "GET") mutations.push(request.url());
@@ -282,7 +280,7 @@ test("checkout-account-open interaction: optional account and shipping fields st
 test("checkout-payment-paypal interaction: payment rows support pointer and keyboard", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Payment evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Payment evidence runs once.");
   await prepareCheckout(page);
   const paypal = page.getByRole("radio", { name: /PayPal/ });
   await paypal.click();
@@ -308,7 +306,7 @@ test("checkout-payment-paypal interaction: payment rows support pointer and keyb
 test("Checkout fixture validation records intent without creating a session", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Session evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Session evidence runs once.");
   let checkoutCount = 0;
   let checkoutBody: unknown;
   await prepareCheckout(page, {
@@ -353,7 +351,7 @@ test("Checkout fixture validation records intent without creating a session", as
 test("Checkout fixture stays isolated from Commerce availability and configuration", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await prepareCheckout(page, { canCheckout: false });
   await expect(page.getByRole("button", { name: "Place order" })).toBeEnabled();
@@ -383,7 +381,7 @@ test("Checkout fixture stays isolated from Commerce availability and configurati
 test("Checkout fixture ignores an empty Commerce response and preserves source fixtures", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Commerce evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Commerce evidence runs once.");
   await prepareCheckout(page, { emptyCart: true });
   await expect(page.locator(".your-order-table tr.product")).toHaveCount(3);
   await expect(page.locator(".your-order-table")).toContainText("$405.00");

@@ -65,7 +65,7 @@ describe("Fashion Store product detail", () => {
       "utf8",
     );
 
-    expect(source).toContain('<h1 class="sr-only">{{ data.product.name }}</h1>');
+    expect(source).toContain('<h1 class="visually-hidden">{{ data.product.name }}</h1>');
   });
 
   test("readiness enables product only after its page contract is complete", () => {

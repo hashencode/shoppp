@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -85,7 +86,7 @@ for (const shopPage of shopPages) {
         ),
     ).toBe(true);
 
-    if (testInfo.project.name === "fashion-store-desktop") {
+    if (isFashionStoreViewport(testInfo, "desktop")) {
       const source = await page.context().newPage();
       try {
         await source.goto(`${sourceOrigin}/${shopPage.sourceEntry}`, {
@@ -140,14 +141,14 @@ test("shop-product-hover interaction: desktop actions do not swallow the first t
   page,
 }, testInfo) => {
   test.skip(
-    !["fashion-store-desktop", "fashion-store-mobile"].includes(testInfo.project.name),
+    !isFashionStoreViewport(testInfo, "desktop", "mobile"),
     "The contract branches are exercised at their boundary viewports.",
   );
   await prepareImplementation(page, "/shop/no-sidebar");
   const product = page.locator(".shop-modern > .grid-item").first();
   const addToCart = product.getByRole("button", { name: "Add to cart" });
 
-  if (testInfo.project.name === "fashion-store-mobile") {
+  if (isFashionStoreViewport(testInfo, "mobile")) {
     await product.locator(".shop-image > a").tap();
     await expect(page).toHaveURL(/\/products\/relaxed-corduroy-shirt$/);
     recordThemeBehaviorEvidence(testInfo, {
@@ -182,7 +183,7 @@ test("shop-product-hover interaction: desktop actions do not swallow the first t
 test("Shop filters combine source controls without implementation-only result copy", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepareImplementation(page, "/shop");
   const shop = page.locator("[data-fashion-store-shop]");
   const jeans = shop.locator(".category-filter button", { hasText: "Jeans" });
@@ -218,7 +219,7 @@ test("Shop filters combine source controls without implementation-only result co
 });
 
 test("Shop pagination preserves focus and source page semantics", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Focus behavior runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Focus behavior runs once.");
   await prepareImplementation(page, "/shop/right-sidebar");
   const thirdPage = page.locator(".pagination .page-link", { hasText: "03" });
   await thirdPage.focus();
@@ -228,59 +229,78 @@ test("Shop pagination preserves focus and source page semantics", async ({ page 
 });
 
 test("Shop arrivals advance, pause, respond to keys, and remount cleanly", async ({
+  browser,
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Temporal evidence runs once.");
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await prepareImplementation(page, "/shop");
-  const carousel = page.locator(".slider-one-slide");
-  const arrivalTrack = carousel.locator(".swiper-wrapper");
-  await expect(arrivalTrack).toHaveCSS("transition-duration", "0.3s");
-  const initialTransform = await arrivalTrack.evaluate(
-    (element) => getComputedStyle(element).transform,
-  );
-  const before = Number(await carousel.getAttribute("data-arrival-index"));
-  await expect
-    .poll(() => carousel.getAttribute("data-arrival-index"), { timeout: 6_500 })
-    .not.toBe(String(before));
-  const after = Number(await carousel.getAttribute("data-arrival-index"));
-  await page.waitForTimeout(350);
-  expect(await arrivalTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
-    initialTransform,
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Temporal evidence runs once.");
+  const animationPage = await browser.newPage({
+    reducedMotion: "no-preference",
+    viewport: page.viewportSize()!,
+  });
+  try {
+    await prepareImplementation(animationPage, "/shop");
+    const carousel = animationPage.locator(".slider-one-slide");
+    const arrivalTrack = carousel.locator(".swiper-wrapper");
+    await expect(carousel).toHaveAttribute("data-motion-ready", "true");
+    expect(
+      await carousel.evaluate((element) =>
+        Number(
+          (element as HTMLElement & { swiper?: { params?: { speed?: number } } }).swiper?.params
+            ?.speed,
+        ),
+      ),
+    ).toBe(300);
+    const initialTransform = await arrivalTrack.evaluate(
+      (element) => getComputedStyle(element).transform,
+    );
+    const before = Number(await carousel.getAttribute("data-arrival-index"));
+    await expect
+      .poll(() => carousel.getAttribute("data-arrival-index"), { timeout: 6_500 })
+      .not.toBe(String(before));
+    const after = Number(await carousel.getAttribute("data-arrival-index"));
+    await animationPage.waitForTimeout(350);
+    expect(await arrivalTrack.evaluate((element) => getComputedStyle(element).transform)).not.toBe(
+      initialTransform,
+    );
 
-  await carousel.focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(carousel).toHaveAttribute("data-arrival-index", String((after + 1) % 2));
-  const pausedAt = await carousel.getAttribute("data-arrival-index");
-  await page.waitForTimeout(5_250);
-  await expect(carousel).toHaveAttribute("data-arrival-index", pausedAt!);
+    await carousel.focus();
+    await animationPage.keyboard.press("ArrowRight");
+    await expect(carousel).toHaveAttribute("data-arrival-index", String((after + 1) % 2));
+    const pausedAt = await carousel.getAttribute("data-arrival-index");
+    await animationPage.waitForTimeout(5_250);
+    await expect(carousel).toHaveAttribute("data-arrival-index", pausedAt!);
 
-  await prepareImplementation(page, "/shop/no-sidebar");
-  await expect(page.locator(".slider-one-slide")).toHaveCount(0);
-  await prepareImplementation(page, "/shop/right-sidebar");
-  await expect(page.locator(".slider-one-slide")).toHaveAttribute("data-arrival-index", "0");
-  recordThemeBehaviorEvidence(
-    testInfo,
-    {
-      behaviorId: "shop-new-arrivals",
-      branches: [{ id: "timer", outcome: true, viewportId: "desktop" }],
-      mode: "temporal",
-      temporalSamples: { after, before, elapsedMs: 5_000 },
-    },
-    {
-      actionOutcome: true,
-      behaviorId: "shop-new-arrivals",
-      branches: [{ id: "keyboard", outcome: true, viewportId: "desktop" }],
-      mode: "interaction",
-    },
-  );
+    await prepareImplementation(animationPage, "/shop/no-sidebar");
+    await expect(animationPage.locator(".slider-one-slide")).toHaveCount(0);
+    await prepareImplementation(animationPage, "/shop/right-sidebar");
+    await expect(animationPage.locator(".slider-one-slide")).toHaveAttribute(
+      "data-arrival-index",
+      "0",
+    );
+    recordThemeBehaviorEvidence(
+      testInfo,
+      {
+        behaviorId: "shop-new-arrivals",
+        branches: [{ id: "timer", outcome: true, viewportId: "desktop" }],
+        mode: "temporal",
+        temporalSamples: { after, before, elapsedMs: 5_000 },
+      },
+      {
+        actionOutcome: true,
+        behaviorId: "shop-new-arrivals",
+        branches: [{ id: "keyboard", outcome: true, viewportId: "desktop" }],
+        mode: "interaction",
+      },
+    );
+  } finally {
+    await animationPage.close();
+  }
 });
 
 test("Shop native fallback keeps controls, links, and both arrival groups operable", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepareImplementation(page, "/shop");
   const shop = page.locator("[data-fashion-store-shop]");
   await expect(shop.locator(".shop-modern > .grid-item")).toHaveCount(12);

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
@@ -10,6 +11,7 @@ import {
 } from "../../fixtures/pages/shop";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
+import FashionStoreCarousel from "../shared/FashionStoreCarousel.vue";
 import FashionStorePageTitle from "../shared/FashionStorePageTitle.vue";
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
@@ -36,8 +38,7 @@ const visibleProducts = computed(() =>
 const currentPage = ref(2);
 const actionCount = ref(0);
 const arrivalIndex = ref(0);
-const arrivalPaused = ref(false);
-let arrivalTimer: ReturnType<typeof setInterval> | undefined;
+const arrivalCarousel = ref<{ next(): void; previous(): void }>();
 
 const rowClass = computed(() => (layout.value === "left" ? "row flex-row-reverse" : "row"));
 const gridColumnClass = computed(() =>
@@ -49,12 +50,15 @@ const gridColumnClass = computed(() =>
 );
 const hasSidebar = computed(() => layout.value !== "none");
 const arrivalGroups = computed(() => data.value.arrivals);
-const arrivalTrackStyle = computed(() => ({
-  transform: `translate3d(-${arrivalIndex.value * 100}%, 0, 0)`,
-}));
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
+}
+
+function arrivalGroup(index: number): FashionStoreShopData["arrivals"][number] {
+  const group = arrivalGroups.value[index];
+  if (!group) throw new Error(`Missing Fashion Store arrival group ${index}.`);
+  return group;
 }
 
 function toggleFilter(group: FashionStoreShopFilterGroup, label: string): void {
@@ -67,27 +71,6 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
   recordPreviewIntent(action, `fashion-store.${page.value.id}.product`);
   actionCount.value += 1;
 }
-
-function showArrival(index: number): void {
-  arrivalIndex.value = (index + arrivalGroups.value.length) % arrivalGroups.value.length;
-}
-
-function stopArrivalAutoplay(): void {
-  if (arrivalTimer) clearInterval(arrivalTimer);
-  arrivalTimer = undefined;
-}
-
-function startArrivalAutoplay(): void {
-  stopArrivalAutoplay();
-  if (!hasSidebar.value || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  arrivalTimer = setInterval(() => {
-    if (!arrivalPaused.value) showArrival(arrivalIndex.value + 1);
-  }, 5000);
-}
-
-watch(hasSidebar, () => startArrivalAutoplay());
-onMounted(startArrivalAutoplay);
-onBeforeUnmount(stopArrivalAutoplay);
 </script>
 
 <template>
@@ -132,7 +115,7 @@ onBeforeUnmount(stopArrivalAutoplay);
                       aria-label="Previous page"
                       @click="currentPage = Math.max(1, currentPage - 1)"
                     >
-                      <i class="feather icon-feather-arrow-left fs-18 d-xs-none"></i>
+                      <FashionStoreIcon name="arrow-left" class="fs-18 d-xs-none" />
                     </button>
                   </li>
                   <li
@@ -157,7 +140,7 @@ onBeforeUnmount(stopArrivalAutoplay);
                       aria-label="Next page"
                       @click="currentPage = Math.min(4, currentPage + 1)"
                     >
-                      <i class="feather icon-feather-arrow-right fs-18 d-xs-none"></i>
+                      <FashionStoreIcon name="arrow-right" class="fs-18 d-xs-none" />
                     </button>
                   </li>
                 </ul>
@@ -193,87 +176,75 @@ onBeforeUnmount(stopArrivalAutoplay);
                 <div class="d-flex align-items-center mb-20px">
                   <span class="alt-font fw-500 fs-19 text-dark-gray">New arrivals</span>
                   <div class="d-flex ms-auto">
-                    <div
+                    <button
                       class="slider-one-slide-prev-1 icon-very-small swiper-button-prev slider-navigation-style-08 me-5px"
-                      role="button"
-                      tabindex="0"
+                      type="button"
                       aria-label="Previous arrivals"
-                      @click="showArrival(arrivalIndex - 1)"
-                      @keydown.enter.prevent="showArrival(arrivalIndex - 1)"
-                      @keydown.space.prevent="showArrival(arrivalIndex - 1)"
+                      @click="arrivalCarousel?.previous()"
                     >
-                      <i class="fa-solid fa-arrow-left text-dark-gray"></i>
-                    </div>
-                    <div
+                      <FashionStoreIcon name="arrow-left" class="text-dark-gray" />
+                    </button>
+                    <button
                       class="slider-one-slide-next-1 icon-very-small swiper-button-next slider-navigation-style-08 ms-5px"
-                      role="button"
-                      tabindex="0"
+                      type="button"
                       aria-label="Next arrivals"
-                      @click="showArrival(arrivalIndex + 1)"
-                      @keydown.enter.prevent="showArrival(arrivalIndex + 1)"
-                      @keydown.space.prevent="showArrival(arrivalIndex + 1)"
+                      @click="arrivalCarousel?.next()"
                     >
-                      <i class="fa-solid fa-arrow-right text-dark-gray"></i>
-                    </div>
+                      <FashionStoreIcon name="arrow-right" class="text-dark-gray" />
+                    </button>
                   </div>
                 </div>
-                <div
-                  class="swiper slider-one-slide"
+                <FashionStoreCarousel
+                  ref="arrivalCarousel"
+                  class="slider-one-slide"
+                  :slide-count="arrivalGroups.length"
+                  :semantic-slide-count="arrivalGroups.length"
+                  :autoplay-ms="5_000"
+                  :speed-ms="300"
+                  :loop="arrivalGroups.length > 1"
+                  :slide-motion-layers="true"
                   :data-arrival-index="arrivalIndex"
                   tabindex="0"
-                  @mouseenter="arrivalPaused = true"
-                  @mouseleave="arrivalPaused = false"
-                  @focusin="arrivalPaused = true"
-                  @focusout="arrivalPaused = false"
-                  @keydown.left.prevent="showArrival(arrivalIndex - 1)"
-                  @keydown.right.prevent="showArrival(arrivalIndex + 1)"
+                  aria-label="New arrivals carousel"
+                  @active-index-change="arrivalIndex = $event"
                 >
-                  <div class="swiper-wrapper" :style="arrivalTrackStyle">
-                    <div
-                      v-for="(group, groupIndex) in arrivalGroups"
-                      :key="groupIndex"
-                      class="swiper-slide"
-                      :class="{ 'swiper-slide-active': arrivalIndex === groupIndex }"
-                      :aria-hidden="arrivalIndex === groupIndex ? undefined : 'true'"
-                      :inert="arrivalIndex === groupIndex ? undefined : true"
-                    >
-                      <div class="shop-filter new-arribals">
-                        <div
-                          v-for="(product, index) in group"
-                          :key="product.id"
-                          class="d-flex align-items-center"
-                          :class="{ 'mb-20px': index < group.length - 1 }"
-                        >
-                          <figure class="mb-0">
-                            <a
-                              :href="fashionStoreRoutePaths.product"
-                              data-fashion-store-route
-                              :aria-label="product.name"
-                              ><img
-                                class="border-radius-4px w-80px"
-                                :src="sourceAsset(product.sourceImage)"
-                                alt=""
-                                width="600"
-                                height="765"
-                            /></a>
-                          </figure>
-                          <div class="col ps-25px">
-                            <a
-                              :href="fashionStoreRoutePaths.product"
-                              data-fashion-store-route
-                              class="text-dark-gray alt-font fw-500 d-inline-block lh-normal"
-                              >{{ product.name }}</a
-                            >
-                            <div class="fs-15 lh-normal">
-                              <del class="me-5px">{{ product.originalPrice }}</del
-                              >{{ product.price }}
-                            </div>
+                  <template #default="{ index: groupIndex }">
+                    <div class="shop-filter new-arribals">
+                      <div
+                        v-for="(product, index) in arrivalGroup(groupIndex)"
+                        :key="product.id"
+                        class="d-flex align-items-center"
+                        :class="{ 'mb-20px': index < arrivalGroup(groupIndex).length - 1 }"
+                      >
+                        <figure class="mb-0">
+                          <a
+                            :href="fashionStoreRoutePaths.product"
+                            data-fashion-store-route
+                            :aria-label="product.name"
+                            ><img
+                              class="border-radius-4px w-80px"
+                              :src="sourceAsset(product.sourceImage)"
+                              alt=""
+                              width="600"
+                              height="765"
+                          /></a>
+                        </figure>
+                        <div class="col ps-25px">
+                          <a
+                            :href="fashionStoreRoutePaths.product"
+                            data-fashion-store-route
+                            class="text-dark-gray alt-font fw-500 d-inline-block lh-normal"
+                            >{{ product.name }}</a
+                          >
+                          <div class="fs-15 lh-normal">
+                            <del class="me-5px">{{ product.originalPrice }}</del
+                            >{{ product.price }}
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </template>
+                </FashionStoreCarousel>
               </div>
 
               <div>

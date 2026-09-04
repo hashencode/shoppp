@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import FashionStoreTooltip from "./shared/FashionStoreTooltip.vue";
+import FashionStoreIcon from "./shared/FashionStoreIcon.vue";
 import { recordPreviewIntent, type PreviewAction } from "../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import type { FashionStoreHomeData } from "../fixtures/home";
-import { useFashionStoreRuntime } from "../composables/useFashionStoreRuntime";
 import { fashionStoreAssetId } from "../resources";
 import { fashionStoreRoutePaths } from "../page-contracts";
+import FashionStoreCarousel from "./shared/FashionStoreCarousel.vue";
 import FashionStoreShell from "./shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
@@ -20,41 +22,17 @@ const data = computed<FashionStoreHomeData>(() => {
 });
 
 const actionIntentCount = ref(0);
-const runtime = useFashionStoreRuntime({
-  autoplayMs: data.value.slider.options.autoplayMs,
-  breakpointPx: data.value.slider.options.breakpointPx,
-  count: data.value.slider.slides.length,
-  speedMs: data.value.slider.options.speedMs,
-});
-const activeIndex = computed(() =>
-  runtime.motion.value.phase === "transitioning"
-    ? runtime.motion.value.targetIndex
-    : runtime.motion.value.currentIndex,
-);
+const heroCarousel = ref<{ select(index: number): void }>();
+const activeIndex = ref(0);
 const heroCurrent = computed(() => String(activeIndex.value + 1).padStart(2, "0"));
 const heroTotal = computed(() => String(data.value.slider.slides.length).padStart(2, "0"));
 const marqueeMessages = computed(() => data.value.marquee);
 const collectionIndex = ref(0);
-const collectionTransitionEnabled = ref(true);
-const collectionVisibleSlides = ref(4);
-const collectionUsesLaptopStep = ref(false);
-const collectionPaused = ref(false);
-const collectionTransform = computed(() => {
-  const visible = collectionVisibleSlides.value;
-  const percentage = (collectionIndex.value * 100) / visible;
-  const gap = (collectionIndex.value * 30) / visible;
-  const fractionalCardWidthCorrection =
-    visible === 4
-      ? collectionIndex.value * 0.09765625
-      : collectionUsesLaptopStep.value
-        ? collectionIndex.value / 12
-        : 0;
-  return `translate3d(calc(-${percentage}% - ${gap}px - ${fractionalCardWidthCorrection}px), 0, 0)`;
-});
-let collectionAutoplayTimer: ReturnType<typeof setInterval> | undefined;
-let collectionResetTimer: ReturnType<typeof setTimeout> | undefined;
-let collectionLoopResetting = false;
-let collectionPointerStart: number | undefined;
+const collectionSlides = computed(() =>
+  data.value.collection.length > 1
+    ? [...data.value.collection, ...data.value.collection]
+    : data.value.collection,
+);
 function recordProductAction(action: PreviewAction): void {
   recordPreviewIntent(action, "fashion-store.home.product");
   actionIntentCount.value += 1;
@@ -76,82 +54,18 @@ function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function sourceBackground(sourcePath: string): string {
-  return `url('${sourceAsset(sourcePath)}')`;
+function heroHeading(index: number): [string, string] {
+  const words = heroSlide(index).heading.split(" ");
+  return [words[0] ?? "", words.slice(1).join(" ")];
 }
 
-function updateCollectionVisibleSlides(): void {
-  collectionVisibleSlides.value =
-    innerWidth >= 1400 ? 4 : innerWidth >= 768 ? 3 : innerWidth >= 576 ? 2 : 1;
-  collectionUsesLaptopStep.value = innerWidth >= 992 && innerWidth < 1200;
+function heroSlide(index: number): FashionStoreHomeData["slider"]["slides"][number] {
+  return data.value.slider.slides[index] ?? data.value.slider.slides[0];
 }
 
-function resetCollectionLoop(): void {
-  collectionTransitionEnabled.value = false;
-  collectionIndex.value = 0;
-  collectionLoopResetting = false;
-  collectionResetTimer = undefined;
-  requestAnimationFrame(() => {
-    collectionTransitionEnabled.value = true;
-  });
+function collectionSlide(index: number): FashionStoreHomeData["collection"][number] {
+  return collectionSlides.value[index] ?? data.value.collection[0];
 }
-
-function showNextCollection(): void {
-  if (collectionLoopResetting) return;
-  collectionTransitionEnabled.value = true;
-  collectionIndex.value += 1;
-  if (collectionIndex.value === data.value.collection.length) {
-    collectionLoopResetting = true;
-    collectionResetTimer = setTimeout(resetCollectionLoop, 680);
-  }
-}
-
-function showPreviousCollection(): void {
-  if (collectionLoopResetting) return;
-  collectionTransitionEnabled.value = false;
-  collectionIndex.value =
-    collectionIndex.value === 0 ? data.value.collection.length : collectionIndex.value;
-  requestAnimationFrame(() => {
-    collectionTransitionEnabled.value = true;
-    collectionIndex.value -= 1;
-  });
-}
-
-function handleCollectionKeydown(event: KeyboardEvent): void {
-  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-  event.preventDefault();
-  if (event.key === "ArrowRight") showNextCollection();
-  else showPreviousCollection();
-}
-
-function handleCollectionPointerDown(event: PointerEvent): void {
-  collectionPointerStart = event.clientX;
-}
-
-function handleCollectionPointerUp(event: PointerEvent): void {
-  if (collectionPointerStart === undefined) return;
-  const distance = event.clientX - collectionPointerStart;
-  collectionPointerStart = undefined;
-  if (Math.abs(distance) < 40) return;
-  if (distance < 0) showNextCollection();
-  else showPreviousCollection();
-}
-
-onMounted(() => {
-  updateCollectionVisibleSlides();
-  window.addEventListener("resize", updateCollectionVisibleSlides, { passive: true });
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    collectionAutoplayTimer = setInterval(() => {
-      if (!collectionPaused.value && !document.hidden) showNextCollection();
-    }, 4_000);
-  }
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", updateCollectionVisibleSlides);
-  if (collectionAutoplayTimer) clearInterval(collectionAutoplayTimer);
-  if (collectionResetTimer) clearTimeout(collectionResetTimer);
-});
 </script>
 
 <template>
@@ -163,197 +77,99 @@ onBeforeUnmount(() => {
     :resolve-asset="properties.resolveAsset"
   >
     <template #prelude>
-      <h1 class="sr-only">Fashion store</h1>
-      <button
-        v-for="(_, index) in data.slider.slides"
-        :key="'slide-control-' + index"
-        type="button"
-        class="sr-only"
-        :data-fashion-store-slide="index"
-        :aria-label="'Show slide ' + (index + 1)"
-        @click="runtime.select(index)"
-      />
+      <h1 class="visually-hidden">Fashion store</h1>
     </template>
     <section class="p-0" id="fashion-store-main" role="main">
-      <div
-        class="swiper full-screen top-space-margin md-h-600px sm-h-500px swiper-number-pagination-progress swiper-number-pagination-progress-vertical"
-        data-slider-options='{ "slidesPerView": 1, "direction": "horizontal", "loop": true, "parallax": true, "speed": 1000, "pagination": { "el": ".swiper-number", "clickable": true }, "autoplay": { "delay": 4000, "disableOnInteraction": false },  "keyboard": { "enabled": true, "onlyInViewport": true }, "breakpoints": { "1199": { "direction": "vertical" }}, "effect": "slide" }'
+      <FashionStoreCarousel
+        ref="heroCarousel"
+        class="full-screen top-space-margin md-h-600px sm-h-500px swiper-number-pagination-progress swiper-number-pagination-progress-vertical"
+        :slide-count="data.slider.slides.length"
+        :semantic-slide-count="data.slider.slides.length"
+        :autoplay-ms="data.slider.options.autoplayMs"
+        :speed-ms="data.slider.options.speedMs"
+        :loop="data.slider.options.loop"
+        :parallax="true"
+        :keyboard="data.slider.options.keyboard"
+        :breakpoints="{
+          [data.slider.options.breakpointPx]: { direction: data.slider.options.desktopDirection },
+        }"
+        slide-class="overflow-hidden fashion-store-hero-slide"
+        :slide-motion-layers="true"
         data-swiper-number-pagination-progress="true"
-        v-bind:data-motion-active-index="activeIndex"
-        v-bind:data-motion-autoplay-ms="data.slider.options.autoplayMs"
-        v-bind:data-motion-direction="runtime.direction.value"
-        v-bind:data-motion-phase="runtime.motion.value.phase"
-        data-motion-easing="ease"
-        v-bind:data-motion-duration-ms="data.slider.options.speedMs"
-        v-bind:data-motion-paused="runtime.motion.value.pausedReasons.join(',')"
-        v-bind:data-motion-ready="runtime.hydrated.value"
-        v-on:keydown="runtime.keydown"
         tabindex="0"
+        @active-index-change="activeIndex = $event"
       >
-        <div class="swiper-wrapper">
+        <template #default="{ index }">
           <div
-            class="swiper-slide overflow-hidden fashion-store-hero-slide"
-            data-motion-layer="slide"
-            v-bind:data-active="activeIndex === 0"
-            v-bind:aria-hidden="activeIndex === 0 ? undefined : 'true'"
+            class="cover-background position-absolute top-0 start-0 w-100 h-100"
+            :data-swiper-parallax="data.slider.options.parallaxPx"
+            :style="{
+              backgroundImage: `url('${properties.resolveAsset(heroSlide(index).assetId)}')`,
+            }"
           >
-            <div
-              class="cover-background position-absolute top-0 start-0 w-100 h-100"
-              data-swiper-parallax="500"
-              v-bind:style="{
-                backgroundImage: sourceBackground('images/demo-fashion-store-slider-01.jpg'),
-              }"
-            >
-              <div class="container h-100">
-                <div class="row align-items-center h-100 justify-content-start">
+            <div class="container h-100">
+              <div class="row align-items-center h-100 justify-content-start">
+                <div
+                  class="col-md-10 position-relative text-white d-flex flex-column justify-content-center h-100"
+                >
                   <div
-                    class="col-md-10 position-relative text-white d-flex flex-column justify-content-center h-100"
+                    data-anime='{ "opacity": [0, 1], "translateY": [50, 0], "easing": "easeOutQuad", "duration": 500, "delay": 300 }'
+                    class="alt-font text-dark-gray mb-25px fs-20 sm-mb-15px"
                   >
-                    <div
-                      data-anime='{ "opacity": [0, 1], "translateY": [50, 0], "easing": "easeOutQuad", "duration": 500, "delay": 300 }'
-                      class="alt-font text-dark-gray mb-25px fs-20 sm-mb-15px"
+                    <span class="text-highlight"
+                      >{{ heroSlide(index).eyebrow
+                      }}<span class="bg-base-color h-8px bottom-0px"></span
+                    ></span>
+                  </div>
+                  <div
+                    class="alt-font fs-120 xs-fs-95 lh-100 mb-40px text-dark-gray fw-600 transform-origin-right ls-minus-5px sm-mb-25px"
+                    data-anime='{ "el": "childs", "rotateX": [90, 0], "opacity": [0,1], "staggervalue": 150, "easing": "easeOutQuad" }'
+                  >
+                    <span class="d-block">{{ heroHeading(index)[0] }}</span>
+                    <span class="d-block fw-300">{{ heroHeading(index)[1] }}</span>
+                  </div>
+                  <div
+                    data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
+                  >
+                    <a
+                      :href="fashionStoreRoutePaths.collection"
+                      data-fashion-store-route
+                      class="btn btn-dark-gray btn-box-shadow btn-large"
+                      >View collection</a
                     >
-                      <span class="text-highlight"
-                        >{{ data.slider.slides[0].eyebrow
-                        }}<span class="bg-base-color h-8px bottom-0px"></span
-                      ></span>
-                    </div>
-                    <div
-                      class="alt-font fs-120 xs-fs-95 lh-100 mb-40px text-dark-gray fw-600 transform-origin-right ls-minus-5px sm-mb-25px"
-                      data-anime='{ "el": "childs", "rotateX": [90, 0], "opacity": [0,1], "staggervalue": 150, "easing": "easeOutQuad" }'
-                    >
-                      <span class="d-block">Women's</span>
-                      <span class="d-block fw-300">collection</span>
-                    </div>
-                    <div
-                      data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
-                    >
-                      <a
-                        :href="fashionStoreRoutePaths.collection"
-                        data-fashion-store-route
-                        class="btn btn-dark-gray btn-box-shadow btn-large"
-                        >View collection</a
-                      >
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <div
-            class="swiper-slide overflow-hidden fashion-store-hero-slide"
-            data-motion-layer="slide"
-            v-bind:data-active="activeIndex === 1"
-            v-bind:aria-hidden="activeIndex === 1 ? undefined : 'true'"
-          >
+        </template>
+        <template #container-end>
+          <div class="swiper-pagination-wrapper">
             <div
-              class="cover-background position-absolute top-0 start-0 w-100 h-100"
-              data-swiper-parallax="500"
-              v-bind:style="{
-                backgroundImage: sourceBackground('images/demo-fashion-store-slider-02.jpg'),
-              }"
+              class="pagination-progress-vertical d-flex align-items-center justify-content-center"
             >
-              <div class="container h-100">
-                <div class="row align-items-center h-100 justify-content-start">
-                  <div
-                    class="col-md-10 position-relative text-white d-flex flex-column justify-content-center h-100"
-                  >
-                    <div
-                      data-anime='{ "opacity": [0, 1], "translateY": [50, 0], "easing": "easeOutQuad", "duration": 500, "delay": 300 }'
-                      class="alt-font text-dark-gray mb-25px fs-20 sm-mb-15px"
-                    >
-                      <span class="text-highlight"
-                        >{{ data.slider.slides[1].eyebrow
-                        }}<span class="bg-base-color h-8px bottom-0px"></span
-                      ></span>
-                    </div>
-                    <div
-                      class="alt-font fs-120 xs-fs-95 lh-100 mb-40px text-dark-gray fw-600 transform-origin-right ls-minus-5px sm-mb-25px"
-                      data-anime='{ "el": "childs", "rotateX": [90, 0], "opacity": [0,1], "staggervalue": 150, "easing": "easeOutQuad" }'
-                    >
-                      <span class="d-block">Men's</span>
-                      <span class="d-block fw-300">collection</span>
-                    </div>
-                    <div
-                      data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
-                    >
-                      <a
-                        :href="fashionStoreRoutePaths.collection"
-                        data-fashion-store-route
-                        class="btn btn-dark-gray btn-box-shadow btn-large"
-                        >View collection</a
-                      >
-                    </div>
-                  </div>
-                </div>
+              <div class="number-prev text-dark-gray fs-16 fw-500">{{ heroCurrent }}</div>
+              <div class="swiper-pagination-progress">
+                <span class="swiper-progress"></span>
               </div>
+              <div class="number-next text-dark-gray fs-16 fw-500">{{ heroTotal }}</div>
+            </div>
+            <div class="fashion-store-hero-controls" aria-label="Hero slides">
+              <button
+                v-for="(_, index) in data.slider.slides"
+                :key="`hero-control-${index}`"
+                type="button"
+                :data-fashion-store-slide="index"
+                :aria-label="`Show slide ${index + 1}`"
+                :aria-current="activeIndex === index ? 'true' : undefined"
+                @click="heroCarousel?.select(index)"
+              >
+                <span class="visually-hidden">{{ String(index + 1).padStart(2, "0") }}</span>
+              </button>
             </div>
           </div>
-
-          <div
-            class="swiper-slide overflow-hidden fashion-store-hero-slide"
-            data-motion-layer="slide"
-            v-bind:data-active="activeIndex === 2"
-            v-bind:aria-hidden="activeIndex === 2 ? undefined : 'true'"
-          >
-            <div
-              class="cover-background position-absolute top-0 start-0 w-100 h-100"
-              data-swiper-parallax="500"
-              v-bind:style="{
-                backgroundImage: sourceBackground('images/demo-fashion-store-slider-03.jpg'),
-              }"
-            >
-              <div class="container h-100">
-                <div class="row align-items-center h-100 justify-content-start">
-                  <div
-                    class="col-md-10 position-relative text-white d-flex flex-column justify-content-center h-100"
-                  >
-                    <div
-                      data-anime='{ "opacity": [0, 1], "translateY": [50, 0], "easing": "easeOutQuad", "duration": 500, "delay": 300 }'
-                      class="alt-font text-dark-gray mb-25px fs-20 sm-mb-15px"
-                    >
-                      <span class="text-highlight"
-                        >{{ data.slider.slides[2].eyebrow
-                        }}<span class="bg-base-color h-8px bottom-0px"></span
-                      ></span>
-                    </div>
-                    <div
-                      class="alt-font fs-120 xs-fs-95 lh-100 mb-40px text-dark-gray fw-600 transform-origin-right ls-minus-5px sm-mb-25px"
-                      data-anime='{ "el": "childs", "rotateX": [90, 0], "opacity": [0,1], "staggervalue": 150, "easing": "easeOutQuad" }'
-                    >
-                      <span class="d-block">Children's</span>
-                      <span class="d-block fw-300">collection</span>
-                    </div>
-                    <div
-                      data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
-                    >
-                      <a
-                        :href="fashionStoreRoutePaths.collection"
-                        data-fashion-store-route
-                        class="btn btn-dark-gray btn-box-shadow btn-large"
-                        >View collection</a
-                      >
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="swiper-pagination-wrapper">
-          <div
-            class="pagination-progress-vertical d-flex align-items-center justify-content-center"
-          >
-            <div class="number-prev text-dark-gray fs-16 fw-500">{{ heroCurrent }}</div>
-            <div class="swiper-pagination-progress">
-              <span class="swiper-progress"></span>
-            </div>
-            <div class="number-next text-dark-gray fs-16 fw-500">{{ heroTotal }}</div>
-          </div>
-        </div>
-      </div>
+        </template>
+      </FashionStoreCarousel>
     </section>
     <section class="half-section">
       <div class="container">
@@ -364,7 +180,7 @@ onBeforeUnmount(() => {
           <div class="col icon-with-text-style-01 md-mb-35px">
             <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
               <div class="feature-box-icon me-20px">
-                <i class="line-icon-Box-Close icon-large text-dark-gray"></i>
+                <FashionStoreIcon name="package" class="icon-large text-dark-gray" />
               </div>
               <div class="feature-box-content">
                 <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -378,7 +194,7 @@ onBeforeUnmount(() => {
           <div class="col icon-with-text-style-01 md-mb-35px">
             <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
               <div class="feature-box-icon me-20px">
-                <i class="line-icon-Reload-3 icon-large text-dark-gray"></i>
+                <FashionStoreIcon name="refresh-cw" class="icon-large text-dark-gray" />
               </div>
               <div class="feature-box-content">
                 <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -392,7 +208,7 @@ onBeforeUnmount(() => {
           <div class="col icon-with-text-style-01 xs-mb-35px">
             <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
               <div class="feature-box-icon me-20px">
-                <i class="line-icon-Credit-Card2 icon-large text-dark-gray"></i>
+                <FashionStoreIcon name="credit-card" class="icon-large text-dark-gray" />
               </div>
               <div class="feature-box-content">
                 <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -406,7 +222,7 @@ onBeforeUnmount(() => {
           <div class="col icon-with-text-style-01">
             <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
               <div class="feature-box-icon me-20px">
-                <i class="line-icon-Phone-2 icon-large text-dark-gray"></i>
+                <FashionStoreIcon name="phone" class="icon-large text-dark-gray" />
               </div>
               <div class="feature-box-content">
                 <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -611,37 +427,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -678,37 +492,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -745,37 +557,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -812,37 +622,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -879,37 +687,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -947,37 +753,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1014,37 +818,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1081,37 +883,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1148,37 +948,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1215,37 +1013,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1309,365 +1105,72 @@ onBeforeUnmount(() => {
             <div
               class="outside-box-right-10 lg-outside-box-right-20 md-outside-box-right-25 xs-outside-box-right-0"
             >
-              <div
-                class="swiper slider-three-slide"
-                data-slider-options='{ "slidesPerView": 1, "spaceBetween": 30, "loop": true, "autoplay": { "delay": 4000, "disableOnInteraction": false }, "pagination": { "el": ".slider-four-slide-pagination-1", "clickable": true, "dynamicBullets": false }, "keyboard": { "enabled": true, "onlyInViewport": true }, "breakpoints": { "1400": { "slidesPerView": 4 }, "1024": { "slidesPerView": 3 }, "768": { "slidesPerView": 3 }, "576": { "slidesPerView": 2 }, "320": { "slidesPerView": 1 } }, "effect": "slide" }'
+              <FashionStoreCarousel
+                class="slider-three-slide"
                 data-fashion-store-collection-carousel
+                :slide-count="collectionSlides.length"
+                :semantic-slide-count="data.collection.length"
+                :slides-per-view="1"
+                :space-between="30"
+                :speed-ms="650"
+                :autoplay-ms="4_000"
+                :loop="data.collection.length > 1"
+                :breakpoints="{
+                  576: { slidesPerView: 2 },
+                  768: { slidesPerView: 3 },
+                  1400: { slidesPerView: 4 },
+                }"
                 :data-collection-index="collectionIndex"
                 tabindex="0"
                 aria-label="New arrival collection carousel"
-                @keydown="handleCollectionKeydown"
-                @mouseenter="collectionPaused = true"
-                @mouseleave="collectionPaused = false"
-                @focusin="collectionPaused = true"
-                @focusout="collectionPaused = false"
-                @pointerdown="handleCollectionPointerDown"
-                @pointerup="handleCollectionPointerUp"
+                @active-index-change="collectionIndex = $event"
               >
-                <div
-                  class="swiper-wrapper fashion-store-collection-track"
-                  :style="{
-                    transform: collectionTransform,
-                    transition: collectionTransitionEnabled ? 'transform 650ms ease' : 'none',
-                  }"
-                >
-                  <div class="swiper-slide">
+                <template #default="{ index }">
+                  <div
+                    class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
+                  >
+                    <img alt="" :src="sourceAsset(collectionSlide(index).sourceImage)" />
+                    <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
                     <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
+                      class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
                     >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[0].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
                       <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
+                        class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
                       >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
+                        <span class="text-white fw-500 fs-22">{{
+                          collectionSlide(index).name
+                        }}</span>
+                        <span
+                          class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
+                          >{{ collectionSlide(index).subtitle }}</span
                         >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[0].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[0].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                         <a
                           :href="fashionStoreRoutePaths.collection"
                           data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[0].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[1].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
-                      <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
+                          class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
+                          >Explore collection</a
                         >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[1].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[1].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[1].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
+                        <span
+                          class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
+                          ><FashionStoreIcon
+                            name="arrow-right"
+                            class="text-dark-gray icon-very-medium"
+                        /></span>
                       </div>
-                    </div>
-                  </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[2].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
                       <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
-                        >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[2].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[2].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[2].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
+                        class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
+                      ></div>
+                      <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
+                      <a
+                        :href="fashionStoreRoutePaths.collection"
+                        data-fashion-store-route
+                        :aria-label="`Explore ${collectionSlide(index).name}`"
+                        class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
+                      ></a>
                     </div>
                   </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[3].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
-                      <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
-                        >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[3].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[3].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[3].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[0].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
-                      <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
-                        >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[0].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[0].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[0].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[1].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
-                      <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
-                        >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[1].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[1].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[1].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[2].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
-                      <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
-                        >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[2].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[2].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[2].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="swiper-slide">
-                    <div
-                      class="interactive-banner-style-09 border-radius-6px overflow-hidden position-relative"
-                    >
-                      <img alt="" v-bind:src="sourceAsset(data.collection[3].sourceImage)" />
-                      <div class="opacity-full bg-gradient-gray-light-dark-transparent"></div>
-                      <div
-                        class="image-content h-100 w-100 ps-15 pe-15 pt-11 pb-11 lg-p-11 d-flex justify-content-bottom align-items-start flex-column"
-                      >
-                        <div
-                          class="mt-auto d-flex align-items-start w-100 z-index-1 position-relative overflow-hidden flex-column"
-                        >
-                          <span class="text-white fw-500 fs-22">{{ data.collection[3].name }}</span>
-                          <span
-                            class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
-                            >{{ data.collection[3].subtitle }}</span
-                          >
-                          <a
-                            :href="fashionStoreRoutePaths.collection"
-                            data-fashion-store-route
-                            class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                            >Explore collection</a
-                          >
-                          <span
-                            class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                            ><i class="bi bi-arrow-right-short text-dark-gray icon-very-medium"></i
-                          ></span>
-                        </div>
-                        <div
-                          class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
-                        ></div>
-                        <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
-                        <a
-                          :href="fashionStoreRoutePaths.collection"
-                          data-fashion-store-route
-                          v-bind:aria-label="'Explore ' + data.collection[3].name"
-                          class="position-absolute z-index-1 top-0px left-0px h-100 w-100"
-                        ></a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </template>
+              </FashionStoreCarousel>
             </div>
           </div>
         </div>
@@ -1774,37 +1277,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1841,37 +1342,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1908,37 +1407,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -1975,37 +1472,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>
@@ -2042,37 +1537,35 @@ onBeforeUnmount(() => {
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
                         @click="addToCart"
                       >
-                        <i class="feather icon-feather-shopping-bag"></i
-                        ><span class="quick-view-text button-text">Add to cart</span>
+                        <FashionStoreIcon name="shopping-bag" /><span
+                          class="quick-view-text button-text"
+                          >Add to cart</span
+                        >
                       </button>
                     </div>
                     <div class="shop-hover d-flex justify-content-center">
                       <ul>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Add to wishlist"
+                            content="Add to wishlist"
                             aria-label="Add to wishlist"
                             @click="addToWishlist"
                           >
-                            <i class="feather icon-feather-heart fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="heart" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                         <li>
-                          <button
+                          <FashionStoreTooltip
                             type="button"
                             class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="left"
-                            title="Quick shop"
+                            content="Quick shop"
                             aria-label="Quick shop"
                             @click="openQuickView"
                           >
-                            <i class="feather icon-feather-eye fs-16"></i>
-                          </button>
+                            <FashionStoreIcon name="eye" class="fs-16" />
+                          </FashionStoreTooltip>
                         </li>
                       </ul>
                     </div>

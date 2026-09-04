@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FashionStoreTooltip from "./FashionStoreTooltip.vue";
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontCartStateKey } from "../../../../theme-engine/cart-state";
@@ -178,8 +180,9 @@ watch(
             aria-label="Add to cart"
             @click="addToCart"
           >
-            <i class="feather icon-feather-shopping-bag"></i
-            ><span class="quick-view-text button-text">Add to cart</span>
+            <FashionStoreIcon name="shopping-bag" /><span class="quick-view-text button-text"
+              >Add to cart</span
+            >
           </button>
           <button
             v-else-if="directPurchase"
@@ -194,8 +197,9 @@ watch(
             "
             @click="addToCart"
           >
-            <i class="feather icon-feather-shopping-bag"></i
-            ><span class="quick-view-text button-text">{{ directActionLabel }}</span>
+            <FashionStoreIcon name="shopping-bag" /><span class="quick-view-text button-text">{{
+              directActionLabel
+            }}</span>
           </button>
           <a
             v-else
@@ -220,40 +224,41 @@ watch(
         >
           <ul>
             <li v-if="!liveProduct || fashionStoreLiveCapabilities.wishlist">
-              <button
+              <FashionStoreTooltip
                 type="button"
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 :class="{ 'fashion-wishlist-remove': wishlistContext }"
                 :aria-label="
                   wishlistContext ? `Remove ${card.name} from wishlist` : 'Add to wishlist'
                 "
-                :title="wishlistContext ? 'Remove from wishlist' : 'Add to wishlist'"
+                :content="wishlistContext ? 'Remove from wishlist' : 'Add to wishlist'"
                 @click="$emit('intent', 'wishlist')"
               >
-                <i class="feather icon-feather-heart fs-16"></i>
-              </button>
+                <FashionStoreIcon name="heart" class="fs-16" />
+              </FashionStoreTooltip>
             </li>
             <li v-if="!liveProduct || fashionStoreLiveCapabilities.productQuickView">
-              <a
+              <FashionStoreTooltip
+                as="a"
                 v-if="liveProduct || wishlistContext"
                 :href="card.href"
                 data-fashion-store-route
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 :aria-label="wishlistContext ? `View ${card.name}` : 'View product details'"
-                :title="wishlistContext ? 'View product' : 'View product details'"
+                :content="wishlistContext ? 'View product' : 'View product details'"
               >
-                <i class="feather icon-feather-eye fs-16"></i>
-              </a>
-              <button
+                <FashionStoreIcon name="eye" class="fs-16" />
+              </FashionStoreTooltip>
+              <FashionStoreTooltip
                 v-else
                 type="button"
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 aria-label="Quick shop"
-                title="Quick shop"
+                content="Quick shop"
                 @click="$emit('intent', 'quickView')"
               >
-                <i class="feather icon-feather-eye fs-16"></i>
-              </button>
+                <FashionStoreIcon name="eye" class="fs-16" />
+              </FashionStoreTooltip>
             </li>
           </ul>
         </div>
@@ -271,7 +276,7 @@ watch(
         </div>
         <p
           v-if="liveProduct"
-          class="sr-only"
+          class="visually-hidden"
           :role="actionState === 'retry' ? 'alert' : 'status'"
           aria-live="polite"
         >
@@ -283,7 +288,7 @@ watch(
 </template>
 
 <style scoped>
-.shop-hover button {
+.shop-hover :deep(button) {
   appearance: none;
   border: 0;
   padding: 0;

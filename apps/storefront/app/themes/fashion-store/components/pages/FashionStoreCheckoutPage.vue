@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import CheckoutAddress from "~/features/checkout/address.vue";
 import TurnstileChallenge from "~/features/checkout/TurnstileChallenge.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
@@ -10,7 +11,7 @@ import {
   type StorefrontShippingQuoteRequest,
 } from "../../../../theme-engine/checkout";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import { formatCommerceMoney } from "../../../../theme-engine/runtime-commerce";
+import { formatCommerceMoney as money } from "../../../../theme-engine/runtime-commerce";
 import type { FashionStoreLegacyCheckoutData } from "../../contracts/checkout";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
@@ -175,10 +176,6 @@ watch(
   },
   { immediate: true },
 );
-
-function money(amount: number, currency: string): string {
-  return formatCommerceMoney(amount, currency);
-}
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -414,7 +411,10 @@ onBeforeUnmount(() => {
               aria-label="Breadcrumb"
             >
               <ul>
-                <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                <li>
+                  <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a
+                  ><FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
                 {{
                   " "
                 }}
@@ -433,9 +433,10 @@ onBeforeUnmount(() => {
             <div class="col-auto icon-with-text-style-08 lg-mb-10px">
               <div class="feature-box feature-box-left-icon">
                 <div class="feature-box-icon me-5px">
-                  <i
-                    class="feather icon-feather-user top-9px position-relative text-dark-gray icon-small"
-                  ></i>
+                  <FashionStoreIcon
+                    name="user"
+                    class="top-9px position-relative text-dark-gray icon-small"
+                  />
                 </div>
                 <div class="feature-box-content">
                   <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"
@@ -458,9 +459,10 @@ onBeforeUnmount(() => {
             <div class="col-auto icon-with-text-style-08">
               <div class="feature-box feature-box-left-icon">
                 <div class="feature-box-icon me-5px">
-                  <i
-                    class="feather icon-feather-scissors top-9px position-relative text-dark-gray icon-small"
-                  ></i>
+                  <FashionStoreIcon
+                    name="scissors"
+                    class="top-9px position-relative text-dark-gray icon-small"
+                  />
                 </div>
                 <div class="feature-box-content">
                   <span class="d-inline-block text-dark-gray align-middle alt-font fw-500"

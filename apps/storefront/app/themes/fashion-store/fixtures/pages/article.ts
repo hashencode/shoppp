@@ -1,3 +1,4 @@
+import type { FashionStoreIconName } from "../../icons/ui";
 import type { FashionStoreMagazinePost } from "./magazine";
 
 export interface FashionStoreArticleComment {
@@ -25,7 +26,7 @@ export interface FashionStoreArticleData {
   };
   media: readonly string[];
   related: readonly FashionStoreMagazinePost[];
-  shareLinks: readonly { href: string; icon: string; label: string }[];
+  shareLinks: readonly { href: string; icon: FashionStoreIconName; label: string }[];
 }
 
 const related = (
@@ -105,10 +106,10 @@ export const fashionStoreArticleData = {
     ),
   ],
   shareLinks: [
-    { href: "https://www.facebook.com/", icon: "facebook-f", label: "Facebook" },
+    { href: "https://www.facebook.com/", icon: "facebook", label: "Facebook" },
     { href: "https://twitter.com/", icon: "twitter", label: "Twitter" },
     { href: "https://www.instagram.com/", icon: "instagram", label: "Instagram" },
-    { href: "https://www.linkedin.com/", icon: "linkedin-in", label: "LinkedIn" },
+    { href: "https://www.linkedin.com/", icon: "linkedin", label: "LinkedIn" },
     { href: "https://www.behance.net/", icon: "behance", label: "Behance" },
   ],
 } as const satisfies FashionStoreArticleData;

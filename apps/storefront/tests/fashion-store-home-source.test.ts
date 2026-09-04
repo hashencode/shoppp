@@ -49,6 +49,7 @@ describe("Fashion Store complete static source home", () => {
     expect(shell).toContain("<FashionStoreHeader");
     expect(shell).toContain("<FashionStoreFooter");
     expect(header).toMatch(/<header\s+class="header-with-topbar"/);
+    expect(header).not.toContain('class="header-top-bar');
     expect(header).toContain("<FashionStoreSearchOverlay");
     expect(header).toContain("<FashionStoreMiniCart");
     expect(search).toContain('class="search-form-wrapper"');

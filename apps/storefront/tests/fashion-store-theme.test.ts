@@ -131,17 +131,14 @@ describe("Fashion Store preview registration", () => {
     }
   });
 
-  test("keeps collection steps aligned with fractional card widths", async () => {
-    const [component, integration] = await Promise.all([
-      readFile(
-        resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
-        "utf8",
-      ),
-      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/integration.css"), "utf8"),
-    ]);
-    expect(component).toContain("collectionIndex.value * 0.09765625");
-    expect(component).toContain("collectionIndex.value / 12");
-    expect(integration).toContain("calc((100% - 60px) / 3 + 0.078125px)");
+  test("keeps collection looping aligned with its four semantic cards", async () => {
+    const component = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
+      "utf8",
+    );
+    expect(component).toContain("[...data.value.collection, ...data.value.collection]");
+    expect(component).toContain(':semantic-slide-count="data.collection.length"');
+    expect(component).toContain('@active-index-change="collectionIndex = $event"');
   });
 
   test("declares the existing platform templates while keeping one section per page type", () => {

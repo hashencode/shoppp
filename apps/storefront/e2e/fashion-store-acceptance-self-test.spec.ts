@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
@@ -27,7 +28,7 @@ async function loadFixture(page: Page, defect = "none"): Promise<void> {
 }
 
 test.beforeEach(({ browser: _browser }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Harness self-tests run once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Harness self-tests run once.");
 });
 
 test("historical defect fixtures fail the intended Fashion Store probes", async ({ page }) => {

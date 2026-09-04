@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 const properties = defineProps<{
   alt: string;
   current: number;
@@ -11,100 +12,190 @@ const emit = defineEmits<{
   next: [];
   opened: [];
   previous: [];
+  unavailable: [];
 }>();
 
-const dialog = ref<HTMLDialogElement | null>(null);
-let documentOverflow = "";
+type BootstrapModal = {
+  dispose(): void;
+  hide(): void;
+  show(relatedTarget?: Element): void;
+};
 
-function open(): void {
-  documentOverflow = document.documentElement.style.overflow;
-  document.documentElement.style.overflow = "hidden";
-  if (!dialog.value?.open) dialog.value?.showModal();
+const modal = ref<HTMLElement | null>(null);
+const retryButton = ref<HTMLButtonElement | null>(null);
+const loadFailed = ref(false);
+let instance: BootstrapModal | undefined;
+let loading: Promise<void> | undefined;
+let mounted = false;
+let openRequested = false;
+let returnFocus: HTMLElement | undefined;
+
+function rememberReturnFocus(): void {
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement && activeElement !== modal.value) {
+    returnFocus = activeElement;
+  }
+}
+
+function restoreFocus(): void {
+  const target = returnFocus;
+  returnFocus = undefined;
+  if (target?.isConnected && !modal.value?.contains(target)) target.focus();
+}
+
+function handleOpened(): void {
   emit("opened");
 }
 
-function close(): void {
-  dialog.value?.close();
-}
-
-function handleBackdrop(event: MouseEvent): void {
-  if (event.target === dialog.value) close();
-}
-
-function handleClose(): void {
-  document.documentElement.style.overflow = documentOverflow;
+function handleClosed(): void {
+  restoreFocus();
   emit("closed");
 }
 
+async function createAndShow(): Promise<void> {
+  const element = modal.value;
+  if (!element) return;
+  // Bootstrap publishes types for its package entry, not its independently loadable JS module.
+  // @ts-expect-error bootstrap/js/dist/modal has no declaration file.
+  const { default: Modal } = await import("bootstrap/js/dist/modal");
+  if (!mounted || !openRequested || !modal.value) return;
+  const nextInstance = new Modal(element, {
+    backdrop: true,
+    focus: true,
+    keyboard: true,
+  }) as BootstrapModal;
+  instance = nextInstance;
+  element.addEventListener("shown.bs.modal", handleOpened);
+  element.addEventListener("hidden.bs.modal", handleClosed);
+  nextInstance.show(returnFocus);
+}
+
+function open(): void {
+  if (!mounted) return;
+  openRequested = true;
+  rememberReturnFocus();
+  if (instance) {
+    instance.show(returnFocus);
+    return;
+  }
+  if (loading) return;
+  loading = createAndShow()
+    .catch(async () => {
+      // Keep the gallery usable when the optional client module is unavailable.
+      openRequested = false;
+      loadFailed.value = true;
+      emit("unavailable");
+      await nextTick();
+      retryButton.value?.focus();
+    })
+    .finally(() => {
+      loading = undefined;
+    });
+}
+
+function reloadForRetry(): void {
+  window.location.reload();
+}
+
+function close(): void {
+  openRequested = false;
+  instance?.hide();
+}
+
+onMounted(() => {
+  mounted = true;
+});
+
 onBeforeUnmount(() => {
-  document.documentElement.style.overflow = documentOverflow;
+  mounted = false;
+  openRequested = false;
+  const element = modal.value;
+  element?.removeEventListener("shown.bs.modal", handleOpened);
+  element?.removeEventListener("hidden.bs.modal", handleClosed);
+  instance?.hide();
+  instance?.dispose();
+  instance = undefined;
 });
 
 defineExpose({ open });
 </script>
 
 <template>
-  <dialog
-    ref="dialog"
-    class="fashion-product-lightbox"
+  <div v-if="loadFailed" class="fashion-product-lightbox-error" role="alert">
+    <span>Product image preview could not load.</span>
+    <button ref="retryButton" type="button" @click="reloadForRetry">Reload and retry</button>
+  </div>
+  <div
+    ref="modal"
+    class="modal fashion-product-lightbox"
+    tabindex="-1"
     aria-label="Product image preview"
-    @click="handleBackdrop"
-    @close="handleClose"
     @keydown.left.prevent="emit('previous')"
     @keydown.right.prevent="emit('next')"
   >
-    <figure class="fashion-product-lightbox-figure">
-      <img :src="properties.src" :alt="properties.alt" width="600" height="765" />
-      <figcaption class="fashion-product-lightbox-caption">
-        <span>{{ properties.alt }}</span>
-        <span>{{ properties.current }} of {{ properties.total }}</span>
-      </figcaption>
-    </figure>
+    <div class="modal-dialog modal-fullscreen m-0">
+      <div class="modal-content border-0 rounded-0">
+        <figure class="fashion-product-lightbox-figure">
+          <img :src="properties.src" :alt="properties.alt" width="600" height="765" />
+          <figcaption class="fashion-product-lightbox-caption">
+            <span>{{ properties.alt }}</span>
+            <span>{{ properties.current }} of {{ properties.total }}</span>
+          </figcaption>
+        </figure>
 
-    <button
-      class="fashion-product-lightbox-close"
-      type="button"
-      aria-label="Close product image preview"
-      @click="close"
-    >
-      <i class="ti-close" aria-hidden="true"></i>
-    </button>
-    <button
-      class="fashion-product-lightbox-previous"
-      type="button"
-      aria-label="Previous preview image"
-      @click="emit('previous')"
-    >
-      <i class="ti-arrow-left" aria-hidden="true"></i>
-    </button>
-    <button
-      class="fashion-product-lightbox-next"
-      type="button"
-      aria-label="Next preview image"
-      @click="emit('next')"
-    >
-      <i class="ti-arrow-right" aria-hidden="true"></i>
-    </button>
-  </dialog>
+        <button
+          class="fashion-product-lightbox-close"
+          type="button"
+          aria-label="Close product image preview"
+          @click="close"
+        >
+          <FashionStoreIcon name="x" aria-hidden="true" />
+        </button>
+        <button
+          class="fashion-product-lightbox-previous"
+          type="button"
+          aria-label="Previous preview image"
+          @click="emit('previous')"
+        >
+          <FashionStoreIcon name="arrow-left" aria-hidden="true" />
+        </button>
+        <button
+          class="fashion-product-lightbox-next"
+          type="button"
+          aria-label="Next preview image"
+          @click="emit('next')"
+        >
+          <FashionStoreIcon name="arrow-right" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
 .fashion-product-lightbox {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
   overflow: hidden;
-  border: 0;
   background: transparent;
   color: #fff;
 }
 
-.fashion-product-lightbox::backdrop {
+.fashion-product-lightbox-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid currentcolor;
+}
+
+.fashion-product-lightbox .modal-content {
+  height: 100%;
+  background: rgb(11 11 11 / 80%);
+}
+
+:global(.modal-backdrop) {
+  --bs-backdrop-opacity: 1;
   background: rgb(11 11 11 / 80%);
 }
 

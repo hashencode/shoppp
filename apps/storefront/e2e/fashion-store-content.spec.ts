@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -66,7 +67,7 @@ test("Wishlist and Account preserve their independent source content and respons
   await expect(account.locator('input[type="password"]')).toHaveCount(2);
   await expect(account.getByLabel("Remember me")).not.toBeChecked();
 
-  if (testInfo.project.name === "fashion-store-desktop") {
+  if (isFashionStoreViewport(testInfo, "desktop")) {
     const source = await page.context().newPage();
     try {
       await source.goto(`${sourceOrigin}/demo-fashion-store-account.html`, {
@@ -87,7 +88,7 @@ test("Wishlist and Account preserve their independent source content and respons
 test("wishlist-first-product-actions interaction: cart and removal stay host-owned or local", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await page.addInitScript(() => localStorage.setItem("shoppp.guest-cart-token", "cart-token"));
   let addRequests = 0;
   let requestBody: unknown;
@@ -149,7 +150,7 @@ test("wishlist-first-product-actions interaction: cart and removal stay host-own
 test("Wishlist fallback restores its populated baseline without persistence claims", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepare(page, "/wishlist");
   await page.getByRole("button", { name: /Remove Textured sweater/ }).click();
   await expect(page.locator(".fashion-wishlist-grid > .grid-item")).toHaveCount(7);
@@ -165,10 +166,7 @@ test("Wishlist fallback restores its populated baseline without persistence clai
 test("account-forms-ready static: Account preserves two-column source presentation", async ({
   page,
 }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "fashion-store-desktop",
-    "Focused static evidence runs once.",
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Focused static evidence runs once.");
   await prepare(page, "/account");
   await expect(page.locator(".fashion-account-forms")).toBeVisible();
   await expect(page.locator(".fashion-account-register-panel")).toHaveCSS("box-shadow", /rgb/);
@@ -177,7 +175,7 @@ test("account-forms-ready static: Account preserves two-column source presentati
 test("Account validates both forms locally and emits no credential or personal-data request", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepare(page, "/account");
   const nonGetRequests: string[] = [];
   page.on("request", (request) => {
@@ -240,7 +238,7 @@ test("Account validates both forms locally and emits no credential or personal-d
 test("Account fallback resets local fields, remember state, and submission counters", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await prepare(page, "/account");
   await page.locator("#fashion-login-email").fill("member@example.test");
   await page.getByLabel("Remember me").focus();

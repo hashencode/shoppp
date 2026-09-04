@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 
 withDefaults(defineProps<{ breadcrumbLabel?: string; title: string }>(), {
@@ -17,7 +18,10 @@ const sourceInlineGap = " ";
         </div>
         <div class="col-12 breadcrumb breadcrumb-style-01 d-flex justify-content-center">
           <ul>
-            <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+            <li>
+              <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a
+              ><FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+            </li>
             {{
               sourceInlineGap
             }}

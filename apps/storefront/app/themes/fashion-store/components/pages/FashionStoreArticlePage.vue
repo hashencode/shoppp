@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreContentData } from "../../fixtures/pages/content";
@@ -102,10 +103,10 @@ function submitComment(): void {
                     <ul class="d-flex list-unstyled justify-content-center">
                       <li class="me-25px">
                         <a href="#comments" class="text-uppercase alt-font fs-13"
-                          ><i
-                            class="feather icon-feather-message-circle me-5px icon-small align-middle"
-                          ></i
-                          >Comment</a
+                          ><FashionStoreIcon
+                            name="message-circle"
+                            class="me-5px icon-small align-middle"
+                          />Comment</a
                         >
                       </li>
                       <li>
@@ -114,8 +115,10 @@ function submitComment(): void {
                           class="fashion-article-like text-uppercase alt-font fs-13"
                           @click="recordLocalAction"
                         >
-                          <i class="feather icon-feather-heart me-5px icon-small align-middle"></i
-                          >Like
+                          <FashionStoreIcon
+                            name="heart"
+                            class="me-5px icon-small align-middle"
+                          />Like
                         </button>
                       </li>
                     </ul>
@@ -271,8 +274,10 @@ function submitComment(): void {
                       class="likes-count fw-500 mx-0"
                       @click="recordLocalAction"
                     >
-                      <i class="fa-regular fa-heart text-red me-10px"></i
-                      ><span class="text-dark-gray text-dark-gray-hover">05 Likes</span>
+                      <FashionStoreIcon name="heart" class="text-red me-10px" /><span
+                        class="text-dark-gray text-dark-gray-hover"
+                        >05 Likes</span
+                      >
                     </button>
                   </div>
                 </div>
@@ -318,7 +323,7 @@ function submitComment(): void {
                             target="_blank"
                             rel="noopener noreferrer"
                             :aria-label="`Share on ${share.label}`"
-                            ><i class="fa-brands" :class="`fa-${share.icon}`"></i><span></span
+                            ><FashionStoreIcon :name="share.icon" /><span></span
                           ></a>
                         </li>
                         {{ " " }}

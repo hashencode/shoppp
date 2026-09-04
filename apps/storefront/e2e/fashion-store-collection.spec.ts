@@ -1,3 +1,4 @@
+import { fashionStoreViewport, isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { fashionStorePreviewRoutes } from "../app/themes/fashion-store/page-contracts";
@@ -71,18 +72,13 @@ test("Collection preserves source cards, imagery, counts, order, links, and resp
   } finally {
     await source.close();
   }
-  expect([
-    "fashion-store-desktop",
-    "fashion-store-laptop",
-    "fashion-store-tablet",
-    "fashion-store-mobile",
-  ]).toContain(testInfo.project.name);
+  expect(fashionStoreViewport(testInfo)).toBeDefined();
 });
 
 test("collection-card-focus interaction: cards expose pointer and keyboard state before Nuxt navigation", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepareCollection(page);
   const firstCard = page.locator(".categories-style-02").first();
@@ -138,10 +134,7 @@ test("collection-card-focus interaction: cards expose pointer and keyboard state
 test("Shared header controls keep source styling on every consumer route", async ({
   page,
 }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "fashion-store-desktop",
-    "The shared shell matrix runs once.",
-  );
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "The shared shell matrix runs once.");
   for (const route of fashionStorePreviewRoutes) {
     await page.goto(route, { waitUntil: "networkidle" });
     const cartTrigger = page.getByRole("button", { name: "Open preview cart" });
@@ -173,7 +166,7 @@ test("Shared header controls keep source styling on every consumer route", async
 test("Collection reduced-motion, fallback content, teardown, and remount stay deterministic", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await prepareCollection(page);
   const firstCard = page.locator(".categories-style-02").first();

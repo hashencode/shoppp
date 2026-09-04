@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MAX_CART_LINE_QUANTITY } from "@shoppp/contracts";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import {
@@ -12,6 +13,7 @@ import {
 } from "../../../../theme-engine/runtime-commerce";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
+import FashionStoreQuantityInput from "../shared/FashionStoreQuantityInput.vue";
 
 type ProductViewModel = Extract<PresentationViewModel, { kind: "product" }>;
 
@@ -302,13 +304,14 @@ onMounted(() => {
               </p>
 
               <label class="d-block mt-20px" for="live-product-quantity">Quantity</label>
-              <input
+              <FashionStoreQuantityInput
                 id="live-product-quantity"
-                v-model.number="quantity"
-                type="number"
-                min="1"
-                max="20"
-                class="input-small"
+                variant="plain"
+                :model-value="quantity"
+                :min="1"
+                :max="MAX_CART_LINE_QUANTITY"
+                label="Quantity"
+                @commit="quantity = $event"
               />
               <button
                 type="button"

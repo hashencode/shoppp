@@ -1,16 +1,18 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import {
   buildFashionStoreProductCartRequest,
-  clampFashionStoreProductQuantity,
   type FashionStoreProductData,
 } from "../../fixtures/pages/product";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreProductLightbox from "../shared/FashionStoreProductLightbox.vue";
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
+import FashionStoreProductGallery from "../shared/FashionStoreProductGallery.vue";
+import FashionStoreQuantityInput from "../shared/FashionStoreQuantityInput.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
@@ -41,73 +43,20 @@ const reviewAttemptCount = ref(0);
 const previewIntentCount = ref(0);
 const previewNotice = ref("");
 const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
-const thumbnailTrack = ref<HTMLElement | null>(null);
-const thumbnailStep = ref(0);
-const thumbnailHorizontal = ref(false);
+const productGallery = ref<InstanceType<typeof FashionStoreProductGallery>>();
 const actionAdapter = inject(storefrontActionAdapterKey);
-let galleryTimer: ReturnType<typeof setInterval> | undefined;
-let touchStartX = 0;
-
-const thumbnailTrackStyle = computed(() => {
-  const visibleThumbnails = thumbnailHorizontal.value ? 4 : 3;
-  const maximumStart = Math.max(0, gallery.value.length - visibleThumbnails);
-  const startIndex = Math.min(
-    Math.max(0, galleryIndex.value - visibleThumbnails + 1),
-    maximumStart,
-  );
-  const offset = startIndex * thumbnailStep.value;
-  return {
-    transform: thumbnailHorizontal.value
-      ? `translate3d(${-offset}px, 0, 0)`
-      : `translate3d(0, ${-offset}px, 0)`,
-  };
-});
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
 function showGallery(index: number): void {
-  galleryIndex.value = (index + gallery.value.length) % gallery.value.length;
+  productGallery.value?.select(index);
 }
 
-function stopGalleryAutoplay(): void {
-  if (galleryTimer) clearInterval(galleryTimer);
-  galleryTimer = undefined;
-}
-
-function startGalleryAutoplay(): void {
-  stopGalleryAutoplay();
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  galleryTimer = setInterval(() => {
-    if (!galleryPaused.value) showGallery(galleryIndex.value + 1);
-  }, 2_000);
-}
-
-function updateThumbnailTrack(): void {
-  const track = thumbnailTrack.value;
-  const slide = track?.querySelector<HTMLElement>(".swiper-slide");
-  if (!track || !slide) return;
-  thumbnailHorizontal.value = matchMedia("(max-width: 991px)").matches;
-  const slideStyle = getComputedStyle(slide);
-  const trackStyle = getComputedStyle(track);
-  thumbnailStep.value = thumbnailHorizontal.value
-    ? slide.getBoundingClientRect().width + Number.parseFloat(slideStyle.marginRight || "0")
-    : slide.getBoundingClientRect().height + Number.parseFloat(trackStyle.rowGap || "0");
-}
-
-function handleGalleryKey(event: KeyboardEvent): void {
-  if (event.key === "ArrowLeft") showGallery(galleryIndex.value - 1);
-  else if (event.key === "ArrowRight") showGallery(galleryIndex.value + 1);
-  else if (event.key === "Enter" || event.key === " ") lightbox.value?.open();
-  else return;
-  event.preventDefault();
-}
-
-function handleTouchEnd(event: TouchEvent): void {
-  const delta = (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
-  if (Math.abs(delta) < 40) return;
-  showGallery(galleryIndex.value + (delta < 0 ? 1 : -1));
+function openGalleryLightbox(): void {
+  galleryPaused.value = true;
+  lightbox.value?.open();
 }
 
 function selectOption(group: "color" | "size", value: string): void {
@@ -127,16 +76,15 @@ function selectOption(group: "color" | "size", value: string): void {
 }
 
 function updateQuantity(next: number): void {
-  const value = clampFashionStoreProductQuantity(next);
-  if (quantity.value === value) return;
-  quantity.value = value;
+  if (quantity.value === next) return;
+  quantity.value = next;
   optionUpdateCount.value += 1;
   recordPreviewIntent(
     {
       id: "product-update-quantity",
       intent: "cart.quantity-preview",
       label: "Update product quantity",
-      value: String(value),
+      value: String(next),
     },
     "fashion-store.product.quantity",
   );
@@ -208,16 +156,6 @@ function recordRelatedIntent(kind: "cart" | "quickView" | "wishlist"): void {
   recordPreviewIntent(action, "fashion-store.product.related");
   previewIntentCount.value += 1;
 }
-
-onMounted(() => {
-  startGalleryAutoplay();
-  void nextTick(updateThumbnailTrack);
-  window.addEventListener("resize", updateThumbnailTrack);
-});
-onBeforeUnmount(() => {
-  stopGalleryAutoplay();
-  window.removeEventListener("resize", updateThumbnailTrack);
-});
 </script>
 
 <template>
@@ -236,7 +174,7 @@ onBeforeUnmount(() => {
       :data-preview-intent-count="previewIntentCount"
       :data-review-attempt-count="reviewAttemptCount"
     >
-      <p v-if="previewNotice" class="sr-only" role="status" aria-live="polite">
+      <p v-if="previewNotice" class="visually-hidden" role="status" aria-live="polite">
         {{ previewNotice }}
       </p>
       <section
@@ -246,9 +184,13 @@ onBeforeUnmount(() => {
           <div class="row align-items-center">
             <nav class="col-12 breadcrumb breadcrumb-style-01 fs-14" aria-label="Breadcrumb">
               <ul>
-                <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                <li>
+                  <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a
+                  ><FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
                 <li>
                   <a :href="fashionStoreRoutePaths['shop-left']" data-fashion-store-route>Shop</a>
+                  <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
                 </li>
                 <li>Relaxed corduroy shirt</li>
               </ul>
@@ -261,87 +203,18 @@ onBeforeUnmount(() => {
         <div class="container">
           <div class="row">
             <div class="col-lg-7 pe-50px md-pe-15px md-mb-40px fashion-product-gallery">
-              <div class="row overflow-hidden position-relative">
-                <div
-                  class="col-12 col-lg-10 position-relative order-lg-2 product-image ps-30px md-ps-15px"
-                >
-                  <div
-                    class="swiper product-image-slider"
-                    tabindex="0"
-                    role="group"
-                    aria-label="Product gallery"
-                    :data-gallery-index="galleryIndex"
-                    @mouseenter="galleryPaused = true"
-                    @mouseleave="galleryPaused = false"
-                    @focusin="galleryPaused = true"
-                    @focusout="galleryPaused = false"
-                    @keydown="handleGalleryKey"
-                    @touchstart="touchStartX = $event.touches[0]?.clientX ?? 0"
-                    @touchend="handleTouchEnd"
-                  >
-                    <div
-                      class="swiper-wrapper"
-                      :style="{
-                        transform: `translate3d(calc(-${galleryIndex * 100}% - ${galleryIndex * 10}px), 0, 0)`,
-                      }"
-                    >
-                      <div
-                        v-for="(image, index) in gallery"
-                        :key="image"
-                        class="swiper-slide gallery-box"
-                        :class="{ 'swiper-slide-active': index === galleryIndex }"
-                        :aria-hidden="index === galleryIndex ? undefined : 'true'"
-                        :inert="index === galleryIndex ? undefined : true"
-                      >
-                        <button
-                          type="button"
-                          aria-label="Open product image preview"
-                          @click="lightbox?.open()"
-                        >
-                          <img
-                            class="w-100"
-                            :src="sourceAsset(image)"
-                            alt=""
-                            width="600"
-                            height="765"
-                          />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-lg-2 order-lg-1 position-relative single-product-thumb">
-                  <div class="swiper-container product-image-thumb slider-vertical">
-                    <div ref="thumbnailTrack" class="swiper-wrapper" :style="thumbnailTrackStyle">
-                      <div
-                        v-for="(image, index) in gallery"
-                        :key="image"
-                        class="swiper-slide"
-                        :class="{ 'swiper-slide-thumb-active': index === galleryIndex }"
-                      >
-                        <img
-                          class="w-100"
-                          :src="sourceAsset(image)"
-                          alt=""
-                          width="600"
-                          height="765"
-                        />
-                        <button
-                          type="button"
-                          class="fashion-product-thumb-control"
-                          :aria-label="`View product image ${index + 1}`"
-                          :aria-current="index === galleryIndex ? 'true' : undefined"
-                          @click="showGallery(index)"
-                        ></button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <FashionStoreProductGallery
+                ref="productGallery"
+                :images="gallery"
+                :paused="galleryPaused"
+                :resolve-asset="resolveAsset"
+                @active-index-change="galleryIndex = $event"
+                @open="openGalleryLightbox"
+              />
             </div>
 
             <div class="col-12 col-lg-5 product-info">
-              <h1 class="sr-only">{{ data.product.name }}</h1>
+              <h1 class="visually-hidden">{{ data.product.name }}</h1>
               <span class="fw-500 text-dark-gray d-block">{{ data.product.brand }}</span>
               <h4 class="alt-font text-dark-gray fw-500 mb-5px" role="heading" aria-level="2">
                 {{ data.product.name }}
@@ -353,7 +226,13 @@ onBeforeUnmount(() => {
                     class="section-link ls-minus-1px icon-small"
                     aria-label="5 out of 5 stars"
                   >
-                    <i v-for="star in 5" :key="star" class="bi bi-star-fill text-golden-yellow"></i>
+                    <FashionStoreIcon
+                      name="star"
+                      filled
+                      v-for="star in 5"
+                      :key="star"
+                      class="text-golden-yellow"
+                    />
                   </a>
                 </div>
                 <a href="#tab" class="me-25px text-dark-gray fw-500 section-link xs-me-0"
@@ -417,36 +296,17 @@ onBeforeUnmount(() => {
               <div
                 class="d-flex align-items-center flex-column flex-sm-row mb-20px position-relative"
               >
-                <div class="quantity me-15px xs-mb-15px order-1">
-                  <button
-                    type="button"
-                    class="qty-minus"
-                    aria-label="Decrease quantity"
-                    @click="updateQuantity(quantity - 1)"
-                  >
-                    -
-                  </button>
-                  <input
-                    class="qty-text"
-                    type="text"
-                    inputmode="numeric"
-                    :value="quantity"
-                    role="spinbutton"
-                    aria-label="Quantity"
-                    aria-valuemin="1"
-                    aria-valuemax="20"
-                    :aria-valuenow="quantity"
-                    @change="updateQuantity(Number(($event.target as HTMLInputElement).value))"
-                  />
-                  <button
-                    type="button"
-                    class="qty-plus"
-                    aria-label="Increase quantity"
-                    @click="updateQuantity(quantity + 1)"
-                  >
-                    +
-                  </button>
-                </div>
+                <FashionStoreQuantityInput
+                  class="me-15px xs-mb-15px order-1"
+                  variant="product"
+                  :model-value="quantity"
+                  :min="1"
+                  :max="20"
+                  label="Quantity"
+                  decrement-label="Decrease quantity"
+                  increment-label="Increase quantity"
+                  @commit="updateQuantity"
+                />
                 <button
                   type="button"
                   class="btn btn-cart btn-extra-large btn-switch-text btn-box-shadow btn-none-transform btn-dark-gray left-icon btn-round-edge border-0 me-15px xs-me-0 order-3 order-sm-2"
@@ -454,7 +314,7 @@ onBeforeUnmount(() => {
                   @click="addToCart"
                 >
                   <span>
-                    <span><i class="feather icon-feather-shopping-bag"></i></span>
+                    <span><FashionStoreIcon name="shopping-bag" /></span>
                     <span class="btn-double-text ls-0px" data-text="Add to cart">Add to cart</span>
                   </span>
                 </button>
@@ -464,7 +324,7 @@ onBeforeUnmount(() => {
                   aria-label="Add to wishlist"
                   @click="recordAction('wishlist')"
                 >
-                  <i class="feather icon-feather-heart icon-small text-dark-gray"></i>
+                  <FashionStoreIcon name="heart" class="icon-small text-dark-gray" />
                 </button>
               </div>
 
@@ -476,14 +336,10 @@ onBeforeUnmount(() => {
                 >
                   <div class="feature-box feature-box-left-icon-middle d-inline-flex align-middle">
                     <div class="feature-box-icon me-10px">
-                      <i
-                        class="feather align-middle text-dark-gray"
-                        :class="
-                          ['icon-feather-repeat', 'icon-feather-mail', 'icon-feather-share-2'][
-                            index
-                          ]
-                        "
-                      ></i>
+                      <FashionStoreIcon
+                        :name="(['repeat', 'mail', 'share-2'] as const)[index]!"
+                        class="align-middle text-dark-gray"
+                      />
                     </div>
                     <div class="feature-box-content">
                       <button
@@ -502,9 +358,10 @@ onBeforeUnmount(() => {
                 <div class="col-12 icon-with-text-style-08">
                   <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
                     <div class="feature-box-icon me-10px">
-                      <i
-                        class="feather icon-feather-truck top-8px position-relative align-middle text-dark-gray"
-                      ></i>
+                      <FashionStoreIcon
+                        name="truck"
+                        class="top-8px position-relative align-middle text-dark-gray"
+                      />
                     </div>
                     <div class="feature-box-content">
                       <span
@@ -517,9 +374,10 @@ onBeforeUnmount(() => {
                 <div class="col-12 icon-with-text-style-08 mb-10px">
                   <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
                     <div class="feature-box-icon me-10px">
-                      <i
-                        class="feather icon-feather-archive top-8px position-relative align-middle text-dark-gray"
-                      ></i>
+                      <FashionStoreIcon
+                        name="archive"
+                        class="top-8px position-relative align-middle text-dark-gray"
+                      />
                     </div>
                     <div class="feature-box-content">
                       <span
@@ -620,7 +478,7 @@ onBeforeUnmount(() => {
                     <div class="col-lg-6 md-mb-40px">
                       <div class="d-flex align-items-center mb-5px">
                         <div class="col-auto pe-5px">
-                          <i class="bi bi-heart-fill text-red fs-16"></i>
+                          <FashionStoreIcon name="heart" filled class="text-red fs-16" />
                         </div>
                         <div class="col alt-font fw-500 text-dark-gray">
                           {{ data.description.eyebrow }}
@@ -640,7 +498,7 @@ onBeforeUnmount(() => {
                           <div
                             class="feature-box-icon feature-box-icon-rounded w-30px h-30px rounded-circle bg-very-light-gray me-10px"
                           >
-                            <i class="fa-solid fa-check fs-12 text-dark-gray"></i>
+                            <FashionStoreIcon name="check" class="fs-12 text-dark-gray" />
                           </div>
                           <div class="feature-box-content">
                             <span class="d-block text-dark-gray fw-500">{{ bullet }}</span>
@@ -724,7 +582,7 @@ onBeforeUnmount(() => {
                           class="text-golden-yellow icon-small d-block ls-minus-1px mb-5px fashion-product-rating-stars"
                         >
                           <template v-for="index in 5" :key="index">
-                            <i class="bi bi-star-fill"></i>{{ index < 5 ? " " : "" }}
+                            <FashionStoreIcon name="star" filled />{{ index < 5 ? " " : "" }}
                           </template>
                         </span>
                         <span
@@ -766,12 +624,9 @@ onBeforeUnmount(() => {
                           class="text-golden-yellow fs-15 ls-minus-1px d-none d-sm-inline-block fashion-product-rating-stars"
                         >
                           <template v-for="star in 5" :key="star">
-                            <i
-                              :class="
-                                star <= rating ? 'bi bi-star-fill' : 'feather icon-feather-star'
-                              "
-                            ></i
-                            >{{ star < 5 ? " " : "" }}
+                            <FashionStoreIcon name="star" :filled="star <= rating" />{{
+                              star < 5 ? " " : ""
+                            }}
                           </template>
                         </span>
                         <span class="fs-13 text-dark-gray fw-600 ms-10px xs-ms-0">{{
@@ -805,20 +660,16 @@ onBeforeUnmount(() => {
                             class="text-golden-yellow ls-minus-1px mb-5px sm-me-10px sm-mb-0 d-inline-block d-md-block fashion-product-rating-stars"
                           >
                             <template v-for="index in 5" :key="index">
-                              <i class="bi bi-star-fill"></i>{{ index < 5 ? " " : "" }}
+                              <FashionStoreIcon name="star" filled />{{ index < 5 ? " " : "" }}
                             </template>
                           </span>
                           <span
                             class="w-65px bg-light-red border-radius-15px fs-13 text-dark-gray fw-600 text-center position-absolute sm-position-relative d-inline-block d-md-block right-0px top-0px"
-                            ><i
-                              :class="
-                                review.author === 'Colene landin'
-                                  ? 'fa-regular fa-heart'
-                                  : 'fa-solid fa-heart'
-                              "
+                            ><FashionStoreIcon
+                              name="heart"
+                              :filled="review.author !== 'Colene landin'"
                               class="text-red me-5px"
-                            ></i
-                            ><span>{{ ["08", "06", "00"][reviewIndex] }}</span></span
+                            /><span>{{ ["08", "06", "00"][reviewIndex] }}</span></span
                           >
                           <p class="w-85 sm-w-100 sm-mt-15px">{{ review.text }}</p>
                         </div>
@@ -831,8 +682,8 @@ onBeforeUnmount(() => {
                       >
                         <span>
                           <span class="btn-text">Show more reviews</span>
-                          <span class="btn-icon"><i class="fa-solid fa-chevron-down"></i></span>
-                          <span class="btn-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                          <span class="btn-icon"><FashionStoreIcon name="chevron-down" /></span>
+                          <span class="btn-icon"><FashionStoreIcon name="chevron-down" /></span>
                         </span>
                       </span>
                     </div>
@@ -873,8 +724,9 @@ onBeforeUnmount(() => {
                             <div>
                               <span class="ls-minus-1px icon-small d-block mt-20px md-mt-0">
                                 <template v-for="index in 5" :key="index">
-                                  <i class="feather icon-feather-star text-golden-yellow"></i
-                                  >{{ index < 5 ? " " : "" }}
+                                  <FashionStoreIcon name="star" class="text-golden-yellow" />{{
+                                    index < 5 ? " " : ""
+                                  }}
                                 </template>
                               </span>
                             </div>
@@ -967,6 +819,7 @@ onBeforeUnmount(() => {
         @next="showGallery(galleryIndex + 1)"
         @opened="galleryPaused = true"
         @closed="galleryPaused = false"
+        @unavailable="galleryPaused = false"
       />
     </main>
   </FashionStoreShell>

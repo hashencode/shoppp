@@ -8,48 +8,98 @@ const baseURL = externalBaseURL || `http://127.0.0.1:${port}`;
 const sourceRoot =
   process.env.STOREFRONT_FASHION_STORE_SOURCE_ROOT ||
   "../../templates/Crafto - The Multipurpose HTML5 Template/html";
+const compatibilityBaseline = process.env.STOREFRONT_FASHION_STORE_COMPATIBILITY === "1";
+const crossBrowser = process.env.STOREFRONT_FASHION_STORE_CROSS_BROWSER === "1";
 const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
-  testIgnore: ["fashion-store-live-commerce.spec.ts"],
-  outputDir: "test-results/fashion-store",
+  testMatch: compatibilityBaseline
+    ? ["fashion-store-compatibility-baseline.spec.ts"]
+    : ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
+  testIgnore: [
+    "fashion-store-live-commerce.spec.ts",
+    ...(!compatibilityBaseline ? ["fashion-store-compatibility-baseline.spec.ts"] : []),
+  ],
+  outputDir: compatibilityBaseline
+    ? "test-results/fashion-store-compatibility"
+    : "test-results/fashion-store",
   fullyParallel: false,
   reporter: [
     ["list"],
-    ["json", { outputFile: "test-results/fashion-store-behavior-results.json" }],
+    [
+      "json",
+      {
+        outputFile: compatibilityBaseline
+          ? "test-results/fashion-store-compatibility-results.json"
+          : "test-results/fashion-store-behavior-results.json",
+      },
+    ],
   ],
   workers: 1,
   use: {
     baseURL,
-    ...(chromiumExecutable ? { launchOptions: { executablePath: chromiumExecutable } } : {}),
+    ...(!compatibilityBaseline && chromiumExecutable
+      ? { launchOptions: { executablePath: chromiumExecutable } }
+      : {}),
     contextOptions: { reducedMotion: "reduce" },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
-  projects: [
-    {
-      name: "fashion-store-desktop",
-      use: { ...devices["Desktop Chrome"], viewport: themeViewports.desktop },
-    },
-    {
-      name: "fashion-store-laptop",
-      use: { ...devices["Desktop Chrome"], viewport: themeViewports.laptop },
-    },
-    {
-      name: "fashion-store-tablet",
-      use: { ...devices["Desktop Chrome"], viewport: themeViewports.tablet },
-    },
-    {
-      name: "fashion-store-mobile",
-      use: {
-        ...devices["Pixel 7"],
-        deviceScaleFactor: 1,
-        viewport: themeViewports.mobile,
-      },
-    },
-  ],
+  projects:
+    compatibilityBaseline || crossBrowser
+      ? (["chromium", "firefox", "webkit"] as const).flatMap((browserName) =>
+          (compatibilityBaseline
+            ? (["no-preference", "reduce"] as const)
+            : (["reduce"] as const)
+          ).flatMap((reducedMotion) =>
+            (compatibilityBaseline
+              ? (["desktop", "mobile"] as const)
+              : (["desktop", "tablet", "mobile"] as const)
+            ).map((viewport) => ({
+              name: `fashion-store-${browserName}-${viewport}-${reducedMotion}`,
+              metadata: { fashionStoreBrowser: browserName, fashionStoreViewport: viewport },
+              use: {
+                browserName,
+                viewport: themeViewports[viewport],
+                deviceScaleFactor: 1,
+                hasTouch: viewport === "mobile",
+                ...(viewport === "mobile" && browserName !== "firefox" ? { isMobile: true } : {}),
+                reducedMotion,
+                contextOptions: { reducedMotion },
+                ...(browserName === "chromium" && chromiumExecutable
+                  ? { launchOptions: { executablePath: chromiumExecutable } }
+                  : {}),
+              },
+            })),
+          ),
+        )
+      : [
+          {
+            name: "fashion-store-desktop",
+            metadata: { fashionStoreBrowser: "chromium", fashionStoreViewport: "desktop" },
+            use: { ...devices["Desktop Chrome"], viewport: themeViewports.desktop },
+          },
+          {
+            name: "fashion-store-laptop",
+            metadata: { fashionStoreBrowser: "chromium", fashionStoreViewport: "laptop" },
+            use: { ...devices["Desktop Chrome"], viewport: themeViewports.laptop },
+          },
+          {
+            name: "fashion-store-tablet",
+            metadata: { fashionStoreBrowser: "chromium", fashionStoreViewport: "tablet" },
+            use: { ...devices["Desktop Chrome"], viewport: themeViewports.tablet },
+          },
+          {
+            name: "fashion-store-mobile",
+            metadata: { fashionStoreBrowser: "chromium", fashionStoreViewport: "mobile" },
+            use: {
+              ...devices["Pixel 7"],
+              deviceScaleFactor: 1,
+              viewport: themeViewports.mobile,
+            },
+          },
+        ],
   webServer: externalBaseURL
     ? undefined
     : [

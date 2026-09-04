@@ -42,7 +42,7 @@ export interface FashionStoreHomeData {
     originalPrice: string;
     price: string;
   };
-  services: Four<{ description: string; iconClass: string; title: string }>;
+  services: Four<{ description: string; title: string }>;
   slider: {
     options: {
       autoplayMs: 4000;
@@ -277,18 +277,15 @@ export const fashionStoreHomeData = {
   services: [
     {
       description: "Free shipping on first order",
-      iconClass: "line-icon-Box-Open",
       title: "Free shipping",
     },
-    { description: "Moneyback guarantee", iconClass: "line-icon-Wallet", title: "15 days returns" },
+    { description: "Moneyback guarantee", title: "15 days returns" },
     {
       description: "100% protected payment",
-      iconClass: "line-icon-Credit-Card2",
       title: "Secure payment",
     },
     {
       description: "24/7 days a week support",
-      iconClass: "line-icon-Headset",
       title: "Online support",
     },
   ],

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 export interface FashionStoreAccordionItem {
   body: string;
   title: string;
@@ -38,10 +39,7 @@ function toggle(index: number): void {
           @click="toggle(index)"
         >
           <span class="accordion-title mb-0 position-relative text-dark-gray">
-            <i
-              class="feather"
-              :class="modelValue === index ? 'icon-feather-minus' : 'icon-feather-plus'"
-            ></i>
+            <FashionStoreIcon :name="modelValue === index ? 'minus' : 'plus'" />
             <span :class="titleClass">{{ item.title }}</span>
           </span>
         </button>

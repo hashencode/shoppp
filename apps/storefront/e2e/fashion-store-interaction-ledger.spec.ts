@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import {
@@ -38,7 +39,7 @@ async function prepare(page: Page, path: string): Promise<void> {
 test("every rendered Fashion Store candidate maps to exactly one semantic row", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Ledger audit runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Ledger audit runs once.");
 
   const renderedInteractionIds = new Set<string>();
   for (const contract of fashionStorePageContracts) {
@@ -146,7 +147,7 @@ test("no-JavaScript shell keeps truthful native browse recovery", async ({
   browser,
   baseURL,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "No-JavaScript audit runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "No-JavaScript audit runs once.");
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   try {

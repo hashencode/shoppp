@@ -1,4 +1,3 @@
-import type { FashionStoreVendorRuntime } from "./loader.client";
 import type { FashionStoreLifecycle } from "./lifecycle";
 
 function exposeStaticContent(root: ParentNode): void {
@@ -26,7 +25,6 @@ function initializeDesktopDropdowns(root: ParentNode, lifecycle: FashionStoreLif
 
 export function initializeFashionStoreCapabilities(
   root: ParentNode,
-  runtime: FashionStoreVendorRuntime,
   lifecycle: FashionStoreLifecycle,
   reducedMotion: boolean,
 ): void {
@@ -42,24 +40,6 @@ export function initializeFashionStoreCapabilities(
   );
   lifecycle.addCleanup(() => document.body.removeAttribute("data-fashion-store-visual-runtime"));
   if (reducedMotion) return;
-
-  if (runtime.Isotope) {
-    for (const element of root.querySelectorAll<HTMLElement>(".grid")) {
-      const instance = new runtime.Isotope(element, {
-        itemSelector: ".grid-item",
-        layoutMode: "masonry",
-        percentPosition: true,
-      });
-      lifecycle.addCleanup(() => instance.destroy());
-    }
-  }
-
-  if (runtime.bootstrap?.Tooltip) {
-    for (const element of root.querySelectorAll('[data-bs-toggle="tooltip"]')) {
-      const tooltip = new runtime.bootstrap.Tooltip(element);
-      lifecycle.addCleanup(() => tooltip.dispose());
-    }
-  }
 
   const updateScrollProgress = (): void => {
     const maximum = Math.max(1, document.documentElement.scrollHeight - innerHeight);

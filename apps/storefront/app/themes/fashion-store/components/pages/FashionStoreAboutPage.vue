@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import type { FashionStoreContentData } from "../../fixtures/pages/content";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreAccordion from "../shared/FashionStoreAccordion.vue";
+import FashionStoreCarousel from "../shared/FashionStoreCarousel.vue";
 import FashionStorePageTitle from "../shared/FashionStorePageTitle.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
@@ -20,44 +22,16 @@ const data = computed(() => {
 });
 const accordionIndex = ref<number | null>(0);
 const carouselIndex = ref(0);
-const pointerStart = ref<number>();
-let carouselTimer: ReturnType<typeof setInterval> | undefined;
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function moveCarousel(step: number): void {
-  const count = data.value.carouselImages.length;
-  carouselIndex.value = (carouselIndex.value + step + count) % count;
+function carouselImage(index: number): string {
+  const sourceImage = data.value.carouselImages[index];
+  if (!sourceImage) throw new Error(`Missing Fashion Store About carousel image ${index}.`);
+  return sourceImage;
 }
-
-function handleCarouselKey(event: KeyboardEvent): void {
-  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-  event.preventDefault();
-  moveCarousel(event.key === "ArrowRight" ? 1 : -1);
-}
-
-function handlePointerDown(event: PointerEvent): void {
-  pointerStart.value = event.clientX;
-}
-
-function handlePointerUp(event: PointerEvent): void {
-  if (pointerStart.value === undefined) return;
-  const distance = event.clientX - pointerStart.value;
-  pointerStart.value = undefined;
-  if (Math.abs(distance) >= 30) moveCarousel(distance < 0 ? 1 : -1);
-}
-
-onMounted(() => {
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    carouselTimer = setInterval(() => moveCarousel(1), 2_000);
-  }
-});
-
-onBeforeUnmount(() => {
-  if (carouselTimer) clearInterval(carouselTimer);
-});
 </script>
 
 <template>
@@ -127,29 +101,29 @@ onBeforeUnmount(() => {
           <div class="absolute-middle-left w-100 h-2px bg-base-color"></div>
           <div class="row align-items-center">
             <div class="col-12 position-relative">
-              <div
+              <FashionStoreCarousel
                 class="fashion-about-carousel"
-                role="region"
                 aria-label="Fashion story carousel"
                 tabindex="0"
-                @keydown="handleCarouselKey"
-                @pointerdown="handlePointerDown"
-                @pointerup="handlePointerUp"
+                :slide-count="data.carouselImages.length"
+                :semantic-slide-count="data.carouselImages.length"
+                :slides-per-view="2"
+                :space-between="35"
+                :speed-ms="300"
+                :autoplay-ms="2_000"
+                :rewind="true"
+                :breakpoints="{
+                  320: { slidesPerView: 2, spaceBetween: 35 },
+                  768: { slidesPerView: 3, spaceBetween: 45 },
+                  992: { slidesPerView: 4, spaceBetween: 35 },
+                }"
+                slide-class="fashion-about-carousel-slide"
+                @active-index-change="carouselIndex = $event"
               >
-                <div
-                  class="fashion-about-carousel-track"
-                  :style="{ '--fashion-about-carousel-index': carouselIndex }"
-                >
-                  <div
-                    v-for="sourceImage in data.carouselImages"
-                    :key="sourceImage"
-                    class="fashion-about-carousel-slide"
-                  >
-                    <img :src="sourceAsset(sourceImage)" alt="" />
-                  </div>
-                  <div class="fashion-about-carousel-slide" aria-hidden="true"></div>
-                </div>
-              </div>
+                <template #default="{ index }">
+                  <img :src="sourceAsset(carouselImage(index))" alt="" draggable="false" />
+                </template>
+              </FashionStoreCarousel>
             </div>
           </div>
         </div>
@@ -207,7 +181,7 @@ onBeforeUnmount(() => {
                 <div
                   class="col-lg-6 p-20px border-end border-color-transparent-dark-very-light text-center ls-minus-05px align-items-center d-flex justify-content-center md-border-end-0 md-pb-10px"
                 >
-                  <i class="bi bi-emoji-smile text-dark-gray icon-extra-medium me-10px"></i>
+                  <FashionStoreIcon name="smile" class="text-dark-gray icon-extra-medium me-10px" />
                   <span class="text-dark-gray fs-20 text-start fw-500"
                     >Join the <span class="fw-700">10000+</span> people trusting us.</span
                   >
@@ -215,7 +189,7 @@ onBeforeUnmount(() => {
                 <div
                   class="col-lg-6 p-20px md-pt-0 text-center ls-minus-05px align-items-center d-flex justify-content-center"
                 >
-                  <i class="bi bi-star text-dark-gray icon-extra-medium me-10px"></i>
+                  <FashionStoreIcon name="star" class="text-dark-gray icon-extra-medium me-10px" />
                   <span class="text-dark-gray fs-20 text-start fw-500"
                     >4.9 out of 5 - <span class="fw-700">8549</span> Total reviews.</span
                   >

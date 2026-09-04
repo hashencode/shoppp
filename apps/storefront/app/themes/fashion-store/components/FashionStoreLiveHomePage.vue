@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import { fashionStoreRoutePaths } from "../page-contracts";
@@ -14,10 +15,10 @@ const properties = defineProps<{
 }>();
 
 const services = [
-  ["Free delivery", "On qualifying orders", "icon-feather-truck"],
-  ["Secure payment", "Protected checkout", "icon-feather-shield"],
-  ["Easy returns", "Straightforward support", "icon-feather-refresh-cw"],
-  ["Real support", "Help when you need it", "icon-feather-headphones"],
+  ["Free delivery", "On qualifying orders", "truck"],
+  ["Secure payment", "Protected checkout", "shield"],
+  ["Easy returns", "Straightforward support", "refresh-cw"],
+  ["Real support", "Help when you need it", "headphones"],
 ] as const;
 const categories = [
   ["Women", "images/demo-fashion-store-banner-01.jpg"],
@@ -167,7 +168,7 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4">
             <div v-for="service in services" :key="service[0]" class="col md-mb-30px">
               <div class="feature-box d-flex align-items-center">
-                <i class="feather me-15px fs-28" :class="service[2]"></i>
+                <FashionStoreIcon :name="service[2]" class="me-15px fs-28" />
                 <div>
                   <p class="alt-font fw-600 text-dark-gray mb-0">{{ service[0] }}</p>
                   <p class="mb-0 text-dark-gray">{{ service[1] }}</p>

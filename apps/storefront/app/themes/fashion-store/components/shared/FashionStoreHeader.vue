@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "./FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
@@ -115,34 +116,6 @@ defineExpose({ closeTransient });
     data-fashion-store-header="true"
     @click="handleHeaderNavigation"
   >
-    <div
-      v-if="announcement"
-      class="header-top-bar top-bar-light bg-base-color disable-fixed md-border-bottom border-color-transparent-dark-very-light"
-    >
-      <div class="container-fluid">
-        <div class="row h-40px align-items-center m-0">
-          <div class="col-12 justify-content-center alt-font fs-13 fw-500 text-uppercase">
-            <div class="text-dark-gray">{{ announcement }}</div>
-            <a
-              v-if="announcementLink || !configuration"
-              :href="announcementLink?.href ?? fashionStoreRoutePaths['shop-left']"
-              :target="announcementLink?.targetBehavior === 'new-window' ? '_blank' : undefined"
-              :rel="
-                announcementLink?.targetBehavior === 'new-window'
-                  ? 'noopener noreferrer'
-                  : undefined
-              "
-              data-fashion-store-route
-              class="text-dark-gray fw-600 ms-5px text-dark-gray-hover"
-              ><span class="text-decoration-line-bottom">{{
-                announcementLink?.label ?? "Shop now"
-              }}</span></a
-            >
-          </div>
-        </div>
-      </div>
-    </div>
-
     <nav class="navbar navbar-expand-lg header-light bg-white disable-fixed center-logo">
       <div class="container-fluid">
         <div class="col-auto col-xxl-3 col-lg-2 menu-logo">
@@ -176,8 +149,10 @@ defineExpose({ closeTransient });
             </div>
             <div class="widget-text icon alt-font">
               <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                ><i class="feather icon-feather-map-pin d-inline-block me-5px"></i
-                ><span class="d-none d-xxl-inline-block">Find stores</span></a
+                ><FashionStoreIcon name="map-pin" class="d-inline-block me-5px" /><span
+                  class="d-none d-xxl-inline-block"
+                  >Find stores</span
+                ></a
               >
             </div>
             <div class="widget-text icon alt-font">
@@ -186,8 +161,10 @@ defineExpose({ closeTransient });
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram, 100k followers"
-                ><i class="feather icon-feather-instagram d-inline-block me-5px"></i
-                ><span class="d-none d-xxl-inline-block">100k Followers</span></a
+                ><FashionStoreIcon name="instagram" class="d-inline-block me-5px" /><span
+                  class="d-none d-xxl-inline-block"
+                  >100k Followers</span
+                ></a
               >
             </div>
           </div>
@@ -263,9 +240,12 @@ defineExpose({ closeTransient });
                   class="nav-link"
                   >Shop</a
                 >
-                <i
-                  class="fa-solid fa-angle-down dropdown-toggle"
+                <FashionStoreIcon
+                  name="chevron-down"
+                  class="dropdown-toggle"
                   id="navbarDropdownMenuLink1"
+                  aria-hidden="false"
+                  aria-label="Toggle Shop menu"
                   role="button"
                   tabindex="0"
                   @click="handleDropdownToggle"
@@ -273,7 +253,7 @@ defineExpose({ closeTransient });
                   @keydown.space="handleDropdownToggle"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
-                ></i>
+                />
                 <div
                   class="dropdown-menu submenu-content"
                   aria-labelledby="navbarDropdownMenuLink1"
@@ -488,9 +468,12 @@ defineExpose({ closeTransient });
                   class="nav-link"
                   >Collection</a
                 >
-                <i
-                  class="fa-solid fa-angle-down dropdown-toggle"
+                <FashionStoreIcon
+                  name="chevron-down"
+                  class="dropdown-toggle"
                   id="navbarDropdownMenuLink2"
+                  aria-hidden="false"
+                  aria-label="Toggle Collection menu"
                   role="button"
                   tabindex="0"
                   @click="handleDropdownToggle"
@@ -498,7 +481,7 @@ defineExpose({ closeTransient });
                   @keydown.space="handleDropdownToggle"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
-                ></i>
+                />
                 <div
                   class="dropdown-menu submenu-content"
                   aria-labelledby="navbarDropdownMenuLink2"
@@ -531,8 +514,8 @@ defineExpose({ closeTransient });
                           <span>
                             <span class="btn-text text-dark-gray fs-17">Polo t-shirts</span>
                             <span class="btn-icon"
-                              ><i class="fa-solid fa-arrow-right icon-very-small w-auto"></i
-                            ></span>
+                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
+                            /></span>
                           </span>
                         </a>
                       </div>
@@ -560,8 +543,8 @@ defineExpose({ closeTransient });
                           <span>
                             <span class="btn-text text-dark-gray fs-17">Sunglasses</span>
                             <span class="btn-icon"
-                              ><i class="fa-solid fa-arrow-right icon-very-small w-auto"></i
-                            ></span>
+                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
+                            /></span>
                           </span>
                         </a>
                       </div>
@@ -589,8 +572,8 @@ defineExpose({ closeTransient });
                           <span>
                             <span class="btn-text text-dark-gray fs-17">Skinny blazer</span>
                             <span class="btn-icon"
-                              ><i class="fa-solid fa-arrow-right icon-very-small w-auto"></i
-                            ></span>
+                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
+                            /></span>
                           </span>
                         </a>
                       </div>
@@ -618,8 +601,8 @@ defineExpose({ closeTransient });
                           <span>
                             <span class="btn-text text-dark-gray fs-17">Casual shoes</span>
                             <span class="btn-icon"
-                              ><i class="fa-solid fa-arrow-right icon-very-small w-auto"></i
-                            ></span>
+                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
+                            /></span>
                           </span>
                         </a>
                       </div>
@@ -647,8 +630,8 @@ defineExpose({ closeTransient });
                           <span>
                             <span class="btn-text text-dark-gray fs-17">Winter jackets</span>
                             <span class="btn-icon"
-                              ><i class="fa-solid fa-arrow-right icon-very-small w-auto"></i
-                            ></span>
+                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
+                            /></span>
                           </span>
                         </a>
                       </div>
@@ -676,8 +659,8 @@ defineExpose({ closeTransient });
                           <span>
                             <span class="btn-text text-dark-gray fs-17">Men's shorts</span>
                             <span class="btn-icon"
-                              ><i class="fa-solid fa-arrow-right icon-very-small w-auto"></i
-                            ></span>
+                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
+                            /></span>
                           </span>
                         </a>
                       </div>
@@ -694,9 +677,12 @@ defineExpose({ closeTransient });
               </li>
               <li class="nav-item dropdown simple-dropdown">
                 <button type="button" class="nav-link fashion-store-source-action">Pages</button>
-                <i
-                  class="fa-solid fa-angle-down dropdown-toggle"
+                <FashionStoreIcon
+                  name="chevron-down"
+                  class="dropdown-toggle"
                   id="navbarDropdownMenuLink3"
+                  aria-hidden="false"
+                  aria-label="Toggle Pages menu"
                   role="button"
                   tabindex="0"
                   @click="handleDropdownToggle"
@@ -704,7 +690,7 @@ defineExpose({ closeTransient });
                   @keydown.space="handleDropdownToggle"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
-                ></i>
+                />
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink3">
                   <li>
                     <a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About</a>
@@ -742,8 +728,10 @@ defineExpose({ closeTransient });
                 :href="fashionStoreRoutePaths.account"
                 data-fashion-store-route
                 aria-label="Account"
-                ><i class="feather icon-feather-user d-inline-block me-5px"></i
-                ><span class="d-none d-xxl-inline-block">Account</span></a
+                ><FashionStoreIcon name="user" class="d-inline-block me-5px" /><span
+                  class="d-none d-xxl-inline-block"
+                  >Account</span
+                ></a
               >
             </div>
             <FashionStoreMiniCart
@@ -822,21 +810,7 @@ defineExpose({ closeTransient });
   }
 }
 
-@media (min-width: 992px) {
-  .navbar.disable-fixed {
-    top: 40px !important;
-  }
-}
-
-@media (max-width: 991px) {
-  .navbar.disable-fixed {
-    top: 41px !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .navbar.disable-fixed {
-    top: 0 !important;
-  }
+.navbar.disable-fixed {
+  top: 0 !important;
 }
 </style>

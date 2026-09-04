@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
@@ -89,7 +90,7 @@ function handleProductIntent(productId: string, kind: "cart" | "quickView" | "wi
       :data-preview-cart-intent-count="previewCartIntentCount"
       :data-remove-count="removeCount"
     >
-      <p v-if="cartNotice" class="sr-only" role="status" aria-live="polite">
+      <p v-if="cartNotice" class="visually-hidden" role="status" aria-live="polite">
         {{ cartNotice }}
       </p>
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
@@ -105,7 +106,10 @@ function handleProductIntent(productId: string, kind: "cart" | "quickView" | "wi
               aria-label="Breadcrumb"
             >
               <ul>
-                <li><a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a></li>
+                <li>
+                  <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a
+                  ><FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
                 {{
                   " "
                 }}

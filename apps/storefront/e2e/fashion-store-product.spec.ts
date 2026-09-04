@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
@@ -98,7 +99,7 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   expect(info).not.toBeNull();
   if (page.viewportSize()!.width >= 992) expect(gallery!.x).toBeLessThan(info!.x);
 
-  if (testInfo.project.name === "fashion-store-desktop") {
+  if (isFashionStoreViewport(testInfo, "desktop")) {
     const source = await page.context().newPage();
     try {
       await source.goto(`${sourceOrigin}/demo-fashion-store-single-product.html`, {
@@ -124,7 +125,7 @@ test("Product preserves source structure, facts, assets, and responsive geometry
 test("product-gallery-slide-2 temporal: gallery advances and pauses without reduced-motion drift", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Temporal evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Temporal evidence runs once.");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepareProduct(page);
   const gallery = page.locator(".product-image-slider");
@@ -148,16 +149,14 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   page,
 }, testInfo) => {
   test.skip(
-    !["fashion-store-desktop", "fashion-store-mobile"].includes(testInfo.project.name),
+    !isFashionStoreViewport(testInfo, "desktop", "mobile"),
     "Boundary viewports cover the interaction branches.",
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepareProduct(page);
   const gallery = page.locator(".product-image-slider");
-  if (testInfo.project.name === "fashion-store-mobile") {
-    const box = await gallery.boundingBox();
-    expect(box).not.toBeNull();
-    await page.touchscreen.tap(box!.x + box!.width * 0.8, box!.y + box!.height / 2);
+  if (isFashionStoreViewport(testInfo, "mobile")) {
+    await gallery.locator(".swiper-slide-active button").tap();
     await expect(page.getByRole("dialog", { name: "Product image preview" })).toBeVisible();
     await page.getByRole("button", { name: "Close product image preview" }).tap();
     await productThumbnail(page, 1).tap();
@@ -180,6 +179,24 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   const thumbnailTransformBefore = await thumbnailTrack.evaluate(
     (element) => getComputedStyle(element).transform,
   );
+  await gallery.hover();
+  await page.waitForTimeout(350);
+  const dragStartIndex = await gallery.getAttribute("data-gallery-index");
+  const galleryBox = (await gallery.boundingBox())!;
+  await page.mouse.move(
+    galleryBox.x + galleryBox.width * 0.8,
+    galleryBox.y + galleryBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    galleryBox.x + galleryBox.width * 0.2,
+    galleryBox.y + galleryBox.height / 2,
+    {
+      steps: 12,
+    },
+  );
+  await page.mouse.up();
+  await expect.poll(() => gallery.getAttribute("data-gallery-index")).not.toBe(dragStartIndex);
   await productThumbnail(page, 4).click();
   await expect(gallery).toHaveAttribute("data-gallery-index", "4");
   await expect
@@ -188,13 +205,21 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   await expect
     .poll(() => thumbnailTrack.evaluate((element) => getComputedStyle(element).transform))
     .not.toBe(thumbnailTransformBefore);
+  await page.waitForTimeout(350);
   await gallery.focus();
   await page.keyboard.press("ArrowRight");
   await expect(gallery).toHaveAttribute("data-gallery-index", "5");
   await page.keyboard.press("Enter");
   const lightbox = page.getByRole("dialog", { name: "Product image preview" });
   await expect(lightbox).toBeVisible();
+  const pausedWhileOpen = await gallery.getAttribute("data-gallery-index");
+  await page.waitForTimeout(5_250);
+  await expect(gallery).toHaveAttribute("data-gallery-index", pausedWhileOpen!);
   await expect(lightbox.locator("figcaption")).toContainText("Relaxed corduroy shirt");
+  await expect(lightbox.locator("figcaption")).toContainText("6 of 6");
+  await page.getByRole("button", { name: "Next preview image" }).click();
+  await expect(lightbox.locator("figcaption")).toContainText("1 of 6");
+  await page.getByRole("button", { name: "Previous preview image" }).click();
   await expect(lightbox.locator("figcaption")).toContainText("6 of 6");
   await page.getByRole("button", { name: "Previous preview image" }).click();
   await expect(lightbox.locator("figcaption")).toContainText("5 of 6");
@@ -208,6 +233,13 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   expect(Math.abs(lightboxBox!.width - page.viewportSize()!.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(lightboxBox!.height - page.viewportSize()!.height)).toBeLessThanOrEqual(1);
   await page.keyboard.press("Escape");
+  await expect(lightbox).toBeHidden();
+  await expect(gallery).toBeFocused();
+  await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+  await gallery.evaluate((element) => (element as HTMLElement).blur());
+  await expect
+    .poll(() => gallery.getAttribute("data-gallery-index"), { timeout: 6_500 })
+    .not.toBe(pausedWhileOpen);
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "product-gallery",
@@ -219,6 +251,44 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   });
 });
 
+test("product lightbox load failure leaves the gallery usable and retryable", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Failure evidence runs once per engine.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await prepareProduct(page);
+  const gallery = page.locator(".product-image-slider");
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  let blocked = false;
+  await page.route("**/_nuxt/*.js", async (route) => {
+    await route.abort();
+    blocked = true;
+  });
+
+  await gallery.focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => blocked).toBe(true);
+  await expect(page.getByRole("dialog", { name: "Product image preview" })).toBeHidden();
+  await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+  const retry = page.getByRole("button", { name: "Reload and retry" });
+  await expect(retry).toBeFocused();
+  const before = await gallery.getAttribute("data-gallery-index");
+  await page.keyboard.press("ArrowLeft");
+  await expect(gallery).not.toHaveAttribute("data-gallery-index", before!);
+  expect(pageErrors).toEqual([]);
+
+  await page.unroute("**/_nuxt/*.js");
+  await Promise.all([page.waitForNavigation({ waitUntil: "networkidle" }), retry.click()]);
+  await page.locator("[data-fashion-store-product][data-runtime-status='ready']").waitFor();
+  await page.evaluate(async () => document.fonts.ready);
+  await gallery.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Product image preview" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+});
+
 function productThumbnail(page: Page, index: number) {
   return page.locator(".product-image-thumb button").nth(index);
 }
@@ -226,7 +296,7 @@ function productThumbnail(page: Page, index: number) {
 test("product-size-m interaction: options and quantity dispatch one bounded update per action", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepareProduct(page);
   const product = page.locator("[data-fashion-store-product]");
   await page.locator("label[for='product-size-m']").click();
@@ -248,10 +318,53 @@ test("product-size-m interaction: options and quantity dispatch one bounded upda
   });
 });
 
+test("Product fixture quantity normalization preserves bounded values without Commerce", async ({
+  page,
+}) => {
+  const commerceRequests: string[] = [];
+  await page.route(/\/api\/(?:cart|products)(?:[/?]|$)/, async (route) => {
+    commerceRequests.push(`${route.request().method()} ${route.request().url()}`);
+    await route.abort();
+  });
+  await prepareProduct(page);
+  const product = page.locator("[data-fashion-store-product]");
+  const quantity = page.getByRole("spinbutton", { name: "Quantity", exact: true });
+  const cases = [
+    { name: "empty at minimum", initial: 1, input: "", expected: 1 },
+    { name: "non-numeric at minimum", initial: 1, input: "abc", expected: 1 },
+    { name: "zero at minimum", initial: 1, input: "0", expected: 1 },
+    { name: "negative at minimum", initial: 1, input: "-2", expected: 1 },
+    { name: "fraction below minimum", initial: 1, input: "0.4", expected: 1 },
+    { name: "fraction floors once", initial: 1, input: "3.8", expected: 3 },
+    { name: "above maximum", initial: 1, input: "99", expected: 20 },
+    { name: "above unchanged maximum", initial: 20, input: "99", expected: 20 },
+  ];
+  for (const sample of cases) {
+    await test.step(sample.name, async () => {
+      await quantity.fill(String(sample.initial));
+      await quantity.press("Tab");
+      await expect(quantity).toHaveValue(String(sample.initial));
+      const before = Number(await product.getAttribute("data-option-update-count"));
+      await quantity.fill(sample.input);
+      await quantity.press("Tab");
+      await expect.soft(quantity, sample.name).toHaveValue(String(sample.expected), {
+        timeout: 1_000,
+      });
+      await expect
+        .soft(product, sample.name)
+        .toHaveAttribute(
+          "data-option-update-count",
+          String(before + Number(sample.expected !== sample.initial)),
+        );
+    });
+  }
+  expect(commerceRequests).toEqual([]);
+});
+
 test("Product fixture records cart intent without reaching Commerce", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Commerce evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Commerce evidence runs once.");
   await page.addInitScript(() => localStorage.setItem("shoppp.guest-cart-token", "cart-token"));
   let addRequests = 0;
   let requestBody: unknown;
@@ -297,7 +410,7 @@ test("Product fixture records cart intent without reaching Commerce", async ({
 test("product-reviews-tab interaction: tabs are keyboard operable and review data stays local", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Interaction evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   const requests: string[] = [];
   page.on("request", (request) => {
     if (request.method() !== "GET") requests.push(request.url());
@@ -332,7 +445,7 @@ test("product-reviews-tab interaction: tabs are keyboard operable and review dat
 test("Product fallback, reduced motion, unknown slug, and remount remain readable", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Fallback evidence runs once.");
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Fallback evidence runs once.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await prepareProduct(page);
   const gallery = page.locator(".product-image-slider");

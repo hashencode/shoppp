@@ -1,3 +1,4 @@
+import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Page } from "@playwright/test";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,9 +33,9 @@ const implementationThemeRoot = fileURLToPath(
   new URL("../app/themes/fashion-store/", import.meta.url),
 );
 
-function sourcePageOptions(page: Page, projectName: string) {
+function sourcePageOptions(page: Page, testInfo: Parameters<typeof isFashionStoreViewport>[0]) {
   return {
-    ...(projectName === "fashion-store-mobile" ? { hasTouch: true, isMobile: true } : {}),
+    ...(isFashionStoreViewport(testInfo, "mobile") ? { hasTouch: true, isMobile: true } : {}),
     viewport: page.viewportSize()!,
   };
 }
@@ -197,7 +198,7 @@ test.beforeAll(async () => {
 
 test.beforeEach(({ browser: _browser }, testInfo) => {
   test.skip(
-    !["fashion-store-desktop", "fashion-store-mobile"].includes(testInfo.project.name),
+    !isFashionStoreViewport(testInfo, "desktop", "mobile"),
     "The acceptance slice intentionally gates desktop and mobile only.",
   );
 });
@@ -206,8 +207,8 @@ test("source-inventory static: independent candidates and visible copy match", a
   browser,
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "fashion-store-desktop", "Inventory runs once at desktop.");
-  const source = await browser.newPage(sourcePageOptions(page, testInfo.project.name));
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Inventory runs once at desktop.");
+  const source = await browser.newPage(sourcePageOptions(page, testInfo));
   try {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
@@ -248,7 +249,7 @@ test("search-open interaction: contract-driven search opens and dismisses on sou
   browser,
   page,
 }, testInfo) => {
-  const source = await browser.newPage(sourcePageOptions(page, testInfo.project.name));
+  const source = await browser.newPage(sourcePageOptions(page, testInfo));
   try {
     await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
     const behavior = behaviorRow(fashionStoreBehaviorContract, "header-search-overlay");
@@ -302,12 +303,12 @@ test("collection-slide-1 temporal: contract-driven collection exposes cards and 
   await page.emulateMedia({ reducedMotion: "no-preference" });
   const source = await browser.newPage({
     reducedMotion: "no-preference",
-    ...sourcePageOptions(page, testInfo.project.name),
+    ...sourcePageOptions(page, testInfo),
   });
   try {
     await Promise.all([prepareSource(source), prepareImplementation(page)]);
     const behavior = behaviorRow(fashionStoreBehaviorContract, "new-arrival-collection-carousel");
-    const desktop = testInfo.project.name === "fashion-store-desktop";
+    const desktop = isFashionStoreViewport(testInfo, "desktop");
     const minimumVisibleCards = desktop ? 3 : 1;
     const maximumCardWidthRatio = desktop ? 0.45 : 1.05;
     const [sourceResult, implementationResult] = await Promise.all([
@@ -356,11 +357,11 @@ test("collection-slide-1 interaction: declared controls advance both carousels",
   browser,
   page,
 }, testInfo) => {
-  const source = await browser.newPage(sourcePageOptions(page, testInfo.project.name));
+  const source = await browser.newPage(sourcePageOptions(page, testInfo));
   try {
     await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
     const behavior = behaviorRow(fashionStoreBehaviorContract, "new-arrival-collection-carousel");
-    const desktop = testInfo.project.name === "fashion-store-desktop";
+    const desktop = isFashionStoreViewport(testInfo, "desktop");
     const options = {
       behavior,
       maximumCardWidthRatio: desktop ? 0.45 : 1.05,

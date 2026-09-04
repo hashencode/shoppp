@@ -5,6 +5,9 @@ import { catalogRelease } from "./app/generated/catalog";
 import { experienceBuildInputSchema } from "./scripts/prepare-experience";
 import { resolveStorefrontPrerenderRoutes } from "./scripts/resolve-prerender-routes";
 
+// Keep the approved browser minima stable when the bundler changes its default target.
+const storefrontBrowserTargets = ["chrome111", "edge111", "firefox115", "safari16.4", "ios16.4"];
+
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
 const fashionStoreFontImports = [
   "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');",
@@ -33,8 +36,7 @@ const previewThemeStyles =
   previewBuild && previewExperienceInput?.environment === "preview"
     ? previewExperienceInput.themeId === "fashion-store"
       ? [
-          "~/themes/fashion-store/upstream/css/vendors.min.css",
-          "~/themes/fashion-store/upstream/css/icon.min.css",
+          "~/themes/fashion-store/styles/vendor.css",
           "~/themes/fashion-store/upstream/css/style.css",
           "~/themes/fashion-store/upstream/css/responsive.css",
           "~/themes/fashion-store/upstream/demos/fashion-store/fashion-store.css",
@@ -66,6 +68,7 @@ export default defineNuxtConfig({
   },
   modules: ["@nuxt/image", "@pinia/nuxt"],
   vite: {
+    build: { target: storefrontBrowserTargets, cssTarget: storefrontBrowserTargets },
     plugins: [
       {
         name: "fashion-store-local-font-adaptation",
