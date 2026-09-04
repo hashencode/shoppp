@@ -48,6 +48,8 @@ function setPause(reason: PauseReason, paused: boolean): void {
 function revealActiveThumbnail(swiper = thumbnailSwiper.value): void {
   const slide = swiper?.slides[activeIndex.value];
   if (!swiper || !slide) return;
+  const fullyVisibleClass = swiper.params.slideFullyVisibleClass;
+  if (fullyVisibleClass && slide.classList.contains(fullyVisibleClass)) return;
 
   const viewportBox = swiper.el.getBoundingClientRect();
   const slideBox = slide.getBoundingClientRect();
@@ -67,8 +69,9 @@ function revealActiveThumbnail(swiper = thumbnailSwiper.value): void {
 function syncActiveIndex(swiper = mainSwiper.value): void {
   if (!swiper) return;
   const index = swiper.realIndex;
+  const changed = activeIndex.value !== index;
   activeIndex.value = index;
-  revealActiveThumbnail();
+  if (changed) revealActiveThumbnail();
   emit("activeIndexChange", index);
 }
 
@@ -80,9 +83,6 @@ function handleMainSwiper(swiper: SwiperInstance): void {
 
 function handleThumbnailSwiper(swiper: SwiperInstance): void {
   thumbnailSwiper.value = swiper;
-  (swiper as SwiperInstance & { setTransition: (duration: number) => void }).setTransition(
-    Number(swiper.params.speed),
-  );
   revealActiveThumbnail(swiper);
 }
 

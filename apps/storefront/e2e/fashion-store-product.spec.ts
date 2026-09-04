@@ -8,7 +8,6 @@ const sourceOrigin = `http://127.0.0.1:${Number(
 )}`;
 const productRoute = "/products/relaxed-corduroy-shirt";
 const galleryTransitionMs = 300;
-const galleryAutoplayDelayMs = 5_000;
 const geometryTolerancePx = 2;
 
 async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
@@ -46,7 +45,7 @@ async function thumbnailGeometry(page: Page, index: number) {
 
   expect(railBox).not.toBeNull();
   expect(slideBox).not.toBeNull();
-  return { rail, railBox: railBox!, slide, slideBox: slideBox!, track, trackTransform };
+  return { rail, railBox: railBox!, slideBox: slideBox!, trackTransform };
 }
 
 async function setThumbnailTranslate(
@@ -67,8 +66,6 @@ async function setThumbnailTranslate(
             runCallbacks: boolean,
             translateBounds: boolean,
           ) => void;
-          updateProgress: () => void;
-          updateSlidesProgress: () => void;
         };
       }
     ).swiper;
@@ -76,8 +73,6 @@ async function setThumbnailTranslate(
     const min = swiper.minTranslate();
     const max = swiper.maxTranslate();
     swiper.translateTo(requested === "max" ? max : requested, 0, false, true);
-    swiper.updateProgress();
-    swiper.updateSlidesProgress();
     return { max, min, translate: swiper.translate };
   }, requestedTranslate);
 }
@@ -208,10 +203,12 @@ test("product-gallery temporal: gallery waits five seconds after an explicit res
   await gallery.focus();
   await page.waitForTimeout(galleryTransitionMs + 50);
   const pausedAt = await galleryIndex(gallery);
+  await expect(gallery).toHaveAttribute("data-autoplay-delay", "5000");
+  const autoplayDelayMs = Number(await gallery.getAttribute("data-autoplay-delay"));
   await gallery.evaluate((element) => (element as HTMLElement).blur());
   const restartedAt = Date.now();
 
-  await page.waitForTimeout(galleryAutoplayDelayMs - 250);
+  await page.waitForTimeout(autoplayDelayMs - 250);
   await expect(gallery).toHaveAttribute("data-gallery-index", String(pausedAt));
 
   const expectedNext = (pausedAt + 1) % 6;
