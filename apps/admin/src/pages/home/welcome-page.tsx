@@ -1,5 +1,5 @@
 import { SETUP_GUIDE_CHECKS, type SetupGuideCheck, type SetupGuideSummary } from '@shoppp/contracts'
-import { Alert, Button, Card, Collapse, Space, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Collapse, Space, Statistic, Tag, Typography } from 'antd'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useHref, useLocation } from 'react-router-dom'
 import { hasPermission, type PermissionKey } from '../../infrastructure/auth/permissions'
@@ -127,11 +127,7 @@ type CheckResult = {
 
 const GuideAction = ({ children, to }: { children: React.ReactNode; to: string }) => {
   const href = useHref(to)
-  return (
-    <Button className="!h-auto max-w-full whitespace-normal" href={href}>
-      {children}
-    </Button>
-  )
+  return <Button href={href}>{children}</Button>
 }
 
 export const WelcomePage = () => {
@@ -178,8 +174,7 @@ export const WelcomePage = () => {
   const summary = canRead && !restricted ? current?.summary : undefined
   const checks =
     summary?.checks ?? (loading ? [] : failedChecks(restricted ? 'restricted' : 'unavailable'))
-  const counts = { passed: 0, needs_action: 0, unavailable: 0, restricted: 0 }
-  for (const check of checks) counts[check.status] += 1
+  const passedCount = checks.filter((check) => check.status === 'passed').length
   const can = (permission: PermissionKey) =>
     !restricted && hasPermission(role, permission, permissions)
   const date = (value: string) => new Date(value).toLocaleString(locale)
@@ -235,7 +230,7 @@ export const WelcomePage = () => {
       case 'review':
         return (
           <>
-            {settingsLink('sales', 'Inventory and reservation settings')}
+            {settingsLink('sales', 'Inventory settings')}
             {can('orders.read') ? <GuideAction to="/orders">{t('View orders')}</GuideAction> : null}
           </>
         )
@@ -246,28 +241,12 @@ export const WelcomePage = () => {
     <CustomPageRecipe>
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Typography.Paragraph strong className="!mb-2">
-              {loading
-                ? t('Checking {total} automatic checks…', { total: SETUP_GUIDE_CHECKS.length })
-                : t('Automatic checks passed: {passed}/{total}', {
-                    passed: counts.passed,
-                    total: SETUP_GUIDE_CHECKS.length,
-                  })}
-            </Typography.Paragraph>
-            {!loading ? (
-              <Typography.Paragraph className="!mb-2">
-                {t(
-                  'Needs action: {action} · Unable to check: {unavailable} · No permission: {restricted}',
-                  {
-                    action: counts.needs_action,
-                    unavailable: counts.unavailable,
-                    restricted: counts.restricted,
-                  }
-                )}
-              </Typography.Paragraph>
-            ) : null}
-          </div>
+          <Statistic
+            loading={loading}
+            title={t('Automatic checks passed')}
+            value={passedCount}
+            suffix={`/${SETUP_GUIDE_CHECKS.length}`}
+          />
           {canRead ? (
             <Button onClick={() => setAttempt((value) => value + 1)} loading={loading}>
               {t('Recheck')}
@@ -291,7 +270,7 @@ export const WelcomePage = () => {
               : t('Configuration context is unavailable.')}
           </Typography.Paragraph>
         ) : null}
-        {counts.passed === SETUP_GUIDE_CHECKS.length ? (
+        {passedCount === SETUP_GUIDE_CHECKS.length ? (
           <Typography.Paragraph className="!mb-0 mt-3">
             {t('Current configuration checks passed; manual verification is still required.')}
           </Typography.Paragraph>

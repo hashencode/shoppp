@@ -129,7 +129,8 @@ for (const viewport of [
     const fixture = await mockCommerce(page)
     await page.goto(path('/'))
     await expect(page).toHaveURL(new RegExp(`${appBase}/welcome$`))
-    await expect(page.getByText('Automatic checks passed: 13/13')).toBeVisible()
+    await expect(page.getByText('Automatic checks passed')).toBeVisible()
+    await expect(page.locator('.ant-statistic-content')).toHaveText('13/13')
     await expect(
       page.getByText('Current configuration checks passed; manual verification is still required.')
     ).toBeVisible()
@@ -151,6 +152,8 @@ for (const viewport of [
     })
     const salesLink = page.getByRole('link', { name: 'Sales settings', exact: true })
     await expect(salesLink).toHaveClass(/ant-btn-default/)
+    await expect(salesLink).not.toHaveClass(/ant-btn-(sm|lg)/)
+    await expect(salesLink).toHaveCSS('height', '32px')
     await salesLink.focus()
     await expect(salesLink).toBeFocused()
     await page.keyboard.press('Enter')
@@ -163,7 +166,7 @@ for (const viewport of [
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect.poll(fixture.saves).toBe(1)
     await page.getByRole('link', { name: 'Back to store setup guide', exact: true }).click()
-    await expect(page.getByText('Automatic checks passed: 12/13')).toBeVisible()
+    await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
     await expect(page.getByText(/Default currency: EUR/)).toBeVisible()
     await expect(
       page.getByText(
@@ -174,7 +177,7 @@ for (const viewport of [
     await page.goBack()
     await expect(page.getByLabel('Default currency', { exact: true })).toHaveValue('EUR')
     await page.goForward()
-    await expect(page.getByText('Automatic checks passed: 12/13')).toBeVisible()
+    await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
     expect(
       await page.evaluate(
         () =>
@@ -194,10 +197,8 @@ test('settings reader has fixed restricted progress and a readonly commercial fo
   await mockAdminSession(page, ['settings.read'])
   const fixture = await mockCommerce(page, true)
   await page.goto(path('/welcome'))
-  await expect(page.getByText('Automatic checks passed: 10/13')).toBeVisible()
-  await expect(
-    page.getByText('Needs action: 0 · Unable to check: 0 · No permission: 3')
-  ).toBeVisible()
+  await expect(page.locator('.ant-statistic-content')).toHaveText('10/13')
+  await expect(page.getByText(/Needs action:|Unable to check:|No permission:/)).toHaveCount(0)
   expect(
     await page.evaluate(() =>
       [...document.querySelectorAll('.ant-layout-content')].every(
@@ -235,13 +236,13 @@ test('revoked guide access clears previous success and all guide destinations', 
   await mockAdminSession(page)
   const fixture = await mockCommerce(page)
   await page.goto(path('/welcome'))
-  await expect(page.getByText('Automatic checks passed: 13/13')).toBeVisible()
+  await expect(page.locator('.ant-statistic-content')).toHaveText('13/13')
   fixture.deny()
   await page.getByRole('button', { name: 'Recheck', exact: true }).click()
-  await expect(page.getByText('Automatic checks passed: 0/13')).toBeVisible()
+  await expect(page.locator('.ant-statistic-content')).toHaveText('0/13')
   await expect(
     page.getByText('Needs action: 0 · Unable to check: 0 · No permission: 13')
-  ).toBeVisible()
+  ).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Contact settings' })).toHaveCount(0)
   await expect(page.getByText(/Default currency:/)).toHaveCount(0)
 })
@@ -251,7 +252,8 @@ test('Chinese dark guide remains readable on mobile', async ({ page }, testInfo)
   await mockAdminSession(page, ['settings.read'])
   await mockCommerce(page, true)
   await page.goto(path('/welcome'))
-  await expect(page.getByText('自动检查已通过：10/13')).toBeVisible()
+  await expect(page.getByText('自动检查已通过')).toBeVisible()
+  await expect(page.locator('.ant-statistic-content')).toHaveText('10/13')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.getByText('1. 基础与联系方式')).toBeVisible()
   expect(

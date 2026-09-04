@@ -317,12 +317,9 @@ export const zhCNMessages: Record<string, string> = {
   'Payment settings': '支付设置',
   'Manage storefront themes': '管理店面主题',
   'Policy settings': '政策设置',
-  'Inventory and reservation settings': '库存与预留设置',
+  'Inventory settings': '库存设置',
   'View orders': '查看订单',
-  'Checking {total} automatic checks…': '正在执行 {total} 项自动检查…',
-  'Automatic checks passed: {passed}/{total}': '自动检查已通过：{passed}/{total}',
-  'Needs action: {action} · Unable to check: {unavailable} · No permission: {restricted}':
-    '待处理：{action} · 无法检查：{unavailable} · 无权检查：{restricted}',
+  'Automatic checks passed': '自动检查已通过',
   Recheck: '重新检查',
   'Environment: {environment} · Checked: {time}': '环境：{environment} · 检查时间：{time}',
   'Default currency: {currency} · Configuration saved: {time}':

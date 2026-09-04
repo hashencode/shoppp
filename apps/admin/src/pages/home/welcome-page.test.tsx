@@ -43,8 +43,11 @@ const renderGuide = (locale: 'en-US' | 'zh-CN' = 'en-US') =>
 
 describe('WelcomePage setup guide', () => {
   it('should keep manual verification and all guide destinations available when automatic checks pass', async () => {
-    renderGuide()
-    expect(await screen.findByText('Automatic checks passed: 13/13')).toBeTruthy()
+    const view = renderGuide()
+    expect(await screen.findByText('Automatic checks passed')).toBeTruthy()
+    await waitFor(() =>
+      expect(view.container.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+    )
     expect(
       screen.getByText('Preview the storefront and confirm the brand content and policy text.')
     ).toBeTruthy()
@@ -58,6 +61,8 @@ describe('WelcomePage setup guide', () => {
     const contactSettings = screen.getByRole('link', { name: 'Contact settings' })
     expect(contactSettings.getAttribute('href')).toBe('/settings/launch?from=setup-guide#contacts')
     expect(contactSettings.classList.contains('ant-btn-default')).toBe(true)
+    expect(contactSettings.classList.contains('ant-btn-sm')).toBe(false)
+    expect(contactSettings.classList.contains('ant-btn-lg')).toBe(false)
     expect(screen.getByRole('link', { name: 'Manage products' }).getAttribute('href')).toBe(
       '/catalog/products?from=setup-guide'
     )
@@ -80,7 +85,7 @@ describe('WelcomePage setup guide', () => {
       'Payment settings',
       'Manage storefront themes',
       'Policy settings',
-      'Inventory and reservation settings',
+      'Inventory settings',
       'View orders',
     ]) {
       expect(screen.getByRole('link', { name }).classList.contains('ant-btn-default')).toBe(true)
@@ -111,9 +116,12 @@ describe('WelcomePage setup guide', () => {
       reasons: [{ code: 'future_issue' }],
     }
     server.use(http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: result })))
-    renderGuide('zh-CN')
-    expect(await screen.findByText('自动检查已通过：9/13')).toBeTruthy()
-    expect(screen.getByText('待处理：2 · 无法检查：1 · 无权检查：1')).toBeTruthy()
+    const view = renderGuide('zh-CN')
+    expect(await screen.findByText('自动检查已通过')).toBeTruthy()
+    await waitFor(() =>
+      expect(view.container.querySelector('.ant-statistic-content')?.textContent).toBe('9/13')
+    )
+    expect(screen.queryByText('待处理：2 · 无法检查：1 · 无权检查：1')).toBeNull()
     expect(screen.getByText('默认配置尚未保存确认，请检查并保存商业设置。')).toBeTruthy()
     expect(screen.getByText('此检查需要进一步处理，请查看对应设置。')).toBeTruthy()
     expect(screen.getByText(/默认币种：EUR/)).toBeTruthy()
@@ -123,36 +131,40 @@ describe('WelcomePage setup guide', () => {
     'should clear previous results when rechecking returns %s',
     async (status) => {
       renderGuide()
-      await screen.findByText('Automatic checks passed: 13/13')
-      server.use(
-        http.get('*/admin/settings/setup-guide', () =>
-          HttpResponse.json({ error: { message: 'Denied or unavailable' } }, { status })
-        )
+      await waitFor(() =>
+        expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
       )
-      const recheck = screen.getByRole('button', { name: /Recheck/ }) as HTMLButtonElement
-      await waitFor(() => expect(recheck.disabled).toBe(false))
-      fireEvent.click(recheck)
+      let errorRequests = 0
+      server.use(
+        http.get('*/admin/settings/setup-guide', () => {
+          errorRequests += 1
+          return HttpResponse.json({ error: { message: 'Denied or unavailable' } }, { status })
+        })
+      )
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('button', { name: /Recheck/ }) as HTMLButtonElement).disabled
+        ).toBe(false)
+      )
+      fireEvent.click(screen.getByRole('button', { name: /Recheck/ }))
+      await waitFor(() => expect(errorRequests).toBe(1))
       await screen.findByText(
         status === 403 ? 'Setup checks are not authorized.' : 'Setup checks could not be loaded.'
       )
-      expect(screen.queryByText('Automatic checks passed: 13/13')).toBeNull()
-      expect(screen.getByText('Automatic checks passed: 0/13')).toBeTruthy()
+      expect(screen.getByText('Automatic checks passed')).toBeTruthy()
+      expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('0/13')
       expect(screen.queryByText(/Default currency: USD/)).toBeNull()
+      expect(screen.queryByText(/Needs action:|Unable to check:|No permission:/)).toBeNull()
       if (status === 403) {
-        expect(
-          screen.getByText('Needs action: 0 · Unable to check: 0 · No permission: 13')
-        ).toBeTruthy()
         expect(screen.queryByRole('link', { name: 'Contact settings' })).toBeNull()
-      } else {
-        expect(
-          screen.getByText('Needs action: 0 · Unable to check: 13 · No permission: 0')
-        ).toBeTruthy()
       }
       server.use(
         http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary() }))
       )
       fireEvent.click(screen.getByRole('button', { name: /Recheck/ }))
-      expect(await screen.findByText('Automatic checks passed: 13/13')).toBeTruthy()
+      await waitFor(() =>
+        expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+      )
     }
   )
 
@@ -200,12 +212,14 @@ describe('WelcomePage setup guide', () => {
     )
     await waitFor(() => expect(requests).toBe(1))
     fireEvent.click(screen.getByRole('button', { name: 'Remove inventory access' }))
-    expect(await screen.findByText('Automatic checks passed: 11/13')).toBeTruthy()
+    await waitFor(() =>
+      expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('11/13')
+    )
     await act(async () => {
       release()
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
-    expect(screen.getByText('Automatic checks passed: 11/13')).toBeTruthy()
+    expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('11/13')
     expect(screen.queryByRole('link', { name: 'View inventory' })).toBeNull()
   })
 
@@ -239,13 +253,16 @@ describe('WelcomePage setup guide', () => {
         </MemoryRouter>
       </AuthTestProvider>
     )
-    await screen.findByText('Automatic checks passed: 13/13')
+    await waitFor(() =>
+      expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Next visit' }))
     await waitFor(() => expect(requests).toBe(2))
     fireEvent.click(screen.getByRole('button', { name: 'Previous visit' }))
-    expect(screen.queryByText('Automatic checks passed: 13/13')).toBeNull()
-    expect(screen.getByText('Checking 13 automatic checks…')).toBeTruthy()
-    await screen.findByText('Automatic checks passed: 13/13')
+    expect(document.querySelector('.ant-statistic-content')).toBeNull()
+    await waitFor(() =>
+      expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+    )
     expect(requests).toBe(3)
     await act(async () => {
       release()
@@ -291,13 +308,17 @@ describe('WelcomePage setup guide', () => {
         </MemoryRouter>
       </AuthTestProvider>
     )
-    await screen.findByText('Automatic checks passed: 13/13')
+    await waitFor(() =>
+      expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+    )
     expect(screen.getByRole('link', { name: 'Payment settings' }).getAttribute('href')).toBe(
       '/admin/settings/launch?from=setup-guide#payment'
     )
     unmount()
     renderGuide()
-    await screen.findByText('Automatic checks passed: 13/13')
+    await waitFor(() =>
+      expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+    )
     expect(requests).toBe(2)
     expect(screen.getByRole('link', { name: 'Payment settings' })).toBeTruthy()
   })
