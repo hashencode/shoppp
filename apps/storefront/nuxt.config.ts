@@ -36,6 +36,7 @@ const previewThemeStyles =
   previewBuild && previewExperienceInput?.environment === "preview"
     ? previewExperienceInput.themeId === "fashion-store"
       ? [
+          "~/themes/fashion-store/critical.css",
           "~/themes/fashion-store/styles/vendor.css",
           "~/themes/fashion-store/upstream/css/style.css",
           "~/themes/fashion-store/upstream/css/responsive.css",

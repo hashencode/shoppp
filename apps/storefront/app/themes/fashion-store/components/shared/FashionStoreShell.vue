@@ -7,6 +7,8 @@ import { storefrontExperienceHydratedEvent } from "../../../../hydration";
 import { useFashionStoreVisualRuntime } from "../../composables/useFashionStoreVisualRuntime";
 import { fashionStoreAssetId } from "../../resources";
 import { fashionStoreDestinations } from "../../destinations";
+import figtreeFontUrl from "../../upstream/fonts/figtree-latin.woff2?url";
+import outfitFontUrl from "../../upstream/fonts/outfit-latin.woff2?url";
 import FashionStoreFooter from "./FashionStoreFooter.vue";
 import FashionStoreHeader from "./FashionStoreHeader.vue";
 
@@ -73,9 +75,26 @@ useHead(() => ({
         .filter(Boolean)
         .join(" ") || undefined,
     "data-mobile-nav-style": "classic",
+    "data-fashion-store-shell": "true",
   },
   htmlAttrs: { class: documentReadyClass.value, lang: "en" },
   link: [
+    {
+      as: "font" as const,
+      crossorigin: "anonymous",
+      href: figtreeFontUrl,
+      key: "fashion-store-figtree-font",
+      rel: "preload" as const,
+      type: "font/woff2",
+    },
+    {
+      as: "font" as const,
+      crossorigin: "anonymous",
+      href: outfitFontUrl,
+      key: "fashion-store-outfit-font",
+      rel: "preload" as const,
+      type: "font/woff2",
+    },
     {
       href: sourceAsset("images/favicon.png"),
       rel: "icon",

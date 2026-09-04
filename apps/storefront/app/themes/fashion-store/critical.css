@@ -1,0 +1,26 @@
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("./upstream/fonts/figtree-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./upstream/fonts/outfit-latin.woff2") format("woff2");
+}
+
+/* Keep the Fashion Store's first-paint metrics stable while Nuxt replays the
+   preview styles in development. Body-scoped variables outrank later :root
+   declarations from the shared upstream theme. */
+body[data-fashion-store-shell="true"] {
+  --alt-font: "Outfit", sans-serif;
+  --primary-font: "Figtree", sans-serif;
+  font-family: var(--primary-font);
+  font-size: 17px;
+  line-height: 32px;
+}
