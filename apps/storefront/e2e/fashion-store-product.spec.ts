@@ -384,8 +384,6 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   }
   const mainTrack = gallery.locator(".swiper-wrapper");
   const thumbnailTrack = page.locator(".product-image-thumb .swiper-wrapper");
-  await expect(mainTrack).toHaveCSS("transition-duration", "0.3s");
-  await expect(thumbnailTrack).toHaveCSS("transition-duration", "0.3s");
   const mainTransformBefore = await mainTrack.evaluate(
     (element) => getComputedStyle(element).transform,
   );
@@ -412,6 +410,8 @@ test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, t
   await expect.poll(() => gallery.getAttribute("data-gallery-index")).not.toBe(dragStartIndex);
   await productThumbnail(page, 4).click();
   await expect(gallery).toHaveAttribute("data-gallery-index", "4");
+  await expect(mainTrack).toHaveCSS("transition-duration", "0.3s");
+  await expect(thumbnailTrack).toHaveCSS("transition-duration", "0.3s");
   await expect
     .poll(() => mainTrack.evaluate((element) => getComputedStyle(element).transform))
     .not.toBe(mainTransformBefore);
@@ -487,6 +487,7 @@ test("product lightbox load failure leaves the gallery usable and retryable", as
   const retry = page.getByRole("button", { name: "Reload and retry" });
   await expect(retry).toBeFocused();
   const before = await gallery.getAttribute("data-gallery-index");
+  await gallery.focus();
   await page.keyboard.press("ArrowLeft");
   await expect(gallery).not.toHaveAttribute("data-gallery-index", before!);
   expect(pageErrors).toEqual([]);
