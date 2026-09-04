@@ -106,11 +106,25 @@
   opacity: 1;
 }
 
+@media (max-width: 991.98px) {
+  [data-fashion-store-product]
+    .product-image-thumb.slider-vertical:not(.swiper-initialized)
+    .swiper-slide {
+    margin-right: 15px;
+  }
+}
+
 @media (min-width: 992px) {
   [data-fashion-store-product]
     .product-image-thumb.slider-vertical:not(.swiper-initialized)
     .swiper-wrapper {
     flex-direction: column;
+  }
+
+  [data-fashion-store-product]
+    .product-image-thumb.slider-vertical:not(.swiper-initialized)
+    .swiper-slide {
+    margin-bottom: 15px;
   }
 }
 

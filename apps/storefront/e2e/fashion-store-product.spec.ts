@@ -226,20 +226,65 @@ test("Product gallery reserves desktop thumbnail geometry before hydration", asy
     });
     const layout = await page.locator(".product-image-thumb").evaluate((rail) => {
       const slide = rail.querySelector<HTMLElement>(".swiper-slide");
+      const nextSlide = slide?.nextElementSibling as HTMLElement | null;
       const image = slide?.querySelector<HTMLImageElement>("img");
-      if (!slide || !image) throw new Error("Product thumbnail markup is incomplete");
+      if (!slide || !nextSlide || !image) throw new Error("Product thumbnail markup is incomplete");
+      const slideBox = slide.getBoundingClientRect();
+      const nextSlideBox = nextSlide.getBoundingClientRect();
       return {
         flexDirection: getComputedStyle(rail.querySelector<HTMLElement>(".swiper-wrapper")!)
           .flexDirection,
+        gap: nextSlideBox.top - slideBox.bottom,
         imageHeight: image.getBoundingClientRect().height,
         railHeight: rail.getBoundingClientRect().height,
-        slideHeight: slide.getBoundingClientRect().height,
+        slideHeight: slideBox.height,
       };
     });
 
     expect(layout.flexDirection).toBe("column");
+    expect(Math.abs(layout.gap - 15)).toBeLessThanOrEqual(geometryTolerancePx);
     expect(layout.slideHeight).toBeLessThan(layout.railHeight / 2);
     expect(Math.abs(layout.slideHeight - layout.imageHeight - 2)).toBeLessThanOrEqual(
+      geometryTolerancePx,
+    );
+  } finally {
+    await context.close();
+  }
+});
+
+test("Product gallery reserves mobile thumbnail spacing before hydration", async ({
+  browser,
+}, testInfo) => {
+  test.skip(
+    !isFashionStoreViewport(testInfo, "mobile"),
+    "Initial mobile geometry evidence runs once.",
+  );
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { height: 844, width: 390 },
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(new URL(productRoute, String(testInfo.project.use.baseURL)).href, {
+      waitUntil: "load",
+    });
+    const layout = await page.locator(".product-image-thumb").evaluate((rail) => {
+      const slides = rail.querySelectorAll<HTMLElement>(".swiper-slide");
+      const firstBox = slides[0]?.getBoundingClientRect();
+      const secondBox = slides[1]?.getBoundingClientRect();
+      if (!firstBox || !secondBox) throw new Error("Product thumbnail markup is incomplete");
+      return {
+        flexDirection: getComputedStyle(rail.querySelector<HTMLElement>(".swiper-wrapper")!)
+          .flexDirection,
+        gap: secondBox.left - firstBox.right,
+        railWidth: rail.getBoundingClientRect().width,
+        slideWidth: firstBox.width,
+      };
+    });
+
+    expect(layout.flexDirection).toBe("row");
+    expect(Math.abs(layout.gap - 15)).toBeLessThanOrEqual(geometryTolerancePx);
+    expect(Math.abs(layout.slideWidth - layout.railWidth / 4)).toBeLessThanOrEqual(
       geometryTolerancePx,
     );
   } finally {
