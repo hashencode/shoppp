@@ -42,6 +42,13 @@ plan_role: active-feature
 - **完成依据：** [验证证据](../progress/admin-store-setup-guide.md) 记录 R1–R11 闭环、Workers/contracts/Admin 测试、根路径及 /admin 浏览器结果、构建与完整代码审查回执；[维护说明](../runbooks/admin-store-setup-guide.md) 记录口径与恢复方式。本地提交仅包含本任务内容，保留其他任务未提交改动。
 - **更新规则：** 状态、当前/下一单元、执行顺序或尾项改变时，同步本文与主计划；测试和截图证据写入 `docs/progress/admin-store-setup-guide.md`，不另建单元队列。
 
+### 2026-09-04 产品修正
+
+- 用户取消 R10 中的整页“折叠指南/展开指南”控制；六个步骤始终显示，步骤自身的 Collapse 展开能力继续保留。F3 与 U2 场景 4 中依赖整页折叠的描述由本条明确替代。
+- 指南不再显示通往商业仪表盘的快捷入口；侧栏中的既有仪表盘路由不变。
+- KTD5 的步骤操作改为使用 Ant Design 默认 Button 外观的站内锚点，继续保留链接语义、应用部署前缀和原有权限判断。
+- 同一修正记录了本地开发错误的原因：最新 Admin 请求 `/admin/settings/setup-guide` 时，当前 `shoppp-api-fashion-staging` Worker 返回 404，属于前后端版本不一致；不是 13 项检查中的配置失败。部署仍由既有发布流程负责，本修正不推进 REL/DC/PG。
+
 ---
 
 ## Product Contract

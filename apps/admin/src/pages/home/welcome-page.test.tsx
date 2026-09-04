@@ -42,7 +42,7 @@ const renderGuide = (locale: 'en-US' | 'zh-CN' = 'en-US') =>
   )
 
 describe('WelcomePage setup guide', () => {
-  it('should keep manual verification and all six destinations available when automatic checks pass', async () => {
+  it('should keep manual verification and all guide destinations available when automatic checks pass', async () => {
     renderGuide()
     expect(await screen.findByText('Automatic checks passed: 13/13')).toBeTruthy()
     expect(
@@ -53,9 +53,11 @@ describe('WelcomePage setup guide', () => {
         'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.'
       )
     ).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Contact settings' }).getAttribute('href')).toBe(
-      '/settings/launch?from=setup-guide#contacts'
-    )
+    expect(screen.queryByRole('link', { name: 'Commerce dashboard' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Collapse guide' })).toBeNull()
+    const contactSettings = screen.getByRole('link', { name: 'Contact settings' })
+    expect(contactSettings.getAttribute('href')).toBe('/settings/launch?from=setup-guide#contacts')
+    expect(contactSettings.classList.contains('ant-btn-default')).toBe(true)
     expect(screen.getByRole('link', { name: 'Manage products' }).getAttribute('href')).toBe(
       '/catalog/products?from=setup-guide'
     )
@@ -69,10 +71,20 @@ describe('WelcomePage setup guide', () => {
       '/settings/launch?from=setup-guide#policies'
     )
     expect(screen.getByRole('link', { name: 'View orders' }).getAttribute('href')).toBe('/orders')
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse guide' }))
-    expect(screen.getByText('Automatic checks passed: 13/13')).toBeTruthy()
-    expect(screen.queryByRole('link', { name: 'Contact settings' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Expand guide' })).toBeTruthy()
+    for (const name of [
+      'Manage products',
+      'View inventory',
+      'Sales settings',
+      'Shipping settings',
+      'Sales and delivery scope',
+      'Payment settings',
+      'Manage storefront themes',
+      'Policy settings',
+      'Inventory and reservation settings',
+      'View orders',
+    ]) {
+      expect(screen.getByRole('link', { name }).classList.contains('ant-btn-default')).toBe(true)
+    }
   })
 
   it('should preserve the denominator and explain partial, restricted and unknown results', async () => {
@@ -108,24 +120,23 @@ describe('WelcomePage setup guide', () => {
   })
 
   it.each([500, 403])(
-    'should clear previous results and reopen the guide when rechecking returns %s',
+    'should clear previous results when rechecking returns %s',
     async (status) => {
       renderGuide()
       await screen.findByText('Automatic checks passed: 13/13')
-      fireEvent.click(screen.getByRole('button', { name: 'Collapse guide' }))
       server.use(
         http.get('*/admin/settings/setup-guide', () =>
           HttpResponse.json({ error: { message: 'Denied or unavailable' } }, { status })
         )
       )
-      fireEvent.click(screen.getByRole('button', { name: /Recheck/ }))
-      expect(screen.queryByText('Automatic checks passed: 13/13')).toBeNull()
-      expect(screen.getByText('Checking 13 automatic checks…')).toBeTruthy()
+      const recheck = screen.getByRole('button', { name: /Recheck/ }) as HTMLButtonElement
+      await waitFor(() => expect(recheck.disabled).toBe(false))
+      fireEvent.click(recheck)
       await screen.findByText(
         status === 403 ? 'Setup checks are not authorized.' : 'Setup checks could not be loaded.'
       )
+      expect(screen.queryByText('Automatic checks passed: 13/13')).toBeNull()
       expect(screen.getByText('Automatic checks passed: 0/13')).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Collapse guide' })).toBeTruthy()
       expect(screen.queryByText(/Default currency: USD/)).toBeNull()
       if (status === 403) {
         expect(
@@ -265,7 +276,7 @@ describe('WelcomePage setup guide', () => {
     expect(screen.queryByRole('link', { name: 'Manage products' })).toBeNull()
   })
 
-  it('should recheck and reopen after returning under an application basename', async () => {
+  it('should recheck after returning under an application basename', async () => {
     let requests = 0
     server.use(
       http.get('*/admin/settings/setup-guide', () => {
@@ -284,7 +295,6 @@ describe('WelcomePage setup guide', () => {
     expect(screen.getByRole('link', { name: 'Payment settings' }).getAttribute('href')).toBe(
       '/admin/settings/launch?from=setup-guide#payment'
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse guide' }))
     unmount()
     renderGuide()
     await screen.findByText('Automatic checks passed: 13/13')

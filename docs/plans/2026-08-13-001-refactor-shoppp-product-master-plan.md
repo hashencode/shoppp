@@ -456,6 +456,10 @@ focused test alone.
 10. The completed Admin Store Setup Guide replaces the default root landing for settings readers,
     the welcome content and the location of setup-check presentation. Existing commercial rules,
     audited saves, launch API semantics, theme workflows and REL/DC/PG authority remain inherited.
+11. The 2026-09-04 ADM-SETUP product correction removes its whole-guide collapse control and
+    dashboard shortcut, and presents permitted destinations as default Button-styled links. It
+    preserves step-level expansion, authorization and fixed-check semantics; the observed
+    fashion-staging 404 is an undeployed API-version mismatch and does not alter release authority.
 
 The 2026-08-13 product decision explicitly supersedes earlier wording that retained only
 `fashion-store` and removed both `fashion` and `decor`:

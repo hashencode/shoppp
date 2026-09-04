@@ -324,8 +324,6 @@ export const zhCNMessages: Record<string, string> = {
   'Needs action: {action} · Unable to check: {unavailable} · No permission: {restricted}':
     '待处理：{action} · 无法检查：{unavailable} · 无权检查：{restricted}',
   Recheck: '重新检查',
-  'Collapse guide': '折叠指南',
-  'Expand guide': '展开指南',
   'Environment: {environment} · Checked: {time}': '环境：{environment} · 检查时间：{time}',
   'Default currency: {currency} · Configuration saved: {time}':
     '默认币种：{currency} · 配置保存时间：{time}',

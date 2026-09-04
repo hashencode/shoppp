@@ -1,7 +1,7 @@
 import { SETUP_GUIDE_CHECKS, type SetupGuideCheck, type SetupGuideSummary } from '@shoppp/contracts'
 import { Alert, Button, Card, Collapse, Space, Tag, Typography } from 'antd'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useHref, useLocation } from 'react-router-dom'
 import { hasPermission, type PermissionKey } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { fetchSetupGuide } from '../../services/platform/api'
@@ -125,13 +125,21 @@ type CheckResult = {
   failed?: boolean
 }
 
+const GuideAction = ({ children, to }: { children: React.ReactNode; to: string }) => {
+  const href = useHref(to)
+  return (
+    <Button className="!h-auto max-w-full whitespace-normal" href={href}>
+      {children}
+    </Button>
+  )
+}
+
 export const WelcomePage = () => {
   const { t, locale } = useI18n()
   const { permissions, role, refreshSession } = useAuth()
   const location = useLocation()
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<CheckResult | null>(null)
-  const [visible, setVisible] = useState(true)
   const [expanded, setExpanded] = useState<string[]>(ALL_STEPS)
   const canRead = hasPermission(role, 'settings.read', permissions)
   const requestKey = `${location.key}:${attempt}:${[...(permissions ?? [])].sort().join(',')}`
@@ -147,7 +155,6 @@ export const WelcomePage = () => {
         if (!active) return
         setResult({ request, summary })
         if (summary.checks.some((check) => check.status !== 'passed')) {
-          setVisible(true)
           setExpanded(ALL_STEPS)
         }
       },
@@ -155,7 +162,6 @@ export const WelcomePage = () => {
         if (!active) return
         const errorStatus = (error as { status?: number } | null)?.status
         setResult({ request, failed: true, errorStatus })
-        setVisible(true)
         setExpanded(ALL_STEPS)
       }
     )
@@ -182,7 +188,7 @@ export const WelcomePage = () => {
   )
   const settingsLink = (anchor: string, label: string) =>
     can('settings.read') ? (
-      <Link to={`/settings/launch?from=setup-guide#${anchor}`}>{t(label)}</Link>
+      <GuideAction to={`/settings/launch?from=setup-guide#${anchor}`}>{t(label)}</GuideAction>
     ) : null
   const actions = (step: Step) => {
     switch (step) {
@@ -192,9 +198,13 @@ export const WelcomePage = () => {
         return (
           <>
             {can('catalog.read') ? (
-              <Link to="/catalog/products?from=setup-guide">{t('Manage products')}</Link>
+              <GuideAction to="/catalog/products?from=setup-guide">
+                {t('Manage products')}
+              </GuideAction>
             ) : null}
-            {can('inventory.read') ? <Link to="/inventory">{t('View inventory')}</Link> : null}
+            {can('inventory.read') ? (
+              <GuideAction to="/inventory">{t('View inventory')}</GuideAction>
+            ) : null}
             {settingsLink('sales', 'Sales settings')}
           </>
         )
@@ -202,7 +212,9 @@ export const WelcomePage = () => {
         return (
           <>
             {can('settings.read') ? (
-              <Link to="/settings/shipping?from=setup-guide">{t('Shipping settings')}</Link>
+              <GuideAction to="/settings/shipping?from=setup-guide">
+                {t('Shipping settings')}
+              </GuideAction>
             ) : null}
             {settingsLink('sales', 'Sales and delivery scope')}
           </>
@@ -213,7 +225,9 @@ export const WelcomePage = () => {
         return (
           <>
             {can('themes.read') ? (
-              <Link to="/storefront/themes?from=setup-guide">{t('Manage storefront themes')}</Link>
+              <GuideAction to="/storefront/themes?from=setup-guide">
+                {t('Manage storefront themes')}
+              </GuideAction>
             ) : null}
             {settingsLink('policies', 'Policy settings')}
           </>
@@ -222,19 +236,14 @@ export const WelcomePage = () => {
         return (
           <>
             {settingsLink('sales', 'Inventory and reservation settings')}
-            {can('orders.read') ? <Link to="/orders">{t('View orders')}</Link> : null}
+            {can('orders.read') ? <GuideAction to="/orders">{t('View orders')}</GuideAction> : null}
           </>
         )
     }
   }
 
   return (
-    <CustomPageRecipe
-      className="[&_a]:underline [&_a]:underline-offset-4"
-      extra={
-        can('reporting.read') ? <Link to="/dashboard">{t('Commerce dashboard')}</Link> : undefined
-      }
-    >
+    <CustomPageRecipe>
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -259,16 +268,11 @@ export const WelcomePage = () => {
               </Typography.Paragraph>
             ) : null}
           </div>
-          <Space wrap>
-            {canRead ? (
-              <Button onClick={() => setAttempt((value) => value + 1)} loading={loading}>
-                {t('Recheck')}
-              </Button>
-            ) : null}
-            <Button onClick={() => setVisible((value) => !value)}>
-              {t(visible ? 'Collapse guide' : 'Expand guide')}
+          {canRead ? (
+            <Button onClick={() => setAttempt((value) => value + 1)} loading={loading}>
+              {t('Recheck')}
             </Button>
-          </Space>
+          ) : null}
         </div>
         {summary ? (
           <Typography.Paragraph type="secondary" className="!mb-0">
@@ -311,76 +315,74 @@ export const WelcomePage = () => {
           />
         ) : null}
       </Card>
-      {visible ? (
-        <Collapse
-          activeKey={expanded}
-          onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
-          items={STEPS.map((step, index) => {
-            const stepChecks = checks.filter((check) => check.step === step.key)
-            const stepStatus = (
-              ['unavailable', 'restricted', 'needs_action', 'passed'] as const
-            ).find((status) => stepChecks.some((check) => check.status === status))
-            return {
-              key: step.key,
-              label: `${index + 1}. ${t(step.title)}`,
-              extra: stepStatus ? statusTag(stepStatus) : <Tag>{t('Checking…')}</Tag>,
-              children: (
-                <div className="space-y-3">
-                  <Typography.Paragraph>{t(step.description)}</Typography.Paragraph>
-                  <ul className="m-0 list-none space-y-3 p-0">
-                    {stepChecks.map((check) => (
-                      <li key={check.id}>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span>{t(CHECK_LABEL[check.id])}</span>
-                          {statusTag(check.status)}
-                        </div>
-                        {check.reasons.map((reason, reasonIndex) => (
-                          <Typography.Paragraph
-                            className="!mb-0 mt-1"
-                            type="secondary"
-                            key={`${reason.code}-${reasonIndex}`}
-                          >
-                            {t(
-                              REASON_MESSAGE[reason.code] ??
-                                'This check needs further attention. Review the corresponding settings.',
-                              { countries: reason.countries?.join(', ') ?? '' }
-                            )}
-                          </Typography.Paragraph>
-                        ))}
-                      </li>
-                    ))}
-                  </ul>
-                  {step.key === 'payment' &&
-                  stepChecks.some((check) =>
-                    check.reasons.some(
-                      (reason) =>
-                        reason.code === 'payment_provider_missing' ||
-                        reason.code === 'payment_webhook_missing'
-                    )
-                  ) ? (
-                    <Typography.Paragraph>
-                      {t('Ask the deployment maintainer to configure the environment credentials.')}
-                    </Typography.Paragraph>
-                  ) : null}
-                  {step.key === 'storefront' ? (
-                    <Typography.Paragraph>
-                      {t('Preview the storefront and confirm the brand content and policy text.')}
-                    </Typography.Paragraph>
-                  ) : null}
-                  {step.key === 'review' ? (
-                    <Typography.Paragraph>
-                      {t(
-                        'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.'
-                      )}
-                    </Typography.Paragraph>
-                  ) : null}
-                  <Space wrap>{actions(step.key)}</Space>
-                </div>
-              ),
-            }
-          })}
-        />
-      ) : null}
+      <Collapse
+        activeKey={expanded}
+        onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
+        items={STEPS.map((step, index) => {
+          const stepChecks = checks.filter((check) => check.step === step.key)
+          const stepStatus = (
+            ['unavailable', 'restricted', 'needs_action', 'passed'] as const
+          ).find((status) => stepChecks.some((check) => check.status === status))
+          return {
+            key: step.key,
+            label: `${index + 1}. ${t(step.title)}`,
+            extra: stepStatus ? statusTag(stepStatus) : <Tag>{t('Checking…')}</Tag>,
+            children: (
+              <div className="space-y-3">
+                <Typography.Paragraph>{t(step.description)}</Typography.Paragraph>
+                <ul className="m-0 list-none space-y-3 p-0">
+                  {stepChecks.map((check) => (
+                    <li key={check.id}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{t(CHECK_LABEL[check.id])}</span>
+                        {statusTag(check.status)}
+                      </div>
+                      {check.reasons.map((reason, reasonIndex) => (
+                        <Typography.Paragraph
+                          className="!mb-0 mt-1"
+                          type="secondary"
+                          key={`${reason.code}-${reasonIndex}`}
+                        >
+                          {t(
+                            REASON_MESSAGE[reason.code] ??
+                              'This check needs further attention. Review the corresponding settings.',
+                            { countries: reason.countries?.join(', ') ?? '' }
+                          )}
+                        </Typography.Paragraph>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+                {step.key === 'payment' &&
+                stepChecks.some((check) =>
+                  check.reasons.some(
+                    (reason) =>
+                      reason.code === 'payment_provider_missing' ||
+                      reason.code === 'payment_webhook_missing'
+                  )
+                ) ? (
+                  <Typography.Paragraph>
+                    {t('Ask the deployment maintainer to configure the environment credentials.')}
+                  </Typography.Paragraph>
+                ) : null}
+                {step.key === 'storefront' ? (
+                  <Typography.Paragraph>
+                    {t('Preview the storefront and confirm the brand content and policy text.')}
+                  </Typography.Paragraph>
+                ) : null}
+                {step.key === 'review' ? (
+                  <Typography.Paragraph>
+                    {t(
+                      'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.'
+                    )}
+                  </Typography.Paragraph>
+                ) : null}
+                <Space wrap>{actions(step.key)}</Space>
+              </div>
+            ),
+          }
+        })}
+      />
     </CustomPageRecipe>
   )
 }

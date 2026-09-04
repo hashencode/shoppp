@@ -134,6 +134,8 @@ for (const viewport of [
       page.getByText('Current configuration checks passed; manual verification is still required.')
     ).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Store setup guide' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Commerce dashboard' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Collapse guide' })).toHaveCount(0)
     expect(
       await page.evaluate(
         () =>
@@ -148,6 +150,7 @@ for (const viewport of [
       fullPage: true,
     })
     const salesLink = page.getByRole('link', { name: 'Sales settings', exact: true })
+    await expect(salesLink).toHaveClass(/ant-btn-default/)
     await salesLink.focus()
     await expect(salesLink).toBeFocused()
     await page.keyboard.press('Enter')
@@ -259,10 +262,8 @@ test('Chinese dark guide remains readable on mobile', async ({ page }, testInfo)
     )
   ).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('guide-mobile-zh-dark.png'), fullPage: true })
-  await page.getByRole('button', { name: '折叠指南', exact: true }).click()
-  await expect(page.getByText('自动检查已通过：10/13')).toBeVisible()
-  await expect(page.getByRole('link', { name: '联系方式设置' })).toHaveCount(0)
-  await page.getByRole('button', { name: '展开指南', exact: true }).click()
+  await expect(page.getByRole('button', { name: '折叠指南', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: '联系方式设置' })).toHaveClass(/ant-btn-default/)
   await page.getByRole('link', { name: '政策设置' }).scrollIntoViewIfNeeded()
   await expect(page.getByText('预览店面并确认品牌内容与政策正文。')).toBeVisible()
   await page.screenshot({
