@@ -106,6 +106,14 @@
   opacity: 1;
 }
 
+@media (min-width: 992px) {
+  [data-fashion-store-product]
+    .product-image-thumb.slider-vertical:not(.swiper-initialized)
+    .swiper-wrapper {
+    flex-direction: column;
+  }
+}
+
 [data-fashion-store-product] .shop-color input:focus-visible + label,
 [data-fashion-store-product] .shop-size input:focus-visible + label {
   outline: 2px solid #232323;

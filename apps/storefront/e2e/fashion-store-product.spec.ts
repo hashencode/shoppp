@@ -211,6 +211,42 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   }
 });
 
+test("Product gallery reserves desktop thumbnail geometry before hydration", async ({
+  browser,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Initial geometry evidence runs once.");
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { height: 1000, width: 1440 },
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(new URL(productRoute, String(testInfo.project.use.baseURL)).href, {
+      waitUntil: "load",
+    });
+    const layout = await page.locator(".product-image-thumb").evaluate((rail) => {
+      const slide = rail.querySelector<HTMLElement>(".swiper-slide");
+      const image = slide?.querySelector<HTMLImageElement>("img");
+      if (!slide || !image) throw new Error("Product thumbnail markup is incomplete");
+      return {
+        flexDirection: getComputedStyle(rail.querySelector<HTMLElement>(".swiper-wrapper")!)
+          .flexDirection,
+        imageHeight: image.getBoundingClientRect().height,
+        railHeight: rail.getBoundingClientRect().height,
+        slideHeight: slide.getBoundingClientRect().height,
+      };
+    });
+
+    expect(layout.flexDirection).toBe("column");
+    expect(layout.slideHeight).toBeLessThan(layout.railHeight / 2);
+    expect(Math.abs(layout.slideHeight - layout.imageHeight - 2)).toBeLessThanOrEqual(
+      geometryTolerancePx,
+    );
+  } finally {
+    await context.close();
+  }
+});
+
 test("product-gallery temporal: gallery waits five seconds after an explicit restart", async ({
   page,
 }, testInfo) => {
