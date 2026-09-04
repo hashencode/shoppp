@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
-current_unit: REL-Pre-DC
+current_plan: 2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md
+current_unit: FS-F3-U1
 ---
 
 # Shoppp Product Master Plan
@@ -66,8 +66,8 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md); product execution returned to Pre-DC after the bounded FS-R1 successor completed.
-- **Current parent/child stage:** `REL-Pre-DC` — capability-scope audit and complete candidate-identity enforcement remain before DC1.
+- **Active product plan:** `FS-F3` — [Fashion Store Product Gallery Carousel Correction](2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md); this bounded corrective interlude is active without advancing candidate or production state.
+- **Current parent/child stage:** `FS-F3-U1` — capture the Product gallery timing, unique-selection, and thumbnail-geometry regressions before changing production code.
 - **Feature handoff:** `FS-R1` completed U1–U11 on 2026-09-04 in the existing primary worktree and `codex/fashion-store-components-dependencies` branch. Its local fixture/live, current Playwright engine, reduced-motion, no-JS, remount, performance, resource, maintenance and review evidence passed. Historical minimum-browser, real-device and embedded-host rows remain explicitly unverified under the user-approved scope; the handoff does not advance DC/PG.
 - **Localization handoff:** `ADM-I18N` completed U1–U6 implementation, local verification and audit closure on 2026-09-03. Its plan retains evidence and review/coverage limits, with no implementation tail; this handoff does not advance candidate or production gates.
 - **Feature handoff:** `ADM-SETUP` completed its authorized guide implementation, local verification and documentation on 2026-09-03. Its plan retains completed feature evidence; product execution returns to REL-Pre-DC without advancing candidate or production gates.
@@ -79,9 +79,8 @@ historical evidence remain unchanged inside the owning plans.
   run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
   non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
   not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Next action:** Under REL-Pre-DC, audit the intended release capability scope and approved deferrals, reconcile every selected capability with its owning-plan completion evidence, and complete candidate-identity enforcement before DC1.
-- **Blocker:** `REL-Pre-DC` remains blocked by unaudited product capability scope and incomplete
-  candidate-identity enforcement; Fashion Store U8 is no longer a blocker.
+- **Next action:** Complete FS-F3-U1's failing browser regressions, then execute U2 and U3 in dependency order before returning the pointer to REL-Pre-DC.
+- **Blocker:** None for FS-F3. REL-Pre-DC's unaudited product capability scope and incomplete candidate-identity enforcement remain paused, not resolved, during this corrective interlude.
 - **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
   post-commit `33461845421` passed. Fresh
   preparation `33462310594`, complete named-operator browser path, operator Preview `33462932654`,
@@ -186,7 +185,7 @@ historical evidence remain unchanged inside the owning plans.
   No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
   or production mutation is authorized. Detailed run and artifact evidence remains in the active
   feature plan and progress records.
-- **Following sequence:** `REL-Pre-DC` capability and identity reconciliation -> DC1 immutable
+- **Following sequence:** `FS-F3-U1` -> `FS-F3-U2` -> `FS-F3-U3` -> `REL-Pre-DC` capability and identity reconciliation -> DC1 immutable
   candidate freeze -> DC2-DC4 -> PG1-PG5 under their named human and production authorities.
 - **Candidate state:** Pre-DC blocked. No candidate is frozen; DC/PG have not begun.
 
@@ -412,6 +411,7 @@ focused test alone.
 | `FS-F1` | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md) | Corrective child of `FS` | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim | `FS` owns remaining integration and final completion |
 | `FS-F2` | [Fashion Store Shared Style Ownership](2026-09-03-1417-fix-fashion-store-shared-styles-plan.md) | Bounded corrective follow-up to `FS` | Complete — U1-U4 closed on 2026-09-03; shared-style correction and local verification complete | Retains completed correction evidence; `REL` owns candidate and production gates |
 | `FS-R1` | [Fashion Store Shared Components and Dependency Consolidation](2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md) | Bounded successor over FS and completed FS-F2 | **Complete — U1-U11 closed on 2026-09-04 under the user-approved current-engine scope, with minimum-version targets and explicit unverified device rows retained** | Retains component, dependency, compatibility and local-verification evidence; `REL` owns candidate and production gates |
+| `FS-F3` | [Fashion Store Product Gallery Carousel Correction](2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md) | Active corrective successor to completed FS-R1-U6 | U1 In Progress; U2-U3 Planned; candidate and production state unchanged | Owns the bounded Product gallery correction and returns execution to `REL-Pre-DC` after completion; `REL` retains candidate and production gates |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Pre-DC blocked and current; FS-R1, historical Fashion Store implementation, FS-F2 and ADM-I18N are complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
