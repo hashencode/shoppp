@@ -174,10 +174,18 @@ export const fashionStoreBehaviorContract = {
     }),
     row({
       actions: {
-        implementation: { kind: "keyboard", selector: ".swiper.full-screen" },
-        source: { kind: "keyboard", selector: ".swiper.full-screen" },
+        implementation: { kind: "keyboard", selector: "#fashion-store-decor-hero" },
+        source: { kind: "keyboard", selector: "#decor-store-slider" },
       },
-      branches: [],
+      branches: [
+        { id: "below-threshold", input: "touch", outcome: "A 74px swipe retains the slide." },
+        { id: "above-threshold", input: "touch", outcome: "A 76px swipe changes the slide." },
+        {
+          id: "busy-input",
+          input: "keyboard",
+          outcome: "Conflicting input is rejected while a layer timeline is busy.",
+        },
+      ],
       disposition: { kind: "reproduced" },
       evidenceStates: [0, 1, 2].map((index) =>
         named(
@@ -185,31 +193,35 @@ export const fashionStoreBehaviorContract = {
             action: { index, kind: "hero" },
             capture: "element",
             id: `hero-slide-${index + 1}`,
-            implementationSelector: ".swiper.full-screen",
-            sourceSelector: ".swiper.full-screen",
+            implementationSelector: "#fashion-store-decor-hero",
+            sourcePath: "/demo-decor-store.html",
+            sourceSelector: "#decor-store-slider",
           },
           `hero-slide-${index + 1}`,
         ),
       ),
       fallback: {
-        outcome: "The first slide remains readable when motion is reduced.",
-        strategy: "reduced-motion",
+        outcome:
+          "The complete first slide remains readable when motion is reduced or startup fails.",
+        strategy: "stable-first-slide",
       },
       id: "hero-carousel",
-      initialState: "slide-1",
+      initialState: "slide-1-static-complete",
       modes: ["static", "temporal", "interaction", "fallback"],
-      outcome: "Hero slides advance and controls select the same slide on both sides.",
-      owner: "source-runtime",
+      outcome:
+        "Swiper selects three Decor-derived slides at a 300ms fade and GSAP layers settle in source order.",
+      owner: "framework-adapter",
       region: "hero",
       role: "carousel",
-      sourceCandidate: ".swiper.full-screen",
-      sourceSelector: ".swiper.full-screen",
-      triggers: ["load", "timer", "click", "keyboard", "touch"],
+      sourceCandidate:
+        "#decor-store-slider, #decor-store-slider a, #decor-store-slider [role=button]",
+      sourceSelector: "#decor-store-slider",
+      triggers: ["load", "timer", "click", "keyboard", "touch", "resize"],
     }),
     row({
       actions: {
-        implementation: { kind: "observe", selector: ".swiper.full-screen" },
-        source: { kind: "observe", selector: ".swiper.full-screen.magic-cursor" },
+        implementation: { kind: "observe", selector: "#fashion-store-decor-hero" },
+        source: { kind: "observe", selector: "#decor-store-slider" },
       },
       branches: [],
       disposition: {
@@ -229,8 +241,8 @@ export const fashionStoreBehaviorContract = {
       owner: "approved-adaptation",
       region: "hero",
       role: "state-control",
-      sourceCandidate: ".swiper.full-screen.magic-cursor",
-      sourceSelector: ".swiper.full-screen.magic-cursor",
+      sourceCandidate: "#decor-store-slider",
+      sourceSelector: "#decor-store-slider",
       triggers: ["hover"],
     }),
     row({

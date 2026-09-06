@@ -11,6 +11,11 @@ export interface ThemeBehaviorDescriptor {
   fidelityStatesByRegion: ReturnType<typeof fidelityStatesByRegionFromBehaviorContract>;
   namedStates: ReturnType<typeof namedStatesFromBehaviorContract>;
   sourceRegions: readonly {
+    authority?: {
+      sourceEntry: string;
+      sourceEntrySha256: string;
+      sourceSelector: string;
+    };
     id: string;
     selector: string;
   }[];
@@ -20,7 +25,7 @@ export interface ThemeBehaviorDescriptor {
 export function createThemeBehaviorDescriptor(options: {
   adapters: Readonly<Record<string, ThemeBehaviorAdapter>>;
   contract: ThemeBehaviorContract;
-  sourceRegions: readonly { id: string; selector: string }[];
+  sourceRegions: ThemeBehaviorDescriptor["sourceRegions"];
 }): ThemeBehaviorDescriptor {
   return {
     ...options,

@@ -4,7 +4,8 @@ The active [FS-R1 plan](../plans/2026-09-03-1750-refactor-fashion-store-componen
 
 ## Owned dependencies
 
-- `swiper` is pinned to 11.2.10. `FashionStoreCarousel.vue` owns ordinary carousels; `FashionStoreProductGallery.vue` owns the synchronized main/thumbnail gallery. Page components supply content and documented timing/layout variants. Do not add page-local timers, drag engines or resize controllers alongside them.
+- `swiper` is pinned to 14.2.0. `FashionStoreCarousel.vue` owns ordinary carousels; `FashionStoreProductGallery.vue` owns the synchronized main/thumbnail gallery; `FashionStoreDecorHero.vue` owns only Home Hero mechanics. Page components supply content and documented timing/layout variants. Do not add page-local timers, drag engines or resize controllers alongside them.
+- `gsap` is pinned to 3.15.0 and is loaded only by the Fashion-owned Home Hero motion composable. Keep selectors under `[data-hero-layer]`, preserve the static SSR first slide, and do not turn it into a shared page animation runtime.
 - `bootstrap` is pinned to 5.3.2. Fashion Store loads its package CSS through `styles/vendor.css`; only `FashionStoreProductLightbox.vue` dynamically imports the Modal JavaScript module, on the client and on first open. Standard modal focus, Escape, backdrop and scroll locking remain Bootstrap responsibilities.
 - `@lucide/vue` remains the ordinary icon source. `FashionStoreIcon.vue` exposes the reviewed semantic allowlist using named imports. Brand marks remain exact local SVG assets with their retained licenses.
 - Tooltip and quantity behavior remain local Vue components because their bounded contracts do not require another runtime. Commerce truth continues through the existing action, cart and checkout ports.

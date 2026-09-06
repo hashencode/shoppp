@@ -24,6 +24,7 @@ import {
 
 const sourcePort = Number(process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427);
 const sourceUrl = `http://127.0.0.1:${sourcePort}/demo-fashion-store.html`;
+const decorSourceUrl = `http://127.0.0.1:${sourcePort}/demo-decor-store.html`;
 const sourceRoot = process.env.STOREFRONT_FASHION_STORE_SOURCE_ROOT
   ? resolve(process.env.STOREFRONT_FASHION_STORE_SOURCE_ROOT)
   : fileURLToPath(
@@ -48,6 +49,15 @@ async function prepareSource(page: Page): Promise<void> {
       (HTMLElement & { swiper?: unknown }) | null;
     return Boolean(carousel?.swiper);
   });
+  await page
+    .locator("[data-accept-btn]")
+    .click({ timeout: 2_000 })
+    .catch(() => undefined);
+}
+
+async function prepareDecorSource(page: Page): Promise<void> {
+  await page.goto(decorSourceUrl, { waitUntil: "domcontentloaded" });
+  await page.locator("#decor-store-slider").waitFor({ state: "visible" });
   await page
     .locator("[data-accept-btn]")
     .click({ timeout: 2_000 })
@@ -207,11 +217,17 @@ test("source-inventory static: independent candidates and visible copy match", a
   browser,
   page,
 }, testInfo) => {
+  test.setTimeout(60_000);
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Inventory runs once at desktop.");
   const source = await browser.newPage(sourcePageOptions(page, testInfo));
+  const decorSource = await browser.newPage(sourcePageOptions(page, testInfo));
   try {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await Promise.all([prepareSource(source), prepareImplementation(page, true)]);
+    await Promise.all([
+      prepareSource(source),
+      prepareDecorSource(decorSource),
+      prepareImplementation(page, true),
+    ]);
     await Promise.all([revealInventorySurface(source), revealInventorySurface(page)]);
     await Promise.all([
       resetInventoryHero(source, "source"),
@@ -235,13 +251,25 @@ test("source-inventory static: independent candidates and visible copy match", a
         side: "implementation",
       }),
     ]);
-    assertThemeSourceInventoryCovered(sourceInventory, fashionStoreBehaviorContract);
-    assertThemeVisibleCopyEquivalent(
-      sourceInventory.visibleCopy,
-      implementationInventory.visibleCopy,
+    assertThemeSourceInventoryCovered(
+      {
+        ...sourceInventory,
+        candidates: sourceInventory.candidates.filter(({ region }) => region !== "hero"),
+      },
+      fashionStoreBehaviorContract,
     );
+    assertThemeVisibleCopyEquivalent(
+      sourceInventory.visibleCopy.filter(({ region }) => region !== "hero"),
+      implementationInventory.visibleCopy.filter(({ region }) => region !== "hero"),
+    );
+    await expect(decorSource.locator("#decor-store-slider")).toContainText("Corby sofas");
+    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Corby sofas");
+    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Verona sofas");
+    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Lewis sofas");
+    await expect(page.locator("#fashion-store-decor-hero")).not.toContainText("More information");
   } finally {
     await source.close();
+    await decorSource.close();
   }
 });
 

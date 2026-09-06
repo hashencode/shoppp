@@ -64,6 +64,8 @@ export interface FidelityRegionContract {
   maxChangedPixelRatio: number;
   neutralizeImagePixels?: boolean;
   normalizeFractionalCaptureHeight?: boolean;
+  pageImplementationSelector?: string;
+  pageSourceSelector?: string;
   pixelBudgetReason?:
     | "dense-source-font-antialiasing"
     | "source-accessibility-contrast-correction"
@@ -71,6 +73,8 @@ export interface FidelityRegionContract {
     | "source-image-subpixel-rasterization";
   probeRootStyles?: boolean;
   sourceProbeSelector?: string;
+  sourcePixelIgnoreSelectors?: readonly string[];
+  sourcePath?: `/${string}.html`;
   sourceSelector: string;
   styleEquivalences?: Readonly<
     Record<
@@ -127,7 +131,15 @@ const region = (
   sourceSelector: string,
   implementationSelector: string,
   states: readonly string[] = ["initial"],
-  probes: Pick<FidelityRegionContract, "implementationProbeSelector" | "sourceProbeSelector"> = {},
+  probes: Pick<
+    FidelityRegionContract,
+    | "implementationProbeSelector"
+    | "pageImplementationSelector"
+    | "pageSourceSelector"
+    | "sourcePath"
+    | "sourcePixelIgnoreSelectors"
+    | "sourceProbeSelector"
+  > = {},
 ): FidelityRegionContract => ({
   ...probes,
   geometryTolerancePx: kind === "component" ? 1 : 2,
@@ -348,12 +360,16 @@ export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
       region(
         "hero",
         "component",
-        ".swiper.full-screen",
-        ".swiper.full-screen",
+        "#decor-store-slider",
+        "#fashion-store-decor-hero",
         fashionStoreStates("hero", ["initial", "reduced-motion"]),
         {
-          implementationProbeSelector: ".fashion-store-hero-slide[data-active=true] .fs-120",
-          sourceProbeSelector: ".swiper.full-screen .swiper-slide-active .fs-120",
+          implementationProbeSelector: "[data-hero-slide='1'] [data-hero-layer='title']",
+          pageImplementationSelector: ".fashion-store-decor-hero",
+          pageSourceSelector: ".swiper.full-screen",
+          sourcePath: "/demo-decor-store.html",
+          sourcePixelIgnoreSelectors: ["[id$='layer-11']", "[id$='layer-12']"],
+          sourceProbeSelector: "#decor-store-slider .active-revslide [id$='layer-07']",
         },
       ),
       region("categories", "component", "section:nth-of-type(3)", "section:nth-of-type(3)"),
@@ -861,6 +877,14 @@ export function assertFidelityMatrixComplete(
       if (contractRegion.states.length === 0) {
         issues.push(`${route.id}/${contractRegion.id}: at least one state is required`);
       }
+      if (
+        contractRegion.sourcePath &&
+        contractRegion.sourcePath !== route.sourcePath &&
+        (!contractRegion.pageSourceSelector || !contractRegion.pageImplementationSelector)
+      )
+        issues.push(
+          `${route.id}/${contractRegion.id}: mixed-source region requires full-page exclusion selectors`,
+        );
       if (descriptor) {
         const requiredBehaviorStates = descriptor.fidelityStatesByRegion[contractRegion.id] ?? [];
         for (const state of requiredBehaviorStates) {

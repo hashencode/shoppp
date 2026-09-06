@@ -48,6 +48,7 @@ export interface NamedStateContract {
   geometrySpace?: "document" | "viewport";
   id: string;
   implementationSelector: string;
+  sourcePath?: `/${string}.html`;
   sourceSelector: string;
 }
 

@@ -6,10 +6,6 @@ import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { fashionStoreAssetId } from "../../resources";
 
 type PauseReason = "document-hidden" | "focus" | "hover" | "lightbox" | "reduced-motion";
-type InterruptibleSwiper = SwiperInstance & {
-  onTranslateToWrapperTransitionEnd?: EventListener | null;
-};
-
 const properties = defineProps<{
   images: readonly string[];
   paused: boolean;
@@ -53,15 +49,9 @@ function revealActiveThumbnail(swiper = thumbnailSwiper.value): void {
   if (!swiper || !slide) return;
   if (swiper.animating) {
     const renderedTranslate = Number(swiper.getTranslate());
-    // Swiper stores this cleanup hook outside its public type; remove it when replacing the motion.
-    const interruptibleSwiper = swiper as InterruptibleSwiper;
-    const transitionEnd = interruptibleSwiper.onTranslateToWrapperTransitionEnd;
-    if (transitionEnd) {
-      swiper.wrapperEl.removeEventListener("transitionend", transitionEnd);
-      delete interruptibleSwiper.onTranslateToWrapperTransitionEnd;
-    }
+    swiper.setTransition(0);
+    swiper.setTranslate(renderedTranslate);
     swiper.animating = false;
-    swiper.translateTo(renderedTranslate, 0, false, true);
   }
   const fullyVisibleClass = swiper.params.slideFullyVisibleClass;
   if (fullyVisibleClass && slide.classList.contains(fullyVisibleClass)) return;

@@ -498,7 +498,7 @@ test("Product gallery replaces an interrupted thumbnail reveal", async ({ page }
     .toBe(false);
 });
 
-test("product-gallery-slide-2 interaction: gallery supports pointer, keyboard, touch, and lightbox", async ({
+test("product-gallery-slide-2 temporal and product-gallery-slide-2 interaction: gallery supports pointer, keyboard, touch, and lightbox", async ({
   page,
 }, testInfo) => {
   test.skip(

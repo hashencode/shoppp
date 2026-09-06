@@ -42,6 +42,7 @@ export async function loadThemeBehaviorDescriptor(
     if (!region || typeof region !== "object")
       throw new Error(`${policy.sourceContractPath}: source region must be an object`);
     const value = region as {
+      authority?: unknown;
       id?: unknown;
       inventorySelector?: unknown;
       key?: unknown;
@@ -54,7 +55,24 @@ export async function loadThemeBehaviorDescriptor(
       typeof value.inventorySelector === "string" ? value.inventorySelector : value.selector;
     if (typeof selector !== "string" || !selector.trim())
       throw new Error(`${policy.sourceContractPath}: source region is missing selector`);
-    return { id, selector };
+    let authority: ThemeBehaviorDescriptor["sourceRegions"][number]["authority"];
+    if (value.authority !== undefined) {
+      if (!value.authority || typeof value.authority !== "object")
+        throw new Error(`${policy.sourceContractPath}: source region authority must be an object`);
+      const candidate = value.authority as Record<string, unknown>;
+      if (
+        typeof candidate.sourceEntry !== "string" ||
+        typeof candidate.sourceEntrySha256 !== "string" ||
+        typeof candidate.sourceSelector !== "string"
+      )
+        throw new Error(`${policy.sourceContractPath}: source region authority is incomplete`);
+      authority = {
+        sourceEntry: candidate.sourceEntry,
+        sourceEntrySha256: candidate.sourceEntrySha256,
+        sourceSelector: candidate.sourceSelector,
+      };
+    }
+    return { ...(authority ? { authority } : {}), id, selector };
   });
   return createThemeBehaviorDescriptor({
     adapters: adapters as Readonly<Record<string, ThemeBehaviorAdapter>>,

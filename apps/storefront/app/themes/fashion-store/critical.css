@@ -14,6 +14,14 @@
   src: url("./upstream/fonts/outfit-latin.woff2") format("woff2");
 }
 
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("./assets/hero/plus-jakarta-sans-latin.woff2") format("woff2");
+}
+
 /* Keep the Fashion Store's first-paint metrics stable while Nuxt replays the
    preview styles in development. Body-scoped variables outrank later :root
    declarations from the shared upstream theme. */

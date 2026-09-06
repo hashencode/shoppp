@@ -112,6 +112,18 @@ import image107 from "./upstream/images/demo-fashion-store-about-12.png";
 import image108 from "./upstream/images/demo-fashion-store-about-13.png";
 import image109 from "./upstream/images/demo-fashion-store-contatc-01.png";
 import image110 from "./upstream/images/demo-fashion-store-contatc-02.jpg";
+import decorHero01Product from "./assets/hero/fashion-store-decor-hero-01-product.png";
+import decorHero01PatternDesktop from "./assets/hero/fashion-store-decor-hero-01-pattern-desktop.jpg";
+import decorHero01PatternMobile from "./assets/hero/fashion-store-decor-hero-01-pattern-mobile.jpg";
+import decorHero01Thumb from "./assets/hero/fashion-store-decor-hero-01-thumb.jpg";
+import decorHero02Product from "./assets/hero/fashion-store-decor-hero-02-product.png";
+import decorHero02PatternDesktop from "./assets/hero/fashion-store-decor-hero-02-pattern-desktop.jpg";
+import decorHero02PatternMobile from "./assets/hero/fashion-store-decor-hero-02-pattern-mobile.jpg";
+import decorHero02Thumb from "./assets/hero/fashion-store-decor-hero-02-thumb.jpg";
+import decorHero03Product from "./assets/hero/fashion-store-decor-hero-03-product.png";
+import decorHero03PatternDesktop from "./assets/hero/fashion-store-decor-hero-03-pattern-desktop.jpg";
+import decorHero03PatternMobile from "./assets/hero/fashion-store-decor-hero-03-pattern-mobile.jpg";
+import decorHero03Thumb from "./assets/hero/fashion-store-decor-hero-03-thumb.jpg";
 
 const sourceImages = new Map<string, string>([
   ["images/apple-touch-icon-114x114.png", image0],
@@ -236,6 +248,21 @@ const establishedIds: Readonly<Record<string, string>> = {
   "demo-fashion-store-slider-03.jpg": "fashion-store.slider-03",
 };
 
+const decorHeroAssets = {
+  "fashion-store.decor-hero-1-pattern-desktop": decorHero01PatternDesktop,
+  "fashion-store.decor-hero-1-pattern-mobile": decorHero01PatternMobile,
+  "fashion-store.decor-hero-1-product": decorHero01Product,
+  "fashion-store.decor-hero-1-thumb": decorHero01Thumb,
+  "fashion-store.decor-hero-2-pattern-desktop": decorHero02PatternDesktop,
+  "fashion-store.decor-hero-2-pattern-mobile": decorHero02PatternMobile,
+  "fashion-store.decor-hero-2-product": decorHero02Product,
+  "fashion-store.decor-hero-2-thumb": decorHero02Thumb,
+  "fashion-store.decor-hero-3-pattern-desktop": decorHero03PatternDesktop,
+  "fashion-store.decor-hero-3-pattern-mobile": decorHero03PatternMobile,
+  "fashion-store.decor-hero-3-product": decorHero03Product,
+  "fashion-store.decor-hero-3-thumb": decorHero03Thumb,
+} as const;
+
 export function fashionStoreAssetId(sourcePath: string): string {
   const filename = sourcePath.split("/").at(-1) ?? sourcePath;
   return (
@@ -259,11 +286,12 @@ export function resolveFashionStoreEditorMedia(
   return media.source === "url" ? media.src : resolveAsset(fashionStoreAssetId(media.themePath));
 }
 
-export const themeAssets = Object.freeze(
-  Object.fromEntries(
+export const themeAssets = Object.freeze({
+  ...Object.fromEntries(
     [...sourceImages].map(([sourcePath, resolvedPath]) => [
       fashionStoreAssetId(sourcePath),
       resolvedPath,
     ]),
   ),
-);
+  ...decorHeroAssets,
+});

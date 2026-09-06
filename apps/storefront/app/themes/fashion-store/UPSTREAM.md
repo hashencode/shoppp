@@ -11,7 +11,30 @@
 
 The pinned vendor files provide reviewed visual runtime capabilities. `js/main.js` is retained as a line-addressable behavioral reference and is not executed as the application entry point. Nuxt owns rendering, routing, fixture data, and commerce actions; the Fashion Store adapter may initialize only reviewed visual behavior and must dispose it on unmount.
 
-The preview build removes only the four exact Google Fonts `@import` statements from the compiled `style.css` and `fashion-store.css` modules. Fashion overrides the base families, so the unused Plus Jakarta Sans and Inter requests are omitted; Outfit and Figtree are supplied from the hash-pinned local WOFF2 files. The imported upstream stylesheets remain byte-identical and retain their original positions in the five-file cascade; `integration.css` contains this documented hosting adaptation and accessibility-only rules.
+The preview build removes only the four exact Google Fonts `@import` statements from the compiled `style.css` and `fashion-store.css` modules. Fashion overrides the base families; Outfit and Figtree are supplied from the hash-pinned local WOFF2 files, while the FS-R2 Home Hero uses the copied local Plus Jakarta Sans subset listed below. Inter remains omitted. The imported upstream stylesheets remain byte-identical and retain their original positions in the five-file cascade; `integration.css` contains this documented hosting adaptation and accessibility-only rules.
+
+## FS-R2 Decor Hero copied visual assets
+
+The user-supplied Crafto package authorizes use, redistribution inside this product, and renamed
+cross-template copies of these passive image/font bytes. No additional attribution or notice is
+required beyond retaining this provenance. Source and delivered SHA-256 values are identical; the
+Decor implementation and its immutable source snapshot remain unchanged.
+
+| Fashion-owned delivery file | Decor source file | SHA-256 |
+| --- | --- | --- |
+| `assets/hero/fashion-store-decor-hero-01-product.png` | `decor-store/upstream/images/demo-decor-store-slider-01-img-01.png` | `54594788dc41dc6506827c9545797222c230a27bdf4632f7abe5f1a9056ac0b4` |
+| `assets/hero/fashion-store-decor-hero-01-pattern-desktop.jpg` | `decor-store/upstream/images/demo-decor-store-slider-01-img-02.jpg` | `cf827b426ba54048799b35929bfc51ac92f07fb857392593964f26e4d9b1be72` |
+| `assets/hero/fashion-store-decor-hero-01-pattern-mobile.jpg` | `decor-store/upstream/images/demo-decor-store-slider-01-img-03.jpg` | `74addabd7ebed5e18d4f14655adc468053d42ea2ed1392cecc618778ba1211fc` |
+| `assets/hero/fashion-store-decor-hero-01-thumb.jpg` | `decor-store/upstream/images/demo-decor-store-slider-01-thumb.jpg` | `fda36e97ee8eec86980ad1097bdd79370a8ad89c8a79fcb41fb60dddf6b8df73` |
+| `assets/hero/fashion-store-decor-hero-02-product.png` | `decor-store/upstream/images/demo-decor-store-slider-02-img-04.png` | `611ac9ed11e9a2e6bacfd283107b48bdd4c686436aebd1f18f2752cfca9d1c5c` |
+| `assets/hero/fashion-store-decor-hero-02-pattern-desktop.jpg` | `decor-store/upstream/images/demo-decor-store-slider-02-img-05.jpg` | `599c5088c5d92f04f218d3916cc7cb3b5633ba7dfefe791b1ed833e09d319612` |
+| `assets/hero/fashion-store-decor-hero-02-pattern-mobile.jpg` | `decor-store/upstream/images/demo-decor-store-slider-02-img-06.jpg` | `e59189a7f35b592efe9f1f4cc5dff16a767d168e50de577314e2dd8e0644b60b` |
+| `assets/hero/fashion-store-decor-hero-02-thumb.jpg` | `decor-store/upstream/images/demo-decor-store-slider-02-thumb.jpg` | `9bb15c7bd916e01f69ce7c5d7cc1b57737c4032e4d4f61877f163deb24001678` |
+| `assets/hero/fashion-store-decor-hero-03-product.png` | `decor-store/upstream/images/demo-decor-store-slider-03-img-07.png` | `e10535e74004c9108d9baeedac01bf84e9bf559203c4bcc4ad16b23a18bf916f` |
+| `assets/hero/fashion-store-decor-hero-03-pattern-desktop.jpg` | `decor-store/upstream/images/demo-decor-store-slider-03-img-08.jpg` | `6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034` |
+| `assets/hero/fashion-store-decor-hero-03-pattern-mobile.jpg` | `decor-store/upstream/images/demo-decor-store-slider-03-img-09.jpg` | `7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011` |
+| `assets/hero/fashion-store-decor-hero-03-thumb.jpg` | `decor-store/upstream/images/demo-decor-store-slider-03-thumb.jpg` | `2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96` |
+| `assets/hero/plus-jakarta-sans-latin.woff2` | `decor-store/upstream/fonts/plus-jakarta-sans-latin.woff2` | `cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215` |
 
 - `js/main.js:80-512` — adapter-reference-only: Header collapse, dropdown, focus-adjacent, and responsive navigation visual state; business search validation is excluded.
 - `js/main.js:521-609` — adapter-reference-only: Shop-grid imagesLoaded and Isotope layout behavior used by the Fashion product surface.

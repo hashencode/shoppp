@@ -217,7 +217,8 @@ const semanticDispositionByBehavior = {
   ],
   "hero-carousel": [
     affordance(".swiper.full-screen", local("hero-carousel")),
-    affordance("[data-fashion-store-slide]", local("hero-carousel")),
+    affordance("#fashion-store-decor-hero [data-hero-layer='next']", local("hero-carousel")),
+    affordance("#fashion-store-decor-hero [data-hero-layer='thumbnail']", local("hero-carousel")),
   ],
   "hero-native-cursor": [
     affordance(".swiper.full-screen:not(.magic-cursor)", local("hero-native-cursor")),

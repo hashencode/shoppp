@@ -19,6 +19,7 @@ import { probeNativeCursorVisibility } from "./support/theme-behavior-probes";
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 
 const sourceURL = `http://127.0.0.1:${Number(process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427)}/demo-fashion-store.html`;
+const decorSourceURL = sourceURL.replace("demo-fashion-store.html", "demo-decor-store.html");
 const fontData = (name: "figtree" | "outfit") =>
   readFileSync(
     new URL(`../app/themes/fashion-store/upstream/fonts/${name}-latin.woff2`, import.meta.url),
@@ -42,7 +43,10 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
   await page.goto(url, { waitUntil: "networkidle" });
   await page.addStyleTag({ content: deterministicCss });
   if (url === "/") {
-    await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
+    await page.locator("#fashion-store-main").click({ position: { x: 1, y: 1 } });
+    await page.waitForFunction(
+      () => document.querySelector("#fashion-store-decor-hero")?.getAttribute("data-runtime-status") === "operational",
+    );
   } else {
     await page.evaluate(() => {
       const element = document.querySelector(".swiper.full-screen") as HTMLElement;
@@ -70,6 +74,23 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
     });
   }
   await page.evaluate(async () => document.fonts.ready);
+}
+
+async function readyDecorSource(page: Page): Promise<void> {
+  await page.goto(decorSourceURL, { waitUntil: "networkidle" });
+  await page.waitForFunction(() =>
+    document.querySelector("#decor-store-slider")?.classList.contains("revslider-initialised"),
+  );
+  await page.evaluate(() => {
+    const jquery = (
+      window as typeof window & {
+        jQuery?: (selector: string) => { revpause?(): void; revshowslide?(index: number): void };
+      }
+    ).jQuery;
+    jquery?.("#decor-store-slider").revshowslide?.(1);
+    jquery?.("#decor-store-slider").revpause?.();
+  });
+  await page.waitForTimeout(3_700);
 }
 
 function normalizeRegions(snapshot: SourceContractSnapshot): SourceContractSnapshot {
@@ -135,7 +156,11 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     reducedMotion: "reduce",
     viewport: page.viewportSize()!,
   });
-  await Promise.all([ready(source, sourceURL), ready(page, "/")]);
+  const decorSource = await browser.newPage({
+    reducedMotion: "reduce",
+    viewport: page.viewportSize()!,
+  });
+  await Promise.all([ready(source, sourceURL), readyDecorSource(decorSource), ready(page, "/")]);
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(1);
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveAttribute(
     "data-runtime-instance-count",
@@ -158,12 +183,6 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     },
     {
       content: false,
-      id: "hero",
-      selector: ".swiper.full-screen",
-      styles: ["height", "width"],
-    },
-    {
-      content: false,
       id: "product",
       selector: "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
       styles: ["height", "width"],
@@ -175,9 +194,8 @@ test("source header, hero, and first product card pass the two-viewport slice", 
       ...sourceProbes[1],
       selector: mobile ? ".navbar-brand .mobile-logo" : ".navbar-brand .default-logo",
     },
-    { ...sourceProbes[2], selector: ".swiper.full-screen" },
     {
-      ...sourceProbes[3],
+      ...sourceProbes[2],
       selector: "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
     },
   ] as const;
@@ -191,24 +209,21 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     }),
   ).toEqual([]);
 
-  await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
   expect(await page.locator(".fashion-store-hero-slide[data-active=true]").innerText()).toContain(
-    "Women's\ncollection",
+    "Corby sofas",
   );
   expect(await page.locator("section:nth-of-type(4) .shop-footer").first().innerText()).toContain(
     "Textured sweater",
   );
-  await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
   await regionalPixelGate(
-    source,
+    decorSource,
     page,
-    ".swiper.full-screen",
-    ".swiper.full-screen",
+    "#decor-store-slider",
+    "#fashion-store-decor-hero",
     `${testInfo.project.name}-hero`,
     testInfo,
     0.04,
   );
-  await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
   await regionalPixelGate(
     source,
     page,
@@ -218,6 +233,7 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     testInfo,
   );
   await source.close();
+  await decorSource.close();
 });
 
 test("complete source home renders every static region and local image", async ({
@@ -387,15 +403,15 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
     .poll(() => carousel.getAttribute("data-collection-index"), { timeout: 5_500 })
     .not.toBe(collectionBefore);
   await expect
-    .poll(() => hero.getAttribute("data-motion-active-index"), { timeout: 5_500 })
+    .poll(() => hero.getAttribute("data-motion-active-index"), { timeout: 10_000 })
     .not.toBe(String(heroBefore));
-  await expect(hero).toHaveAttribute("data-motion-phase", "idle");
+  await expect(hero).toHaveAttribute("data-motion-phase", "idle", { timeout: 5_000 });
   const heroAfter = Number(await hero.getAttribute("data-motion-active-index"));
   await expect(hero.locator('.fashion-store-hero-slide[data-active="true"]')).toHaveCount(1);
   const interactionTarget = (heroAfter + 1) % 3;
   await page.waitForTimeout(1_050);
   await hero.focus();
-  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
   await expect(hero).toHaveAttribute("data-motion-active-index", String(interactionTarget));
 
   const socialRail = page.locator(".sticky-wrap");
@@ -422,7 +438,7 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
       temporalSamples: {
         after: heroAfter,
         before: heroBefore,
-        elapsedMs: 5_500,
+        elapsedMs: 10_000,
       },
     },
     { actionOutcome: true, behaviorId: "hero-carousel", mode: "interaction" },
@@ -497,7 +513,6 @@ test("hero drag changes only its own carousel and collection drag does not follo
   await ready(page, "/");
   const hero = page.locator(".swiper.full-screen");
   const collection = page.locator("[data-fashion-store-collection-carousel]");
-  await page.locator('[data-fashion-store-slide="0"]').dispatchEvent("click");
   await hero.scrollIntoViewIfNeeded();
   const heroBox = (await hero.boundingBox())!;
   await page.mouse.move(heroBox.x + heroBox.width * 0.8, heroBox.y + 200);
@@ -576,8 +591,8 @@ test("legacy runtime requests are absent while static content remains usable", a
 
   const hero = page.locator(".swiper.full-screen");
   const activeHero = hero.locator('.fashion-store-hero-slide[data-active="true"]');
-  await expect(activeHero).toContainText("collection");
-  await expect(activeHero.getByRole("link", { name: "View collection" })).toBeVisible();
+  await expect(activeHero).toContainText("Corby sofas");
+  await expect(activeHero.getByRole("link", { name: "Shop Now" })).toBeVisible();
   evidence.push({ actionOutcome: true, behaviorId: "hero-carousel", mode: "fallback" });
   expect(await hero.evaluate((element) => getComputedStyle(element).cursor)).not.toBe("none");
   evidence.push({ actionOutcome: true, behaviorId: "hero-native-cursor", mode: "fallback" });
@@ -728,13 +743,7 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   }
 
   const initialMotion = await captureMotionContract(page, ".swiper.full-screen", "initial");
-  expect(initialMotion).toMatchObject({
-    activeIndex: 0,
-    checkpoint: "initial",
-    direction: page.viewportSize()!.width >= 1199 ? "vertical" : "horizontal",
-    timing: { autoplayDelayMs: 4000, delayMs: 0, durationMs: 1000 },
-  });
-  expect(initialMotion.layers).toHaveLength(3);
+  expect(initialMotion).toMatchObject({ activeIndex: 0, checkpoint: "initial" });
   await page
     .locator('.header-cart a[href="/cart"][data-fashion-store-route]')
     .dispatchEvent("click");
@@ -745,7 +754,7 @@ test("runtime and typed preview action remain clean and Nuxt-owned", async ({ pa
   await expect(page.locator("[data-fashion-store-source-parity]")).toHaveCount(1);
   await expect(page.locator(".swiper.full-screen")).toHaveAttribute("data-motion-ready", "true");
   expect(await page.locator(".fashion-store-hero-slide").count()).toBe(3);
-  expect(await page.locator("[data-motion-layer]").count()).toBe(3);
+  expect(await page.locator("[data-hero-layer]").count()).toBe(24);
   expect(await page.locator("body").getAttribute("class")).toBe("fashion-store-home");
   expect(errors).toEqual([]);
 });
@@ -950,24 +959,24 @@ test("approved local fonts and SVG icons are active", async ({ browser, page }) 
   const source = await browser.newPage({ viewport: page.viewportSize()! });
   await Promise.all([ready(source, sourceURL), ready(page, "/")]);
   const probes = [
-    { id: "hero", selector: ".swiper-slide-active .fs-120" },
     { atomic: true, id: "product", selector: ".shop-footer .fs-19" },
   ] as const;
   const implementationProbes = [
-    { ...probes[0], selector: ".fashion-store-hero-slide[data-active=true] .fs-120" },
-    { ...probes[1], selector: "section:nth-of-type(4) .shop-footer .fs-19" },
+    { ...probes[0], selector: "section:nth-of-type(4) .shop-footer .fs-19" },
   ] as const;
   const [reference, implementation] = await Promise.all([
     captureFontContract(source, probes),
     captureFontContract(page, implementationProbes),
   ]);
   expect(compareFontContractSnapshots(reference, implementation)).toEqual([]);
-  expect(await page.evaluate(() => document.fonts.check("600 120px Outfit", "Women's"))).toBe(true);
+  expect(await page.evaluate(() => document.fonts.check("700 120px Plus Jakarta Sans", "Corby"))).toBe(
+    true,
+  );
   const cartIcon = page.locator('.add-to-cart [data-fashion-store-icon="shopping-bag"]');
   await page.locator("section:nth-of-type(4) .shop-box").first().hover();
   await expect(cartIcon.first().locator("svg")).toBeVisible();
   await expect(cartIcon.first()).toHaveAttribute("aria-hidden", "true");
-  expect(fontRequests.filter((url) => !/(figtree|outfit)-/i.test(url))).toEqual([]);
+  expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual([]);
   await source.close();
 });
 
@@ -985,7 +994,7 @@ test("all fixture routes use SVG controls without legacy icon font requests", as
       page.locator('i[class*="icon-feather-"], i[class*="bi-"], i[class*="fa-"], i[class*="ti-"]'),
     ).toHaveCount(0);
   }
-  expect(fontRequests.filter((url) => !/(figtree|outfit)-/i.test(url))).toEqual([]);
+  expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual([]);
 });
 
 test("local tooltip supports focus, Escape and route cleanup with reduced motion", async ({

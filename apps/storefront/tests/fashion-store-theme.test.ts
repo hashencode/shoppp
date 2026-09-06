@@ -9,10 +9,103 @@ import {
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
+import {
+  assertFashionStoreDecorHeroSourceTiming,
+  fashionStoreDecorHeroContract,
+  fashionStoreDecorHeroLayerTimeline,
+} from "../app/themes/fashion-store/contracts/home-hero";
+import { createFashionStoreDecorHeroTimeline } from "../app/themes/fashion-store/composables/useFashionStoreDecorHeroMotion";
 
 describe("Fashion Store preview registration", () => {
+  test("rejects controlled drift from the independently observed Decor timing ledger", () => {
+    const observed = {
+      autoplayMs: fashionStoreDecorHeroContract.autoplayMs,
+      layers: fashionStoreDecorHeroLayerTimeline.map(({ delayMs, durationMs, role }) => ({
+        delayMs,
+        durationMs,
+        role,
+      })),
+      stopAfterReturnToFirst: true,
+      swipeThresholdPx: fashionStoreDecorHeroContract.swipeThresholdPx,
+      transitionMs: fashionStoreDecorHeroContract.transitionMs,
+    };
+    expect(() => assertFashionStoreDecorHeroSourceTiming(observed)).not.toThrow();
+    expect(() =>
+      assertFashionStoreDecorHeroSourceTiming({
+        ...observed,
+        layers: observed.layers.map((layer, index) =>
+          index === 3 ? { ...layer, delayMs: layer.delayMs + 1 } : layer,
+        ),
+      }),
+    ).toThrow(/does not match/);
+    expect(() =>
+      assertFashionStoreDecorHeroSourceTiming({
+        ...observed,
+        layers: observed.layers.slice(0, -1),
+      }),
+    ).toThrow(/does not match/);
+  });
+
+  test("reverts a partial timeline and enters fallback when GSAP layer construction throws", () => {
+    let failed = false;
+    let reverted = false;
+    const timeline = {
+      fromTo: () => {
+        throw new Error("controlled GSAP population failure");
+      },
+      kill: () => undefined,
+      pause: () => undefined,
+      play: () => undefined,
+      revert: () => {
+        reverted = true;
+      },
+    };
+    const result = createFashionStoreDecorHeroTimeline(
+      { timeline: () => timeline },
+      { querySelector: () => ({}) as HTMLElement },
+      () => undefined,
+      () => {
+        failed = true;
+      },
+    );
+    expect(result).toBeUndefined();
+    expect(reverted).toBe(true);
+    expect(failed).toBe(true);
+  });
+
+
+  test("uses one Fashion-owned Decor Hero contract in fixture and live Home renderers", async () => {
+    const [fixtureHome, liveHome, contract] = await Promise.all([
+      readFile(
+        resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/FashionStoreLiveHomePage.vue",
+        ),
+        "utf8",
+      ),
+      import("../app/themes/fashion-store/contracts/home-hero"),
+    ]);
+
+    expect(fixtureHome).toContain("<FashionStoreDecorHero");
+    expect(liveHome).toContain("<FashionStoreDecorHero");
+    expect(contract.fashionStoreDecorHeroSlides.map(({ title, price }) => [title, price])).toEqual([
+      ["Corby sofas", "$199.00"],
+      ["Verona sofas", "$259.00"],
+      ["Lewis sofas", "$259.00"],
+    ]);
+    expect(contract.fashionStoreDecorHeroSlides.every(({ href }) => href === "/shop")).toBe(true);
+    expect(contract.fashionStoreDecorHeroContract.moreInformation).toBe("omitted-all-viewports");
+    expect(contract.fashionStoreDecorHeroContract.swipeThresholdPx).toBe(75);
+    expect(contract.fashionStoreDecorHeroContract.transitionMs).toBe(300);
+    expect(contract.fashionStoreDecorHeroContract.autoplayMs).toBe(9_000);
+  });
+
   test("keeps first-paint typography invariant and preloads both fonts", async () => {
-    const [nuxtConfig, criticalStyles, integrationStyles, shell] = await Promise.all([
+    const [nuxtConfig, criticalStyles, integrationStyles, shell, hero] = await Promise.all([
       readFile(resolve(import.meta.dir, "../nuxt.config.ts"), "utf8"),
       readFile(resolve(import.meta.dir, "../app/themes/fashion-store/critical.css"), "utf8"),
       readFile(resolve(import.meta.dir, "../app/themes/fashion-store/integration.css"), "utf8"),
@@ -23,13 +116,20 @@ describe("Fashion Store preview registration", () => {
         ),
         "utf8",
       ),
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/FashionStoreDecorHero.vue",
+        ),
+        "utf8",
+      ),
     ]);
 
     const criticalIndex = nuxtConfig.indexOf('"~/themes/fashion-store/critical.css"');
     const upstreamIndex = nuxtConfig.indexOf('"~/themes/fashion-store/upstream/css/style.css"');
     expect(criticalIndex).toBeGreaterThan(-1);
     expect(upstreamIndex).toBeGreaterThan(criticalIndex);
-    expect(criticalStyles.match(/@font-face/g)).toHaveLength(2);
+    expect(criticalStyles.match(/@font-face/g)).toHaveLength(3);
     expect(criticalStyles).toContain("font-display: swap");
     expect(criticalStyles).toContain('body[data-fashion-store-shell="true"]');
     expect(criticalStyles).toContain('--primary-font: "Figtree", sans-serif');
@@ -37,11 +137,11 @@ describe("Fashion Store preview registration", () => {
     expect(criticalStyles).toContain("font-size: 17px");
     expect(integrationStyles).not.toContain("@font-face");
     expect(shell).toContain('"data-fashion-store-shell": "true"');
-    for (const [font, variable] of [
-      ["figtree-latin.woff2", "figtreeFontUrl"],
-      ["outfit-latin.woff2", "outfitFontUrl"],
+    for (const [fontPath, variable] of [
+      ["../../upstream/fonts/figtree-latin.woff2?url", "figtreeFontUrl"],
+      ["../../upstream/fonts/outfit-latin.woff2?url", "outfitFontUrl"],
     ] as const) {
-      expect(shell).toContain(`from "../../upstream/fonts/${font}?url"`);
+      expect(shell).toContain(`from "${fontPath}"`);
       const hrefIndex = shell.indexOf(`href: ${variable}`);
       const fontLink = shell.slice(Math.max(0, hrefIndex - 100), hrefIndex + 150);
       expect(fontLink).toContain('as: "font" as const');
@@ -52,6 +152,9 @@ describe("Fashion Store preview registration", () => {
     expect(shell).toContain('key: "fashion-store-outfit-font"');
     expect(shell.match(/as: "font" as const/g)).toHaveLength(2);
     expect(shell.match(/type: "font\/woff2"/g)).toHaveLength(2);
+    expect(hero).toContain('from "../assets/hero/plus-jakarta-sans-latin.woff2?url"');
+    expect(hero).toContain('key: "fashion-store-plus-jakarta-font"');
+    expect(hero).toContain('rel: "preload"');
   });
 
   test("declares the complete bounded First Editor Inventory from manifest settings", () => {
@@ -100,12 +203,6 @@ describe("Fashion Store preview registration", () => {
         "footer-contact-copy",
         "footer-social-link",
         "footer-legal-link",
-        "hero-eyebrow",
-        "hero-title",
-        "hero-body",
-        "hero-image",
-        "hero-primary-link",
-        "hero-secondary-link",
         "merchandising-title",
         "featured-collection",
         "featured-product",

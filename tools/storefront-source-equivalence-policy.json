@@ -125,6 +125,12 @@
           "sourceContractPath": "apps/storefront/app/themes/fashion-store/source-contract.ts",
           "sourceEntry": "demo-fashion-store.html",
           "sourceEntrySha256": "55a046515e485ffca42a41af720c3fa5faa8114605075755f9edada8f35f2465",
+          "regionSources": {
+            "hero": {
+              "sourceEntry": "demo-decor-store.html",
+              "sourceEntrySha256": "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271"
+            }
+          },
           "sourceFirstHero": "images/demo-fashion-store-slider-01.jpg",
           "sourceRegionsExport": "fashionStoreSourceRegions",
           "sourceRuntimeReadySelector": ".swiper.slider-three-slide"

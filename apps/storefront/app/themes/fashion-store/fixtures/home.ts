@@ -14,7 +14,6 @@ interface SourceImageCard {
   sourceImage: string;
 }
 
-type Three<T> = readonly [T, T, T];
 type Four<T> = readonly [T, T, T, T];
 type Five<T> = readonly [T, T, T, T, T];
 type Six<T> = readonly [T, T, T, T, T, T];
@@ -43,25 +42,6 @@ export interface FashionStoreHomeData {
     price: string;
   };
   services: Four<{ description: string; title: string }>;
-  slider: {
-    options: {
-      autoplayMs: 4000;
-      breakpointPx: 1199;
-      desktopDirection: "vertical";
-      disableOnInteraction: false;
-      effect: "slide";
-      keyboard: true;
-      loop: true;
-      mobileDirection: "horizontal";
-      parallaxPx: 500;
-      speedMs: 1000;
-    };
-    slides: Three<{
-      assetId: "fashion-store.slider-01" | "fashion-store.slider-02" | "fashion-store.slider-03";
-      eyebrow: string;
-      heading: string;
-    }>;
-  };
 }
 
 export const fashionStoreHomeData = {
@@ -289,37 +269,6 @@ export const fashionStoreHomeData = {
       title: "Online support",
     },
   ],
-  slider: {
-    options: {
-      autoplayMs: 4000,
-      breakpointPx: 1199,
-      desktopDirection: "vertical",
-      disableOnInteraction: false,
-      effect: "slide",
-      keyboard: true,
-      loop: true,
-      mobileDirection: "horizontal",
-      parallaxPx: 500,
-      speedMs: 1000,
-    },
-    slides: [
-      {
-        assetId: "fashion-store.slider-01",
-        eyebrow: "Discount on selected collection!",
-        heading: "Women's collection",
-      },
-      {
-        assetId: "fashion-store.slider-02",
-        eyebrow: "Discount on selected collection!",
-        heading: "Men's collection",
-      },
-      {
-        assetId: "fashion-store.slider-03",
-        eyebrow: "Discount on selected collection!",
-        heading: "Children's collection",
-      },
-    ],
-  },
 } as const satisfies FashionStoreHomeData;
 
 export const fashionStoreHomeFixtures = {

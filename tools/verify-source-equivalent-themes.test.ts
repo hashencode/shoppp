@@ -33,6 +33,7 @@ const behaviorDescriptors = new Map([
       adapters: fashionStoreAcceptanceAdapters,
       contract: fashionStoreBehaviorContract,
       sourceRegions: fashionStoreSourceRegions.map((region) => ({
+        ...("authority" in region ? { authority: region.authority } : {}),
         id: region.key,
         selector: "inventorySelector" in region ? region.inventorySelector : region.selector,
       })),
@@ -187,6 +188,14 @@ describe("source-equivalent theme policy", () => {
       sourceEntrySha256: new Bun.CryptoHasher("sha256").update(contents).digest("hex"),
     });
     const descriptors = await loadThemeBehaviorDescriptors(theme, root);
+
+    expect(
+      descriptors.get("home")?.sourceRegions.find(({ id }) => id === "hero")?.authority,
+    ).toEqual({
+      sourceEntry: "demo-decor-store.html",
+      sourceEntrySha256: "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+      sourceSelector: "#decor-store-slider",
+    });
 
     expect([...descriptors.keys()]).toEqual([
       "home",

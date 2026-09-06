@@ -25,6 +25,37 @@ import {
 import { namedStatePixelThreshold } from "../apps/storefront/e2e/support/theme-named-state-contract";
 import { loadThemeBehaviorDescriptor } from "./load-theme-behavior-descriptor";
 
+function inspectAuthorizedSourceEntry(
+  sourceRoot: string,
+  sourceEntry: string,
+): { digest?: string; safe: boolean } {
+  const sourceEntryPath = resolve(sourceRoot, sourceEntry);
+  const relativeEntry = relative(sourceRoot, sourceEntryPath);
+  if (
+    relativeEntry === ".." ||
+    relativeEntry.startsWith(`..${sep}`) ||
+    !existsSync(sourceEntryPath)
+  )
+    return { safe: false };
+  try {
+    const realSourceRoot = realpathSync(sourceRoot);
+    const realEntryPath = realpathSync(sourceEntryPath);
+    const realEntryRelative = relative(realSourceRoot, realEntryPath);
+    if (
+      lstatSync(sourceEntryPath).isSymbolicLink() ||
+      realEntryRelative === ".." ||
+      realEntryRelative.startsWith(`..${sep}`)
+    )
+      return { safe: false };
+    return {
+      digest: createHash("sha256").update(readFileSync(realEntryPath)).digest("hex"),
+      safe: true,
+    };
+  } catch {
+    return { safe: false };
+  }
+}
+
 export interface SourceEquivalencePolicy {
   schemaVersion: 1;
   canonicalViewports: { height: number; id: string; width: number }[];
@@ -93,6 +124,7 @@ export interface SourceEquivalencePagePolicy {
   sourceContractPath: string;
   sourceEntry: string;
   sourceEntrySha256: string;
+  regionSources?: Record<string, { sourceEntry: string; sourceEntrySha256: string }>;
   sourceFirstHero: string;
   sourceRegionsExport: string;
   sourceRuntimeReadySelector: string;
@@ -500,6 +532,7 @@ export async function validateSourceEquivalencePolicy(
 
   const themeIds = new Set<string>();
   const policyBehaviorDescriptors: ThemeBehaviorDescriptor[] = [];
+  const policyBehaviorDescriptorsByRoute = new Map<string, ThemeBehaviorDescriptor>();
   for (const theme of policy.themes) {
     if (!SAFE_THEME_ID.test(theme.id)) errors.push(`${theme.id}: expected a lowercase theme ID`);
     if (themeIds.has(theme.id)) errors.push(`${theme.id}: duplicate theme policy`);
@@ -608,6 +641,7 @@ export async function validateSourceEquivalencePolicy(
       try {
         const descriptor = await loadThemeBehaviorDescriptor(page, root);
         policyBehaviorDescriptors.push(descriptor);
+        policyBehaviorDescriptorsByRoute.set(descriptor.contract.routeId, descriptor);
         if (descriptor.contract.themeId !== theme.id)
           errors.push(`${label}: behavior contract theme identity does not match policy`);
         if (descriptor.contract.routeId !== `${theme.id}-${page.id}`)
@@ -617,32 +651,11 @@ export async function validateSourceEquivalencePolicy(
       } catch (error) {
         errors.push(error instanceof Error ? error.message : String(error));
       }
-      const sourceEntryPath = resolve(authorizedSourceRoot, page.sourceEntry);
-      const sourceEntryRelative = relative(authorizedSourceRoot, sourceEntryPath);
-      let sourceEntrySafe =
-        sourceEntryRelative !== ".." &&
-        !sourceEntryRelative.startsWith(`..${sep}`) &&
-        existsSync(sourceEntryPath);
-      if (sourceEntrySafe) {
-        try {
-          const realSourceRoot = realpathSync(authorizedSourceRoot);
-          const realEntryPath = realpathSync(sourceEntryPath);
-          const realEntryRelative = relative(realSourceRoot, realEntryPath);
-          sourceEntrySafe =
-            !lstatSync(sourceEntryPath).isSymbolicLink() &&
-            realEntryRelative !== ".." &&
-            !realEntryRelative.startsWith(`..${sep}`);
-        } catch {
-          sourceEntrySafe = false;
-        }
-      }
-      if (!sourceEntrySafe) {
+      const sourceEntry = inspectAuthorizedSourceEntry(authorizedSourceRoot, page.sourceEntry);
+      if (!sourceEntry.safe) {
         errors.push(`${label}: authorized source entry is missing or outside its root`);
-      } else {
-        const digest = createHash("sha256").update(readFileSync(sourceEntryPath)).digest("hex");
-        if (digest !== page.sourceEntrySha256)
-          errors.push(`${label}: authorized source entry digest does not match policy`);
-      }
+      } else if (sourceEntry.digest !== page.sourceEntrySha256)
+        errors.push(`${label}: authorized source entry digest does not match policy`);
     }
     for (const pageId of theme.equivalenceScope) {
       if (!pageIds.has(pageId)) errors.push(`${theme.id}: scope references unknown page ${pageId}`);
@@ -696,6 +709,33 @@ export async function validateSourceEquivalencePolicy(
         errors.push(`${route.id}: implementation path does not match page policy`);
     }
     for (const region of route.regions) {
+      const regionSource = policyPage?.page.regionSources?.[region.id];
+      const descriptorAuthority = policyBehaviorDescriptorsByRoute
+        .get(route.id)
+        ?.sourceRegions.find(({ id }) => id === region.id)?.authority;
+      if (region.sourcePath) {
+        if (!regionSource || region.sourcePath !== `/${regionSource.sourceEntry}`) {
+          errors.push(`${route.id}/${region.id}: region source path does not match page policy`);
+        } else {
+          const sourceRoot = resolve(root, policyPage.theme.authorizedSourceRoot);
+          const sourceEntry = inspectAuthorizedSourceEntry(sourceRoot, regionSource.sourceEntry);
+          if (!sourceEntry.safe) {
+            errors.push(`${route.id}/${region.id}: unsafe region source entry`);
+          } else if (sourceEntry.digest !== regionSource.sourceEntrySha256)
+            errors.push(`${route.id}/${region.id}: region source digest drifted`);
+        }
+        if (
+          !descriptorAuthority ||
+          descriptorAuthority.sourceEntry !== regionSource?.sourceEntry ||
+          descriptorAuthority.sourceEntrySha256 !== regionSource?.sourceEntrySha256 ||
+          descriptorAuthority.sourceSelector !== region.sourceSelector
+        )
+          errors.push(`${route.id}/${region.id}: source contract authority does not match policy`);
+      } else if (regionSource) {
+        errors.push(`${route.id}/${region.id}: policy region source is unused`);
+      } else if (descriptorAuthority) {
+        errors.push(`${route.id}/${region.id}: source contract authority is unused`);
+      }
       if (!region.styleEquivalences) continue;
       if (!region.waiverId) {
         errors.push(`${route.id}/${region.id}: intentional style difference requires a waiverId`);

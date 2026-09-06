@@ -78,7 +78,7 @@ describe("Fashion Store complete static source home", () => {
     expect(component.match(/<section\b/g)).toHaveLength(
       fashionStoreSourceContract.homeSectionCount,
     );
-    expect(component).toContain("data-swiper-number-pagination-progress");
+    expect(component).toContain("<FashionStoreDecorHero");
     expect(component).toContain("data-anime");
     expect(component).toContain('<noscript v-html="noScriptMarkup" />');
     expect(component.match(/\bv-html=/g)).toHaveLength(1);

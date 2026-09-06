@@ -420,6 +420,10 @@ async function stabilizeDecorMarquee(page: Page, source: boolean): Promise<void>
 
 async function stabilizeFashionStoreHero(page: Page, source: boolean): Promise<void> {
   if (source) {
+    if (await page.locator("#decor-store-slider").count()) {
+      await stabilizeDecorHero(page, true);
+      return;
+    }
     await page.locator("section:nth-of-type(1) .swiper").evaluate((element) => {
       const swiper = (
         element as HTMLElement & {
@@ -449,8 +453,14 @@ async function stabilizeFashionStoreHero(page: Page, source: boolean): Promise<v
       });
     });
   } else {
-    await page.locator('[data-fashion-store-slide="0"]').evaluate((button: HTMLButtonElement) => {
-      button.click();
+    await page.locator("#fashion-store-decor-hero").evaluate((element) => {
+      const swiper = (
+        element as HTMLElement & {
+          swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void };
+        }
+      ).swiper;
+      swiper?.autoplay?.stop();
+      swiper?.slideTo(0, 0);
     });
     await page.waitForFunction(
       () => {
@@ -1388,7 +1398,7 @@ export async function captureThemeRouteRegion(options: {
     options.regionId,
   );
   await mkdir(outputRoot, { recursive: true });
-  const sourceUrl = url(options.sourceOrigin, route.sourcePath);
+  const sourceUrl = url(options.sourceOrigin, region.sourcePath ?? route.sourcePath);
   const implementationUrl = url(options.implementationOrigin, route.implementationPath);
   const lease = await acquireCaptureLease({
     origins: [sourceUrl, implementationUrl],
@@ -1539,6 +1549,33 @@ export async function captureThemeRouteRegion(options: {
       }
       failures.push(...runtimeErrors);
       const fullPage = region.kind === "full-page-smoke";
+      const mixedSourceRegions = fullPage
+        ? route.regions.filter(
+            (candidate) =>
+              candidate.sourcePath &&
+              candidate.sourcePath !== route.sourcePath &&
+              candidate.pageSourceSelector,
+          )
+        : [];
+      if (mixedSourceRegions.length > 0) {
+        await Promise.all([
+          source.addStyleTag({
+            content: mixedSourceRegions
+              .map(
+                ({ pageSourceSelector }) =>
+                  `${pageSourceSelector} { display: none !important; }`,
+              )
+              .join("\n"),
+          }),
+          implementation.addStyleTag({
+            content: mixedSourceRegions
+              .map(({ implementationSelector, pageImplementationSelector }) =>
+                `${pageImplementationSelector ?? implementationSelector} { display: none !important; }`,
+              )
+              .join("\n"),
+          }),
+        ]);
+      }
       const compareComputedStyles = region.kind === "component" || region.kind === "control";
       const commonProbe = {
         content: false,
@@ -1651,6 +1688,12 @@ export async function captureThemeRouteRegion(options: {
             content: `.sticky-wrap, .scroll-progress, .decor-sticky-actions, .decor-scroll-progress${region.id === "cookie" ? "" : ", .cookie-message"} { visibility: hidden !important; }${region.id === "header" ? "" : " header { display: none !important; }"}`,
           }),
         ]);
+      if (!fullPage && region.sourcePixelIgnoreSelectors?.length)
+        await source.addStyleTag({
+          content: region.sourcePixelIgnoreSelectors
+            .map((selector) => `${region.sourceSelector} ${selector}`)
+            .join(", ") + " { visibility: hidden !important; }",
+        });
       const mutuallyHidden =
         region.kind !== "full-page-smoke" &&
         !(await source.locator(region.sourceSelector).first().isVisible()) &&

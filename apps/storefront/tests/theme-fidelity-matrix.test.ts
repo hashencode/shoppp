@@ -64,6 +64,14 @@ describe("theme fidelity matrix", () => {
       "scroll-progress",
       "full-page",
     ]);
+    expect(route.regions.find(({ id }) => id === "hero")).toMatchObject({
+      implementationSelector: "#fashion-store-decor-hero",
+      pageImplementationSelector: ".fashion-store-decor-hero",
+      pageSourceSelector: ".swiper.full-screen",
+      sourcePath: "/demo-decor-store.html",
+      sourceSelector: "#decor-store-slider",
+    });
+    expect(route.regions.find(({ id }) => id === "header")?.sourcePath).toBeUndefined();
   });
 
   test("rejects fidelity states that drift away from the behavior contract", () => {
@@ -86,6 +94,15 @@ describe("theme fidelity matrix", () => {
     );
     expect(() => assertFidelityMatrixComplete(missingRegion)).toThrow(
       /fashion-store-home\/collection: behavior region is absent from the fidelity matrix/,
+    );
+
+    const unsafeMixedSource = structuredClone(themeFidelityMatrix);
+    const unsafeHero = unsafeMixedSource
+      .find(({ id }) => id === "fashion-store-home")!
+      .regions.find(({ id }) => id === "hero")!;
+    delete unsafeHero.pageSourceSelector;
+    expect(() => assertFidelityMatrixComplete(unsafeMixedSource)).toThrow(
+      /mixed-source region requires full-page exclusion selectors/,
     );
   });
 });

@@ -1,5 +1,20 @@
 # FS-R1 精确依赖版本与模块验证证据
 
+## FS-R2 secure successor baseline — 2026-09-05
+
+FS-R2 supersedes only the Swiper version recorded below: the storefront now pins
+`swiper@14.2.0` and adds direct `gsap@3.15.0`. `bun.lock` resolves one copy of each, with integrity
+`sha512-GsL4M9Fq7Sg22OyL3SjdNj/0bxTfIxPJJHHW394Li0u5vYtExi0a09iBUc8CuLafJi5pAlH2AHUe1PocxHl45g==`
+and `sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==`
+respectively. Swiper remains MIT licensed. GSAP is used only for ordinary storefront presentation
+under its Standard License; it is not exposed as a merchant animation builder. GSAP is loaded from
+the local package at the Fashion Hero client boundary, with no CDN or SSR execution.
+
+Focused type, fixture, Product Gallery, production-build, desktop/mobile Hero and source-policy
+checks exercise the v14 public API seam. The private `onTranslateToWrapperTransitionEnd` hook was
+removed in favor of public `setTransition`/`setTranslate`. Historical browser/device statements
+below remain historical FS-R1 evidence and are not relabeled as v14 results.
+
 记录日期：2026-09-03。治理来源：FS-R1 的 Q2、KTD2/KTD4/KTD5/KTD10/KTD12；执行状态仅由活动计划检查点维护。
 
 本证据确认 `swiper@11.2.10` 和 `bootstrap@5.3.2` 可用于后续受控迁移。精确版本已写入 `apps/storefront/package.json` 与 `bun.lock`，不是范围版本。这里的模块验证没有交付轮播/灯箱组件，也不表示迁移单元或 R1 的全部浏览器目标已经验收。

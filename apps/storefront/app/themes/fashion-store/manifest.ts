@@ -344,33 +344,6 @@ const settingsByPageType = {
       "Choose an approved policy destination by stable ID.",
       "policy",
     ),
-    text("hero-eyebrow", "Hero eyebrow", "Bounded Home hero eyebrow.", "New collection", 80),
-    text("hero-title", "Hero title", "Bounded Home hero title.", "Fashion for every day", 120),
-    text(
-      "hero-body",
-      "Hero body",
-      "Bounded Home hero plain text.",
-      "Explore the latest edit.",
-      500,
-    ),
-    asset(
-      "hero-image",
-      "Hero image",
-      "Choose approved Catalog media for the Home hero.",
-      editorialAsset,
-    ),
-    internalLink(
-      "hero-primary-link",
-      "Hero primary link",
-      "Choose a typed internal destination.",
-      "collection",
-    ),
-    internalLink(
-      "hero-secondary-link",
-      "Hero secondary link",
-      "Choose a second typed internal destination.",
-      "page",
-    ),
     text(
       "merchandising-title",
       "Merchandising title",

@@ -1,4 +1,9 @@
 export interface FashionStoreSourceRegion {
+  authority?: {
+    sourceEntry: "demo-decor-store.html";
+    sourceEntrySha256: string;
+    sourceSelector: string;
+  };
   inventorySelector?: string;
   itemCount?: number;
   key: string;
@@ -114,6 +119,11 @@ export const fashionStoreShellSourceInventory = {
 export const fashionStoreSourceRegions = [
   { inventorySelector: "header", key: "header", selector: "header.header-with-topbar" },
   {
+    authority: {
+      sourceEntry: "demo-decor-store.html",
+      sourceEntrySha256: "90a907f8ed8280da25da0248d4a6ae0d7ef3fd73f96d09afd6aa980a266e9271",
+      sourceSelector: "#decor-store-slider",
+    },
     inventorySelector: "section:nth-of-type(1)",
     itemCount: 3,
     key: "hero",

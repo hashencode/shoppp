@@ -3,9 +3,10 @@ import FashionStoreIcon from "./shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import { fashionStoreRoutePaths } from "../page-contracts";
-import { fashionStoreAssetId, resolveFashionStoreEditorMedia } from "../resources";
+import { fashionStoreAssetId } from "../resources";
 import FashionStoreProductCard from "./shared/FashionStoreProductCard.vue";
 import FashionStoreShell from "./shared/FashionStoreShell.vue";
+import FashionStoreDecorHero from "./FashionStoreDecorHero.vue";
 
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
@@ -60,13 +61,6 @@ function sourceAsset(resolveAsset: ThemeAssetResolver, sourcePath: string): stri
   return resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function editorMediaSource(
-  resolveAsset: ThemeAssetResolver,
-  media: HomeViewModel["hero"]["media"],
-): string | undefined {
-  return media ? resolveFashionStoreEditorMedia(resolveAsset, media) : undefined;
-}
-
 function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
   if (kind === "best-sellers") return properties.viewModel.merchandisingOrder;
   const others = properties.viewModel.sections.filter((section) => section.kind !== "best-sellers");
@@ -82,7 +76,7 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
     :announcement-link="viewModel.announcementLink"
     :footer="viewModel.shell.footer"
     :header="viewModel.shell.header"
-    :preload-image="resolveAsset('fashion-store.slider-01')"
+    :preload-image="resolveAsset('fashion-store.decor-hero-1-product')"
     :resolve-asset="resolveAsset"
   >
     <main
@@ -94,69 +88,9 @@ function sectionOrder(kind: HomeViewModel["sections"][number]["kind"]): number {
       <section
         data-home-section="hero"
         :style="{ order: sectionOrder('hero') }"
-        class="p-0 top-space-margin position-relative overflow-hidden"
+        class="p-0 position-relative overflow-hidden"
       >
-        <div class="container-fluid p-0">
-          <div class="row g-0 align-items-stretch">
-            <div class="col-lg-6 d-flex align-items-center">
-              <div class="p-80px lg-p-50px sm-p-30px">
-                <p class="alt-font text-uppercase fs-13 fw-600 text-dark-gray">
-                  {{ viewModel.hero.eyebrow }}
-                </p>
-                <h1 class="alt-font fw-600 text-dark-gray">{{ viewModel.hero.heading }}</h1>
-                <p class="fs-18 mb-30px text-dark-gray">{{ viewModel.hero.body }}</p>
-                <a
-                  :href="viewModel.hero.primaryLink?.href ?? viewModel.featuredCollection.href"
-                  :target="
-                    viewModel.hero.primaryLink?.targetBehavior === 'new-window'
-                      ? '_blank'
-                      : undefined
-                  "
-                  :rel="
-                    viewModel.hero.primaryLink?.targetBehavior === 'new-window'
-                      ? 'noopener noreferrer'
-                      : undefined
-                  "
-                  data-fashion-store-route
-                  class="btn btn-dark-gray btn-large"
-                >
-                  {{
-                    viewModel.hero.primaryLink?.label ?? `Shop ${viewModel.featuredCollection.name}`
-                  }}
-                </a>
-                <a
-                  v-if="viewModel.hero.secondaryLink"
-                  :href="viewModel.hero.secondaryLink.href"
-                  :target="
-                    viewModel.hero.secondaryLink.targetBehavior === 'new-window'
-                      ? '_blank'
-                      : undefined
-                  "
-                  :rel="
-                    viewModel.hero.secondaryLink.targetBehavior === 'new-window'
-                      ? 'noopener noreferrer'
-                      : undefined
-                  "
-                  data-fashion-store-route
-                  class="btn btn-transparent-dark-gray btn-large ms-10px"
-                  >{{ viewModel.hero.secondaryLink.label }}</a
-                >
-              </div>
-            </div>
-            <div class="col-lg-6">
-              <img
-                :src="
-                  editorMediaSource(resolveAsset, viewModel.hero.media) ??
-                  resolveAsset('fashion-store.slider-01')
-                "
-                :alt="viewModel.hero.media?.alt ?? viewModel.hero.heading"
-                :width="viewModel.hero.media?.width ?? 960"
-                :height="viewModel.hero.media?.height ?? 1080"
-                class="w-100 h-100 object-fit-cover"
-              />
-            </div>
-          </div>
-        </div>
+        <FashionStoreDecorHero :resolve-asset="resolveAsset" />
       </section>
 
       <section

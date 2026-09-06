@@ -104,9 +104,14 @@ async function fashionStoreSourceFontCss(): Promise<string> {
     import.meta.dir,
     "../apps/storefront/app/themes/fashion-store/upstream/fonts",
   );
-  const [figtree, outfit] = await Promise.all([
+  const heroFontsRoot = resolve(
+    import.meta.dir,
+    "../apps/storefront/app/themes/fashion-store/assets/hero",
+  );
+  const [figtree, outfit, plusJakartaSans] = await Promise.all([
     readFile(join(fontsRoot, "figtree-latin.woff2")),
     readFile(join(fontsRoot, "outfit-latin.woff2")),
+    readFile(join(heroFontsRoot, "plus-jakarta-sans-latin.woff2")),
   ]);
   return `
     @font-face {
@@ -122,6 +127,13 @@ async function fashionStoreSourceFontCss(): Promise<string> {
       font-weight: 300 900;
       font-display: block;
       src: url("data:font/woff2;base64,${outfit.toString("base64")}") format("woff2");
+    }
+    @font-face {
+      font-family: "Plus Jakarta Sans";
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: block;
+      src: url("data:font/woff2;base64,${plusJakartaSans.toString("base64")}") format("woff2");
     }
   `;
 }
@@ -245,6 +257,17 @@ async function resetFashion(page: Page, side: "implementation" | "source"): Prom
     if (await openMenu.count()) await openMenu.locator(":scope > summary").click();
     const firstSlide = page.getByRole("button", { name: "Show slide 1" });
     if (await firstSlide.count()) await firstSlide.click();
+    const decorHero = page.locator("#fashion-store-decor-hero");
+    if (await decorHero.count()) {
+      await decorHero.evaluate((element) => {
+        (
+          element as HTMLElement & { swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void } }
+        ).swiper?.autoplay?.stop();
+        (
+          element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
+        ).swiper?.slideTo(0, 0);
+      });
+    }
     const collection = page.locator(".fashion-collection-rail");
     if (await collection.count()) {
       const activeIndex = Number(await collection.getAttribute("data-motion-active-index"));
@@ -288,19 +311,53 @@ async function applyFashionAction(
   if (action.kind === "initial") return;
   if (action.kind === "hero") {
     if (side === "source") {
-      await page.locator(".swiper.full-screen").evaluate((element, index) => {
-        (
-          element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
-        ).swiper?.slideToLoop?.(index, 0);
-      }, action.index);
+      const decorHero = page.locator("#decor-store-slider");
+      if (await decorHero.count()) {
+        await page.waitForFunction(() =>
+          document.querySelector("#decor-store-slider")?.classList.contains("revslider-initialised"),
+        );
+        await page.evaluate((index) => {
+          const jquery = (
+            window as typeof window & {
+              jQuery?: (selector: string) => { revpause?(): void; revshowslide?(index: number): void };
+            }
+          ).jQuery;
+          jquery?.("#decor-store-slider").revshowslide?.(index + 1);
+          jquery?.("#decor-store-slider").revpause?.();
+        }, action.index);
+        await page.waitForFunction(
+          (index) =>
+            document
+              .querySelector(`#decor-store-slider > ul > li:nth-child(${index + 1})`)
+              ?.classList.contains("active-revslide"),
+          action.index,
+        );
+        await page.waitForTimeout(3_700);
+      } else {
+        await page.locator(".swiper.full-screen").evaluate((element, index) => {
+          (
+            element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
+          ).swiper?.slideToLoop?.(index, 0);
+        }, action.index);
+      }
     } else {
-      await page.getByRole("button", { name: `Show slide ${action.index + 1}` }).click();
-      await page.locator(".fashion-hero").waitFor({ state: "visible" });
+      const hero = page.locator("#fashion-store-decor-hero");
+      await hero.evaluate((element, index) => {
+        (
+          element as HTMLElement & { swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void } }
+        ).swiper?.autoplay?.stop();
+        (
+          element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
+        ).swiper?.slideTo(index, 0);
+      }, action.index);
       await page.waitForFunction(
         (index) =>
-          document.querySelector(".fashion-hero")?.getAttribute("data-motion-active-index") ===
+          document
+            .querySelector("#fashion-store-decor-hero")
+            ?.getAttribute("data-motion-active-index") ===
             String(index) &&
-          document.querySelector(".fashion-hero")?.getAttribute("data-motion-phase") === "idle",
+          document.querySelector("#fashion-store-decor-hero")?.getAttribute("data-motion-phase") ===
+            "idle",
         action.index,
       );
     }
@@ -420,14 +477,36 @@ async function applyFashionStoreAction(
   const waitForHeroIdle = () =>
     page.waitForFunction(
       () =>
-        document.querySelector(".swiper.full-screen")?.getAttribute("data-motion-phase") === "idle",
+        document
+          .querySelector("#fashion-store-decor-hero")
+          ?.getAttribute("data-motion-phase") === "idle",
     );
-  await waitForHeroIdle();
-  const firstSlide = page.getByRole("button", { name: "Show slide 1" });
-  if (await firstSlide.count()) {
-    await firstSlide.evaluate((button) => (button as HTMLButtonElement).click());
-    await waitForHeroIdle();
+  const hero = page.locator("#fashion-store-decor-hero");
+  if (!(await hero.evaluate((element) => element.classList.contains("swiper-initialized")))) {
+    await page.locator("#fashion-store-main").dispatchEvent("click");
+    await hero.evaluate((element) =>
+      element.classList.contains("swiper-initialized")
+        ? undefined
+        : new Promise<void>((resolvePromise) => {
+            const observer = new MutationObserver(() => {
+              if (!element.classList.contains("swiper-initialized")) return;
+              observer.disconnect();
+              resolvePromise();
+            });
+            observer.observe(element, { attributeFilter: ["class"], attributes: true });
+          }),
+    );
   }
+  await waitForHeroIdle();
+  await hero.evaluate((element) => {
+    (
+      element as HTMLElement & { swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void } }
+    ).swiper?.autoplay?.stop();
+    (
+      element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
+    ).swiper?.slideTo(0, 0);
+  });
+  await waitForHeroIdle();
   const collection = page.locator(".swiper.slider-three-slide");
   await collection.evaluate((element) => {
     element.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
@@ -453,9 +532,11 @@ async function applyFashionStoreAction(
   }
   if (action.kind === "initial") return;
   if (action.kind === "hero") {
-    await page
-      .getByRole("button", { name: `Show slide ${action.index + 1}` })
-      .evaluate((button) => (button as HTMLButtonElement).click());
+    await hero.evaluate((element, index) => {
+      (
+        element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
+      ).swiper?.slideTo(index, 0);
+    }, action.index);
     await waitForHeroIdle();
   } else if (action.kind === "collection") {
     await page.waitForFunction(
@@ -958,6 +1039,32 @@ export async function captureFashionNamedStates(options: {
         }
         for (const state of contracts) {
           if (options.stateFilter && state.id !== options.stateFilter) continue;
+          const stateSourceUrl = state.sourcePath
+            ? new URL(state.sourcePath, options.sourceUrl).toString()
+            : options.sourceUrl;
+          if (source.url() !== stateSourceUrl) {
+            await source.goto(stateSourceUrl, {
+              timeout: 60_000,
+              waitUntil: "domcontentloaded",
+            });
+            if (state.action.kind === "hero") {
+              await source.waitForFunction(() =>
+                document
+                  .querySelector("#decor-store-slider")
+                  ?.classList.contains("revslider-initialised"),
+              );
+            }
+            await hydrateFashionSourceImages(source);
+            await stabilize(source);
+          }
+          if (state.action.kind === "hero")
+            await Promise.all([
+              source.addStyleTag({
+                content:
+                  "header { display: none !important; } [id$='layer-11'], [id$='layer-12'] { visibility: hidden !important; }",
+              }),
+              implementation.addStyleTag({ content: "header { display: none !important; }" }),
+            ]);
           await Promise.all([
             source.evaluate(
               (visible) =>

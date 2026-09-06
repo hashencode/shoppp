@@ -25,11 +25,7 @@ const editableDefaults = {
     "wishlist.heading": "Wishlist",
     "wishlist.message": "Saved wishlists are not available yet.",
   },
-  home: {
-    "hero-body": "Explore the latest edit.",
-    "hero-eyebrow": "New collection",
-    "hero-title": "Fashion for every day",
-  },
+  home: {},
   product: { "presentation-copy": "Designed for everyday wear." },
 } as const;
 

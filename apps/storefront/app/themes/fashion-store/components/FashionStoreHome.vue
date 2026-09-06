@@ -8,6 +8,7 @@ import type { FashionStoreHomeData } from "../fixtures/home";
 import { fashionStoreAssetId } from "../resources";
 import { fashionStoreRoutePaths } from "../page-contracts";
 import FashionStoreCarousel from "./shared/FashionStoreCarousel.vue";
+import FashionStoreDecorHero from "./FashionStoreDecorHero.vue";
 import FashionStoreShell from "./shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
@@ -22,10 +23,6 @@ const data = computed<FashionStoreHomeData>(() => {
 });
 
 const actionIntentCount = ref(0);
-const heroCarousel = ref<{ select(index: number): void }>();
-const activeIndex = ref(0);
-const heroCurrent = computed(() => String(activeIndex.value + 1).padStart(2, "0"));
-const heroTotal = computed(() => String(data.value.slider.slides.length).padStart(2, "0"));
 const marqueeMessages = computed(() => data.value.marquee);
 const collectionIndex = ref(0);
 const collectionSlides = computed(() =>
@@ -54,15 +51,6 @@ function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function heroHeading(index: number): [string, string] {
-  const words = heroSlide(index).heading.split(" ");
-  return [words[0] ?? "", words.slice(1).join(" ")];
-}
-
-function heroSlide(index: number): FashionStoreHomeData["slider"]["slides"][number] {
-  return data.value.slider.slides[index] ?? data.value.slider.slides[0];
-}
-
 function collectionSlide(index: number): FashionStoreHomeData["collection"][number] {
   return collectionSlides.value[index] ?? data.value.collection[0];
 }
@@ -72,104 +60,12 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
   <FashionStoreShell
     variant="home"
     :announcement="data.announcement"
-    :preload-image="properties.resolveAsset('fashion-store.slider-01')"
+    :preload-image="properties.resolveAsset('fashion-store.decor-hero-1-product')"
     :preview-intent-count="actionIntentCount"
     :resolve-asset="properties.resolveAsset"
   >
-    <template #prelude>
-      <h1 class="visually-hidden">Fashion store</h1>
-    </template>
     <section class="p-0" id="fashion-store-main" role="main">
-      <FashionStoreCarousel
-        ref="heroCarousel"
-        class="full-screen top-space-margin md-h-600px sm-h-500px swiper-number-pagination-progress swiper-number-pagination-progress-vertical"
-        :slide-count="data.slider.slides.length"
-        :semantic-slide-count="data.slider.slides.length"
-        :autoplay-ms="data.slider.options.autoplayMs"
-        :speed-ms="data.slider.options.speedMs"
-        :loop="data.slider.options.loop"
-        :parallax="true"
-        :keyboard="data.slider.options.keyboard"
-        :breakpoints="{
-          [data.slider.options.breakpointPx]: { direction: data.slider.options.desktopDirection },
-        }"
-        slide-class="overflow-hidden fashion-store-hero-slide"
-        :slide-motion-layers="true"
-        data-swiper-number-pagination-progress="true"
-        tabindex="0"
-        @active-index-change="activeIndex = $event"
-      >
-        <template #default="{ index }">
-          <div
-            class="cover-background position-absolute top-0 start-0 w-100 h-100"
-            :data-swiper-parallax="data.slider.options.parallaxPx"
-            :style="{
-              backgroundImage: `url('${properties.resolveAsset(heroSlide(index).assetId)}')`,
-            }"
-          >
-            <div class="container h-100">
-              <div class="row align-items-center h-100 justify-content-start">
-                <div
-                  class="col-md-10 position-relative text-white d-flex flex-column justify-content-center h-100"
-                >
-                  <div
-                    data-anime='{ "opacity": [0, 1], "translateY": [50, 0], "easing": "easeOutQuad", "duration": 500, "delay": 300 }'
-                    class="alt-font text-dark-gray mb-25px fs-20 sm-mb-15px"
-                  >
-                    <span class="text-highlight"
-                      >{{ heroSlide(index).eyebrow
-                      }}<span class="bg-base-color h-8px bottom-0px"></span
-                    ></span>
-                  </div>
-                  <div
-                    class="alt-font fs-120 xs-fs-95 lh-100 mb-40px text-dark-gray fw-600 transform-origin-right ls-minus-5px sm-mb-25px"
-                    data-anime='{ "el": "childs", "rotateX": [90, 0], "opacity": [0,1], "staggervalue": 150, "easing": "easeOutQuad" }'
-                  >
-                    <span class="d-block">{{ heroHeading(index)[0] }}</span>
-                    <span class="d-block fw-300">{{ heroHeading(index)[1] }}</span>
-                  </div>
-                  <div
-                    data-anime='{ "opacity": [0, 1], "translateY": [100, 0], "easing": "easeOutQuad", "duration": 800, "delay": 400 }'
-                  >
-                    <a
-                      :href="fashionStoreRoutePaths.collection"
-                      data-fashion-store-route
-                      class="btn btn-dark-gray btn-box-shadow btn-large"
-                      >View collection</a
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template #container-end>
-          <div class="swiper-pagination-wrapper">
-            <div
-              class="pagination-progress-vertical d-flex align-items-center justify-content-center"
-            >
-              <div class="number-prev text-dark-gray fs-16 fw-500">{{ heroCurrent }}</div>
-              <div class="swiper-pagination-progress">
-                <span class="swiper-progress"></span>
-              </div>
-              <div class="number-next text-dark-gray fs-16 fw-500">{{ heroTotal }}</div>
-            </div>
-            <div class="fashion-store-hero-controls" aria-label="Hero slides">
-              <button
-                v-for="(_, index) in data.slider.slides"
-                :key="`hero-control-${index}`"
-                type="button"
-                :data-fashion-store-slide="index"
-                :aria-label="`Show slide ${index + 1}`"
-                :aria-current="activeIndex === index ? 'true' : undefined"
-                @click="heroCarousel?.select(index)"
-              >
-                <span class="visually-hidden">{{ String(index + 1).padStart(2, "0") }}</span>
-              </button>
-            </div>
-          </div>
-        </template>
-      </FashionStoreCarousel>
+      <FashionStoreDecorHero :resolve-asset="properties.resolveAsset" />
     </section>
     <section class="half-section">
       <div class="container">

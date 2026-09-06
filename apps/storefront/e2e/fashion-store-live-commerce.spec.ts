@@ -651,10 +651,17 @@ test("live Home preserves all sections and card outcomes across input modes", as
   await expect(home.locator('[data-home-section="collection"] img')).toHaveCount(4);
   await expect(home.locator('[data-home-section="brands"] .row > div')).toHaveCount(5);
   await expect(home.locator('[data-home-section="magazine"] article')).toHaveCount(4);
+  await expect
+    .poll(() =>
+      home
+        .locator('[data-home-section="hero"] [data-hero-slide="1"] img')
+        .evaluateAll((images) => images.every((image) => (image as HTMLImageElement).naturalWidth > 0)),
+    )
+    .toBe(true);
   expect(
     await home
       .locator(
-        '[data-home-section]:not([data-home-section="best-sellers"]):not([data-home-section="featured-products"]) img',
+        '[data-home-section]:not([data-home-section="hero"]):not([data-home-section="best-sellers"]):not([data-home-section="featured-products"]) img',
       )
       .evaluateAll((images) =>
         images.every(
