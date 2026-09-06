@@ -29,7 +29,8 @@ const deterministicCss = `
     src: url("data:font/woff2;base64,${fontData("outfit")}") format("woff2"); }
   @font-face { font-family: "FashionStoreCaptureFigtree"; font-style: normal; font-weight: 300 800;
     src: url("data:font/woff2;base64,${fontData("figtree")}") format("woff2"); }
-  :root { --alt-font: "FashionStoreCaptureOutfit", sans-serif !important;
+  :root, body[data-fashion-store-shell="true"] {
+    --alt-font: "FashionStoreCaptureOutfit", sans-serif !important;
     --primary-font: "FashionStoreCaptureFigtree", sans-serif !important; }
   *, *::before, *::after { animation-duration: 0s !important; transition: none !important; }
   [data-anime], [data-anime] > *, .grid-loading, .grid-loading > * {
@@ -43,9 +44,10 @@ async function ready(page: Page, url: string, reducedMotion = true): Promise<voi
   await page.goto(url, { waitUntil: "networkidle" });
   await page.addStyleTag({ content: deterministicCss });
   if (url === "/") {
-    await page.locator("#fashion-store-main").click({ position: { x: 1, y: 1 } });
     await page.waitForFunction(
-      () => document.querySelector("#fashion-store-decor-hero")?.getAttribute("data-runtime-status") === "operational",
+      () =>
+        document.querySelector("#fashion-store-decor-hero")?.getAttribute("data-runtime-status") ===
+        "operational",
     );
   } else {
     await page.evaluate(() => {
@@ -113,6 +115,7 @@ async function regionalPixelGate(
   id: string,
   testInfo: TestInfo,
   maxChangedPixelRatio = 0.01,
+  screenshotStyle?: string,
 ): Promise<void> {
   const referencePath = testInfo.outputPath(`${id}-reference.png`);
   const implementationPath = testInfo.outputPath(`${id}-implementation.png`);
@@ -127,19 +130,29 @@ async function regionalPixelGate(
   if (!referenceBox || !implementationBox) throw new Error(`${id} region is missing.`);
   const width = Math.round(Math.min(referenceBox.width, implementationBox.width));
   const height = Math.round(Math.min(referenceBox.height, implementationBox.height));
-  await source.screenshot({
-    clip: { height, width, x: Math.round(referenceBox.x), y: Math.round(referenceBox.y) },
-    path: referencePath,
-  });
-  await implementation.screenshot({
-    clip: {
-      height,
-      width,
-      x: Math.round(implementationBox.x),
-      y: Math.round(implementationBox.y),
-    },
-    path: implementationPath,
-  });
+  const captureStyles = screenshotStyle
+    ? await Promise.all([
+        source.addStyleTag({ content: screenshotStyle }),
+        implementation.addStyleTag({ content: screenshotStyle }),
+      ])
+    : [];
+  try {
+    await source.screenshot({
+      clip: { height, width, x: Math.round(referenceBox.x), y: Math.round(referenceBox.y) },
+      path: referencePath,
+    });
+    await implementation.screenshot({
+      clip: {
+        height,
+        width,
+        x: Math.round(implementationBox.x),
+        y: Math.round(implementationBox.y),
+      },
+      path: implementationPath,
+    });
+  } finally {
+    await Promise.all(captureStyles.map((style) => style.evaluate((element) => element.remove())));
+  }
   const difference = await compareThemeScreenshots(
     referencePath,
     implementationPath,
@@ -223,6 +236,7 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     `${testInfo.project.name}-hero`,
     testInfo,
     0.04,
+    ".header-top-bar, header, #cookies-model, .sticky-wrap, .scroll-progress, .theme-demos { opacity: 0 !important; }",
   );
   await regionalPixelGate(
     source,
@@ -243,7 +257,7 @@ test("complete source home renders every static region and local image", async (
 
   await expect(page.locator("html")).toHaveAttribute("class", "js");
   await expect(page.locator("body")).toHaveAttribute("data-mobile-nav-style", "classic");
-  await expect(page.locator("body > div#__nuxt section")).toHaveCount(10);
+  await expect(page.locator("body > div#__nuxt section")).toHaveCount(11);
   await expect(page.locator("section:nth-of-type(2) .feature-box")).toHaveCount(4);
   await expect(page.locator("section:nth-of-type(3) .categories-style-02")).toHaveCount(4);
   await expect(page.locator("section:nth-of-type(4) .grid-item")).toHaveCount(10);
@@ -337,24 +351,22 @@ test("Fashion Store home has no serious accessibility violations", async ({ page
   expect(contrast.violations).toEqual([]);
 });
 
-test("reduced motion defers home hydration without deferring readable content", async ({
-  page,
-}, testInfo) => {
+test("reduced motion hydrates home controls immediately", async ({ page }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "networkidle" });
 
   const marker = page.locator("[data-fashion-store-source-parity]");
-  await expect(marker).not.toHaveAttribute("data-storefront-hydration", "eager");
-  await expect(marker).toHaveAttribute("data-runtime-status", "loading");
+  await expect(marker).toHaveAttribute("data-runtime-status", "static");
+  await expect(page.locator("html")).toHaveAttribute("class", "js");
+  await expect(page.locator(".sticky-wrap")).toBeVisible();
+  await expect(page.locator('script[src="/storefront-interaction-capture.js"]')).toHaveCount(0);
   await expect(page.locator("section:nth-of-type(4) .shop-footer").first()).toContainText(
     "Textured sweater",
   );
 
   const searchTrigger = page.getByRole("link", { name: "Search" });
   await searchTrigger.click();
-  await expect(marker).toHaveAttribute("data-runtime-status", "static");
-  await expect(page.locator("html")).toHaveAttribute("class", "js");
   await expect(page.locator(".search-form-wrapper")).toBeVisible();
 });
 
@@ -581,11 +593,11 @@ test("legacy runtime requests are absent while static content remains usable", a
   evidence.push({ actionOutcome: true, behaviorId: "header-search-overlay", mode: "fallback" });
 
   const cart = page.locator(".header-cart");
-  const cartTrigger = cart.getByRole("button", { name: "Open preview cart" });
+  const cartTrigger = cart.getByRole("button", { name: "Open cart" });
   await cartTrigger.focus();
   await page.keyboard.press("Enter");
   await expect(cart.locator(".cart-item-list")).toBeVisible();
-  await expect(cart.locator(".cart-item-list")).toContainText("Ribbed tank");
+  await expect(cart.locator(".cart-item-list")).toContainText("Textured sweater");
   await page.keyboard.press("Enter");
   evidence.push({ actionOutcome: true, behaviorId: "header-cart-preview", mode: "fallback" });
 
@@ -809,6 +821,8 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
   const marker = page.locator("[data-fashion-store-source-parity]");
   const card = page.locator("section:nth-of-type(4) .shop-image").first();
   await card.hover({ force: true });
+  const cartCount = page.locator(".header-cart .cart-count");
+  await expect(cartCount).toHaveText("2");
 
   const wishlist = card.getByRole("button", { name: "Add to wishlist" });
   await wishlist.focus();
@@ -824,6 +838,11 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
   await page.keyboard.press("Space");
   await expect(marker).toHaveAttribute("data-preview-intent-count", "2");
 
+  await card.hover({ force: true });
+  await card.getByRole("button", { name: "Add to cart" }).click();
+  await expect(marker).toHaveAttribute("data-preview-intent-count", "3");
+  await expect(cartCount).toHaveText("3");
+
   const navigationEntries = await page.evaluate(
     () => performance.getEntriesByType("navigation").length,
   );
@@ -831,6 +850,7 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
     .locator('.header-cart a[href="/cart"][data-fashion-store-route]')
     .dispatchEvent("click");
   await expect(page).toHaveURL(/\/cart$/);
+  await expect(page.locator(".cart-products")).toContainText("Textured sweater");
   expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(
     navigationEntries,
   );
@@ -863,8 +883,14 @@ test("header search and preview cart reproduce the source interactions", async (
   await cart.hover();
   await expect(cart).toHaveClass(/open/);
   await expect(cart.locator(".cart-item-list")).toBeVisible();
+  await expect(cart.locator(".cart-count")).toHaveText("2");
   await expect(cart.locator(".cart-item-list")).toContainText("Ribbed tank");
-  await expect(cart.locator(".cart-item-list")).toContainText("Pleated dress");
+  await expect(cart.getByRole("button", { name: /(?:Increase|Decrease) .* quantity/ })).toHaveCount(
+    0,
+  );
+  await cart.getByRole("button", { name: "Remove Pleated dress from cart" }).click();
+  await expect(cart.locator(".cart-count")).toHaveText("1");
+  await expect(cart.locator(".cart-item-list")).not.toContainText("Pleated dress");
   await page.mouse.move(0, page.viewportSize()!.height - 1);
   await expect(cart).not.toHaveClass(/open/);
   await expect(cart.locator(".cart-item-list")).toBeHidden();
@@ -898,7 +924,7 @@ test("mobile menu closes through Nuxt handling and restores toggle focus", async
   await expect(page.locator(".modal-backdrop, .offcanvas-backdrop")).toHaveCount(0);
 
   const cart = page.locator(".header-cart");
-  const cartTrigger = cart.getByRole("button", { name: "Open preview cart" });
+  const cartTrigger = cart.getByRole("button", { name: "Open cart" });
   await cartTrigger.tap();
   await expect(cartTrigger).toHaveAttribute("aria-expanded", "true");
   await expect(cart.locator(".cart-item-list")).toBeVisible();
@@ -958,9 +984,7 @@ test("approved local fonts and SVG icons are active", async ({ browser, page }) 
   });
   const source = await browser.newPage({ viewport: page.viewportSize()! });
   await Promise.all([ready(source, sourceURL), ready(page, "/")]);
-  const probes = [
-    { atomic: true, id: "product", selector: ".shop-footer .fs-19" },
-  ] as const;
+  const probes = [{ atomic: true, id: "product", selector: ".shop-footer .fs-19" }] as const;
   const implementationProbes = [
     { ...probes[0], selector: "section:nth-of-type(4) .shop-footer .fs-19" },
   ] as const;
@@ -969,14 +993,16 @@ test("approved local fonts and SVG icons are active", async ({ browser, page }) 
     captureFontContract(page, implementationProbes),
   ]);
   expect(compareFontContractSnapshots(reference, implementation)).toEqual([]);
-  expect(await page.evaluate(() => document.fonts.check("700 120px Plus Jakarta Sans", "Corby"))).toBe(
-    true,
-  );
+  expect(
+    await page.evaluate(() => document.fonts.check("700 120px Plus Jakarta Sans", "Corby")),
+  ).toBe(true);
   const cartIcon = page.locator('.add-to-cart [data-fashion-store-icon="shopping-bag"]');
   await page.locator("section:nth-of-type(4) .shop-box").first().hover();
   await expect(cartIcon.first().locator("svg")).toBeVisible();
   await expect(cartIcon.first()).toHaveAttribute("aria-hidden", "true");
-  expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual([]);
+  expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual(
+    [],
+  );
   await source.close();
 });
 
@@ -994,7 +1020,9 @@ test("all fixture routes use SVG controls without legacy icon font requests", as
       page.locator('i[class*="icon-feather-"], i[class*="bi-"], i[class*="fa-"], i[class*="ti-"]'),
     ).toHaveCount(0);
   }
-  expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual([]);
+  expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual(
+    [],
+  );
 });
 
 test("local tooltip supports focus, Escape and route cleanup with reduced motion", async ({
@@ -1103,7 +1131,7 @@ for (const route of ["/", "/products/relaxed-corduroy-shirt", "/collections"]) {
     await expect(search).toHaveCSS("outline-style", "solid");
 
     const cart = page.locator(".header-cart");
-    const cartTrigger = cart.getByRole("button", { name: "Open preview cart" });
+    const cartTrigger = cart.getByRole("button", { name: "Open cart" });
     await cartTrigger.focus();
     await page.keyboard.press("Enter");
     await expect(cartTrigger).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
@@ -1223,7 +1251,7 @@ for (const { id, path } of fashionStorePageContracts) {
     await expect(page.locator("footer.footer-dark")).toBeVisible();
     await expect(page.getByRole("link", { name: "Search", exact: true })).toBeVisible();
     await expect(
-      page.locator(".header-cart").getByRole("button", { name: "Open preview cart" }),
+      page.locator(".header-cart").getByRole("button", { name: "Open cart" }),
     ).toBeVisible();
     await expect(page.locator("body")).toHaveClass(id === "home" ? /fashion-store-home/ : /^$/);
     expect(

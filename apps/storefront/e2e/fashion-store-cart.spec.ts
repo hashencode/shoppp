@@ -112,6 +112,8 @@ test("cart-first-line-quantity-2 interaction: fixture quantity and removal stay 
     await route.fulfill({ contentType: "application/json", json: { data: response } });
   });
   await prepareCart(page);
+  const headerCartCount = page.locator(".header-cart .cart-count");
+  await expect(headerCartCount).toHaveText("3");
   const firstRow = page.locator(".cart-products tbody tr").first();
   await firstRow.getByRole("button", { name: "Increase Textured sweater quantity" }).click();
   expect(patchCount).toBe(0);
@@ -122,6 +124,7 @@ test("cart-first-line-quantity-2 interaction: fixture quantity and removal stay 
     "data-mutation-count",
     "1",
   );
+  await expect(headerCartCount).toHaveText("4");
 
   const remove = page.getByRole("button", { name: "Remove Bermuda shorts" });
   await remove.focus();
@@ -133,9 +136,8 @@ test("cart-first-line-quantity-2 interaction: fixture quantity and removal stay 
     "data-mutation-count",
     "2",
   );
-  await expect(page.getByRole("status")).toContainText(
-    "Preview item removed locally. No Commerce cart was changed.",
-  );
+  await expect(headerCartCount).toHaveText("3");
+  await expect(page.getByText(/Preview|No Commerce|locally/i)).toHaveCount(0);
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "cart-line-mutations",
@@ -218,9 +220,7 @@ test("cart-shipping-open interaction: fixture calculator validates locally witho
   await page.getByPlaceholder("ZIP").fill("78701");
   await page.locator("#shipping-accordion button", { hasText: "Update" }).click();
   expect(quoteCount).toBe(0);
-  await expect(page.getByRole("status")).toContainText(
-    "Preview delivery details validated locally. No Commerce quote was requested.",
-  );
+  await expect(page.getByText(/No Commerce|validated locally/i)).toHaveCount(0);
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "cart-shipping-calculator",

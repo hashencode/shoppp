@@ -7,6 +7,7 @@ import {
   formatCommerceMoney as money,
   liveCommerceModeKey,
 } from "../../../../theme-engine/runtime-commerce";
+import { useFashionStorePreviewCart } from "../../composables/useFashionStorePreviewCart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 
 const properties = defineProps<{
@@ -19,8 +20,12 @@ const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const liveCommerceMode = inject(liveCommerceModeKey, false);
 const liveCart = inject(storefrontCartStateKey, readonly(ref<StorefrontCart | null>(null)));
+const previewCart = useFashionStorePreviewCart(liveCommerceMode ? [] : undefined);
 const liveCartCount = computed(
   () => liveCart.value?.lines.reduce((total, line) => total + line.quantity, 0) ?? 0,
+);
+const cartCount = computed(() =>
+  liveCommerceMode ? liveCartCount.value : previewCart.count.value,
 );
 const liveCartError = ref("");
 const liveCartNotice = ref("");
@@ -60,7 +65,11 @@ function closeCart(): void {
   touchActivation = false;
 }
 
-async function removeLiveLine(variantId: string): Promise<void> {
+async function removeLine(variantId: string): Promise<void> {
+  if (!liveCommerceMode) {
+    previewCart.remove(variantId);
+    return;
+  }
   if (!actionAdapter || liveCartBusy.value) return;
   liveCartBusy.value = true;
   liveCartError.value = "";
@@ -107,7 +116,7 @@ defineExpose({ closeCart });
       <button
         type="button"
         class="fashion-store-source-action"
-        aria-label="Open preview cart"
+        aria-label="Open cart"
         :aria-expanded="cartOpen"
         @click="toggleCart"
         @keydown="prepareCartToggle"
@@ -115,7 +124,7 @@ defineExpose({ closeCart });
       >
         <FashionStoreIcon name="shopping-bag" /><span
           class="cart-count alt-font text-white bg-dark-gray"
-          >{{ liveCommerceMode ? liveCartCount : 2 }}</span
+          >{{ cartCount }}</span
         >
       </button>
       <ul v-if="liveCommerceMode" class="cart-item-list" aria-live="polite">
@@ -137,7 +146,7 @@ defineExpose({ closeCart });
             class="alt-font close fashion-store-source-action"
             :aria-label="`Remove ${line.productName} from cart`"
             :disabled="liveCartBusy"
-            @click="removeLiveLine(line.variantId)"
+            @click="removeLine(line.variantId)"
           >
             ×
           </button>
@@ -170,59 +179,43 @@ defineExpose({ closeCart });
           >
         </li>
       </ul>
-      <ul v-else class="cart-item-list">
-        <li class="cart-item align-items-center">
-          <button
-            type="button"
-            class="alt-font close fashion-store-source-action"
-            aria-label="Remove Ribbed tank from preview cart"
-            disabled
-          >
-            ×
-          </button>
-          <div class="product-image">
-            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
-              ><img
-                class="cart-thumb"
-                alt=""
-                v-bind:src="sourceAsset('images/demo-fashion-store-product-01.jpg')"
-            /></NuxtLink>
-          </div>
-          <div class="product-detail fw-600">
-            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
-              >Ribbed tank</NuxtLink
-            >
-            <span class="item-ammount fw-400">1 x $23.00</span>
-          </div>
+      <ul v-else class="cart-item-list" aria-live="polite">
+        <li v-if="previewCart.lines.value.length === 0" class="cart-item" role="status">
+          Your cart is empty.
         </li>
-        <li class="cart-item align-items-center">
-          <button
-            type="button"
-            class="alt-font close fashion-store-source-action"
-            aria-label="Remove Pleated dress from preview cart"
-            disabled
+        <template v-else>
+          <li
+            v-for="line in previewCart.lines.value"
+            :key="line.variantId"
+            class="cart-item align-items-center"
           >
-            ×
-          </button>
-          <div class="product-image">
-            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
-              ><img
-                class="cart-thumb"
-                alt=""
-                v-bind:src="sourceAsset('images/demo-fashion-store-product-02.jpg')"
-            /></NuxtLink>
-          </div>
-          <div class="product-detail fw-600">
-            <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
-              >Pleated dress</NuxtLink
+            <button
+              type="button"
+              class="alt-font close fashion-store-source-action"
+              :aria-label="`Remove ${line.name} from cart`"
+              @click="removeLine(line.variantId)"
             >
-            <span class="item-ammount fw-400">2 x $15.00</span>
-          </div>
-        </li>
-        <li class="cart-total">
+              ×
+            </button>
+            <div class="product-image">
+              <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route
+                ><img class="cart-thumb" :alt="line.name" :src="sourceAsset(line.sourceImage)"
+              /></NuxtLink>
+            </div>
+            <div class="product-detail fw-600">
+              <NuxtLink :to="fashionStoreRoutePaths.product" data-fashion-store-route>{{
+                line.name
+              }}</NuxtLink>
+              <span class="item-ammount fw-400">{{ line.quantity }} × {{ line.price }}</span>
+            </div>
+          </li>
+        </template>
+        <li v-if="previewCart.lines.value.length" class="cart-total">
           <div class="fs-18 alt-font mb-15px">
             <span class="w-50 fw-500 text-start">Subtotal:</span
-            ><span class="w-50 text-end fw-700">$199.99</span>
+            ><span class="w-50 text-end fw-700">{{
+              money(Math.round(previewCart.subtotal.value * 100), "USD")
+            }}</span>
           </div>
           <NuxtLink
             :to="fashionStoreRoutePaths.cart"

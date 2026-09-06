@@ -719,7 +719,7 @@ test("Product fixture quantity normalization preserves bounded values without Co
   expect(commerceRequests).toEqual([]);
 });
 
-test("Product fixture records cart intent without reaching Commerce", async ({
+test("Product fixture updates the shared cart without reaching Commerce", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Commerce evidence runs once.");
@@ -735,6 +735,8 @@ test("Product fixture records cart intent without reaching Commerce", async ({
     await route.fulfill({ contentType: "application/json", json: { data: cart(2) } });
   });
   await prepareProduct(page);
+  const headerCartCount = page.locator(".header-cart .cart-count");
+  await expect(headerCartCount).toHaveText("2");
   await page.getByRole("button", { name: "Increase quantity" }).click();
   await page.locator(".product-info").getByRole("button", { name: "Add to wishlist" }).click();
   const addToCart = page.locator(".product-info .btn-cart");
@@ -751,9 +753,12 @@ test("Product fixture records cart intent without reaching Commerce", async ({
     "data-preview-intent-count",
     "2",
   );
-  await expect(page.getByRole("status")).toContainText(
-    "Preview cart intent recorded. No Commerce cart was changed.",
-  );
+  await expect(headerCartCount).toHaveText("4");
+  await expect(page.getByText(/preview cart intent|No Commerce/i)).toHaveCount(0);
+  await page.locator(".header-cart").hover();
+  await page.locator('.header-cart a[href="/cart"]').click();
+  await expect(page).toHaveURL(/\/cart$/);
+  await expect(page.locator(".cart-products")).toContainText("Relaxed corduroy shirt");
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "product-commerce-actions",

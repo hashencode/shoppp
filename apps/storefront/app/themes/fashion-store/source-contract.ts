@@ -186,6 +186,14 @@ export const fashionStoreSourceRegions = [
 
 export const fashionStoreSourceRegionOrder = fashionStoreSourceRegions.map(({ key }) => key);
 
+export const fashionStoreSourceVisibleCopyExclusions = [
+  {
+    copy: ["Enjoy FREE standard delivery on orders over $100.", "Shop now"],
+    reason: "The Fashion Store intentionally omits the source template's promotional top bar.",
+    selector: ".header-top-bar",
+  },
+] as const;
+
 export const fashionStoreSourceContract = {
   behaviorContractPath: "./behavior-contract.ts",
   bodyMobileNavigationStyle: "classic",

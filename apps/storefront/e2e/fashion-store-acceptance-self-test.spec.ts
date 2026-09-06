@@ -177,3 +177,82 @@ test("independent candidate discovery rejects an undeclared ordinary button", as
     /unresolved candidate/,
   );
 });
+
+test("visible-copy exclusions reject unexpected copy inside the excluded region", async ({
+  page,
+}) => {
+  await page.setContent(
+    '<div class="announcement"><span>Expected promotion</span><span>Unexpected addition</span></div>',
+  );
+  const emptyContract = {
+    behaviors: [],
+    customAdapters: [],
+    routeId: "fixture-home",
+    suppressions: [],
+    themeId: "fixture",
+  } as const satisfies ThemeBehaviorContract;
+
+  await expect(
+    captureThemeSourceInventory({
+      contract: emptyContract,
+      page,
+      regions: [{ id: "document", selector: "body" }],
+      side: "source",
+      visibleCopyExclusions: [
+        {
+          copy: ["Expected promotion"],
+          reason: "The implementation intentionally omits the expected promotion.",
+          selector: ".announcement",
+        },
+      ],
+    }),
+  ).rejects.toThrow(/does not match its exact source copy/);
+});
+
+test("visible-copy exclusions require source-only, explained, exact configuration", async ({
+  page,
+}) => {
+  await page.setContent('<div class="announcement">Expected promotion</div>');
+  const emptyContract = {
+    behaviors: [],
+    customAdapters: [],
+    routeId: "fixture-home",
+    suppressions: [],
+    themeId: "fixture",
+  } as const satisfies ThemeBehaviorContract;
+  const validExclusion = {
+    copy: ["Expected promotion"],
+    reason: "The implementation intentionally omits the expected promotion.",
+    selector: ".announcement",
+  } as const;
+
+  await expect(
+    captureThemeSourceInventory({
+      contract: emptyContract,
+      page,
+      regions: [{ id: "document", selector: "body" }],
+      side: "implementation",
+      visibleCopyExclusions: [validExclusion],
+    }),
+  ).rejects.toThrow(/apply only to independent source capture/);
+  await expect(
+    captureThemeSourceInventory({
+      contract: emptyContract,
+      page,
+      regions: [{ id: "document", selector: "body" }],
+      side: "source",
+      visibleCopyExclusions: [{ ...validExclusion, reason: " " }],
+    }),
+  ).rejects.toThrow(/requires a reason/);
+  for (const copy of [[], [" "]] as const) {
+    await expect(
+      captureThemeSourceInventory({
+        contract: emptyContract,
+        page,
+        regions: [{ id: "document", selector: "body" }],
+        side: "source",
+        visibleCopyExclusions: [{ ...validExclusion, copy }],
+      }),
+    ).rejects.toThrow(/requires exact copy/);
+  }
+});

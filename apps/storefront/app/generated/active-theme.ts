@@ -87,11 +87,7 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home",
           "required": true,
-          "settings": {
-            "hero-body": "Explore the latest edit.",
-            "hero-eyebrow": "New collection",
-            "hero-title": "Fashion for every day"
-          },
+          "settings": {},
           "type": "fashion-store.home",
           "visible": true
         }

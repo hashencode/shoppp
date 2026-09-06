@@ -343,7 +343,6 @@ onBeforeUnmount(() => {
   <main
     ref="root"
     data-decor-store-source-parity
-    data-storefront-hydration="eager"
     data-mobile-nav-style="classic"
     :data-runtime-status="runtime.status.value"
     :data-decor-body-ready="runtime.bodyReady.value"

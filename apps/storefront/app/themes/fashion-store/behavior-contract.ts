@@ -164,7 +164,7 @@ export const fashionStoreBehaviorContract = {
       id: "header-cart-preview",
       initialState: "closed",
       modes: ["interaction", "fallback"],
-      outcome: "Hovering the cart reveals the source preview card without adding content.",
+      outcome: "Hovering or activating the cart reveals the current cart and its controls.",
       owner: "source-runtime",
       region: "header",
       role: "commerce-action",
@@ -179,7 +179,11 @@ export const fashionStoreBehaviorContract = {
       },
       branches: [
         { id: "below-threshold", input: "touch", outcome: "A 74px swipe retains the slide." },
-        { id: "above-threshold", input: "touch", outcome: "A 76px swipe changes the slide." },
+        {
+          id: "above-threshold",
+          input: "touch",
+          outcome: "A 76px trace opens Swiper's native threshold gate.",
+        },
         {
           id: "busy-input",
           input: "keyboard",

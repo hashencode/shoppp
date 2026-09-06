@@ -5,6 +5,7 @@ import { recordPreviewIntent, type PreviewAction } from "../../../theme-engine/a
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
 import type { FashionStoreHomeData } from "../fixtures/home";
+import { useFashionStorePreviewCart } from "../composables/useFashionStorePreviewCart";
 import { fashionStoreAssetId } from "../resources";
 import { fashionStoreRoutePaths } from "../page-contracts";
 import FashionStoreCarousel from "./shared/FashionStoreCarousel.vue";
@@ -25,6 +26,7 @@ const data = computed<FashionStoreHomeData>(() => {
 const actionIntentCount = ref(0);
 const marqueeMessages = computed(() => data.value.marquee);
 const collectionIndex = ref(0);
+const previewCart = useFashionStorePreviewCart();
 const collectionSlides = computed(() =>
   data.value.collection.length > 1
     ? [...data.value.collection, ...data.value.collection]
@@ -35,8 +37,17 @@ function recordProductAction(action: PreviewAction): void {
   actionIntentCount.value += 1;
 }
 
-function addToCart(): void {
+function addToCart(product: FashionStoreHomeData["bestSellers"][number]): void {
   recordProductAction(data.value.cartAction);
+  previewCart.add({
+    color: "",
+    name: product.name,
+    price: product.price,
+    quantity: 1,
+    sourceImage: product.sourceImage,
+    total: product.price,
+    variantId: product.sourceImage,
+  });
 }
 
 function addToWishlist(): void {
@@ -321,7 +332,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[0])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -386,7 +397,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[1])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -451,7 +462,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[2])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -516,7 +527,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[3])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -581,7 +592,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[4])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -647,7 +658,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[5])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -712,7 +723,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[6])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -777,7 +788,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[7])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -842,7 +853,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[8])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -907,7 +918,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.bestSellers[9])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -1171,7 +1182,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.featuredProducts[0])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -1236,7 +1247,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.featuredProducts[1])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -1301,7 +1312,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.featuredProducts[2])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -1366,7 +1377,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.featuredProducts[3])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"
@@ -1431,7 +1442,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
                         type="button"
                         aria-label="Add to cart"
                         class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
-                        @click="addToCart"
+                        @click="addToCart(data.featuredProducts[4])"
                       >
                         <FashionStoreIcon name="shopping-bag" /><span
                           class="quick-view-text button-text"

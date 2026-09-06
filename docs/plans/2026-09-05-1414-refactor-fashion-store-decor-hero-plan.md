@@ -19,7 +19,7 @@ deepened: 2026-09-05
 - **Means:** Build one Fashion-owned Hero with Swiper 14.2.0 for carousel mechanics and GSAP 3.15.0 for source-derived layer timelines, backed by a mixed-source acceptance contract that compares only the Hero to the Decor source (KTD1-KTD5).
 - **Authority:** The product master controls execution order; the Fashion functional plan governs product behavior; completed FS-R1 and FS-F3 govern the inherited Fashion carousel baseline; the frozen Decor source and accepted Decor Hero behavior govern this Hero's visible result.
 - **Execution profile:** Work test-first in the existing primary worktree. Freeze mixed-source authority and upgrade risk before changing the Hero, then deliver SSR structure, motion, responsive parity, full Fashion carousel regression, and REL handback. No PR, deployment, candidate freeze, or production promotion is required.
-- **Stop conditions:** Stop if Swiper 14.2.0 cannot meet the approved browser matrix or a safe public-API replacement for the Product Gallery compatibility hook cannot preserve FS-F3. Also stop before importing Decor runtime code, weakening source-equivalence thresholds, changing non-Hero commerce, or modifying `decor-store` implementation files.
+- **Stop conditions:** Stop if Swiper 14.2.0 cannot meet the approved browser matrix or a safe public-API replacement for the Product Gallery compatibility hook cannot preserve FS-F3. Also stop before importing Decor runtime code, weakening source-equivalence thresholds, changing non-Hero commerce, or modifying `decor-store` behavior; U6 may remove only the obsolete Decor hydration marker made dead by the user-directed application-level hydration cleanup in R17.
 - **Tail ownership:** FS-R2 owns U1-U6, focused evidence, dependency and regression fixes, and final handback. REL retains Pre-DC, DC, and PG authority.
 
 ## Authority and Lineage
@@ -27,17 +27,17 @@ deepened: 2026-09-05
 - **Upstream product authority:** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` owns the product map and active pointer. `docs/plans/2026-08-11-001-feat-fashion-store-functional-integration-plan.md` remains the Fashion Store product authority.
 - **Inherited baseline:** `docs/plans/2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md` (FS-R1) supplies the single-Swiper architecture, selected-theme isolation, browser matrix, bundle budget, no-jQuery posture, shared carousel ownership, and fixture/live regression requirements. `docs/plans/2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md` (FS-F3) supplies the five-second Product cadence, sole semantic index, application-owned active marker, visibility-aware thumbnail movement, and lightbox/pause behavior.
 - **Decor reference authority:** `docs/plans/2026-08-10-001-feat-decor-store-source-parity-plan.md`, `apps/storefront/app/themes/decor-store/upstream/demo-decor-store.html`, its adjacent Hero CSS and initializer, and the accepted Decor source/behavior contracts are read-only reference authority. This plan implements the earlier deferred framework-Hero option only inside Fashion; it does not supersede Decor's Revolution implementation.
-- **Explicit supersessions:** FS-R2 supersedes only FS-R1-U5's Fashion Home Hero presentation, its Fashion apparel Hero assets/copy/editor controls, and FS-R1's exact `swiper@11.2.10` version evidence. It does not reopen completed FS-R1/FS-F3 units or supersede other Fashion carousel behavior.
+- **Explicit supersessions:** FS-R2 supersedes FS-R1-U5's Fashion Home Hero presentation, its Fashion apparel Hero assets/copy/editor controls, and FS-R1's exact `swiper@11.2.10` version evidence. During U6, the user-directed R17 startup simplification also supersedes the former interaction-deferred hydration path and only the now-dead Decor eager-hydration marker; it does not reopen completed FS-R1/FS-F3 units, supersede other Fashion carousel behavior, or authorize any Decor behavior change.
 - **Parallel plans:** REL pauses at Pre-DC while FS-R2 executes and resumes after U6. Decor, Commerce, Theme Platform, IAM, AI, Admin, and CI retain the responsibilities recorded in the product master. The Decor source comparison in this plan is feature acceptance, not a DC3 Candidate Template Matrix claim.
 - **Tail ownership:** FS-R2 owns the Fashion fixture and live Home Hero, mixed-source acceptance seam, safe Swiper/GSAP dependency state, affected Fashion carousel regressions, maintenance evidence, and master-pointer return to REL.
 
 ## Activation Checkpoint
 
-- **Plan classification:** Active bounded successor; implementation and focused verification completed through U5 on 2026-09-06, with the full-regression handback still open.
-- **Current unit:** U6 — close full regression, maintenance evidence, and REL handback.
-- **Unit state:** U1-U5 Complete; U6 Active.
-- **Blocker:** The full Fashion Home page acceptance still fails on inherited non-Hero header/announcement navigation and source-only sticky-social-rail differences, while the complete live suite retains one existing cookie-consent timeout and one overall flow timeout. Those areas are outside FS-R2's approved Hero scope and cannot be changed or waived here. REL's capability-scope and candidate-identity blockers remain preserved.
-- **Next concrete action:** Reconcile the inherited non-Hero Fashion acceptance baseline under its owning authority, then rerun the full Home page/theme/live gates; if they pass without weakening thresholds, close U6 and return the product pointer to REL-Pre-DC.
+- **Plan classification:** Complete bounded successor; implementation, regression reconciliation, maintenance evidence, and REL handback completed on 2026-09-07.
+- **Current unit:** None — U6 is complete and FS-R2 has no implementation tail.
+- **Unit state:** U1-U6 Complete.
+- **Blocker:** None in FS-R2. The direct-add first-key activation gap was an SSR-to-hydration race, not a cart-publication race: live product actions now render disabled/loading until their component mounts and become available immediately afterward. Complete Home acceptance, behavior-evidence verification, the full live suite, focused Decor Home compatibility, typecheck, and lint pass without weakening thresholds. REL's capability-scope and candidate-identity blockers remain unchanged.
+- **Next concrete action:** None in FS-R2. Execution authority has returned to REL-Pre-DC; FS-R3 remains implementation-ready but requires its own activation pointer before work begins.
 - **Update rule:** This checkpoint is the sole authority for FS-R2's current unit, per-unit state, blocker, next action, and implementation tail. Update it and the product master pointer in the same change whenever those facts change. Evidence under `docs/progress/` must not maintain a second unit queue.
 
 ---
@@ -83,6 +83,7 @@ The repository's current Fashion acceptance assumes one page-level source, `demo
 - R14. Home collection, Shop arrivals, About carousel, and Product main/thumbnail gallery preserve their inherited Swiper behavior after the upgrade. Product's private compatibility hook receives characterization first and, if incompatible, is replaced with a public Swiper event/API or application-owned cancellation seam without changing FS-F3 outcomes.
 - R15. Mixed-source acceptance keeps Fashion as the page-level source and assigns only the Hero region to the independent Decor source. It compares visible content, geometry, typography, named states, timed samples, and interactions without a whole-page source switch, source mutation, blanket waiver, or relaxed existing thresholds.
 - R16. Fashion stays within the existing 300 KiB initial JavaScript gzip budget and current performance gates. The final build contains only required Swiper modules/CSS and GSAP core, includes no inactive Decor runtime, makes no remote Hero request, and records the before/after Hero and route resource delta.
+- R17. Storefront capabilities initialize without waiting for a shopper's first click, key, or pointer action and without waiting for `document.fonts.ready`. Remove the application-level interaction capture/replay script and its hydration strategy, plus the Decor-only eager marker that becomes dead after that removal. Preserve immediate first-click behavior, Fashion's intentional promotional-top-bar omission, and all non-Hero shopper behavior.
 
 ### Key Decisions
 
@@ -361,14 +362,15 @@ Retain a production-build before/after comparison for initial JavaScript gzip by
 ### U6. Close full regression, maintenance evidence, and REL handback
 
 - **Goal:** Prove the dependency and Hero change is safe across Fashion, remove abandoned paths, and return execution authority without advancing release state.
-- **Requirements:** R3-R4, R12-R16; AE7-AE8; KTD4, KTD7-KTD8.
+- **Requirements:** R3-R4, R12-R17; AE7-AE8; KTD4, KTD7-KTD8.
 - **Dependencies:** U2-U5.
 - **Files:** All files changed by U1-U5 as required for regression correction, `docs/progress/fashion-store-decor-hero.md`, `docs/progress/fashion-store-dependency-versions.md`, `docs/progress/fashion-store-dependency-maintenance.md`, this plan, and `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md`.
 - **Approach:**
   1. Run focused Home Hero acceptance, all Fashion carousel consumer tests, complete fixture/live Fashion acceptance, available three-engine compatibility, type/lint/static/source/theme checks, bundle/resource comparison, performance, no-JS, reduced-motion, and repeated remount evidence.
-  2. Run Decor acceptance as a mandatory non-target compatibility regression because U1/U5 change shared source-equivalence and fidelity tooling. Always prove the Fashion bundle contains no Decor runtime and the implementation diff contains no `decor-store` change.
+  2. Run Decor acceptance as a mandatory non-target compatibility regression because U1/U5 change shared source-equivalence and fidelity tooling. Always prove the Fashion bundle contains no Decor runtime and that the only `decor-store` implementation diff is removal of the obsolete eager-hydration marker authorized by R17.
   3. Remove the obsolete Fashion apparel Hero render path, single-Hero editor controls, runtime imports, dedicated selectors, unshared resource registrations, preload references, fixture branches, generated output, diagnostics, dead timeline experiments, duplicate CSS/module imports, and undocumented private Swiper hooks introduced during migration. Delete an old image/style only after proving it has no other consumer; retain any byte or digest that belongs to the immutable Fashion upstream/source snapshot.
   4. Record actual engines, unverified devices, dependency/license/bundle deltas, visual checkpoints, and any approved bounded adaptation; mark U1-U6 complete and return the product master pointer to REL-Pre-DC.
+  5. Delete the interaction capture/replay hydration layer, initialize the storefront and Fashion controls on mount without a font-ready gate, and retain focused first-input, social-rail, lifecycle, static-output, and exact source-copy-exclusion evidence.
 - **Execution note:** A regression belongs back to its owning unit; U6 records final evidence and handback rather than masking failures with retries or threshold changes.
 - **Patterns to follow:** FS-R1 U11 maintenance handoff and FS-F3 U3 corrective handback.
 - **Test scenarios:**
@@ -377,7 +379,7 @@ Retain a production-build before/after comparison for initial JavaScript gzip by
   3. Static output and resource scans contain exact approved dependencies and no jQuery, Revolution, remote Hero asset, inactive Decor runtime, duplicate Swiper CSS, or second carousel initializer.
   4. Initial JavaScript remains at or below 300 KiB gzip, current repository performance gates pass, and before/after Hero and representative-route resource totals are retained.
   5. Repeated Home route mounts leave one active instance, no post-destroy callback/DOM mutation, and no accumulating document listener or timeline count.
-  6. The shared U1/U5 tooling changes preserve Decor acceptance without modifying Decor implementation; unavailable historical browsers and real devices remain explicitly unverified rather than silently certified.
+  6. The shared U1/U5 tooling and R17 startup changes preserve Decor behavior; the only Decor implementation change is removal of the dead eager-hydration marker, and unavailable historical browsers and real devices remain explicitly unverified rather than silently certified.
 - **Verification:** All plan gates pass, evidence is retained without a duplicate queue, abandoned code is absent, FS-R2 has no tail, and the master pointer returns to unchanged REL-Pre-DC blockers.
 
 ---
@@ -405,7 +407,7 @@ Retain a production-build before/after comparison for initial JavaScript gzip by
 - Both Fashion Home renderers permanently use the Fashion-owned furniture Hero; its three slides match the retained Decor content, style, operation, interaction, animation, and responsive behavior within existing acceptance thresholds, with `More information` deliberately absent on PC and H5.
 - Swiper 14.2.0 and GSAP 3.15.0 are exact, source/license/integrity documented, modularly bundled, and safe under SSR, hydration, route lifecycle, reduced motion, and page visibility.
 - All existing Fashion Swiper consumers preserve FS-R1 and FS-F3 outcomes after the major upgrade, including Product's sole marker, boundary-safe thumbnail rail, five-second cadence, and lightbox synchronization.
-- Fashion and Decor remain isolated: no Decor implementation file changed, Fashion imports no Decor runtime/module, and Fashion output contains no jQuery/Revolution/remote Hero request.
+- Fashion and Decor remain isolated: no Decor behavior changed beyond removal of the dead eager-hydration marker authorized by R17, Fashion imports no Decor runtime/module, and Fashion output contains no jQuery/Revolution/remote Hero request.
 - Mixed-source acceptance keeps Fashion authority outside Hero and Decor authority inside Hero without a blanket waiver, source mutation, or relaxed threshold.
 - The obsolete Fashion single-Hero editor controls and unshared old-Hero runtime/style/media paths are absent; already-saved legacy values remain tolerated, and a future successor owns configurable three-slide content and links.
 - Full Fashion, available three-engine, type, lint, static, source, theme, bundle, accessibility, and performance gates pass; shared-tool changes preserve Decor acceptance.

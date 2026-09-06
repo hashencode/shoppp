@@ -7,6 +7,12 @@ export interface ThemeInventoryRegion {
   selector: string;
 }
 
+export interface ThemeVisibleCopyExclusion {
+  copy: readonly string[];
+  reason: string;
+  selector: string;
+}
+
 export interface ThemeBehaviorCandidate {
   behaviorIds: string[];
   fingerprint: string;
@@ -107,7 +113,20 @@ export async function captureThemeSourceInventory(options: {
   page: Page;
   regions: readonly ThemeInventoryRegion[];
   side: "implementation" | "source";
+  visibleCopyExclusions?: readonly ThemeVisibleCopyExclusion[];
 }): Promise<ThemeSourceInventorySnapshot> {
+  const visibleCopyExclusions = options.visibleCopyExclusions ?? [];
+  if (options.side !== "source" && visibleCopyExclusions.length > 0) {
+    throw new Error("Visible-copy exclusions apply only to independent source capture.");
+  }
+  for (const exclusion of visibleCopyExclusions) {
+    if (!exclusion.reason.trim()) {
+      throw new Error(`Visible-copy exclusion ${exclusion.selector} requires a reason.`);
+    }
+    if (exclusion.copy.length === 0 || exclusion.copy.some((text) => !text.trim())) {
+      throw new Error(`Visible-copy exclusion ${exclusion.selector} requires exact copy.`);
+    }
+  }
   const behaviorSelectors = options.contract.behaviors.map((behavior) => ({
     id: behavior.id,
     selector:
@@ -116,7 +135,7 @@ export async function captureThemeSourceInventory(options: {
         : behavior.actions.implementation.selector,
   }));
   return options.page.evaluate(
-    ({ behaviorSelectors, regions, suppressions }) => {
+    ({ behaviorSelectors, regions, suppressions, visibleCopyExclusions }) => {
       const normalize = (value: string) => value.replaceAll(/\s+/g, " ").trim();
       const visible = (element: Element) => {
         if (element.closest(".swiper-slide:not(.swiper-slide-duplicate)")) return true;
@@ -236,6 +255,33 @@ export async function captureThemeSourceInventory(options: {
         });
       }
 
+      for (const exclusion of visibleCopyExclusions) {
+        const actualCopy = [...document.querySelectorAll(exclusion.selector)].flatMap((element) => {
+          const copy: string[] = [];
+          const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+          let node = walker.nextNode();
+          while (node) {
+            const parent = node.parentElement;
+            const text = normalize(node.textContent ?? "");
+            if (
+              parent &&
+              text &&
+              !parent.closest("script,style,noscript,.swiper-slide-duplicate") &&
+              visible(parent)
+            )
+              copy.push(text);
+            node = walker.nextNode();
+          }
+          return copy;
+        });
+        const expectedCopy = exclusion.copy.map(normalize);
+        if (JSON.stringify(actualCopy) !== JSON.stringify(expectedCopy)) {
+          throw new Error(
+            `Visible-copy exclusion ${exclusion.selector} does not match its exact source copy.`,
+          );
+        }
+      }
+
       const visibleCopy: ThemeVisibleCopyEntry[] = [];
       const accessibilityCopy: ThemeVisibleCopyEntry[] = [];
       const visibleRegionCounters = new Map<string, number>();
@@ -249,6 +295,9 @@ export async function captureThemeSourceInventory(options: {
           parent &&
           text &&
           !parent.closest("script,style,noscript,.swiper-slide-duplicate") &&
+          !visibleCopyExclusions.some(
+            ({ copy, selector }) => parent.closest(selector) && copy.map(normalize).includes(text),
+          ) &&
           visible(parent)
         ) {
           const region = regionFor(parent);
@@ -278,6 +327,7 @@ export async function captureThemeSourceInventory(options: {
       behaviorSelectors,
       regions: options.regions,
       suppressions: options.contract.suppressions.map(({ candidate }) => candidate),
+      visibleCopyExclusions,
     },
   );
 }

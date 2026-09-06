@@ -29,6 +29,11 @@ describe("Fashion Store page acceptance routing", () => {
     );
   });
 
+  test("includes dedicated Hero branches in Home behavior evidence", () => {
+    const home = buildFashionStoreAcceptancePlan({ page: "home", scope: "page" });
+    expect(home.steps[1]!.command).toContain("e2e/fashion-store-decor-hero.spec.ts");
+  });
+
   test("runs one full browser command and verifies all pages for theme/shadow acceptance", () => {
     const theme = buildFashionStoreAcceptancePlan({ scope: "theme" });
     expect(theme.pages).toHaveLength(15);

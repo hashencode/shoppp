@@ -25,7 +25,6 @@ const products = ref([...data.value.products]);
 const actionAdapter = inject(storefrontActionAdapterKey);
 const cartAddCount = ref(0);
 const previewCartIntentCount = ref(0);
-const cartNotice = ref("");
 const removeCount = ref(0);
 const busyProductId = ref("");
 
@@ -39,7 +38,6 @@ async function addToCart(productId: string): Promise<void> {
   recordPreviewIntent(data.value.actions.cart, "fashion-store.wishlist.cart");
   if (!actionAdapter) {
     previewCartIntentCount.value += 1;
-    cartNotice.value = "Preview cart intent recorded. No Commerce cart was changed.";
     busyProductId.value = "";
     return;
   }
@@ -90,9 +88,6 @@ function handleProductIntent(productId: string, kind: "cart" | "quickView" | "wi
       :data-preview-cart-intent-count="previewCartIntentCount"
       :data-remove-count="removeCount"
     >
-      <p v-if="cartNotice" class="visually-hidden" role="status" aria-live="polite">
-        {{ cartNotice }}
-      </p>
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">

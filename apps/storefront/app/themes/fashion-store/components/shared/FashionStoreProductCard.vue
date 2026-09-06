@@ -12,6 +12,7 @@ import {
 import type { PresentationProductCard } from "../../../../theme-engine/view-models";
 import { fashionStoreLiveCapabilities } from "../../capability-matrix";
 import type { FashionStoreLegacyProductCard } from "../../contracts/product-card";
+import { useFashionStorePreviewCart } from "../../composables/useFashionStorePreviewCart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 
@@ -32,16 +33,19 @@ const actionAdapter = inject(storefrontActionAdapterKey);
 const cartState = inject(storefrontCartStateKey);
 const runtimeCommerce = inject(runtimeCommercePortKey);
 const liveProduct = computed(() => "staticPurchase" in properties.product);
+const previewCart = useFashionStorePreviewCart(liveProduct.value ? [] : undefined);
 const liveCard = computed(() =>
   liveProduct.value ? (properties.product as PresentationProductCard) : undefined,
 );
 const actionState = ref<PresentationProductCard["actionState"]["kind"]>(
   liveCard.value?.actionState.kind ?? "available",
 );
-const statusMessage = ref(
-  liveCard.value?.actionState.message ?? "Fixture preview action is available.",
-);
+const statusMessage = ref(liveCard.value?.actionState.message ?? "");
 const runtimePriceLabel = ref<string>();
+const hydrated = ref(false);
+const renderedActionState = computed(() =>
+  liveProduct.value && !hydrated.value ? "loading" : actionState.value,
+);
 
 const card = computed(() => {
   if (liveCard.value) {
@@ -76,7 +80,7 @@ const directPurchase = computed(() => {
   return purchase?.kind === "direct-add" ? purchase : undefined;
 });
 const directActionLabel = computed(() => {
-  switch (actionState.value) {
+  switch (renderedActionState.value) {
     case "loading":
       return "Checking availability…";
     case "pending":
@@ -92,16 +96,30 @@ const directActionLabel = computed(() => {
   }
 });
 
+onMounted(() => {
+  hydrated.value = true;
+});
+
 async function addToCart(): Promise<void> {
   const product = liveCard.value;
   const purchase = directPurchase.value;
   if (!product || !purchase) {
+    const fixtureProduct = properties.product as FashionStoreLegacyProductCard;
+    previewCart.add({
+      color: "",
+      name: fixtureProduct.name,
+      price: fixtureProduct.price,
+      quantity: 1,
+      sourceImage: fixtureProduct.sourceImage,
+      total: fixtureProduct.price,
+      variantId: fixtureProduct.id,
+    });
     emit("intent", "cart");
     return;
   }
   if (!runtimeCommerce || !actionAdapter) {
     actionState.value = "retry";
-    statusMessage.value = "The item was not added. Try again when Commerce is available.";
+    statusMessage.value = "The item could not be added. Try again.";
     return;
   }
   actionState.value = "pending";
@@ -157,7 +175,7 @@ watch(
   <li
     class="grid-item"
     data-fashion-store-product-card
-    :data-action-state="liveProduct ? actionState : undefined"
+    :data-action-state="liveProduct ? renderedActionState : undefined"
     :data-card-variant="cardVariant"
     :data-product-id="card.id"
   >
@@ -190,10 +208,10 @@ watch(
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
             :aria-label="directActionLabel"
             :disabled="
-              actionState === 'loading' ||
-              actionState === 'pending' ||
-              actionState === 'unavailable' ||
-              actionState === 'succeeded'
+              renderedActionState === 'loading' ||
+              renderedActionState === 'pending' ||
+              renderedActionState === 'unavailable' ||
+              renderedActionState === 'succeeded'
             "
             @click="addToCart"
           >

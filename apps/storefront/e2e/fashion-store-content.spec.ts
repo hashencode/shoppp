@@ -85,7 +85,7 @@ test("Wishlist and Account preserve their independent source content and respons
   }
 });
 
-test("wishlist-first-product-actions interaction: cart and removal stay host-owned or local", async ({
+test("wishlist-first-product-actions interaction: cart and wishlist state update locally", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
@@ -102,6 +102,8 @@ test("wishlist-first-product-actions interaction: cart and removal stay host-own
   });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepare(page, "/wishlist");
+  const headerCartCount = page.locator(".header-cart .cart-count");
+  await expect(headerCartCount).toHaveText("2");
   const firstCard = page.locator(".fashion-wishlist-grid > .grid-item").first();
   await firstCard.hover();
   await firstCard.getByRole("button", { name: "Add to cart" }).click();
@@ -115,9 +117,8 @@ test("wishlist-first-product-actions interaction: cart and removal stay host-own
     "data-preview-cart-intent-count",
     "1",
   );
-  await expect(page.getByRole("status")).toContainText(
-    "Preview cart intent recorded. No Commerce cart was changed.",
-  );
+  await expect(headerCartCount).toHaveText("3");
+  await expect(page.getByText(/preview cart intent|No Commerce/i)).toHaveCount(0);
 
   const remove = firstCard.getByRole("button", { name: /Remove Textured sweater/ });
   await remove.focus();

@@ -9,6 +9,7 @@ import {
 } from "../../fixtures/pages/product";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
+import { useFashionStorePreviewCart } from "../../composables/useFashionStorePreviewCart";
 import FashionStoreProductLightbox from "../shared/FashionStoreProductLightbox.vue";
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
 import FashionStoreProductGallery from "../shared/FashionStoreProductGallery.vue";
@@ -41,10 +42,10 @@ const cartBusy = ref(false);
 const optionUpdateCount = ref(0);
 const reviewAttemptCount = ref(0);
 const previewIntentCount = ref(0);
-const previewNotice = ref("");
 const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
 const productGallery = ref<InstanceType<typeof FashionStoreProductGallery>>();
 const actionAdapter = inject(storefrontActionAdapterKey);
+const previewCart = useFashionStorePreviewCart();
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
@@ -95,7 +96,20 @@ async function addToCart(): Promise<void> {
   recordPreviewIntent(data.value.actions.cart, "fashion-store.product.cart");
   previewIntentCount.value += 1;
   if (!actionAdapter) {
-    previewNotice.value = "Preview cart intent recorded. No Commerce cart was changed.";
+    const request = buildFashionStoreProductCartRequest(
+      quantity.value,
+      selectedColor.value,
+      selectedSize.value,
+    );
+    previewCart.add({
+      color: `${selectedColor.value} / ${selectedSize.value}`,
+      name: data.value.product.name,
+      price: data.value.product.price,
+      quantity: request.quantity,
+      sourceImage: data.value.gallery[0]!,
+      total: data.value.product.price,
+      variantId: request.variantId,
+    });
     return;
   }
   cartBusy.value = true;
@@ -121,7 +135,6 @@ async function addToCart(): Promise<void> {
 function recordAction(kind: "compare" | "question" | "share" | "wishlist"): void {
   recordPreviewIntent(data.value.actions[kind], `fashion-store.product.${kind}`);
   previewIntentCount.value += 1;
-  previewNotice.value = `${data.value.actions[kind].label} recorded as preview-only state.`;
 }
 
 function activateTab(index: number): void {
@@ -174,9 +187,6 @@ function recordRelatedIntent(kind: "cart" | "quickView" | "wishlist"): void {
       :data-preview-intent-count="previewIntentCount"
       :data-review-attempt-count="reviewAttemptCount"
     >
-      <p v-if="previewNotice" class="visually-hidden" role="status" aria-live="polite">
-        {{ previewNotice }}
-      </p>
       <section
         class="top-space-margin bg-gradient-very-light-gray pt-20px pb-20px ps-45px pe-45px sm-ps-15px sm-pe-15px"
       >

@@ -101,6 +101,7 @@ const PAGE_SELECTIONS: Record<FashionStoreAcceptancePageId, FashionStorePageAcce
   home: {
     e2eFiles: [
       "e2e/fashion-store-acceptance-slice.spec.ts",
+      "e2e/fashion-store-decor-hero.spec.ts",
       "e2e/fashion-store-theme.spec.ts",
       "e2e/theme-behavior-contract.spec.ts",
     ],

@@ -277,7 +277,6 @@ async function continueCheckout(): Promise<void> {
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.action, "fashion-store.checkout.session");
     localActionCount.value += 1;
-    loadNotice.value = "Checkout preview intent recorded. No order or payment session was created.";
     return;
   }
   if (!checkoutAdapter || !cart.value?.canCheckout) {

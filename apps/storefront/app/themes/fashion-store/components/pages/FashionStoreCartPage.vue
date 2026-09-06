@@ -9,6 +9,7 @@ import { formatCommerceMoney as money } from "../../../../theme-engine/runtime-c
 import type { FashionStoreLegacyCartData, FashionStoreLegacyCartLine } from "../../contracts/cart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
+import { useFashionStorePreviewCart } from "../../composables/useFashionStorePreviewCart";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 import FashionStoreQuantityInput from "../shared/FashionStoreQuantityInput.vue";
 
@@ -31,6 +32,7 @@ const data = computed<FashionStoreLegacyCartData>(() => {
 const actionAdapter = inject(storefrontActionAdapterKey);
 const checkoutAdapter = inject(storefrontCheckoutAdapterKey);
 const ownerCart = inject(storefrontCartStateKey);
+const previewCart = useFashionStorePreviewCart(initialFixtureData?.lines ?? []);
 const lines = ref<FashionStoreLegacyCartLine[]>([]);
 const totals = reactive({ subtotal: "$0.00", tax: "(Includes $0.00 tax)", total: "$0.00" });
 const cartStatus = ref<"error" | "loading" | "ready">("loading");
@@ -53,8 +55,8 @@ function presentLine(line: StorefrontCart["lines"][number]): FashionStoreLegacyC
 const displayedLines = computed(() =>
   ownerCart?.value
     ? ownerCart.value.lines.map(presentLine)
-    : cartStatus.value === "loading" && initialFixtureData
-      ? initialFixtureData.lines
+    : initialFixtureData
+      ? previewCart.lines.value
       : lines.value,
 );
 const displayedTotals = computed(() =>
@@ -134,18 +136,14 @@ function applyFixtureCart(): void {
   cartStatus.value = "ready";
 }
 
-async function updateQuantity(
-  line: FashionStoreLegacyCartLine,
-  quantity: number,
-): Promise<void> {
+async function updateQuantity(line: FashionStoreLegacyCartLine, quantity: number): Promise<void> {
   if (busy.value) return;
   if (quantity === line.quantity) return;
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.update, "fashion-store.cart.quantity");
-    const fixtureLine = lines.value.find(({ variantId }) => variantId === line.variantId);
-    if (fixtureLine) fixtureLine.quantity = quantity;
+    previewCart.update(line.variantId, quantity);
     mutationCount.value += 1;
-    cartAnnouncements.value = ["Preview quantity updated locally. No Commerce cart was changed."];
+    cartAnnouncements.value = [];
     return;
   }
   if (!actionAdapter) return;
@@ -176,9 +174,9 @@ async function removeLine(line: FashionStoreLegacyCartLine): Promise<void> {
   );
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.remove, "fashion-store.cart.remove");
-    lines.value = lines.value.filter(({ variantId }) => variantId !== line.variantId);
+    previewCart.remove(line.variantId);
     mutationCount.value += 1;
-    cartAnnouncements.value = ["Preview item removed locally. No Commerce cart was changed."];
+    cartAnnouncements.value = [];
     await nextTick();
     const nextRemove = document.querySelectorAll<HTMLButtonElement>(
       ".cart-products .product-remove button",
@@ -245,9 +243,7 @@ async function updateShipping(): Promise<void> {
   if (initialFixtureData) {
     recordPreviewIntent(initialFixtureData.actions.shipping, "fashion-store.cart.shipping");
     localActionCount.value += 1;
-    cartAnnouncements.value = [
-      "Preview delivery details validated locally. No Commerce quote was requested.",
-    ];
+    cartAnnouncements.value = [];
     return;
   }
   if (!actionAdapter) return;

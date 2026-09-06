@@ -90,7 +90,7 @@ test("collection-card-focus interaction: cards expose pointer and keyboard state
   await expect(cardLink).toBeFocused();
   await expect(firstCard).toHaveCSS("transform", /matrix\(1, 0, 0, 1, 0, -8\)/);
 
-  const previewCart = page.getByRole("button", { name: "Open preview cart" });
+  const previewCart = page.getByRole("button", { name: "Open cart" });
   await previewCart.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".cart-item-list")).toBeVisible();
@@ -137,7 +137,7 @@ test("Shared header controls keep source styling on every consumer route", async
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "The shared shell matrix runs once.");
   for (const route of fashionStorePreviewRoutes) {
     await page.goto(route, { waitUntil: "networkidle" });
-    const cartTrigger = page.getByRole("button", { name: "Open preview cart" });
+    const cartTrigger = page.getByRole("button", { name: "Open cart" });
     await expect(cartTrigger, `${route} cart trigger`).toHaveCSS("appearance", "none");
     await expect(cartTrigger, `${route} cart trigger`).toHaveCSS(
       "background-color",
@@ -146,7 +146,7 @@ test("Shared header controls keep source styling on every consumer route", async
     await expect(cartTrigger, `${route} cart trigger`).toHaveCSS("border-top-width", "0px");
 
     const closeControls = page.locator(".cart-item-list .close");
-    await expect(closeControls).toHaveCount(2);
+    await expect(closeControls).toHaveCount(3);
     expect(
       await closeControls.evaluateAll((controls) =>
         controls.every((control) => {

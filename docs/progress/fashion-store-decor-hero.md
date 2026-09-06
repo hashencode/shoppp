@@ -43,21 +43,28 @@ Representative retained local artifacts are
 `/tmp/fs-r2-named-final-3/fashion-store/named/report.json`. They are machine-local run evidence,
 not product-plan authority.
 
-## Open full-suite evidence
+## U6 closure evidence
 
-- `bun tools/run-fashion-store-acceptance.ts --scope=page --page=home` still reports existing
-  non-Hero visible-copy differences in the Fashion header/announcement navigation and the
-  source-only sticky social rail. The Hero is excluded from those Fashion-owned regions; changing
-  these areas would violate FS-R2's non-Hero scope.
-- The complete live suite passed 13 of 15 tests. One existing flow timed out waiting for the cookie
-  consent action, and the updated image-loading flow reached the suite's overall timeout during
-  context shutdown without a new Hero assertion failure.
-- After excluding the mixed-source Hero, the direct whole-page comparison still has a non-Hero
-  height mismatch (source 4218px, implementation 4516px).
+- The application-level first-interaction capture/replay layer and font-ready control gate are
+  removed. Fixture and live shopper controls initialize on mount, and the intentionally omitted
+  promotional top bar remains governed by an exact-copy exclusion rather than a broad region mask.
+- The live Home first-key failure was traced to an SSR-rendered direct-add button receiving input
+  before Vue attached its handler. Live product cards now expose a disabled/loading action until
+  mount, so no apparently available control can swallow the first click or key. The complete live
+  suite passes 15 tests.
+- `bun tools/run-fashion-store-acceptance.ts --scope=page --page=home` passes 13 unit tests, 171
+  browser tests with 77 intentional matrix skips, and verification of 61 behavior-mode evidence
+  records. The unchanged 4% mixed-source Hero slice gate passes after excluding only page chrome
+  that overlays the Hero but belongs outside the compared region.
+- The Home runner now includes the dedicated Decor-Hero spec, so its 74px rejection, 76px native
+  threshold acceptance, busy-input rejection, no-JavaScript, lifecycle, and GSAP-failure branches
+  feed the governed behavior report. GSAP failure injection identifies the generated dependency by
+  runtime signature instead of assuming a filename containing `gsap`.
+- Focused Decor Home compatibility passes 23 browser tests across its desktop and responsive
+  branches. Root lint/import boundaries and Storefront typecheck pass.
 
-These full-suite results keep FS-R2-U6 active. Historical minimum browser versions, physical
-iOS/iPadOS/Android devices, WebViews, and embedded hosts remain explicitly unverified; current
-Playwright Chromium, Firefox, and WebKit results are not presented as substitutes for them.
+Historical minimum browser versions, physical iOS/iPadOS/Android devices, WebViews, and embedded
+hosts remain explicitly unverified; current Playwright evidence is not presented as a substitute.
 
 ## Primary-worktree integration and temporary-worktree cleanup
 

@@ -3,7 +3,6 @@ import FashionStoreIcon from "./FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontPresentationShellKey } from "../../../../theme-engine/presentation-context";
 import type { PresentationShellViewModel } from "../../../../theme-engine/view-models";
-import { storefrontExperienceHydratedEvent } from "../../../../hydration";
 import { useFashionStoreVisualRuntime } from "../../composables/useFashionStoreVisualRuntime";
 import { fashionStoreAssetId } from "../../resources";
 import { fashionStoreDestinations } from "../../destinations";
@@ -145,7 +144,6 @@ onMounted(() => {
     document.documentElement.classList.add("js");
     document.getElementById("fashion-store-main")?.setAttribute("tabindex", "-1");
   });
-  window.dispatchEvent(new Event(storefrontExperienceHydratedEvent));
 });
 </script>
 

@@ -68,7 +68,7 @@ describe("Fashion Store runtime lifecycle", () => {
     expect(lifecycle.destroyed).toBe(true);
   });
 
-  test("hydrates before visual state changes and removes every lifecycle listener", async () => {
+  test("initializes controls without waiting for fonts and removes every lifecycle listener", async () => {
     const mountedCallbacks: LifecycleCallback[] = [];
     const beforeUnmountCallbacks: LifecycleCallback[] = [];
     const visibilityListeners = new Set<Listener>();
@@ -97,7 +97,7 @@ describe("Fashion Store runtime lifecycle", () => {
         documentElement: {
           style: { removeProperty: () => undefined, setProperty: () => undefined },
         },
-        fonts: { ready: Promise.resolve() },
+        fonts: { ready: new Promise(() => undefined) },
         hidden: false,
         addEventListener: (_type: "visibilitychange", listener: Listener) =>
           visibilityListeners.add(listener),

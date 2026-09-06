@@ -15,7 +15,10 @@ import {
   captureThemeSourceInventory,
 } from "./support/theme-source-inventory";
 import { assertThemeVisibleCopyEquivalent } from "./support/theme-source-contract";
-import { fashionStoreSourceRegions } from "../app/themes/fashion-store/source-contract";
+import {
+  fashionStoreSourceRegions,
+  fashionStoreSourceVisibleCopyExclusions,
+} from "../app/themes/fashion-store/source-contract";
 import {
   fashionStoreSourceEntrySha256,
   referenceCaptureConfigs,
@@ -243,6 +246,7 @@ test("source-inventory static: independent candidates and visible copy match", a
         page: source,
         regions,
         side: "source",
+        visibleCopyExclusions: fashionStoreSourceVisibleCopyExclusions,
       }),
       captureThemeSourceInventory({
         contract: fashionStoreBehaviorContract,

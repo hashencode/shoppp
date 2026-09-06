@@ -333,9 +333,7 @@ test("Checkout fixture validation records intent without creating a session", as
     "data-session-count",
     "0",
   );
-  await expect(page.getByRole("status")).toContainText(
-    "Checkout preview intent recorded. No order or payment session was created.",
-  );
+  await expect(page.getByText(/preview intent|payment session was created/i)).toHaveCount(0);
   await expect(page).toHaveURL(/\/checkout$/);
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,

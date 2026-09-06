@@ -1,6 +1,7 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
 import { assertFashionStoreDecorHeroSourceTiming } from "../app/themes/fashion-store/contracts/home-hero";
+import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 
 const decorSourceUrl = `http://127.0.0.1:${Number(
   process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427,
@@ -77,8 +78,7 @@ async function prepareDecorSource(page: Page): Promise<void> {
   });
 }
 
-async function activateHeroRuntime(page: Page): Promise<void> {
-  await page.locator("#fashion-store-main").dispatchEvent("click");
+async function expectClientRuntimeStarted(page: Page): Promise<void> {
   await expect(page.locator("html")).toHaveClass(/^js$/);
 }
 
@@ -100,10 +100,10 @@ test("renders the permanent furniture Hero in a complete static first state", as
   await expect(hero.locator("[role='tooltip'], [data-hero-tooltip]")).toHaveCount(0);
 });
 
-test("keeps the first slide static and layers later accepted changes", async ({ page }) => {
+test("keeps the first slide static and layers later accepted changes", async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
-  await activateHeroRuntime(page);
+  await expectClientRuntimeStarted(page);
 
   const hero = page.locator("#fashion-store-decor-hero");
   await expect(hero).toHaveAttribute("data-runtime-status", "operational");
@@ -128,6 +128,14 @@ test("keeps the first slide static and layers later accepted changes", async ({ 
     "Verona sofas",
   );
   await expect(hero).toHaveAttribute("data-action-phase", "idle", { timeout: 5_000 });
+  if (isChromiumDesktop(testInfo)) {
+    recordThemeBehaviorEvidence(testInfo, {
+      actionOutcome: true,
+      behaviorId: "hero-carousel",
+      branches: [{ id: "busy-input", outcome: true, viewportId: "desktop" }],
+      mode: "interaction",
+    });
+  }
 });
 
 test("uses native Swiper threshold and adjacent lazy preload without custom loading state", async ({
@@ -135,7 +143,7 @@ test("uses native Swiper threshold and adjacent lazy preload without custom load
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
-  await activateHeroRuntime(page);
+  await expectClientRuntimeStarted(page);
   const hero = page.locator("#fashion-store-decor-hero");
   await expect(hero).toHaveAttribute("data-runtime-status", "operational");
   const parameters = await hero.evaluate((element) => {
@@ -224,7 +232,7 @@ test("binds all Hero content and layer timings to the independent Decor source",
     });
     expect(initializer).toContain("stopAfterLoops: 0");
     expect(initializer).toContain("stopAtSlide: 1");
-    await activateHeroRuntime(page);
+    await expectClientRuntimeStarted(page);
     for (const [index, sourceIndex, title] of [
       [0, 1, "Corby sofas"],
       [1, 2, "Verona sofas"],
@@ -256,7 +264,7 @@ test("rejects 74px and opens Swiper's native threshold gate at 76px", async ({ p
   test.skip(!isChromiumDesktop(testInfo), "Desktop Chromium provides deterministic pointer geometry.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "networkidle" });
-  await activateHeroRuntime(page);
+  await expectClientRuntimeStarted(page);
   const hero = page.locator("#fashion-store-decor-hero");
   await expect(hero).toHaveAttribute("data-runtime-status", "operational");
   expect(await probeCarouselThreshold(page, "#fashion-store-decor-hero", 74)).toBe(false);
@@ -264,13 +272,22 @@ test("rejects 74px and opens Swiper's native threshold gate at 76px", async ({ p
   await page.waitForTimeout(350);
   expect(await probeCarouselThreshold(page, "#fashion-store-decor-hero", 76)).toBe(true);
   await expect(hero).toHaveAttribute("data-active-slide", "1");
+  recordThemeBehaviorEvidence(testInfo, {
+    actionOutcome: true,
+    behaviorId: "hero-carousel",
+    branches: [
+      { id: "below-threshold", outcome: true, viewportId: "desktop" },
+      { id: "above-threshold", outcome: true, viewportId: "desktop" },
+    ],
+    mode: "interaction",
+  });
 });
 
 test("stops after one complete cycle and remounts one clean Hero", async ({ page }, testInfo) => {
   test.skip(!isChromiumDesktop(testInfo), "One engine and viewport prove the lifecycle boundary.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "networkidle" });
-  await activateHeroRuntime(page);
+  await expectClientRuntimeStarted(page);
   const hero = page.locator("#fashion-store-decor-hero");
   await expect(hero).toHaveAttribute("data-runtime-status", "operational");
   const next = hero.locator(".swiper-slide-active [data-hero-layer='next']");
@@ -290,17 +307,32 @@ test("stops after one complete cycle and remounts one clean Hero", async ({ page
 
   await page.goto("/shop", { waitUntil: "networkidle" });
   await page.goto("/", { waitUntil: "networkidle" });
-  await activateHeroRuntime(page);
+  await expectClientRuntimeStarted(page);
   await expect(page.locator("#fashion-store-decor-hero")).toHaveCount(1);
   await expect(page.locator("#fashion-store-decor-hero.swiper-initialized")).toHaveCount(1);
 });
 
 test("keeps the Hero atomic when the GSAP runtime cannot load", async ({ page }, testInfo) => {
   test.skip(!isChromiumDesktop(testInfo), "One engine and viewport prove the load-failure boundary.");
-  await page.route("**/*gsap*.js*", (route) => route.abort("failed"));
+  let blockedGsapRuntime = false;
+  await page.route("**/_nuxt/*.js", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    if (
+      source.includes("autoSleep:120") &&
+      source.includes("force3D") &&
+      source.includes("nullTargetWarn")
+    ) {
+      blockedGsapRuntime = true;
+      await route.abort("failed");
+      return;
+    }
+    await route.fulfill({ body: source, response });
+  });
   await page.goto("/", { waitUntil: "networkidle" });
-  await activateHeroRuntime(page);
+  await expectClientRuntimeStarted(page);
   const hero = page.locator("#fashion-store-decor-hero");
+  expect(blockedGsapRuntime).toBe(true);
   await expect(hero).toHaveAttribute("data-runtime-status", "static");
   await expect(hero).toHaveAttribute("data-active-slide", "1");
   await hero.locator("[data-hero-layer='next']").first().click();

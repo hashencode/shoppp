@@ -655,7 +655,9 @@ test("live Home preserves all sections and card outcomes across input modes", as
     .poll(() =>
       home
         .locator('[data-home-section="hero"] [data-hero-slide="1"] img')
-        .evaluateAll((images) => images.every((image) => (image as HTMLImageElement).naturalWidth > 0)),
+        .evaluateAll((images) =>
+          images.every((image) => (image as HTMLImageElement).naturalWidth > 0),
+        ),
     )
     .toBe(true);
   expect(
@@ -733,7 +735,6 @@ test("live Home preserves all sections and card outcomes across input modes", as
     await expect(touchCard).toHaveAttribute("data-action-state", "succeeded");
     await touchPage.goto("/", { waitUntil: "domcontentloaded" });
     await expect(touchCard).toHaveAttribute("data-action-state", "available");
-    await touchPage.getByRole("button", { name: "Allow cookies" }).click();
     await touchPage
       .locator("[data-fashion-store-product-card]")
       .filter({ hasText: "Atlas Carry-on" })
@@ -1098,6 +1099,10 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
   await expect(headerCart.locator(".cart-item-list")).toContainText("Relaxed corduroy shirt");
   await expect(headerCart.locator(".cart-item-list")).toContainText("2 × $65.00");
   await expect(headerCart.locator(".cart-total")).toContainText("$130.00");
+  await expect(
+    headerCart.getByRole("button", { name: /(?:Increase|Decrease) .* quantity/ }),
+  ).toHaveCount(0);
+  expect(updates).toEqual([{ quantity: 2 }]);
 
   const removeLine = headerCart.getByRole("button", {
     name: "Remove Relaxed corduroy shirt from cart",

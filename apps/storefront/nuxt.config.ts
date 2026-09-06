@@ -107,7 +107,6 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: "en" },
       link: [{ href: "/favicon.svg", rel: "icon", type: "image/svg+xml" }],
-      script: [{ src: "/storefront-interaction-capture.js" }],
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },

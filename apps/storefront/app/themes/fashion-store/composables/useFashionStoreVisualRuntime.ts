@@ -10,7 +10,6 @@ export function useFashionStoreVisualRuntime() {
   onMounted(async () => {
     liveInstances.value += 1;
     await nextTick();
-    await document.fonts.ready;
     if (lifecycle.destroyed) return;
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
     initializeFashionStoreCapabilities(document, lifecycle, reducedMotion);
