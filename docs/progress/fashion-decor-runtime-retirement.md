@@ -13,11 +13,11 @@ blocker 与删除权限只由 FS-R3 执行检查点维护；本文不是第二�
   `sqlite_master` 查询证明二者均无七个 governed Storefront Experience 表；它们被明确分类为
   Wrangler preview 资源，不进入 deployed API 数据零值的替代证明。
 
-| Environment | API Worker metadata | D1 | Governed schema | Preview artifact namespace |
-| --- | --- | --- | --- | --- |
-| `staging` | deployed; pre-freeze version `0e01c999-8e04-4de7-a950-c0497cf50300` | `shoppp-staging` / `0c84c9e0-5ef1-4897-815e-5ec7efb7582e` | 7/7 tables | `shoppp-storefront-preview-artifacts`; exists, 0 objects |
-| `fashion-staging` | deployed; pre-freeze version `a1f5591a-30f3-4cde-99b0-e6d0f554f9f3` | `shoppp-fashion-staging` / `eb1ca4ef-3121-4d02-b20e-e619eac1cecc` | 7/7 tables | `shoppp-fashion-staging-preview-artifacts`; exists, 2,806 objects / 221 MB total namespace |
-| `production` | `shoppp-api-production` absent | `shoppp-production` / `e17ef1dc-d87c-40c7-b218-e4827d815168` | 0/7 tables | configured `shoppp-production-preview-artifacts` absent |
+| Environment       | API Worker metadata                                                 | D1                                                                | Governed schema | Preview artifact namespace                                                                 |
+| ----------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| `staging`         | deployed; pre-freeze version `0e01c999-8e04-4de7-a950-c0497cf50300` | `shoppp-staging` / `0c84c9e0-5ef1-4897-815e-5ec7efb7582e`         | 7/7 tables      | `shoppp-storefront-preview-artifacts`; exists, 0 objects                                   |
+| `fashion-staging` | deployed; pre-freeze version `a1f5591a-30f3-4cde-99b0-e6d0f554f9f3` | `shoppp-fashion-staging` / `eb1ca4ef-3121-4d02-b20e-e619eac1cecc` | 7/7 tables      | `shoppp-fashion-staging-preview-artifacts`; exists, 2,806 objects / 221 MB total namespace |
+| `production`      | `shoppp-api-production` absent                                      | `shoppp-production` / `e17ef1dc-d87c-40c7-b218-e4827d815168`      | 0/7 tables      | configured `shoppp-production-preview-artifacts` absent                                    |
 
 Production is a configured but currently undeployed surface: there is no Worker, no governed table,
 and no preview bucket on which a Decor lifecycle write can occur. It remains in every U7/U8
@@ -54,3 +54,50 @@ reference-source verification.
 
 Deployment identity/time and post-freeze aggregate evidence are appended only after the exact
 committed Worker is active. No runtime file or remote row/object has been removed.
+
+## 2026-09-07 — U7 freeze convergence and zero-state gate
+
+The exact freeze implementation is recoverable at commit `f2c8a86d` and was deployed only to the
+two already-existing governed Workers. Deployment metadata confirms 100% convergence:
+
+| Environment       | Freeze version                         | Effective at (UTC)            |
+| ----------------- | -------------------------------------- | ----------------------------- |
+| `staging`         | `4524918b-0d0a-40e7-875b-69e297769079` | `2026-09-07T12:29:08.242589Z` |
+| `fashion-staging` | `e8a1f9fd-d013-4a3e-a678-6c40b1ed8419` | `2026-09-07T12:29:45.030085Z` |
+| `production`      | no Worker; unchanged                   | not applicable                |
+
+The first authorized post-convergence aggregate query returned zero for every metric and both exact
+IDs in both governed databases: drafts, draft-version sum, validations, migrations, snapshots,
+builds, runtime-dependent builds, uncleaned artifacts, grants, active grants, sessions, active
+sessions, and immutable Catalog Release references. Both max `updated_at` values remain `null`.
+Every query reported `success: true`, `changed_db: false`, `changes: 0`, and `rows_written: 0`.
+Against the pre-freeze baseline, every row-count, version, and timestamp delta is therefore zero.
+
+The aggregate query is deliberately repeated immediately before each U8 identity removal. This
+covers a request that entered an old Worker before deployment convergence but completed afterward.
+Security revocation remains allowed; any resulting grant/session aggregate change requires an
+explicit disposition and cannot be silently accepted as a zero delta.
+
+## U7 reference separation and recovery boundary
+
+- `apps/storefront/theme-references/decor` and `decor-store` retain frozen source contracts,
+  behavior/named-state ledgers, acceptance-adapter declarations, provenance, and source digests.
+- The shared authoritative HTML and approved source assets remain under
+  `templates/Crafto - The Multipurpose HTML5 Template/html`; the hash-pinned intake manifest remains
+  `tools/storefront-theme-source-manifest.json`.
+- `tools/storefront-source-equivalence-policy.json` resolves the frozen Decor source-intake
+  contracts through the reference tree. The retained reference test verifies the source digest,
+  both behavior ledgers, a controlled missing-region failure, and a Fashion-to-reference forbidden
+  dependency scan. `bun run verify:source-equivalence` passed 163 tests, `bun run verify:themes`
+  passed, and the workspace typecheck passed.
+- Supported audit use is source/provenance verification, behavior-decision inspection, and
+  immutable historical payload decoding. Exact retired-runtime visual replay is not a production
+  capability; the recovery mechanism is the Git ref below.
+
+Pre-removal recovery ref `f2c8a86d` contains both selectable runtime identities in full. Its exact
+tree identities are `decor` tree `b5aa063bf37773391d8f69851af021a7aef26dfe` (113 files) and
+`decor-store` tree `168ae5dd21bc6d424e08cf58727e0283984ddefd` (179 files). It also retains
+`fixtures/experience/decor.json` blob `c3e5e8e66927068a722c6c4bf23d3284a94159ac`,
+`fixtures/experience/decor-store.json` blob `770a1f82139fee324dee80f8eb61970d602a78d6`, both package
+descriptors/presets/registries, and the generated catalog family. No runtime file or remote row/object
+was deleted in U7.

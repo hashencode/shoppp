@@ -1675,9 +1675,9 @@
         "mobile-fallback-complete"
       ],
       "contracts": {
-        "source": "apps/storefront/app/themes/decor-store/source-contract.ts",
-        "behavior": "apps/storefront/app/themes/decor-store/behavior-contract.ts",
-        "acceptanceAdapter": "apps/storefront/app/themes/decor-store/acceptance-adapter.ts"
+        "source": "apps/storefront/theme-references/decor-store/source-contract.ts",
+        "behavior": "apps/storefront/theme-references/decor-store/behavior-contract.ts",
+        "acceptanceAdapter": "apps/storefront/theme-references/decor-store/acceptance-adapter.ts"
       }
     }
   ]

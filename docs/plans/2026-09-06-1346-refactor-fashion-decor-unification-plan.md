@@ -9,8 +9,8 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
-current_unit: U7
-current_stage: U7.1
+current_unit: U8
+current_stage: U8.1
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -42,15 +42,16 @@ current_stage: U7.1
 ## Execution Checkpoint
 
 - **Plan state:** Active.
-- **Current parent/child stage:** `U7.1` — reconcile the authoritative Decor environment/database/artifact inventory and install the exact-ID lifecycle write freeze before any runtime removal.
-- **Current unit status:** `U1`–`U6` are complete; `U7.1` is current; `U8` remains pending behind U7's zero-state and reference-separation gates.
-- **Next concrete action:** Derive the complete environment, unique database, and artifact namespace set from checked-in deployment configuration plus provider metadata; then apply one exact `decor` / `decor-store` mutation freeze across every lifecycle write and retain effective version/time evidence before aggregate inventory.
-- **Blocker:** None confirmed. U7.1 requires authorized aggregate-only access to every resolved provider environment; an unavailable or unmatched environment becomes an explicit blocker and cannot be interpreted as zero state.
+- **Current parent/child stage:** `U8.1` — re-run the authorized zero-state inventory, then remove exact runtime identity `decor` before repeating the gate for `decor-store`.
+- **Current unit status:** `U1`–`U7` are complete; `U8.1` is current. U7 deployed the exact-ID freeze to both governed Workers, proved zero unresolved/runtime-dependent state and zero post-freeze deltas, and separated reference evidence from runtime imports.
+- **Next concrete action:** Reconcile provider metadata and re-run the aggregate-only query immediately before deletion; if every environment remains known and zero, remove `decor` from registries, catalogs, fixtures, scripts, active matrices, and its classified runtime subtree while retaining immutable reads, stable retirement errors, and the reference tree.
+- **Blocker:** None confirmed. Any newly provisioned namespace, unavailable inventory, non-zero unresolved state, or post-freeze delta stops U8 before runtime deletion.
 - **U6.1 evidence:** [`docs/progress/fashion-store-u6-1-package-boundary.md`](../progress/fashion-store-u6-1-package-boundary.md) records the frozen digest, exact direct boundary, lifecycle enforcement, and verification results.
 - **U3 evidence:** [`docs/progress/fashion-store-u3-home-sections.md`](../progress/fashion-store-u3-home-sections.md) records characterization, provisional composition, review corrections, and verification without acting as a second execution queue.
 - **U4/U5 evidence:** [`docs/progress/fashion-decor-u4-u5-presentations.md`](../progress/fashion-decor-u4-u5-presentations.md) records the six Home variants, Product groups Section, U5 no-op disposition, review corrections, and focused/browser verification.
 - **U6 evidence:** [`docs/progress/fashion-decor-u6-migration-publication.md`](../progress/fashion-decor-u6-migration-publication.md) records unified-preset publication, production-wired exact migration, preserved source/preset/binding identity, review correction, and API/Admin/preview verification.
-- **Execution boundary:** U3 may change the successor package path and the exact renderer/composer/contracts surfaces needed to activate U2's dormant seam. `U2.1` corrected the discovered ambiguity by making descriptor coverage page-type scoped while preserving legacy templates and required shell contracts. U3 must enable renderer shell ownership in the same change that removes both successor page-owned Home shells. Do not edit or delete either Decor runtime subtree, and do not implement U6.2 migration/publication work early.
+- **U7/U8 evidence:** [`docs/progress/fashion-decor-runtime-retirement.md`](../progress/fashion-decor-runtime-retirement.md) records provider reconciliation, freeze versions/times, aggregate-only zero state, reference separation, recovery identities, and the staged deletion evidence.
+- **Execution boundary:** U8 removes one exact runtime identity at a time only after a fresh authorized zero-state query. Preserve the reference-only tree and immutable historical reads; do not create a production Worker, delete remote data/artifacts, select a release candidate, or advance DC/PG.
 
 | Unit | Status | Owned outcome |
 | --- | --- | --- |
@@ -60,8 +61,8 @@ current_stage: U7.1
 | U3 | Complete (verified 2026-09-07) | Stable shell-free fixture/live Home Sections, compatible renderer shell ownership, local all-hidden recovery, and merchandising-order ownership verified |
 | U4 | Complete (verified 2026-09-07) | Six approved Home presentation variants and the default-hidden Product groups Section are Fashion-owned and verified |
 | U5 | Complete (verification-only no-op 2026-09-07) | U1 rejected Shop/Product Decor variants; existing Fashion commerce routes remain sole authority |
-| U7 | Current (`U7.1`) | Reconcile authoritative namespaces and freeze both exact Decor identities before aggregate inventory or reference separation |
-| U8 | Pending | Execute only after U7 proves zero unresolved/runtime-dependent state and zero post-freeze delta everywhere |
+| U7 | Complete (verified 2026-09-07) | Reconciled all namespaces, deployed the exact-ID write freeze, proved zero unresolved state/delta, and separated reference evidence |
+| U8 | Current (`U8.1`) | Remove one exact Decor runtime identity at a time behind a fresh authorized zero-state gate, then return to REL |
 
 ---
 
