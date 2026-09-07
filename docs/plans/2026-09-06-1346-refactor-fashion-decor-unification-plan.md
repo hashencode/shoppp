@@ -9,8 +9,8 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
-current_unit: U6
-current_stage: U6.2
+current_unit: U7
+current_stage: U7.1
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -42,24 +42,26 @@ current_stage: U6.2
 ## Execution Checkpoint
 
 - **Plan state:** Active.
-- **Current parent/child stage:** `U6.2` — publish the unified preset for new drafts and register every supported direct Fashion migration in the production registry.
-- **Current unit status:** `U1`–`U5` and `U6.1` are complete; `U6.2` is current; `U7` and `U8` remain pending behind their declared dependencies.
-- **Next concrete action:** Register the unified preset and direct source-to-successor migration, preserve preset/binding IDs while completing reorder overrides with the new optional instance, expose only the successor as creatable/activatable, and prove the API/Admin/preview paths without test-only migration injection.
-- **Blocker:** None external. U6.2 must preserve immutable source packages and drafts, existing permissions and conflict behavior, and the production fail-closed migration boundary.
+- **Current parent/child stage:** `U7.1` — reconcile the authoritative Decor environment/database/artifact inventory and install the exact-ID lifecycle write freeze before any runtime removal.
+- **Current unit status:** `U1`–`U6` are complete; `U7.1` is current; `U8` remains pending behind U7's zero-state and reference-separation gates.
+- **Next concrete action:** Derive the complete environment, unique database, and artifact namespace set from checked-in deployment configuration plus provider metadata; then apply one exact `decor` / `decor-store` mutation freeze across every lifecycle write and retain effective version/time evidence before aggregate inventory.
+- **Blocker:** None confirmed. U7.1 requires authorized aggregate-only access to every resolved provider environment; an unavailable or unmatched environment becomes an explicit blocker and cannot be interpreted as zero state.
 - **U6.1 evidence:** [`docs/progress/fashion-store-u6-1-package-boundary.md`](../progress/fashion-store-u6-1-package-boundary.md) records the frozen digest, exact direct boundary, lifecycle enforcement, and verification results.
 - **U3 evidence:** [`docs/progress/fashion-store-u3-home-sections.md`](../progress/fashion-store-u3-home-sections.md) records characterization, provisional composition, review corrections, and verification without acting as a second execution queue.
 - **U4/U5 evidence:** [`docs/progress/fashion-decor-u4-u5-presentations.md`](../progress/fashion-decor-u4-u5-presentations.md) records the six Home variants, Product groups Section, U5 no-op disposition, review corrections, and focused/browser verification.
+- **U6 evidence:** [`docs/progress/fashion-decor-u6-migration-publication.md`](../progress/fashion-decor-u6-migration-publication.md) records unified-preset publication, production-wired exact migration, preserved source/preset/binding identity, review correction, and API/Admin/preview verification.
 - **Execution boundary:** U3 may change the successor package path and the exact renderer/composer/contracts surfaces needed to activate U2's dormant seam. `U2.1` corrected the discovered ambiguity by making descriptor coverage page-type scoped while preserving legacy templates and required shell contracts. U3 must enable renderer shell ownership in the same change that removes both successor page-owned Home shells. Do not edit or delete either Decor runtime subtree, and do not implement U6.2 migration/publication work early.
 
 | Unit | Status | Owned outcome |
 | --- | --- | --- |
 | U1 | Complete (approved 2026-09-07) | Exact capability/identity disposition and unified-preset IA freeze |
 | U2 | Complete (verified 2026-09-07; `U2.1` reconciliation verified 2026-09-07) | Dormant single-shell multi-Section composition seam with explicit page-type descriptor coverage |
-| U6 | Current (`U6.1` complete; `U6.2` current) | Exact source packages are frozen; unified migration/publication is now executing |
+| U6 | Complete (verified 2026-09-07) | Exact source packages remain frozen; unified preset and direct production migration are published and verified |
 | U3 | Complete (verified 2026-09-07) | Stable shell-free fixture/live Home Sections, compatible renderer shell ownership, local all-hidden recovery, and merchandising-order ownership verified |
 | U4 | Complete (verified 2026-09-07) | Six approved Home presentation variants and the default-hidden Product groups Section are Fashion-owned and verified |
 | U5 | Complete (verification-only no-op 2026-09-07) | U1 rejected Shop/Product Decor variants; existing Fashion commerce routes remain sole authority |
-| U7–U8 | Pending | Execute only after U6.2 completes and its migration/publication evidence is retained |
+| U7 | Current (`U7.1`) | Reconcile authoritative namespaces and freeze both exact Decor identities before aggregate inventory or reference separation |
+| U8 | Pending | Execute only after U7 proves zero unresolved/runtime-dependent state and zero post-freeze delta everywhere |
 
 ---
 

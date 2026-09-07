@@ -6,7 +6,9 @@ import {
 
 import historicalV1PackagePayload from "./historical/1.0.0/theme-package.json";
 import { fashionStoreManifest, fashionStoreThemeDescriptor } from "./successor/manifest";
+import { fashionStoreFixtureBindingAliases } from "./successor/composition";
 import { fashionStorePreset } from "./successor/presets/source-parity";
+import { fashionStoreUnifiedPreset } from "./successor/presets/unified-store";
 
 export const FASHION_STORE_HISTORICAL_V1_PACKAGE_SHA256 =
   "95bb721577646c46c460e8a98e1e15f4c5c6a53d723e05f9147b3a678b352120";
@@ -28,7 +30,7 @@ const successorRegistration = deepFreeze(
     lifecycle: "successor",
     package: {
       manifest: fashionStoreManifest,
-      presets: [fashionStorePreset],
+      presets: [fashionStorePreset, fashionStoreUnifiedPreset],
     },
   }),
 );
@@ -41,6 +43,18 @@ export const fashionStoreHistoricalPackages = deepFreeze([
   historicalV1Registration.package,
 ] as const);
 export const fashionStoreSuccessorPackage = successorRegistration.package;
+
+export function fashionStoreFixtureBindingAliasesForPackage(
+  themePackage: ThemePackage,
+): typeof fashionStoreFixtureBindingAliases | undefined {
+  const manifest = themePackage.manifest;
+  return manifest.id === fashionStoreSuccessorPackage.manifest.id &&
+    manifest.themeVersion === fashionStoreSuccessorPackage.manifest.themeVersion &&
+    manifest.configurationSchemaVersion ===
+      fashionStoreSuccessorPackage.manifest.configurationSchemaVersion
+    ? fashionStoreFixtureBindingAliases
+    : undefined;
+}
 
 export const fashionStoreDirectMigrationBoundaries = deepFreeze(
   themePackageMigrationBoundarySchema.array().parse([

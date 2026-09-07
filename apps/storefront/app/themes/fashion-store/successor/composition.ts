@@ -68,6 +68,15 @@ export const fashionStoreHomeSectionTypes = [
   ...new Set(fashionStoreHomeSections.map(({ type }) => type)),
 ];
 
+export const fashionStoreFixtureBindingAliases = Object.fromEntries(
+  fashionStoreHomeSections
+    .slice(1)
+    .map(({ fixtureResource, id }) => [
+      id,
+      { resource: fixtureResource, sourceInstanceId: fashionStoreHomeSections[0].id },
+    ]),
+);
+
 export type FashionStoreProductSectionVariant = "best-sellers" | "featured-products";
 
 export function fashionStoreProductSectionVariant(

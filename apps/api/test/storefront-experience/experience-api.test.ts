@@ -5,6 +5,7 @@ import {
   canonicalCatalogReleaseSchema,
   storefrontExperienceDraftInputSchema,
   themePackageSchema,
+  type ThemePackage,
 } from "@shoppp/contracts";
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
@@ -14,6 +15,7 @@ import {
   fashionStoreHistoricalPackages,
   fashionStoreSuccessorPackage,
 } from "../../../storefront/app/themes/fashion-store/package-registry";
+import { fashionStoreHomeSections } from "../../../storefront/app/themes/fashion-store/successor/composition";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
 import { createApp } from "../../src/http/app";
 import { sha256Hex } from "../../src/orders/tokens";
@@ -81,6 +83,20 @@ const draftInput = storefrontExperienceDraftInputSchema.parse({
   themeId: "fashion-store",
   themeVersion: fashionStoreManifest.themeVersion,
 });
+
+function fixtureBindingsForPackage(themePackage: ThemePackage) {
+  const instanceIds = new Set(
+    themePackage.presets.flatMap(({ templates }) =>
+      templates.flatMap(({ sections }) =>
+        sections.flatMap((section) => [section.id, ...section.blocks.map(({ id }) => id)]),
+      ),
+    ),
+  );
+  return storefrontExperienceDraftInputSchema.parse({
+    ...draftInput,
+    bindings: fashionStoreFixture.bindings.filter(({ instanceId }) => instanceIds.has(instanceId)),
+  }).bindings;
+}
 
 const productIds = new Map(
   releaseFixture.products.map((product, index) => [
@@ -332,20 +348,156 @@ describe("storefront experience API", () => {
         {
           fixtureBindings: expect.any(Array),
           id: "fashion-store",
-          presetDefinitions: expect.any(Array),
+          presetDefinitions: [
+            expect.objectContaining({ id: "source-parity" }),
+            expect.objectContaining({ id: "unified-store", label: "Unified store" }),
+          ],
           themeVersion: "1.1.0",
         },
       ],
     });
   });
 
+  test("creates and previews unified Fashion defaults after resetting saved overrides", async () => {
+    const app = createApp({
+      experienceBuildTrigger: async () => ({ correlationId: "unified-default-preview" }),
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const created = await createDraft(app, "theme-unified-create-0001", {
+      ...draftInput,
+      presetId: "unified-store",
+    });
+    expect(created.response.status).toBe(201);
+    const draftId = created.body.data.id;
+    const customized = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}`,
+        {
+          bindings: draftInput.bindings,
+          expectedVersion: 1,
+          overrides: [
+            {
+              operations: [
+                {
+                  instanceId: "fashion-store-home-categories",
+                  kind: "set-setting",
+                  settingId: "categories-presentation",
+                  value: "source",
+                },
+              ],
+              presetId: "unified-store",
+              schemaVersion: 2,
+              templateId: "fashion-store-home",
+            },
+          ],
+          reason: "Temporarily customize the unified presentation",
+        },
+        "theme-unified-customize-0001",
+        "PUT",
+      ),
+      env,
+    );
+    expect(customized.status).toBe(200);
+    const reset = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}`,
+        {
+          bindings: draftInput.bindings,
+          expectedVersion: 2,
+          overrides: [],
+          reason: "Reset to the exact unified preset defaults",
+        },
+        "theme-unified-reset-0001",
+        "PUT",
+      ),
+      env,
+    );
+    expect(reset.status).toBe(200);
+    expect(await reset.json()).toMatchObject({
+      data: { overrides: [], presetId: "unified-store" },
+    });
+    expect((await validateDraft(app, draftId, 3, "theme-unified-validate-0001")).status).toBe(200);
+    const preview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/preview`,
+        { expectedVersion: 3, reason: "Preview the saved unified defaults" },
+        "theme-unified-preview-0001",
+      ),
+      env,
+    );
+    expect(preview.status).toBe(202);
+    const previewBody = await preview.json<{
+      data: {
+        snapshot: {
+          snapshot: {
+            overrides: unknown[];
+            resolvedTemplates: Array<{
+              pageType: string;
+              sections: Array<{ id: string; settings: Record<string, unknown> }>;
+            }>;
+          };
+          sourceDraftVersion: number;
+        };
+      };
+    }>();
+    expect(previewBody).toMatchObject({
+      data: {
+        snapshot: {
+          snapshot: { overrides: [] },
+          sourceDraftVersion: 3,
+        },
+      },
+    });
+    const previewHome = previewBody.data.snapshot.snapshot.resolvedTemplates.find(
+      ({ pageType }) => pageType === "home",
+    );
+    expect(
+      previewHome?.sections.find(({ id }) => id === "fashion-store-home-categories")?.settings,
+    ).toMatchObject({ "categories-presentation": "decor-icons" });
+  });
+
   test("keeps historical Fashion packages readable and validatable but rejects creation and activation", async () => {
     const historical = fashionStoreHistoricalPackages[0]!;
+    const historicalFixtureBindings = fixtureBindingsForPackage(historical);
+    const historicalBindings = [
+      ...historicalFixtureBindings,
+      ...catalogReadyDraftInput.bindings.filter(
+        ({ instanceId, kind }) =>
+          kind === "catalog" &&
+          (instanceId === "fashion-store-home" || instanceId === "fashion-store-collection"),
+      ),
+    ];
     const historicalDraftId = "draft-fashion-store-historical-v1";
+    const historicalReleaseId = "release-fashion-store-historical-v1";
     const now = "2026-09-07T00:00:00.000Z";
     const historicalOverrides = [
       {
-        operations: [{ instanceId: "fashion-store-home", kind: "set-visibility", visible: true }],
+        operations: [
+          { instanceIds: ["fashion-store-home"], kind: "reorder-sections" },
+          { instanceId: "fashion-store-home", kind: "set-visibility", visible: true },
+          {
+            instanceId: "fashion-store-home",
+            kind: "set-setting",
+            settingId: "announcement-text",
+            value: "Migrated announcement",
+          },
+          {
+            instanceId: "fashion-store-home",
+            kind: "set-setting",
+            settingId: "merchandising-order",
+            value: 2,
+          },
+          {
+            instanceId: "fashion-store-home",
+            kind: "set-setting",
+            settingId: "merchandising-visible",
+            value: false,
+          },
+        ],
         presetId: "source-parity",
         schemaVersion: 1,
         templateId: "fashion-store-home",
@@ -365,7 +517,7 @@ describe("storefront experience API", () => {
         historical.manifest.themeVersion,
         historical.manifest.configurationSchemaVersion,
         historical.presets[0]!.id,
-        JSON.stringify(fashionStoreFixture.bindings),
+        JSON.stringify(historicalBindings),
         JSON.stringify(historicalOverrides),
         "admin-theme-admin",
         "admin-theme-admin",
@@ -384,9 +536,7 @@ describe("storefront experience API", () => {
     });
 
     const historicalDraftBeforeMutation = await env.DB.prepare(
-      `SELECT version, bindings_json, overrides_json
-         FROM storefront_experience_drafts
-        WHERE id = ?`,
+      "SELECT * FROM storefront_experience_drafts WHERE id = ?",
     )
       .bind(historicalDraftId)
       .first();
@@ -409,23 +559,32 @@ describe("storefront experience API", () => {
       error: { code: "storefront_theme_package_not_creatable" },
     });
     expect(
-      await env.DB.prepare(
-        `SELECT version, bindings_json, overrides_json
-           FROM storefront_experience_drafts
-          WHERE id = ?`,
-      )
+      await env.DB.prepare("SELECT * FROM storefront_experience_drafts WHERE id = ?")
         .bind(historicalDraftId)
         .first(),
     ).toEqual(historicalDraftBeforeMutation);
 
+    await seedPreviewCatalogRelease(historicalReleaseId);
     const validation = await validateDraft(
       appFor(),
       historicalDraftId,
       1,
       "theme-historical-validation-0001",
+      historicalReleaseId,
     );
     expect(validation.status).toBe(200);
-    const validationBody = await validation.json<{
+    const catalogValidationBody = await validation.json<{
+      data: { id: string; issues: unknown[]; status: string };
+    }>();
+    expect(catalogValidationBody).toMatchObject({ data: { issues: [], status: "valid" } });
+    const migrationValidation = await validateDraft(
+      appFor(),
+      historicalDraftId,
+      1,
+      "theme-historical-fixture-validation-0001",
+    );
+    expect(migrationValidation.status).toBe(200);
+    const validationBody = await migrationValidation.json<{
       data: { id: string; issues: unknown[]; status: string };
     }>();
     expect(validationBody).toMatchObject({ data: { issues: [], status: "valid" } });
@@ -434,7 +593,7 @@ describe("storefront experience API", () => {
     const historicalSnapshot = {
       approvedAt: now,
       approvedBy: "admin-theme-admin",
-      bindings: fashionStoreFixture.bindings,
+      bindings: historicalBindings,
       configurationSchemaVersion: historical.manifest.configurationSchemaVersion,
       experienceId: "experience-fashion-store-historical-v1",
       id: historicalSnapshotId,
@@ -484,8 +643,6 @@ describe("storefront experience API", () => {
       },
     });
 
-    const historicalReleaseId = "release-fashion-store-historical-v1";
-    await seedPreviewCatalogRelease(historicalReleaseId);
     const historicalBuild = await appFor().fetch(
       writeRequest(
         `/admin/storefront-experiences/snapshots/${historicalSnapshotId}/build`,
@@ -611,7 +768,7 @@ describe("storefront experience API", () => {
         `/admin/storefront-experiences/drafts/${historicalDraftId}/migrations/dry-run`,
         {
           expectedVersion: 1,
-          reason: "Resolve the frozen source before U6.2 registers migration logic",
+          reason: "Migrate the frozen source through the production registry",
           targetConfigurationSchemaVersion: 2,
           targetThemeVersion: "1.1.0",
         },
@@ -619,10 +776,185 @@ describe("storefront experience API", () => {
       ),
       env,
     );
-    expect(migrationSource.status).toBe(422);
-    expect(await migrationSource.json()).toMatchObject({
-      error: { code: "storefront_experience_migration_unavailable" },
+    expect(migrationSource.status).toBe(200);
+    const migrationBody = await migrationSource.json<{
+      data: { conflicts: unknown[]; id: string; status: string };
+    }>();
+    expect(migrationBody).toMatchObject({
+      data: { conflicts: [], status: "dry_run" },
     });
+    const noOverrideDraftId = `${historicalDraftId}-no-overrides`;
+    await env.DB.prepare(
+      `INSERT INTO storefront_experience_drafts
+         (id, experience_id, theme_id, theme_version, configuration_schema_version,
+          preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+          created_at, updated_at)
+       SELECT ?, experience_id || '-no-overrides', theme_id, theme_version,
+              configuration_schema_version, preset_id, bindings_json, '[]', version,
+              created_by, updated_by, created_at, updated_at
+         FROM storefront_experience_drafts
+        WHERE id = ?`,
+    )
+      .bind(noOverrideDraftId, historicalDraftId)
+      .run();
+    const noOverrideMigration = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${noOverrideDraftId}/migrations/dry-run`,
+        {
+          expectedVersion: 1,
+          reason: "Migrate an unchanged historical draft through the production registry",
+          targetConfigurationSchemaVersion: 2,
+          targetThemeVersion: "1.1.0",
+        },
+        "theme-historical-no-overrides-migration-0001",
+      ),
+      env,
+    );
+    expect(noOverrideMigration.status).toBe(200);
+    const noOverrideMigrationBody = await noOverrideMigration.json<{
+      data: { id: string };
+    }>();
+    expect(noOverrideMigrationBody).toMatchObject({
+      data: { conflicts: [], status: "dry_run" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT migrated_overrides_json FROM storefront_experience_migrations WHERE id = ?",
+      )
+        .bind(noOverrideMigrationBody.data.id)
+        .first(),
+    ).toEqual({ migrated_overrides_json: "[]" });
+    const migratedOverrides = await env.DB.prepare(
+      "SELECT migrated_overrides_json FROM storefront_experience_migrations WHERE id = ?",
+    )
+      .bind(migrationBody.data.id)
+      .first<{ migrated_overrides_json: string }>();
+    const parsedMigratedOverrides = JSON.parse(migratedOverrides!.migrated_overrides_json);
+    const migratedHomeOrder: string[] = fashionStoreHomeSections
+      .map(({ id }) => id)
+      .filter(
+        (id) =>
+          id !== "fashion-store-home-best-sellers" &&
+          id !== "fashion-store-home-product-merchandising",
+      );
+    migratedHomeOrder.splice(1, 0, "fashion-store-home-best-sellers");
+    migratedHomeOrder.push("fashion-store-home-product-merchandising");
+    expect(parsedMigratedOverrides).toEqual([
+      expect.objectContaining({
+        operations: expect.arrayContaining([
+          {
+            instanceIds: migratedHomeOrder,
+            kind: "reorder-sections",
+          },
+          expect.objectContaining({
+            kind: "set-setting",
+            settingId: "announcement-text",
+            value: "Migrated announcement",
+          }),
+          {
+            instanceId: "fashion-store-home-best-sellers",
+            kind: "set-visibility",
+            visible: false,
+          },
+        ]),
+        presetId: "source-parity",
+        schemaVersion: 2,
+      }),
+    ]);
+    const migratedSuccessor = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${historicalDraftId}/migrations/approve`,
+        {
+          confirm: true,
+          expectedVersion: 1,
+          migrationId: migrationBody.data.id,
+          reason: "Create the reviewable production-wired migration successor",
+        },
+        "theme-historical-migration-approve-0001",
+      ),
+      env,
+    );
+    const migratedSuccessorBody = await migratedSuccessor.json<{
+      data: { id: string };
+    }>();
+    expect(migratedSuccessor.status, JSON.stringify(migratedSuccessorBody)).toBe(201);
+    expect(migratedSuccessorBody).toMatchObject({
+      data: {
+        bindings: historicalBindings,
+        configurationSchemaVersion: 2,
+        overrides: parsedMigratedOverrides,
+        presetId: "source-parity",
+        themeVersion: "1.1.0",
+      },
+    });
+    const successorId = migratedSuccessorBody.data.id;
+    const successorValidation = await validateDraft(
+      appFor(),
+      successorId,
+      1,
+      "theme-historical-successor-validation-0001",
+      historicalReleaseId,
+    );
+    expect(successorValidation.status).toBe(200);
+    expect(await successorValidation.json()).toMatchObject({
+      data: { issues: [], status: "valid" },
+    });
+    const previewApp = createApp({
+      experienceBuildTrigger: async () => ({ correlationId: "historical-successor-preview" }),
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const successorPreview = await previewApp.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${successorId}/preview`,
+        {
+          catalogReleaseId: historicalReleaseId,
+          expectedVersion: 1,
+          reason: "Preview the migrated successor with unchanged bindings",
+        },
+        "theme-historical-successor-preview-0001",
+      ),
+      env,
+    );
+    expect(successorPreview.status).toBe(202);
+    const successorPreviewBody = await successorPreview.json<{
+      data: {
+        snapshot: {
+          snapshot: {
+            resolvedTemplates: Array<{
+              pageType: string;
+              sections: Array<{ id: string; visible: boolean }>;
+            }>;
+          };
+        };
+      };
+    }>();
+    expect(successorPreviewBody).toMatchObject({
+      data: {
+        snapshot: {
+          configurationSchemaVersion: 2,
+          kind: "preview",
+          sourceDraftId: successorId,
+          themeVersion: "1.1.0",
+        },
+      },
+    });
+    const migratedPreviewHome = successorPreviewBody.data.snapshot.snapshot.resolvedTemplates.find(
+      ({ pageType }) => pageType === "home",
+    );
+    expect(migratedPreviewHome?.sections.map(({ id }) => id)).toEqual(migratedHomeOrder);
+    expect(
+      migratedPreviewHome?.sections.find(({ id }) => id === "fashion-store-home-best-sellers")
+        ?.visible,
+    ).toBe(false);
+    expect(
+      await env.DB.prepare("SELECT * FROM storefront_experience_drafts WHERE id = ?")
+        .bind(historicalDraftId)
+        .first(),
+    ).toEqual(historicalDraftBeforeMutation);
 
     const creation = await appFor().fetch(
       writeRequest(
@@ -2094,6 +2426,7 @@ describe("storefront experience API", () => {
 
   test("dry-runs an explicit schema migration, reports stable-ID conflicts, and preserves older snapshots", async () => {
     const sourcePackage = fashionStoreHistoricalPackages[0]!;
+    const sourceBindings = fixtureBindingsForPackage(sourcePackage);
     const targetPackage = fashionStoreSuccessorPackage;
     const conflictingPackage = themePackageSchema.parse({
       manifest: {
@@ -2152,6 +2485,7 @@ describe("storefront experience API", () => {
     });
     const created = await createDraft(app, "theme-migration-create-0001", {
       ...draftInput,
+      bindings: sourceBindings,
       themeVersion: "1.0.0",
       overrides: [
         {

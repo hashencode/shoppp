@@ -593,6 +593,40 @@ describe('ThemesPage', () => {
     })
   })
 
+  it('creates a draft from the explicitly selected unified preset', async () => {
+    const unifiedTheme = {
+      ...theme,
+      presetDefinitions: [
+        ...theme.presetDefinitions,
+        {
+          ...theme.presetDefinitions[0]!,
+          id: 'unified-store',
+          label: 'Unified store',
+        },
+      ],
+      presets: ['editorial', 'unified-store'],
+    }
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [unifiedTheme] })
+      )
+    )
+    renderThemes('admin')
+    fireEvent.click(await screen.findByRole('button', { name: 'Use package' }))
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Preset' }))
+    fireEvent.click((await screen.findAllByText('Unified store')).at(-1)!)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Creation reason' }), {
+      target: { value: 'Start from the unified Fashion defaults' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
+
+    await screen.findByText('CREATED_EDITOR')
+    expect(createDraftBody).toMatchObject({
+      draft: { presetId: 'unified-store' },
+      reason: 'Start from the unified Fashion defaults',
+    })
+  })
+
   it('handles empty package catalogs and read-only operators without write actions', async () => {
     server.use(
       http.get('*/admin/storefront-experiences/themes', () => HttpResponse.json({ data: [] })),

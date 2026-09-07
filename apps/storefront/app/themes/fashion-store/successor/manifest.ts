@@ -11,7 +11,7 @@ const inheritedHome = inheritedManifest.componentRegistry.sections.find(
   ({ type }) => type === "fashion-store.home",
 )!;
 const successorHomeSettings = inheritedHome.settings.filter(
-  ({ id }) => id !== "merchandising-order",
+  ({ id }) => id !== "merchandising-order" && id !== "merchandising-visible",
 );
 const presentationSetting = (
   id: string,
@@ -121,7 +121,7 @@ export const fashionStoreThemeDescriptor = {
   id: fashionStoreManifest.id,
   platformCompatibility: fashionStoreManifest.platformCompatibility,
   platformContractVersion: fashionStoreManifest.platformContractVersion,
-  presets: ["source-parity"],
+  presets: ["source-parity", "unified-store"],
   supportedPageTemplates: [...fashionStoreManifest.supportedPageTemplates],
   themeVersion: fashionStoreManifest.themeVersion,
 } as const satisfies StorefrontThemeDescriptor;

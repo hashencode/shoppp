@@ -26,6 +26,10 @@ export interface PresentationProviderResolveInput {
   settings?: Readonly<Record<string, unknown>>;
 }
 
+export type FixtureBindingAliases = Readonly<
+  Record<string, { readonly resource: string; readonly sourceInstanceId: string }>
+>;
+
 export interface PresentationProvider {
   resolve(input: PresentationProviderResolveInput): PresentationViewModel;
   resolveShell?(input: { instanceId: string; resource: string }): PresentationShellRenderViewModel;

@@ -12,9 +12,13 @@ import {
   fashionStoreThemeDescriptor,
 } from "../app/themes/fashion-store/successor/manifest";
 import { fashionStorePreset } from "../app/themes/fashion-store/successor/presets/source-parity";
+import { fashionStoreUnifiedPreset } from "../app/themes/fashion-store/successor/presets/unified-store";
 import { themeRegistry } from "../app/themes/fashion-store/successor/registry";
 import { fixtureThemeRegistry } from "../app/themes/fashion-store/successor/fixture-registry";
-import { fashionStoreProductSectionVariant } from "../app/themes/fashion-store/successor/composition";
+import {
+  fashionStoreFixtureBindingAliases,
+  fashionStoreProductSectionVariant,
+} from "../app/themes/fashion-store/successor/composition";
 import {
   fashionStoreHomePresentationSchema,
   resolveFashionStoreHomePresentation,
@@ -34,6 +38,39 @@ import {
 import { createFashionStoreDecorHeroTimeline } from "../app/themes/fashion-store/composables/useFashionStoreDecorHeroMotion";
 
 describe("Fashion Store preview registration", () => {
+  test("publishes unified defaults without changing source-parity defaults", () => {
+    const sourceHome = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
+    const unifiedHome = fashionStoreUnifiedPreset.templates.find(
+      ({ pageType }) => pageType === "home",
+    )!;
+
+    expect(fashionStoreUnifiedPreset).toMatchObject({
+      id: "unified-store",
+      label: "Unified store",
+    });
+    expect(sourceHome.sections.map(({ id, visible }) => ({ id, visible }))).toEqual(
+      unifiedHome.sections.map(({ id, visible }) => ({ id, visible })),
+    );
+    expect(unifiedHome.sections.map(({ settings, type }) => ({ settings, type }))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          settings: expect.objectContaining({ "categories-presentation": "decor-icons" }),
+          type: "fashion-store.categories",
+        }),
+        expect.objectContaining({
+          settings: expect.objectContaining({ "brand-strip-presentation": "decor-continuous" }),
+          type: "fashion-store.brand-strip",
+        }),
+      ]),
+    );
+    expect(
+      unifiedHome.sections.find(({ id }) => id === "fashion-store-home-product-merchandising")
+        ?.visible,
+    ).toBe(false);
+    expect(
+      sourceHome.sections.find(({ type }) => type === "fashion-store.categories")?.settings,
+    ).toMatchObject({ "categories-presentation": "source" });
+  });
   test("rejects controlled drift from the independently observed Decor timing ledger", () => {
     const observed = {
       autoplayMs: fashionStoreDecorHeroContract.autoplayMs,
@@ -225,7 +262,6 @@ describe("Fashion Store preview registration", () => {
         "merchandising-title",
         "featured-collection",
         "featured-product",
-        "merchandising-visible",
       ],
       product: ["presentation-copy", "related-collection"],
     } as const;
@@ -298,7 +334,9 @@ describe("Fashion Store preview registration", () => {
     )!;
 
     expect(legacyHome.settings.some(({ id }) => id === "merchandising-order")).toBe(true);
+    expect(legacyHome.settings.some(({ id }) => id === "merchandising-visible")).toBe(true);
     expect(successorHero.settings.some(({ id }) => id === "merchandising-order")).toBe(false);
+    expect(successorHero.settings.some(({ id }) => id === "merchandising-visible")).toBe(false);
   });
 
   test("keeps collection looping aligned with its four semantic cards", async () => {
@@ -315,7 +353,7 @@ describe("Fashion Store preview registration", () => {
     expect(fashionStoreManifest.id).toBe("fashion-store");
     expect(fashionStoreThemeDescriptor).toMatchObject({
       id: "fashion-store",
-      presets: ["source-parity"],
+      presets: ["source-parity", "unified-store"],
       supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "content"],
     });
     const home = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
@@ -465,13 +503,14 @@ describe("Fashion Store preview registration", () => {
     ).toBe("decor-compact");
 
     const fixtureProvider = createFixturePresentationProvider({
+      bindingAliases: fashionStoreFixtureBindingAliases,
       bindings: [
         {
           fixtureId: "fashion-store-home",
-          id: "services-binding",
-          instanceId: "fashion-store-home-services",
+          id: "legacy-home-binding",
+          instanceId: "fashion-store-home",
           kind: "fixture",
-          resource: "services",
+          resource: "home",
           state: "populated",
         },
       ],
@@ -482,6 +521,7 @@ describe("Fashion Store preview registration", () => {
       settings: { "services-presentation": "decor-compact" },
     });
     expect(resolveFashionStoreHomePresentation(fixtureViewModel).services).toBe("decor-compact");
+    expect(fixtureThemeRegistry.fixtureBindingAliases).toBe(fashionStoreFixtureBindingAliases);
   });
 
   test("resolves Product group membership, fallback, and local states", () => {

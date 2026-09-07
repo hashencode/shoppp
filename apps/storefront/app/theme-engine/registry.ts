@@ -8,10 +8,12 @@ import {
 } from "@shoppp/contracts";
 import type { Component } from "vue";
 import type { ThemeCompositionAdapter } from "./composition";
+import type { FixtureBindingAliases } from "./providers/types";
 
 export interface ThemeRegistry {
   blocks: Readonly<Record<string, Component>>;
   composition?: ThemeCompositionAdapter;
+  fixtureBindingAliases?: FixtureBindingAliases;
   platformShell?: Component;
   rendererShell?: Component;
   sectionComposition?: ThemeCompositionDescriptor;
@@ -53,6 +55,7 @@ export function composeThemeRegistries(core: ThemeRegistry, theme: ThemeRegistry
   return {
     blocks: Object.freeze({ ...core.blocks, ...theme.blocks }),
     ...(theme.composition ? { composition: theme.composition } : {}),
+    ...(theme.fixtureBindingAliases ? { fixtureBindingAliases: theme.fixtureBindingAliases } : {}),
     ...(theme.platformShell ? { platformShell: theme.platformShell } : {}),
     ...(theme.rendererShell ? { rendererShell: theme.rendererShell } : {}),
     ...(theme.sectionComposition ? { sectionComposition: theme.sectionComposition } : {}),

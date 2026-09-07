@@ -14,7 +14,7 @@ import {
   fixtureThemeRegistry as inheritedFixtureRegistry,
   themeFixtures,
 } from "../fixture-registry";
-import { fashionStoreSectionComposition } from "./composition";
+import { fashionStoreFixtureBindingAliases, fashionStoreSectionComposition } from "./composition";
 
 const inheritedSections = Object.fromEntries(
   Object.entries(inheritedFixtureRegistry.sections).filter(
@@ -24,6 +24,7 @@ const inheritedSections = Object.fromEntries(
 
 export const fixtureThemeRegistry = {
   ...inheritedFixtureRegistry,
+  fixtureBindingAliases: fashionStoreFixtureBindingAliases,
   rendererShell: FashionStoreHomeShell,
   sectionComposition: fashionStoreSectionComposition,
   sections: {

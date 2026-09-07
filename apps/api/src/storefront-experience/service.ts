@@ -35,8 +35,10 @@ import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/m
 import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
 import {
   fashionStoreDirectMigrationBoundaries,
+  fashionStoreFixtureBindingAliasesForPackage,
   fashionStorePackageRegistrations,
 } from "../../../storefront/app/themes/fashion-store/package-registry";
+import { fashionStoreConfigurationMigrations } from "../../../storefront/app/themes/fashion-store/migrations";
 import { sha256Hex } from "../orders/tokens";
 import decorFixture from "../../../storefront/fixtures/experience/decor.json";
 import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
@@ -177,6 +179,12 @@ function migrationBoundaries(
   options?: StorefrontExperienceServiceOptions,
 ): readonly ThemePackageMigrationBoundary[] {
   return options?.migrationBoundaries ?? fashionStoreDirectMigrationBoundaries;
+}
+
+function configurationMigrations(
+  options?: StorefrontExperienceServiceOptions,
+): readonly ExperienceConfigurationMigration[] {
+  return options ? (options.migrations ?? []) : fashionStoreConfigurationMigrations;
 }
 
 function compareVersions(left: string, right: string): number {
@@ -572,7 +580,8 @@ function resolveDraft(
   }
   const fixtureBindings = bindings.filter((binding) => binding.kind === "fixture");
   const fixtureInstanceIds = fixtureBindings.map(({ instanceId }) => instanceId);
-  if (new Set(fixtureInstanceIds).size !== fixtureInstanceIds.length) {
+  const fixtureInstanceIdSet = new Set(fixtureInstanceIds);
+  if (fixtureInstanceIdSet.size !== fixtureInstanceIds.length) {
     issues.push({ code: "duplicate_fixture_binding", message: "Fixture bindings must be unique." });
   }
   const catalogBindings = bindings.filter((binding) => binding.kind === "catalog");
@@ -619,8 +628,13 @@ function resolveDraft(
     ),
   );
   if (catalogBindings.length === 0) {
+    const fixtureBindingAliases = fashionStoreFixtureBindingAliasesForPackage(selectedPackage);
     for (const instanceId of visibleInstanceIds) {
-      if (!fixtureInstanceIds.includes(instanceId)) {
+      const alias = fixtureBindingAliases?.[instanceId];
+      if (
+        !fixtureInstanceIdSet.has(instanceId) &&
+        (!alias || !fixtureInstanceIdSet.has(alias.sourceInstanceId))
+      ) {
         issues.push({
           code: "fixture_binding_missing",
           message: `Visible instance ${instanceId} has no fixture binding.`,
@@ -1433,7 +1447,7 @@ function migratedOverrides(
       schemaVersion: target.manifest.configurationSchemaVersion,
     }));
   }
-  const migration = options?.migrations?.find(
+  const migration = configurationMigrations(options).find(
     (candidate) =>
       candidate.themeId === row.theme_id &&
       candidate.fromConfigurationSchemaVersion === row.configuration_schema_version &&

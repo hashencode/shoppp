@@ -74,6 +74,7 @@ if (import.meta.client && activeExperienceProviderInput.mode === "live") {
 const routeMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
 const experienceSnapshot: ExperienceSnapshot | null = activeExperienceSnapshot;
 const fixturePresentationProvider = createFixturePresentationProvider({
+  bindingAliases: themeRegistry.fixtureBindingAliases,
   bindings: experienceSnapshot?.bindings.filter((binding) => binding.kind === "fixture") ?? [],
   fixtures: activeFixtureRegistry,
 });

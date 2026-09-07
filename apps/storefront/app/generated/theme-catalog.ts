@@ -56,7 +56,8 @@ export const storefrontThemeCatalog = [
     },
     "platformContractVersion": "1.0.0",
     "presets": [
-      "source-parity"
+      "source-parity",
+      "unified-store"
     ],
     "supportedPageTemplates": [
       "home",

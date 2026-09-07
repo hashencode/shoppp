@@ -11,6 +11,8 @@ import {
   fashionStorePackageRegistrations,
   fashionStoreSuccessorPackage,
 } from "../app/themes/fashion-store/package-registry";
+import { migrateFashionStoreV1Overrides } from "../app/themes/fashion-store/migrations";
+import { fashionStoreHomeSections } from "../app/themes/fashion-store/successor/composition";
 
 describe("Fashion Store exact package registry", () => {
   test("retains the supported 1.0.0 source package as byte-stable immutable history", async () => {
@@ -68,6 +70,134 @@ describe("Fashion Store exact package registry", () => {
     expect(Object.isFrozen(fashionStorePackageRegistrations)).toBe(true);
     expect(Object.isFrozen(fashionStoreDirectMigrationBoundaries)).toBe(true);
     expect(Object.isFrozen(fashionStoreDirectMigrationBoundaries[0]?.source)).toBe(true);
+    expect(fashionStoreSuccessorPackage.presets.map(({ id }) => id)).toEqual([
+      "source-parity",
+      "unified-store",
+    ]);
+  });
+
+  test("migrates v1 overrides without changing their preset identity", () => {
+    const source = [
+      {
+        operations: [
+          {
+            instanceIds: ["fashion-store-home"],
+            kind: "reorder-sections" as const,
+          },
+          {
+            instanceId: "fashion-store-home",
+            kind: "set-setting" as const,
+            settingId: "announcement-text",
+            value: "Migrated announcement",
+          },
+        ],
+        presetId: "source-parity",
+        schemaVersion: 1,
+        templateId: "fashion-store-home",
+      },
+    ];
+
+    const migrated = migrateFashionStoreV1Overrides(source);
+
+    expect(migrated).toEqual([
+      {
+        ...source[0],
+        operations: [
+          {
+            instanceIds: fashionStoreHomeSections.map(({ id }) => id),
+            kind: "reorder-sections",
+          },
+          source[0]!.operations[1],
+        ],
+        schemaVersion: 2,
+      },
+    ]);
+    expect(source[0]!.schemaVersion).toBe(1);
+    expect(source[0]!.operations[0]).toEqual({
+      instanceIds: ["fashion-store-home"],
+      kind: "reorder-sections",
+    });
+    expect(migrateFashionStoreV1Overrides([])).toEqual([]);
+  });
+
+  test("moves legacy merchandising visibility and order onto the Best Sellers section", () => {
+    const source = [
+      {
+        operations: [
+          {
+            instanceIds: ["fashion-store-home"],
+            kind: "reorder-sections" as const,
+          },
+          {
+            instanceId: "fashion-store-home",
+            kind: "set-setting" as const,
+            settingId: "merchandising-order",
+            value: 2,
+          },
+          {
+            instanceId: "fashion-store-home",
+            kind: "set-setting" as const,
+            settingId: "merchandising-visible",
+            value: false,
+          },
+        ],
+        presetId: "source-parity",
+        schemaVersion: 1,
+        templateId: "fashion-store-home",
+      },
+    ];
+
+    const [migrated] = migrateFashionStoreV1Overrides(source);
+    const bestSellersId = fashionStoreHomeSections.find(
+      ({ fixtureResource }) => fixtureResource === "best-sellers",
+    )!.id;
+    const productMerchandisingId = fashionStoreHomeSections.find(
+      ({ fixtureResource }) => fixtureResource === "product-merchandising",
+    )!.id;
+    const reorder = migrated!.operations.find(({ kind }) => kind === "reorder-sections");
+
+    expect(migrated!.operations).toContainEqual({
+      instanceId: bestSellersId,
+      kind: "set-visibility",
+      visible: false,
+    });
+    expect(reorder).toMatchObject({ kind: "reorder-sections" });
+    expect(reorder?.kind === "reorder-sections" && reorder.instanceIds[1]).toBe(bestSellersId);
+    expect(reorder?.kind === "reorder-sections" && reorder.instanceIds.at(-1)).toBe(
+      productMerchandisingId,
+    );
+    expect(
+      migrated!.operations.some(
+        (operation) => operation.kind === "set-setting" || operation.kind === "reset-setting",
+      ),
+    ).toBe(false);
+
+    const [reset] = migrateFashionStoreV1Overrides([
+      {
+        ...source[0]!,
+        operations: [
+          {
+            instanceId: "fashion-store-home",
+            kind: "reset-setting",
+            settingId: "merchandising-order",
+          },
+          {
+            instanceId: "fashion-store-home",
+            kind: "reset-setting",
+            settingId: "merchandising-visible",
+          },
+        ],
+      },
+    ]);
+    const resetReorder = reset!.operations.find(({ kind }) => kind === "reorder-sections");
+    expect(resetReorder?.kind === "reorder-sections" && resetReorder.instanceIds[0]).toBe(
+      bestSellersId,
+    );
+    expect(reset!.operations).toContainEqual({
+      instanceId: bestSellersId,
+      kind: "set-visibility",
+      visible: true,
+    });
   });
 
   test("keeps the checked-in Fashion preview runtime on the successor package path", async () => {
