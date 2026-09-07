@@ -5,6 +5,7 @@ import {
   experienceSnapshotSchema,
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
+  themePackageRegistrationSchema,
   themePackageSchema,
   type CanonicalCatalogRelease,
   type CreateStorefrontExperienceDraftRequest,
@@ -13,11 +14,16 @@ import {
   type StorefrontExperienceMigrationDryRunRequest,
   type ThemeOverride,
   type ThemePackage,
+  type ThemePackageMigrationBoundary,
+  type ThemePackageRegistration,
   type UpdateStorefrontExperienceDraftRequest,
 } from "@shoppp/contracts";
 import {
   findUpgradeConflicts,
+  packageRegistrationSupports,
   resolveTemplateOverride,
+  resolveThemePackageRegistration,
+  type ThemePackageOperation,
   validateRequiredCapabilities,
   type UpgradeConflict,
 } from "@shoppp/domain";
@@ -27,8 +33,10 @@ import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
 import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
 import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/manifest";
 import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
-import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
-import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
+import {
+  fashionStoreDirectMigrationBoundaries,
+  fashionStorePackageRegistrations,
+} from "../../../storefront/app/themes/fashion-store/package-registry";
 import { sha256Hex } from "../orders/tokens";
 import decorFixture from "../../../storefront/fixtures/experience/decor.json";
 import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
@@ -61,6 +69,7 @@ export interface ExperienceConfigurationMigration {
 }
 
 export interface StorefrontExperienceServiceOptions {
+  readonly migrationBoundaries?: readonly ThemePackageMigrationBoundary[];
   readonly migrations?: readonly ExperienceConfigurationMigration[];
   readonly packages?: readonly ThemePackage[];
 }
@@ -132,19 +141,42 @@ interface SnapshotRow {
 
 const PLATFORM_CONTRACT_VERSION = "1.0.0";
 const MAX_VALIDATION_LOOKUP_BINDINGS = 100;
-const defaultPackages = [
-  themePackageSchema.parse({ manifest: decorManifest, presets: [decorPreset] }),
-  themePackageSchema.parse({ manifest: decorStoreManifest, presets: [decorStorePreset] }),
-  themePackageSchema.parse({ manifest: fashionStoreManifest, presets: [fashionStorePreset] }),
-] as const;
+const defaultPackageRegistrations = [
+  themePackageRegistrationSchema.parse({
+    lifecycle: "successor",
+    package: { manifest: decorManifest, presets: [decorPreset] },
+  }),
+  themePackageRegistrationSchema.parse({
+    lifecycle: "successor",
+    package: {
+      manifest: decorStoreManifest,
+      presets: [decorStorePreset],
+    },
+  }),
+  ...fashionStorePackageRegistrations,
+] as const satisfies readonly ThemePackageRegistration[];
 const fixtureBindingsByThemeId = {
   decor: decorFixture.bindings,
   "decor-store": decorStoreFixture.bindings,
   "fashion-store": fashionStoreFixture.bindings,
 } as const;
 
-function packages(options?: StorefrontExperienceServiceOptions): readonly ThemePackage[] {
-  return options?.packages ?? defaultPackages;
+function packageRegistrations(
+  options?: StorefrontExperienceServiceOptions,
+): readonly ThemePackageRegistration[] {
+  if (options?.packages) {
+    return options.packages.map((themePackage) => ({
+      lifecycle: "successor" as const,
+      package: themePackage,
+    }));
+  }
+  return defaultPackageRegistrations;
+}
+
+function migrationBoundaries(
+  options?: StorefrontExperienceServiceOptions,
+): readonly ThemePackageMigrationBoundary[] {
+  return options?.migrationBoundaries ?? fashionStoreDirectMigrationBoundaries;
 }
 
 function compareVersions(left: string, right: string): number {
@@ -160,41 +192,55 @@ function compareVersions(left: string, right: string): number {
 function packageFor(
   themeId: string,
   themeVersion: string,
-  options?: StorefrontExperienceServiceOptions,
+  options: StorefrontExperienceServiceOptions | undefined,
+  operation: ThemePackageOperation,
+  configurationSchemaVersion?: number,
 ): ThemePackage {
-  const matchingPackages = packages(options).filter(
-    ({ manifest }) => manifest.id === themeId && manifest.themeVersion === themeVersion,
-  );
-  if (matchingPackages.length === 0) {
-    throw new ApiError(
-      422,
-      "storefront_theme_version_invalid",
-      "The selected theme package version is not available.",
+  let registration: ThemePackageRegistration | undefined;
+  try {
+    registration = resolveThemePackageRegistration(
+      packageRegistrations(options),
+      themeId,
+      themeVersion,
+      configurationSchemaVersion,
     );
-  }
-  if (matchingPackages.length > 1) {
+  } catch {
     throw new ApiError(
       500,
       "storefront_theme_registry_ambiguous",
       "The theme package registry contains duplicate version identities.",
     );
   }
-  const found = matchingPackages[0]!;
-  const parsed = themePackageSchema.safeParse(found);
-  if (!parsed.success) {
+  if (!registration) {
     throw new ApiError(
       422,
-      "storefront_theme_package_invalid",
-      "The selected theme package is invalid.",
+      "storefront_theme_version_invalid",
+      "The selected theme package version is not available.",
     );
   }
+  if (!packageRegistrationSupports(registration, operation)) {
+    throw new ApiError(
+      422,
+      "storefront_theme_package_not_creatable",
+      "The selected historical theme package cannot create or activate lifecycle state.",
+    );
+  }
+  let found = registration.package;
+  if (options?.packages) {
+    const parsed = themePackageSchema.safeParse(found);
+    if (!parsed.success) {
+      throw new ApiError(
+        422,
+        "storefront_theme_package_invalid",
+        "The selected theme package is invalid.",
+      );
+    }
+    found = parsed.data;
+  }
   if (
-    compareVersions(PLATFORM_CONTRACT_VERSION, parsed.data.manifest.platformCompatibility.min) <
-      0 ||
-    compareVersions(
-      PLATFORM_CONTRACT_VERSION,
-      parsed.data.manifest.platformCompatibility.maxExclusive,
-    ) >= 0
+    compareVersions(PLATFORM_CONTRACT_VERSION, found.manifest.platformCompatibility.min) < 0 ||
+    compareVersions(PLATFORM_CONTRACT_VERSION, found.manifest.platformCompatibility.maxExclusive) >=
+      0
   ) {
     throw new ApiError(
       422,
@@ -202,7 +248,16 @@ function packageFor(
       "The selected theme package is incompatible with this platform contract.",
     );
   }
-  return parsed.data;
+  return found;
+}
+
+export function assertStorefrontThemePackageActivatable(
+  themeId: string,
+  themeVersion: string,
+  configurationSchemaVersion: number,
+  options?: StorefrontExperienceServiceOptions,
+): void {
+  packageFor(themeId, themeVersion, options, "activation", configurationSchemaVersion);
 }
 
 function parseBindings(value: string): ExperienceResourceBinding[] {
@@ -388,7 +443,15 @@ function resolveDraft(
   package: ThemePackage;
   resolvedTemplates: ThemePackage["presets"][number]["templates"];
 } {
-  const selectedPackage = overridePackage ?? packageFor(row.theme_id, row.theme_version, options);
+  const selectedPackage =
+    overridePackage ??
+    packageFor(
+      row.theme_id,
+      row.theme_version,
+      options,
+      "historicalValidation",
+      row.configuration_schema_version,
+    );
   const issues: ExperienceValidationIssue[] = [];
   if (
     !overridePackage &&
@@ -673,28 +736,32 @@ async function recordAuditOnce(
     .run();
 }
 
-export function listStorefrontThemes() {
-  return storefrontThemeCatalog.map((descriptor) => {
-    const themePackage = defaultPackages.find(
-      ({ manifest }) =>
-        manifest.id === descriptor.id && manifest.themeVersion === descriptor.themeVersion,
-    );
-    if (!themePackage) {
+const defaultStorefrontThemes = storefrontThemeCatalog.map((descriptor) => {
+  let themePackage: ThemePackage;
+  try {
+    themePackage = packageFor(descriptor.id, descriptor.themeVersion, undefined, "creation");
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 422) {
       throw new ApiError(
         500,
         "storefront_theme_catalog_drift",
-        "The generated storefront theme catalog does not match the package registry.",
+        "The generated storefront theme catalog does not match the creatable package registry.",
       );
     }
-    return adminStorefrontThemeSchema.parse({
-      ...descriptor,
-      componentRegistry: themePackage.manifest.componentRegistry,
-      fixtureBindings: experienceResourceBindingSchema
-        .array()
-        .parse(fixtureBindingsByThemeId[descriptor.id]),
-      presetDefinitions: themePackage.presets,
-    });
+    throw error;
+  }
+  return adminStorefrontThemeSchema.parse({
+    ...descriptor,
+    componentRegistry: themePackage.manifest.componentRegistry,
+    fixtureBindings: experienceResourceBindingSchema
+      .array()
+      .parse(fixtureBindingsByThemeId[descriptor.id]),
+    presetDefinitions: themePackage.presets,
   });
+});
+
+export function listStorefrontThemes() {
+  return defaultStorefrontThemes;
 }
 
 export async function createStorefrontExperienceDraft(
@@ -702,7 +769,12 @@ export async function createStorefrontExperienceDraft(
   request: CreateStorefrontExperienceDraftRequest,
   options?: StorefrontExperienceServiceOptions,
 ) {
-  const selectedPackage = packageFor(request.draft.themeId, request.draft.themeVersion, options);
+  const selectedPackage = packageFor(
+    request.draft.themeId,
+    request.draft.themeVersion,
+    options,
+    "creation",
+  );
   if (!selectedPackage.presets.some(({ id }) => id === request.draft.presetId)) {
     throw new ApiError(
       422,
@@ -787,9 +859,17 @@ export async function updateStorefrontExperienceDraft(
   context: Context<ApiEnvironment>,
   id: string,
   request: UpdateStorefrontExperienceDraftRequest,
+  options?: StorefrontExperienceServiceOptions,
 ) {
   const current = await draftRow(context.env.DB, id);
   assertExpectedVersion(current, request.expectedVersion);
+  packageFor(
+    current.theme_id,
+    current.theme_version,
+    options,
+    "mutation",
+    current.configuration_schema_version,
+  );
   experienceDraftSchema.parse({
     bindings: request.bindings,
     experienceId: current.experience_id,
@@ -836,8 +916,16 @@ export async function createStorefrontExperienceSuccessor(
   context: Context<ApiEnvironment>,
   sourceId: string,
   request: CreateStorefrontExperienceSuccessorRequest,
+  options?: StorefrontExperienceServiceOptions,
 ) {
   const source = await draftRow(context.env.DB, sourceId);
+  packageFor(
+    source.theme_id,
+    source.theme_version,
+    options,
+    "creation",
+    source.configuration_schema_version,
+  );
   if (request.sourceVersion > source.version) {
     throw new ApiError(
       409,
@@ -962,6 +1050,13 @@ async function validResolution(
 ) {
   const row = await draftRow(context.env.DB, id);
   assertExpectedVersion(row, expectedVersion);
+  packageFor(
+    row.theme_id,
+    row.theme_version,
+    options,
+    "activation",
+    row.configuration_schema_version,
+  );
   const validation = await validationRow(context.env.DB, id, expectedVersion, catalogReleaseId);
   if (!validation || validation.status !== "valid") {
     throw new ApiError(
@@ -1362,8 +1457,20 @@ export async function dryRunStorefrontExperienceMigration(
 ) {
   const row = await draftRow(context.env.DB, id);
   assertExpectedVersion(row, request.expectedVersion);
-  const sourcePackage = packageFor(row.theme_id, row.theme_version, options);
-  const targetPackage = packageFor(row.theme_id, request.targetThemeVersion, options);
+  const sourcePackage = packageFor(
+    row.theme_id,
+    row.theme_version,
+    options,
+    "migrationSource",
+    row.configuration_schema_version,
+  );
+  const targetPackage = packageFor(
+    row.theme_id,
+    request.targetThemeVersion,
+    options,
+    "activation",
+    request.targetConfigurationSchemaVersion,
+  );
   if (
     targetPackage.manifest.configurationSchemaVersion !== request.targetConfigurationSchemaVersion
   ) {
@@ -1371,6 +1478,21 @@ export async function dryRunStorefrontExperienceMigration(
       422,
       "storefront_experience_migration_target_invalid",
       "The target package and configuration schema versions do not match.",
+    );
+  }
+  const directBoundary = migrationBoundaries(options).some(
+    ({ source, target, themeId }) =>
+      themeId === row.theme_id &&
+      source.themeVersion === row.theme_version &&
+      source.configurationSchemaVersion === row.configuration_schema_version &&
+      target.themeVersion === request.targetThemeVersion &&
+      target.configurationSchemaVersion === request.targetConfigurationSchemaVersion,
+  );
+  if (!directBoundary) {
+    throw new ApiError(
+      422,
+      "storefront_experience_migration_boundary_invalid",
+      "The exact source and target package versions are not a declared direct migration boundary.",
     );
   }
   const overrides = migratedOverrides(row, targetPackage, options);
@@ -1470,7 +1592,13 @@ export async function approveStorefrontExperienceMigration(
       "Validate the current draft before approving its migration.",
     );
   }
-  const targetPackage = packageFor(draft.theme_id, migration.target_theme_version, options);
+  const targetPackage = packageFor(
+    draft.theme_id,
+    migration.target_theme_version,
+    options,
+    "activation",
+    migration.target_configuration_schema_version,
+  );
   const overrides = JSON.parse(migration.migrated_overrides_json) as ThemeOverride[];
   const resolution = resolveDraft(draft, options, targetPackage, overrides);
   if (resolution.issues.length > 0) {

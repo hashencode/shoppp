@@ -495,6 +495,34 @@ export const themePackageSchema = z
     validateThemePackage(themePackage, context);
   });
 
+export const themePackageRegistrationSchema = z
+  .object({
+    lifecycle: z.enum(["historical", "successor"]),
+    package: themePackageSchema,
+  })
+  .strict();
+
+const exactThemePackageVersionSchema = z
+  .object({
+    configurationSchemaVersion: z.int().positive(),
+    themeVersion: storefrontSemverSchema,
+  })
+  .strict();
+
+export const themePackageMigrationBoundarySchema = z
+  .object({
+    source: exactThemePackageVersionSchema,
+    target: exactThemePackageVersionSchema,
+    themeId: storefrontIdentifierSchema,
+  })
+  .strict()
+  .refine(
+    ({ source, target }) =>
+      source.themeVersion !== target.themeVersion ||
+      source.configurationSchemaVersion !== target.configurationSchemaVersion,
+    { message: "A migration boundary must identify different exact package versions." },
+  );
+
 export const fixtureBindingSchema = z
   .object({
     fixtureId: storefrontIdentifierSchema,
@@ -1103,4 +1131,6 @@ export type ThemeManifest = z.infer<typeof themeManifestSchema>;
 export type ThemeOverride = z.infer<typeof themeOverrideSchema>;
 export type ThemeOverrideOperation = z.infer<typeof themeOverrideOperationSchema>;
 export type ThemePackage = z.infer<typeof themePackageSchema>;
+export type ThemePackageMigrationBoundary = z.infer<typeof themePackageMigrationBoundarySchema>;
+export type ThemePackageRegistration = z.infer<typeof themePackageRegistrationSchema>;
 export type ThemePreset = z.infer<typeof themePresetSchema>;

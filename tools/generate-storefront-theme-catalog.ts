@@ -7,7 +7,7 @@ import {
 } from "../packages/contracts/src/storefront-experience";
 import { decorThemeDescriptor } from "../apps/storefront/app/themes/decor/manifest";
 import { decorStoreThemeDescriptor } from "../apps/storefront/app/themes/decor-store/manifest";
-import { fashionStoreThemeDescriptor } from "../apps/storefront/app/themes/fashion-store/manifest";
+import { fashionStoreThemeDescriptor } from "../apps/storefront/app/themes/fashion-store/successor/manifest";
 
 export interface StorefrontThemeCatalogOptions {
   descriptors: readonly StorefrontThemeDescriptor[];

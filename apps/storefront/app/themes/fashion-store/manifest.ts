@@ -5,6 +5,10 @@ import type {
 } from "@shoppp/contracts";
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
 import { fashionStoreTemplatePageTypes } from "./page-contracts";
+import {
+  FASHION_STORE_SUCCESSOR_CONFIGURATION_SCHEMA_VERSION,
+  FASHION_STORE_SUCCESSOR_THEME_VERSION,
+} from "./successor/version";
 
 const text = (
   id: string,
@@ -411,7 +415,7 @@ export const fashionStoreManifest = {
     blocks: coreBlockDefinitions,
     sections: [...coreSectionDefinitions, ...fashionStoreSectionDefinitions],
   },
-  configurationSchemaVersion: 1,
+  configurationSchemaVersion: FASHION_STORE_SUCCESSOR_CONFIGURATION_SCHEMA_VERSION,
   designTokens: {
     "color-accent": "#000000",
     "color-ink": "#232323",
@@ -432,7 +436,7 @@ export const fashionStoreManifest = {
     source: "local://user-supplied/demo-fashion-store.html",
   },
   supportedPageTemplates: [...fashionStoreTemplatePageTypes],
-  themeVersion: "1.0.0",
+  themeVersion: FASHION_STORE_SUCCESSOR_THEME_VERSION,
 } as const satisfies ThemeManifest;
 
 export const fashionStoreThemeDescriptor = {

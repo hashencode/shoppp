@@ -1,4 +1,48 @@
-import type { PageTemplate, ThemeOverride, ThemeOverrideOperation } from "@shoppp/contracts";
+import type {
+  PageTemplate,
+  ThemeOverride,
+  ThemeOverrideOperation,
+  ThemePackageRegistration,
+} from "@shoppp/contracts";
+
+export type ThemePackageOperation =
+  | "activation"
+  | "creation"
+  | "historicalValidation"
+  | "immutableRead"
+  | "migrationSource"
+  | "mutation";
+
+export function packageRegistrationSupports(
+  registration: ThemePackageRegistration,
+  operation: ThemePackageOperation,
+): boolean {
+  return (
+    registration.lifecycle === "successor" ||
+    (operation !== "activation" && operation !== "creation" && operation !== "mutation")
+  );
+}
+
+export function resolveThemePackageRegistration(
+  registrations: readonly ThemePackageRegistration[],
+  themeId: string,
+  themeVersion: string,
+  configurationSchemaVersion?: number,
+): ThemePackageRegistration | undefined {
+  const matches = registrations.filter(
+    ({ package: themePackage }) =>
+      themePackage.manifest.id === themeId &&
+      themePackage.manifest.themeVersion === themeVersion &&
+      (configurationSchemaVersion === undefined ||
+        themePackage.manifest.configurationSchemaVersion === configurationSchemaVersion),
+  );
+  if (matches.length > 1) {
+    throw new Error(
+      `Theme package registry contains duplicate exact identity ${themeId}@${themeVersion}.`,
+    );
+  }
+  return matches[0];
+}
 
 export type UpgradeConflict =
   | {

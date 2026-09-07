@@ -6,8 +6,12 @@ import { recordAuditEvent } from "../iam/audit";
 import { opaqueAccessToken, sha256Hex } from "../orders/tokens";
 import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
 import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
-import { getStorefrontExperienceSnapshot } from "./service";
 import { parsePersistedMediaOrigins } from "./media-origins";
+import {
+  assertStorefrontThemePackageActivatable,
+  getStorefrontExperienceSnapshot,
+  type StorefrontExperienceServiceOptions,
+} from "./service";
 
 interface GrantRow {
   build_id: string;
@@ -32,9 +36,18 @@ interface SessionRow extends PreviewInputIdentityRow {
   platform_contract_version: string | null;
   media_origins_json: string | null;
   snapshot_id: string;
+  snapshot_configuration_schema_version: number;
+  snapshot_theme_id: string;
+  snapshot_theme_version: string;
   source_draft_id: string;
   theme_id: string | null;
   theme_version: string | null;
+}
+
+interface SnapshotIdentityRow {
+  snapshot_configuration_schema_version: number;
+  snapshot_theme_id: string;
+  snapshot_theme_version: string;
 }
 
 const GRANT_TTL_MS = 10 * 60 * 1_000;
@@ -93,9 +106,16 @@ export async function createStorefrontPreviewGrant(
   origin: string,
   reason: string,
   catalogReleaseId?: string,
+  options?: StorefrontExperienceServiceOptions,
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
-  await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
+  const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
+  assertStorefrontThemePackageActivatable(
+    snapshot.themeId,
+    snapshot.themeVersion,
+    snapshot.configurationSchemaVersion,
+    options,
+  );
   if (catalogReleaseId) {
     await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId);
   }
@@ -174,6 +194,7 @@ export async function redeemStorefrontPreviewGrant(
   context: Context<ApiEnvironment>,
   grant: string,
   origin: string,
+  options?: StorefrontExperienceServiceOptions,
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
   const digest = await sha256Hex(grant);
@@ -199,13 +220,17 @@ export async function redeemStorefrontPreviewGrant(
     );
   }
   const build = await context.env.DB.prepare(
-    `SELECT snapshot_id, expires_at, catalog_release_id, experience_version,
-            theme_id, theme_version, platform_contract_version
-       FROM storefront_preview_builds
-      WHERE id = ? AND snapshot_id = ? AND status = 'deployed' AND expires_at > ?`,
+    `SELECT b.snapshot_id, b.expires_at, b.catalog_release_id, b.experience_version,
+            b.theme_id, b.theme_version, b.platform_contract_version,
+            x.theme_id AS snapshot_theme_id,
+            x.theme_version AS snapshot_theme_version,
+            x.configuration_schema_version AS snapshot_configuration_schema_version
+       FROM storefront_preview_builds b
+       JOIN storefront_experience_snapshots x ON x.id = b.snapshot_id
+      WHERE b.id = ? AND b.snapshot_id = ? AND b.status = 'deployed' AND b.expires_at > ?`,
   )
     .bind(row.build_id, row.snapshot_id, now.toISOString())
-    .first<PreviewInputIdentityRow & { expires_at: string }>();
+    .first<PreviewInputIdentityRow & SnapshotIdentityRow & { expires_at: string }>();
   if (!build) {
     throw new ApiError(
       403,
@@ -213,6 +238,12 @@ export async function redeemStorefrontPreviewGrant(
       "The private preview artifact is no longer available.",
     );
   }
+  assertStorefrontThemePackageActivatable(
+    build.snapshot_theme_id,
+    build.snapshot_theme_version,
+    build.snapshot_configuration_schema_version,
+    options,
+  );
   const expiresAt = new Date(
     Math.min(now.getTime() + SESSION_TTL_MS, Date.parse(build.expires_at)),
   ).toISOString();
@@ -269,6 +300,7 @@ export async function authorizeStorefrontPreviewSession(
   context: Context<ApiEnvironment>,
   session: string,
   origin: string,
+  options?: StorefrontExperienceServiceOptions,
 ) {
   requireConfiguredPreviewOrigin(context.env, origin);
   const digest = await sha256Hex(session);
@@ -277,7 +309,10 @@ export async function authorizeStorefrontPreviewSession(
             b.artifact_prefix, b.expires_at AS build_expires_at, b.completed_at,
             b.catalog_release_id, b.experience_version, b.theme_id, b.theme_version,
             b.platform_contract_version, b.media_origins_json,
-            x.content_digest, x.source_draft_id
+            x.content_digest, x.source_draft_id,
+            x.theme_id AS snapshot_theme_id,
+            x.theme_version AS snapshot_theme_version,
+            x.configuration_schema_version AS snapshot_configuration_schema_version
        FROM storefront_preview_sessions s
        JOIN storefront_preview_builds b ON b.id = s.build_id
        JOIN storefront_experience_snapshots x ON x.id = s.snapshot_id
@@ -298,6 +333,12 @@ export async function authorizeStorefrontPreviewSession(
       "The private preview session is invalid or expired.",
     );
   }
+  assertStorefrontThemePackageActivatable(
+    row.snapshot_theme_id,
+    row.snapshot_theme_version,
+    row.snapshot_configuration_schema_version,
+    options,
+  );
   const expiresAt =
     Date.parse(row.expires_at) < Date.parse(row.build_expires_at)
       ? row.expires_at

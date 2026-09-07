@@ -73,7 +73,6 @@ describe("Fashion Store preview registration", () => {
     expect(failed).toBe(true);
   });
 
-
   test("uses one Fashion-owned Decor Hero contract in fixture and live Home renderers", async () => {
     const [fixtureHome, liveHome, contract] = await Promise.all([
       readFile(
@@ -308,7 +307,7 @@ describe("Fashion Store preview registration", () => {
     const source = renderActiveThemeModule({
       catalog: [fashionStoreThemeDescriptor],
       input,
-      moduleAllowlist: { "fashion-store": "../themes/fashion-store/registry" },
+      moduleAllowlist: { "fashion-store": "../themes/fashion-store/successor/registry" },
     });
 
     expect(input.snapshot.themeId).toBe("fashion-store");
@@ -320,7 +319,7 @@ describe("Fashion Store preview registration", () => {
       "checkout",
       "content",
     ]);
-    expect(source).toContain('from "../themes/fashion-store/registry"');
+    expect(source).toContain('from "../themes/fashion-store/successor/registry"');
     expect(source).not.toContain("themes/fashion/registry");
     expect(source).not.toContain("themes/decor/registry");
   });
@@ -329,7 +328,7 @@ describe("Fashion Store preview registration", () => {
     const input = await fashionStorePreviewBuildInput("https://preview.example.test");
     const options = {
       catalog: [fashionStoreThemeDescriptor],
-      moduleAllowlist: { "fashion-store": "../themes/fashion-store/registry" },
+      moduleAllowlist: { "fashion-store": "../themes/fashion-store/successor/registry" },
     };
 
     expect(() =>
@@ -366,7 +365,7 @@ describe("Fashion Store preview registration", () => {
     const source = renderActiveThemeModule({
       catalog: [fashionStoreThemeDescriptor],
       input: { environment: "production" },
-      moduleAllowlist: { "fashion-store": "../themes/fashion-store/registry" },
+      moduleAllowlist: { "fashion-store": "../themes/fashion-store/successor/registry" },
     });
 
     expect(source).not.toContain("fashion-store");

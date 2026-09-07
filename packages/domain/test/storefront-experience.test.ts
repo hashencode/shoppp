@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import type { PageTemplate, ThemeOverride } from "@shoppp/contracts";
+import type { PageTemplate, ThemeOverride, ThemePackageRegistration } from "@shoppp/contracts";
 
 import {
   findUpgradeConflicts,
   immutableExperienceValue,
+  packageRegistrationSupports,
+  resolveThemePackageRegistration,
   resolveTemplateOverride,
   validateRequiredCapabilities,
 } from "../src/storefront-experience";
@@ -69,6 +71,46 @@ const override = {
 } satisfies ThemeOverride;
 
 describe("storefront experience invariants", () => {
+  test("resolves exact packages without granting historical lifecycle writes", () => {
+    const historical = {
+      lifecycle: "historical",
+      package: {
+        manifest: {
+          configurationSchemaVersion: 1,
+          id: "fashion-store",
+          themeVersion: "1.0.0",
+        },
+      },
+    } as unknown as ThemePackageRegistration;
+    const successor = {
+      lifecycle: "successor",
+      package: {
+        manifest: {
+          configurationSchemaVersion: 2,
+          id: "fashion-store",
+          themeVersion: "1.1.0",
+        },
+      },
+    } as unknown as ThemePackageRegistration;
+
+    expect(resolveThemePackageRegistration([historical, successor], "fashion-store", "1.0.0")).toBe(
+      historical,
+    );
+    expect(packageRegistrationSupports(historical, "immutableRead")).toBe(true);
+    expect(packageRegistrationSupports(historical, "historicalValidation")).toBe(true);
+    expect(packageRegistrationSupports(historical, "migrationSource")).toBe(true);
+    expect(packageRegistrationSupports(historical, "creation")).toBe(false);
+    expect(packageRegistrationSupports(historical, "activation")).toBe(false);
+    expect(packageRegistrationSupports(historical, "mutation")).toBe(false);
+    expect(packageRegistrationSupports(successor, "creation")).toBe(true);
+    expect(
+      resolveThemePackageRegistration([historical, successor], "fashion-store", "1.0.0", 2),
+    ).toBeUndefined();
+    expect(() =>
+      resolveThemePackageRegistration([historical, historical], "fashion-store", "1.0.0"),
+    ).toThrow(/duplicate/i);
+  });
+
   test("applies content, visibility, reset, and reorder operations without mutating the preset", () => {
     const original = structuredClone(preset);
     const resolved = resolveTemplateOverride(preset, override);

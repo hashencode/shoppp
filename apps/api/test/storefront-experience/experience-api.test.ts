@@ -10,6 +10,10 @@ import {
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import releaseFixture from "../../../storefront/fixtures/release.json";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
+import {
+  fashionStoreHistoricalPackages,
+  fashionStoreSuccessorPackage,
+} from "../../../storefront/app/themes/fashion-store/package-registry";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
 import { createApp } from "../../src/http/app";
 import { sha256Hex } from "../../src/orders/tokens";
@@ -75,7 +79,7 @@ const draftInput = storefrontExperienceDraftInputSchema.parse({
   overrides: [],
   presetId: "source-parity",
   themeId: "fashion-store",
-  themeVersion: "1.0.0",
+  themeVersion: fashionStoreManifest.themeVersion,
 });
 
 const productIds = new Map(
@@ -329,9 +333,387 @@ describe("storefront experience API", () => {
           fixtureBindings: expect.any(Array),
           id: "fashion-store",
           presetDefinitions: expect.any(Array),
-          themeVersion: "1.0.0",
+          themeVersion: "1.1.0",
         },
       ],
+    });
+  });
+
+  test("keeps historical Fashion packages readable and validatable but rejects creation and activation", async () => {
+    const historical = fashionStoreHistoricalPackages[0]!;
+    const historicalDraftId = "draft-fashion-store-historical-v1";
+    const now = "2026-09-07T00:00:00.000Z";
+    const historicalOverrides = [
+      {
+        operations: [{ instanceId: "fashion-store-home", kind: "set-visibility", visible: true }],
+        presetId: "source-parity",
+        schemaVersion: 1,
+        templateId: "fashion-store-home",
+      },
+    ] as const;
+    await env.DB.prepare(
+      `INSERT INTO storefront_experience_drafts
+         (id, experience_id, theme_id, theme_version, configuration_schema_version,
+          preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+    )
+      .bind(
+        historicalDraftId,
+        "experience-fashion-store-historical-v1",
+        historical.manifest.id,
+        historical.manifest.themeVersion,
+        historical.manifest.configurationSchemaVersion,
+        historical.presets[0]!.id,
+        JSON.stringify(fashionStoreFixture.bindings),
+        JSON.stringify(historicalOverrides),
+        "admin-theme-admin",
+        "admin-theme-admin",
+        now,
+        now,
+      )
+      .run();
+
+    const read = await appFor().fetch(
+      request(`/admin/storefront-experiences/drafts/${historicalDraftId}`),
+      env,
+    );
+    expect(read.status).toBe(200);
+    expect(await read.json()).toMatchObject({
+      data: { id: historicalDraftId, themeVersion: "1.0.0" },
+    });
+
+    const historicalDraftBeforeMutation = await env.DB.prepare(
+      `SELECT version, bindings_json, overrides_json
+         FROM storefront_experience_drafts
+        WHERE id = ?`,
+    )
+      .bind(historicalDraftId)
+      .first();
+    const mutation = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${historicalDraftId}`,
+        {
+          bindings: [],
+          expectedVersion: 1,
+          overrides: [],
+          reason: "Historical package drafts are immutable",
+        },
+        "theme-historical-mutation-rejected-0001",
+        "PUT",
+      ),
+      env,
+    );
+    expect(mutation.status).toBe(422);
+    expect(await mutation.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+    expect(
+      await env.DB.prepare(
+        `SELECT version, bindings_json, overrides_json
+           FROM storefront_experience_drafts
+          WHERE id = ?`,
+      )
+        .bind(historicalDraftId)
+        .first(),
+    ).toEqual(historicalDraftBeforeMutation);
+
+    const validation = await validateDraft(
+      appFor(),
+      historicalDraftId,
+      1,
+      "theme-historical-validation-0001",
+    );
+    expect(validation.status).toBe(200);
+    const validationBody = await validation.json<{
+      data: { id: string; issues: unknown[]; status: string };
+    }>();
+    expect(validationBody).toMatchObject({ data: { issues: [], status: "valid" } });
+
+    const historicalSnapshotId = "snapshot-fashion-store-historical-v1";
+    const historicalSnapshot = {
+      approvedAt: now,
+      approvedBy: "admin-theme-admin",
+      bindings: fashionStoreFixture.bindings,
+      configurationSchemaVersion: historical.manifest.configurationSchemaVersion,
+      experienceId: "experience-fashion-store-historical-v1",
+      id: historicalSnapshotId,
+      kind: "approved",
+      overrides: historicalOverrides,
+      platformContractVersion: historical.manifest.platformContractVersion,
+      provenance: historical.manifest.provenance,
+      resolvedTemplates: historical.presets[0]!.templates,
+      themeId: historical.manifest.id,
+      themeVersion: historical.manifest.themeVersion,
+      version: 1,
+    };
+    await env.DB.prepare(
+      `INSERT INTO storefront_experience_snapshots
+         (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
+          source_validation_id, migration_id, kind, theme_id, theme_version,
+          configuration_schema_version, snapshot_json, content_digest, created_by, approved_by,
+          approved_at, created_at)
+       VALUES (?, ?, ?, ?, 1, ?, NULL, 'approved', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        historicalSnapshotId,
+        "fashion-store-historical-v1-approved",
+        historicalSnapshot.experienceId,
+        historicalDraftId,
+        validationBody.data.id,
+        historical.manifest.id,
+        historical.manifest.themeVersion,
+        historical.manifest.configurationSchemaVersion,
+        JSON.stringify(historicalSnapshot),
+        "0".repeat(64),
+        "admin-theme-admin",
+        "admin-theme-admin",
+        now,
+        now,
+      )
+      .run();
+    const immutableSnapshot = await appFor().fetch(
+      request(`/admin/storefront-experiences/snapshots/${historicalSnapshotId}`),
+      env,
+    );
+    expect(immutableSnapshot.status).toBe(200);
+    expect(await immutableSnapshot.json()).toMatchObject({
+      data: {
+        id: historicalSnapshotId,
+        snapshot: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
+      },
+    });
+
+    const historicalReleaseId = "release-fashion-store-historical-v1";
+    await seedPreviewCatalogRelease(historicalReleaseId);
+    const historicalBuild = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${historicalSnapshotId}/build`,
+        { catalogReleaseId: historicalReleaseId },
+        "theme-historical-build-rejected-0001",
+      ),
+      env,
+    );
+    expect(historicalBuild.status).toBe(422);
+    expect(await historicalBuild.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+
+    const historicalPreviewBuildId = "build-fashion-store-historical-v1";
+    const historicalGrant = "historical_preview_grant_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const historicalSession = "historical_preview_session_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO storefront_preview_builds
+           (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
+            platform_contract_version, media_origins_json, attempt, status, artifact_digest,
+            artifact_prefix, expires_at, completed_at, created_at, updated_at)
+         VALUES (?, ?, ?, 1, ?, ?, ?, '[]', 1, 'deployed', ?, ?,
+                 '2099-09-07T00:00:00.000Z', ?, ?, ?)`,
+      ).bind(
+        historicalPreviewBuildId,
+        historicalSnapshotId,
+        historicalReleaseId,
+        historical.manifest.id,
+        historical.manifest.themeVersion,
+        historical.manifest.platformContractVersion,
+        "1".repeat(64),
+        `snapshots/${historicalSnapshotId}/${historicalReleaseId}/${"1".repeat(64)}`,
+        now,
+        now,
+        now,
+      ),
+      env.DB.prepare(
+        `INSERT INTO storefront_preview_grants
+           (id, snapshot_id, build_id, grant_digest, origin, expires_at, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, '2099-09-07T00:00:00.000Z', 'admin-theme-admin', ?)`,
+      ).bind(
+        "grant-fashion-store-historical-v1",
+        historicalSnapshotId,
+        historicalPreviewBuildId,
+        await sha256Hex(historicalGrant),
+        env.PREVIEW_ORIGIN,
+        now,
+      ),
+      env.DB.prepare(
+        `INSERT INTO storefront_preview_sessions
+           (id, snapshot_id, build_id, session_digest, origin, expires_at, created_at)
+         VALUES (?, ?, ?, ?, ?, '2099-09-07T00:00:00.000Z', ?)`,
+      ).bind(
+        "session-fashion-store-historical-v1",
+        historicalSnapshotId,
+        historicalPreviewBuildId,
+        await sha256Hex(historicalSession),
+        env.PREVIEW_ORIGIN,
+        now,
+      ),
+    ]);
+    const previewGrant = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${historicalSnapshotId}/grants`,
+        {
+          catalogReleaseId: historicalReleaseId,
+          origin: env.PREVIEW_ORIGIN,
+          reason: "Historical preview artifacts cannot issue new access",
+        },
+        "theme-historical-preview-grant-rejected-0001",
+      ),
+      env,
+    );
+    expect(previewGrant.status).toBe(422);
+    expect(await previewGrant.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+    const previewSessionCountBeforeRedeem = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM storefront_preview_sessions",
+    ).first<{ count: number }>();
+    const previewRedeem = await appFor().fetch(
+      request("/internal/preview/redeem", {
+        body: JSON.stringify({ grant: historicalGrant, origin: env.PREVIEW_ORIGIN }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(previewRedeem.status).toBe(422);
+    expect(await previewRedeem.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT redeemed_at FROM storefront_preview_grants WHERE id = 'grant-fashion-store-historical-v1'",
+      ).first(),
+    ).toEqual({ redeemed_at: null });
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM storefront_preview_sessions").first(),
+    ).toEqual(previewSessionCountBeforeRedeem);
+    const previewAuthorization = await appFor().fetch(
+      request("/internal/preview/authorize", {
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          Cookie: `__Host-shoppp-preview=${historicalSession}`,
+          "X-Preview-Origin": env.PREVIEW_ORIGIN,
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(previewAuthorization.status).toBe(422);
+    expect(await previewAuthorization.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+
+    const migrationSource = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${historicalDraftId}/migrations/dry-run`,
+        {
+          expectedVersion: 1,
+          reason: "Resolve the frozen source before U6.2 registers migration logic",
+          targetConfigurationSchemaVersion: 2,
+          targetThemeVersion: "1.1.0",
+        },
+        "theme-historical-migration-source-0001",
+      ),
+      env,
+    );
+    expect(migrationSource.status).toBe(422);
+    expect(await migrationSource.json()).toMatchObject({
+      error: { code: "storefront_experience_migration_unavailable" },
+    });
+
+    const creation = await appFor().fetch(
+      writeRequest(
+        "/admin/storefront-experiences/drafts",
+        {
+          draft: { ...draftInput, themeVersion: "1.0.0" },
+          reason: "Historical packages cannot seed new drafts",
+        },
+        "theme-historical-create-rejected-0001",
+      ),
+      env,
+    );
+    expect(creation.status).toBe(422);
+    expect(await creation.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+
+    const copiedCreation = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${historicalDraftId}/successors`,
+        {
+          bindings: fashionStoreFixture.bindings,
+          overrides: [],
+          reason: "Historical packages cannot be copied into a new draft",
+          sourceVersion: 1,
+        },
+        "theme-historical-successor-rejected-0001",
+      ),
+      env,
+    );
+    expect(copiedCreation.status).toBe(422);
+    expect(await copiedCreation.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+
+    const activation = await appFor().fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${historicalDraftId}/approve`,
+        { confirm: true, expectedVersion: 1, reason: "Historical packages cannot activate" },
+        "theme-historical-activation-rejected-0001",
+      ),
+      env,
+    );
+    expect(activation.status).toBe(422);
+    expect(await activation.json()).toMatchObject({
+      error: { code: "storefront_theme_package_not_creatable" },
+    });
+  });
+
+  test("uses the injected exact-package registry when copying a draft", async () => {
+    const injectedPackage = themePackageSchema.parse({
+      ...fashionStoreSuccessorPackage,
+      manifest: {
+        ...fashionStoreSuccessorPackage.manifest,
+        themeVersion: "9.9.9",
+      },
+    });
+    const app = createApp({
+      storefrontExperienceServiceOptions: { packages: [injectedPackage] },
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const created = await createDraft(
+      app,
+      "theme-injected-package-create-0001",
+      storefrontExperienceDraftInputSchema.parse({
+        ...draftInput,
+        themeVersion: injectedPackage.manifest.themeVersion,
+      }),
+    );
+
+    const successor = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/successors`,
+        {
+          bindings: fashionStoreFixture.bindings,
+          overrides: [],
+          reason: "Copy a draft resolved from the injected exact-package registry",
+          sourceVersion: 1,
+        },
+        "theme-injected-package-successor-0001",
+      ),
+      env,
+    );
+
+    expect(successor.status).toBe(201);
+    expect(await successor.json()).toMatchObject({
+      data: { themeVersion: injectedPackage.manifest.themeVersion },
     });
   });
 
@@ -610,7 +992,7 @@ describe("storefront experience API", () => {
             },
           ],
           presetId: "source-parity",
-          schemaVersion: 1,
+          schemaVersion: fashionStoreManifest.configurationSchemaVersion,
           templateId: "fashion-store-content",
         },
       ],
@@ -712,7 +1094,7 @@ describe("storefront experience API", () => {
     const override = {
       operations: [{ instanceId: "fashion-store-home", kind: "set-visibility", visible: true }],
       presetId: "source-parity",
-      schemaVersion: 1,
+      schemaVersion: fashionStoreManifest.configurationSchemaVersion,
       templateId: "fashion-store-home",
     };
     const updateBody = {
@@ -934,7 +1316,7 @@ describe("storefront experience API", () => {
                   },
                 ],
                 presetId: "source-parity",
-                schemaVersion: 1,
+                schemaVersion: fashionStoreManifest.configurationSchemaVersion,
                 templateId: "fashion-store-home",
               },
             ],
@@ -960,7 +1342,7 @@ describe("storefront experience API", () => {
             },
           ],
           presetId: "source-parity",
-          schemaVersion: 1,
+          schemaVersion: fashionStoreManifest.configurationSchemaVersion,
           templateId: "fashion-store-home",
         },
       ],
@@ -987,7 +1369,7 @@ describe("storefront experience API", () => {
         {
           operations: [{ instanceId: "product-main", kind: "set-visibility", visible: false }],
           presetId: "source-parity",
-          schemaVersion: 1,
+          schemaVersion: fashionStoreManifest.configurationSchemaVersion,
           templateId: "fashion-product",
         },
       ],
@@ -1711,18 +2093,8 @@ describe("storefront experience API", () => {
   });
 
   test("dry-runs an explicit schema migration, reports stable-ID conflicts, and preserves older snapshots", async () => {
-    const sourcePackage = themePackageSchema.parse({
-      manifest: fashionStoreManifest,
-      presets: [fashionStorePreset],
-    });
-    const targetPackage = themePackageSchema.parse({
-      manifest: {
-        ...fashionStoreManifest,
-        configurationSchemaVersion: 2,
-        themeVersion: "1.1.0",
-      },
-      presets: [fashionStorePreset],
-    });
+    const sourcePackage = fashionStoreHistoricalPackages[0]!;
+    const targetPackage = fashionStoreSuccessorPackage;
     const conflictingPackage = themePackageSchema.parse({
       manifest: {
         ...fashionStoreManifest,
@@ -1743,7 +2115,23 @@ describe("storefront experience API", () => {
         },
       ],
     });
+    const undeclaredTargetPackage = themePackageSchema.parse({
+      ...targetPackage,
+      manifest: { ...targetPackage.manifest, themeVersion: "1.3.0" },
+    });
     const storefrontExperienceServiceOptions: StorefrontExperienceServiceOptions = {
+      migrationBoundaries: [
+        {
+          source: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
+          target: { configurationSchemaVersion: 2, themeVersion: "1.1.0" },
+          themeId: "fashion-store",
+        },
+        {
+          source: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
+          target: { configurationSchemaVersion: 2, themeVersion: "1.2.0" },
+          themeId: "fashion-store",
+        },
+      ],
       migrations: [
         {
           fromConfigurationSchemaVersion: 1,
@@ -1752,7 +2140,7 @@ describe("storefront experience API", () => {
           toConfigurationSchemaVersion: 2,
         },
       ],
-      packages: [sourcePackage, targetPackage, conflictingPackage],
+      packages: [sourcePackage, targetPackage, conflictingPackage, undeclaredTargetPackage],
     };
     const app = createApp({
       testIdentityVerifier: async () => ({
@@ -1764,6 +2152,7 @@ describe("storefront experience API", () => {
     });
     const created = await createDraft(app, "theme-migration-create-0001", {
       ...draftInput,
+      themeVersion: "1.0.0",
       overrides: [
         {
           operations: [
@@ -1780,6 +2169,67 @@ describe("storefront experience API", () => {
       ],
     });
     const draftId = created.body.data.id;
+    const mismatchedSourceId = `${draftId}-mismatched-schema`;
+    await env.DB.prepare(
+      `INSERT INTO storefront_experience_drafts
+         (id, experience_id, theme_id, theme_version, configuration_schema_version,
+          preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+          created_at, updated_at)
+       SELECT ?, experience_id || '-mismatched-schema', theme_id, theme_version, 2,
+              preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+              created_at, updated_at
+         FROM storefront_experience_drafts
+        WHERE id = ?`,
+    )
+      .bind(mismatchedSourceId, draftId)
+      .run();
+    const migrationsBeforeMismatch = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM storefront_experience_migrations",
+    ).first<{ count: number }>();
+    const mismatchedSource = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${mismatchedSourceId}/migrations/dry-run`,
+        {
+          expectedVersion: 1,
+          reason: "Reject a source tuple not present in the exact package registry",
+          targetConfigurationSchemaVersion: 2,
+          targetThemeVersion: "1.1.0",
+        },
+        "theme-migration-source-schema-mismatch-0001",
+      ),
+      env,
+    );
+    expect(mismatchedSource.status).toBe(422);
+    expect(await mismatchedSource.json()).toMatchObject({
+      error: { code: "storefront_theme_version_invalid" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_experience_migrations",
+      ).first(),
+    ).toEqual(migrationsBeforeMismatch);
+    const undeclaredBoundary = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/migrations/dry-run`,
+        {
+          expectedVersion: 1,
+          reason: "Reject a target tuple outside the declared direct boundary registry",
+          targetConfigurationSchemaVersion: 2,
+          targetThemeVersion: "1.3.0",
+        },
+        "theme-migration-boundary-undeclared-0001",
+      ),
+      env,
+    );
+    expect(undeclaredBoundary.status).toBe(422);
+    expect(await undeclaredBoundary.json()).toMatchObject({
+      error: { code: "storefront_experience_migration_boundary_invalid" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_experience_migrations",
+      ).first(),
+    ).toEqual(migrationsBeforeMismatch);
     await validateDraft(app, draftId, 1, "theme-migration-validate-0001");
     const originalApproval = await app.fetch(
       writeRequest(
@@ -2357,7 +2807,7 @@ describe("storefront experience API", () => {
       experienceVersion: 1,
       platformContractVersion: "1.0.0",
       themeId: "fashion-store",
-      themeVersion: "1.0.0",
+      themeVersion: fashionStoreManifest.themeVersion,
     });
     expect(value.data.build.mediaOrigins).toEqual(previewMediaOrigins);
     expect(triggerCalls).toEqual([

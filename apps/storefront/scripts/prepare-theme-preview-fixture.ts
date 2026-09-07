@@ -11,9 +11,9 @@ import { decorStoreManifest } from "../app/themes/decor-store/manifest";
 import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import { decorStoreRuntimeSourceOrder } from "../app/themes/decor-store/resources";
-import { fashionStoreManifest } from "../app/themes/fashion-store/manifest";
+import { fashionStoreManifest } from "../app/themes/fashion-store/successor/manifest";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
-import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
+import { fashionStorePreset } from "../app/themes/fashion-store/successor/presets/source-parity";
 import type { ExperienceBuildInput } from "./prepare-experience";
 
 const previewFixtureSchema = z

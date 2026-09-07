@@ -113,7 +113,7 @@ describe("Decor Store U2 registration", () => {
         ),
       ],
       input: fashionInput,
-      moduleAllowlist: { "fashion-store": "../themes/fashion-store/registry" },
+      moduleAllowlist: { "fashion-store": "../themes/fashion-store/successor/registry" },
     });
     const fallbackSource = renderActiveThemeModule({
       catalog: [decorStoreThemeDescriptor],

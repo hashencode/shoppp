@@ -165,6 +165,7 @@ import {
 import {
   approveStorefrontExperienceDraft,
   approveStorefrontExperienceMigration,
+  assertStorefrontThemePackageActivatable,
   createStorefrontExperienceDraft,
   createStorefrontExperienceSuccessor,
   createStorefrontExperiencePreviewSnapshot,
@@ -954,7 +955,12 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Cache-Control", "private, no-store");
     context.header("Referrer-Policy", "no-referrer");
     return context.json({
-      data: await redeemStorefrontPreviewGrant(context, input.grant, input.origin),
+      data: await redeemStorefrontPreviewGrant(
+        context,
+        input.grant,
+        input.origin,
+        options.storefrontExperienceServiceOptions,
+      ),
       meta: { requestId: context.get("requestId") },
     });
   });
@@ -971,7 +977,14 @@ export function createApp(options: CreateAppOptions = {}) {
     const session = previewSessionCredential(context);
     context.header("Cache-Control", "private, no-store");
     context.header("Referrer-Policy", "no-referrer");
-    return context.json(await authorizeStorefrontPreviewSession(context, session, origin));
+    return context.json(
+      await authorizeStorefrontPreviewSession(
+        context,
+        session,
+        origin,
+        options.storefrontExperienceServiceOptions,
+      ),
+    );
   });
 
   app.use("/admin/*", async (context, next) => {
@@ -1310,7 +1323,12 @@ export function createApp(options: CreateAppOptions = {}) {
     async (context) => {
       const input = await parseJson(context, updateStorefrontExperienceDraftRequestSchema);
       return context.json({
-        data: await updateStorefrontExperienceDraft(context, context.req.param("id"), input),
+        data: await updateStorefrontExperienceDraft(
+          context,
+          context.req.param("id"),
+          input,
+          options.storefrontExperienceServiceOptions,
+        ),
         meta: { requestId: context.get("requestId") },
       });
     },
@@ -1329,7 +1347,12 @@ export function createApp(options: CreateAppOptions = {}) {
       const input = await parseJson(context, createStorefrontExperienceSuccessorRequestSchema);
       return context.json(
         {
-          data: await createStorefrontExperienceSuccessor(context, context.req.param("id"), input),
+          data: await createStorefrontExperienceSuccessor(
+            context,
+            context.req.param("id"),
+            input,
+            options.storefrontExperienceServiceOptions,
+          ),
           meta: { requestId: context.get("requestId") },
         },
         201,
@@ -1483,6 +1506,12 @@ export function createApp(options: CreateAppOptions = {}) {
           "Only an approved immutable storefront experience snapshot can start this build.",
         );
       }
+      assertStorefrontThemePackageActivatable(
+        snapshot.themeId,
+        snapshot.themeVersion,
+        snapshot.configurationSchemaVersion,
+        options.storefrontExperienceServiceOptions,
+      );
       return context.json(
         {
           data: await triggerStorefrontExperienceBuild(
@@ -1590,6 +1619,7 @@ export function createApp(options: CreateAppOptions = {}) {
           input.origin,
           input.reason,
           input.catalogReleaseId,
+          options.storefrontExperienceServiceOptions,
         ),
         meta: { requestId: context.get("requestId") },
       },

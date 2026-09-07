@@ -12,6 +12,8 @@ import {
   storefrontResourceReferenceSchema,
   storefrontIntentActionSchema,
   themeCompositionDescriptorSchema,
+  themePackageMigrationBoundarySchema,
+  themePackageRegistrationSchema,
   themePackageSchema,
   type PresentationProduct,
   type ThemePackage,
@@ -155,6 +157,41 @@ const heroSection = homeTemplate.sections[0]!;
 const legalFooterSection = homeTemplate.sections[1]!;
 
 describe("storefront experience contracts", () => {
+  test("freezes package lifecycle and exact direct-migration boundaries", () => {
+    expect(
+      themePackageRegistrationSchema.parse({
+        lifecycle: "historical",
+        package: validThemePackage,
+      }),
+    ).toMatchObject({ lifecycle: "historical" });
+    expect(
+      themePackageRegistrationSchema.safeParse({
+        lifecycle: "retired",
+        package: validThemePackage,
+      }).success,
+    ).toBe(false);
+    expect(
+      themePackageRegistrationSchema.safeParse({
+        lifecycle: "successor",
+        package: validThemePackage,
+      }).success,
+    ).toBe(true);
+    expect(
+      themePackageMigrationBoundarySchema.parse({
+        source: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
+        target: { configurationSchemaVersion: 2, themeVersion: "1.1.0" },
+        themeId: "synthetic",
+      }),
+    ).toMatchObject({ themeId: "synthetic" });
+    expect(
+      themePackageMigrationBoundarySchema.safeParse({
+        source: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
+        target: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
+        themeId: "synthetic",
+      }).success,
+    ).toBe(false);
+  });
+
   test("accepts a fixed typed Section composition descriptor and rejects fixture/live drift", () => {
     const descriptor = {
       rendererShell: {

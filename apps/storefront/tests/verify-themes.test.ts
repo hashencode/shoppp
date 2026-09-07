@@ -141,14 +141,25 @@ describe("storefront theme matrix", () => {
     );
   });
 
-  test("requires a contiguous migration chain for every schema version", () => {
+  test("keeps the Fashion source boundary structural until U6.2 registers a migration", () => {
+    const fashionStore = storefrontThemeMatrix.find(
+      ({ descriptor }) => descriptor.id === "fashion-store",
+    );
+    expect(fashionStore?.directPackageBoundaries).toEqual([
+      { fromSchemaVersion: 1, toSchemaVersion: 2 },
+    ]);
+    expect("migrations" in (fashionStore ?? {})).toBe(false);
+  });
+
+  test("requires a contiguous direct package boundary for every schema version", () => {
     const entry = copyEntry(storefrontThemeMatrix[0]!);
+    entry.directPackageBoundaries = [];
     entry.package.manifest.configurationSchemaVersion = 2;
     entry.descriptor.configurationSchemaVersion = 2;
     expect(() => verifyThemeMatrix([entry], [entry.descriptor])).toThrow(
-      "missing configuration migration 1 -> 2",
+      "missing direct package boundary 1 -> 2",
     );
-    entry.migrations = [{ fromSchemaVersion: 1, toSchemaVersion: 2 }];
+    entry.directPackageBoundaries = [{ fromSchemaVersion: 1, toSchemaVersion: 2 }];
     expect(() => verifyThemeMatrix([entry], [entry.descriptor])).not.toThrow();
   });
 

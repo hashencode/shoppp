@@ -1,0 +1,823 @@
+{
+  "manifest": {
+    "approvedRemoteMediaHosts": [],
+    "componentRegistry": {
+      "blocks": [
+        {
+          "capabilities": ["product.action"],
+          "settings": [],
+          "type": "core.action"
+        },
+        {
+          "capabilities": ["legal.links"],
+          "settings": [],
+          "type": "core.link"
+        },
+        {
+          "capabilities": ["product.details"],
+          "settings": [],
+          "type": "core.product-card"
+        },
+        {
+          "capabilities": [],
+          "settings": [],
+          "type": "core.text"
+        }
+      ],
+      "sections": [
+        {
+          "allowedBlockTypes": ["core.action", "core.link"],
+          "capabilities": ["navigation.primary", "focus.skip-link"],
+          "settings": [],
+          "type": "core.navigation"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.announcement"
+        },
+        {
+          "allowedBlockTypes": ["core.action", "core.text"],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.hero"
+        },
+        {
+          "allowedBlockTypes": ["core.link"],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.collection-grid"
+        },
+        {
+          "allowedBlockTypes": ["core.product-card"],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.product-grid"
+        },
+        {
+          "allowedBlockTypes": ["core.action"],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.promotion"
+        },
+        {
+          "allowedBlockTypes": ["core.text"],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.editorial"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [],
+          "type": "core.trust-strip"
+        },
+        {
+          "allowedBlockTypes": ["core.link"],
+          "capabilities": ["legal.links"],
+          "settings": [],
+          "type": "core.footer"
+        },
+        {
+          "allowedBlockTypes": ["core.action"],
+          "capabilities": ["product.details", "product.action"],
+          "settings": [],
+          "type": "core.product"
+        },
+        {
+          "allowedBlockTypes": ["core.action"],
+          "capabilities": ["cart.summary", "cart.error"],
+          "settings": [],
+          "type": "core.cart"
+        },
+        {
+          "allowedBlockTypes": ["core.action"],
+          "capabilities": ["checkout.summary", "checkout.error"],
+          "settings": [],
+          "type": "core.checkout"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": ["order.status", "order.error"],
+          "settings": [],
+          "type": "core.order"
+        },
+        {
+          "allowedBlockTypes": ["core.link"],
+          "capabilities": ["policy.content"],
+          "settings": [],
+          "type": "core.policy"
+        },
+        {
+          "allowedBlockTypes": ["core.action"],
+          "capabilities": ["status.feedback", "error.summary"],
+          "settings": [],
+          "type": "core.state"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [
+            {
+              "default": "Free delivery on selected orders",
+              "helpText": "Bounded global announcement copy.",
+              "id": "announcement-text",
+              "kind": "text",
+              "label": "Announcement text",
+              "maxLength": 160,
+              "required": false
+            },
+            {
+              "allowedTargets": ["page"],
+              "helpText": "Optional typed destination for the announcement.",
+              "id": "announcement-link",
+              "kind": "link",
+              "label": "Announcement link",
+              "required": false
+            },
+            {
+              "default": true,
+              "helpText": "Controls only announcement visibility.",
+              "id": "announcement-visible",
+              "kind": "boolean",
+              "label": "Show announcement",
+              "required": false
+            },
+            {
+              "default": {
+                "alt": "Fashion Store logo",
+                "height": 34,
+                "kind": "theme",
+                "path": "assets/images/demo-fashion-store-logo-black.png",
+                "width": 155
+              },
+              "helpText": "Choose approved media for the Header logo.",
+              "id": "header-logo",
+              "kind": "asset",
+              "label": "Header logo",
+              "required": false
+            },
+            {
+              "default": "How can we help?",
+              "helpText": "Bounded Header contact presentation copy.",
+              "id": "header-contact-copy",
+              "kind": "text",
+              "label": "Header contact copy",
+              "maxLength": 240,
+              "required": false
+            },
+            {
+              "allowedTargets": ["external"],
+              "helpText": "HTTPS only; credentials are never stored.",
+              "id": "header-social-link",
+              "kind": "link",
+              "label": "Header social link",
+              "required": false
+            },
+            {
+              "allowedTargets": ["policy"],
+              "helpText": "Choose an approved policy destination by stable ID.",
+              "id": "header-legal-link",
+              "kind": "link",
+              "label": "Header legal link",
+              "required": false
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one internal page by stable ID.",
+              "id": "header-highlight-page",
+              "kind": "page-reference",
+              "label": "Header highlight page",
+              "required": false
+            },
+            {
+              "default": {
+                "alt": "Fashion Store logo",
+                "height": 34,
+                "kind": "theme",
+                "path": "assets/images/demo-fashion-store-logo-black.png",
+                "width": 155
+              },
+              "helpText": "Choose approved media for the Footer logo.",
+              "id": "footer-logo",
+              "kind": "asset",
+              "label": "Footer logo",
+              "required": false
+            },
+            {
+              "default": "Stay in touch.",
+              "helpText": "Bounded Footer contact presentation copy.",
+              "id": "footer-contact-copy",
+              "kind": "text",
+              "label": "Footer contact copy",
+              "maxLength": 240,
+              "required": false
+            },
+            {
+              "allowedTargets": ["external"],
+              "helpText": "HTTPS only; credentials are never stored.",
+              "id": "footer-social-link",
+              "kind": "link",
+              "label": "Footer social link",
+              "required": false
+            },
+            {
+              "allowedTargets": ["policy"],
+              "helpText": "Choose an approved policy destination by stable ID.",
+              "id": "footer-legal-link",
+              "kind": "link",
+              "label": "Footer legal link",
+              "required": false
+            },
+            {
+              "default": "Featured edit",
+              "helpText": "Bounded title for Home merchandising.",
+              "id": "merchandising-title",
+              "kind": "text",
+              "label": "Merchandising title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one collection by stable Commerce ID.",
+              "id": "featured-collection",
+              "kind": "collection-reference",
+              "label": "Featured collection",
+              "required": true
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one product by stable Commerce ID; price and availability stay locked.",
+              "id": "featured-product",
+              "kind": "product-reference",
+              "label": "Featured product",
+              "required": false
+            },
+            {
+              "default": true,
+              "helpText": "Controls only the merchandising section visibility.",
+              "id": "merchandising-visible",
+              "kind": "boolean",
+              "label": "Show merchandising",
+              "required": false
+            },
+            {
+              "default": 1,
+              "helpText": "Sets bounded section order without changing layout rules.",
+              "id": "merchandising-order",
+              "kind": "number",
+              "label": "Merchandising order",
+              "max": 12,
+              "min": 1,
+              "required": false,
+              "step": 1
+            }
+          ],
+          "type": "fashion-store.home"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [
+            {
+              "default": "Shop the collection",
+              "helpText": "Bounded heading for Shop and Collection.",
+              "id": "intro-title",
+              "kind": "text",
+              "label": "Intro title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Discover the latest edit.",
+              "helpText": "Bounded plain text for Shop and Collection.",
+              "id": "intro-copy",
+              "kind": "text",
+              "label": "Intro copy",
+              "maxLength": 500,
+              "required": false
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one collection by stable Commerce ID; membership and product facts stay locked.",
+              "id": "default-collection",
+              "kind": "collection-reference",
+              "label": "Default collection",
+              "required": true
+            }
+          ],
+          "type": "fashion-store.collection"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [
+            {
+              "default": "Designed for everyday wear.",
+              "helpText": "Bounded product-page presentation copy.",
+              "id": "presentation-copy",
+              "kind": "text",
+              "label": "Presentation copy",
+              "maxLength": 500,
+              "required": false
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one related collection by stable Commerce ID; product identity and variants stay locked.",
+              "id": "related-collection",
+              "kind": "collection-reference",
+              "label": "Related collection",
+              "required": false
+            }
+          ],
+          "type": "fashion-store.product"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [
+            {
+              "default": "Need help with your cart?",
+              "helpText": "Optional presentation guidance shown near the cart; totals and adjustments remain locked.",
+              "id": "help-copy",
+              "kind": "text",
+              "label": "Cart help copy",
+              "maxLength": 240,
+              "required": false
+            },
+            {
+              "allowedTargets": ["policy"],
+              "helpText": "Choose an approved policy destination by stable ID.",
+              "id": "policy-link",
+              "kind": "link",
+              "label": "Cart policy link",
+              "required": false
+            }
+          ],
+          "type": "fashion-store.cart"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [
+            {
+              "default": "Secure checkout",
+              "helpText": "Optional guidance only; shipping, tax, payment, and order facts remain locked.",
+              "id": "help-copy",
+              "kind": "text",
+              "label": "Checkout help copy",
+              "maxLength": 240,
+              "required": false
+            },
+            {
+              "allowedTargets": ["policy"],
+              "helpText": "Choose an approved policy destination by stable ID.",
+              "id": "policy-link",
+              "kind": "link",
+              "label": "Checkout policy link",
+              "required": false
+            }
+          ],
+          "type": "fashion-store.checkout"
+        },
+        {
+          "allowedBlockTypes": [],
+          "capabilities": [],
+          "settings": [
+            {
+              "default": "Wishlist",
+              "helpText": "Bounded heading for Wishlist.",
+              "id": "wishlist.heading",
+              "kind": "text",
+              "label": "Wishlist title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Saved wishlists are not available yet.",
+              "helpText": "Bounded plain text for Wishlist.",
+              "id": "wishlist.message",
+              "kind": "text",
+              "label": "Wishlist copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": "Account unavailable",
+              "helpText": "Bounded heading for Account unavailable.",
+              "id": "account.heading",
+              "kind": "text",
+              "label": "Account unavailable title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Customer accounts are not available yet.",
+              "helpText": "Bounded plain text for Account unavailable.",
+              "id": "account.message",
+              "kind": "text",
+              "label": "Account unavailable copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": "Magazine",
+              "helpText": "Bounded heading for Magazine.",
+              "id": "magazine.heading",
+              "kind": "text",
+              "label": "Magazine title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Stories from the latest collection.",
+              "helpText": "Bounded plain text for Magazine.",
+              "id": "magazine.message",
+              "kind": "text",
+              "label": "Magazine copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": "Marketing tips and tricks",
+              "helpText": "Bounded heading for Marketing tips and tricks.",
+              "id": "magazine.marketing-tips-and-tricks.heading",
+              "kind": "text",
+              "label": "Marketing tips and tricks title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Editorial story.",
+              "helpText": "Bounded plain text for Marketing tips and tricks.",
+              "id": "magazine.marketing-tips-and-tricks.message",
+              "kind": "text",
+              "label": "Marketing tips and tricks copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": "About us",
+              "helpText": "Bounded heading for About us.",
+              "id": "about.heading",
+              "kind": "text",
+              "label": "About us title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Learn more about this store.",
+              "helpText": "Bounded plain text for About us.",
+              "id": "about.message",
+              "kind": "text",
+              "label": "About us copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": "Frequently asked questions",
+              "helpText": "Bounded heading for Frequently asked questions.",
+              "id": "faq.heading",
+              "kind": "text",
+              "label": "Frequently asked questions title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Helpful answers from our team.",
+              "helpText": "Bounded plain text for Frequently asked questions.",
+              "id": "faq.message",
+              "kind": "text",
+              "label": "Frequently asked questions copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": "Contact information",
+              "helpText": "Bounded heading for Contact information.",
+              "id": "contact.heading",
+              "kind": "text",
+              "label": "Contact information title",
+              "maxLength": 120,
+              "required": false
+            },
+            {
+              "default": "Merchant contact details will appear here.",
+              "helpText": "Bounded plain text for Contact information.",
+              "id": "contact.message",
+              "kind": "text",
+              "label": "Contact information copy",
+              "maxLength": 1000,
+              "required": false
+            },
+            {
+              "default": {
+                "alt": "Fashion Store editorial image",
+                "height": 1060,
+                "kind": "theme",
+                "path": "assets/images/demo-fashion-store-slider-01.jpg",
+                "width": 1920
+              },
+              "helpText": "Choose approved Catalog media for About.",
+              "id": "about.image",
+              "kind": "asset",
+              "label": "About image",
+              "required": false
+            },
+            {
+              "allowedTargets": ["page"],
+              "helpText": "Choose a typed internal destination for About.",
+              "id": "about.link",
+              "kind": "link",
+              "label": "About link",
+              "required": false
+            },
+            {
+              "allowedTargets": ["page"],
+              "helpText": "Choose a typed internal destination for FAQ.",
+              "id": "faq.link",
+              "kind": "link",
+              "label": "FAQ link",
+              "required": false
+            },
+            {
+              "default": {
+                "alt": "Fashion Store editorial image",
+                "height": 1060,
+                "kind": "theme",
+                "path": "assets/images/demo-fashion-store-slider-01.jpg",
+                "width": 1920
+              },
+              "helpText": "Choose approved Catalog media for Contact.",
+              "id": "contact.image",
+              "kind": "asset",
+              "label": "Contact image",
+              "required": false
+            },
+            {
+              "default": {
+                "alt": "Fashion Store editorial image",
+                "height": 1060,
+                "kind": "theme",
+                "path": "assets/images/demo-fashion-store-slider-01.jpg",
+                "width": 1920
+              },
+              "helpText": "Choose approved Catalog media for FAQ.",
+              "id": "faq.image",
+              "kind": "asset",
+              "label": "FAQ image",
+              "required": false
+            },
+            {
+              "allowedTargets": ["page"],
+              "helpText": "Choose a typed internal Contact destination.",
+              "id": "contact.link",
+              "kind": "link",
+              "label": "Contact link",
+              "required": false
+            },
+            {
+              "default": {
+                "alt": "Fashion Store editorial image",
+                "height": 1060,
+                "kind": "theme",
+                "path": "assets/images/demo-fashion-store-slider-01.jpg",
+                "width": 1920
+              },
+              "helpText": "Choose approved Catalog media for Magazine.",
+              "id": "magazine.image",
+              "kind": "asset",
+              "label": "Magazine image",
+              "required": false
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one existing article by stable ID; this does not create article content.",
+              "id": "magazine.featured-article",
+              "kind": "article-reference",
+              "label": "Featured article",
+              "required": false
+            },
+            {
+              "default": "Questions about this order?",
+              "helpText": "Optional guidance near order status; order facts remain locked.",
+              "id": "order.help-copy",
+              "kind": "text",
+              "label": "Order help copy",
+              "maxLength": 500,
+              "required": false
+            },
+            {
+              "allowedTargets": ["policy"],
+              "helpText": "Choose an approved policy destination by stable ID.",
+              "id": "order.policy-link",
+              "kind": "link",
+              "label": "Order policy link",
+              "required": false
+            },
+            {
+              "default": "Questions about this policy?",
+              "helpText": "Optional presentation guidance; the Catalog-owned policy body remains locked.",
+              "id": "policy.help-copy",
+              "kind": "text",
+              "label": "Policy help copy",
+              "maxLength": 500,
+              "required": false
+            },
+            {
+              "cardinality": "one",
+              "helpText": "Choose one approved Catalog policy by stable ID; policy text and legal approval remain locked.",
+              "id": "policy.document",
+              "kind": "policy-reference",
+              "label": "Policy document",
+              "required": false
+            },
+            {
+              "allowedTargets": ["policy"],
+              "helpText": "Choose another approved policy destination by stable ID.",
+              "id": "policy.related-link",
+              "kind": "link",
+              "label": "Related policy link",
+              "required": false
+            },
+            {
+              "default": "standard",
+              "helpText": "Choose one approved content presentation style.",
+              "id": "content-style",
+              "kind": "select",
+              "label": "Content style",
+              "options": [
+                {
+                  "label": "Standard",
+                  "value": "standard"
+                },
+                {
+                  "label": "Editorial",
+                  "value": "editorial"
+                }
+              ],
+              "required": true
+            }
+          ],
+          "type": "fashion-store.content"
+        }
+      ]
+    },
+    "configurationSchemaVersion": 1,
+    "designTokens": {
+      "color-accent": "#000000",
+      "color-ink": "#232323",
+      "color-paper": "#ffffff",
+      "color-surface": "#ffffff",
+      "font-display": "Outfit, sans-serif",
+      "font-ui": "Figtree, sans-serif",
+      "radius-card": "0",
+      "space-section": "0"
+    },
+    "id": "fashion-store",
+    "platformCompatibility": {
+      "maxExclusive": "2.0.0",
+      "min": "1.0.0"
+    },
+    "platformContractVersion": "1.0.0",
+    "provenance": {
+      "approvedAt": "2026-08-06T00:00:00.000Z",
+      "approvedBy": "shoppp-theme-team",
+      "license": "User-authorized source-parity implementation",
+      "source": "local://user-supplied/demo-fashion-store.html"
+    },
+    "supportedPageTemplates": ["home", "collection", "product", "cart", "checkout", "content"],
+    "themeVersion": "1.0.0"
+  },
+  "presets": [
+    {
+      "id": "source-parity",
+      "label": "Source parity",
+      "templates": [
+        {
+          "id": "fashion-store-home",
+          "pageType": "home",
+          "requiredCapabilities": [],
+          "sections": [
+            {
+              "blocks": [],
+              "capabilities": [],
+              "id": "fashion-store-home",
+              "required": true,
+              "settings": {},
+              "type": "fashion-store.home",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "id": "fashion-store-collection",
+          "pageType": "collection",
+          "requiredCapabilities": [],
+          "sections": [
+            {
+              "blocks": [],
+              "capabilities": [],
+              "id": "fashion-store-collection",
+              "required": true,
+              "settings": {
+                "intro-copy": "Discover the latest edit.",
+                "intro-title": "Shop the collection"
+              },
+              "type": "fashion-store.collection",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "id": "fashion-store-product",
+          "pageType": "product",
+          "requiredCapabilities": [],
+          "sections": [
+            {
+              "blocks": [],
+              "capabilities": [],
+              "id": "fashion-store-product",
+              "required": true,
+              "settings": {
+                "presentation-copy": "Designed for everyday wear."
+              },
+              "type": "fashion-store.product",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "id": "fashion-store-cart",
+          "pageType": "cart",
+          "requiredCapabilities": [],
+          "sections": [
+            {
+              "blocks": [],
+              "capabilities": [],
+              "id": "fashion-store-cart",
+              "required": true,
+              "settings": {
+                "help-copy": "Need help with your cart?"
+              },
+              "type": "fashion-store.cart",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "id": "fashion-store-checkout",
+          "pageType": "checkout",
+          "requiredCapabilities": [],
+          "sections": [
+            {
+              "blocks": [],
+              "capabilities": [],
+              "id": "fashion-store-checkout",
+              "required": true,
+              "settings": {
+                "help-copy": "Secure checkout"
+              },
+              "type": "fashion-store.checkout",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "id": "fashion-store-content",
+          "pageType": "content",
+          "requiredCapabilities": [],
+          "sections": [
+            {
+              "blocks": [],
+              "capabilities": [],
+              "id": "fashion-store-content",
+              "required": true,
+              "settings": {
+                "about.heading": "About us",
+                "about.message": "Learn more about this store.",
+                "account.heading": "Account unavailable",
+                "account.message": "Customer accounts are not available yet.",
+                "contact.heading": "Contact information",
+                "contact.message": "Merchant contact details will appear here.",
+                "content-style": "standard",
+                "faq.heading": "Frequently asked questions",
+                "faq.message": "Helpful answers from our team.",
+                "magazine.heading": "Magazine",
+                "magazine.marketing-tips-and-tricks.heading": "Marketing tips and tricks",
+                "magazine.marketing-tips-and-tricks.message": "Editorial story.",
+                "magazine.message": "Stories from the latest collection.",
+                "wishlist.heading": "Wishlist",
+                "wishlist.message": "Saved wishlists are not available yet."
+              },
+              "type": "fashion-store.content",
+              "visible": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

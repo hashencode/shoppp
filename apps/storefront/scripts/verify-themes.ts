@@ -13,10 +13,10 @@ import { decorPreset } from "../app/themes/decor/presets/layered";
 import { decorStoreManifest, decorStoreThemeDescriptor } from "../app/themes/decor-store/manifest";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import {
-  fashionStoreManifest,
+  fashionStoreDirectMigrationBoundaries,
+  fashionStoreSuccessorPackage,
   fashionStoreThemeDescriptor,
-} from "../app/themes/fashion-store/manifest";
-import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
+} from "../app/themes/fashion-store/package-registry";
 
 export const STOREFRONT_PLATFORM_CONTRACT_VERSION = "1.0.0";
 export const REQUIRED_STOREFRONT_PAGE_TYPES = [
@@ -29,7 +29,7 @@ export const REQUIRED_STOREFRONT_PAGE_TYPES = [
   "policy",
 ] as const;
 
-export type ThemeConfigurationMigration = {
+export type ThemePackageBoundary = {
   fromSchemaVersion: number;
   toSchemaVersion: number;
 };
@@ -37,7 +37,7 @@ export type ThemeConfigurationMigration = {
 export type ThemeMatrixEntry = {
   assetPolicy: "binary-only" | "source-equivalent";
   descriptor: StorefrontThemeDescriptor;
-  migrations: readonly ThemeConfigurationMigration[];
+  directPackageBoundaries: readonly ThemePackageBoundary[];
   package: ThemePackage;
   requiredPageTypes: ThemeManifest["supportedPageTemplates"];
 };
@@ -46,21 +46,24 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
   {
     assetPolicy: "source-equivalent",
     descriptor: fashionStoreThemeDescriptor,
-    migrations: [],
-    package: { manifest: fashionStoreManifest, presets: [fashionStorePreset] },
+    directPackageBoundaries: fashionStoreDirectMigrationBoundaries.map(({ source, target }) => ({
+      fromSchemaVersion: source.configurationSchemaVersion,
+      toSchemaVersion: target.configurationSchemaVersion,
+    })),
+    package: fashionStoreSuccessorPackage,
     requiredPageTypes: ["home"],
   },
   {
     assetPolicy: "source-equivalent",
     descriptor: decorStoreThemeDescriptor,
-    migrations: [],
+    directPackageBoundaries: [],
     package: { manifest: decorStoreManifest, presets: [decorStorePreset] },
     requiredPageTypes: ["home"],
   },
   {
     assetPolicy: "binary-only",
     descriptor: decorThemeDescriptor,
-    migrations: [],
+    directPackageBoundaries: [],
     package: { manifest: decorManifest, presets: [decorPreset] },
     requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
   },
@@ -129,31 +132,31 @@ function stable(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function assertMigrations(entry: ThemeMatrixEntry): void {
+function assertDirectPackageBoundaries(entry: ThemeMatrixEntry): void {
   const target = entry.package.manifest.configurationSchemaVersion;
   const bySource = new Map<number, number>();
-  for (const migration of entry.migrations) {
+  for (const boundary of entry.directPackageBoundaries) {
     assert(
-      Number.isInteger(migration.fromSchemaVersion) &&
-        migration.fromSchemaVersion > 0 &&
-        migration.toSchemaVersion === migration.fromSchemaVersion + 1,
-      `${entry.package.manifest.id} has a non-contiguous configuration migration.`,
+      Number.isInteger(boundary.fromSchemaVersion) &&
+        boundary.fromSchemaVersion > 0 &&
+        boundary.toSchemaVersion === boundary.fromSchemaVersion + 1,
+      `${entry.package.manifest.id} has a non-contiguous direct package boundary.`,
     );
     assert(
-      !bySource.has(migration.fromSchemaVersion),
-      `${entry.package.manifest.id} has duplicate configuration migrations.`,
+      !bySource.has(boundary.fromSchemaVersion),
+      `${entry.package.manifest.id} has duplicate direct package boundaries.`,
     );
-    bySource.set(migration.fromSchemaVersion, migration.toSchemaVersion);
+    bySource.set(boundary.fromSchemaVersion, boundary.toSchemaVersion);
   }
   for (let version = 1; version < target; version += 1) {
     assert(
       bySource.get(version) === version + 1,
-      `${entry.package.manifest.id} is missing configuration migration ${version} -> ${version + 1}.`,
+      `${entry.package.manifest.id} is missing direct package boundary ${version} -> ${version + 1}.`,
     );
   }
   assert(
     [...bySource.keys()].every((version) => version < target),
-    `${entry.package.manifest.id} declares a migration beyond its current schema.`,
+    `${entry.package.manifest.id} declares a direct package boundary beyond its current schema.`,
   );
 }
 
@@ -221,7 +224,7 @@ export function verifyThemeMatrix(
       stable(descriptor) === stable(expectedDescriptor),
       `${identity} descriptor has drifted from its manifest or presets.`,
     );
-    assertMigrations(entry);
+    assertDirectPackageBoundaries(entry);
   }
 
   const normalizedCatalog = [...catalog].sort((left, right) => left.id.localeCompare(right.id));

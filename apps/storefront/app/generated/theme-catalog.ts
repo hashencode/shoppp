@@ -48,7 +48,7 @@ export const storefrontThemeCatalog = [
     "themeVersion": "1.0.0"
   },
   {
-    "configurationSchemaVersion": 1,
+    "configurationSchemaVersion": 2,
     "id": "fashion-store",
     "platformCompatibility": {
       "maxExclusive": "2.0.0",
@@ -66,6 +66,6 @@ export const storefrontThemeCatalog = [
       "checkout",
       "content"
     ],
-    "themeVersion": "1.0.0"
+    "themeVersion": "1.1.0"
   }
 ] as const satisfies readonly StorefrontThemeDescriptor[];

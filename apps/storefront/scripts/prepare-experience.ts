@@ -109,7 +109,7 @@ export interface PrepareExperienceOptions extends RenderActiveThemeOptions {
 const defaultModuleAllowlist = {
   decor: "../themes/decor/registry",
   "decor-store": "../themes/decor-store/registry",
-  "fashion-store": "../themes/fashion-store/registry",
+  "fashion-store": "../themes/fashion-store/successor/registry",
 } as const;
 
 function compareVersions(left: string, right: string): number {
@@ -193,7 +193,11 @@ function renderActiveThemeModuleFromInput({
   validatedDescriptor(input, catalog);
   const modulePath = moduleAllowlist[input.themeId];
   if (!modulePath) throw new Error(`Theme ${input.themeId} is missing from the module allowlist.`);
-  if (modulePath !== `../themes/${input.themeId}/registry`) {
+  const expectedModulePath =
+    input.themeId === "fashion-store"
+      ? "../themes/fashion-store/successor/registry"
+      : `../themes/${input.themeId}/registry`;
+  if (modulePath !== expectedModulePath) {
     throw new Error(`Theme ${input.themeId} has an unsafe module allowlist path.`);
   }
 
@@ -229,7 +233,7 @@ export const activePreviewOrigin = ${JSON.stringify(input.expectedOrigin)};
 import {
   fixtureThemeRegistry as selectedThemeRegistry,
   themeFixtures as selectedThemeFixtures,
-} from "../themes/fashion-store/fixture-registry";`
+} from "../themes/fashion-store/successor/fixture-registry";`
       : `import {
   themeAssets as selectedThemeAssets,
   themeFixtures as selectedThemeFixtures,

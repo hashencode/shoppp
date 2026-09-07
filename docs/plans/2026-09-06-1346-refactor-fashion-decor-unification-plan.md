@@ -9,8 +9,8 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
-current_unit: U6
-current_stage: U6.1
+current_unit: U3
+current_stage: U3
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -42,18 +42,20 @@ current_stage: U6.1
 ## Execution Checkpoint
 
 - **Plan state:** Active.
-- **Current parent/child stage:** `U6.1` — freeze immutable Fashion source packages and establish the successor-only registry path before Home decomposition.
-- **Current unit status:** `U1` and `U2` are complete; `U6.1` is current; `U3`–`U5`, `U6.2`, `U7`, and `U8` remain pending behind their declared dependencies.
-- **Next concrete action:** Characterize every supported exact Fashion package/preset, freeze byte-stable historical inputs, and add the successor-only implementation registry plus exact source-to-successor version/schema map before changing Fashion structure.
-- **Blocker:** None. U2's dormant descriptor and renderer-shell seam is verified and remains disabled for all current registries.
-- **Execution boundary:** Do not decompose Fashion Home or enable renderer shell ownership until U6.1 has frozen the historical package inputs and created the successor-only path. Do not edit or delete either Decor runtime subtree.
+- **Current parent/child stage:** `U3` — decompose Fashion Home into stable Sections against the frozen package boundary.
+- **Current unit status:** `U1`, `U2`, and `U6.1` are complete; `U3` is current; `U4`–`U5`, `U6.2`, `U7`, and `U8` remain pending behind their declared dependencies.
+- **Next concrete action:** Characterize the current fixture/live Home DOM order, actions, no-JavaScript content, remount behavior, and old binding-owner map before extracting shell-free stable Sections.
+- **Blocker:** None. Historical `fashion-store@1.0.0` is frozen and production-resolvable for immutable reads, validation, and migration-source lookup; the `1.1.0`/schema-2 successor path is isolated and its renderer-owned shell remains disabled.
+- **U6.1 evidence:** [`docs/progress/fashion-store-u6-1-package-boundary.md`](../progress/fashion-store-u6-1-package-boundary.md) records the frozen digest, exact direct boundary, lifecycle enforcement, and verification results.
+- **Execution boundary:** U3 may change only the successor package path and must enable renderer shell ownership in the same change that removes both page-owned Home shells. Do not edit or delete either Decor runtime subtree, and do not implement U6.2 migration/publication work early.
 
 | Unit | Status | Owned outcome |
 | --- | --- | --- |
 | U1 | Complete (approved 2026-09-07) | Exact capability/identity disposition and unified-preset IA freeze |
 | U2 | Complete (verified 2026-09-07) | Dormant single-shell multi-Section composition seam |
-| U6 | In progress (`U6.1`) | Freeze exact source packages and establish successor-only registry path |
-| U3–U5, U6.2, U7–U8 | Pending | Execute only in dependency order after the checkpoint advances |
+| U6 | In progress (`U6.1` complete; `U6.2` pending) | Exact source packages are frozen; unified migration/publication remains after U3–U5 |
+| U3 | Current | Decompose Fashion Home into stable Sections without changing historical packages |
+| U4–U5, U6.2, U7–U8 | Pending | Execute only in dependency order after U3 completes |
 
 ---
 

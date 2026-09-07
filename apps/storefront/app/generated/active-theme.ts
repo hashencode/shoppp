@@ -5,11 +5,11 @@ import type { ExperienceSnapshot } from "@shoppp/contracts";
 import {
   themeAssets as selectedThemeAssets,
   themeRoutes as selectedThemeRoutes,
-} from "../themes/fashion-store/registry";
+} from "../themes/fashion-store/successor/registry";
 import {
   fixtureThemeRegistry as selectedThemeRegistry,
   themeFixtures as selectedThemeFixtures,
-} from "../themes/fashion-store/fixture-registry";
+} from "../themes/fashion-store/successor/fixture-registry";
 
 export const activeThemeId = "fashion-store";
 // Preserve deterministic JSON serialization for the signed snapshot payload.
@@ -65,7 +65,7 @@ export const activeExperienceSnapshot = {
       "state": "populated"
     }
   ],
-  "configurationSchemaVersion": 1,
+  "configurationSchemaVersion": 2,
   "experienceId": "experience-fashion-store-fixture",
   "id": "snapshot-fashion-store-fixture-1",
   "overrides": [],
@@ -200,7 +200,7 @@ export const activeExperienceSnapshot = {
     }
   ],
   "themeId": "fashion-store",
-  "themeVersion": "1.0.0",
+  "themeVersion": "1.1.0",
   "version": 1,
   "approvedAt": "2026-08-06T00:00:00.000Z",
   "approvedBy": "fixture-operator",
