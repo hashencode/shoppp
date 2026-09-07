@@ -1138,6 +1138,29 @@ describe('ThemeEditorPage', () => {
     expect(screen.getByText('Unsaved changes')).toBeTruthy()
   }, 10_000)
 
+  it('rejects hiding the final optional Home content Section and focuses its local error', async () => {
+    renderEditor()
+    await screen.findByDisplayValue('Existing headline')
+    const heroVisibility = screen.getByRole('switch', { name: 'Show home-hero' })
+    const storyVisibility = screen.getByRole('switch', { name: 'Show home-story' })
+
+    fireEvent.click(storyVisibility)
+    expect(storyVisibility.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(heroVisibility)
+
+    const message = await screen.findByText('At least one Home content Section must remain visible.')
+    const localError = message.closest('[tabindex="-1"]')
+    expect(heroVisibility.getAttribute('aria-checked')).toBe('true')
+    await waitFor(() => expect(document.activeElement).toBe(localError))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset home-story' }))
+    expect(storyVisibility.getAttribute('aria-checked')).toBe('true')
+    expect(
+      screen.queryByText('At least one Home content Section must remain visible.')
+    ).toBeNull()
+
+  })
+
   it('saves, validates, and previews the exact new optimistic version in order', async () => {
     renderEditor()
     await screen.findByDisplayValue('Existing headline')

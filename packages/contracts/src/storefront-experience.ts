@@ -591,6 +591,7 @@ export const sectionCompositionDescriptorSchema = z
           "collection",
           "content",
           "home",
+          "home-sections",
           "product",
           "theme-section",
           "transaction",
@@ -628,6 +629,7 @@ export const sectionCompositionDescriptorSchema = z
 
 export const themeCompositionDescriptorSchema = z
   .object({
+    pageTypes: z.array(pageTypeSchema).min(1).max(10).optional(),
     rendererShell: z
       .object({
         fixtureResource: storefrontIdentifierSchema,

@@ -9,8 +9,8 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
-current_unit: U3
-current_stage: U3
+current_unit: U4
+current_stage: U4.1
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -42,20 +42,22 @@ current_stage: U3
 ## Execution Checkpoint
 
 - **Plan state:** Active.
-- **Current parent/child stage:** `U3` — decompose Fashion Home into stable Sections against the frozen package boundary.
-- **Current unit status:** `U1`, `U2`, and `U6.1` are complete; `U3` is current; `U4`–`U5`, `U6.2`, `U7`, and `U8` remain pending behind their declared dependencies.
-- **Next concrete action:** Characterize the current fixture/live Home DOM order, actions, no-JavaScript content, remount behavior, and old binding-owner map before extracting shell-free stable Sections.
-- **Blocker:** None. Historical `fashion-store@1.0.0` is frozen and production-resolvable for immutable reads, validation, and migration-source lookup; the `1.1.0`/schema-2 successor path is isolated and its renderer-owned shell remains disabled.
+- **Current parent/child stage:** `U4.1` — implement the six U1-approved Home visual variants and the default-hidden Product groups Section through Fashion-owned presentation boundaries.
+- **Current unit status:** `U1`, `U2` (including `U2.1`), `U3`, and `U6.1` are complete; `U4.1` is current; `U5`, `U6.2`, `U7`, and `U8` remain pending behind their declared dependencies.
+- **Next concrete action:** Map the approved categories, marquee, collection, brand-strip, editorial, and services variants plus `fashion-store.product-merchandising` onto the completed U3 Section boundaries, then add their fixture/live ViewModels, Fashion-owned resources, scoped styles, and focused behavior/isolation evidence.
+- **Blocker:** None external. U4 remains bounded to the U1-approved matrix and cannot import Decor runtime ownership, rebuild Hero, or introduce the deferred U6.2 migration/publication tail.
 - **U6.1 evidence:** [`docs/progress/fashion-store-u6-1-package-boundary.md`](../progress/fashion-store-u6-1-package-boundary.md) records the frozen digest, exact direct boundary, lifecycle enforcement, and verification results.
-- **Execution boundary:** U3 may change only the successor package path and must enable renderer shell ownership in the same change that removes both page-owned Home shells. Do not edit or delete either Decor runtime subtree, and do not implement U6.2 migration/publication work early.
+- **U3 evidence:** [`docs/progress/fashion-store-u3-home-sections.md`](../progress/fashion-store-u3-home-sections.md) records characterization, provisional composition, review corrections, and verification without acting as a second execution queue.
+- **Execution boundary:** U3 may change the successor package path and the exact renderer/composer/contracts surfaces needed to activate U2's dormant seam. `U2.1` corrected the discovered ambiguity by making descriptor coverage page-type scoped while preserving legacy templates and required shell contracts. U3 must enable renderer shell ownership in the same change that removes both successor page-owned Home shells. Do not edit or delete either Decor runtime subtree, and do not implement U6.2 migration/publication work early.
 
 | Unit | Status | Owned outcome |
 | --- | --- | --- |
 | U1 | Complete (approved 2026-09-07) | Exact capability/identity disposition and unified-preset IA freeze |
-| U2 | Complete (verified 2026-09-07) | Dormant single-shell multi-Section composition seam |
+| U2 | Complete (verified 2026-09-07; `U2.1` reconciliation verified 2026-09-07) | Dormant single-shell multi-Section composition seam with explicit page-type descriptor coverage |
 | U6 | In progress (`U6.1` complete; `U6.2` pending) | Exact source packages are frozen; unified migration/publication remains after U3–U5 |
-| U3 | Current | Decompose Fashion Home into stable Sections without changing historical packages |
-| U4–U5, U6.2, U7–U8 | Pending | Execute only in dependency order after U3 completes |
+| U3 | Complete (verified 2026-09-07) | Stable shell-free fixture/live Home Sections, compatible renderer shell ownership, local all-hidden recovery, and merchandising-order ownership verified |
+| U4 | Current (`U4.1`) | Deliver only the U1-approved Home presentation variants and Product groups Section through Fashion ownership |
+| U5, U6.2, U7–U8 | Pending | Execute only in dependency order after U4 completes |
 
 ---
 

@@ -209,6 +209,31 @@ const renderEditor = (failure: 'conflict' | 'persistent') => {
 }
 
 describe('ThemeEditorPage browser behavior', () => {
+  it(
+    'keeps the final Home content Section visible and focuses its local error',
+    { timeout: 20_000 },
+    async () => {
+      renderEditor('persistent')
+      const visibility = page.getByRole('switch')
+      await expect.element(visibility).toBeVisible()
+      const beforeAttempt = transport!.requests.length
+
+      await visibility.click()
+
+      const messageText =
+        document.documentElement.lang === 'zh-CN'
+          ? translateMessage('zh-CN', 'At least one Home content Section must remain visible.')
+          : 'At least one Home content Section must remain visible.'
+      const message = page.getByText(messageText)
+      await expect.element(message).toBeVisible()
+      await expect.element(visibility).toBeChecked()
+      await waitFor(() =>
+        expect(document.activeElement?.textContent).toContain(messageText)
+      )
+      expect(transport!.requests).toHaveLength(beforeAttempt)
+    }
+  )
+
   it.each(['conflict', 'persistent'] as const)(
     'preserves dirty fields and bindings through a %s language switch, then executes the existing recovery',
     { timeout: 20_000 },

@@ -2,7 +2,7 @@ import type { CanonicalCatalogRelease } from "@shoppp/contracts";
 
 import type { PresentationViewModelKind } from "@shoppp/contracts";
 
-import type { PresentationShellViewModel, PresentationViewModel } from "../view-models";
+import type { PresentationShellRenderViewModel, PresentationViewModel } from "../view-models";
 
 export type ActiveExperienceProviderInput =
   | { mode: "production" }
@@ -27,7 +27,7 @@ export interface PresentationProviderResolveInput {
 
 export interface PresentationProvider {
   resolve(input: PresentationProviderResolveInput): PresentationViewModel;
-  resolveShell?(input: { instanceId: string; resource: string }): PresentationShellViewModel;
+  resolveShell?(input: { instanceId: string; resource: string }): PresentationShellRenderViewModel;
 }
 
 export function requireExpectedViewModelKind(

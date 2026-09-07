@@ -543,14 +543,28 @@ export function composeExperienceShell(input: {
   adapter?: ThemeCompositionAdapter;
   experience: ExperienceSnapshot;
   release: CanonicalCatalogRelease;
+  sectionComposition?: ThemeCompositionDescriptor;
 }): PresentationShellViewModel | undefined {
   const experience = experienceSnapshotSchema.safeParse(input.experience);
   const release = canonicalCatalogReleaseSchema.safeParse(input.release);
-  if (!experience.success || !release.success || !input.adapter?.home) return undefined;
-  const home = experience.data.resolvedTemplates
-    .find(({ pageType }) => pageType === "home")
-    ?.sections.find(({ type, visible }) => visible && type === input.adapter?.home?.sectionType);
-  return home ? shellViewModel(input.adapter, release.data, home.settings) : undefined;
+  if (!experience.success || !release.success) return undefined;
+  const homeTemplate = experience.data.resolvedTemplates.find(
+    ({ pageType }) => pageType === "home",
+  );
+  const descriptor = input.sectionComposition
+    ? themeCompositionDescriptorSchema.parse(input.sectionComposition)
+    : undefined;
+  const descriptorCoversHome =
+    descriptor && (!descriptor.pageTypes || descriptor.pageTypes.includes("home"));
+  const shellSourceType = descriptorCoversHome
+    ? descriptor.rendererShell?.sourceSectionType
+    : input.adapter?.home?.sectionType;
+  const shellSource = homeTemplate?.sections.find(
+    ({ type, visible }) => visible && type === shellSourceType,
+  );
+  return shellSource
+    ? shellViewModel(input.adapter, release.data, shellSource.settings)
+    : undefined;
 }
 
 export function composePlatformRoutePresentation(input: {
@@ -708,6 +722,11 @@ function composeDeclaredSections(input: {
   const diagnostics: CompositionDiagnostic[] = [];
   const viewModels: Record<string, PresentationViewModel> = {};
   const visibleSections = input.template.sections.filter(({ visible }) => visible);
+  const shellContract = input.descriptor.rendererShell;
+  const shellSection = shellContract
+    ? visibleSections.find(({ type }) => type === shellContract.sourceSectionType)
+    : undefined;
+  let composedHome: PresentationViewModel | undefined;
 
   for (const section of visibleSections) {
     const contract = input.descriptor.sections[section.type];
@@ -721,7 +740,9 @@ function composeDeclaredSections(input: {
       });
       continue;
     }
-    const bindings = input.bindingsByInstance.get(section.id) ?? [];
+    const bindingSource =
+      contract.live.resolver === "home-sections" && shellSection ? shellSection : section;
+    const bindings = input.bindingsByInstance.get(bindingSource?.id ?? section.id) ?? [];
     const resolvedBindings = new Map<string, CatalogResourceBinding>();
     let invalid = false;
     const undeclaredBinding = bindings.find(
@@ -846,6 +867,29 @@ function composeDeclaredSections(input: {
         section.settings,
         featuredProduct,
       );
+    } else if (contract.live.resolver === "home-sections" && firstCollection && input.adapter) {
+      const featuredProduct = firstProduct
+        ? input.productsById.get(firstProduct.reference.id)
+        : undefined;
+      composedHome ??= homeViewModel(
+        input.adapter,
+        input.release,
+        input.collectionsById.get(firstCollection.reference.id)!,
+        input.productsById,
+        input.release.site.defaultCurrency,
+        input.locale,
+        bindingSource?.settings ?? section.settings,
+        featuredProduct,
+      );
+      viewModel = {
+        data: {
+          home: composedHome,
+          mode: "live",
+          sectionType: section.type,
+        },
+        kind: "theme-section",
+        state: "populated",
+      };
     } else if (
       contract.live.resolver === "transaction" &&
       (input.template.pageType === "cart" || input.template.pageType === "checkout")
@@ -889,10 +933,6 @@ function composeDeclaredSections(input: {
     viewModels[section.id] = viewModel;
   }
 
-  const shellContract = input.descriptor.rendererShell;
-  const shellSection = shellContract
-    ? visibleSections.find(({ type }) => type === shellContract.sourceSectionType)
-    : undefined;
   if (shellContract && !shellSection) {
     diagnostics.push({
       code: "section-resolver-mismatch",
@@ -970,7 +1010,12 @@ export function composeExperienceRoute(
     bindings.push(binding);
     catalogBindingsByInstance.set(binding.instanceId, bindings);
   }
-  if (input.sectionComposition) {
+  const compositionCoversTemplate = Boolean(
+    input.sectionComposition &&
+    (!input.sectionComposition.pageTypes ||
+      input.sectionComposition.pageTypes.includes(template.pageType)),
+  );
+  if (input.sectionComposition && compositionCoversTemplate) {
     const descriptor = themeCompositionDescriptorSchema.parse(input.sectionComposition);
     const declared = composeDeclaredSections({
       adapter: input.adapter,

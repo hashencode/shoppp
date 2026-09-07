@@ -206,6 +206,7 @@ const experienceShell = computed(() =>
         adapter: themeRegistry.composition,
         experience: activeExperienceSnapshot,
         release: liveRelease,
+        sectionComposition: themeRegistry.sectionComposition,
       })
     : undefined,
 );

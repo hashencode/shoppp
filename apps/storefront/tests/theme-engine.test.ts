@@ -45,6 +45,7 @@ import {
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
+import { fashionStoreSectionComposition } from "../app/themes/fashion-store/successor/composition";
 import {
   createPreviewAccessHandler,
   normalizePreviewAssetPath,
@@ -939,6 +940,47 @@ describe("theme-neutral storefront composer", () => {
           targetBehavior: "same-window",
         },
       },
+    });
+  });
+
+  test("projects successor Home shell settings from the renderer-owned source Section", () => {
+    const experience = {
+      ...liveSnapshot,
+      bindings: [],
+      resolvedTemplates: [
+        {
+          id: "home-template",
+          pageType: "home" as const,
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "fashion-store-home-hero",
+              settings: {
+                "announcement-text": "Successor announcement across every route",
+                "footer-contact-copy": "Successor footer support",
+                "header-contact-copy": "Successor header support",
+              },
+              type: "fashion-store.hero",
+              visible: true,
+            },
+          ],
+        },
+      ],
+    } satisfies ExperienceSnapshot;
+
+    expect(
+      composeExperienceShell({
+        adapter: fashionStoreCompositionAdapter,
+        experience,
+        release: canonicalRelease,
+        sectionComposition: fashionStoreSectionComposition,
+      }),
+    ).toMatchObject({
+      announcement: "Successor announcement across every route",
+      footer: { contactCopy: "Successor footer support" },
+      header: { contactCopy: "Successor header support" },
     });
   });
 
@@ -2024,7 +2066,7 @@ describe("typed theme registry", () => {
     } as const;
     const probe = {
       blocks: {},
-      platformShell: shell,
+      rendererShell: shell,
       sectionComposition: descriptor,
       sections: {
         "probe.editorial": sectionComponents.editorial,
@@ -2077,23 +2119,39 @@ describe("typed theme registry", () => {
         { blocks: {}, sectionComposition: descriptor, sections: { "probe.hero": section } },
         ["probe.hero"],
       ),
-    ).toThrow("platform shell");
+    ).toThrow("renderer shell");
     expect(() =>
       validateThemeRegistryComposition(
         {
           blocks: {},
-          platformShell: {} as Component,
+          rendererShell: {} as Component,
           sectionComposition: descriptor,
-          sections: { "probe.hero": section, "probe.extra": section },
+          sections: {},
         },
-        ["probe.hero", "probe.extra"],
+        [],
       ),
-    ).toThrow("one descriptor");
+    ).toThrow("registered manifest Section");
     expect(() =>
-      validateThemeRegistryComposition(
+      renderThemeTreePlan(
+        {
+          id: "probe-home",
+          pageType: "home",
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "probe-hero",
+              required: true,
+              settings: {},
+              type: "probe.hero",
+              visible: true,
+            },
+          ],
+        },
         {
           blocks: {},
-          platformShell: {} as Component,
+          rendererShell: {} as Component,
           sectionComposition: {
             ...descriptor,
             sections: {
@@ -2102,9 +2160,73 @@ describe("typed theme registry", () => {
           },
           sections: { "probe.hero": section },
         },
-        ["probe.hero"],
       ),
     ).toThrow("duplicate shell ownership");
+  });
+
+  test("applies renderer shell ownership only to templates covered by a partial descriptor", () => {
+    const shell = {} as Component;
+    const homeSection = {} as Component;
+    const legacyPage = {} as Component;
+    const registry = {
+      blocks: {},
+      rendererShell: shell,
+      sectionComposition: {
+        pageTypes: ["home"],
+        rendererShell: {
+          fixtureResource: "home",
+          liveResolver: "experience-shell",
+          owner: "renderer",
+          sourceSectionType: "probe.hero",
+        },
+        sections: {
+          "probe.hero": {
+            bindings: [],
+            fixture: { kind: "theme-section" },
+            live: { kind: "theme-section", resolver: "theme-section" },
+            shell: "none",
+          },
+        },
+      },
+      sections: { "probe.hero": homeSection, "probe.legacy": legacyPage },
+    } as const satisfies ThemeRegistry;
+    const home = {
+      id: "home",
+      pageType: "home",
+      requiredCapabilities: [],
+      sections: [
+        {
+          blocks: [],
+          capabilities: [],
+          id: "hero",
+          required: true,
+          settings: {},
+          type: "probe.hero",
+          visible: true,
+        },
+      ],
+    } as const satisfies PageTemplate;
+    const legacy = {
+      ...home,
+      id: "content",
+      pageType: "content",
+      sections: [{ ...home.sections[0], id: "legacy", type: "probe.legacy" }],
+    } as const satisfies PageTemplate;
+
+    expect(renderThemeTreePlan(home, registry).shell).toBe(shell);
+    expect(renderThemeTreePlan(legacy, registry).shell).toBeUndefined();
+    expect(
+      renderThemeTreePlan(legacy, registry).sections[0]?.expectedViewModelKind,
+    ).toBeUndefined();
+    expect(() =>
+      renderThemeTreePlan(
+        {
+          ...home,
+          sections: [...home.sections, { ...home.sections[0], id: "mixed", type: "probe.legacy" }],
+        },
+        registry,
+      ),
+    ).toThrow("covered template");
   });
 });
 

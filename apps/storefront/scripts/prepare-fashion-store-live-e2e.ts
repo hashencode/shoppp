@@ -93,7 +93,7 @@ export function fashionStoreLiveBuildInput(
         instanceId: "fashion-store-home",
         kind: "catalog",
         reference: { id: collection.id, kind: "collection" },
-        settingId: "fashion-store-live-home-resource",
+        settingId: "featured-collection",
       },
       {
         id: "fashion-store-live-collection-binding",
@@ -178,18 +178,35 @@ async function main(): Promise<void> {
   const releaseFixture = JSON.parse(
     await readFile(resolve(root, "fixtures/release.json"), "utf8"),
   ) as FashionStoreReleaseFixture;
+  const emptyHome = process.argv.includes("--empty-home");
+  const preparedReleaseFixture = structuredClone(releaseFixture);
+  if (emptyHome) {
+    const homeCollection = preparedReleaseFixture.collections.find(
+      ({ status }) => status === "published",
+    );
+    if (!homeCollection) throw new Error("Fashion live preview requires a Home collection.");
+    homeCollection.productSlugs = [];
+    for (const product of preparedReleaseFixture.products) {
+      product.collectionSlugs = product.collectionSlugs.filter(
+        (collectionSlug) => collectionSlug !== homeCollection.slug,
+      );
+    }
+  }
   const liveReleaseFixture = {
-    ...releaseFixture,
+    ...preparedReleaseFixture,
     policies: [...releaseFixture.policies, selectedReleasePolicyProof],
     site: {
-      ...(releaseFixture.site as Record<string, unknown>),
+      ...(preparedReleaseFixture.site as Record<string, unknown>),
       name: "Shoppp live preview",
       origin: "https://live-policy.example.test",
     },
   } satisfies FashionStoreReleaseFixture;
   const input = fashionStoreLiveBuildInput(fixtureInput, liveReleaseFixture);
   await writeFile(
-    resolve(fixtureRoot, "fashion-store-live-e2e-input.json"),
+    resolve(
+      fixtureRoot,
+      emptyHome ? "fashion-store-live-empty-e2e-input.json" : "fashion-store-live-e2e-input.json",
+    ),
     `${JSON.stringify(input, null, 2)}\n`,
   );
 }

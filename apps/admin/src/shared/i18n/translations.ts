@@ -575,6 +575,8 @@ export const zhCNMessages: Record<string, string> = {
   'Experience structure': '体验结构',
   'Sections keep stable IDs. Required capabilities cannot be hidden; ordering uses explicit controls for keyboard, touch, and assistive technology.':
     '区块保持稳定 ID。必需能力不可隐藏；排序使用明确控件，支持键盘、触摸和辅助技术。',
+  'At least one Home content Section must remain visible.':
+    '至少必须保留一个可见的首页内容 Section。',
   'Required capabilities': '必需能力',
   Position: '位置',
   Required: '必需',

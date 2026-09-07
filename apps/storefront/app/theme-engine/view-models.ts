@@ -69,6 +69,7 @@ export const presentationShellViewModelSchema = z
     }),
   })
   .strict();
+export const presentationShellRenderViewModelSchema = presentationShellViewModelSchema.partial();
 export const platformRoutePresentationViewModelSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -174,7 +175,7 @@ const heroViewModelSchema = z
     primaryAction: previewActionSchema.optional(),
   })
   .strict();
-const homeViewModelSchema = z
+export const homeViewModelSchema = z
   .object({
     ...stateShape,
     announcement: copySchema.optional(),
@@ -421,7 +422,7 @@ export const experienceFixtureSchema = z
     label: z.string().trim().min(1).max(160),
     pageTypes: z.array(pageTypeSchema).min(1).max(10),
     shellViewModels: z
-      .record(storefrontIdentifierSchema, presentationShellViewModelSchema)
+      .record(storefrontIdentifierSchema, presentationShellRenderViewModelSchema)
       .optional(),
     viewModels: z.record(storefrontIdentifierSchema, presentationViewModelSchema),
   })
@@ -430,6 +431,9 @@ export const experienceFixtureSchema = z
 export type PresentationViewModel = z.infer<typeof presentationViewModelSchema>;
 export type PresentationProductCard = z.infer<typeof presentationProductCardSchema>;
 export type PresentationShellViewModel = z.infer<typeof presentationShellViewModelSchema>;
+export type PresentationShellRenderViewModel = z.infer<
+  typeof presentationShellRenderViewModelSchema
+>;
 export type PlatformRoutePresentationViewModel = z.infer<
   typeof platformRoutePresentationViewModelSchema
 >;
@@ -482,7 +486,7 @@ export function resolveFixtureShellViewModel(
   binding: FixtureBinding,
   registry: ExperienceFixtureRegistry,
   resource: string,
-): PresentationShellViewModel {
+): PresentationShellRenderViewModel {
   const fixture = registry[binding.fixtureId];
   if (!fixture) throw new Error(`Fixture ${binding.fixtureId} is missing.`);
   const parsed = experienceFixtureSchema.parse(fixture);

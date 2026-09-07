@@ -6,6 +6,7 @@ import { resolveThemeRoute } from "../app/theme-engine/routes";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
+import { fashionStoreSectionComposition } from "../app/themes/fashion-store/successor/registry";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import { experienceBuildInputSchema } from "../scripts/prepare-experience";
 
@@ -48,8 +49,45 @@ describe("Fashion Store live commerce boundary", () => {
           path,
           release: input.catalogRelease,
           route: route!,
+          sectionComposition: fashionStoreSectionComposition,
         }).ok,
       ).toBe(true);
+    }
+  });
+
+  test("keeps every live Home Section truthful when the bound collection is empty", async () => {
+    const script = await import("../scripts/prepare-fashion-store-live-e2e");
+    const [fixtureInput, releaseFixture] = await Promise.all([
+      fashionStorePreviewBuildInput("https://preview.example.test"),
+      readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8").then(JSON.parse),
+    ]);
+    const collection = releaseFixture.collections.find(({ status }) => status === "published");
+    if (!collection) throw new Error("Published Home collection is missing.");
+    collection.productSlugs = [];
+    for (const product of releaseFixture.products) {
+      product.collectionSlugs = product.collectionSlugs.filter(
+        (collectionSlug: string) => collectionSlug !== collection.slug,
+      );
+    }
+    const input = script.fashionStoreLiveBuildInput(fixtureInput, releaseFixture);
+    const route = resolveThemeRoute("/", fashionStoreThemeRoutes, input.catalogRelease, "live")!;
+    const composed = composeExperienceRoute({
+      adapter: fashionStoreCompositionAdapter,
+      experience: input.snapshot,
+      locale: "en-US",
+      path: "/",
+      release: input.catalogRelease,
+      route,
+      sectionComposition: fashionStoreSectionComposition,
+    });
+
+    expect(composed.ok).toBe(true);
+    expect(Object.keys(composed.viewModels)).toHaveLength(10);
+    for (const viewModel of Object.values(composed.viewModels)) {
+      expect(viewModel.kind).toBe("theme-section");
+      if (viewModel.kind !== "theme-section") continue;
+      const home = viewModel.data.home as { products: unknown[] };
+      expect(home.products).toEqual([]);
     }
   });
 
@@ -75,14 +113,33 @@ describe("Fashion Store live commerce boundary", () => {
     expect(dispatchers[1]).toContain("viewModel.kind === 'product'");
   });
 
-  test("renders the full live Home and one stateful shared Home card without first-touch suppression", async () => {
+  test("renders the full live Home and keeps no-JavaScript purchase controls inert", async () => {
     const [liveHome, productCard] = await Promise.all([
-      source("themes/fashion-store/components/FashionStoreLiveHomePage.vue"),
+      Promise.all(
+        [
+          "Hero",
+          "Services",
+          "Categories",
+          "BestSellers",
+          "Promotion",
+          "CollectionFeature",
+          "BrandStrip",
+          "FeaturedProducts",
+          "Marquee",
+          "Editorial",
+        ].map((name) =>
+          source(`themes/fashion-store/components/sections/FashionStoreLive${name}Section.vue`),
+        ),
+      ).then((sources) => sources.join("\n")),
       source("themes/fashion-store/components/shared/FashionStoreProductCard.vue"),
     ]);
 
     expect(liveHome).not.toContain("FashionStoreLiveCatalog");
     expect(liveHome).toContain("FashionStoreProductCard");
+    expect(liveHome).not.toMatch(/\/fixtures\/|useCommerceApi|useGuestCart|\$fetch|\bfetch\s*\(/);
+    expect(liveHome.match(/This collection does not have published products yet\./g)).toHaveLength(
+      2,
+    );
     for (const section of [
       "hero",
       "services",
@@ -101,7 +158,8 @@ describe("Fashion Store live commerce boundary", () => {
     expect(productCard).toContain("runtimeCommercePortKey");
     expect(productCard).toContain("storefrontActionAdapterKey");
     expect(productCard).toContain("verifyProductCartAdd(");
-    expect(productCard).not.toContain("onMounted(");
+    expect(productCard).toContain("onMounted(");
+    expect(productCard).toContain('!hydrated.value ? "loading"');
     expect(productCard).toContain("data-action-state");
     expect(productCard).toContain('aria-live="polite"');
     expect(productCard).not.toContain("suppressNextProductLink");

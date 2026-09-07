@@ -92,6 +92,10 @@ type DraftConflict = {
   draft: StorefrontExperienceDraft
   overrides: ThemeOverride[]
 }
+type SectionVisibilityError = {
+  sectionId: string
+  templateId: string
+}
 
 const operatorRunStatusMessages: Record<FashionStagingOperatorRun['status'], string> = {
   approved: 'Approved',
@@ -340,6 +344,8 @@ export const ThemeEditorPage = ({
   const [changeReason, setChangeReason] = useState('')
   const [approvalReason, setApprovalReason] = useState('')
   const [sectionMoveStatus, setSectionMoveStatus] = useState<ThemeMessage | null>(null)
+  const [sectionVisibilityError, setSectionVisibilityError] =
+    useState<SectionVisibilityError | null>(null)
   const [build, setBuild] = useState<StorefrontPreviewBuild | null>(null)
   const [previewSnapshot, setPreviewSnapshot] = useState<StorefrontExperienceSnapshot | null>(null)
   const [revokedPreviewSnapshotId, setRevokedPreviewSnapshotId] = useState<string | null>(null)
@@ -357,6 +363,7 @@ export const ThemeEditorPage = ({
   const draftHeadingRef = useRef<HTMLHeadingElement>(null)
   const successorFocusTarget = useRef<string | null>(null)
   const validationSummaryRef = useRef<HTMLDivElement>(null)
+  const sectionVisibilityErrorRef = useRef<HTMLDivElement>(null)
   const dirty = useMemo(
     () => !equalValue(templates, savedTemplates) || !equalValue(bindings, savedBindings),
     [bindings, savedBindings, savedTemplates, templates]
@@ -373,6 +380,12 @@ export const ThemeEditorPage = ({
     const frame = window.requestAnimationFrame(() => conflictActionRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [conflict])
+
+  useEffect(() => {
+    if (!sectionVisibilityError) return
+    const frame = window.requestAnimationFrame(() => sectionVisibilityErrorRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [sectionVisibilityError])
 
   useEffect(() => {
     const successorId = successorFocusTarget.current
@@ -413,6 +426,7 @@ export const ThemeEditorPage = ({
       setTheme(nextTheme)
       setAvailableThemes(themes)
       setTemplates(nextTemplates)
+      setSectionVisibilityError(null)
       setSavedTemplates(cloneTemplates(nextTemplates))
       setBindings(structuredClone(nextDraft.bindings))
       setSavedBindings(structuredClone(nextDraft.bindings))
@@ -628,6 +642,27 @@ export const ThemeEditorPage = ({
     })
   }
 
+  const setSectionVisibility = (templateId: string, sectionId: string, visible: boolean) => {
+    const template = templates.find(({ id }) => id === templateId)
+    if (!template) return
+    const hideableSections = template.sections.filter(
+      (section) => !requiredSection(template, section)
+    )
+    const hidesFinalContent =
+      template.pageType === 'home' &&
+      !visible &&
+      hideableSections.some(({ id }) => id === sectionId) &&
+      hideableSections.every((section) => section.id === sectionId || !section.visible)
+    if (hidesFinalContent) {
+      setSectionVisibilityError({ sectionId, templateId })
+      return
+    }
+    setSectionVisibilityError(null)
+    updateSection(templateId, sectionId, (section) => {
+      section.visible = visible
+    })
+  }
+
   const moveSection = (templateId: string, sectionId: string, direction: -1 | 1) => {
     setTemplates((current) => {
       const next = cloneTemplates(current)
@@ -657,6 +692,7 @@ export const ThemeEditorPage = ({
       .find(({ id }) => id === templateId)
       ?.sections.find(({ id }) => id === sectionId)
     if (!original) return
+    setSectionVisibilityError(null)
     updateSection(templateId, sectionId, (section) => {
       section.settings = structuredClone(original.settings)
       section.visible = original.visible
@@ -1243,6 +1279,20 @@ export const ThemeEditorPage = ({
                             ) : null
                           }
                         >
+                          {sectionVisibilityError?.templateId === template.id &&
+                          sectionVisibilityError.sectionId === section.id ? (
+                            <div
+                              ref={sectionVisibilityErrorRef}
+                              className="mb-3"
+                              tabIndex={-1}
+                            >
+                              <Alert
+                                type="error"
+                                showIcon
+                                title={t('At least one Home content Section must remain visible.')}
+                              />
+                            </div>
+                          ) : null}
                           <Space wrap>
                             <span>
                               {t('Visible')}{' '}
@@ -1251,9 +1301,7 @@ export const ThemeEditorPage = ({
                                 checked={section.visible}
                                 disabled={!canWrite || isRequired}
                                 onChange={(visible) =>
-                                  updateSection(template.id, section.id, (current) => {
-                                    current.visible = visible
-                                  })
+                                  setSectionVisibility(template.id, section.id, visible)
                                 }
                               />
                             </span>

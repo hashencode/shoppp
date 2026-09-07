@@ -19,6 +19,7 @@ export default defineConfig({
     : ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
   testIgnore: [
     "fashion-store-live-commerce.spec.ts",
+    "fashion-store-live-home-empty.spec.ts",
     ...(!compatibilityBaseline ? ["fashion-store-compatibility-baseline.spec.ts"] : []),
   ],
   outputDir: compatibilityBaseline

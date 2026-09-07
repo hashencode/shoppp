@@ -23,6 +23,7 @@ if (properties.checkoutAdapter) provide(storefrontCheckoutAdapterKey, properties
 
 const registry = computed(() => composeThemeRegistries(coreThemeRegistry, properties.registry));
 const tree = computed(() => renderThemeTreePlan(properties.template, registry.value));
+const inheritedShellViewModel = inject(storefrontPresentationShellKey, undefined);
 const plan = computed(() =>
   tree.value.sections.map((section) => ({
     ...section,
@@ -37,11 +38,12 @@ const plan = computed(() =>
   })),
 );
 const rendererShellViewModel = computed(() => {
+  if (!tree.value.shell) return inheritedShellViewModel?.value;
   const shell = registry.value.sectionComposition?.rendererShell;
   if (!shell) return undefined;
-  const source = properties.template.sections.find(
-    ({ type, visible }) => visible && type === shell.sourceSectionType,
-  );
+  const source = tree.value.sections.find(
+    ({ instance }) => instance.type === shell.sourceSectionType,
+  )?.instance;
   if (!source || !properties.provider.resolveShell) {
     throw new Error("Renderer-owned shell input is unavailable for the selected template.");
   }

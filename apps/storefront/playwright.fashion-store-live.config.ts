@@ -5,6 +5,7 @@ const externalBaseURL = process.env.STOREFRONT_FASHION_STORE_LIVE_BASE_URL;
 const baseURL = externalBaseURL || `http://127.0.0.1:${port}`;
 
 export default defineConfig({
+  globalTeardown: "./e2e/support/restore-fashion-store-preview.ts",
   testDir: "./e2e",
   testMatch: ["fashion-store-live-commerce.spec.ts"],
   outputDir: "test-results/fashion-store-live",

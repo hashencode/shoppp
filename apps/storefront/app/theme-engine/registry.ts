@@ -13,6 +13,7 @@ export interface ThemeRegistry {
   blocks: Readonly<Record<string, Component>>;
   composition?: ThemeCompositionAdapter;
   platformShell?: Component;
+  rendererShell?: Component;
   sectionComposition?: ThemeCompositionDescriptor;
   sections: Readonly<Record<string, Component>>;
 }
@@ -53,6 +54,7 @@ export function composeThemeRegistries(core: ThemeRegistry, theme: ThemeRegistry
     blocks: Object.freeze({ ...core.blocks, ...theme.blocks }),
     ...(theme.composition ? { composition: theme.composition } : {}),
     ...(theme.platformShell ? { platformShell: theme.platformShell } : {}),
+    ...(theme.rendererShell ? { rendererShell: theme.rendererShell } : {}),
     ...(theme.sectionComposition ? { sectionComposition: theme.sectionComposition } : {}),
     sections: Object.freeze({ ...core.sections, ...theme.sections }),
   };
@@ -73,23 +75,50 @@ export function renderTemplatePlan(
   registry: ThemeRegistry,
 ): RenderSectionPlan[] {
   validateThemeRegistryComposition(registry);
-  return template.sections
-    .filter(({ visible }) => visible)
-    .map((section) => ({
-      blocks: section.blocks
-        .filter(({ visible }) => visible)
-        .map((block) => ({
-          component: registeredComponent(registry.blocks, block.type, "block"),
-          instance: block,
-        })),
-      component: registeredComponent(registry.sections, section.type, "section"),
-      ...(registry.sectionComposition?.sections[section.type]
-        ? {
-            expectedViewModelKind: registry.sectionComposition.sections[section.type]!.fixture.kind,
-          }
-        : {}),
-      instance: section,
-    }));
+  const visibleSections = template.sections.filter(({ visible }) => visible);
+  const compositionCoversTemplate = Boolean(
+    registry.sectionComposition &&
+    (!registry.sectionComposition.pageTypes ||
+      registry.sectionComposition.pageTypes.includes(template.pageType)),
+  );
+  if (
+    compositionCoversTemplate &&
+    visibleSections.some(
+      ({ type }) => !type.startsWith("core.") && !registry.sectionComposition?.sections[type],
+    )
+  ) {
+    throw new Error("A covered template must declare every visible Section composition.");
+  }
+  const ownsShell = Boolean(
+    compositionCoversTemplate &&
+    registry.sectionComposition?.rendererShell &&
+    visibleSections.some(
+      ({ type }) => type === registry.sectionComposition?.rendererShell?.sourceSectionType,
+    ),
+  );
+  if (
+    ownsShell &&
+    visibleSections.some(
+      ({ type }) => registry.sectionComposition?.sections[type]?.shell === "page",
+    )
+  ) {
+    throw new Error("Renderer shell ownership cannot be combined with duplicate shell ownership.");
+  }
+  return visibleSections.map((section) => ({
+    blocks: section.blocks
+      .filter(({ visible }) => visible)
+      .map((block) => ({
+        component: registeredComponent(registry.blocks, block.type, "block"),
+        instance: block,
+      })),
+    component: registeredComponent(registry.sections, section.type, "section"),
+    ...(compositionCoversTemplate && registry.sectionComposition?.sections[section.type]
+      ? {
+          expectedViewModelKind: registry.sectionComposition.sections[section.type]!.fixture.kind,
+        }
+      : {}),
+    instance: section,
+  }));
 }
 
 export function validateThemeRegistryComposition(
@@ -102,23 +131,12 @@ export function validateThemeRegistryComposition(
     .filter((type) => !type.startsWith("core."))
     .sort();
   const descriptorTypes = Object.keys(descriptor.sections).sort();
-  const manifestTypes = [...manifestSectionTypes].sort();
-  if (
-    JSON.stringify(registryTypes) !== JSON.stringify(descriptorTypes) ||
-    JSON.stringify(registryTypes) !== JSON.stringify(manifestTypes)
-  ) {
-    throw new Error(
-      "A composed theme must declare exactly one descriptor for every registry and manifest Section type.",
-    );
+  const manifestTypes = new Set(manifestSectionTypes);
+  if (descriptorTypes.some((type) => !registryTypes.includes(type) || !manifestTypes.has(type))) {
+    throw new Error("A composed theme descriptor must match a registered manifest Section type.");
   }
-  if (descriptor.rendererShell && !registry.platformShell) {
-    throw new Error("Renderer shell ownership requires a registered platform shell component.");
-  }
-  if (
-    descriptor.rendererShell &&
-    Object.values(descriptor.sections).some(({ shell }) => shell === "page")
-  ) {
-    throw new Error("Renderer shell ownership cannot be combined with duplicate shell ownership.");
+  if (descriptor.rendererShell && !registry.rendererShell) {
+    throw new Error("Renderer shell ownership requires a registered renderer shell component.");
   }
   if (
     descriptor.rendererShell &&
@@ -132,10 +150,21 @@ export function renderThemeTreePlan(
   template: PageTemplate,
   registry: ThemeRegistry,
 ): RenderThemeTreePlan {
+  const sections = renderTemplatePlan(template, registry);
+  const compositionCoversTemplate = Boolean(
+    registry.sectionComposition &&
+    (!registry.sectionComposition.pageTypes ||
+      registry.sectionComposition.pageTypes.includes(template.pageType)),
+  );
+  const rendererShellSource = compositionCoversTemplate
+    ? registry.sectionComposition?.rendererShell?.sourceSectionType
+    : undefined;
   return {
-    sections: renderTemplatePlan(template, registry),
-    ...(registry.sectionComposition?.rendererShell && registry.platformShell
-      ? { shell: registry.platformShell }
+    sections,
+    ...(rendererShellSource &&
+    sections.some(({ instance }) => instance.type === rendererShellSource) &&
+    registry.rendererShell
+      ? { shell: registry.rendererShell }
       : {}),
   };
 }

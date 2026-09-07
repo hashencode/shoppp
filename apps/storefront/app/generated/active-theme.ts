@@ -25,6 +25,78 @@ export const activeExperienceSnapshot = {
       "state": "populated"
     },
     {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-services-binding",
+      "instanceId": "fashion-store-home-services",
+      "kind": "fixture",
+      "resource": "services",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-categories-binding",
+      "instanceId": "fashion-store-home-categories",
+      "kind": "fixture",
+      "resource": "categories",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-best-sellers-binding",
+      "instanceId": "fashion-store-home-best-sellers",
+      "kind": "fixture",
+      "resource": "best-sellers",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-promotion-binding",
+      "instanceId": "fashion-store-home-promotion",
+      "kind": "fixture",
+      "resource": "promotion",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-collection-binding",
+      "instanceId": "fashion-store-home-collection",
+      "kind": "fixture",
+      "resource": "collection",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-brands-binding",
+      "instanceId": "fashion-store-home-brands",
+      "kind": "fixture",
+      "resource": "brands",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-featured-products-binding",
+      "instanceId": "fashion-store-home-featured-products",
+      "kind": "fixture",
+      "resource": "featured-products",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-marquee-binding",
+      "instanceId": "fashion-store-home-marquee",
+      "kind": "fixture",
+      "resource": "marquee",
+      "state": "populated"
+    },
+    {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-magazine-binding",
+      "instanceId": "fashion-store-home-magazine",
+      "kind": "fixture",
+      "resource": "magazine",
+      "state": "populated"
+    },
+    {
       "fixtureId": "fashion-store-shop",
       "id": "fashion-store-shop-binding",
       "instanceId": "fashion-store-collection",
@@ -88,7 +160,88 @@ export const activeExperienceSnapshot = {
           "id": "fashion-store-home",
           "required": true,
           "settings": {},
-          "type": "fashion-store.home",
+          "type": "fashion-store.hero",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-services",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.services",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-categories",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.categories",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-best-sellers",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.products",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-promotion",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.promotion",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-collection",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.collection-feature",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-brands",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.brand-strip",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-featured-products",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.products",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-marquee",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.marquee",
+          "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-magazine",
+          "required": false,
+          "settings": {},
+          "type": "fashion-store.editorial",
           "visible": true
         }
       ]

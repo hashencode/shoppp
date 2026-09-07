@@ -1,12 +1,19 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { resolveTemplateOverride } from "../../../packages/domain/src/storefront-experience";
+import { renderThemeTreePlan } from "../app/theme-engine/registry";
+import { fashionStoreManifest as legacyFashionStoreManifest } from "../app/themes/fashion-store/manifest";
+import { themeRegistry as legacyThemeRegistry } from "../app/themes/fashion-store/registry";
 
 import {
   fashionStoreManifest,
   fashionStoreThemeDescriptor,
-} from "../app/themes/fashion-store/manifest";
-import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
+} from "../app/themes/fashion-store/successor/manifest";
+import { fashionStorePreset } from "../app/themes/fashion-store/successor/presets/source-parity";
+import { themeRegistry } from "../app/themes/fashion-store/successor/registry";
+import { fixtureThemeRegistry } from "../app/themes/fashion-store/successor/fixture-registry";
+import { fashionStoreProductSectionVariant } from "../app/themes/fashion-store/successor/composition";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import {
@@ -76,13 +83,16 @@ describe("Fashion Store preview registration", () => {
   test("uses one Fashion-owned Decor Hero contract in fixture and live Home renderers", async () => {
     const [fixtureHome, liveHome, contract] = await Promise.all([
       readFile(
-        resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/sections/FashionStoreFixtureHeroSection.vue",
+        ),
         "utf8",
       ),
       readFile(
         resolve(
           import.meta.dir,
-          "../app/themes/fashion-store/components/FashionStoreLiveHomePage.vue",
+          "../app/themes/fashion-store/components/sections/FashionStoreLiveHeroSection.vue",
         ),
         "utf8",
       ),
@@ -189,7 +199,7 @@ describe("Fashion Store preview registration", () => {
         "policy.document",
         "policy.related-link",
       ],
-      home: [
+      hero: [
         "announcement-text",
         "announcement-link",
         "announcement-visible",
@@ -206,7 +216,6 @@ describe("Fashion Store preview registration", () => {
         "featured-collection",
         "featured-product",
         "merchandising-visible",
-        "merchandising-order",
       ],
       product: ["presentation-copy", "related-collection"],
     } as const;
@@ -231,10 +240,10 @@ describe("Fashion Store preview registration", () => {
     expect(settingsByType.get("fashion-store.content")?.get("policy.document")?.kind).toBe(
       "policy-reference",
     );
-    expect(settingsByType.get("fashion-store.home")?.get("header-highlight-page")?.kind).toBe(
+    expect(settingsByType.get("fashion-store.hero")?.get("header-highlight-page")?.kind).toBe(
       "page-reference",
     );
-    expect(settingsByType.get("fashion-store.home")?.get("featured-collection")?.required).toBe(
+    expect(settingsByType.get("fashion-store.hero")?.get("featured-collection")?.required).toBe(
       true,
     );
     expect(
@@ -270,6 +279,18 @@ describe("Fashion Store preview registration", () => {
     }
   });
 
+  test("moves successor merchandising order ownership to stable Section order", () => {
+    const legacyHome = legacyFashionStoreManifest.componentRegistry.sections.find(
+      ({ type }) => type === "fashion-store.home",
+    )!;
+    const successorHero = fashionStoreManifest.componentRegistry.sections.find(
+      ({ type }) => type === "fashion-store.hero",
+    )!;
+
+    expect(legacyHome.settings.some(({ id }) => id === "merchandising-order")).toBe(true);
+    expect(successorHero.settings.some(({ id }) => id === "merchandising-order")).toBe(false);
+  });
+
   test("keeps collection looping aligned with its four semantic cards", async () => {
     const component = await readFile(
       resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
@@ -280,26 +301,215 @@ describe("Fashion Store preview registration", () => {
     expect(component).toContain('@active-index-change="collectionIndex = $event"');
   });
 
-  test("declares the existing platform templates while keeping one section per page type", () => {
+  test("decomposes only the successor Home into the frozen stable Section sequence", () => {
     expect(fashionStoreManifest.id).toBe("fashion-store");
     expect(fashionStoreThemeDescriptor).toMatchObject({
       id: "fashion-store",
       presets: ["source-parity"],
       supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "content"],
     });
+    const home = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
     expect(
-      fashionStorePreset.templates.map(({ pageType, sections }) => ({
-        pageType,
-        sectionType: sections[0]?.type,
-      })),
+      home.sections.map(({ id, required, type, visible }) => ({ id, required, type, visible })),
     ).toEqual([
-      { pageType: "home", sectionType: "fashion-store.home" },
-      { pageType: "collection", sectionType: "fashion-store.collection" },
-      { pageType: "product", sectionType: "fashion-store.product" },
-      { pageType: "cart", sectionType: "fashion-store.cart" },
-      { pageType: "checkout", sectionType: "fashion-store.checkout" },
-      { pageType: "content", sectionType: "fashion-store.content" },
+      { id: "fashion-store-home", required: true, type: "fashion-store.hero", visible: true },
+      {
+        id: "fashion-store-home-services",
+        required: false,
+        type: "fashion-store.services",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-categories",
+        required: false,
+        type: "fashion-store.categories",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-best-sellers",
+        required: false,
+        type: "fashion-store.products",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-promotion",
+        required: false,
+        type: "fashion-store.promotion",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-collection",
+        required: false,
+        type: "fashion-store.collection-feature",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-brands",
+        required: false,
+        type: "fashion-store.brand-strip",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-featured-products",
+        required: false,
+        type: "fashion-store.products",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-marquee",
+        required: false,
+        type: "fashion-store.marquee",
+        visible: true,
+      },
+      {
+        id: "fashion-store-home-magazine",
+        required: false,
+        type: "fashion-store.editorial",
+        visible: true,
+      },
     ]);
+    expect(themeRegistry.sectionComposition?.rendererShell).toMatchObject({
+      owner: "renderer",
+      sourceSectionType: "fashion-store.hero",
+    });
+    expect(themeRegistry.platformShell).toBe(legacyThemeRegistry.platformShell);
+    expect(themeRegistry.rendererShell).not.toBe(themeRegistry.platformShell);
+    expect(Object.keys(themeRegistry.sectionComposition?.sections ?? {}).sort()).toEqual(
+      [...new Set(home.sections.map(({ type }) => type))].sort(),
+    );
+    const stableTypeCount = new Set(home.sections.map(({ type }) => type)).size;
+    expect(new Set(home.sections.map(({ type }) => themeRegistry.sections[type])).size).toBe(
+      stableTypeCount,
+    );
+    expect(new Set(home.sections.map(({ type }) => fixtureThemeRegistry.sections[type])).size).toBe(
+      stableTypeCount,
+    );
+    expect(fashionStoreProductSectionVariant("fashion-store-home-best-sellers")).toBe(
+      "best-sellers",
+    );
+    expect(fashionStoreProductSectionVariant("fashion-store-home-featured-products")).toBe(
+      "featured-products",
+    );
+    expect(() => fashionStoreProductSectionVariant("fashion-store-home-unknown")).toThrow(
+      "Unknown Fashion Store products Section instance",
+    );
+  });
+
+  test("uses the existing fixed override model for Home visibility, order, and reset", () => {
+    const home = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
+    const reorderedIds = [
+      home.sections[0]!.id,
+      home.sections[2]!.id,
+      home.sections[1]!.id,
+      ...home.sections.slice(3).map(({ id }) => id),
+    ];
+    const resolved = resolveTemplateOverride(home, {
+      operations: [
+        {
+          instanceId: "fashion-store-home-magazine",
+          kind: "set-visibility",
+          visible: false,
+        },
+        { instanceIds: reorderedIds, kind: "reorder-sections" },
+      ],
+      templateId: home.id,
+    });
+
+    expect(resolved.sections.map(({ id }) => id)).toEqual(reorderedIds);
+    expect(resolved.sections.find(({ id }) => id === "fashion-store-home-magazine")?.visible).toBe(
+      false,
+    );
+    expect(resolveTemplateOverride(home, { operations: [], templateId: home.id }).sections).toEqual(
+      home.sections,
+    );
+    expect(() =>
+      resolveTemplateOverride(home, {
+        operations: [{ instanceId: "fashion-store-home", kind: "set-visibility", visible: false }],
+        templateId: home.id,
+      }),
+    ).toThrow(/required section/);
+  });
+
+  test("renders persisted successor Home visibility and order in fixture and live modes", () => {
+    const home = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
+    const reorderedIds = [
+      "fashion-store-home",
+      "fashion-store-home-categories",
+      "fashion-store-home-services",
+      ...home.sections
+        .map(({ id }) => id)
+        .filter(
+          (id) =>
+            ![
+              "fashion-store-home",
+              "fashion-store-home-services",
+              "fashion-store-home-categories",
+            ].includes(id),
+        ),
+    ];
+    const override = {
+      operations: [
+        { instanceId: "fashion-store-home-magazine", kind: "set-visibility", visible: false },
+        { instanceIds: reorderedIds, kind: "reorder-sections" },
+      ],
+      templateId: home.id,
+    } as const;
+    const reloaded = resolveTemplateOverride(home, structuredClone(override));
+
+    for (const registry of [fixtureThemeRegistry, themeRegistry]) {
+      const tree = renderThemeTreePlan(reloaded, registry);
+      expect(tree.shell).toBeDefined();
+      expect(tree.sections.map(({ instance }) => instance.id)).toEqual(
+        reorderedIds.filter((id) => id !== "fashion-store-home-magazine"),
+      );
+    }
+  });
+
+  test("removes page-owned Home shells and landmarks from both presentation modes", async () => {
+    const sectionDirectory = resolve(
+      import.meta.dir,
+      "../app/themes/fashion-store/components/sections",
+    );
+    const sectionNames = [
+      "Hero",
+      "Services",
+      "Categories",
+      "BestSellers",
+      "Promotion",
+      "CollectionFeature",
+      "BrandStrip",
+      "FeaturedProducts",
+      "Marquee",
+      "Editorial",
+    ];
+    const sectionSources = await Promise.all(
+      ["Fixture", "Live"].flatMap((mode) =>
+        sectionNames.map((name) =>
+          readFile(resolve(sectionDirectory, `FashionStore${mode}${name}Section.vue`), "utf8"),
+        ),
+      ),
+    );
+    for (const source of sectionSources) {
+      expect(source).not.toContain("<FashionStoreShell");
+      expect(source).not.toContain('id="fashion-store-main"');
+    }
+    const [legacyFixtureHome, legacyLiveHome] = await Promise.all([
+      readFile(
+        resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/FashionStoreLiveHomePage.vue",
+        ),
+        "utf8",
+      ),
+    ]);
+    for (const source of [legacyFixtureHome, legacyLiveHome]) {
+      expect(source).toContain("<FashionStoreShell");
+      expect(source).toContain('id="fashion-store-main"');
+    }
   });
 
   test("prepares a signed descriptor-compatible snapshot and selects one static registry", async () => {

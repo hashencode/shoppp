@@ -11,11 +11,33 @@ import { fashionStoreHomeData } from "../app/themes/fashion-store/fixtures/home"
 import { fashionStoreAssetId, themeAssets } from "../app/themes/fashion-store/resources";
 
 const componentRoot = new URL("../app/themes/fashion-store/components/", import.meta.url);
+const fixtureSectionPaths = [
+  "sections/FashionStoreFixtureHeroSection.vue",
+  "sections/FashionStoreFixtureServicesSection.vue",
+  "sections/FashionStoreFixtureCategoriesSection.vue",
+  "sections/FashionStoreFixtureBestSellersSection.vue",
+  "sections/FashionStoreFixturePromotionSection.vue",
+  "sections/FashionStoreFixtureCollectionFeatureSection.vue",
+  "sections/FashionStoreFixtureBrandStripSection.vue",
+  "sections/FashionStoreFixtureFeaturedProductsSection.vue",
+  "sections/FashionStoreFixtureMarqueeSection.vue",
+  "sections/FashionStoreFixtureEditorialSection.vue",
+] as const;
 const regionMarkers: Readonly<Record<string, string>> = {
+  brands: 'data-home-section="brands"',
+  "best-sellers": 'data-home-section="best-sellers"',
+  categories: 'data-home-section="categories"',
+  collection: 'data-home-section="collection"',
   cookie: "cookie-message",
+  "featured-products": 'data-home-section="featured-products"',
   footer: "footer-dark",
   header: "header-with-topbar",
+  hero: 'data-home-section="hero"',
+  magazine: 'data-home-section="magazine"',
+  marquee: 'data-home-section="marquee"',
+  promo: 'data-home-section="promotion"',
   "scroll-progress": "scroll-progress",
+  services: 'data-home-section="services"',
   sticky: "sticky-wrap",
 };
 
@@ -33,19 +55,26 @@ describe("Fashion Store complete static source home", () => {
   });
 
   test("extracts one reusable source shell without duplicating shell regions in home", async () => {
-    const [home, shell, header, search, cart, footer] = await Promise.all(
+    const [homeSections, homeShell, shell, header, search, cart, footer] = await Promise.all(
       [
-        "FashionStoreHome.vue",
+        Promise.all(
+          fixtureSectionPaths.map((path) => readFile(new URL(path, componentRoot), "utf8")),
+        ).then((sources) => sources.join("\n")),
+        "FashionStoreHomeShell.vue",
         "shared/FashionStoreShell.vue",
         "shared/FashionStoreHeader.vue",
         "shared/FashionStoreSearchOverlay.vue",
         "shared/FashionStoreMiniCart.vue",
         "shared/FashionStoreFooter.vue",
-      ].map((path) => readFile(new URL(path, componentRoot), "utf8")),
+      ].map((path) =>
+        typeof path === "string" ? readFile(new URL(path, componentRoot), "utf8") : path,
+      ),
     );
-    expect(home).toContain("<FashionStoreShell");
-    expect(home).not.toContain('<header class="header-with-topbar"');
-    expect(home).not.toContain('<footer class="footer-dark');
+    expect(homeSections).not.toContain("<FashionStoreShell");
+    expect(homeShell).toContain("<FashionStoreShell");
+    expect(homeShell).toContain('id="fashion-store-main"');
+    expect(homeSections).not.toContain('<header class="header-with-topbar"');
+    expect(homeSections).not.toContain('<footer class="footer-dark');
     expect(shell).toContain("<FashionStoreHeader");
     expect(shell).toContain("<FashionStoreFooter");
     expect(header).toMatch(/<header\s+class="header-with-topbar"/);
@@ -62,7 +91,7 @@ describe("Fashion Store complete static source home", () => {
       await Promise.all(
         [
           "shared/FashionStoreHeader.vue",
-          "FashionStoreHome.vue",
+          ...fixtureSectionPaths,
           "shared/FashionStoreFooter.vue",
           "shared/FashionStoreShell.vue",
         ].map((path) => readFile(new URL(path, componentRoot), "utf8")),

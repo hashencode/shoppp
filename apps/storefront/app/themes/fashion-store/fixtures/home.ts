@@ -1,48 +1,101 @@
-import type { PreviewAction } from "../../../theme-engine/actions";
+import * as z from "zod";
+
+import { previewActionSchema } from "../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../theme-engine/view-models";
+import { fashionStoreHomeSections } from "../successor/composition";
 
-interface SourceProduct {
-  badge?: "Hot" | "New";
-  name: string;
-  originalPrice: string;
-  price: string;
-  sourceImage: string;
-}
+const sourceProductSchema = z
+  .object({
+    badge: z.enum(["Hot", "New"]).optional(),
+    name: z.string(),
+    originalPrice: z.string(),
+    price: z.string(),
+    sourceImage: z.string(),
+  })
+  .strict();
+const sourceImageCardSchema = z.object({ name: z.string(), sourceImage: z.string() }).strict();
 
-interface SourceImageCard {
-  name: string;
-  sourceImage: string;
-}
+export const fashionStoreHomeDataSchema = z
+  .object({
+    announcement: z.string(),
+    announcementAction: z.string(),
+    cartAction: previewActionSchema,
+    quickViewAction: previewActionSchema,
+    wishlistAction: previewActionSchema,
+    navigation: z.tuple([z.string(), z.string(), z.string(), z.string(), z.string(), z.string()]),
+    bestSellers: z.tuple([
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+    ]),
+    brands: z.tuple([
+      sourceImageCardSchema,
+      sourceImageCardSchema,
+      sourceImageCardSchema,
+      sourceImageCardSchema,
+      sourceImageCardSchema,
+    ]),
+    categories: z.tuple([
+      sourceImageCardSchema.extend({ itemCount: z.string() }),
+      sourceImageCardSchema.extend({ itemCount: z.string() }),
+      sourceImageCardSchema.extend({ itemCount: z.string() }),
+      sourceImageCardSchema.extend({ itemCount: z.string() }),
+    ]),
+    collection: z.tuple([
+      sourceImageCardSchema.extend({ subtitle: z.string() }),
+      sourceImageCardSchema.extend({ subtitle: z.string() }),
+      sourceImageCardSchema.extend({ subtitle: z.string() }),
+      sourceImageCardSchema.extend({ subtitle: z.string() }),
+    ]),
+    featuredProducts: z.tuple([
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+      sourceProductSchema,
+    ]),
+    magazine: z.tuple([
+      sourceImageCardSchema.extend({ author: z.string(), date: z.string() }),
+      sourceImageCardSchema.extend({ author: z.string(), date: z.string() }),
+      sourceImageCardSchema.extend({ author: z.string(), date: z.string() }),
+      sourceImageCardSchema.extend({ author: z.string(), date: z.string() }),
+    ]),
+    marquee: z.tuple([
+      z.string(),
+      z.string(),
+      z.string(),
+      z.string(),
+      z.string(),
+      z.string(),
+      z.string(),
+      z.string(),
+    ]),
+    product: z
+      .object({
+        assetId: z.literal("fashion-store.product-01"),
+        badge: z.string(),
+        name: z.string(),
+        originalPrice: z.string(),
+        price: z.string(),
+      })
+      .strict(),
+    services: z.tuple([
+      z.object({ description: z.string(), title: z.string() }).strict(),
+      z.object({ description: z.string(), title: z.string() }).strict(),
+      z.object({ description: z.string(), title: z.string() }).strict(),
+      z.object({ description: z.string(), title: z.string() }).strict(),
+    ]),
+  })
+  .strict();
 
-type Four<T> = readonly [T, T, T, T];
-type Five<T> = readonly [T, T, T, T, T];
-type Six<T> = readonly [T, T, T, T, T, T];
-type Eight<T> = readonly [T, T, T, T, T, T, T, T];
-type Ten<T> = readonly [T, T, T, T, T, T, T, T, T, T];
-
-export interface FashionStoreHomeData {
-  announcement: string;
-  announcementAction: string;
-  cartAction: PreviewAction;
-  quickViewAction: PreviewAction;
-  wishlistAction: PreviewAction;
-  navigation: Six<string>;
-  bestSellers: Ten<SourceProduct>;
-  brands: Five<{ name: string; sourceImage: string }>;
-  categories: Four<SourceImageCard & { itemCount: string }>;
-  collection: Four<SourceImageCard & { subtitle: string }>;
-  featuredProducts: Five<SourceProduct>;
-  magazine: Four<SourceImageCard & { author: string; date: string }>;
-  marquee: Eight<string>;
-  product: {
-    assetId: "fashion-store.product-01";
-    badge: string;
-    name: string;
-    originalPrice: string;
-    price: string;
-  };
-  services: Four<{ description: string; title: string }>;
-}
+export type FashionStoreHomeData = z.infer<typeof fashionStoreHomeDataSchema>;
 
 export const fashionStoreHomeData = {
   announcement: "Enjoy FREE standard delivery on orders over $100.",
@@ -269,19 +322,25 @@ export const fashionStoreHomeData = {
       title: "Online support",
     },
   ],
-} as const satisfies FashionStoreHomeData;
+} satisfies FashionStoreHomeData;
 
 export const fashionStoreHomeFixtures = {
   "fashion-store-home": {
     id: "fashion-store-home",
     label: "Fashion Store source-parity home",
     pageTypes: ["home"],
-    viewModels: {
-      home: {
-        data: fashionStoreHomeData,
-        kind: "theme-section",
-        state: "populated",
-      },
+    shellViewModels: {
+      home: { announcement: fashionStoreHomeData.announcement },
     },
+    viewModels: Object.fromEntries(
+      fashionStoreHomeSections.map(({ fixtureResource, type }) => [
+        fixtureResource,
+        {
+          data: { home: fashionStoreHomeData, mode: "fixture", sectionType: type },
+          kind: "theme-section",
+          state: "populated",
+        },
+      ]),
+    ),
   },
 } as const satisfies ExperienceFixtureRegistry;
