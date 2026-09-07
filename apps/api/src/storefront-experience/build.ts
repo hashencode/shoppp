@@ -8,6 +8,7 @@ import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-id
 import { getStorefrontExperienceSnapshot } from "./service";
 import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
 import { catalogMediaOrigins, parsePersistedMediaOrigins } from "./media-origins";
+import { assertStorefrontThemeLifecycleWritable } from "./retirement-policy";
 
 export interface ExperienceBuildTriggerResult {
   readonly correlationId: string;
@@ -255,6 +256,7 @@ export async function getStorefrontExperienceBuildManifest(
   snapshotId: string,
 ) {
   const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
+  assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   return {
     environment: "preview" as const,
     expectedOrigin: context.env.PREVIEW_ORIGIN,
@@ -275,6 +277,7 @@ export async function getStorefrontExperienceBuildManifestByBuild(
     getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id),
     getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id),
   ]);
+  assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   const mediaOrigins = catalogMediaOrigins(catalogRelease);
   assertBuildMediaOrigins(build, mediaOrigins);
   return {
@@ -296,6 +299,7 @@ export async function triggerStorefrontExperienceBuild(
   catalogReleaseId?: string,
 ) {
   const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
+  assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   const catalogRelease = catalogReleaseId
     ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
     : null;
@@ -406,6 +410,8 @@ export async function recordStorefrontExperienceBuildResult(
   result: StorefrontExperienceBuildResult,
 ) {
   const current = await buildRow(context.env.DB, buildId);
+  const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, current.snapshot_id);
+  assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   if (current.status === result.status) {
     assertMatchingBuildResult(current, result);
     return mapBuild(current);

@@ -56,6 +56,10 @@ import {
   getCanonicalDeployedCatalogRelease,
   storefrontDestinationsForRelease,
 } from "./catalog-resources";
+import {
+  assertStorefrontThemeLifecycleWritable,
+  isRetiredStorefrontThemeId,
+} from "./retirement-policy";
 
 export interface ExperienceValidationIssue {
   readonly code: string;
@@ -204,6 +208,9 @@ function packageFor(
   operation: ThemePackageOperation,
   configurationSchemaVersion?: number,
 ): ThemePackage {
+  if (operation !== "historicalValidation" && operation !== "immutableRead") {
+    assertStorefrontThemeLifecycleWritable(themeId);
+  }
   let registration: ThemePackageRegistration | undefined;
   try {
     registration = resolveThemePackageRegistration(
@@ -750,29 +757,31 @@ async function recordAuditOnce(
     .run();
 }
 
-const defaultStorefrontThemes = storefrontThemeCatalog.map((descriptor) => {
-  let themePackage: ThemePackage;
-  try {
-    themePackage = packageFor(descriptor.id, descriptor.themeVersion, undefined, "creation");
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 422) {
-      throw new ApiError(
-        500,
-        "storefront_theme_catalog_drift",
-        "The generated storefront theme catalog does not match the creatable package registry.",
-      );
+const defaultStorefrontThemes = storefrontThemeCatalog
+  .filter(({ id }) => !isRetiredStorefrontThemeId(id))
+  .map((descriptor) => {
+    let themePackage: ThemePackage;
+    try {
+      themePackage = packageFor(descriptor.id, descriptor.themeVersion, undefined, "creation");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 422) {
+        throw new ApiError(
+          500,
+          "storefront_theme_catalog_drift",
+          "The generated storefront theme catalog does not match the creatable package registry.",
+        );
+      }
+      throw error;
     }
-    throw error;
-  }
-  return adminStorefrontThemeSchema.parse({
-    ...descriptor,
-    componentRegistry: themePackage.manifest.componentRegistry,
-    fixtureBindings: experienceResourceBindingSchema
-      .array()
-      .parse(fixtureBindingsByThemeId[descriptor.id]),
-    presetDefinitions: themePackage.presets,
+    return adminStorefrontThemeSchema.parse({
+      ...descriptor,
+      componentRegistry: themePackage.manifest.componentRegistry,
+      fixtureBindings: experienceResourceBindingSchema
+        .array()
+        .parse(fixtureBindingsByThemeId[descriptor.id]),
+      presetDefinitions: themePackage.presets,
+    });
   });
-});
 
 export function listStorefrontThemes() {
   return defaultStorefrontThemes;
@@ -876,6 +885,7 @@ export async function updateStorefrontExperienceDraft(
   options?: StorefrontExperienceServiceOptions,
 ) {
   const current = await draftRow(context.env.DB, id);
+  assertStorefrontThemeLifecycleWritable(current.theme_id);
   assertExpectedVersion(current, request.expectedVersion);
   packageFor(
     current.theme_id,
@@ -1010,6 +1020,7 @@ export async function validateStorefrontExperienceDraft(
   options?: StorefrontExperienceServiceOptions,
 ) {
   const row = await draftRow(context.env.DB, id);
+  assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, expectedVersion);
   const catalogRelease = catalogReleaseId
     ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
@@ -1063,6 +1074,7 @@ async function validResolution(
   options?: StorefrontExperienceServiceOptions,
 ) {
   const row = await draftRow(context.env.DB, id);
+  assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, expectedVersion);
   packageFor(
     row.theme_id,
@@ -1470,6 +1482,7 @@ export async function dryRunStorefrontExperienceMigration(
   options?: StorefrontExperienceServiceOptions,
 ) {
   const row = await draftRow(context.env.DB, id);
+  assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, request.expectedVersion);
   const sourcePackage = packageFor(
     row.theme_id,
@@ -1581,6 +1594,7 @@ export async function approveStorefrontExperienceMigration(
   options?: StorefrontExperienceServiceOptions,
 ) {
   const draft = await draftRow(context.env.DB, draftId);
+  assertStorefrontThemeLifecycleWritable(draft.theme_id);
   assertExpectedVersion(draft, expectedVersion);
   const migration = await migrationRow(context.env.DB, migrationId);
   if (migration.draft_id !== draftId || migration.draft_version !== expectedVersion) {

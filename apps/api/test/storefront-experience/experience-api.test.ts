@@ -9,7 +9,13 @@ import {
 } from "@shoppp/contracts";
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
+import decorFixture from "../../../storefront/fixtures/experience/decor.json";
+import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
 import releaseFixture from "../../../storefront/fixtures/release.json";
+import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
+import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
+import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/manifest";
+import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import {
   fashionStoreHistoricalPackages,
@@ -316,35 +322,11 @@ describe("storefront experience API", () => {
     await seedOperator();
   });
 
-  test("lists the source-controlled theme catalog for authorized operators", async () => {
+  test("lists only the writable Fashion package for authorized operators", async () => {
     const response = await appFor().fetch(request("/admin/storefront-experiences/themes"), env);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       data: [
-        {
-          fixtureBindings: expect.any(Array),
-          id: "decor",
-          presetDefinitions: expect.any(Array),
-          themeVersion: "1.0.0",
-        },
-        {
-          fixtureBindings: expect.any(Array),
-          id: "decor-store",
-          presetDefinitions: [
-            expect.objectContaining({
-              templates: [
-                expect.objectContaining({ pageType: "home" }),
-                expect.objectContaining({ pageType: "collection" }),
-                expect.objectContaining({ pageType: "product" }),
-                expect.objectContaining({ pageType: "cart" }),
-                expect.objectContaining({ pageType: "checkout" }),
-                expect.objectContaining({ pageType: "content" }),
-              ],
-            }),
-          ],
-          supportedPageTemplates: ["home", "collection", "product", "cart", "checkout", "content"],
-          themeVersion: "1.0.0",
-        },
         {
           fixtureBindings: expect.any(Array),
           id: "fashion-store",
@@ -356,6 +338,378 @@ describe("storefront experience API", () => {
         },
       ],
     });
+  });
+
+  test("freezes every lifecycle write for both exact Decor identities while retaining reads", async () => {
+    const app = createApp({
+      experienceBuildTrigger: async () => ({ correlationId: "retired-theme-must-not-build" }),
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const now = "2026-09-07T12:00:00.000Z";
+    const retiredPackages = [
+      { bindings: decorFixture.bindings, manifest: decorManifest, preset: decorPreset },
+      {
+        bindings: decorStoreFixture.bindings,
+        manifest: decorStoreManifest,
+        preset: decorStorePreset,
+      },
+    ] as const;
+
+    const expectRetired = async (response: Response) => {
+      expect(response.status).toBe(422);
+      expect(await response.json()).toMatchObject({
+        error: { code: "storefront_theme_package_retired" },
+      });
+    };
+    const readRetiredLifecycleState = async (
+      draftId: string,
+      snapshotId: string,
+      buildId: string,
+    ) => {
+      const [build, draft, grants, migrations, sessions, snapshots, validations] =
+        await env.DB.batch([
+          env.DB.prepare(
+            "SELECT status, updated_at FROM storefront_preview_builds WHERE id = ?",
+          ).bind(buildId),
+          env.DB.prepare(
+            "SELECT version, updated_at FROM storefront_experience_drafts WHERE id = ?",
+          ).bind(draftId),
+          env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM storefront_preview_grants WHERE snapshot_id = ?",
+          ).bind(snapshotId),
+          env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM storefront_experience_migrations WHERE draft_id = ?",
+          ).bind(draftId),
+          env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM storefront_preview_sessions WHERE snapshot_id = ?",
+          ).bind(snapshotId),
+          env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM storefront_experience_snapshots WHERE source_draft_id = ?",
+          ).bind(draftId),
+          env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM storefront_experience_validations WHERE draft_id = ?",
+          ).bind(draftId),
+        ]);
+      return {
+        build: build!.results[0],
+        draft: draft!.results[0],
+        grants: grants!.results[0],
+        migrations: migrations!.results[0],
+        sessions: sessions!.results[0],
+        snapshots: snapshots!.results[0],
+        validations: validations!.results[0],
+      };
+    };
+
+    for (const { bindings, manifest, preset } of retiredPackages) {
+      const themeId = manifest.id;
+      const draftId = `draft-retired-${themeId}`;
+      const validationId = `validation-retired-${themeId}`;
+      const migrationId = `migration-retired-${themeId}`;
+      const snapshotId = `snapshot-retired-${themeId}`;
+      const buildId = `build-retired-${themeId}`;
+      const grantId = `grant-retired-${themeId}`;
+      const sessionId = `session-retired-${themeId}`;
+      const grant = `retired_grant_${themeId}_ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
+      const session = `retired_session_${themeId}_ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
+      const snapshot = {
+        approvedAt: now,
+        approvedBy: "admin-theme-admin",
+        bindings,
+        configurationSchemaVersion: manifest.configurationSchemaVersion,
+        experienceId: `experience-retired-${themeId}`,
+        id: snapshotId,
+        kind: "approved",
+        overrides: [],
+        platformContractVersion: manifest.platformContractVersion,
+        provenance: manifest.provenance,
+        resolvedTemplates: preset.templates,
+        themeId,
+        themeVersion: manifest.themeVersion,
+        version: 1,
+      } as const;
+      await env.DB.batch([
+        env.DB.prepare(
+          `INSERT INTO storefront_experience_drafts
+             (id, experience_id, theme_id, theme_version, configuration_schema_version,
+              preset_id, bindings_json, overrides_json, version, created_by, updated_by,
+              created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, '[]', 1, 'admin-theme-admin', 'admin-theme-admin', ?, ?)`,
+        ).bind(
+          draftId,
+          snapshot.experienceId,
+          themeId,
+          manifest.themeVersion,
+          manifest.configurationSchemaVersion,
+          preset.id,
+          JSON.stringify(bindings),
+          now,
+          now,
+        ),
+        env.DB.prepare(
+          `INSERT INTO storefront_experience_validations
+             (id, draft_id, draft_version, catalog_release_id, status, issues_json,
+              resolved_templates_json, validated_by, created_at)
+           VALUES (?, ?, 1, NULL, 'valid', '[]', ?, 'admin-theme-admin', ?)`,
+        ).bind(validationId, draftId, JSON.stringify(preset.templates), now),
+        env.DB.prepare(
+          `INSERT INTO storefront_experience_migrations
+             (id, draft_id, draft_version, source_theme_version,
+              source_configuration_schema_version, target_theme_version,
+              target_configuration_schema_version, migrated_overrides_json, conflicts_json,
+              status, created_by, created_at)
+           VALUES (?, ?, 1, ?, ?, ?, ?, '[]', '[]', 'dry_run', 'admin-theme-admin', ?)`,
+        ).bind(
+          migrationId,
+          draftId,
+          manifest.themeVersion,
+          manifest.configurationSchemaVersion,
+          manifest.themeVersion,
+          manifest.configurationSchemaVersion,
+          now,
+        ),
+        env.DB.prepare(
+          `INSERT INTO storefront_experience_snapshots
+             (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
+              source_validation_id, migration_id, kind, theme_id, theme_version,
+              configuration_schema_version, snapshot_json, content_digest, created_by, approved_by,
+              approved_at, created_at)
+           VALUES (?, ?, ?, ?, 1, ?, NULL, 'approved', ?, ?, ?, ?, ?,
+                   'admin-theme-admin', 'admin-theme-admin', ?, ?)`,
+        ).bind(
+          snapshotId,
+          `retired-${themeId}-approved`,
+          snapshot.experienceId,
+          draftId,
+          validationId,
+          themeId,
+          manifest.themeVersion,
+          manifest.configurationSchemaVersion,
+          JSON.stringify(snapshot),
+          themeId === "decor" ? "a".repeat(64) : "b".repeat(64),
+          now,
+          now,
+        ),
+        env.DB.prepare(
+          `INSERT INTO storefront_preview_builds
+             (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
+              platform_contract_version, media_origins_json, attempt, status, artifact_digest,
+              artifact_prefix, expires_at, completed_at, created_at, updated_at)
+           VALUES (?, ?, NULL, NULL, NULL, NULL, NULL, '[]', 1, 'deployed', ?, ?,
+                   '2099-09-07T00:00:00.000Z', ?, ?, ?)`,
+        ).bind(
+          buildId,
+          snapshotId,
+          themeId === "decor" ? "c".repeat(64) : "d".repeat(64),
+          `snapshots/${snapshotId}/${themeId === "decor" ? "c".repeat(64) : "d".repeat(64)}`,
+          now,
+          now,
+          now,
+        ),
+        env.DB.prepare(
+          `INSERT INTO storefront_preview_grants
+             (id, snapshot_id, build_id, grant_digest, origin, expires_at, created_by, created_at)
+           VALUES (?, ?, ?, ?, ?, '2099-09-07T00:00:00.000Z', 'admin-theme-admin', ?)`,
+        ).bind(grantId, snapshotId, buildId, await sha256Hex(grant), env.PREVIEW_ORIGIN, now),
+        env.DB.prepare(
+          `INSERT INTO storefront_preview_sessions
+             (id, snapshot_id, build_id, session_digest, origin, expires_at, created_at)
+           VALUES (?, ?, ?, ?, ?, '2099-09-07T00:00:00.000Z', ?)`,
+        ).bind(sessionId, snapshotId, buildId, await sha256Hex(session), env.PREVIEW_ORIGIN, now),
+      ]);
+
+      const before = await readRetiredLifecycleState(draftId, snapshotId, buildId);
+
+      await expectRetired(
+        await app.fetch(
+          writeRequest(
+            "/admin/storefront-experiences/drafts",
+            {
+              draft: {
+                bindings,
+                experienceId: `new-retired-${themeId}`,
+                overrides: [],
+                presetId: preset.id,
+                themeId,
+                themeVersion: manifest.themeVersion,
+              },
+              reason: "Retired packages cannot create drafts",
+            },
+            `retired-${themeId}-create`,
+          ),
+          env,
+        ),
+      );
+      const draftMutations = [
+        [
+          `/admin/storefront-experiences/drafts/${draftId}`,
+          { bindings, expectedVersion: 1, overrides: [], reason: "Retired update" },
+          "PUT",
+        ],
+        [
+          `/admin/storefront-experiences/drafts/${draftId}/successors`,
+          { bindings, overrides: [], reason: "Retired successor", sourceVersion: 1 },
+          "POST",
+        ],
+        [
+          `/admin/storefront-experiences/drafts/${draftId}/validate`,
+          { expectedVersion: 1, reason: "Retired validation" },
+          "POST",
+        ],
+        [
+          `/admin/storefront-experiences/drafts/${draftId}/preview`,
+          { expectedVersion: 1, reason: "Retired preview" },
+          "POST",
+        ],
+        [
+          `/admin/storefront-experiences/drafts/${draftId}/approve`,
+          { confirm: true, expectedVersion: 1, reason: "Retired approval" },
+          "POST",
+        ],
+        [
+          `/admin/storefront-experiences/drafts/${draftId}/migrations/dry-run`,
+          {
+            expectedVersion: 1,
+            reason: "Retired migration dry run",
+            targetConfigurationSchemaVersion: manifest.configurationSchemaVersion,
+            targetThemeVersion: manifest.themeVersion,
+          },
+          "POST",
+        ],
+        [
+          `/admin/storefront-experiences/drafts/${draftId}/migrations/approve`,
+          {
+            confirm: true,
+            expectedVersion: 1,
+            migrationId,
+            reason: "Retired migration approval",
+          },
+          "POST",
+        ],
+      ] as const;
+      for (const [path, body, method] of draftMutations) {
+        await expectRetired(
+          await app.fetch(
+            writeRequest(path, body, `retired-${themeId}-${path.split("/").at(-1)}`, method),
+            env,
+          ),
+        );
+      }
+      await expectRetired(
+        await app.fetch(
+          writeRequest(
+            `/admin/storefront-experiences/drafts/${draftId}`,
+            { bindings, expectedVersion: 999, overrides: [], reason: "Retired stale update" },
+            `retired-${themeId}-stale-update`,
+            "PUT",
+          ),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          writeRequest(
+            `/admin/storefront-experiences/drafts/${draftId}/migrations/approve`,
+            {
+              confirm: true,
+              expectedVersion: 999,
+              migrationId,
+              reason: "Retired stale migration approval",
+            },
+            `retired-${themeId}-stale-migration-approval`,
+          ),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          writeRequest(
+            `/admin/storefront-experiences/snapshots/${snapshotId}/build`,
+            { catalogReleaseId: previewCatalogRelease.releaseId },
+            `retired-${themeId}-build`,
+          ),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          writeRequest(
+            `/admin/storefront-experiences/snapshots/${snapshotId}/grants`,
+            { origin: env.PREVIEW_ORIGIN, reason: "Retired grant" },
+            `retired-${themeId}-grant`,
+          ),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          request("/internal/preview/redeem", {
+            body: JSON.stringify({ grant, origin: env.PREVIEW_ORIGIN }),
+            headers: { Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}` },
+            method: "POST",
+          }),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          request("/internal/preview/authorize", {
+            headers: {
+              Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+              Cookie: `__Host-shoppp-preview=${session}`,
+              "X-Preview-Origin": env.PREVIEW_ORIGIN,
+            },
+            method: "POST",
+          }),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          request(`/build/storefront-experiences/builds/${buildId}/status`, {
+            body: JSON.stringify({ failureCode: "retired", status: "failed" }),
+            headers: {
+              Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}`,
+              "Idempotency-Key": `retired-${themeId}-build-result`,
+            },
+            method: "POST",
+          }),
+          env,
+        ),
+      );
+      await expectRetired(
+        await app.fetch(
+          request(`/build/storefront-experiences/builds/${buildId}`, {
+            headers: { Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}` },
+          }),
+          env,
+        ),
+      );
+
+      expect(
+        (await app.fetch(request(`/admin/storefront-experiences/drafts/${draftId}`), env)).status,
+      ).toBe(200);
+      expect(
+        (await app.fetch(request(`/admin/storefront-experiences/snapshots/${snapshotId}`), env))
+          .status,
+      ).toBe(200);
+      expect(
+        (await app.fetch(request(`/admin/storefront-experiences/builds/${buildId}`), env)).status,
+      ).toBe(200);
+      const retiredArtifactKey = `snapshots/${snapshotId}/${
+        themeId === "decor" ? "c".repeat(64) : "d".repeat(64)
+      }/index.html`;
+      await env.PREVIEW_ARTIFACTS.put(retiredArtifactKey, "retained retired preview");
+      expect(
+        await cleanupExpiredStorefrontPreviews(env, new Date("2100-01-01T00:00:00.000Z")),
+      ).toEqual({ artifacts: 0, grants: 0, objects: 0, sessions: 0 });
+      expect(await env.PREVIEW_ARTIFACTS.get(retiredArtifactKey)).not.toBeNull();
+      expect(await readRetiredLifecycleState(draftId, snapshotId, buildId)).toEqual(before);
+    }
   });
 
   test("creates and previews unified Fashion defaults after resetting saved overrides", async () => {

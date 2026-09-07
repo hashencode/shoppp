@@ -1,4 +1,5 @@
 import type { ApiBindings } from "../http/context";
+import { RETIRED_STOREFRONT_THEME_IDS } from "./retirement-policy";
 
 async function deletePrefix(bucket: R2Bucket, prefix: string): Promise<number> {
   let cursor: string | undefined;
@@ -25,13 +26,15 @@ export async function cleanupExpiredStorefrontPreviews(
 ): Promise<{ artifacts: number; grants: number; objects: number; sessions: number }> {
   const timestamp = now.toISOString();
   const expired = await environment.DB.prepare(
-    `SELECT id, artifact_prefix, expires_at
-       FROM storefront_preview_builds
-      WHERE status = 'deployed' AND cleaned_at IS NULL AND expires_at <= ?
-      ORDER BY expires_at, id
+    `SELECT b.id, b.artifact_prefix, b.expires_at
+       FROM storefront_preview_builds b
+       JOIN storefront_experience_snapshots s ON s.id = b.snapshot_id
+      WHERE b.status = 'deployed' AND b.cleaned_at IS NULL AND b.expires_at <= ?
+        AND s.theme_id NOT IN (?, ?)
+      ORDER BY b.expires_at, b.id
       LIMIT 100`,
   )
-    .bind(timestamp)
+    .bind(timestamp, ...RETIRED_STOREFRONT_THEME_IDS)
     .all<{ artifact_prefix: string; expires_at: string; id: string }>();
   let artifacts = 0;
   let objects = 0;
@@ -89,17 +92,27 @@ export async function cleanupExpiredStorefrontPreviews(
   }
   const sessions = await environment.DB.prepare(
     `DELETE FROM storefront_preview_sessions
-      WHERE expires_at <= ?
-         OR build_id IN (SELECT id FROM storefront_preview_builds WHERE status = 'expired')`,
+      WHERE (expires_at <= ?
+         OR build_id IN (SELECT id FROM storefront_preview_builds WHERE status = 'expired'))
+        AND NOT EXISTS (
+          SELECT 1 FROM storefront_experience_snapshots s
+           WHERE s.id = storefront_preview_sessions.snapshot_id
+             AND s.theme_id IN (?, ?)
+        )`,
   )
-    .bind(timestamp)
+    .bind(timestamp, ...RETIRED_STOREFRONT_THEME_IDS)
     .run();
   const grants = await environment.DB.prepare(
     `DELETE FROM storefront_preview_grants
-      WHERE expires_at <= ? OR redeemed_at IS NOT NULL
-         OR build_id IN (SELECT id FROM storefront_preview_builds WHERE status = 'expired')`,
+      WHERE (expires_at <= ? OR redeemed_at IS NOT NULL
+         OR build_id IN (SELECT id FROM storefront_preview_builds WHERE status = 'expired'))
+        AND NOT EXISTS (
+          SELECT 1 FROM storefront_experience_snapshots s
+           WHERE s.id = storefront_preview_grants.snapshot_id
+             AND s.theme_id IN (?, ?)
+        )`,
   )
-    .bind(timestamp)
+    .bind(timestamp, ...RETIRED_STOREFRONT_THEME_IDS)
     .run();
   return {
     artifacts,
