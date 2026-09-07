@@ -8,8 +8,6 @@ import { readdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
-import { decorManifest, decorThemeDescriptor } from "../app/themes/decor/manifest";
-import { decorPreset } from "../app/themes/decor/presets/layered";
 import { decorStoreManifest, decorStoreThemeDescriptor } from "../app/themes/decor-store/manifest";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import {
@@ -59,13 +57,6 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
     directPackageBoundaries: [],
     package: { manifest: decorStoreManifest, presets: [decorStorePreset] },
     requiredPageTypes: ["home"],
-  },
-  {
-    assetPolicy: "binary-only",
-    descriptor: decorThemeDescriptor,
-    directPackageBoundaries: [],
-    package: { manifest: decorManifest, presets: [decorPreset] },
-    requiredPageTypes: REQUIRED_STOREFRONT_PAGE_TYPES,
   },
 ];
 

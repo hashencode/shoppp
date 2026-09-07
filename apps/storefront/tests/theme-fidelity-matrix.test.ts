@@ -24,7 +24,6 @@ describe("theme fidelity matrix", () => {
       "decor-store-about",
       "decor-store-faq",
       "decor-store-contact",
-      "decor-home",
       "fashion-store-home",
       "fashion-store-shop-left",
       "fashion-store-shop-none",

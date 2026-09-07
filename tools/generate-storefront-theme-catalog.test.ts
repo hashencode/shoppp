@@ -73,7 +73,6 @@ describe("storefront theme catalog generation", () => {
 
   test("keeps both checked-in catalog modules current", async () => {
     expect(storefrontThemeDescriptors.map(({ id }) => id)).toEqual([
-      "decor",
       "decor-store",
       "fashion-store",
     ]);

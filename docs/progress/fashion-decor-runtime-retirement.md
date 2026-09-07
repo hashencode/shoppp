@@ -101,3 +101,35 @@ tree identities are `decor` tree `b5aa063bf37773391d8f69851af021a7aef26dfe` (113
 `fixtures/experience/decor-store.json` blob `770a1f82139fee324dee80f8eb61970d602a78d6`, both package
 descriptors/presets/registries, and the generated catalog family. No runtime file or remote row/object
 was deleted in U7.
+
+## 2026-09-07 — U8.1 exact identity `decor` removal
+
+Immediately before removal, provider metadata was reconciled again against account
+`449e7f42fe4c4e55d5c674e2e7c57c8d`. The same four D1 namespaces were present: governed
+`shoppp-staging` and `shoppp-fashion-staging`, undeployed/schema-empty `shoppp-production`, and the
+two schema-empty Wrangler preview databases. Both governed Workers still reported 100% traffic on
+the U7 freeze versions. The staging artifact bucket remained empty, the Fashion staging namespace
+remained at 2,806 objects / 221 MB total, and the configured production bucket remained absent.
+
+The fresh aggregate-only query again returned zero for exact `decor` and exact `decor-store` across
+all governed metrics, including drafts/version sum, validations, migrations, snapshots, builds,
+runtime-dependent builds, uncleaned artifacts, grants/sessions and Catalog Release references.
+Every query reported `success: true`, `changed_db: false`, `changes: 0`, and `rows_written: 0`, with
+both maximum `updated_at` values still `null`. This authorized only the first exact identity.
+
+The recoverable local command was:
+
+`git rm -r apps/storefront/app/themes/decor apps/storefront/fixtures/experience/decor.json apps/storefront/playwright.decor.config.ts apps/storefront/e2e/decor-motion.spec.ts apps/storefront/e2e/decor-theme.spec.ts apps/storefront/tests/decor-motion-contract.test.ts apps/storefront/tests/decor-preview-authority.test.ts tools/run-decor-acceptance.ts tools/run-decor-acceptance.test.ts`
+
+Before that deletion, the sole source-intake-only local font was moved to
+`apps/storefront/theme-references/decor-store/assets/fonts/plus-jakarta-sans-latin.woff2` and its
+manifest pointers were updated. No remote row, object, namespace, Worker, branch, or recovery ref
+was deleted.
+
+After removal, generated catalogs, package registrations, fixture generation, build imports,
+prerender selection, package commands, source-equivalence policy, fidelity matrices, and capture
+matrices no longer expose exact `decor`. The generated catalog contains only `decor-store` and
+`fashion-store`; the independent reference test remains green. Intermediate verification passed:
+161 source-equivalence tests, the two-theme package verifier, 26 focused Worker API tests including
+both exact retired IDs and immutable reads, the workspace typecheck, and the U1 disposition check.
+The second identity remains intact and selectable until its independent fresh gate completes.

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
@@ -9,8 +10,6 @@ import {
 import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
 import { decorStoreSourceRegionOrder } from "../app/themes/decor-store/source-contract";
 import { themeAssets as decorStoreAssets } from "../app/themes/decor-store/resources";
-import { decorThemeRoutes } from "../app/themes/decor/page-contracts";
-import { themeAssets as decorAssets } from "../app/themes/decor/resources";
 import {
   classifyLegacyInteraction,
   legacyAssetGroups,
@@ -38,22 +37,30 @@ async function filesUnder(root: string, suffix: string): Promise<string[]> {
 describe("Fashion and Decor unification inventory", () => {
   test("assigns every legacy component, fixture, and runtime file exactly one disposition", async () => {
     const components = [
-      ...(await filesUnder(resolve(themesRoot, "decor/components"), ".vue")),
       ...(await filesUnder(resolve(themesRoot, "decor-store/components"), ".vue")),
     ].sort();
     const fixtures = [
-      ...(await filesUnder(resolve(themesRoot, "decor/fixtures"), ".ts")),
       ...(await filesUnder(resolve(themesRoot, "decor-store/fixtures"), ".ts")),
     ].sort();
     const runtime = await filesUnder(resolve(themesRoot, "decor-store/runtime"), ".ts");
 
-    expect(legacyComponentDispositions.map(({ source }) => source).sort()).toEqual(components);
-    expect(legacyFixtureDispositions.map(({ source }) => source).sort()).toEqual(fixtures);
+    expect(
+      legacyComponentDispositions
+        .filter(({ source }) => source.startsWith("decor-store/"))
+        .map(({ source }) => source)
+        .sort(),
+    ).toEqual(components);
+    expect(
+      legacyFixtureDispositions
+        .filter(({ source }) => source.startsWith("decor-store/"))
+        .map(({ source }) => source)
+        .sort(),
+    ).toEqual(fixtures);
     expect(legacyRuntimeDispositions.map(({ source }) => source).sort()).toEqual(runtime);
   });
 
   test("covers every registry section, route, source region, and interaction", async () => {
-    const registrySources = ["decor/registry.ts", "decor-store/registry.ts"];
+    const registrySources = ["decor-store/registry.ts"];
     const registryTypes = (
       await Promise.all(
         registrySources.map(async (source) => {
@@ -72,11 +79,10 @@ describe("Fashion and Decor unification inventory", () => {
     });
     expect(inventoriedTypes.sort()).toEqual(registryTypes.sort());
 
-    const routes = [
-      ...decorThemeRoutes.map(({ id }) => `decor:${id}`),
-      ...decorStoreEnabledPageContracts.map(({ id }) => `decor-store:${id}`),
-    ];
-    expect(legacyRouteDispositions.map(({ id }) => id)).toEqual(routes);
+    const routes = decorStoreEnabledPageContracts.map(({ id }) => `decor-store:${id}`);
+    expect(
+      legacyRouteDispositions.filter(({ id }) => id.startsWith("decor-store:")).map(({ id }) => id),
+    ).toEqual(routes);
     expect(legacySourceRegionDispositions.map(({ id }) => id)).toEqual(decorStoreSourceRegionOrder);
 
     const interactions = [
@@ -112,10 +118,11 @@ describe("Fashion and Decor unification inventory", () => {
     expect(unifiedHomeSectionIA.every(({ adminLabel }) => !/decor/i.test(adminLabel))).toBe(true);
   });
 
-  test("freezes selectable surfaces and grouped asset ownership in retained evidence", async () => {
+  test("retires the first selectable identity while retaining its classified evidence", async () => {
     for (const surface of legacySelectableSurfaces) {
       const source = await readFile(resolve(repositoryRoot, surface.source), "utf8");
-      for (const identity of surface.identities) expect(source).toContain(identity);
+      expect(source).not.toMatch(/["']decor["']/);
+      if (surface.identities.includes("decor-store")) expect(source).toContain("decor-store");
     }
     expect(legacyAssetGroups.map(({ id }) => id)).toEqual([
       "decor-presentation-images",
@@ -125,7 +132,7 @@ describe("Fashion and Decor unification inventory", () => {
       "decor-store-runtime-styles",
       "decor-store-runtime-scripts",
     ]);
-    expect(Object.keys(decorAssets)).toHaveLength(82);
+    expect(existsSync(resolve(themesRoot, "decor"))).toBe(false);
     expect(Object.keys(decorStoreAssets).filter((id) => id.includes("images-"))).toHaveLength(95);
     expect(Object.keys(decorStoreAssets).filter((id) => id.includes("fonts-"))).toHaveLength(9);
     expect(await filesUnder(resolve(themesRoot, "decor-store/upstream"), ".css")).toHaveLength(8);

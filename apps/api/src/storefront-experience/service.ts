@@ -29,8 +29,6 @@ import {
 } from "@shoppp/domain";
 import type { Context } from "hono";
 
-import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
-import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
 import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/manifest";
 import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
 import {
@@ -40,7 +38,6 @@ import {
 } from "../../../storefront/app/themes/fashion-store/package-registry";
 import { fashionStoreConfigurationMigrations } from "../../../storefront/app/themes/fashion-store/migrations";
 import { sha256Hex } from "../orders/tokens";
-import decorFixture from "../../../storefront/fixtures/experience/decor.json";
 import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
@@ -150,10 +147,6 @@ const MAX_VALIDATION_LOOKUP_BINDINGS = 100;
 const defaultPackageRegistrations = [
   themePackageRegistrationSchema.parse({
     lifecycle: "successor",
-    package: { manifest: decorManifest, presets: [decorPreset] },
-  }),
-  themePackageRegistrationSchema.parse({
-    lifecycle: "successor",
     package: {
       manifest: decorStoreManifest,
       presets: [decorStorePreset],
@@ -162,7 +155,6 @@ const defaultPackageRegistrations = [
   ...fashionStorePackageRegistrations,
 ] as const satisfies readonly ThemePackageRegistration[];
 const fixtureBindingsByThemeId = {
-  decor: decorFixture.bindings,
   "decor-store": decorStoreFixture.bindings,
   "fashion-store": fashionStoreFixture.bindings,
 } as const;

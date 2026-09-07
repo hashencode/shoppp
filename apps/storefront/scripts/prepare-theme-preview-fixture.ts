@@ -4,9 +4,6 @@ import { pathToFileURL } from "node:url";
 import { fixtureBindingSchema } from "@shoppp/contracts";
 import * as z from "zod";
 
-import { decorManifest } from "../app/themes/decor/manifest";
-import { decorThemeRoutes } from "../app/themes/decor/page-contracts";
-import { decorPreset } from "../app/themes/decor/presets/layered";
 import { decorStoreManifest } from "../app/themes/decor-store/manifest";
 import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
 import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
@@ -29,21 +26,14 @@ const previewFixtureSchema = z
 
 interface PreviewThemeDescriptor {
   fixturePath: string;
-  manifest: typeof decorManifest | typeof decorStoreManifest | typeof fashionStoreManifest;
+  manifest: typeof decorStoreManifest | typeof fashionStoreManifest;
   pageTypes: ReadonlySet<string>;
   templates:
-    | typeof decorPreset.templates
     | typeof decorStorePreset.templates
     | typeof fashionStorePreset.templates;
 }
 
 const previewThemeDescriptors = {
-  decor: {
-    fixturePath: "../fixtures/experience/decor.json",
-    manifest: decorManifest,
-    pageTypes: new Set(decorThemeRoutes.map(({ pageType }) => pageType)),
-    templates: decorPreset.templates,
-  },
   "decor-store": {
     fixturePath: "../fixtures/experience/decor-store.json",
     manifest: decorStoreManifest,
@@ -92,9 +82,6 @@ export async function themePreviewBuildInput(
     themeId: descriptor.manifest.id,
   };
 }
-
-export const decorPreviewBuildInput = (expectedOrigin: string) =>
-  themePreviewBuildInput("decor", expectedOrigin);
 
 export const decorStorePreviewBuildInput = (expectedOrigin: string) =>
   themePreviewBuildInput("decor-store", expectedOrigin);

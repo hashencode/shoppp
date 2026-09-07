@@ -9,11 +9,8 @@ import {
 } from "@shoppp/contracts";
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
-import decorFixture from "../../../storefront/fixtures/experience/decor.json";
 import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
 import releaseFixture from "../../../storefront/fixtures/release.json";
-import { decorManifest } from "../../../storefront/app/themes/decor/manifest";
-import { decorPreset } from "../../../storefront/app/themes/decor/presets/layered";
 import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/manifest";
 import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
@@ -351,7 +348,16 @@ describe("storefront experience API", () => {
     });
     const now = "2026-09-07T12:00:00.000Z";
     const retiredPackages = [
-      { bindings: decorFixture.bindings, manifest: decorManifest, preset: decorPreset },
+      {
+        bindings: [],
+        manifest: {
+          ...fashionStoreManifest,
+          configurationSchemaVersion: 1,
+          id: "decor",
+          themeVersion: "1.0.0",
+        },
+        preset: { ...fashionStorePreset, id: "layered", label: "Retired Decor fixture" },
+      },
       {
         bindings: decorStoreFixture.bindings,
         manifest: decorStoreManifest,

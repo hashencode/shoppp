@@ -10,7 +10,6 @@ import {
   fashionStoreThemeRoutes,
   fashionStorePreviewRoutes,
 } from "../app/themes/fashion-store/page-contracts";
-import { decorThemeRoutes } from "../app/themes/decor/page-contracts";
 import {
   resolveThemeRoute,
   staticThemeRoutePaths,
@@ -71,13 +70,6 @@ describe("static generation manifest", () => {
         productionRoutes: ["/published"],
       }),
     ).toEqual([...fashionStorePreviewRoutes, ...previewPlatformRoutes]);
-    expect(
-      resolveStorefrontPrerenderRoutes({
-        experience: { environment: "preview", themeId: "decor" },
-        previewBuild: true,
-        productionRoutes: ["/published"],
-      }),
-    ).toEqual([...themeRoutePaths(decorThemeRoutes, "fixture-preview"), ...previewPlatformRoutes]);
     expect(
       resolveStorefrontPrerenderRoutes({
         previewBuild: false,

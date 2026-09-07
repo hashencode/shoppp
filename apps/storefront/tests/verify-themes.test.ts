@@ -134,9 +134,10 @@ describe("storefront theme matrix", () => {
     const missingPage = copyEntry(storefrontThemeMatrix[0]!);
     missingPage.package.manifest.supportedPageTemplates =
       missingPage.package.manifest.supportedPageTemplates.filter((page) => page !== "home");
-    missingPage.package.presets[0]!.templates = missingPage.package.presets[0]!.templates.filter(
-      ({ pageType }) => pageType !== "home",
-    );
+    missingPage.package.presets = missingPage.package.presets.map((preset) => ({
+      ...preset,
+      templates: preset.templates.filter(({ pageType }) => pageType !== "home"),
+    }));
     missingPage.descriptor.supportedPageTemplates =
       missingPage.package.manifest.supportedPageTemplates;
     expect(() => verifyThemeMatrix([missingPage], [missingPage.descriptor])).toThrow(

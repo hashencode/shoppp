@@ -177,7 +177,7 @@
           "kind": "font",
           "license": "Authorized inspected local Plus Jakarta Sans WOFF2",
           "sourcePath": "fonts/plus-jakarta-sans-latin.woff2",
-          "supplementalSourcePath": "apps/storefront/app/themes/decor/assets/fonts/plus-jakarta-sans-latin.woff2"
+          "supplementalSourcePath": "apps/storefront/theme-references/decor-store/assets/fonts/plus-jakarta-sans-latin.woff2"
         },
         {
           "destinationPath": "upstream/fonts/themify.eot",
@@ -1201,7 +1201,7 @@
           "kind": "font",
           "license": "Authorized inspected local Plus Jakarta Sans WOFF2",
           "sourcePath": "fonts/plus-jakarta-sans-latin.woff2",
-          "supplementalSourcePath": "apps/storefront/app/themes/decor/assets/fonts/plus-jakarta-sans-latin.woff2",
+          "supplementalSourcePath": "apps/storefront/theme-references/decor-store/assets/fonts/plus-jakarta-sans-latin.woff2",
           "bytes": 27272,
           "sha256": "cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215"
         },
