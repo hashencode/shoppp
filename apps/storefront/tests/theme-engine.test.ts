@@ -19,8 +19,10 @@ import {
 import { packagePreviewArtifact } from "../scripts/package-preview-artifact";
 import {
   composeThemeRegistries,
+  renderThemeTreePlan,
   renderTemplatePlan,
   type ThemeRegistry,
+  validateThemeRegistryComposition,
 } from "../app/theme-engine/registry";
 import {
   composeExperienceShell,
@@ -1728,6 +1730,12 @@ describe("theme-neutral storefront composer", () => {
           id: "fixture-home",
           label: "Fixture home",
           pageTypes: ["home"],
+          shellViewModels: {
+            hero: {
+              footer: { contactCopy: "Fixture footer" },
+              header: { contactCopy: "Fixture header" },
+            },
+          },
           viewModels: {
             hero: {
               body: "Fixture body",
@@ -1743,6 +1751,14 @@ describe("theme-neutral storefront composer", () => {
     const first = fixtureProvider.resolve({ instanceId: "hero" });
     const second = fixtureProvider.resolve({ instanceId: "hero" });
     expect(second).toEqual(first);
+    expect(fixtureProvider.resolve({ expectedKind: "hero", instanceId: "hero" })).toEqual(first);
+    expect(() => fixtureProvider.resolve({ expectedKind: "product", instanceId: "hero" })).toThrow(
+      "does not match declared kind",
+    );
+    expect(fixtureProvider.resolveShell?.({ instanceId: "hero", resource: "hero" })).toEqual({
+      footer: { contactCopy: "Fixture footer" },
+      header: { contactCopy: "Fixture header" },
+    });
     expect(selectPresentationProvider({ fixtureProvider, mode: "fixture-preview" })).toBe(
       fixtureProvider,
     );
@@ -1771,6 +1787,136 @@ describe("theme-neutral storefront composer", () => {
         liveSnapshot.bindings.filter((binding) => binding.kind === "fixture"),
       ),
     ).toThrow("missing a fixture binding");
+  });
+
+  test("uses declared Section resolvers without inventing catalog bindings", () => {
+    const decorativeDescriptor = {
+      rendererShell: {
+        fixtureResource: "decorative",
+        liveResolver: "experience-shell",
+        owner: "renderer",
+        sourceSectionType: "synthetic.decorative",
+      },
+      sections: {
+        "synthetic.decorative": {
+          bindings: [],
+          fixture: { kind: "theme-section" },
+          live: { kind: "theme-section", resolver: "theme-section" },
+          shell: "none",
+        },
+      },
+    } as const;
+    const decorativeExperience = {
+      ...liveSnapshot,
+      bindings: [],
+      resolvedTemplates: [
+        {
+          id: "home",
+          pageType: "home",
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "decorative",
+              settings: { heading: "No catalog needed" },
+              type: "synthetic.decorative",
+              visible: true,
+            },
+          ],
+        },
+      ],
+    } satisfies ExperienceSnapshot;
+    const decorative = composeExperienceRouteWithoutAdapter({
+      experience: decorativeExperience,
+      locale: "en-US",
+      path: "/",
+      release: canonicalRelease,
+      route: testRoute("home", "/"),
+      sectionComposition: decorativeDescriptor,
+    });
+
+    expect(decorative.ok).toBe(true);
+    expect(decorative.viewModels.decorative).toEqual({
+      data: { settings: { heading: "No catalog needed" } },
+      kind: "theme-section",
+      state: "populated",
+    });
+    expect(decorative.shell).toBeDefined();
+    const fixtureProvider = createFixturePresentationProvider({
+      bindings: [
+        {
+          fixtureId: "decorative-fixture",
+          id: "decorative-binding",
+          instanceId: "decorative",
+          kind: "fixture",
+          resource: "decorative",
+          state: "populated",
+        },
+      ],
+      fixtures: {
+        "decorative-fixture": {
+          id: "decorative-fixture",
+          label: "Decorative fixture",
+          pageTypes: ["home"],
+          shellViewModels: { decorative: decorative.shell! },
+          viewModels: { decorative: decorative.viewModels.decorative! },
+        },
+      },
+    });
+    expect(fixtureProvider.resolve({ instanceId: "decorative" }).kind).toBe(
+      decorative.viewModels.decorative?.kind,
+    );
+    expect(
+      fixtureProvider.resolveShell?.({ instanceId: "decorative", resource: "decorative" }),
+    ).toEqual(decorative.shell);
+
+    const commerce = composeExperienceRouteWithoutAdapter({
+      experience: {
+        ...decorativeExperience,
+        resolvedTemplates: [
+          {
+            ...decorativeExperience.resolvedTemplates[0],
+            sections: [
+              {
+                ...decorativeExperience.resolvedTemplates[0]!.sections[0]!,
+                type: "synthetic.collection",
+              },
+            ],
+          },
+        ],
+      },
+      locale: "en-US",
+      path: "/",
+      release: canonicalRelease,
+      route: testRoute("home", "/"),
+      sectionComposition: {
+        sections: {
+          "synthetic.collection": {
+            bindings: [
+              {
+                cardinality: "required",
+                name: "collection",
+                referenceKind: "collection",
+                settingId: "featured-collection",
+              },
+            ],
+            fixture: { kind: "collection-grid" },
+            live: { kind: "collection-grid", resolver: "collection" },
+            shell: "none",
+          },
+        },
+      },
+    });
+
+    expect(commerce.ok).toBe(false);
+    expect(commerce.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "catalog-binding-missing",
+        sectionId: "decorative",
+        settingId: "featured-collection",
+      }),
+    );
   });
 });
 
@@ -1817,6 +1963,148 @@ describe("typed theme registry", () => {
         composeThemeRegistries(core, synthetic),
       ),
     ).toThrow("not registered");
+  });
+
+  test("keeps legacy registries unchanged and plans one renderer-owned shell around ordered Sections", () => {
+    const shell = {} as Component;
+    const sectionComponents = {
+      editorial: {} as Component,
+      hero: {} as Component,
+      promotion: {} as Component,
+    };
+    const probeTemplate = {
+      id: "probe-home",
+      pageType: "home",
+      requiredCapabilities: [],
+      sections: [
+        {
+          blocks: [],
+          capabilities: [],
+          id: "probe-hero",
+          settings: {},
+          type: "probe.hero",
+          visible: true,
+        },
+        {
+          blocks: [],
+          capabilities: [],
+          id: "probe-promotion",
+          settings: {},
+          type: "probe.promotion",
+          visible: true,
+        },
+        {
+          blocks: [],
+          capabilities: [],
+          id: "probe-editorial",
+          settings: {},
+          type: "probe.editorial",
+          visible: true,
+        },
+      ],
+    } satisfies PageTemplate;
+    const descriptor = {
+      rendererShell: {
+        fixtureResource: "shell",
+        liveResolver: "experience-shell",
+        owner: "renderer",
+        sourceSectionType: "probe.hero",
+      },
+      sections: Object.fromEntries(
+        ["probe.hero", "probe.promotion", "probe.editorial"].map((type) => [
+          type,
+          {
+            bindings: [],
+            fixture: { kind: "theme-section" },
+            live: { kind: "theme-section", resolver: "theme-section" },
+            shell: "none",
+          },
+        ]),
+      ),
+    } as const;
+    const probe = {
+      blocks: {},
+      platformShell: shell,
+      sectionComposition: descriptor,
+      sections: {
+        "probe.editorial": sectionComponents.editorial,
+        "probe.hero": sectionComponents.hero,
+        "probe.promotion": sectionComponents.promotion,
+      },
+    } satisfies ThemeRegistry;
+
+    const serverTree = renderThemeTreePlan(probeTemplate, probe);
+    const hydrationTree = renderThemeTreePlan(structuredClone(probeTemplate), probe);
+    expect(serverTree).toMatchObject({
+      sections: [
+        { component: sectionComponents.hero, expectedViewModelKind: "theme-section" },
+        { component: sectionComponents.promotion, expectedViewModelKind: "theme-section" },
+        { component: sectionComponents.editorial, expectedViewModelKind: "theme-section" },
+      ],
+      shell,
+    });
+    expect(hydrationTree.sections.map(({ instance }) => instance.id)).toEqual(
+      serverTree.sections.map(({ instance }) => instance.id),
+    );
+    expect(new Set(serverTree.sections.map(({ instance }) => instance.id)).size).toBe(3);
+    expect(hydrationTree.shell).toBe(serverTree.shell);
+    expect(
+      renderThemeTreePlan({ ...probeTemplate, sections: [] }, synthetic).shell,
+    ).toBeUndefined();
+  });
+
+  test("rejects descriptor, registry, and shell ownership mismatches before rendering", () => {
+    const section = {} as Component;
+    const descriptor = {
+      rendererShell: {
+        fixtureResource: "shell",
+        liveResolver: "experience-shell",
+        owner: "renderer",
+        sourceSectionType: "probe.hero",
+      },
+      sections: {
+        "probe.hero": {
+          bindings: [],
+          fixture: { kind: "theme-section" },
+          live: { kind: "theme-section", resolver: "theme-section" },
+          shell: "none",
+        },
+      },
+    } as const;
+
+    expect(() =>
+      validateThemeRegistryComposition(
+        { blocks: {}, sectionComposition: descriptor, sections: { "probe.hero": section } },
+        ["probe.hero"],
+      ),
+    ).toThrow("platform shell");
+    expect(() =>
+      validateThemeRegistryComposition(
+        {
+          blocks: {},
+          platformShell: {} as Component,
+          sectionComposition: descriptor,
+          sections: { "probe.hero": section, "probe.extra": section },
+        },
+        ["probe.hero", "probe.extra"],
+      ),
+    ).toThrow("one descriptor");
+    expect(() =>
+      validateThemeRegistryComposition(
+        {
+          blocks: {},
+          platformShell: {} as Component,
+          sectionComposition: {
+            ...descriptor,
+            sections: {
+              "probe.hero": { ...descriptor.sections["probe.hero"], shell: "page" },
+            },
+          },
+          sections: { "probe.hero": section },
+        },
+        ["probe.hero"],
+      ),
+    ).toThrow("duplicate shell ownership");
   });
 });
 

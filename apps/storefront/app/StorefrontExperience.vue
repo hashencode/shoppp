@@ -97,6 +97,7 @@ const presentationProvider = computed(() => {
           path: currentRoute.value.path,
           release: activeExperienceProviderInput.release,
           route: pageContract.value,
+          sectionComposition: themeRegistry.sectionComposition,
         }
       : undefined;
   return selectPresentationProvider({

@@ -420,6 +420,9 @@ export const experienceFixtureSchema = z
     id: storefrontIdentifierSchema,
     label: z.string().trim().min(1).max(160),
     pageTypes: z.array(pageTypeSchema).min(1).max(10),
+    shellViewModels: z
+      .record(storefrontIdentifierSchema, presentationShellViewModelSchema)
+      .optional(),
     viewModels: z.record(storefrontIdentifierSchema, presentationViewModelSchema),
   })
   .strict();
@@ -471,6 +474,26 @@ export function resolveFixtureViewModel(
     throw new Error(
       `Fixture resource ${binding.resource} state does not match binding ${binding.id}.`,
     );
+  }
+  return viewModel;
+}
+
+export function resolveFixtureShellViewModel(
+  binding: FixtureBinding,
+  registry: ExperienceFixtureRegistry,
+  resource: string,
+): PresentationShellViewModel {
+  const fixture = registry[binding.fixtureId];
+  if (!fixture) throw new Error(`Fixture ${binding.fixtureId} is missing.`);
+  const parsed = experienceFixtureSchema.parse(fixture);
+  if (binding.resource !== resource) {
+    throw new Error(
+      `Fixture shell resource ${resource} does not match binding ${binding.id} resource ${binding.resource}.`,
+    );
+  }
+  const viewModel = parsed.shellViewModels?.[resource];
+  if (!viewModel) {
+    throw new Error(`Fixture shell resource ${resource} is missing from ${binding.fixtureId}.`);
   }
   return viewModel;
 }

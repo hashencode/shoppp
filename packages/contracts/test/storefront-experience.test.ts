@@ -11,6 +11,7 @@ import {
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
   storefrontIntentActionSchema,
+  themeCompositionDescriptorSchema,
   themePackageSchema,
   type PresentationProduct,
   type ThemePackage,
@@ -154,6 +155,73 @@ const heroSection = homeTemplate.sections[0]!;
 const legalFooterSection = homeTemplate.sections[1]!;
 
 describe("storefront experience contracts", () => {
+  test("accepts a fixed typed Section composition descriptor and rejects fixture/live drift", () => {
+    const descriptor = {
+      rendererShell: {
+        fixtureResource: "shell",
+        liveResolver: "experience-shell",
+        owner: "renderer",
+        sourceSectionType: "synthetic.hero",
+      },
+      sections: {
+        "synthetic.editorial": {
+          bindings: [],
+          fixture: { kind: "theme-section" },
+          live: { kind: "theme-section", resolver: "theme-section" },
+          shell: "none",
+        },
+        "synthetic.hero": {
+          bindings: [
+            {
+              cardinality: "required",
+              name: "featured-collection",
+              referenceKind: "collection",
+              settingId: "featured-collection",
+            },
+          ],
+          fixture: { kind: "home" },
+          live: { kind: "home", resolver: "home" },
+          shell: "none",
+        },
+      },
+    } as const;
+
+    expect(themeCompositionDescriptorSchema.parse(descriptor)).toMatchObject({
+      rendererShell: { owner: "renderer", sourceSectionType: "synthetic.hero" },
+      sections: {
+        "synthetic.editorial": { live: { resolver: "theme-section" } },
+        "synthetic.hero": { fixture: { kind: "home" }, live: { kind: "home" } },
+      },
+    });
+    expect(
+      themeCompositionDescriptorSchema.safeParse({
+        ...descriptor,
+        sections: {
+          ...descriptor.sections,
+          "synthetic.hero": {
+            ...descriptor.sections["synthetic.hero"],
+            fixture: { kind: "hero" },
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      themeCompositionDescriptorSchema.safeParse({
+        ...descriptor,
+        sections: {
+          ...descriptor.sections,
+          "synthetic.hero": {
+            ...descriptor.sections["synthetic.hero"],
+            bindings: [
+              ...descriptor.sections["synthetic.hero"].bindings,
+              descriptor.sections["synthetic.hero"].bindings[0],
+            ],
+          },
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   test("accepts stable catalog bindings independently from fixture bindings", () => {
     expect(
       catalogResourceBindingSchema.parse({

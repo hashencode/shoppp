@@ -1,6 +1,8 @@
 import type { CanonicalCatalogRelease } from "@shoppp/contracts";
 
-import type { PresentationViewModel } from "../view-models";
+import type { PresentationViewModelKind } from "@shoppp/contracts";
+
+import type { PresentationShellViewModel, PresentationViewModel } from "../view-models";
 
 export type ActiveExperienceProviderInput =
   | { mode: "production" }
@@ -19,9 +21,23 @@ export type ActiveExperienceProviderInput =
     };
 
 export interface PresentationProviderResolveInput {
+  expectedKind?: PresentationViewModelKind;
   instanceId: string;
 }
 
 export interface PresentationProvider {
   resolve(input: PresentationProviderResolveInput): PresentationViewModel;
+  resolveShell?(input: { instanceId: string; resource: string }): PresentationShellViewModel;
+}
+
+export function requireExpectedViewModelKind(
+  viewModel: PresentationViewModel,
+  expectedKind?: PresentationViewModelKind,
+): PresentationViewModel {
+  if (expectedKind && viewModel.kind !== expectedKind) {
+    throw new Error(
+      `Presentation ViewModel kind ${viewModel.kind} does not match declared kind ${expectedKind}.`,
+    );
+  }
+  return viewModel;
 }

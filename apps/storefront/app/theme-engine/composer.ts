@@ -7,10 +7,12 @@ import {
   presentationProductSchema,
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
+  themeCompositionDescriptorSchema,
   type CanonicalCatalogRelease,
   type CatalogResourceBinding,
   type ExperienceSnapshot,
   type PageTemplate,
+  type ThemeCompositionDescriptor,
 } from "@shoppp/contracts";
 
 import type { ThemeCompositionAdapter } from "./composition";
@@ -32,11 +34,15 @@ type CatalogCollection = CanonicalCatalogRelease["collections"][number];
 export type CompositionDiagnosticCode =
   | "catalog-binding-ambiguous"
   | "catalog-binding-missing"
+  | "catalog-binding-undeclared"
   | "catalog-product-default-currency-missing"
   | "catalog-reference-missing"
   | "catalog-reference-unpublished"
   | "catalog-reference-wrong-kind"
   | "catalog-release-not-canonical"
+  | "section-composition-missing"
+  | "section-resolver-mismatch"
+  | "section-view-model-kind-mismatch"
   | "route-not-found";
 
 export interface CompositionDiagnostic {
@@ -58,6 +64,7 @@ export interface ComposedExperienceRoute {
   path: string;
   releaseId: string;
   template?: PageTemplate;
+  shell?: PresentationShellViewModel;
   viewModels: Readonly<Record<string, PresentationViewModel>>;
 }
 
@@ -68,6 +75,7 @@ export interface ComposeExperienceRouteInput {
   path: string;
   release: CanonicalCatalogRelease;
   route: ResolvedThemeRouteContract;
+  sectionComposition?: ThemeCompositionDescriptor;
 }
 
 function matchingTemplate(
@@ -685,6 +693,224 @@ function contentViewModel(
   });
 }
 
+function composeDeclaredSections(input: {
+  adapter?: ThemeCompositionAdapter;
+  bindingsByInstance: ReadonlyMap<string, CatalogResourceBinding[]>;
+  collectionsById: ReadonlyMap<string, CatalogCollection>;
+  descriptor: ThemeCompositionDescriptor;
+  locale: string;
+  pageId: string;
+  path: string;
+  productsById: ReadonlyMap<string, CatalogProduct>;
+  release: CanonicalCatalogRelease;
+  template: PageTemplate;
+}): Pick<ComposedExperienceRoute, "diagnostics" | "shell" | "viewModels"> {
+  const diagnostics: CompositionDiagnostic[] = [];
+  const viewModels: Record<string, PresentationViewModel> = {};
+  const visibleSections = input.template.sections.filter(({ visible }) => visible);
+
+  for (const section of visibleSections) {
+    const contract = input.descriptor.sections[section.type];
+    if (!contract) {
+      diagnostics.push({
+        code: "section-composition-missing",
+        message: `Visible Section ${section.type} has no composition descriptor.`,
+        pageId: input.pageId,
+        path: input.path,
+        sectionId: section.id,
+      });
+      continue;
+    }
+    const bindings = input.bindingsByInstance.get(section.id) ?? [];
+    const resolvedBindings = new Map<string, CatalogResourceBinding>();
+    let invalid = false;
+    const undeclaredBinding = bindings.find(
+      ({ settingId }) => !contract.bindings.some((slot) => slot.settingId === settingId),
+    );
+    if (undeclaredBinding) {
+      diagnostics.push({
+        code: "catalog-binding-undeclared",
+        message: `Visible instance ${section.id} has an undeclared live catalog binding for ${undeclaredBinding.settingId}.`,
+        pageId: input.pageId,
+        path: input.path,
+        referenceId: undeclaredBinding.reference.id,
+        referenceKind: undeclaredBinding.reference.kind,
+        sectionId: section.id,
+        settingId: undeclaredBinding.settingId,
+      });
+      invalid = true;
+    }
+    for (const slot of contract.bindings) {
+      const matches = bindings.filter(({ settingId }) => slot.settingId === settingId);
+      if (matches.length === 0 && slot.cardinality === "required") {
+        diagnostics.push({
+          code: "catalog-binding-missing",
+          message: `Visible instance ${section.id} is missing its ${slot.name} live catalog binding.`,
+          pageId: input.pageId,
+          path: input.path,
+          sectionId: section.id,
+          settingId: slot.settingId,
+        });
+        invalid = true;
+        continue;
+      }
+      if (matches.length > 1) {
+        diagnostics.push({
+          code: "catalog-binding-ambiguous",
+          message: `Visible instance ${section.id} has multiple live catalog bindings for ${slot.settingId}.`,
+          pageId: input.pageId,
+          path: input.path,
+          sectionId: section.id,
+          settingId: slot.settingId,
+        });
+        invalid = true;
+        continue;
+      }
+      const binding = matches[0];
+      if (!binding) continue;
+      if (binding.reference.kind !== slot.referenceKind) {
+        diagnostics.push({
+          code: "catalog-reference-wrong-kind",
+          message: `Catalog binding ${binding.id} does not match declared ${slot.referenceKind} slot ${slot.name}.`,
+          pageId: input.pageId,
+          path: input.path,
+          referenceId: binding.reference.id,
+          referenceKind: binding.reference.kind,
+          sectionId: section.id,
+          settingId: slot.settingId,
+        });
+        invalid = true;
+        continue;
+      }
+      const referenceError = referenceDiagnostic(
+        input.productsById,
+        input.collectionsById,
+        binding,
+      );
+      if (referenceError) {
+        diagnostics.push({
+          ...referenceError,
+          pageId: input.pageId,
+          path: input.path,
+          referenceId: binding.reference.id,
+          referenceKind: binding.reference.kind,
+          sectionId: section.id,
+          settingId: slot.settingId,
+        });
+        invalid = true;
+        continue;
+      }
+      resolvedBindings.set(slot.name, binding);
+    }
+    if (invalid) continue;
+
+    let viewModel: PresentationViewModel | undefined;
+    const firstCollection = [...resolvedBindings.values()].find(
+      ({ reference }) => reference.kind === "collection",
+    );
+    const firstProduct = [...resolvedBindings.values()].find(
+      ({ reference }) => reference.kind === "product",
+    );
+    if (contract.live.resolver === "theme-section") {
+      viewModel = presentationViewModelSchema.parse({
+        data: { settings: section.settings },
+        kind: "theme-section",
+        state: "populated",
+      });
+    } else if (contract.live.resolver === "collection" && firstCollection) {
+      viewModel = collectionViewModel(
+        input.collectionsById.get(firstCollection.reference.id)!,
+        input.productsById,
+        input.release.site.defaultCurrency,
+        input.locale,
+        section.settings,
+      );
+    } else if (contract.live.resolver === "product" && firstProduct) {
+      viewModel = productViewModel(
+        input.release,
+        input.productsById.get(firstProduct.reference.id)!,
+        input.locale,
+        section.settings,
+      );
+    } else if (contract.live.resolver === "home" && firstCollection && input.adapter) {
+      const featuredProduct = firstProduct
+        ? input.productsById.get(firstProduct.reference.id)
+        : undefined;
+      viewModel = homeViewModel(
+        input.adapter,
+        input.release,
+        input.collectionsById.get(firstCollection.reference.id)!,
+        input.productsById,
+        input.release.site.defaultCurrency,
+        input.locale,
+        section.settings,
+        featuredProduct,
+      );
+    } else if (
+      contract.live.resolver === "transaction" &&
+      (input.template.pageType === "cart" || input.template.pageType === "checkout")
+    ) {
+      viewModel = transactionViewModel(
+        input.adapter,
+        input.template.pageType,
+        section.settings,
+        input.release,
+      );
+    } else if (contract.live.resolver === "content") {
+      viewModel = contentViewModel(
+        input.adapter,
+        input.path,
+        section.settings,
+        input.release,
+        input.locale,
+      );
+    }
+
+    if (!viewModel) {
+      diagnostics.push({
+        code: "section-resolver-mismatch",
+        message: `Section ${section.type} cannot satisfy resolver ${contract.live.resolver} with its declared inputs.`,
+        pageId: input.pageId,
+        path: input.path,
+        sectionId: section.id,
+      });
+      continue;
+    }
+    if (viewModel.kind !== contract.live.kind) {
+      diagnostics.push({
+        code: "section-view-model-kind-mismatch",
+        message: `Section ${section.type} resolved ${viewModel.kind} instead of declared ${contract.live.kind}.`,
+        pageId: input.pageId,
+        path: input.path,
+        sectionId: section.id,
+      });
+      continue;
+    }
+    viewModels[section.id] = viewModel;
+  }
+
+  const shellContract = input.descriptor.rendererShell;
+  const shellSection = shellContract
+    ? visibleSections.find(({ type }) => type === shellContract.sourceSectionType)
+    : undefined;
+  if (shellContract && !shellSection) {
+    diagnostics.push({
+      code: "section-resolver-mismatch",
+      message: `Renderer shell source ${shellContract.sourceSectionType} is not visible in the selected template.`,
+      pageId: input.pageId,
+      path: input.path,
+    });
+  }
+
+  return {
+    diagnostics,
+    ...(shellSection
+      ? { shell: shellViewModel(input.adapter, input.release, shellSection.settings) }
+      : {}),
+    viewModels,
+  };
+}
+
 export function composeExperienceRoute(
   input: ComposeExperienceRouteInput,
 ): ComposedExperienceRoute {
@@ -743,6 +969,32 @@ export function composeExperienceRoute(
     const bindings = catalogBindingsByInstance.get(binding.instanceId) ?? [];
     bindings.push(binding);
     catalogBindingsByInstance.set(binding.instanceId, bindings);
+  }
+  if (input.sectionComposition) {
+    const descriptor = themeCompositionDescriptorSchema.parse(input.sectionComposition);
+    const declared = composeDeclaredSections({
+      adapter: input.adapter,
+      bindingsByInstance: catalogBindingsByInstance,
+      collectionsById,
+      descriptor,
+      locale: input.locale,
+      pageId,
+      path,
+      productsById,
+      release,
+      template,
+    });
+    return {
+      diagnostics: declared.diagnostics,
+      locale: input.locale,
+      ok: declared.diagnostics.length === 0,
+      pageId,
+      path,
+      releaseId: release.releaseId,
+      template,
+      ...(declared.shell ? { shell: declared.shell } : {}),
+      viewModels: declared.viewModels,
+    };
   }
   const instances = template.sections.flatMap((section) => [section, ...section.blocks]);
   for (const instance of instances.filter(({ visible }) => visible)) {

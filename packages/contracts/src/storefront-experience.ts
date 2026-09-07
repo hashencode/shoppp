@@ -523,6 +523,96 @@ export const experienceResourceBindingSchema = z.discriminatedUnion("kind", [
   catalogResourceBindingSchema,
 ]);
 
+export const presentationViewModelKindSchema = z.enum([
+  "announcement",
+  "cart",
+  "checkout",
+  "collection-grid",
+  "editorial",
+  "footer",
+  "hero",
+  "home",
+  "navigation",
+  "order",
+  "policy",
+  "product",
+  "product-grid",
+  "promotion",
+  "state",
+  "theme-section",
+  "trust-strip",
+]);
+
+export const sectionCompositionBindingSlotSchema = z
+  .object({
+    cardinality: z.enum(["required", "optional"]),
+    name: storefrontIdentifierSchema,
+    referenceKind: z.enum(["collection", "product"]),
+    settingId: storefrontIdentifierSchema,
+  })
+  .strict();
+
+export const sectionCompositionDescriptorSchema = z
+  .object({
+    bindings: z.array(sectionCompositionBindingSlotSchema).max(20),
+    fixture: z.object({ kind: presentationViewModelKindSchema }).strict(),
+    live: z
+      .object({
+        kind: presentationViewModelKindSchema,
+        resolver: z.enum([
+          "collection",
+          "content",
+          "home",
+          "product",
+          "theme-section",
+          "transaction",
+        ]),
+      })
+      .strict(),
+    shell: z.enum(["none", "page"]),
+  })
+  .strict()
+  .superRefine((descriptor, context) => {
+    if (descriptor.fixture.kind !== descriptor.live.kind) {
+      context.addIssue({
+        code: "custom",
+        message: "Fixture and live ViewModel kinds must match.",
+        path: ["fixture", "kind"],
+      });
+    }
+    const names = descriptor.bindings.map(({ name }) => name);
+    if (new Set(names).size !== names.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Section composition binding slot names must be unique.",
+        path: ["bindings"],
+      });
+    }
+    const settingIds = descriptor.bindings.map(({ settingId }) => settingId);
+    if (new Set(settingIds).size !== settingIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Section composition binding setting IDs must be unique.",
+        path: ["bindings"],
+      });
+    }
+  });
+
+export const themeCompositionDescriptorSchema = z
+  .object({
+    rendererShell: z
+      .object({
+        fixtureResource: storefrontIdentifierSchema,
+        liveResolver: z.literal("experience-shell"),
+        owner: z.literal("renderer"),
+        sourceSectionType: storefrontIdentifierSchema,
+      })
+      .strict()
+      .optional(),
+    sections: z.record(storefrontIdentifierSchema, sectionCompositionDescriptorSchema),
+  })
+  .strict();
+
 export const presentationAvailabilitySchema = z.enum([
   "in-stock",
   "out-of-stock",
@@ -991,6 +1081,10 @@ export type BlockInstance = z.infer<typeof blockInstanceSchema>;
 export type ExperienceDraft = z.infer<typeof experienceDraftSchema>;
 export type ExperienceSnapshot = z.infer<typeof experienceSnapshotSchema>;
 export type FixtureBinding = z.infer<typeof fixtureBindingSchema>;
+export type PresentationViewModelKind = z.infer<typeof presentationViewModelKindSchema>;
+export type SectionCompositionBindingSlot = z.infer<typeof sectionCompositionBindingSlotSchema>;
+export type SectionCompositionDescriptor = z.infer<typeof sectionCompositionDescriptorSchema>;
+export type ThemeCompositionDescriptor = z.infer<typeof themeCompositionDescriptorSchema>;
 export type CatalogResourceBinding = z.infer<typeof catalogResourceBindingSchema>;
 export type CatalogResourceReference = z.infer<typeof catalogResourceReferenceSchema>;
 export type SettingDefinition = z.infer<typeof settingDefinitionSchema>;

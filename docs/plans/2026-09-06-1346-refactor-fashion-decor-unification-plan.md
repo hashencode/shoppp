@@ -9,8 +9,8 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
-current_unit: U2
-current_stage: U2.1
+current_unit: U6
+current_stage: U6.1
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -42,17 +42,18 @@ current_stage: U2.1
 ## Execution Checkpoint
 
 - **Plan state:** Active.
-- **Current parent/child stage:** `U2.1` — characterize the current renderer boundary and prove the dormant single-shell multi-Section seam test-first.
-- **Current unit status:** `U1` is complete after product approval on 2026-09-07; `U2` is in progress; `U3`–`U8` remain pending behind their declared dependencies.
-- **Next concrete action:** Add characterization and failing contract/renderer tests for a registry-local Section composition descriptor and an explicit renderer-owned shell opt-in, then implement the seam without enabling it for any current registry.
-- **Blocker:** None. The approved U1 matrix freezes six bounded Fashion visual variants, one default-hidden Product groups Section, no Shop/Product Decor route variants, no secondary replica migration, and no second Hero.
-- **Execution boundary:** Keep renderer shell ownership disabled for every current registry in U2 so Fashion and Decor output remains unchanged. Do not edit or delete either Decor runtime subtree, decompose Fashion Home, or migrate Decor presentations in this unit.
+- **Current parent/child stage:** `U6.1` — freeze immutable Fashion source packages and establish the successor-only registry path before Home decomposition.
+- **Current unit status:** `U1` and `U2` are complete; `U6.1` is current; `U3`–`U5`, `U6.2`, `U7`, and `U8` remain pending behind their declared dependencies.
+- **Next concrete action:** Characterize every supported exact Fashion package/preset, freeze byte-stable historical inputs, and add the successor-only implementation registry plus exact source-to-successor version/schema map before changing Fashion structure.
+- **Blocker:** None. U2's dormant descriptor and renderer-shell seam is verified and remains disabled for all current registries.
+- **Execution boundary:** Do not decompose Fashion Home or enable renderer shell ownership until U6.1 has frozen the historical package inputs and created the successor-only path. Do not edit or delete either Decor runtime subtree.
 
 | Unit | Status | Owned outcome |
 | --- | --- | --- |
 | U1 | Complete (approved 2026-09-07) | Exact capability/identity disposition and unified-preset IA freeze |
-| U2 | In progress (`U2.1`) | Dormant single-shell multi-Section composition seam |
-| U3–U8 | Pending | Execute only in dependency order after the checkpoint advances |
+| U2 | Complete (verified 2026-09-07) | Dormant single-shell multi-Section composition seam |
+| U6 | In progress (`U6.1`) | Freeze exact source packages and establish successor-only registry path |
+| U3–U5, U6.2, U7–U8 | Pending | Execute only in dependency order after the checkpoint advances |
 
 ---
 
