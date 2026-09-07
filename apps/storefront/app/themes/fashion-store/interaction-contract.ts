@@ -761,7 +761,11 @@ const sharedNavigationPaths = [
   ]),
 ];
 
-const unlinkedSharedRoutes = new Set(["/shop/no-sidebar", "/shop/right-sidebar"]);
+const unlinkedSharedRoutes = new Set([
+  "/shop/no-sidebar",
+  "/shop/right-sidebar",
+  "/policies/cookies",
+]);
 
 const sharedNavigationRows = sharedNavigationPaths.flatMap((path, index) =>
   unlinkedSharedRoutes.has(path)

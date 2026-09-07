@@ -5,6 +5,8 @@ import {
 } from "@shoppp/contracts";
 import type { InjectionKey } from "vue";
 
+export const storefrontCartLineQuantityLimit = MAX_CART_LINE_QUANTITY;
+
 export type RuntimeAvailability = Exclude<PresentationAvailability, "unknown">;
 type ProductPrice = Product["variants"][number]["price"];
 

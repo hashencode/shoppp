@@ -34,6 +34,7 @@ async function prepare(page: Page, path: string): Promise<void> {
         ?.getAttribute("data-runtime-status") ?? "",
     ),
   );
+  await page.locator("html.js").waitFor();
 }
 
 test("every rendered Fashion Store candidate maps to exactly one semantic row", async ({

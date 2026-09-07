@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { MAX_CART_LINE_QUANTITY } from "@shoppp/contracts";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import {
@@ -8,6 +7,7 @@ import {
   resolveRuntimeProductSelection,
   runtimeCommercePortKey,
   selectRuntimeProductOption,
+  storefrontCartLineQuantityLimit,
   verifyProductCartAdd,
   type RuntimeProductState,
 } from "../../../../theme-engine/runtime-commerce";
@@ -309,7 +309,7 @@ onMounted(() => {
                 variant="plain"
                 :model-value="quantity"
                 :min="1"
-                :max="MAX_CART_LINE_QUANTITY"
+                :max="storefrontCartLineQuantityLimit"
                 label="Quantity"
                 @commit="quantity = $event"
               />

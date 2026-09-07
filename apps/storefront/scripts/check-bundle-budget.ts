@@ -12,8 +12,6 @@ const codeExtensions = new Set([".css", ".js", ".map"]);
 const imageExtensions = new Set([".avif", ".jpg", ".jpeg", ".png", ".webp"]);
 const forbiddenRuntime =
   /(?:contact\.php|(?:^|[/_-])crafto(?:\.min)?\.(?:css|js)|[/_-]crafto[/_-])/i;
-const sourceRuntimeName =
-  /(?:jquery|vendors(?:\.min)?(?:\.[A-Za-z0-9_-]+)?\.js|revslider|revolution(?:\.extension)?|themepunch)/i;
 const revolutionRuntime = /(?:revslider|revolution(?:\.extension)?|themepunch)/i;
 const forbiddenSourceEntrypointFile = /(?:^|[/_-])main(?:\.[A-Za-z0-9_-]+)?\.js/i;
 const forbiddenSourceEntrypointCode = /(?:theme-demos-main|instagram-feed)/i;
@@ -63,13 +61,6 @@ export function assertSourceRuntimePolicy({
   const isApprovedDecorRuntime = approvedDecorRuntimeHashes.has(digest);
   if (forbiddenSourceEntrypointFile.test(file)) {
     throw new Error(`Storefront output contains the excluded upstream main entrypoint in ${file}.`);
-  }
-  if (selectedThemeId === "decor-store") {
-    if (isApprovedDecorRuntime) return digest;
-    if (sourceRuntimeName.test(file)) {
-      throw new Error(`decor-store output contains an unapproved source runtime in ${file}.`);
-    }
-    return null;
   }
   const fashionRuntimeName = /(?:jquery|vendors(?:\.min)?(?:\.[A-Za-z0-9_-]+)?\.js)/i.test(file);
   if (revolutionRuntime.test(file) || (isApprovedDecorRuntime && !fashionRuntimeName)) {
@@ -134,26 +125,23 @@ async function approvedDecorRuntimeHashes(): Promise<Set<string>> {
 async function main(): Promise<void> {
   const output = resolve(import.meta.dir, "../.output/public");
   const representativeRoutes =
-    activeThemeId === "decor-store"
-      ? activeThemeRoutes.map(({ path }) => path)
-      : activeThemeId === "fashion-store"
-        ? themeRoutePaths(
-            activeThemeRoutes,
-            activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview",
-            activeExperienceProviderInput.mode === "live"
-              ? activeExperienceProviderInput.release
-              : undefined,
-          )
-        : [
-            "/",
-            manifest.routes.find((route) => route.startsWith("/collections/")),
-            manifest.routes.find((route) => route.startsWith("/products/")),
-          ].filter((route): route is string => Boolean(route));
+    activeThemeId === "fashion-store"
+      ? themeRoutePaths(
+          activeThemeRoutes,
+          activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview",
+          activeExperienceProviderInput.mode === "live"
+            ? activeExperienceProviderInput.release
+            : undefined,
+        )
+      : [
+          "/",
+          manifest.routes.find((route) => route.startsWith("/collections/")),
+          manifest.routes.find((route) => route.startsWith("/products/")),
+        ].filter((route): route is string => Boolean(route));
   const outputPath = (route: string) =>
     route === "/" ? resolve(output, "index.html") : resolve(output, route.slice(1), "index.html");
   const budgets = {
     default: 200 * 1024,
-    "decor-store": 200 * 1024,
     "fashion-store": 300 * 1024,
   } as const;
   const budget = budgets[activeThemeId as keyof typeof budgets] ?? budgets.default;
@@ -181,11 +169,7 @@ async function main(): Promise<void> {
     approvedDecorRuntimeHashes(),
   ]);
   const inactiveThemes =
-    activeThemeId === "decor-store"
-      ? ["fashion-store"]
-      : activeThemeId === "fashion-store"
-        ? ["decor-store"]
-        : ["decor-store", "fashion-store"];
+    activeThemeId === "fashion-store" ? ["decor-store"] : ["decor-store", "fashion-store"];
   const inactiveThemePatterns = inactiveThemes.map(
     (theme) =>
       [
@@ -196,19 +180,16 @@ async function main(): Promise<void> {
         ),
       ] as const,
   );
-  const seenDecorRuntimeHashes = new Set<string>();
-
   for (const file of files) {
     if (extname(file) === ".php" || forbiddenRuntime.test(file))
       throw new Error(`Storefront output contains a prohibited upstream runtime in ${file}.`);
     const bytes = new Uint8Array(await readFile(resolve(output, file)));
-    const approvedHash = assertSourceRuntimePolicy({
+    assertSourceRuntimePolicy({
       activeThemeId,
       approvedDecorRuntimeHashes: approvedHashes,
       contents: bytes,
       file,
     });
-    if (approvedHash) seenDecorRuntimeHashes.add(approvedHash);
     if (!textExtensions.has(extname(file))) continue;
     const contents = new TextDecoder().decode(bytes);
     const runtimeSurface = codeExtensions.has(extname(file))
@@ -222,7 +203,7 @@ async function main(): Promise<void> {
       throw new Error(
         `Storefront output contains the excluded upstream main entrypoint in ${file}.`,
       );
-    if (revolutionRuntime.test(runtimeSurface) && activeThemeId !== "decor-store")
+    if (revolutionRuntime.test(runtimeSurface))
       throw new Error(
         `${activeThemeId} output contains Decor Store Revolution runtime in ${file}.`,
       );
@@ -265,13 +246,6 @@ async function main(): Promise<void> {
     for (const marker of ["data-fashion-store-source-parity", "data-fashion-store-visual-runtime"])
       if (!outputText.includes(marker))
         throw new Error(`fashion-store output is missing required isolation marker ${marker}.`);
-  } else if (activeThemeId === "decor-store") {
-    if (seenDecorRuntimeHashes.size !== approvedHashes.size)
-      throw new Error(
-        "decor-store output is missing part of its audited Revolution dependency closure.",
-      );
-    if (!files.some((file) => extname(file) === ".woff2" && /plus-jakarta-sans-latin/i.test(file)))
-      throw new Error("decor-store output is missing its selected self-hosted font.");
   } else if (files.some((file) => /(?:figtree|outfit|plus-jakarta-sans)-latin/i.test(file))) {
     throw new Error("Production fallback contains a preview theme font.");
   }

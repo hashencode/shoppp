@@ -410,14 +410,18 @@
 }
 
 @media (min-width: 992px) {
+  [data-fashion-store-header]:has(+ main[data-fashion-store-shop]) .navbar.disable-fixed {
+    top: 40px;
+  }
+
   [data-fashion-store-header] + main[data-fashion-store-shop] > .top-space-margin {
-    margin-top: 78px;
+    margin-top: 118px;
   }
 }
 
 @media (max-width: 991px) {
   [data-fashion-store-header] + main[data-fashion-store-shop] > .top-space-margin {
-    margin-top: 78px;
+    margin-top: 119px;
   }
 }
 
@@ -1879,14 +1883,22 @@
 }
 
 @media (min-width: 992px) {
+  [data-fashion-store-header] .navbar.disable-fixed {
+    top: 40px !important;
+  }
+
   [data-fashion-store-header] + main > .top-space-margin {
-    margin-top: 78px;
+    margin-top: 118px;
   }
 }
 
 @media (max-width: 991px) {
+  [data-fashion-store-header] .navbar.disable-fixed {
+    top: 41px !important;
+  }
+
   [data-fashion-store-header] + main > .top-space-margin {
-    margin-top: 78px;
+    margin-top: 119px;
   }
 
   .fashion-about-mission .overlap-section {
@@ -1932,6 +1944,10 @@
 }
 
 @media (max-width: 767px) {
+  [data-fashion-store-header] .navbar.disable-fixed {
+    top: 0 !important;
+  }
+
   [data-fashion-store-header] + main > .top-space-margin {
     margin-top: 79px;
   }

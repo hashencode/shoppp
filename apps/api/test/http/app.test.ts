@@ -36,6 +36,7 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   { method: "POST", path: "/admin/iam/roles", permission: "iam.roles.write" },
   { method: "PATCH", path: "/admin/iam/roles/:id", permission: "iam.roles.write" },
   { method: "GET", path: "/admin/iam/roles/:id", permission: "iam.roles.read" },
+  { method: "GET", path: "/admin/settings/setup-guide", permission: "settings.read" },
   { method: "GET", path: "/admin/settings/launch", permission: "settings.read" },
   { method: "GET", path: "/admin/settings/shipping", permission: "settings.read" },
   {

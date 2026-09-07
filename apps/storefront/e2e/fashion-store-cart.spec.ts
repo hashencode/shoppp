@@ -58,7 +58,8 @@ async function prepareCart(page: Page): Promise<void> {
   await page.goto("/cart", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-cart][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  await page.getByRole("button", { name: "Allow cookies" }).click();
+  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
+  if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
 test("Cart preserves source rows, totals, controls, and responsive geometry", async ({

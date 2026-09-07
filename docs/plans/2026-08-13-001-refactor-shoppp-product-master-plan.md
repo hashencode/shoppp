@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-09-06-1346-refactor-fashion-decor-unification-plan.md
-current_unit: FS-R3-U8.2
+current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
+current_unit: REL-Pre-DC
 ---
 
 # Shoppp Product Master Plan
@@ -43,14 +43,14 @@ Shoppp is one cross-border DTC commerce product with these product areas:
 | `IAM` | Admin authentication, users, roles, authorization and environment isolation | [Multi-User Admin Access](2026-08-04-001-feat-multi-user-admin-access-plan.md) |
 | `AI` | Reviewable AI assistance in product editing | [AI-Assisted Product Form](2026-08-04-002-feat-ai-assisted-product-form-plan.md) |
 | `FS` | The `fashion-store` product template | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) |
-| `DS` | The `decor-store` product template | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) for home correction; [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) for the completed remaining-page tail |
+| `DS` | Retired Decor runtime/reference lineage | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) and [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) retain completed historical behavior/source evidence; FS-R3 owns retirement completion |
 | `REL` | Candidate proof and production-promotion policy | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) |
 | `CI` | Repository validation plus GitHub-first release delivery | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md); the completed [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) and [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) retain history |
 
-`fashion-store` and `decor-store` are templates in the same product and shared theme platform. The
-older `fashion` reimplementation is retired and is not a third product template. The existing code
-ID `decor` denotes `decor-store` during a deliberate migration period; it does not denote another
-template.
+`fashion-store` is the sole current selectable/runtime template in the product and shared theme
+platform. The older `fashion`, `decor`, and `decor-store` implementations are retired. Decor source,
+behavior, provenance, and immutable historical IDs remain reference/audit evidence rather than
+current templates.
 
 ## Identifier model
 
@@ -66,12 +66,12 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `FS-R3` — [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md); the completed FS-R2-U6 handback satisfies its activation prerequisite without changing candidate, DC, or PG state.
-- **Current parent/child stage:** `FS-R3-U8.2` — exact identity `decor` is removed and verified; independently gate and retire `decor-store`.
-- **Current feature scope:** U1–U7 and U8.1 are complete. Both governed Workers serve the exact-ID lifecycle freeze, the first runtime identity is absent from selectable/build surfaces, and its recovery and reference evidence remain intact.
-- **Next action:** Reconcile provider metadata and repeat the aggregate-only inventory immediately before the second deletion; if it remains known and zero, remove `decor-store` from runtime/catalog/build surfaces while retaining immutable reads, stable retirement errors, and the reference tree.
-- **Blocker:** None confirmed. A newly discovered namespace, unavailable aggregate query, non-zero unresolved state, or post-freeze delta blocks U8. REL's candidate-identity blocker remains paused; no candidate is frozen and DC/PG have not begun.
-- **Paused release authority:** `REL` retains Candidate Template Matrix, DC, and PG authority and resumes at `REL-Pre-DC` after FS-R3 handback; activation of FS-R3 does not resolve or advance its existing blocker.
+- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md), resumed after FS-R3 completed U1-U8 on 2026-09-07.
+- **Current parent/child stage:** `REL-Pre-DC` — reconcile the intended release capability set, approved deferrals, and complete candidate-identity enforcement before DC1.
+- **Current feature scope:** FS-R3 is complete. `fashion-store` is the sole selectable/runtime package; both exact Decor identities remain frozen historical IDs with immutable reads, stable retirement errors, retained reference evidence, and recovery ref `f2c8a86d`.
+- **Next action:** REL audits the product-level capability set and approved deferrals against owning-plan completion, then closes the remaining `release:validate` candidate-identity gaps. Candidate selection remains forbidden until that reconciliation passes.
+- **Blocker:** Pre-DC remains blocked by the unaudited product-level capability set/deferrals, reconciliation of every selected capability against its owning plan, and incomplete candidate-identity enforcement. No candidate is frozen and DC/PG have not begun.
+- **Completed FS-R3 handoff:** Independent fresh aggregate-only gates authorized exact `decor` and `decor-store` removal; no remote data or artifact was deleted. The handoff changes product membership but does not resolve REL's blocker or advance candidate, DC, or PG state.
 - **Corrective handoff:** `FS-F3` completed U1–U3 on 2026-09-04. Its five-second Product cadence, sole semantic thumbnail marker, bounded direction-aware reveal, responsive resize handling, interrupted-transition handling, and focused regression evidence passed; the handoff does not advance DC/PG.
 - **Feature handoff:** `FS-R1` completed U1–U11 on 2026-09-04 in the existing primary worktree and `codex/fashion-store-components-dependencies` branch. Its local fixture/live, current Playwright engine, reduced-motion, no-JS, remount, performance, resource, maintenance and review evidence passed. Historical minimum-browser, real-device and embedded-host rows remain explicitly unverified under the user-approved scope; the handoff does not advance DC/PG.
 - **Localization handoff:** `ADM-I18N` completed U1–U6 implementation, local verification and audit closure on 2026-09-03. Its plan retains evidence and review/coverage limits, with no implementation tail; this handoff does not advance candidate or production gates.
@@ -235,7 +235,7 @@ CI infrastructure execution is complete after its bounded bridge and steady-stat
   without changing the 17 gates or Lighthouse thresholds. `CI-U7.3` remains incomplete historical
   work, and its missing Intel restore is not reclassified as passing evidence.
 - **Next action:** None in CI. Future material changes re-enter through the completed CI plan's
-  documented event-driven boundary; active execution belongs to `FS-U8.2`.
+  documented event-driven boundary; active execution belongs to `REL-Pre-DC`.
 - **Blocker:** None. Retained post-removal run
   `33073613728` passed all 17 gates, exact
   same-run binding, protected staging proof, p95 budgets, exact restoration, D1 reconciliation, and
@@ -416,10 +416,10 @@ focused test alone.
 | `FS-R1` | [Fashion Store Shared Components and Dependency Consolidation](2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md) | Bounded successor over FS and completed FS-F2 | **Complete — U1-U11 closed on 2026-09-04 under the user-approved current-engine scope, with minimum-version targets and explicit unverified device rows retained** | Retains component, dependency, compatibility and local-verification evidence; `REL` owns candidate and production gates |
 | `FS-F3` | [Fashion Store Product Gallery Carousel Correction](2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md) | Corrective successor to completed FS-R1-U6 | Complete — U1-U3 closed on 2026-09-04; Product gallery correction and focused local verification complete; candidate and production state unchanged | Retains completed correction evidence with no implementation tail; `REL` owns candidate and production gates |
 | `FS-R2` | [Fashion Store Decor Hero Migration](2026-09-05-1414-refactor-fashion-store-decor-hero-plan.md) | Bounded Fashion Home Hero and dependency successor over completed FS-R1/FS-F3 | **Complete — U1-U6 closed on 2026-09-07; immediate initialization, full Home/live regression, behavior evidence, and focused Decor compatibility pass** | Retains completed Hero/startup evidence with no implementation tail; `REL` owns candidate and production gates |
-| `FS-R3` | [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md) | Bounded successor that makes Fashion the sole functional storefront package and absorbs only approved Decor-specific presentation value | **Active — U1–U7 and U8.1 complete; U8.2 second guarded runtime retirement current** | Owns unified composition, Decor capability disposition, and the guarded retirement of both `decor` and `decor-store`; REL retains candidate, DC, and PG authority |
+| `FS-R3` | [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md) | Bounded successor that makes Fashion the sole functional storefront package and absorbs only approved Decor-specific presentation value | **Complete — U1-U8 closed on 2026-09-07 after independent guarded retirement of both exact Decor identities and full local verification** | Retains unified-composition, capability-disposition, retirement, reference, and recovery evidence; REL owns the implementation tail, candidate, DC, and PG authority |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
-| `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Pre-DC blocked and current; FS-R1, historical Fashion Store implementation, FS-F2, FS-F3 and ADM-I18N are complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
+| `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Active at blocked `REL-Pre-DC`; FS-R3 and inherited implementation plans are complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
 | `FRT` | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md) | Old runtime-template retirement | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence** | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration |
 | `WTC` | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) | Local worktree simplification | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md` |
 | `CI` | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) | Historical and post-bridge CI authority | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution and requires a named successor before the next U8 freeze** | Retains historical CI evidence; the successor owns shared/post-commit cloud migration and returns control to `FS-U8.2` |
@@ -468,16 +468,15 @@ focused test alone.
     preserves step-level expansion, authorization and fixed-check semantics; the observed
     fashion-staging 404 is an undeployed API-version mismatch and does not alter release authority.
 
-The 2026-08-13 product decision explicitly supersedes earlier wording that retained only
-`fashion-store` and removed both `fashion` and `decor`:
+The completed FS-R3 decision supersedes the earlier two-current-template wording:
 
 - retain `fashion-store` as the current Fashion Store product template;
 - retire the old `fashion` runtime implementation and rename the still-used Crafto comparison label
   to `fashion-store-source` so no product, runtime, or reference identity remains named `fashion`;
-- retain Decor Store under the product name `decor-store`;
-- treat code ID `decor` as that same template's legacy implementation identity until migration;
-  and
-- keep `decor-store` independent from a `fashion-store`-only candidate.
+- retire exact runtime identities `decor` and `decor-store` after their independent data gates while
+  retaining their immutable historical IDs and reference evidence; and
+- keep retained Decor evidence outside the Candidate Template Matrix unless a later implementation
+  plan deliberately introduces a new selectable runtime.
 
 No plan may add or remove candidate support merely from product membership or code existence. The
 frozen Candidate Template Matrix and Activation Target own candidate scope.
@@ -505,10 +504,10 @@ cleanup condition and retained pre-removal evidence.
 ### 3. Decor Store identity migration
 
 [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md)
-supersedes the previously anticipated standalone `decor` to `decor-store` migration when FS-R3
-activates. It treats `decor` and `decor-store` as separate technical identities, inventories both,
-and retires both selectable runtimes only after an exact zero/unresolved-state gate. This queued
-work does not block REL-Pre-DC or independently advance a `fashion-store` candidate.
+superseded the previously anticipated standalone `decor` to `decor-store` migration. It treated
+`decor` and `decor-store` as separate technical identities, inventoried both, and retired both
+selectable runtimes after independent exact zero/unresolved-state gates. The completed work returned
+authority to REL-Pre-DC without independently selecting or advancing a `fashion-store` candidate.
 
 ### 4. Decor Store remaining page suite
 
@@ -548,8 +547,8 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-R3-U8.2` is the single current product execution pointer; REL-Pre-DC is paused with its blocker unchanged, and no candidate, DC, or PG state has advanced.
-- The old `fashion` implementation, `decor-store` naming, DC/PG scope, and worktree policy are stated
+- `REL-Pre-DC` is the single current product execution pointer; FS-R3 is complete, REL's blocker is unchanged, and no candidate, DC, or PG state has advanced.
+- The retired `fashion`, `decor`, and `decor-store` implementations, retained reference naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.
 - Future product-level status changes have an explicit same-change update rule.

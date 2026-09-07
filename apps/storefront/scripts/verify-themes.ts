@@ -8,8 +8,6 @@ import { readdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
-import { decorStoreManifest, decorStoreThemeDescriptor } from "../app/themes/decor-store/manifest";
-import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
 import {
   fashionStoreDirectMigrationBoundaries,
   fashionStoreSuccessorPackage,
@@ -49,13 +47,6 @@ export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
       toSchemaVersion: target.configurationSchemaVersion,
     })),
     package: fashionStoreSuccessorPackage,
-    requiredPageTypes: ["home"],
-  },
-  {
-    assetPolicy: "source-equivalent",
-    descriptor: decorStoreThemeDescriptor,
-    directPackageBoundaries: [],
-    package: { manifest: decorStoreManifest, presets: [decorStorePreset] },
     requiredPageTypes: ["home"],
   },
 ];

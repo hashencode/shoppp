@@ -201,7 +201,8 @@ async function prepareCheckout(
   await page.goto("/checkout", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-checkout][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  await page.getByRole("button", { name: "Allow cookies" }).click();
+  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
+  if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
 async function fillBilling(page: Page): Promise<void> {

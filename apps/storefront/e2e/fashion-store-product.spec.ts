@@ -14,7 +14,8 @@ async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
   await page.goto(productRoute, { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-product][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  if (dismissCookie) await page.getByRole("button", { name: "Allow cookies" }).click();
+  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
+  if (dismissCookie && (await cookieButton.isVisible())) await cookieButton.click();
 }
 
 async function galleryIndex(gallery: Locator): Promise<number> {

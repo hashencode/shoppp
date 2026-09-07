@@ -133,3 +133,49 @@ matrices no longer expose exact `decor`. The generated catalog contains only `de
 161 source-equivalence tests, the two-theme package verifier, 26 focused Worker API tests including
 both exact retired IDs and immutable reads, the workspace typecheck, and the U1 disposition check.
 The second identity remains intact and selectable until its independent fresh gate completes.
+
+## 2026-09-07 — U8.2 exact identity `decor-store` removal and handback
+
+Immediately before the second deletion, provider metadata was reconciled once more. The governed
+D1 identities remained `shoppp-staging` (`0c84c9e-5ef1-4897-815e-5ec7efb7582e`) and
+`shoppp-fashion-staging` (`eb1ca4ef-3121-4d02-b20e-e619eac1cecc`); production
+`e17ef1dc-d87c-40c7-b218-e4827d815168` and preview-only
+`d321a324-93dd-4698-bfa3-eae5b66c9290` / `cf71a40a-12dc-44d4-8535-11357f0fa325`
+remained unchanged and without governed deployed schema. Both Workers still served 100% of traffic from freeze versions
+`4524918b-0d0a-40e7-875b-69e297769079` and
+`e8a1f9fd-d013-4a3e-a678-6c40b1ed8419` respectively.
+
+The fresh aggregate-only query for exact `decor-store` returned zero in both governed databases for
+drafts, draft-version sum, validations, migrations, snapshots, builds, runtime-dependent builds,
+uncleaned artifacts, grants, active grants, sessions, active sessions, and Catalog Release
+references. Maximum draft/build `updated_at` values remained `null`; every response reported
+`success: true`, `changed_db: false`, `changes: 0`, and `rows_written: 0`. This was the independent
+second-identity deletion authority and proved zero post-freeze delta.
+
+The recoverable deletion was scoped to the exact classified runtime tree plus its exact fixture,
+Playwright configuration, Decor Store E2E/unit suites, fragment generators, and acceptance runner:
+
+`git rm -r apps/storefront/app/themes/decor-store apps/storefront/fixtures/experience/decor-store.json apps/storefront/playwright.decor-store.config.ts apps/storefront/e2e/decor-store-*.spec.ts apps/storefront/e2e/support/decor-store-network.ts apps/storefront/tests/decor-store-*.test.ts apps/storefront/scripts/generate-decor-store-page-fragments.ts apps/storefront/scripts/generate-decor-store-page-fragments.test.ts apps/storefront/scripts/generate-decor-store-source-fragments.ts apps/storefront/scripts/generate-decor-store-source-fragments.test.ts tools/run-decor-store-acceptance.ts tools/run-decor-store-acceptance.test.ts`
+
+The validated exact paths were removed through Git; the wildcard notation above is a compact record
+of the enumerated tracked file family, not authorization for any later deletion. No remote row,
+object, database, bucket, Worker, branch, recovery ref, or retained reference asset was deleted.
+
+After removal, API and storefront catalogs expose only `fashion-store`; new package APIs, fixture
+generation, selected-theme imports, prerender selection, scripts, CSS/runtime plugins, active
+fidelity/source matrices, and browser/performance configuration are Fashion-only. Immutable Decor
+reads and the stable `storefront_theme_package_retired` mutation response remain covered. The
+reference-only contracts and source intake still verify independently, while the Fashion runtime
+has no dependency on that tree. Pre-removal commit `f2c8a86d` remains the exact recovery authority
+for both retired runtime trees.
+
+Focused contract/API/storefront/tooling tests, generated-catalog and theme verification,
+source-equivalence verification, workspace typecheck, the full API Worker suite, Fashion preview
+build, static output verification, and selected-theme bundle isolation passed. The final repository
+suite passed with tools 402/402, Admin 443/443, Storefront 265/265, contracts 37/37, database 1/1,
+and domain 30/30. The complete Fashion gate passed 47/47 focused tests, 15/15 live-Commerce browser
+tests, and 277 executed static browser cases with 243 intentional viewport skips; all 15 page-level
+behavior reports also passed their executed-evidence checks. That final run additionally proved the
+restored source geometry for Product and all three Shop layouts across desktop, laptop, tablet, and
+mobile. FS-R3 then returned authority to blocked `REL-Pre-DC`; no candidate was frozen and DC/PG did
+not advance.

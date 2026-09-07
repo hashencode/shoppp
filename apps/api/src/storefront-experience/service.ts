@@ -5,7 +5,6 @@ import {
   experienceSnapshotSchema,
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
-  themePackageRegistrationSchema,
   themePackageSchema,
   type CanonicalCatalogRelease,
   type CreateStorefrontExperienceDraftRequest,
@@ -29,8 +28,6 @@ import {
 } from "@shoppp/domain";
 import type { Context } from "hono";
 
-import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/manifest";
-import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
 import {
   fashionStoreDirectMigrationBoundaries,
   fashionStoreFixtureBindingAliasesForPackage,
@@ -38,7 +35,6 @@ import {
 } from "../../../storefront/app/themes/fashion-store/package-registry";
 import { fashionStoreConfigurationMigrations } from "../../../storefront/app/themes/fashion-store/migrations";
 import { sha256Hex } from "../orders/tokens";
-import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
@@ -145,17 +141,9 @@ interface SnapshotRow {
 const PLATFORM_CONTRACT_VERSION = "1.0.0";
 const MAX_VALIDATION_LOOKUP_BINDINGS = 100;
 const defaultPackageRegistrations = [
-  themePackageRegistrationSchema.parse({
-    lifecycle: "successor",
-    package: {
-      manifest: decorStoreManifest,
-      presets: [decorStorePreset],
-    },
-  }),
   ...fashionStorePackageRegistrations,
 ] as const satisfies readonly ThemePackageRegistration[];
 const fixtureBindingsByThemeId = {
-  "decor-store": decorStoreFixture.bindings,
   "fashion-store": fashionStoreFixture.bindings,
 } as const;
 

@@ -9,8 +9,10 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
-current_unit: U8
-current_stage: U8.2
+status: complete
+completed: 2026-09-07
+current_unit: none
+current_stage: none
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -41,11 +43,11 @@ current_stage: U8.2
 
 ## Execution Checkpoint
 
-- **Plan state:** Active.
-- **Current parent/child stage:** `U8.2` — exact runtime identity `decor` is removed and verified; repeat the authorized gate before removing `decor-store`.
-- **Current unit status:** `U1`–`U7` and `U8.1` are complete; `U8.2` is current. The first exact identity is absent from selectable/runtime surfaces, its recovery ref and reference evidence are retained, and the intermediate source/API/typecheck gate passed without touching `decor-store`.
-- **Next concrete action:** Reconcile provider metadata and re-run the aggregate-only query immediately before the second deletion; if every environment remains known and zero, remove `decor-store` from registries, catalogs, fixtures, scripts, active matrices, and its classified runtime subtree while retaining immutable reads, stable retirement errors, and the reference tree.
-- **Blocker:** None confirmed. Any newly provisioned namespace, unavailable inventory, non-zero unresolved state, or post-freeze delta stops U8 before runtime deletion.
+- **Plan state:** Complete on 2026-09-07; execution returned to `REL-Pre-DC`.
+- **Current parent/child stage:** None. `U8.2` completed the second exact-identity retirement and closed the plan.
+- **Current unit status:** `U1`–`U8` are complete. `fashion-store` is the sole selectable/runtime package; immutable Decor reads, stable retirement errors, the frozen reference tree, and recovery ref remain intact.
+- **Next concrete action:** `REL-Pre-DC` reconciles the intended release capability set and candidate-identity enforcement. This handback does not select a candidate or advance DC/PG.
+- **Blocker:** No FS-R3 blocker or implementation tail remains. REL retains its existing Pre-DC blockers.
 - **U6.1 evidence:** [`docs/progress/fashion-store-u6-1-package-boundary.md`](../progress/fashion-store-u6-1-package-boundary.md) records the frozen digest, exact direct boundary, lifecycle enforcement, and verification results.
 - **U3 evidence:** [`docs/progress/fashion-store-u3-home-sections.md`](../progress/fashion-store-u3-home-sections.md) records characterization, provisional composition, review corrections, and verification without acting as a second execution queue.
 - **U4/U5 evidence:** [`docs/progress/fashion-decor-u4-u5-presentations.md`](../progress/fashion-decor-u4-u5-presentations.md) records the six Home variants, Product groups Section, U5 no-op disposition, review corrections, and focused/browser verification.
@@ -62,7 +64,7 @@ current_stage: U8.2
 | U4 | Complete (verified 2026-09-07) | Six approved Home presentation variants and the default-hidden Product groups Section are Fashion-owned and verified |
 | U5 | Complete (verification-only no-op 2026-09-07) | U1 rejected Shop/Product Decor variants; existing Fashion commerce routes remain sole authority |
 | U7 | Complete (verified 2026-09-07) | Reconciled all namespaces, deployed the exact-ID write freeze, proved zero unresolved state/delta, and separated reference evidence |
-| U8 | Current (`U8.2`; U8.1 complete) | Remove `decor-store` behind its independent fresh zero-state gate, prove Fashion-only runtime, then return to REL |
+| U8 | Complete (verified 2026-09-07; U8.1/U8.2 staged gates) | Both exact Decor runtimes retired after independent fresh zero-state gates; Fashion-only runtime proved and authority returned to REL |
 
 ---
 

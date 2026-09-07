@@ -1,13 +1,9 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { fixtureBindingSchema } from "@shoppp/contracts";
 import * as z from "zod";
 
-import { decorStoreManifest } from "../app/themes/decor-store/manifest";
-import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
-import { decorStorePreset } from "../app/themes/decor-store/presets/source-parity";
-import { decorStoreRuntimeSourceOrder } from "../app/themes/decor-store/resources";
 import { fashionStoreManifest } from "../app/themes/fashion-store/successor/manifest";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/successor/presets/source-parity";
@@ -26,20 +22,12 @@ const previewFixtureSchema = z
 
 interface PreviewThemeDescriptor {
   fixturePath: string;
-  manifest: typeof decorStoreManifest | typeof fashionStoreManifest;
+  manifest: typeof fashionStoreManifest;
   pageTypes: ReadonlySet<string>;
-  templates:
-    | typeof decorStorePreset.templates
-    | typeof fashionStorePreset.templates;
+  templates: typeof fashionStorePreset.templates;
 }
 
 const previewThemeDescriptors = {
-  "decor-store": {
-    fixturePath: "../fixtures/experience/decor-store.json",
-    manifest: decorStoreManifest,
-    pageTypes: new Set(decorStoreEnabledPageContracts.map(({ pageType }) => pageType)),
-    templates: decorStorePreset.templates,
-  },
   "fashion-store": {
     fixturePath: "../fixtures/experience/fashion-store.json",
     manifest: fashionStoreManifest,
@@ -83,9 +71,6 @@ export async function themePreviewBuildInput(
   };
 }
 
-export const decorStorePreviewBuildInput = (expectedOrigin: string) =>
-  themePreviewBuildInput("decor-store", expectedOrigin);
-
 export const fashionStorePreviewBuildInput = (expectedOrigin: string) =>
   themePreviewBuildInput("fashion-store", expectedOrigin);
 
@@ -98,20 +83,6 @@ async function main(): Promise<void> {
     import.meta.dir,
     `../fixtures/experience/.generated/${themeId}-preview-input.json`,
   );
-  if (themeId === "decor-store") {
-    const generatedResources = resolve(import.meta.dir, "../public/theme-preview-generated");
-    await rm(resolve(generatedResources, "decor-store"), { force: true, recursive: true });
-    await Promise.all(
-      decorStoreRuntimeSourceOrder.map(async (sourcePath) => {
-        const destination = resolve(generatedResources, "decor-store", sourcePath);
-        await mkdir(dirname(destination), { recursive: true });
-        await cp(
-          resolve(import.meta.dir, "../app/themes/decor-store/upstream", sourcePath),
-          destination,
-        );
-      }),
-    );
-  }
   const input = await themePreviewBuildInput(
     themeId as PreviewThemeId,
     "https://preview.example.test",

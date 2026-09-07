@@ -1189,8 +1189,8 @@ describe("storefront theme browser matrix", () => {
     ]);
     const productionIgnore = production.match(/testIgnore:\s*\[([\s\S]*?)\],/)?.[1];
 
-    expect(productionIgnore).toContain('"decor-theme.spec.ts"');
-    expect(productionIgnore).toContain('"decor-motion.spec.ts"');
+    expect(production).not.toContain("decor-theme.spec.ts");
+    expect(production).not.toContain("decor-motion.spec.ts");
     expect(productionIgnore).toContain('"fashion-store-*.spec.ts"');
     expect(productionIgnore).toContain('"theme-behavior-contract.spec.ts"');
     expect(fashionStore).toContain('"fashion-store-*.spec.ts"');
@@ -1198,7 +1198,7 @@ describe("storefront theme browser matrix", () => {
     expect(fashionStore).toContain("check-bundle-budget.ts");
   });
 
-  test("keeps Fashion Store fidelity evidence scoped to home and requires explicit review", async () => {
+  test("keeps retired Decor evidence reference-only and requires explicit review", async () => {
     const [fashionStore, architecture, reference] = await Promise.all([
       readFile(fashionStorePlaywrightPath, "utf8"),
       readFile(architecturePath, "utf8"),
@@ -1206,7 +1206,9 @@ describe("storefront theme browser matrix", () => {
     ]);
 
     expect(fashionStore).toContain("themeViewports.tablet");
-    expect(architecture).toContain("reference-fidelity scope is the home template only");
+    expect(architecture).toContain("Fashion Store is the sole selectable/runtime package");
+    expect(architecture).toContain("reference-only");
+    expect(architecture).toContain("selected-build input");
     expect(reference).toMatch(/does not activate a\s+production theme/);
     expect(reference).toContain("Never create `approval.json`");
   });
@@ -1217,7 +1219,7 @@ describe("storefront theme browser matrix", () => {
       readFile(promotionRunbookPath, "utf8"),
     ]);
 
-    expect(architecture).toContain("Fashion Store is an isolated experiment");
+    expect(architecture).toContain("Production activation must compose");
     expect(runbook).toContain("A green fidelity report is not a promotion instruction");
     expect(runbook).toContain("themeVersion: 2.0.0");
     expect(runbook).toContain("snapshot migration");

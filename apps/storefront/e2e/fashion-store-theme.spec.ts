@@ -597,7 +597,7 @@ test("legacy runtime requests are absent while static content remains usable", a
   await cartTrigger.focus();
   await page.keyboard.press("Enter");
   await expect(cart.locator(".cart-item-list")).toBeVisible();
-  await expect(cart.locator(".cart-item-list")).toContainText("Textured sweater");
+  await expect(cart.locator(".cart-item-list")).toContainText("Ribbed tank");
   await page.keyboard.press("Enter");
   evidence.push({ actionOutcome: true, behaviorId: "header-cart-preview", mode: "fallback" });
 

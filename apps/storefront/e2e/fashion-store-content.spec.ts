@@ -42,7 +42,8 @@ async function prepare(page: Page, path: "/account" | "/wishlist"): Promise<void
     .locator(`[data-fashion-store-${path.slice(1)}][data-runtime-status='ready']`)
     .waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  await page.getByRole("button", { name: "Allow cookies" }).click();
+  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
+  if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
 test("Wishlist and Account preserve their independent source content and responsive geometry", async ({

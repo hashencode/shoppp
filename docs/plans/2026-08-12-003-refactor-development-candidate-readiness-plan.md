@@ -28,11 +28,11 @@ blocked_by: pre-dc-implementation-readiness
 
 ## Product and template model
 
-Shoppp is one product with two current product template names: `fashion-store` and `decor-store`.
-The older `fashion` implementation is retired and excluded from candidates. `decor-store` is the
-product name for the implementation that currently uses the legacy internal ID `decor`; the two
-names do not represent separate templates. Plans, branches, and worktrees do not create products or
-candidate dependencies.
+Shoppp is one product with one current selectable/runtime product template: `fashion-store`.
+The older `fashion`, `decor`, and `decor-store` implementations are retired and excluded from new
+candidate selection. Decor source, behavior, provenance, and immutable historical identities remain
+reference/audit inputs only; their retained names do not create product templates or candidate
+dependencies. Plans, branches, and worktrees likewise do not create products.
 
 The candidate records three separate template dimensions:
 
@@ -45,9 +45,10 @@ The candidate records three separate template dimensions:
 - **Compatibility Observation Set:** non-target templates optionally exercised during DC3 to detect
   shared-platform regressions. These observations are recorded but are not candidate-blocking.
 
-For a `fashion-store`-only candidate, `decor-store` is not in the Candidate Template Matrix unless a
-later explicit candidate decision adds it. Decor Store visual, motion, responsive, page-suite, or
-activation work therefore does not block that Fashion Store candidate.
+The next candidate can include only a currently selectable package, so its Candidate Template
+Matrix is Fashion-only unless a later implementation plan deliberately introduces another runtime.
+Retained Decor reference verification may appear in the Compatibility Observation Set, but it
+cannot become a candidate entry or block the Fashion Store verdict.
 
 ## Scope
 
@@ -67,8 +68,8 @@ activation work therefore does not block that Fashion Store candidate.
 - Production theme activation or migration decisions.
 - Product capabilities explicitly deferred by the frozen Product Contract scope, including the
   requirements-only AI product form until an implementation plan selects it.
-- Product support decisions, destructive deletion of the retired `fashion` package, or migration of
-  the internal `decor` ID to `decor-store`. Those require bounded implementation work outside DC.
+- Product support decisions or further destructive cleanup of retired-package history and reference
+  evidence. Those require bounded implementation work outside DC.
 - A second test runner, evidence database, persistent candidate control plane, or duplicate release
   workflow.
 
@@ -92,6 +93,11 @@ Pre-DC. Current blockers are the unaudited product-level capability set and appr
 reconciliation of every selected capability against its owning plan, and candidate-identity fields
 not yet fully enforced by `release:validate`. Existing U13 evidence remains a narrow deployed
 product-lookup, fresh-cart, and stable-variant-add proof rather than candidate evidence.
+
+FS-R3 completed U1-U8 on 2026-09-07 and returned this plan to `REL-Pre-DC`. The Candidate Template
+Matrix has not been frozen, no candidate identity has been selected, and DC1-DC4 and PG1-PG5 remain
+unstarted. Its Fashion-only runtime and retained Decor reference evidence are implementation inputs
+to the existing reconciliation blocker, not candidate evidence.
 
 ### Executable source-input authority
 
@@ -190,13 +196,13 @@ verification, and template-isolation checks.
 - the candidate evidence is regenerated after any tracked theme, policy, fixture, or acceptance
   change; and
 - any Compatibility Observation Set result is recorded separately and cannot fail the candidate;
-  for a `fashion-store`-only candidate, a failing or incomplete `decor-store` observation creates
-  follow-up work without changing the Fashion Store verdict; and
+  a failing or incomplete retained Decor reference observation creates follow-up work without
+  changing the Fashion Store verdict; and
 - source reconstruction, live Commerce integration, promotion, and legacy cleanup remain distinct
   decisions.
 
-**Does not own:** Choosing the Activation Target, adding or removing product templates, deleting the
-retired `fashion` package, or migrating the `decor` internal ID.
+**Does not own:** Choosing the Activation Target, adding or removing product templates, or deleting
+retired-package history/reference evidence.
 
 ### DC4. Prove isolation, failure behavior, and recovery
 

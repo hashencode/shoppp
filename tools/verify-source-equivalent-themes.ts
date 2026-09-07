@@ -299,14 +299,12 @@ export async function validateImportedSourceTree(root = ROOT): Promise<void> {
     await readFile(manifestPath, "utf8"),
   ) as StorefrontThemeSourceManifest;
   const errors: string[] = [];
-  const declarations = manifest.themes.filter(({ themeId }) =>
-    ["decor-store", "fashion-store"].includes(themeId),
-  );
+  const declarations = manifest.themes.filter(({ themeId }) => themeId === "fashion-store");
   if (!declarations.some(({ themeId }) => themeId === "fashion-store"))
     throw new Error("Fashion Store source declaration is missing.");
 
   for (const declaration of declarations) {
-    const label = declaration.themeId === "decor-store" ? "Decor Store" : "Fashion Store";
+    const label = "Fashion Store";
     if (!declaration.importedAt) errors.push(`${label} importedAt is missing`);
     if (declaration.importedFiles.length !== declaration.allowlist.length)
       errors.push(`${label} imported file count does not match the allowlist`);

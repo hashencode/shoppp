@@ -33,7 +33,8 @@ async function prepareImplementation(
   await page.goto(route, { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-shop][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  if (dismissCookie) await page.getByRole("button", { name: "Allow cookies" }).click();
+  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
+  if (dismissCookie && (await cookieButton.isVisible())) await cookieButton.click();
 }
 
 async function productColumnCount(page: Page): Promise<number> {

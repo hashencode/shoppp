@@ -1,15 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
-import { relative, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import {
   decorStoreBehaviorContract,
   decorStoreSecondaryPageBehaviorLedger,
-} from "../app/themes/decor-store/behavior-contract";
-import { decorStoreEnabledPageContracts } from "../app/themes/decor-store/page-contracts";
-import { decorStoreSourceRegionOrder } from "../app/themes/decor-store/source-contract";
-import { themeAssets as decorStoreAssets } from "../app/themes/decor-store/resources";
+} from "../theme-references/decor-store/behavior-contract";
+import { decorStoreSourceRegionOrder } from "../theme-references/decor-store/source-contract";
 import {
   classifyLegacyInteraction,
   legacyAssetGroups,
@@ -26,63 +24,25 @@ import {
 const themesRoot = resolve(import.meta.dir, "../app/themes");
 const repositoryRoot = resolve(import.meta.dir, "../../..");
 
-async function filesUnder(root: string, suffix: string): Promise<string[]> {
-  const entries = await readdir(root, { recursive: true, withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(suffix))
-    .map((entry) => relative(themesRoot, resolve(entry.parentPath, entry.name)))
-    .sort();
-}
-
 describe("Fashion and Decor unification inventory", () => {
-  test("assigns every legacy component, fixture, and runtime file exactly one disposition", async () => {
-    const components = [
-      ...(await filesUnder(resolve(themesRoot, "decor-store/components"), ".vue")),
-    ].sort();
-    const fixtures = [
-      ...(await filesUnder(resolve(themesRoot, "decor-store/fixtures"), ".ts")),
-    ].sort();
-    const runtime = await filesUnder(resolve(themesRoot, "decor-store/runtime"), ".ts");
-
-    expect(
-      legacyComponentDispositions
-        .filter(({ source }) => source.startsWith("decor-store/"))
-        .map(({ source }) => source)
-        .sort(),
-    ).toEqual(components);
-    expect(
-      legacyFixtureDispositions
-        .filter(({ source }) => source.startsWith("decor-store/"))
-        .map(({ source }) => source)
-        .sort(),
-    ).toEqual(fixtures);
-    expect(legacyRuntimeDispositions.map(({ source }) => source).sort()).toEqual(runtime);
+  test("retains a unique disposition for every deleted legacy implementation unit", () => {
+    for (const rows of [
+      legacyComponentDispositions,
+      legacyFixtureDispositions,
+      legacyRuntimeDispositions,
+    ]) {
+      expect(rows.length).toBeGreaterThan(0);
+      expect(new Set(rows.map(({ source }) => source)).size).toBe(rows.length);
+    }
   });
 
-  test("covers every registry section, route, source region, and interaction", async () => {
-    const registrySources = ["decor-store/registry.ts"];
-    const registryTypes = (
-      await Promise.all(
-        registrySources.map(async (source) => {
-          const code = await readFile(resolve(themesRoot, source), "utf8");
-          return [...code.matchAll(/"((?:decor|decor-store)\.[^"]+)"\s*:/g)].map(
-            (match) => match[1]!,
-          );
-        }),
-      )
-    ).flat();
-    const inventoriedTypes = registrySources.flatMap((source) => {
-      const identity = source.split("/")[0]!;
-      return legacyRegistrySectionDispositions
-        .filter((row) => row.identity === identity)
-        .map(({ sourceType }) => sourceType);
-    });
-    expect(inventoriedTypes.sort()).toEqual(registryTypes.sort());
-
-    const routes = decorStoreEnabledPageContracts.map(({ id }) => `decor-store:${id}`);
+  test("keeps route, source-region, and interaction disposition evidence reference-only", () => {
     expect(
-      legacyRouteDispositions.filter(({ id }) => id.startsWith("decor-store:")).map(({ id }) => id),
-    ).toEqual(routes);
+      new Set(legacyRegistrySectionDispositions.map(({ sourceType }) => sourceType)).size,
+    ).toBe(legacyRegistrySectionDispositions.length);
+    expect(new Set(legacyRouteDispositions.map(({ id }) => id)).size).toBe(
+      legacyRouteDispositions.length,
+    );
     expect(legacySourceRegionDispositions.map(({ id }) => id)).toEqual(decorStoreSourceRegionOrder);
 
     const interactions = [
@@ -118,11 +78,16 @@ describe("Fashion and Decor unification inventory", () => {
     expect(unifiedHomeSectionIA.every(({ adminLabel }) => !/decor/i.test(adminLabel))).toBe(true);
   });
 
-  test("retires the first selectable identity while retaining its classified evidence", async () => {
+  test("retires both selectable identities while retaining their classified evidence", async () => {
     for (const surface of legacySelectableSurfaces) {
       const source = await readFile(resolve(repositoryRoot, surface.source), "utf8");
+      if (surface.source.endsWith("storefront-source-equivalence-policy.json")) {
+        const activeIds = JSON.parse(source).themes.map(({ id }: { id: string }) => id);
+        expect(activeIds).toEqual(["fashion-store"]);
+        continue;
+      }
       expect(source).not.toMatch(/["']decor["']/);
-      if (surface.identities.includes("decor-store")) expect(source).toContain("decor-store");
+      expect(source).not.toMatch(/["']decor-store["']/);
     }
     expect(legacyAssetGroups.map(({ id }) => id)).toEqual([
       "decor-presentation-images",
@@ -133,10 +98,7 @@ describe("Fashion and Decor unification inventory", () => {
       "decor-store-runtime-scripts",
     ]);
     expect(existsSync(resolve(themesRoot, "decor"))).toBe(false);
-    expect(Object.keys(decorStoreAssets).filter((id) => id.includes("images-"))).toHaveLength(95);
-    expect(Object.keys(decorStoreAssets).filter((id) => id.includes("fonts-"))).toHaveLength(9);
-    expect(await filesUnder(resolve(themesRoot, "decor-store/upstream"), ".css")).toHaveLength(8);
-    expect(await filesUnder(resolve(themesRoot, "decor-store/upstream"), ".js")).toHaveLength(8);
+    expect(existsSync(resolve(themesRoot, "decor-store"))).toBe(false);
 
     const evidence = await readFile(
       resolve(repositoryRoot, "docs/progress/fashion-decor-component-disposition.md"),

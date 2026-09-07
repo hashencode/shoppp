@@ -112,8 +112,6 @@ describe("source-equivalence acceptance orchestration", () => {
     const policy = await loadSourceEquivalencePolicy();
     const e2eSources = await Promise.all(
       [
-        "decor-store-source-equivalence.spec.ts",
-        "decor-store-page-suite.spec.ts",
         "fashion-store-theme.spec.ts",
         "fashion-store-acceptance-slice.spec.ts",
         "fashion-store-acceptance-self-test.spec.ts",
@@ -159,7 +157,6 @@ describe("source-equivalence acceptance orchestration", () => {
       "rc-identity",
       "contracts",
       "fashion-store/pages[home,shop-left,shop-none,shop-right,collection,product,cart,checkout,wishlist,account,magazine,article,about,faq,contact]",
-      "decor-store/pages[home,shop-left,shop-none,shop-right,collection,product,wishlist,cart,checkout,account,blog,article,about,faq,contact]",
       "fidelity-evidence",
     ]);
     expect(

@@ -810,7 +810,7 @@ defineExpose({ closeTransient });
   }
 }
 
-.navbar.disable-fixed {
+.fashion-store-header-home .navbar.disable-fixed {
   top: 0 !important;
 }
 </style>

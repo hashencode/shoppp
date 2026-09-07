@@ -1,23 +1,5 @@
 import type { FidelityViewportId } from "../../../../tools/theme-fidelity-report";
 import {
-  decorStoreAboutBehaviorContract,
-  decorStoreAccountBehaviorContract,
-  decorStoreArticleBehaviorContract,
-  decorStoreBehaviorContract,
-  decorStoreBlogBehaviorContract,
-  decorStoreCartBehaviorContract,
-  decorStoreCheckoutBehaviorContract,
-  decorStoreCollectionBehaviorContract,
-  decorStoreContactBehaviorContract,
-  decorStoreFaqBehaviorContract,
-  decorStoreFidelityStatesByRegion,
-  decorStoreProductBehaviorContract,
-  decorStoreShopLeftBehaviorContract,
-  decorStoreShopNoneBehaviorContract,
-  decorStoreShopRightBehaviorContract,
-  decorStoreWishlistBehaviorContract,
-} from "../../app/themes/decor-store/behavior-contract";
-import {
   fashionStoreBehaviorContract,
   fashionStoreFidelityStatesByRegion,
 } from "../../app/themes/fashion-store/behavior-contract";
@@ -105,11 +87,6 @@ const fashionStoreStates = (regionId: string, defaults: readonly string[] = ["in
   ...(fashionStoreFidelityStatesByRegion[regionId] ?? []),
 ];
 
-const decorStoreStates = (regionId: string, defaults: readonly string[] = ["initial"]) => [
-  ...defaults,
-  ...(decorStoreFidelityStatesByRegion[regionId] ?? []),
-];
-
 const shopStates = (
   contract: ThemeBehaviorContract,
   regionId: string,
@@ -143,151 +120,6 @@ const region = (
 });
 
 export const themeFidelityMatrix: readonly FidelityRouteContract[] = [
-  {
-    densities: [1, 2] as const,
-    id: "decor-store-home",
-    implementationPath: "/",
-    regions: [
-      region("header", "section", "header", "header", decorStoreStates("header")),
-      region(
-        "hero",
-        "component",
-        "#decor-store-slider",
-        "#decor-store-slider",
-        decorStoreStates("hero", ["initial", "reduced-motion"]),
-      ),
-      region(
-        "featured-categories",
-        "section",
-        "body > section:nth-of-type(2)",
-        "[data-decor-region='featured-categories']",
-      ),
-      region(
-        "products",
-        "section",
-        "body > section:nth-of-type(3)",
-        "[data-decor-region='products']",
-        decorStoreStates("products"),
-      ),
-      region(
-        "promotional-marquee",
-        "component",
-        "body > section:nth-of-type(4)",
-        "[data-decor-region='promotional-marquee']",
-        decorStoreStates("promotional-marquee"),
-      ),
-      region(
-        "collection-carousel",
-        "component",
-        "body > section:nth-of-type(5)",
-        "[data-decor-region='collection-carousel']",
-        decorStoreStates("collection-carousel"),
-      ),
-      region(
-        "client-marquee",
-        "component",
-        "body > section:nth-of-type(6)",
-        "[data-decor-region='client-marquee']",
-        decorStoreStates("client-marquee"),
-      ),
-      region(
-        "journal",
-        "section",
-        "body > section:nth-of-type(7)",
-        "[data-decor-region='journal']",
-      ),
-      region(
-        "services",
-        "section",
-        "body > section:nth-of-type(8)",
-        "[data-decor-region='services']",
-      ),
-      region("footer", "component", "footer", "footer"),
-      region("cookie", "control", ".cookie-message", ".cookie-message", decorStoreStates("cookie")),
-      region("sticky", "control", ".sticky-wrap", ".sticky-wrap", decorStoreStates("sticky")),
-      region(
-        "scroll-progress",
-        "control",
-        ".scroll-progress",
-        ".scroll-progress",
-        decorStoreStates("scroll-progress"),
-      ),
-      region("full-page", "full-page-smoke", "body", "body"),
-    ],
-    sourcePath: "/demo-decor-store.html",
-    viewports: themeViewportIds,
-  },
-  ...(
-    [
-      [decorStoreShopLeftBehaviorContract, "shop-left", "/shop", "/demo-decor-store-shop.html"],
-      [
-        decorStoreShopNoneBehaviorContract,
-        "shop-none",
-        "/shop/no-sidebar",
-        "/demo-decor-store-no-sidebar.html",
-      ],
-      [
-        decorStoreShopRightBehaviorContract,
-        "shop-right",
-        "/shop/right-sidebar",
-        "/demo-decor-store-right-sidebar.html",
-      ],
-      [
-        decorStoreCollectionBehaviorContract,
-        "collection",
-        "/collections",
-        "/demo-decor-store-collections.html",
-      ],
-      [
-        decorStoreProductBehaviorContract,
-        "product",
-        "/products/minimalist-wooden-chair",
-        "/demo-decor-store-single-product.html",
-      ],
-      [
-        decorStoreWishlistBehaviorContract,
-        "wishlist",
-        "/wishlist",
-        "/demo-decor-store-wishlist.html",
-      ],
-      [decorStoreCartBehaviorContract, "cart", "/cart", "/demo-decor-store-cart.html"],
-      [
-        decorStoreCheckoutBehaviorContract,
-        "checkout",
-        "/checkout",
-        "/demo-decor-store-checkout.html",
-      ],
-      [decorStoreAccountBehaviorContract, "account", "/account", "/demo-decor-store-account.html"],
-      [decorStoreBlogBehaviorContract, "blog", "/blog", "/demo-decor-store-blog.html"],
-      [
-        decorStoreArticleBehaviorContract,
-        "article",
-        "/blog/best-influencers-for-decor-inspiration",
-        "/demo-decor-store-blog-single-classic.html",
-      ],
-      [decorStoreAboutBehaviorContract, "about", "/about", "/demo-decor-store-about.html"],
-      [decorStoreFaqBehaviorContract, "faq", "/faq", "/demo-decor-store-faq.html"],
-      [decorStoreContactBehaviorContract, "contact", "/contact", "/demo-decor-store-contact.html"],
-    ] as const
-  ).map(([behavior, id, implementationPath, sourcePath]) => ({
-    densities: [1, 2] as const,
-    id: `decor-store-${id}`,
-    implementationPath,
-    regions: [
-      {
-        ...region("page", "section", "body", "body", shopStates(behavior, "page")),
-        imageAssetPolicy: "implementation-original" as const,
-        neutralizeImagePixels: true,
-      },
-      {
-        ...region("full-page", "full-page-smoke", "body", "body"),
-        imageAssetPolicy: "implementation-original" as const,
-        neutralizeImagePixels: true,
-      },
-    ],
-    sourcePath,
-    viewports: themeViewportIds,
-  })),
   {
     densities: [1, 2] as const,
     id: "fashion-store-home",
@@ -739,28 +571,10 @@ type FidelityBehaviorDescriptor = Pick<
 
 const defaultBehaviorDescriptors: readonly FidelityBehaviorDescriptor[] = [
   {
-    contract: decorStoreBehaviorContract,
-    fidelityStatesByRegion: decorStoreFidelityStatesByRegion,
-  },
-  {
     contract: fashionStoreBehaviorContract,
     fidelityStatesByRegion: fashionStoreFidelityStatesByRegion,
   },
   ...[
-    decorStoreAboutBehaviorContract,
-    decorStoreAccountBehaviorContract,
-    decorStoreArticleBehaviorContract,
-    decorStoreBlogBehaviorContract,
-    decorStoreCartBehaviorContract,
-    decorStoreCheckoutBehaviorContract,
-    decorStoreCollectionBehaviorContract,
-    decorStoreContactBehaviorContract,
-    decorStoreFaqBehaviorContract,
-    decorStoreProductBehaviorContract,
-    decorStoreShopLeftBehaviorContract,
-    decorStoreShopNoneBehaviorContract,
-    decorStoreShopRightBehaviorContract,
-    decorStoreWishlistBehaviorContract,
     fashionStoreCartBehaviorContract,
     fashionStoreAboutBehaviorContract,
     fashionStoreAccountBehaviorContract,

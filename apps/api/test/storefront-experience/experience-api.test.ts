@@ -9,10 +9,7 @@ import {
 } from "@shoppp/contracts";
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
-import decorStoreFixture from "../../../storefront/fixtures/experience/decor-store.json";
 import releaseFixture from "../../../storefront/fixtures/release.json";
-import { decorStoreManifest } from "../../../storefront/app/themes/decor-store/manifest";
-import { decorStorePreset } from "../../../storefront/app/themes/decor-store/presets/source-parity";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import {
   fashionStoreHistoricalPackages,
@@ -359,9 +356,18 @@ describe("storefront experience API", () => {
         preset: { ...fashionStorePreset, id: "layered", label: "Retired Decor fixture" },
       },
       {
-        bindings: decorStoreFixture.bindings,
-        manifest: decorStoreManifest,
-        preset: decorStorePreset,
+        bindings: [],
+        manifest: {
+          ...fashionStoreManifest,
+          configurationSchemaVersion: 1,
+          id: "decor-store",
+          themeVersion: "1.0.0",
+        },
+        preset: {
+          ...fashionStorePreset,
+          id: "source-parity",
+          label: "Retired Decor Store fixture",
+        },
       },
     ] as const;
 

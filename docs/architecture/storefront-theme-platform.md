@@ -45,24 +45,23 @@ Theme assets remain inside their namespaced package until compilation. Matrix ve
 each output for inactive-theme namespaces and prohibited Crafto runtimes. The final production
 build verifies that it contains neither theme preview code nor preview credentials.
 
-Fashion Store is an isolated experiment under the `fashion-store` identity. It is the only selected build
-allowed to include its hash-pinned Crafto CSS and reviewed jQuery/vendor runtime; the upstream
-`main.js` entrypoint remains excluded. Its larger initial-JavaScript allowance is separate from the
-unchanged Fashion, Decor, and production-fallback budget. A passing experiment is only
-promotion-eligible: it does not change the current `fashion` package, snapshots, generated
-production fallback, or active storefront selection.
+Fashion Store is the sole selectable/runtime package under the `fashion-store` identity. Its
+production-shaped build uses only Fashion-owned components, scoped assets, and approved runtime
+dependencies. The retired `fashion`, `decor`, and `decor-store` implementations are absent from
+catalogs, fixture creation, generated imports, build allowlists, active matrices, and production
+dependency graphs. Historical Decor runtime hashes remain a build-isolation denylist.
 
 The Fashion Store accessibility suite fixes semantic names, landmarks, and focus behavior without
 changing source geometry. Its dedicated contrast audit records narrowly selected source-exact
 secondary copy, labels, prices, and footer text; all other serious Axe violations fail the
 experiment. The separate Lighthouse accessibility floor reflects those retained source colors and
-the source-exact compact search target, and does not lower the current Fashion or Decor floor.
+the source-exact compact search target; it does not weaken the active Fashion floor.
 
-The Fashion and Decor reference-fidelity scope is the home template only. Collection, product,
-cart, checkout, order, and policy templates remain complete platform-regression routes, but they
-are not represented as reproductions of the supplied reference pages. Reference imagery and
-self-hosted fonts enter the selected build through the theme asset resolver; the source matrix
-verifies every imported binary is allowlisted and recorded in that theme's provenance file.
+Fashion owns the complete active route and commerce regression scope. Decor source HTML, approved
+assets, provenance, digests, source contracts, and behavior ledgers live under the reference-only
+tree and authoritative source intake; they remain independently verifiable but are neither a theme
+package nor a selected-build input. Approved Decor-derived presentations that remain in Fashion
+are Fashion-owned code and resources with retained provenance.
 
 ## Preview trust boundary
 
