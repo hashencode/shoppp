@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
 import { resolveFixtureHomeData } from "./fixture-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const data = computed(() => resolveFixtureHomeData(properties.viewModel));
 const marqueeMessages = computed(() => data.value.marquee);
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 </script>
 
 <template>
   <section
     class="p-0 border-top border-bottom border-color-extra-medium-gray"
     data-home-section="marquee"
+    :data-presentation-variant="presentation.marquee"
   >
     <div class="container-fluid">
       <div class="row position-relative">

@@ -9,6 +9,7 @@ import FashionStoreFixtureMarqueeSection from "../components/sections/FashionSto
 import FashionStoreFixturePromotionSection from "../components/sections/FashionStoreFixturePromotionSection.vue";
 import FashionStoreFixtureProductsSection from "../components/sections/FashionStoreFixtureProductsSection.vue";
 import FashionStoreFixtureServicesSection from "../components/sections/FashionStoreFixtureServicesSection.vue";
+import FashionStoreProductMerchandisingSection from "../components/sections/FashionStoreProductMerchandisingSection.vue";
 import {
   fixtureThemeRegistry as inheritedFixtureRegistry,
   themeFixtures,
@@ -34,6 +35,7 @@ export const fixtureThemeRegistry = {
     "fashion-store.hero": FashionStoreFixtureHeroSection,
     "fashion-store.marquee": FashionStoreFixtureMarqueeSection,
     "fashion-store.products": FashionStoreFixtureProductsSection,
+    "fashion-store.product-merchandising": FashionStoreProductMerchandisingSection,
     "fashion-store.promotion": FashionStoreFixturePromotionSection,
     "fashion-store.services": FashionStoreFixtureServicesSection,
   },

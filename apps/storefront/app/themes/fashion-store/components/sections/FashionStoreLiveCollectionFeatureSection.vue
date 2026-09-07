@@ -2,9 +2,11 @@
 import { fashionStoreHomeCollectionImages as collectionImages } from "./home-content";
 import type { FashionStoreHomeSectionProperties } from "./live-home-section-context";
 import { resolveLiveHomeData } from "./live-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const viewModel = computed(() => resolveLiveHomeData(properties.viewModel));
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 import { resolveHomeAsset } from "./live-home-section-context";
 
 function sourceAsset(sourcePath: string): string {
@@ -15,6 +17,7 @@ function sourceAsset(sourcePath: string): string {
 <template>
   <section
     data-home-section="collection"
+    :data-presentation-variant="presentation.collection"
     class="bg-very-light-gray overflow-hidden position-relative ps-3 xs-ps-0"
   >
     <div class="container-fluid py-70px">

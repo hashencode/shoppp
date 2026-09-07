@@ -2,6 +2,7 @@ import * as z from "zod";
 
 import { previewActionSchema } from "../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../theme-engine/view-models";
+import { buildFashionStoreMerchandisingGroups } from "../contracts/home-merchandising";
 import { fashionStoreHomeSections } from "../successor/composition";
 
 const sourceProductSchema = z
@@ -96,6 +97,20 @@ export const fashionStoreHomeDataSchema = z
   .strict();
 
 export type FashionStoreHomeData = z.infer<typeof fashionStoreHomeDataSchema>;
+
+function merchandisingFixtureProduct(
+  product: FashionStoreHomeData["bestSellers"][number],
+  index: number,
+) {
+  return {
+    ...product,
+    categories: [],
+    colors: [],
+    id: `fashion-store-merchandising-${index + 1}`,
+    sizes: [],
+    tags: [],
+  };
+}
 
 export const fashionStoreHomeData = {
   announcement: "Enjoy FREE standard delivery on orders over $100.",
@@ -336,7 +351,21 @@ export const fashionStoreHomeFixtures = {
       fashionStoreHomeSections.map(({ fixtureResource, type }) => [
         fixtureResource,
         {
-          data: { home: fashionStoreHomeData, mode: "fixture", sectionType: type },
+          data: {
+            home: fashionStoreHomeData,
+            merchandising:
+              type === "fashion-store.product-merchandising"
+                ? {
+                    groups: buildFashionStoreMerchandisingGroups(
+                      fashionStoreHomeData.bestSellers.map(merchandisingFixtureProduct),
+                      merchandisingFixtureProduct(fashionStoreHomeData.featuredProducts[0], 0),
+                    ),
+                    mode: "fixture",
+                  }
+                : undefined,
+            mode: "fixture",
+            sectionType: type,
+          },
           kind: "theme-section",
           state: "populated",
         },

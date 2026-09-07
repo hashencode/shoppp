@@ -34,6 +34,7 @@ const plan = computed(() =>
     viewModel: properties.provider.resolve({
       expectedKind: section.expectedViewModelKind,
       instanceId: section.instance.id,
+      settings: section.instance.settings,
     }),
   })),
 );

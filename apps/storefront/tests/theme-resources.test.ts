@@ -8,6 +8,7 @@ import {
 } from "../app/theme-engine/assets";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
+import { fashionStoreHomeSections } from "../app/themes/fashion-store/successor/composition";
 
 const fixture = {
   id: "synthetic-home",
@@ -33,32 +34,39 @@ describe("selected theme resources", () => {
       "checkout",
       "content",
     ]);
-    expect(input.snapshot.bindings).toEqual([
-      expect.objectContaining({
-        fixtureId: "fashion-store-home",
-        instanceId: "fashion-store-home",
-      }),
-      expect.objectContaining({
-        fixtureId: "fashion-store-shop",
-        instanceId: "fashion-store-collection",
-      }),
-      expect.objectContaining({
-        fixtureId: "fashion-store-product",
-        instanceId: "fashion-store-product",
-      }),
-      expect.objectContaining({
-        fixtureId: "fashion-store-cart",
-        instanceId: "fashion-store-cart",
-      }),
-      expect.objectContaining({
-        fixtureId: "fashion-store-checkout",
-        instanceId: "fashion-store-checkout",
-      }),
-      expect.objectContaining({
-        fixtureId: "fashion-store-content",
-        instanceId: "fashion-store-content",
-      }),
-    ]);
+    expect(input.snapshot.bindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fixtureId: "fashion-store-home",
+          instanceId: "fashion-store-home",
+        }),
+        expect.objectContaining({
+          fixtureId: "fashion-store-shop",
+          instanceId: "fashion-store-collection",
+        }),
+        expect.objectContaining({
+          fixtureId: "fashion-store-product",
+          instanceId: "fashion-store-product",
+        }),
+        expect.objectContaining({
+          fixtureId: "fashion-store-cart",
+          instanceId: "fashion-store-cart",
+        }),
+        expect.objectContaining({
+          fixtureId: "fashion-store-checkout",
+          instanceId: "fashion-store-checkout",
+        }),
+        expect.objectContaining({
+          fixtureId: "fashion-store-content",
+          instanceId: "fashion-store-content",
+        }),
+      ]),
+    );
+    expect(
+      input.snapshot.bindings
+        .filter(({ fixtureId }) => fixtureId === "fashion-store-home")
+        .map(({ instanceId }) => instanceId),
+    ).toEqual(fashionStoreHomeSections.map(({ id }) => id));
   });
 
   test("derives accessible payment names from namespaced asset IDs", () => {

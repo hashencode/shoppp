@@ -2,12 +2,18 @@
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { fashionStoreHomeServices as services } from "./home-content";
 import type { FashionStoreHomeSectionProperties } from "./live-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
-defineProps<FashionStoreHomeSectionProperties>();
+const properties = defineProps<FashionStoreHomeSectionProperties>();
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 </script>
 
 <template>
-  <section data-home-section="services" class="half-section">
+  <section
+    data-home-section="services"
+    class="half-section"
+    :data-presentation-variant="presentation.services"
+  >
     <div class="container">
       <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4">
         <div v-for="service in services" :key="service[0]" class="col md-mb-30px">

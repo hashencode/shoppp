@@ -2,9 +2,11 @@
 import { fashionStoreHomeCategories as categories } from "./home-content";
 import type { FashionStoreHomeSectionProperties } from "./live-home-section-context";
 import { resolveLiveHomeData } from "./live-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const viewModel = computed(() => resolveLiveHomeData(properties.viewModel));
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 import { resolveHomeAsset } from "./live-home-section-context";
 
 function sourceAsset(sourcePath: string): string {
@@ -13,7 +15,11 @@ function sourceAsset(sourcePath: string): string {
 </script>
 
 <template>
-  <section data-home-section="categories" class="pt-0 pb-0 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-p-0">
+  <section
+    data-home-section="categories"
+    class="pt-0 pb-0 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-p-0"
+    :data-presentation-variant="presentation.categories"
+  >
     <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-0">
       <div v-for="category in categories" :key="category[0]" class="col categories-style-02">
         <a :href="viewModel.featuredCollection.href" data-fashion-store-route>

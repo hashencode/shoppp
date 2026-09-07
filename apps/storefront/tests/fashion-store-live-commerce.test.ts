@@ -91,6 +91,99 @@ describe("Fashion Store live commerce boundary", () => {
     }
   });
 
+  test("builds Product groups only from published collection membership", async () => {
+    const script = await import("../scripts/prepare-fashion-store-live-e2e");
+    const [fixtureInput, releaseFixture] = await Promise.all([
+      fashionStorePreviewBuildInput("https://preview.example.test"),
+      readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8").then(JSON.parse),
+    ]);
+    const input = script.fashionStoreLiveBuildInput(fixtureInput, releaseFixture);
+    const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home")!;
+    const merchandising = home.sections.find(
+      ({ id }) => id === "fashion-store-home-product-merchandising",
+    )!;
+    merchandising.visible = true;
+    const route = resolveThemeRoute("/", fashionStoreThemeRoutes, input.catalogRelease, "live")!;
+    const composed = composeExperienceRoute({
+      adapter: fashionStoreCompositionAdapter,
+      experience: input.snapshot,
+      locale: "en-US",
+      path: "/",
+      release: input.catalogRelease,
+      route,
+      sectionComposition: fashionStoreSectionComposition,
+    });
+
+    expect(composed.ok).toBe(true);
+    const viewModel = composed.viewModels[merchandising.id];
+    expect(viewModel?.kind).toBe("theme-section");
+    if (viewModel?.kind !== "theme-section") throw new Error("Merchandising ViewModel is missing.");
+    const groups = (
+      viewModel.data.merchandising as {
+        groups: Array<{ id: string; products: Array<{ productId: string }> }>;
+      }
+    ).groups;
+    expect(groups.map(({ id }) => id)).toEqual(["new-arrivals", "best-sellers", "featured"]);
+    const publishedCollection = input.catalogRelease.collections.find(
+      ({ status }) => status === "published",
+    )!;
+    const membership = new Set(publishedCollection.productIds);
+    expect(
+      groups
+        .flatMap(({ products }) => products)
+        .every(({ productId }) => membership.has(productId)),
+    ).toBe(true);
+
+    const outsideProduct = input.catalogRelease.products.find(
+      ({ id, status }) => status === "published" && membership.has(id),
+    );
+    if (!outsideProduct) throw new Error("Fixture needs a published Home product.");
+    publishedCollection.productIds = publishedCollection.productIds.filter(
+      (id) => id !== outsideProduct.id,
+    );
+    publishedCollection.productSlugs = publishedCollection.productSlugs.filter(
+      (slug) => slug !== outsideProduct.slug,
+    );
+    outsideProduct.collectionIds = outsideProduct.collectionIds.filter(
+      (id) => id !== publishedCollection.id,
+    );
+    outsideProduct.collectionSlugs = outsideProduct.collectionSlugs.filter(
+      (slug) => slug !== publishedCollection.slug,
+    );
+    input.snapshot.bindings.push({
+      id: "fashion-store-live-home-featured-product-binding",
+      instanceId: "fashion-store-home",
+      kind: "catalog",
+      reference: { id: outsideProduct.id, kind: "product" },
+      settingId: "featured-product",
+    });
+    const recomposed = composeExperienceRoute({
+      adapter: fashionStoreCompositionAdapter,
+      experience: input.snapshot,
+      locale: "en-US",
+      path: "/",
+      release: input.catalogRelease,
+      route,
+      sectionComposition: fashionStoreSectionComposition,
+    });
+    const recomposedViewModel = recomposed.viewModels[merchandising.id];
+    if (recomposedViewModel?.kind !== "theme-section") {
+      throw new Error(
+        `Recomposed merchandising ViewModel is missing: ${JSON.stringify(recomposed)}`,
+      );
+    }
+    const featured = (
+      recomposedViewModel.data.merchandising as {
+        groups: Array<{ id: string; products: Array<{ productId: string }> }>;
+      }
+    ).groups.find(({ id }) => id === "featured")!;
+    const remainingMembership = new Set(publishedCollection.productIds);
+    expect(featured.products.every(({ productId }) => remainingMembership.has(productId))).toBe(
+      true,
+    );
+    expect(featured.products.some(({ productId }) => productId === outsideProduct.id)).toBe(false);
+  });
+
   test("keeps live theme surfaces on presentation view models and injected intent ports", async () => {
     const liveSources = await Promise.all([
       source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),

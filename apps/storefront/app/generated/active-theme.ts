@@ -97,6 +97,14 @@ export const activeExperienceSnapshot = {
       "state": "populated"
     },
     {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-product-merchandising-binding",
+      "instanceId": "fashion-store-home-product-merchandising",
+      "kind": "fixture",
+      "resource": "product-merchandising",
+      "state": "populated"
+    },
+    {
       "fixtureId": "fashion-store-shop",
       "id": "fashion-store-shop-binding",
       "instanceId": "fashion-store-collection",
@@ -168,7 +176,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home-services",
           "required": false,
-          "settings": {},
+          "settings": {
+            "services-presentation": "source"
+          },
           "type": "fashion-store.services",
           "visible": true
         },
@@ -177,7 +187,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home-categories",
           "required": false,
-          "settings": {},
+          "settings": {
+            "categories-presentation": "source"
+          },
           "type": "fashion-store.categories",
           "visible": true
         },
@@ -204,7 +216,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home-collection",
           "required": false,
-          "settings": {},
+          "settings": {
+            "collection-presentation": "source"
+          },
           "type": "fashion-store.collection-feature",
           "visible": true
         },
@@ -213,7 +227,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home-brands",
           "required": false,
-          "settings": {},
+          "settings": {
+            "brand-strip-presentation": "source"
+          },
           "type": "fashion-store.brand-strip",
           "visible": true
         },
@@ -231,7 +247,9 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home-marquee",
           "required": false,
-          "settings": {},
+          "settings": {
+            "marquee-presentation": "source"
+          },
           "type": "fashion-store.marquee",
           "visible": true
         },
@@ -240,9 +258,25 @@ export const activeExperienceSnapshot = {
           "capabilities": [],
           "id": "fashion-store-home-magazine",
           "required": false,
-          "settings": {},
+          "settings": {
+            "editorial-presentation": "source"
+          },
           "type": "fashion-store.editorial",
           "visible": true
+        },
+        {
+          "blocks": [],
+          "capabilities": [],
+          "id": "fashion-store-home-product-merchandising",
+          "required": false,
+          "settings": {
+            "merchandising-heading": "Product groups",
+            "new-arrivals-label": "New arrivals",
+            "best-sellers-label": "Best sellers",
+            "featured-label": "Featured"
+          },
+          "type": "fashion-store.product-merchandising",
+          "visible": false
         }
       ]
     },

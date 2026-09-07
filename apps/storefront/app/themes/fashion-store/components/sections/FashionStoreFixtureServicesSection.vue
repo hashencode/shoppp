@@ -2,13 +2,19 @@
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
 import { resolveFixtureHomeData } from "./fixture-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const data = computed(() => resolveFixtureHomeData(properties.viewModel));
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 </script>
 
 <template>
-  <section class="half-section" data-home-section="services">
+  <section
+    class="half-section"
+    data-home-section="services"
+    :data-presentation-variant="presentation.services"
+  >
     <div class="container">
       <div
         class="row row-cols-1 row-cols-xl-4 row-cols-lg-4 row-cols-md-2 row-cols-sm-2"

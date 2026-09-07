@@ -56,6 +56,12 @@ export const fashionStoreHomeSections = [
     required: false,
     type: "fashion-store.editorial",
   },
+  {
+    fixtureResource: "product-merchandising",
+    id: "fashion-store-home-product-merchandising",
+    required: false,
+    type: "fashion-store.product-merchandising",
+  },
 ] as const;
 
 export const fashionStoreHomeSectionTypes = [

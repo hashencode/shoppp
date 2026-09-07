@@ -9,6 +9,7 @@ import FashionStoreLiveMarqueeSection from "../components/sections/FashionStoreL
 import FashionStoreLivePromotionSection from "../components/sections/FashionStoreLivePromotionSection.vue";
 import FashionStoreLiveProductsSection from "../components/sections/FashionStoreLiveProductsSection.vue";
 import FashionStoreLiveServicesSection from "../components/sections/FashionStoreLiveServicesSection.vue";
+import FashionStoreProductMerchandisingSection from "../components/sections/FashionStoreProductMerchandisingSection.vue";
 import { themeAssets, themeRegistry as inheritedRegistry, themeRoutes } from "../registry";
 import { fashionStoreSectionComposition } from "./composition";
 
@@ -29,6 +30,7 @@ export const themeRegistry = {
     "fashion-store.hero": FashionStoreLiveHeroSection,
     "fashion-store.marquee": FashionStoreLiveMarqueeSection,
     "fashion-store.products": FashionStoreLiveProductsSection,
+    "fashion-store.product-merchandising": FashionStoreProductMerchandisingSection,
     "fashion-store.promotion": FashionStoreLivePromotionSection,
     "fashion-store.services": FashionStoreLiveServicesSection,
   },

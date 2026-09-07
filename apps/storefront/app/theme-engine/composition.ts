@@ -1,5 +1,12 @@
 import type { CanonicalCatalogRelease, StorefrontResourceReference } from "@shoppp/contracts";
 
+import type { PresentationViewModel } from "./view-models";
+
+export interface ThemeHomeSectionDataInput {
+  home: Extract<PresentationViewModel, { kind: "home" }>;
+  sectionType: string;
+}
+
 export interface ThemeReferenceDestination {
   id: string;
   kind: StorefrontResourceReference["kind"];
@@ -11,6 +18,7 @@ export interface ThemeCompositionAdapter {
   home?: {
     featuredCollectionSettingId: string;
     featuredProductSettingId: string;
+    sectionData?(input: ThemeHomeSectionDataInput): Readonly<Record<string, unknown>>;
     sectionType: string;
   };
   referenceHref(

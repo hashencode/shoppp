@@ -8,6 +8,13 @@ function copyEntry(entry: ThemeMatrixEntry): ThemeMatrixEntry {
 
 function minimalThirdTheme(): ThemeMatrixEntry {
   const entry = copyEntry(storefrontThemeMatrix[0]!);
+  const minimalType = (type: string) => type.replace(/^fashion-store\./, "minimal.");
+  const homeTypes = new Set(
+    entry.package.presets
+      .flatMap(({ templates }) => templates)
+      .find(({ pageType }) => pageType === "home")!
+      .sections.map(({ type }) => type),
+  );
   entry.package.manifest.id = "minimal";
   entry.package.manifest.provenance = {
     approvedAt: "2026-07-30T00:00:00.000Z",
@@ -18,24 +25,20 @@ function minimalThirdTheme(): ThemeMatrixEntry {
   entry.package.manifest.supportedPageTemplates = ["home"];
   entry.package.manifest.componentRegistry.sections =
     entry.package.manifest.componentRegistry.sections
-      .filter(
-        (definition) =>
-          !definition.type.startsWith("fashion-store.") || definition.type === "fashion-store.home",
+      .filter((definition) =>
+        definition.type.startsWith("fashion-store.") ? homeTypes.has(definition.type) : true,
       )
-      .map((definition) =>
-        definition.type === "fashion-store.home"
-          ? { ...definition, type: "minimal.home" }
-          : definition,
-      );
+      .map((definition) => ({ ...definition, type: minimalType(definition.type) }));
   entry.package.presets = entry.package.presets.map((preset) => ({
     ...preset,
     templates: preset.templates
       .filter(({ pageType }) => pageType === "home")
       .map((template) => ({
         ...template,
-        sections: template.sections.map((section) =>
-          section.type === "fashion-store.home" ? { ...section, type: "minimal.home" } : section,
-        ),
+        sections: template.sections.map((section) => ({
+          ...section,
+          type: minimalType(section.type),
+        })),
       })),
   }));
   entry.descriptor = {

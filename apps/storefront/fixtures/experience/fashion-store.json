@@ -83,6 +83,14 @@
       "state": "populated"
     },
     {
+      "fixtureId": "fashion-store-home",
+      "id": "fashion-store-home-product-merchandising-binding",
+      "instanceId": "fashion-store-home-product-merchandising",
+      "kind": "fixture",
+      "resource": "product-merchandising",
+      "state": "populated"
+    },
+    {
       "fixtureId": "fashion-store-shop",
       "id": "fashion-store-shop-binding",
       "instanceId": "fashion-store-collection",

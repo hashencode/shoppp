@@ -2,9 +2,11 @@
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
 import { resolveFixtureHomeData } from "./fixture-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const data = computed(() => resolveFixtureHomeData(properties.viewModel));
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 import { resolveHomeAsset } from "./fixture-home-section-context";
 
 function sourceAsset(sourcePath: string): string {
@@ -13,7 +15,11 @@ function sourceAsset(sourcePath: string): string {
 </script>
 
 <template>
-  <section class="pb-3 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-px-0" data-home-section="magazine">
+  <section
+    class="pb-3 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-px-0"
+    data-home-section="magazine"
+    :data-presentation-variant="presentation.editorial"
+  >
     <div class="container">
       <div class="row mb-4 xs-mb-7">
         <div class="col-12 text-center">

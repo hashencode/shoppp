@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-09-06-1346-refactor-fashion-decor-unification-plan.md
-current_unit: FS-R3-U4.1
+current_unit: FS-R3-U6.2
 ---
 
 # Shoppp Product Master Plan
@@ -67,10 +67,10 @@ historical evidence remain unchanged inside the owning plans.
 ## Current execution pointer
 
 - **Active product plan:** `FS-R3` — [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md); the completed FS-R2-U6 handback satisfies its activation prerequisite without changing candidate, DC, or PG state.
-- **Current parent/child stage:** `FS-R3-U4.1` — implement the U1-approved Fashion-owned Home variants and Product groups Section.
-- **Current feature scope:** U1's approved migration matrix, U2/U2.1's typed composition seam, U6.1's immutable `fashion-store@1.0.0` boundary, and U3's stable shell-free fixture/live Home decomposition are complete. Renderer shell ownership remains isolated to the Home successor path; legacy templates retain their original page shells.
-- **Next action:** Map the six approved Home visual variants and default-hidden `fashion-store.product-merchandising` Section onto U3's boundaries, then add fixture/live ViewModels, Fashion-owned resources, scoped styles, and focused behavior/isolation evidence.
-- **Blocker:** None external. U4 is bounded to the U1-approved matrix; REL's existing candidate-identity blocker remains paused rather than resolved. No candidate is frozen; DC and PG have not begun.
+- **Current parent/child stage:** `FS-R3-U6.2` — publish the unified Fashion preset and production-wired direct migration.
+- **Current feature scope:** U1–U5 and U6.1 are complete. Fashion now owns the approved Home variants and default-hidden Product groups Section; U5 closed as the approved Shop/Product verification-only no-op. Renderer shell ownership remains isolated to the Home successor path, and legacy exact packages remain immutable.
+- **Next action:** Register the unified preset and every supported direct Fashion migration in the default production registry, retain source preset/binding IDs, complete reorder overrides deterministically, and verify successor-only create/activate behavior through API, Admin, and preview paths.
+- **Blocker:** None external. U6.2 must keep source drafts byte-stable and preserve permissions, conflicts, immutable reads, and fail-closed migration behavior; REL's candidate-identity blocker remains paused. No candidate is frozen; DC and PG have not begun.
 - **Paused release authority:** `REL` retains Candidate Template Matrix, DC, and PG authority and resumes at `REL-Pre-DC` after FS-R3 handback; activation of FS-R3 does not resolve or advance its existing blocker.
 - **Corrective handoff:** `FS-F3` completed U1–U3 on 2026-09-04. Its five-second Product cadence, sole semantic thumbnail marker, bounded direction-aware reveal, responsive resize handling, interrupted-transition handling, and focused regression evidence passed; the handoff does not advance DC/PG.
 - **Feature handoff:** `FS-R1` completed U1–U11 on 2026-09-04 in the existing primary worktree and `codex/fashion-store-components-dependencies` branch. Its local fixture/live, current Playwright engine, reduced-motion, no-JS, remount, performance, resource, maintenance and review evidence passed. Historical minimum-browser, real-device and embedded-host rows remain explicitly unverified under the user-approved scope; the handoff does not advance DC/PG.
@@ -416,7 +416,7 @@ focused test alone.
 | `FS-R1` | [Fashion Store Shared Components and Dependency Consolidation](2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md) | Bounded successor over FS and completed FS-F2 | **Complete — U1-U11 closed on 2026-09-04 under the user-approved current-engine scope, with minimum-version targets and explicit unverified device rows retained** | Retains component, dependency, compatibility and local-verification evidence; `REL` owns candidate and production gates |
 | `FS-F3` | [Fashion Store Product Gallery Carousel Correction](2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md) | Corrective successor to completed FS-R1-U6 | Complete — U1-U3 closed on 2026-09-04; Product gallery correction and focused local verification complete; candidate and production state unchanged | Retains completed correction evidence with no implementation tail; `REL` owns candidate and production gates |
 | `FS-R2` | [Fashion Store Decor Hero Migration](2026-09-05-1414-refactor-fashion-store-decor-hero-plan.md) | Bounded Fashion Home Hero and dependency successor over completed FS-R1/FS-F3 | **Complete — U1-U6 closed on 2026-09-07; immediate initialization, full Home/live regression, behavior evidence, and focused Decor compatibility pass** | Retains completed Hero/startup evidence with no implementation tail; `REL` owns candidate and production gates |
-| `FS-R3` | [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md) | Bounded successor that makes Fashion the sole functional storefront package and absorbs only approved Decor-specific presentation value | **Active — U1/U2/U3/U6.1 complete; U4.1 approved Home presentation consolidation current** | Owns unified composition, Decor capability disposition, and the guarded retirement of both `decor` and `decor-store`; REL retains candidate, DC, and PG authority |
+| `FS-R3` | [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md) | Bounded successor that makes Fashion the sole functional storefront package and absorbs only approved Decor-specific presentation value | **Active — U1–U5 and U6.1 complete; U6.2 migration/publication current** | Owns unified composition, Decor capability disposition, and the guarded retirement of both `decor` and `decor-store`; REL retains candidate, DC, and PG authority |
 | `DS` | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) | Parallel `decor-store` correction | Parallel implementation plan; completion is not asserted here | This plan or a named `decor-store` successor |
 | `DS-P1` | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) | Parallel remaining-page source-parity successor | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
 | `REL` | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) | Pre-DC/DC/PG policy and execution | **Pre-DC blocked and current; FS-R1, historical Fashion Store implementation, FS-F2, FS-F3 and ADM-I18N are complete; capability-scope audit and full candidate-identity enforcement remain before DC1** | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state |
@@ -548,7 +548,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-R3-U4.1` is the single current product execution pointer; REL-Pre-DC is paused with its blocker unchanged, and no candidate, DC, or PG state has advanced.
+- `FS-R3-U6.2` is the single current product execution pointer; REL-Pre-DC is paused with its blocker unchanged, and no candidate, DC, or PG state has advanced.
 - The old `fashion` implementation, `decor-store` naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.

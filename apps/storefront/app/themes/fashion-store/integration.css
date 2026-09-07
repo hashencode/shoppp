@@ -7,6 +7,97 @@
   transition: none;
 }
 
+[data-home-section="categories"][data-presentation-variant="decor-icons"] .categories-style-02 {
+  padding: 1rem;
+  text-align: center;
+}
+
+[data-home-section="categories"][data-presentation-variant="decor-icons"] img {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+[data-home-section="services"][data-presentation-variant="decor-compact"] {
+  background: var(--color-surface, #f7f4ef);
+}
+
+[data-home-section="services"][data-presentation-variant="decor-compact"] .feature-box {
+  justify-content: center;
+  text-align: center;
+}
+
+[data-home-section="collection"][data-presentation-variant="decor-layered"] img {
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 2.5rem rgb(35 35 35 / 14%);
+}
+
+[data-home-section="brands"][data-presentation-variant="decor-continuous"] .row {
+  animation: fashion-store-brand-drift 18s linear infinite;
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+[data-home-section="brands"][data-presentation-variant="decor-continuous"]
+  .fashion-store-brand-sequence {
+  display: flex;
+  flex: none;
+  max-width: none;
+  padding: 0;
+  width: auto;
+}
+
+[data-home-section="brands"][data-presentation-variant="decor-continuous"]
+  .fashion-store-brand-sequence
+  > .col {
+  flex: 0 0 190px;
+  width: 190px;
+}
+
+[data-home-section="marquee"][data-presentation-variant="decor-reverse"]
+  [data-fashion-store-marquee] {
+  animation: fashion-store-marquee-reverse 20s linear infinite;
+}
+
+[data-home-section="magazine"][data-presentation-variant="decor-journal"] .grid-item,
+[data-home-section="magazine"][data-presentation-variant="decor-journal"] article {
+  border-block-start: 1px solid currentColor;
+  padding-block-start: 1rem;
+}
+
+@keyframes fashion-store-brand-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fashion-store-marquee-reverse {
+  from {
+    transform: translateX(-12%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-home-section="brands"][data-presentation-variant="decor-continuous"] .row,
+  [data-home-section="marquee"][data-presentation-variant="decor-reverse"]
+    [data-fashion-store-marquee] {
+    animation: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 575px) {
+  [data-home-section="brands"][data-presentation-variant="decor-continuous"]
+    .fashion-store-brand-sequence
+    > .col {
+    flex-basis: 140px;
+    width: 140px;
+  }
+}
+
 .btn.btn-switch-text .btn-double-text.btn-double-text::before {
   content: none;
 }
@@ -524,10 +615,7 @@
   font-weight: 600;
 }
 
-.fashion-store-home
-  .fashion-store-decor-hero__copy
-  a[data-hero-layer="cta"]
-  .fashion-store-icon {
+.fashion-store-home .fashion-store-decor-hero__copy a[data-hero-layer="cta"] .fashion-store-icon {
   width: 18px;
   height: 18px;
   transform: translateY(-1px);
@@ -714,11 +802,7 @@
   }
 
   .fashion-store-home .fashion-store-decor-hero__product {
-    top: round(
-      up,
-      calc(100% - 100px - (100vw * 700 / 778) * 740 / 1678),
-      1px
-    );
+    top: round(up, calc(100% - 100px - (100vw * 700 / 778) * 740 / 1678), 1px);
     bottom: auto;
     width: calc(100vw * 700 / 778);
     transform: translateX(54.269%);
@@ -767,8 +851,7 @@
     top: round(
       down,
       calc(
-        50% + 100vw * 200 / 480 -
-          (round(nearest, calc(100vw * 500 / 480), 1px) * 740 / 1678) / 2
+        50% + 100vw * 200 / 480 - (round(nearest, calc(100vw * 500 / 480), 1px) * 740 / 1678) / 2
       ),
       1px
     );
@@ -776,9 +859,7 @@
     bottom: auto;
     left: round(
       nearest,
-      calc(
-        50% - round(nearest, calc(100vw * 500 / 480), 1px) / 2 + 100vw * 15 / 480
-      ),
+      calc(50% - round(nearest, calc(100vw * 500 / 480), 1px) / 2 + 100vw * 15 / 480),
       1px
     );
     width: round(nearest, calc(100vw * 500 / 480), 1px);

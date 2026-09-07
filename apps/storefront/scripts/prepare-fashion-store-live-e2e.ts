@@ -179,6 +179,7 @@ async function main(): Promise<void> {
     await readFile(resolve(root, "fixtures/release.json"), "utf8"),
   ) as FashionStoreReleaseFixture;
   const emptyHome = process.argv.includes("--empty-home");
+  const unifiedHome = process.argv.includes("--unified-home");
   const preparedReleaseFixture = structuredClone(releaseFixture);
   if (emptyHome) {
     const homeCollection = preparedReleaseFixture.collections.find(
@@ -202,10 +203,30 @@ async function main(): Promise<void> {
     },
   } satisfies FashionStoreReleaseFixture;
   const input = fashionStoreLiveBuildInput(fixtureInput, liveReleaseFixture);
+  if (unifiedHome) {
+    const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home");
+    if (!home) throw new Error("Fashion live preview requires a Home template.");
+    const presentationByType: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+      "fashion-store.brand-strip": { "brand-strip-presentation": "decor-continuous" },
+      "fashion-store.categories": { "categories-presentation": "decor-icons" },
+      "fashion-store.collection-feature": { "collection-presentation": "decor-layered" },
+      "fashion-store.editorial": { "editorial-presentation": "decor-journal" },
+      "fashion-store.marquee": { "marquee-presentation": "decor-reverse" },
+      "fashion-store.services": { "services-presentation": "decor-compact" },
+    };
+    for (const section of home.sections) {
+      section.settings = { ...section.settings, ...presentationByType[section.type] };
+      if (section.type === "fashion-store.product-merchandising") section.visible = true;
+    }
+  }
   await writeFile(
     resolve(
       fixtureRoot,
-      emptyHome ? "fashion-store-live-empty-e2e-input.json" : "fashion-store-live-e2e-input.json",
+      unifiedHome
+        ? "fashion-store-live-unified-home-e2e-input.json"
+        : emptyHome
+          ? "fashion-store-live-empty-e2e-input.json"
+          : "fashion-store-live-e2e-input.json",
     ),
     `${JSON.stringify(input, null, 2)}\n`,
   );

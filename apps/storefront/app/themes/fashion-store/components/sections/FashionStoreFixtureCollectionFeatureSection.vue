@@ -4,9 +4,11 @@ import type { FashionStoreHomeData } from "../../fixtures/home";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
 import { resolveFixtureHomeData } from "./fixture-home-section-context";
+import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const data = computed(() => resolveFixtureHomeData(properties.viewModel));
+const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
 import { resolveHomeAsset } from "./fixture-home-section-context";
 
 function sourceAsset(sourcePath: string): string {
@@ -27,6 +29,7 @@ function collectionSlide(index: number): FashionStoreHomeData["collection"][numb
   <section
     class="bg-very-light-gray overflow-hidden position-relative ps-3 xs-ps-0"
     data-home-section="collection"
+    :data-presentation-variant="presentation.collection"
   >
     <div class="container-fluid">
       <div class="row align-items-center">

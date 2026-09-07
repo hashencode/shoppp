@@ -23,6 +23,7 @@ export type ActiveExperienceProviderInput =
 export interface PresentationProviderResolveInput {
   expectedKind?: PresentationViewModelKind;
   instanceId: string;
+  settings?: Readonly<Record<string, unknown>>;
 }
 
 export interface PresentationProvider {

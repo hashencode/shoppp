@@ -440,7 +440,7 @@ function homeViewModel(
   locale: string,
   settings: Readonly<Record<string, unknown>>,
   featuredProduct?: CatalogProduct,
-): PresentationViewModel {
+): Extract<PresentationViewModel, { kind: "home" }> {
   const products: PresentationProductCard[] = [];
   for (const productId of collection.productIds) {
     if (products.length === 24) break;
@@ -492,7 +492,7 @@ function homeViewModel(
     ],
     shell: { footer: shell.footer, header: shell.header },
     state: "populated",
-  });
+  }) as Extract<PresentationViewModel, { kind: "home" }>;
 }
 
 function transactionViewModel(
@@ -726,7 +726,7 @@ function composeDeclaredSections(input: {
   const shellSection = shellContract
     ? visibleSections.find(({ type }) => type === shellContract.sourceSectionType)
     : undefined;
-  let composedHome: PresentationViewModel | undefined;
+  let composedHome: Extract<PresentationViewModel, { kind: "home" }> | undefined;
 
   for (const section of visibleSections) {
     const contract = input.descriptor.sections[section.type];
@@ -884,7 +884,12 @@ function composeDeclaredSections(input: {
       viewModel = {
         data: {
           home: composedHome,
+          ...(input.adapter.home?.sectionData?.({
+            home: composedHome,
+            sectionType: section.type,
+          }) ?? {}),
           mode: "live",
+          presentation: section.settings,
           sectionType: section.type,
         },
         kind: "theme-section",

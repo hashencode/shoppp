@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { resolveTemplateOverride } from "../../../packages/domain/src/storefront-experience";
 import { renderThemeTreePlan } from "../app/theme-engine/registry";
+import { createFixturePresentationProvider } from "../app/theme-engine/providers/fixture-preview";
 import { fashionStoreManifest as legacyFashionStoreManifest } from "../app/themes/fashion-store/manifest";
 import { themeRegistry as legacyThemeRegistry } from "../app/themes/fashion-store/registry";
 
@@ -14,6 +15,15 @@ import { fashionStorePreset } from "../app/themes/fashion-store/successor/preset
 import { themeRegistry } from "../app/themes/fashion-store/successor/registry";
 import { fixtureThemeRegistry } from "../app/themes/fashion-store/successor/fixture-registry";
 import { fashionStoreProductSectionVariant } from "../app/themes/fashion-store/successor/composition";
+import {
+  fashionStoreHomePresentationSchema,
+  resolveFashionStoreHomePresentation,
+} from "../app/themes/fashion-store/contracts/home-presentation";
+import {
+  buildFashionStoreMerchandisingGroups,
+  resolveFashionStoreMerchandising,
+} from "../app/themes/fashion-store/contracts/home-merchandising";
+import { fashionStoreHomeFixtures } from "../app/themes/fashion-store/fixtures/home";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
 import {
@@ -367,6 +377,12 @@ describe("Fashion Store preview registration", () => {
         type: "fashion-store.editorial",
         visible: true,
       },
+      {
+        id: "fashion-store-home-product-merchandising",
+        required: false,
+        type: "fashion-store.product-merchandising",
+        visible: false,
+      },
     ]);
     expect(themeRegistry.sectionComposition?.rendererShell).toMatchObject({
       owner: "renderer",
@@ -393,6 +409,117 @@ describe("Fashion Store preview registration", () => {
     expect(() => fashionStoreProductSectionVariant("fashion-store-home-unknown")).toThrow(
       "Unknown Fashion Store products Section instance",
     );
+  });
+
+  test("exposes only the six approved bounded Home presentation variants", () => {
+    const settingsByType = new Map(
+      fashionStoreManifest.componentRegistry.sections.map((section) => [
+        section.type,
+        new Map(section.settings.map((setting) => [setting.id, setting])),
+      ]),
+    );
+    const approved = [
+      ["fashion-store.categories", "categories-presentation", "source"],
+      ["fashion-store.marquee", "marquee-presentation", "source"],
+      ["fashion-store.collection-feature", "collection-presentation", "source"],
+      ["fashion-store.brand-strip", "brand-strip-presentation", "source"],
+      ["fashion-store.editorial", "editorial-presentation", "source"],
+      ["fashion-store.services", "services-presentation", "source"],
+    ] as const;
+
+    for (const [type, settingId, defaultValue] of approved) {
+      expect(settingsByType.get(type)?.get(settingId)).toMatchObject({
+        default: defaultValue,
+        kind: "select",
+        required: true,
+      });
+    }
+    expect(
+      fashionStoreManifest.componentRegistry.sections
+        .filter(
+          ({ type }) => type === "fashion-store.collection" || type === "fashion-store.product",
+        )
+        .flatMap(({ settings }) => settings.map(({ id }) => id)),
+    ).not.toContain("presentation-variant");
+  });
+
+  test("validates presentation settings carried by fixture and live Section ViewModels", () => {
+    expect(
+      fashionStoreHomePresentationSchema.parse({
+        "categories-presentation": "decor-icons",
+        "marquee-presentation": "decor-reverse",
+      }),
+    ).toMatchObject({
+      "categories-presentation": "decor-icons",
+      "marquee-presentation": "decor-reverse",
+    });
+    expect(() =>
+      fashionStoreHomePresentationSchema.parse({ "categories-presentation": "unbounded" }),
+    ).toThrow();
+    expect(
+      resolveFashionStoreHomePresentation({
+        data: { presentation: { "services-presentation": "decor-compact" } },
+        kind: "theme-section",
+        state: "populated",
+      }).services,
+    ).toBe("decor-compact");
+
+    const fixtureProvider = createFixturePresentationProvider({
+      bindings: [
+        {
+          fixtureId: "fashion-store-home",
+          id: "services-binding",
+          instanceId: "fashion-store-home-services",
+          kind: "fixture",
+          resource: "services",
+          state: "populated",
+        },
+      ],
+      fixtures: fashionStoreHomeFixtures,
+    });
+    const fixtureViewModel = fixtureProvider.resolve({
+      instanceId: "fashion-store-home-services",
+      settings: { "services-presentation": "decor-compact" },
+    });
+    expect(resolveFashionStoreHomePresentation(fixtureViewModel).services).toBe("decor-compact");
+  });
+
+  test("resolves Product group membership, fallback, and local states", () => {
+    expect(buildFashionStoreMerchandisingGroups([1, 2, 3, 4, 5], 3)).toEqual([
+      { id: "new-arrivals", products: [1, 2, 3, 4] },
+      { id: "best-sellers", products: [1, 2, 3, 4, 5] },
+      { id: "featured", products: [3] },
+    ]);
+    expect(buildFashionStoreMerchandisingGroups([1, 2], undefined)[2]).toEqual({
+      id: "featured",
+      products: [1],
+    });
+
+    for (const state of ["loading", "validation-error", "unavailable"] as const) {
+      expect(resolveFashionStoreMerchandising({ data: {}, kind: "theme-section", state })).toEqual({
+        state,
+      });
+    }
+    expect(
+      resolveFashionStoreMerchandising({ data: {}, kind: "theme-section", state: "populated" }),
+    ).toEqual({ state: "validation-error" });
+  });
+
+  test("keeps Product groups on native controls and local state ownership", async () => {
+    const component = await readFile(
+      resolve(
+        import.meta.dir,
+        "../app/themes/fashion-store/components/sections/FashionStoreProductMerchandisingSection.vue",
+      ),
+      "utf8",
+    );
+    expect(component).toContain("<button");
+    expect(component).toContain(':aria-pressed="group.id === selectedId"');
+    expect(component).not.toMatch(/role=["']tab(?:list)?["']/);
+    expect(component).toContain("overflow-x: auto");
+    expect(component).toContain("prefers-reduced-motion: reduce");
+    expect(component).toContain("groups[0]?.id");
+    expect(component).not.toContain(".focus(");
   });
 
   test("uses the existing fixed override model for Home visibility, order, and reset", () => {
@@ -460,7 +587,11 @@ describe("Fashion Store preview registration", () => {
       const tree = renderThemeTreePlan(reloaded, registry);
       expect(tree.shell).toBeDefined();
       expect(tree.sections.map(({ instance }) => instance.id)).toEqual(
-        reorderedIds.filter((id) => id !== "fashion-store-home-magazine"),
+        reorderedIds.filter(
+          (id) =>
+            id !== "fashion-store-home-magazine" &&
+            id !== "fashion-store-home-product-merchandising",
+        ),
       );
     }
   });
