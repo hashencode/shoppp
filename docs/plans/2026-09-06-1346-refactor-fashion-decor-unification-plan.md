@@ -9,6 +9,8 @@ execution: code
 plan_role: planned-bounded-successor
 plan_alias: FS-R3
 deepened: 2026-09-06
+current_unit: U2
+current_stage: U2.1
 ---
 
 # Fashion Store and Decor Unification - Plan
@@ -34,6 +36,23 @@ deepened: 2026-09-06
 - **Explicit supersessions on activation:** FS-R3 supersedes THEME-R4 only where it requires Fashion and Decor to remain separate selectable packages. It supersedes the product master's two-current-template model, the standalone `decor` to `decor-store` migration follow-up, and the independent DS/DS-P1 runtime tail. Historical stable R/F/AE/KTD/U identifiers and evidence remain unchanged.
 - **Parallel plans:** FS-R2 remains active until its U6 handback. REL remains paused without changing its existing blockers, candidate identity, DC, or PG state. Commerce, IAM, AI, Admin, CI, and completed Fashion plans retain their recorded responsibilities.
 - **Activation and handback:** Creating this plan does not change the active pointer. Activation requires a same-change master update and an FS-R3 execution checkpoint. Completion returns execution to REL-Pre-DC without implying a candidate selection or production approval. A U7 external-state blocker may use the bounded handback branch above without marking FS-R3 complete or authorizing Decor removal; Decor does not block a Fashion-only candidate unless REL explicitly freezes it into the Candidate Template Matrix.
+
+---
+
+## Execution Checkpoint
+
+- **Plan state:** Active.
+- **Current parent/child stage:** `U2.1` — characterize the current renderer boundary and prove the dormant single-shell multi-Section seam test-first.
+- **Current unit status:** `U1` is complete after product approval on 2026-09-07; `U2` is in progress; `U3`–`U8` remain pending behind their declared dependencies.
+- **Next concrete action:** Add characterization and failing contract/renderer tests for a registry-local Section composition descriptor and an explicit renderer-owned shell opt-in, then implement the seam without enabling it for any current registry.
+- **Blocker:** None. The approved U1 matrix freezes six bounded Fashion visual variants, one default-hidden Product groups Section, no Shop/Product Decor route variants, no secondary replica migration, and no second Hero.
+- **Execution boundary:** Keep renderer shell ownership disabled for every current registry in U2 so Fashion and Decor output remains unchanged. Do not edit or delete either Decor runtime subtree, decompose Fashion Home, or migrate Decor presentations in this unit.
+
+| Unit | Status | Owned outcome |
+| --- | --- | --- |
+| U1 | Complete (approved 2026-09-07) | Exact capability/identity disposition and unified-preset IA freeze |
+| U2 | In progress (`U2.1`) | Dormant single-shell multi-Section composition seam |
+| U3–U8 | Pending | Execute only in dependency order after the checkpoint advances |
 
 ---
 
