@@ -410,6 +410,10 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
   const heroBefore = Number(await hero.getAttribute("data-motion-active-index"));
 
   const carousel = page.locator("[data-fashion-store-collection-carousel]");
+  const collectionArrow = carousel.locator(".content-arrow").first();
+  await expect(collectionArrow.locator('[data-fashion-store-icon="arrow-right"] svg')).toHaveCount(
+    1,
+  );
   const collectionBefore = await carousel.getAttribute("data-collection-index");
   await expect
     .poll(() => carousel.getAttribute("data-collection-index"), { timeout: 5_500 })

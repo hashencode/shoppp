@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FashionStoreCarousel from "../shared/FashionStoreCarousel.vue";
+import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { FashionStoreHomeData } from "../../fixtures/home";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
