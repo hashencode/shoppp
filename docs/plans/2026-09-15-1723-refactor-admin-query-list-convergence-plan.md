@@ -44,12 +44,12 @@ tail_owner: ADM-LIST-until-local-verification-and-handback
 ## Execution Checkpoint
 
 - **Classification:** Active bounded Admin query-list successor.
-- **Current unit:** `ADM-LIST-U3` — converge Inventory while preserving History, Adjust, permissions, and authoritative post-write reloads.
-- **Completed units:** `ADM-LIST-U1` — recorded the behavior matrix and established recurring shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles to `StandardListPageRecipe`, preserving 20/25-row pagination, explicit Query/Reset, Orders public-reference navigation, role permissions and creation, authoritative reload, localization, and standard error/empty states; 22 focused tests, Admin typecheck, affected lint/format, and diff checks passed.
-- **Next unit:** `ADM-LIST-U4`, after Inventory read/write permissions and action-triggered refresh evidence passes.
+- **Current unit:** `ADM-LIST-U4` — converge Order Revenue Report while preserving deep-link defaults, date/timezone truth, and export authorization.
+- **Completed units:** `ADM-LIST-U1` — recorded the behavior matrix and established recurring shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory to `StandardListPageRecipe`, preserving 20-row pagination, History/Adjust actions, permissions, validation/error behavior, idempotent payloads, and latest committed-filter authoritative reload; six focused tests, Admin typecheck, affected lint/format, and diff checks passed.
+- **Next unit:** `ADM-LIST-U5`, after Report deep-link, reset, export, and stale-result evidence passes.
 - **Blocker:** None.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7 → U8.
-- **Next concrete action:** Add failing Inventory tests for explicit Query/Reset, pagination, History/Adjust actions, and committed-filter authoritative reload before migrating its orchestration.
+- **Next concrete action:** Add failing Report tests for URL-derived visible/request defaults, reset-to-entry baseline, date-only/timezone behavior, committed-filter headings/export, and error states before migrating its orchestration.
 
 ## Product Contract
 
