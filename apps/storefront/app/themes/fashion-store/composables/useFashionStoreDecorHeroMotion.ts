@@ -5,49 +5,101 @@ import { fashionStoreDecorHeroLayerTimeline } from "../contracts/home-hero";
 
 type HeroMotionPhase = "idle" | "layer-busy";
 type HeroTimeline = {
-  fromTo(...arguments_: unknown[]): unknown;
   kill(): void;
   pause(): void;
   play(): void;
   revert(): void;
 };
 
+type GsapTimeline = {
+  call(callback: () => void, parameters?: unknown[], position?: number): unknown;
+  kill(): void;
+  pause(): void;
+  play(): void;
+  revert(): void;
+  to(target: object, variables: { duration: number }, position?: number): unknown;
+};
+
+const heroLayerEasing = {
+  "back.out": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  "power3.inOut": "cubic-bezier(0.645, 0.045, 0.355, 1)",
+  "power4.inOut": "cubic-bezier(0.77, 0, 0.175, 1)",
+} as const;
+
 export function createFashionStoreDecorHeroTimeline(
-  gsap: { timeline(options: { onComplete(): void }): HeroTimeline },
+  gsap: { timeline(options: { onComplete(): void }): GsapTimeline },
   slide: Pick<HTMLElement, "querySelector">,
   complete: () => void,
   fail: () => void,
 ): HeroTimeline | undefined {
-  let timeline: HeroTimeline | undefined;
+  let timeline: GsapTimeline | undefined;
+  const animations: Animation[] = [];
+  const cancelAnimations = () => {
+    for (const animation of animations) animation.cancel();
+  };
   try {
-    timeline = gsap.timeline({ onComplete: complete });
     for (const layer of fashionStoreDecorHeroLayerTimeline) {
       const element = slide.querySelector<HTMLElement>(`[data-hero-layer='${layer.role}']`);
       if (!element) continue;
       const imageLayer = layer.role === "pattern" || layer.role === "product";
       const shapeLayer = layer.role === "shape";
-      timeline.fromTo(
-        element,
+      const animation = element.animate(
+        [
+          {
+            opacity: 0,
+            scale: shapeLayer ? 0.5 : 1,
+            translate: imageLayer ? "50px 0" : "0 50px",
+          },
+          { opacity: 1, scale: 1, translate: "0 0" },
+        ],
         {
-          autoAlpha: 0,
-          scale: shapeLayer ? 0.5 : 1,
-          x: imageLayer ? 50 : 0,
-          y: imageLayer ? 0 : 50,
+          delay: layer.delayMs,
+          duration: layer.durationMs,
+          easing: heroLayerEasing[layer.ease],
+          fill: "backwards",
         },
-        {
-          autoAlpha: 1,
-          duration: layer.durationMs / 1_000,
-          ease: layer.ease,
-          scale: 1,
-          x: 0,
-          y: 0,
-        },
-        layer.delayMs / 1_000,
       );
+      animation.pause();
+      animations.push(animation);
     }
-    return timeline;
+    const durationMs = Math.max(
+      ...fashionStoreDecorHeroLayerTimeline.map((layer) => layer.delayMs + layer.durationMs),
+    );
+    timeline = gsap.timeline({
+      onComplete() {
+        cancelAnimations();
+        complete();
+      },
+    });
+    timeline.call(
+      () => {
+        for (const animation of animations) animation.play();
+      },
+      [],
+      0,
+    );
+    timeline.to({}, { duration: durationMs / 1_000 }, 0);
+    return {
+      kill() {
+        timeline?.kill();
+        cancelAnimations();
+      },
+      pause() {
+        timeline?.pause();
+        for (const animation of animations) animation.pause();
+      },
+      play() {
+        timeline?.play();
+        for (const animation of animations) animation.play();
+      },
+      revert() {
+        timeline?.revert();
+        cancelAnimations();
+      },
+    };
   } catch {
     timeline?.revert();
+    cancelAnimations();
     fail();
     return undefined;
   }

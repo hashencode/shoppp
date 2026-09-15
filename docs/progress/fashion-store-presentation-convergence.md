@@ -118,3 +118,18 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - Focused Home/registry/Commerce tests, Storefront typecheck, live Home/Commerce browser coverage, fixture desktop/responsive critical paths, and combined/isolated Home matrices passed. Paired component names and the legacy merchandising reader are absent from runtime source.
 - U6 is not complete: the unchanged dedicated motion/performance gate remains red on visible-Hero Layerize and RunTask budgets after convergence. A clean exported U5 control measured 200.665 ms Layerize and 1298.672 ms RunTask in the same environment; current U6 desktop samples repeatedly measured roughly 566–711 ms Layerize and 1459–1828 ms RunTask. The control itself narrowly missed only RunTask in that sample, while U6 reproducibly adds a material Layerize regression.
 - Thresholds were not changed. Temporary visibility, containment, transition, and component-family isolation probes were removed after they failed to identify a safe production fix. The next action remains U6.3 profiling and optimization; U7 has not started.
+
+## 2026-09-15 — U6 motion gate closure
+
+### Outcome
+
+- Trace diagnostics isolated the regression to GSAP writing eight Hero layer styles on every animation frame. With the larger converged Home mounted, those writes forced Chromium to rebuild the full page layer tree each frame; the cost was not caused by a long layout task or by background carousel motion.
+- GSAP remains the Hero lifecycle and timing owner, including completion, pause/resume, teardown, and runtime-load failure fallback. Opacity, translate, and scale interpolation now runs through compositor-backed Web Animations, preserving the existing layer order, delays, durations, easing intent, and static final state without main-thread style writes on every frame.
+- No content is hidden or delayed, no performance threshold changed, and the earlier carousel viewport suspension remains intact.
+
+### Verification
+
+- Focused Hero/motion contract tests: 32 passed, 0 failed; Storefront typecheck passed.
+- Hero desktop/mobile browser regression: 12 passed, 6 viewport-inapplicable skips, 0 failed. Static first paint, accepted layer choreography, offscreen pause/resume, native Swiper threshold/lazy preload, no-JavaScript, source timing, complete-cycle remount, and GSAP-load fallback remain green.
+- The unchanged full motion/performance matrix passed 2/2. Desktop medians were 37.768 ms Layerize, 169.3 ms paint lifecycle, and 916.9 ms RunTask; mobile medians were 40.992 ms, 96.329 ms, and 663.414 ms respectively, against 250/250/1200 ms limits. Both offscreen and reduced-idle controls recorded zero Layerize, paint lifecycle, and effective page-activity RunTask work.
+- U6 is complete. The next Fashion convergence unit is U7; the product master keeps `ADM-LIST-U5` active and advances only the preserved Fashion return pointer to `FS-R5-U7`.

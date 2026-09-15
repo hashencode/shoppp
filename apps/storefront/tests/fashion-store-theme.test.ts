@@ -177,8 +177,14 @@ describe("Fashion Store preview registration", () => {
   test("reverts a partial timeline and enters fallback when GSAP layer construction throws", () => {
     let failed = false;
     let reverted = false;
+    const animation = {
+      cancel: () => undefined,
+      pause: () => undefined,
+      play: () => undefined,
+    } as unknown as Animation;
     const timeline = {
-      fromTo: () => {
+      call: () => undefined,
+      to: () => {
         throw new Error("controlled GSAP population failure");
       },
       kill: () => undefined,
@@ -190,7 +196,7 @@ describe("Fashion Store preview registration", () => {
     };
     const result = createFashionStoreDecorHeroTimeline(
       { timeline: () => timeline },
-      { querySelector: () => ({}) as HTMLElement },
+      { querySelector: () => ({ animate: () => animation }) as unknown as HTMLElement },
       () => undefined,
       () => {
         failed = true;
@@ -201,25 +207,47 @@ describe("Fashion Store preview registration", () => {
     expect(failed).toBe(true);
   });
 
-  test("keeps Hero layer choreography free of paint-heavy filter animation", () => {
-    const calls: unknown[][] = [];
+  test("delegates Hero layer interpolation to compositor animations", () => {
+    const keyframes: Keyframe[][] = [];
+    const options: KeyframeAnimationOptions[] = [];
+    const animation = {
+      cancel: () => undefined,
+      pause: () => undefined,
+      play: () => undefined,
+    } as unknown as Animation;
     const timeline = {
-      fromTo: (...arguments_: unknown[]) => calls.push(arguments_),
+      call: (callback: () => void) => callback(),
       kill: () => undefined,
       pause: () => undefined,
       play: () => undefined,
       revert: () => undefined,
+      to: () => undefined,
     };
     const result = createFashionStoreDecorHeroTimeline(
       { timeline: () => timeline },
-      { querySelector: () => ({}) as HTMLElement },
+      {
+        querySelector: () =>
+          ({
+            animate: (frames: Keyframe[], timing: KeyframeAnimationOptions) => {
+              keyframes.push(frames);
+              options.push(timing);
+              return animation;
+            },
+          }) as unknown as HTMLElement,
+      },
       () => undefined,
       () => undefined,
     );
 
-    expect(result).toBe(timeline);
-    expect(calls).toHaveLength(fashionStoreDecorHeroLayerTimeline.length);
-    expect(JSON.stringify(calls)).not.toContain("filter");
+    expect(result).toBeDefined();
+    expect(keyframes).toHaveLength(fashionStoreDecorHeroLayerTimeline.length);
+    expect(options.map(({ delay, duration }) => ({ delay, duration }))).toEqual(
+      fashionStoreDecorHeroLayerTimeline.map(({ delayMs, durationMs }) => ({
+        delay: delayMs,
+        duration: durationMs,
+      })),
+    );
+    expect(JSON.stringify(keyframes)).not.toContain("filter");
   });
 
   test("uses one Fashion-owned Decor Hero contract in the shared Home renderer", async () => {
