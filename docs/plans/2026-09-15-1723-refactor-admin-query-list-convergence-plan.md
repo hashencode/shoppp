@@ -44,12 +44,12 @@ tail_owner: ADM-LIST-until-local-verification-and-handback
 ## Execution Checkpoint
 
 - **Classification:** Active bounded Admin query-list successor.
-- **Current unit:** `ADM-LIST-U2` — converge Orders and Roles on the Standard List Page recipe while preserving navigation and role creation.
-- **Completed units:** `ADM-LIST-U1` — recorded the seven-page preserve/converge/remove behavior matrix; made form navigation optional; separated visible form defaults from request defaults; exposed committed filters to extension renderers; distinguished blocking replacement-query failures from partial same-scope refresh failures; and passed 35 focused shared/consumer tests, Admin typecheck, affected lint, and diff checks.
-- **Next unit:** `ADM-LIST-U3`, after Orders and Roles preserve their accepted actions and pass focused evidence.
+- **Current unit:** `ADM-LIST-U3` — converge Inventory while preserving History, Adjust, permissions, and authoritative post-write reloads.
+- **Completed units:** `ADM-LIST-U1` — recorded the behavior matrix and established recurring shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles to `StandardListPageRecipe`, preserving 20/25-row pagination, explicit Query/Reset, Orders public-reference navigation, role permissions and creation, authoritative reload, localization, and standard error/empty states; 22 focused tests, Admin typecheck, affected lint/format, and diff checks passed.
+- **Next unit:** `ADM-LIST-U4`, after Inventory read/write permissions and action-triggered refresh evidence passes.
 - **Blocker:** None.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7 → U8.
-- **Next concrete action:** Add failing Orders and Roles page tests for explicit Query/Reset, pagination, detail navigation, and role creation before migrating their orchestration.
+- **Next concrete action:** Add failing Inventory tests for explicit Query/Reset, pagination, History/Adjust actions, and committed-filter authoritative reload before migrating its orchestration.
 
 ## Product Contract
 

@@ -109,6 +109,9 @@ let inviteAttempts = 0
 let userDetailLoads = 0
 let roleDetailLoads = 0
 let invitationLoads = 0
+let roleLoads = 0
+let roleQueries: Record<string, string>[] = []
+let roleCreateBody: unknown
 const originalLanguages = Object.getOwnPropertyDescriptor(window.navigator, 'languages')
 
 const server = setupServer(
@@ -123,8 +126,14 @@ const server = setupServer(
     invitationLoads += 1
     return HttpResponse.json({ data: page([expiredInvitation]) })
   }),
-  http.get('*/admin/iam/roles', () => {
-    return HttpResponse.json({ data: page([adminRole, supportRole]) })
+  http.get('*/admin/iam/roles', ({ request }) => {
+    roleLoads += 1
+    const query = Object.fromEntries(new URL(request.url).searchParams.entries())
+    roleQueries.push(query)
+    const requestedPage = Number(query.page ?? 1)
+    return HttpResponse.json({
+      data: { ...page([adminRole, supportRole]), page: requestedPage, total: 30 },
+    })
   }),
   http.get('*/admin/iam/roles/:id', ({ params }) => {
     roleDetailLoads += 1
@@ -139,6 +148,10 @@ const server = setupServer(
       )
     }
     return HttpResponse.json({ data: { ...expiredInvitation, status: 'pending' } }, { status: 201 })
+  }),
+  http.post('*/admin/iam/roles', async ({ request }) => {
+    roleCreateBody = await request.json()
+    return HttpResponse.json({ data: supportRole }, { status: 201 })
   }),
   http.patch('*/admin/iam/users/:id', () =>
     HttpResponse.json(
@@ -167,6 +180,9 @@ afterEach(() => {
   userDetailLoads = 0
   roleDetailLoads = 0
   invitationLoads = 0
+  roleLoads = 0
+  roleQueries = []
+  roleCreateBody = undefined
   if (originalLanguages) Object.defineProperty(window.navigator, 'languages', originalLanguages)
   else Reflect.deleteProperty(window.navigator, 'languages')
 })
@@ -444,6 +460,114 @@ describe('IAM management pages', () => {
     await waitFor(() => expect(screen.getByText('Administrator')).toBeTruthy())
     expect(screen.queryByRole('button', { name: /New role/i })).toBeNull()
     expect(screen.getByText('Protected')).toBeTruthy()
+  })
+
+  it('commits role search explicitly, resets it, and paginates with the accepted page size', async () => {
+    const requests: Record<string, string>[] = []
+    server.use(
+      http.get('*/admin/iam/roles', ({ request }) => {
+        requests.push(Object.fromEntries(new URL(request.url).searchParams.entries()))
+        const requestedPage = Number(new URL(request.url).searchParams.get('page') ?? 1)
+        return HttpResponse.json({
+          data: { ...page([adminRole, supportRole]), page: requestedPage, total: 30 },
+        })
+      })
+    )
+    renderPage(<RolesPage />, { path: '/access/roles' })
+
+    await screen.findByText('Administrator')
+    expect(requests).toEqual([{ page: '1', pageSize: '25' }])
+    fireEvent.change(screen.getByLabelText('Search roles'), {
+      target: { value: ' support ' },
+    })
+    expect(requests).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /^(loading )?Search$/ }))
+    await waitFor(() => expect(requests).toHaveLength(2), { timeout: 3_000 })
+    expect(requests[1]).toEqual({ page: '1', pageSize: '25', search: 'support' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() => expect(requests).toHaveLength(3), { timeout: 3_000 })
+    expect(requests[2]).toEqual({ page: '1', pageSize: '25' })
+
+    fireEvent.click(document.querySelector('.ant-pagination-next button')!)
+    await waitFor(() => expect(requests.at(-1)?.page).toBe('2'))
+  })
+
+  it('keeps Inspect navigation to the selected role id', async () => {
+    renderInLocale(
+      <AuthContext.Provider
+        value={authContextFixture({
+          permissions: ['iam.roles.read', 'iam.roles.write'],
+          role: 'admin',
+        })}
+      >
+        <MemoryRouter initialEntries={['/access/roles']}>
+          <Routes>
+            <Route path="/access/roles" element={<RolesPage />} />
+            <Route path="/access/roles/:id" element={<div>Role destination</div>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    )
+    await screen.findByText('Administrator')
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    expect(await screen.findByText('Role destination')).toBeTruthy()
+  })
+
+  it('creates a permitted role and reloads the committed list', async () => {
+    renderPage(<RolesPage />, { path: '/access/roles' })
+    await screen.findByText('Administrator')
+
+    fireEvent.change(screen.getByLabelText('Search roles'), { target: { value: 'support' } })
+    fireEvent.click(screen.getByRole('button', { name: /^(loading )?Search$/ }))
+    await waitFor(() => expect(roleLoads).toBe(2), { timeout: 3_000 })
+
+    fireEvent.click(screen.getByRole('button', { name: 'New role' }))
+    fireEvent.change(screen.getByLabelText('Role key'), { target: { value: 'support_lead' } })
+    fireEvent.change(screen.getByLabelText('Role name'), { target: { value: 'Support Lead' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create role' }))
+
+    await waitFor(() => expect(roleCreateBody).toBeTruthy())
+    expect(roleCreateBody).toMatchObject({
+      description: null,
+      key: 'support_lead',
+      name: 'Support Lead',
+      permissions: [],
+    })
+    await waitFor(() => expect(roleLoads).toBeGreaterThanOrEqual(3))
+    expect(roleQueries.at(-1)).toEqual({ page: '1', pageSize: '25', search: 'support' })
+    expect(screen.queryByRole('dialog', { name: 'New role' })).toBeNull()
+  })
+
+  it('uses standard blocking error, retry, and empty states for roles', async () => {
+    let fail = true
+    let empty = false
+    server.use(
+      http.get('*/admin/iam/roles', () => {
+        if (fail) {
+          return HttpResponse.json(
+            { error: { code: 'roles_unavailable', message: 'Roles are unavailable.' } },
+            { status: 503 }
+          )
+        }
+        return HttpResponse.json({ data: page(empty ? [] : [adminRole]) })
+      })
+    )
+
+    const view = renderPage(<RolesPage />, { path: '/access/roles' })
+    expect(await screen.findByText('List could not be loaded')).toBeTruthy()
+    expect(screen.queryByText('Administrator')).toBeNull()
+
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('Administrator')).toBeTruthy()
+    view.unmount()
+
+    empty = true
+    renderPage(<RolesPage />, { path: '/access/roles' })
+    expect(await screen.findByText('No roles match these filters.')).toBeTruthy()
   })
 
   it('limits permission choices to the caller subset and explains archive dependencies', async () => {

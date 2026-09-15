@@ -1,14 +1,19 @@
 import type { AdminPermission, AdminRole } from '@shoppp/contracts'
 import { Alert, Button, Form, Input, Modal, Space, Table, Tag, App } from 'antd'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
-import { createAdminRole, fetchAdminRoles } from '../../services/iam/api'
-import { PermissionChecklist } from './permission-checklist'
+import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
+import { createAdminRole, fetchAdminRoles, type IamPage } from '../../services/iam/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import {
+  StandardListPageRecipe,
+  type StandardListPageSpec,
+  type TemplateListFilterField,
+} from '../../shared/template-kit/list'
+import { PermissionChecklist } from './permission-checklist'
 
 void React
 
@@ -19,133 +24,47 @@ type RoleValues = {
   permissions: AdminPermission[]
 }
 
-export const RolesPage = () => {
+type RoleSearchValues = {
+  search?: string
+}
+
+type RoleListFilters = {
+  page?: number
+  pageSize?: number
+  search?: string
+}
+
+const toFilters = (values: RoleSearchValues): RoleListFilters => ({
+  search: values.search?.trim() || undefined,
+})
+
+const CreateRoleAction = ({
+  permitted,
+  reload,
+}: {
+  permitted: readonly AdminPermission[]
+  reload: () => Promise<void>
+}) => {
   const { message } = App.useApp()
-  const navigate = useNavigate()
   const { t } = useI18n()
-  const { permissions, role: roleKey } = useAuth()
-  const canWrite = hasPermission(roleKey, 'iam.roles.write', permissions)
-  const [roles, setRoles] = useState<AdminRole[]>([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm<RoleValues>()
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await fetchAdminRoles({ page, pageSize: 25, search: search || undefined })
-      setRoles(result.items)
-      setTotal(result.total)
-    } catch (cause) {
-      setError(normalizeApiError(cause).message)
-    } finally {
-      setLoading(false)
-    }
-  }, [page, search])
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0)
-    return () => window.clearTimeout(timer)
-  }, [load])
-
-  const columns = useMemo(
-    () => [
-      {
-        key: 'role',
-        title: t('Role'),
-        render: (_: unknown, role: AdminRole) => (
-          <div>
-            <Space>
-              <span className="font-medium">{role.name}</span>
-              {role.protected ? <Tag color="gold">{t('Protected')}</Tag> : null}
-              {role.system && !role.protected ? <Tag>{t('System role')}</Tag> : null}
-              {!role.enabled ? <Tag color="default">{t('Archived')}</Tag> : null}
-            </Space>
-            <div className="text-sm text-slate-500">{role.key}</div>
-          </div>
-        ),
-      },
-      { key: 'description', title: t('Description'), dataIndex: 'description' },
-      {
-        key: 'permissions',
-        title: t('Permissions'),
-        render: (_: unknown, role: AdminRole) => role.permissions.length,
-      },
-      {
-        key: 'actions',
-        title: t('Actions'),
-        width: 100,
-        render: (_: unknown, role: AdminRole) => (
-          <Button
-            type="link"
-            className="!px-0"
-            onClick={() => navigate(`/access/roles/${role.id}`)}
-          >
-            {t('Inspect')}
-          </Button>
-        ),
-      },
-    ],
-    [navigate, t]
-  )
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{t('Roles')}</h1>
-          <p className="text-slate-500">
-            {t('Role permissions are authoritative on each protected API request.')}
-          </p>
-        </div>
-        {canWrite ? (
-          <Button
-            type="primary"
-            onClick={() => {
-              form.resetFields()
-              form.setFieldValue('permissions', [])
-              setCreateError(null)
-              setOpen(true)
-            }}
-          >
-            {t('New role')}
-          </Button>
-        ) : null}
-      </div>
-      {error ? (
-        <Alert
-          type="error"
-          showIcon
-          title={error}
-          action={<Button onClick={() => void load()}>{t('Retry')}</Button>}
-        />
-      ) : null}
-      <Input.Search
-        allowClear
-        aria-label={t('Search roles')}
-        placeholder={t('Search by role name or key')}
-        onSearch={(value) => {
-          setSearch(value.trim())
-          setPage(1)
+    <>
+      <Button
+        type="primary"
+        onClick={() => {
+          form.resetFields()
+          form.setFieldValue('permissions', [])
+          setCreateError(null)
+          setOpen(true)
         }}
-      />
-      <Table<AdminRole>
-        rowKey="id"
-        columns={columns}
-        dataSource={roles}
-        loading={loading}
-        locale={{ emptyText: t('No roles match these filters.') }}
-        pagination={{ current: page, pageSize: 25, total, onChange: setPage }}
-        scroll={{ x: 720 }}
-      />
-
+      >
+        {t('New role')}
+      </Button>
       <Modal
         title={t('New role')}
         open={open}
@@ -174,7 +93,7 @@ export const RolesPage = () => {
               })
               void message.success(t('Role created.'))
               setOpen(false)
-              await load()
+              await reload()
             } catch (cause) {
               setCreateError(normalizeApiError(cause).message)
             } finally {
@@ -202,10 +121,133 @@ export const RolesPage = () => {
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item name="permissions" label={t('Permissions')}>
-            <PermissionChecklist permitted={permissions ?? []} />
+            <PermissionChecklist permitted={permitted} />
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </>
   )
+}
+
+export const RolesPage = () => {
+  const navigate = useNavigate()
+  const { t } = useI18n()
+  const { permissions, role: roleKey } = useAuth()
+  const canWrite = hasPermission(roleKey, 'iam.roles.write', permissions)
+
+  const filterFields = useMemo<TemplateListFilterField<RoleSearchValues>[]>(
+    () => [
+      {
+        type: 'input',
+        name: 'search',
+        label: t('Role'),
+        inputProps: {
+          'aria-label': t('Search roles'),
+          placeholder: t('Search by role name or key'),
+        },
+      },
+    ],
+    [t]
+  )
+
+  const spec = useMemo<
+    StandardListPageSpec<RoleSearchValues, RoleListFilters, IamPage<AdminRole>, AdminRole, ApiError>
+  >(
+    () => ({
+      pageTitle: t('Roles'),
+      cardTitle: t('Roles'),
+      tableId: 'iam-roles-list',
+      initialFilters: {},
+      toFilters,
+      pagination: {
+        defaultPageSize: 25,
+        includeAllDataOption: false,
+        maxPageSize: 100,
+        pageSizeOptions: [25, 50, 100],
+      },
+      buildRequestFilters: ({ filters, current, pageSize }) => ({
+        ...filters,
+        page: current,
+        pageSize,
+      }),
+      request: fetchAdminRoles,
+      selectItems: (response) => response?.items ?? [],
+      mapError: normalizeApiError,
+      filterFields,
+      renderBeforeFilter: (
+        <p className="text-slate-500">
+          {t('Role permissions are authoritative on each protected API request.')}
+        </p>
+      ),
+      toolbarExtra: ({ reload }) =>
+        canWrite ? <CreateRoleAction permitted={permissions ?? []} reload={reload} /> : null,
+      toolbarExtraVisible: canWrite,
+      buildColumns: () => [
+        {
+          key: 'role',
+          title: t('Role'),
+          render: (_: unknown, role) => (
+            <div>
+              <Space>
+                <span className="font-medium">{role.name}</span>
+                {role.protected ? <Tag color="gold">{t('Protected')}</Tag> : null}
+                {role.system && !role.protected ? <Tag>{t('System role')}</Tag> : null}
+                {!role.enabled ? <Tag color="default">{t('Archived')}</Tag> : null}
+              </Space>
+              <div className="text-sm text-slate-500">{role.key}</div>
+            </div>
+          ),
+        },
+        { key: 'description', title: t('Description'), dataIndex: 'description' },
+        {
+          key: 'permissions',
+          title: t('Permissions'),
+          render: (_: unknown, role) => role.permissions.length,
+        },
+        {
+          key: 'actions',
+          title: t('Actions'),
+          width: 100,
+          render: (_: unknown, role) => (
+            <Button
+              type="link"
+              className="!px-0"
+              onClick={() => navigate(`/access/roles/${role.id}`)}
+            >
+              {t('Inspect')}
+            </Button>
+          ),
+        },
+      ],
+      buildTableNode: ({
+        columns,
+        dataSource,
+        loading,
+        pagination,
+        tableClassName,
+        tableSize,
+        virtualScroll,
+      }) => (
+        <Table<AdminRole>
+          className={tableClassName}
+          rowKey="id"
+          columns={columns}
+          dataSource={dataSource}
+          loading={loading}
+          size={tableSize}
+          pagination={pagination}
+          virtual={virtualScroll.enabled}
+          scroll={virtualScroll.enabled ? virtualScroll.scroll : { x: 720 }}
+        />
+      ),
+      stateCopy: {
+        errorTitle: t('List could not be loaded'),
+        emptyTitle: t('No roles match these filters.'),
+        emptyDescription: t('No roles match these filters.'),
+      },
+    }),
+    [canWrite, filterFields, navigate, permissions, t]
+  )
+
+  return <StandardListPageRecipe spec={spec} />
 }
