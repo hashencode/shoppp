@@ -19,6 +19,19 @@ import {
   auditLiveComponentGraph,
   diagnoseLiveComponentImports,
 } from "./support/live-component-boundary";
+import {
+  auditFashionStorePresentationBoundary,
+  diagnoseFashionStorePresentationBoundary,
+} from "./support/fashion-store-presentation-boundary";
+import {
+  fashionStoreProductPresentationSchema,
+  normalizeFashionStoreFixtureProductPresentation,
+  normalizeFashionStoreLiveProductPresentation,
+  type FashionStoreProductActionPort,
+} from "../app/themes/fashion-store/contracts/product-card";
+import { resolveFashionStoreMerchandising } from "../app/themes/fashion-store/contracts/home-merchandising";
+import { resolveFashionStoreHomeSectionContext } from "../app/themes/fashion-store/components/sections/home-section-context";
+import { fashionStoreProductData } from "../app/themes/fashion-store/fixtures/pages/product";
 
 describe("storefront experience fixtures", () => {
   test("validates representative fixtures for every page type and meaningful state", () => {
@@ -260,6 +273,252 @@ describe("storefront experience fixtures", () => {
     ).flat();
 
     expect(diagnostics).toEqual([]);
+  });
+
+  test("normalizes equivalent fixture and live products into one Fashion render shape", () => {
+    const fixture = normalizeFashionStoreFixtureProductPresentation({
+      data: fashionStoreProductData,
+      productId: "fixture-relaxed-shirt",
+      slug: "relaxed-shirt",
+      variants: [
+        {
+          id: "fixture-relaxed-shirt-blue",
+          label: "Blue",
+          optionValues: { Color: "Blue" },
+          selected: true,
+        },
+      ],
+    });
+    const live = normalizeFashionStoreLiveProductPresentation({
+      actions: [{ id: "select", intent: "variant.select", label: "Select", value: "live-blue" }],
+      description: "Release-owned description.",
+      heading: "Relaxed shirt",
+      kind: "product",
+      media: [
+        {
+          alt: "Relaxed shirt",
+          height: 800,
+          src: "https://media.example.test/relaxed-shirt.jpg",
+          width: 600,
+        },
+      ],
+      optionGroups: [{ name: "Color", values: ["Blue"] }],
+      priceLabel: "$65.00",
+      relatedProducts: [],
+      resource: {
+        availability: "unknown",
+        id: "prod_01JFIXTURETEST000000000001",
+        kind: "product",
+        media: [
+          {
+            alt: "Relaxed shirt",
+            height: 800,
+            src: "https://media.example.test/relaxed-shirt.jpg",
+            width: 600,
+          },
+        ],
+        money: { amount: 6500, currency: "USD" },
+        name: "Relaxed shirt",
+        slug: "relaxed-shirt",
+        variantIds: ["var_01JFIXTURETEST0000000000001"],
+      },
+      state: "populated",
+      variants: [
+        {
+          id: "live-blue",
+          label: "Blue",
+          optionValues: { Color: "Blue" },
+          selected: true,
+        },
+      ],
+    });
+
+    expect(Object.keys(fixture).sort()).toEqual(Object.keys(live).sort());
+    expect(fashionStoreProductPresentationSchema.parse(fixture)).toEqual(fixture);
+    expect(fashionStoreProductPresentationSchema.parse(live)).toEqual(live);
+    expect(fixture.gallery[0]).toEqual({
+      kind: "theme-asset",
+      path: fashionStoreProductData.gallery[0],
+    });
+    expect(live.gallery[0]).toEqual({
+      alt: "Relaxed shirt",
+      height: 800,
+      kind: "url",
+      src: "https://media.example.test/relaxed-shirt.jpg",
+      width: 600,
+    });
+    expect(fixture.optionalRegions).toEqual({ reviews: "empty", specifications: "hidden" });
+    expect(live.optionalRegions).toEqual(fixture.optionalRegions);
+    expect(live.productId).toBe("prod_01JFIXTURETEST000000000001");
+    expect(fixture.relatedProducts[0]).toMatchObject({
+      actionState: { kind: "available" },
+      destination: { kind: "unavailable" },
+      media: { kind: "theme-asset" },
+      name: fashionStoreProductData.related[0]?.name,
+      priceLabel: fashionStoreProductData.related[0]?.price,
+    });
+    expect(fixture).not.toHaveProperty("actions");
+    expect(() =>
+      normalizeFashionStoreLiveProductPresentation({
+        ...live,
+        actions: [],
+        heading: live.name,
+        kind: "product",
+        media: [],
+        optionGroups: [],
+        priceLabel: live.priceLabel,
+        relatedProducts: [],
+        resource: undefined,
+        variants: live.variants,
+      }),
+    ).toThrow("requires a Catalog product resource");
+  });
+
+  test("defines one product action port without provider mode or Commerce DTOs", async () => {
+    const calls: string[] = [];
+    const port: FashionStoreProductActionPort = {
+      async addToCart(input) {
+        calls.push(`${input.productId}:${input.variantId}:${input.quantity}`);
+        return { kind: "succeeded", message: "Added" };
+      },
+    };
+    await expect(
+      port.addToCart({ productId: "product", quantity: 1, variantId: "variant" }),
+    ).resolves.toEqual({ kind: "succeeded", message: "Added" });
+    expect(calls).toEqual(["product:variant:1"]);
+
+    const contract = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/contracts/product-card.ts"),
+      "utf8",
+    );
+    expect(contract).not.toMatch(/mode\s*:\s*["'](?:fixture|live)["']/);
+    expect(contract).not.toMatch(/RuntimeCommercePort|StorefrontActionAdapter|AddCartLineRequest/);
+    expect(contract).not.toMatch(/PreviewAction|previewActionSchema/);
+  });
+
+  test("resolves one mode-free Home context and merchandising envelope", () => {
+    const fixtureProduct = {
+      categories: [],
+      colors: [],
+      id: "fixture-product",
+      name: "Fixture product",
+      originalPrice: "$80.00",
+      price: "$65.00",
+      sizes: [],
+      sourceImage: "images/product.jpg",
+      tags: [],
+    };
+    const fixtureViewModel = {
+      data: {
+        merchandising: {
+          groups: [
+            { id: "new-arrivals", products: [fixtureProduct] },
+            { id: "best-sellers", products: [fixtureProduct] },
+            { id: "featured", products: [fixtureProduct] },
+          ],
+          mode: "fixture",
+        },
+        presentation: { "services-presentation": "source" },
+      },
+      kind: "theme-section",
+      state: "populated",
+    } as const;
+
+    const merchandising = resolveFashionStoreMerchandising(fixtureViewModel);
+    expect(merchandising.state).toBe("populated");
+    if (merchandising.state !== "populated") throw new Error("Expected merchandising data.");
+    expect(merchandising.data).not.toHaveProperty("mode");
+    expect(merchandising.data.groups.map(({ id }) => id)).toEqual([
+      "new-arrivals",
+      "best-sellers",
+      "featured",
+    ]);
+    expect(merchandising.data.groups[0]?.products[0]).toMatchObject({
+      actionState: { kind: "available" },
+      destination: { kind: "unavailable" },
+      media: { kind: "theme-asset", path: "images/product.jpg" },
+      name: "Fixture product",
+      priceLabel: "$65.00",
+    });
+    expect(merchandising.data.groups[0]?.products[0]).not.toHaveProperty("sourceImage");
+    expect(resolveFashionStoreHomeSectionContext(fixtureViewModel)).toEqual({
+      merchandising,
+      presentation: {
+        brands: "source",
+        categories: "source",
+        collection: "source",
+        editorial: "source",
+        marquee: "source",
+        services: "source",
+      },
+      state: "populated",
+    });
+  });
+
+  test("rejects provider-aware layout, raw unions, duplicate contexts, and action selection", async () => {
+    const synthetic = diagnoseFashionStorePresentationBoundary(
+      "SyntheticProduct.vue",
+      `
+        type Product = FashionStoreLegacyProductCard | PresentationProductCard;
+        const liveProduct = computed(() => viewModel.kind === 'product');
+        if (liveProduct.value) return runtimeCommerce; else return previewCart;
+      `,
+    );
+    expect(synthetic.map(({ rule }) => rule).sort()).toEqual([
+      "direct-provider-action-selection",
+      "provider-kind-layout-switch",
+      "raw-provider-union",
+    ]);
+    expect(
+      diagnoseFashionStorePresentationBoundary("fixture-home-section-context.ts", "export {}"),
+    ).toEqual([{ file: "fixture-home-section-context.ts", rule: "duplicate-provider-context" }]);
+
+    const findings = await auditFashionStorePresentationBoundary(
+      resolve(import.meta.dir, "../app"),
+      [
+        "themes/fashion-store/components/FashionStoreHomeRoute.vue",
+        "themes/fashion-store/components/pages/FashionStoreProductRoute.vue",
+        "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
+        "themes/fashion-store/components/sections/fixture-home-section-context.ts",
+        "themes/fashion-store/components/sections/live-home-section-context.ts",
+        "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
+        "themes/fashion-store/contracts/home-merchandising.ts",
+      ],
+    );
+    expect(findings).toEqual([
+      {
+        file: "themes/fashion-store/components/FashionStoreHomeRoute.vue",
+        rule: "provider-kind-layout-switch",
+      },
+      {
+        file: "themes/fashion-store/components/pages/FashionStoreProductRoute.vue",
+        rule: "provider-kind-layout-switch",
+      },
+      {
+        file: "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
+        rule: "provider-kind-layout-switch",
+      },
+      {
+        file: "themes/fashion-store/components/sections/fixture-home-section-context.ts",
+        rule: "duplicate-provider-context",
+      },
+      {
+        file: "themes/fashion-store/components/sections/live-home-section-context.ts",
+        rule: "duplicate-provider-context",
+      },
+      {
+        file: "themes/fashion-store/components/sections/live-home-section-context.ts",
+        rule: "provider-kind-layout-switch",
+      },
+      {
+        file: "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
+        rule: "raw-provider-union",
+      },
+      {
+        file: "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
+        rule: "direct-provider-action-selection",
+      },
+    ]);
   });
 
   test("keeps the complete Fashion Store live component graph behind presentation ports", async () => {

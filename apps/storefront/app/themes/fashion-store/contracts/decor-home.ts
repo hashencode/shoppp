@@ -1,10 +1,10 @@
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
-import { resolveFashionStoreMerchandising } from "./home-merchandising";
+import { resolveFashionStoreLegacyMerchandising } from "./home-merchandising";
 
 export interface FashionStoreDecorHomeModel {
   articleHref: string;
   collectionHref: string;
-  merchandising: ReturnType<typeof resolveFashionStoreMerchandising>;
+  merchandising: ReturnType<typeof resolveFashionStoreLegacyMerchandising>;
 }
 
 export function fashionStoreDecorProductsMessage(
@@ -30,7 +30,7 @@ function buildDecorHomeModel(viewModel: PresentationViewModel): FashionStoreDeco
   return {
     articleHref: "/magazine",
     collectionHref: "/collections",
-    merchandising: resolveFashionStoreMerchandising(viewModel),
+    merchandising: resolveFashionStoreLegacyMerchandising(viewModel),
   };
 }
 

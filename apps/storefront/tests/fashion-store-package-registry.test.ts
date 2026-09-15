@@ -13,6 +13,10 @@ import {
 } from "../app/themes/fashion-store/package-registry";
 import { migrateFashionStoreV1Overrides } from "../app/themes/fashion-store/migrations";
 import { fashionStoreHomeSections } from "../app/themes/fashion-store/successor/composition";
+import {
+  divergentFashionStoreRegistryTypes,
+  requireFashionStoreRegistryIdentity,
+} from "./support/fashion-store-presentation-boundary";
 
 describe("Fashion Store exact package registry", () => {
   test("retains the supported 1.0.0 source package as byte-stable immutable history", async () => {
@@ -212,5 +216,57 @@ describe("Fashion Store exact package registry", () => {
     expect(activeTheme).not.toContain('from "../themes/fashion-store/fixture-registry"');
     expect(activeTheme).toContain('"configurationSchemaVersion": 2');
     expect(activeTheme).toContain('"themeVersion": "1.1.0"');
+  });
+
+  test("freezes current registry forks and rejects any undeclared visual divergence", async () => {
+    const [baseLive, baseFixture, successorLive, successorFixture] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/fixture-registry.ts"), "utf8"),
+      readFile(
+        resolve(import.meta.dir, "../app/themes/fashion-store/successor/registry.ts"),
+        "utf8",
+      ),
+      readFile(
+        resolve(import.meta.dir, "../app/themes/fashion-store/successor/fixture-registry.ts"),
+        "utf8",
+      ),
+    ]);
+
+    expect(divergentFashionStoreRegistryTypes(baseLive, baseFixture)).toEqual([
+      "fashion-store.collection",
+      "fashion-store.content",
+      "fashion-store.home",
+      "fashion-store.product",
+    ]);
+    expect(divergentFashionStoreRegistryTypes(successorLive, successorFixture)).toEqual([
+      "fashion-store.brand-strip",
+      "fashion-store.categories",
+      "fashion-store.collection-feature",
+      "fashion-store.editorial",
+      "fashion-store.hero",
+      "fashion-store.marquee",
+      "fashion-store.products",
+      "fashion-store.promotion",
+      "fashion-store.services",
+    ]);
+
+    expect(() =>
+      requireFashionStoreRegistryIdentity(
+        'import Shared from "./Shared.vue";\nsections: {\n  "fashion-store.hero": Shared,\n}',
+        'import Fork from "./Fork.vue";\nsections: {\n  "fashion-store.hero": Fork,\n}',
+      ),
+    ).toThrow("fashion-store.hero");
+    expect(() =>
+      requireFashionStoreRegistryIdentity(
+        'import Shared from "./Shared.vue";\nsections: {\n  "fashion-store.hero": Shared,\n}',
+        'import Shared from "./Shared.vue";\nsections: {\n  "fashion-store.hero": Shared,\n}',
+      ),
+    ).not.toThrow();
+    expect(() =>
+      requireFashionStoreRegistryIdentity(
+        'import Shared from "./Shared.vue";\nsections: {\n  "fashion-store.hero": Shared,\n}',
+        "sections: {}",
+      ),
+    ).toThrow("fashion-store.hero");
   });
 });

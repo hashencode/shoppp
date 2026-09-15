@@ -2,6 +2,11 @@ import * as z from "zod";
 
 import { presentationProductCardSchema } from "../../../theme-engine/view-models";
 import type { PresentationViewModel } from "../../../theme-engine/view-models";
+import {
+  fashionStoreProductCardPresentationSchema,
+  normalizeFashionStoreLegacyProductCard,
+  normalizeFashionStoreLiveProductCard,
+} from "./product-card";
 
 const groupIdSchema = z.enum(["new-arrivals", "best-sellers", "featured"]);
 export function buildFashionStoreMerchandisingGroups<T>(
@@ -51,17 +56,46 @@ const merchandisingGroup = <T extends z.ZodType>(product: T) =>
     })
     .strict();
 
-export const fashionStoreMerchandisingDataSchema = z.discriminatedUnion("mode", [
-  z
-    .object({
-      groups: z.array(merchandisingGroup(fixtureProductSchema)).length(3),
-      mode: z.literal("fixture"),
-    })
-    .strict(),
-  z
-    .object({
-      groups: z.array(merchandisingGroup(presentationProductCardSchema)).length(3),
-      mode: z.literal("live"),
-    })
-    .strict(),
-]);
+const merchandisingProductSchema = z.union([fixtureProductSchema, presentationProductCardSchema]);
+const normalizedMerchandisingGroupSchema = merchandisingGroup(
+  fashionStoreProductCardPresentationSchema,
+);
+
+const fashionStoreMerchandisingInputSchema = z
+  .object({
+    groups: z.array(merchandisingGroup(merchandisingProductSchema)).length(3),
+    mode: z.enum(["fixture", "live"]).optional(),
+  })
+  .strict();
+
+/**
+ * Provider adapters may still supply their transitional mode marker, but it is
+ * consumed here and never reaches the shared merchandising presentation.
+ */
+export const fashionStoreMerchandisingDataSchema = fashionStoreMerchandisingInputSchema.transform(
+  ({ groups }) => ({
+    groups: groups.map(({ id, products }) =>
+      normalizedMerchandisingGroupSchema.parse({
+        id,
+        products: products.map((product) =>
+          "staticPurchase" in product
+            ? normalizeFashionStoreLiveProductCard(product)
+            : normalizeFashionStoreLegacyProductCard(product),
+        ),
+      }),
+    ),
+  }),
+);
+
+/** Transitional reader for the existing Decor Home body; U6 removes it when
+ * that component starts consuming the normalized presentation above. */
+export function resolveFashionStoreLegacyMerchandising(viewModel: PresentationViewModel) {
+  if (viewModel.kind !== "theme-section") {
+    throw new Error("Fashion Store merchandising requires a theme-section ViewModel.");
+  }
+  if (viewModel.state !== "populated") return { state: viewModel.state } as const;
+  const parsed = fashionStoreMerchandisingInputSchema.safeParse(viewModel.data.merchandising);
+  return parsed.success
+    ? ({ data: parsed.data, state: "populated" } as const)
+    : ({ state: "validation-error" } as const);
+}

@@ -36,3 +36,21 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - Representative fixture browser baseline across Collection, Content, Product, and all three Shop variants: 44 passed, 26 project-inapplicable skips, 0 failed on desktop/mobile projects.
 - Focused live browser baseline: 15 passed, 0 failed, including grouped options, cart/checkout, failure recovery, no-JavaScript, Home, and collection/Product presentation.
 - Every identified fork is assigned to U2-U7, with U8 owning final compatibility, name, selector, and reverse-reference cleanup. R7-R10 and KTD1/KTD5 settle every observed field/action gap; no unresolved authority or route-semantic blocker remains.
+
+## 2026-09-15 — U2 shared contracts and drift gates
+
+### Outcome
+
+- Fixture and live Product inputs now normalize into one validated Fashion presentation shape with stable Catalog identity required for live data, neutral control descriptors, truthful optional-region policy, bounded related product cards, and no preview-specific intent in serializable render data.
+- The Product action boundary is one provider-neutral injected port. Fixture/local simulation and live Commerce revalidation remain adapter responsibilities for U3; shared presentation contracts contain no Commerce DTO or provider-mode selector.
+- Composer Product output includes at most eight published related products from the selected Catalog Release collection membership. It reuses the existing product index and stops once the bounded result is full.
+- Home sections have one neutral context resolver. Shared merchandising output contains normalized Fashion card presentations and no provider mode or raw fixture/live product union; the existing Decor Home consumer uses a named transitional reader until its U6 migration.
+- Registry drift checks compare the union of section types, so a changed component identity or a mapping missing from either side fails. A boundary audit freezes the exact U3-U7 migration allowlist for whole-tree kind switches, duplicate contexts, raw provider unions, and direct action selection.
+
+### Verification
+
+- Contract/provider/composer/live-commerce owners: 68 passed, 0 failed.
+- Registry identity and missing-mapping gate: 1 passed, 0 failed.
+- Storefront `nuxt typecheck`, affected-file ESLint, and `git diff --check`: passed.
+- Simplification applied three reuse fixes, four quality fixes, and one efficiency fix. No substantive finding remains. The regex-based source audit is intentionally a migration guard rather than a semantic parser; U8 retains reverse-reference and complete runtime/test evidence as the final enforcement backstop.
+- The complete package-registry file retains one pre-existing generated-mode-sensitive assertion: checked-in live `active-theme.ts` correctly omits the fixture registry while that old assertion expects a fixture import. The new registry gate passes independently, and U2 does not change generated-mode selection.

@@ -148,6 +148,7 @@ function referenceDiagnostic(
 
 function productViewModel(
   release: CanonicalCatalogRelease,
+  productsById: ReadonlyMap<string, CatalogProduct>,
   product: CatalogProduct,
   locale: string,
   settings: Readonly<Record<string, unknown>>,
@@ -174,6 +175,19 @@ function productViewModel(
     slug: product.slug,
     variantIds: variants.map(({ id }) => id),
   });
+  const relatedProducts: PresentationProductCard[] = [];
+  if (relatedCollection) {
+    for (const productId of relatedCollection.productIds) {
+      if (productId === product.id) continue;
+      const relatedProduct = productsById.get(productId);
+      if (relatedProduct) {
+        relatedProducts.push(
+          ...productCardViewModel(relatedProduct, release.site.defaultCurrency, locale, "default"),
+        );
+      }
+      if (relatedProducts.length === 8) break;
+    }
+  }
   return presentationViewModelSchema.parse({
     actions: [
       {
@@ -193,6 +207,7 @@ function productViewModel(
     media: product.media,
     optionGroups: [...optionGroups].map(([name, values]) => ({ name, values })),
     priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
+    relatedProducts,
     relatedCollection: relatedCollection
       ? {
           href: `/collections/${relatedCollection.slug}`,
@@ -857,6 +872,7 @@ function composeDeclaredSections(input: {
     } else if (contract.live.resolver === "product" && firstProduct) {
       viewModel = productViewModel(
         input.release,
+        input.productsById,
         input.productsById.get(firstProduct.reference.id)!,
         input.locale,
         section.settings,
@@ -1176,6 +1192,7 @@ export function composeExperienceRoute(
         : undefined;
       const viewModel = productViewModel(
         release,
+        productsById,
         product,
         input.locale,
         instance.settings,

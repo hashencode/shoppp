@@ -295,6 +295,7 @@ const productViewModelSchema = z
       )
       .max(20),
     priceLabel: z.string().trim().min(1).max(80),
+    relatedProducts: z.array(presentationProductCardSchema).max(8).default([]),
     relatedCollection: z
       .object({
         href: z.string().regex(/^\/collections\/[a-z0-9]+(?:-[a-z0-9]+)*$/),

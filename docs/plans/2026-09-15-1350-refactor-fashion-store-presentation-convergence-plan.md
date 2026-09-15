@@ -37,11 +37,11 @@ plan_alias: FS-R5
 ## Execution Checkpoint
 
 - **Classification:** Active bounded Fashion presentation successor.
-- **Current unit:** `FS-R5-U2` — establish shared presentation contracts, mode-neutral action ports, and automated drift gates.
-- **Completed units:** `FS-R5-U1` — inventoried four base page registry forks, nine successor Home registry forks, three whole-page switches plus one Collection branch, two Home readers, one merchandising union, provider-specific selector/test debt, field authority, action ownership, route semantics, and behavior states. All forks are assigned to U2-U7, 45 focused unit tests, 44 representative fixture browser cases, and 15 focused live browser cases passed with no unresolved blocker.
-- **Next unit:** `FS-R5-U3`, after U2 proves equivalent render contracts and registry/boundary drift gates.
+- **Current unit:** `FS-R5-U3` — converge fixture and live Product on the accepted non-live page.
+- **Completed units:** `FS-R5-U1` — inventoried four base page registry forks, nine successor Home registry forks, three whole-page switches plus one Collection branch, two Home readers, one merchandising union, provider-specific selector/test debt, field authority, action ownership, route semantics, and behavior states. All forks are assigned to U2-U7, 45 focused unit tests, 44 representative fixture browser cases, and 15 focused live browser cases passed with no unresolved blocker. `FS-R5-U2` — fixture/live Product inputs now normalize to one Catalog-identity-safe Fashion presentation shape, Home merchandising/context outputs are provider-neutral, related cards are bounded and release-backed, the Product action port is mode-neutral, and registry identity/missing-map plus forbidden-boundary gates freeze the migration ledger. Sixty-eight focused tests, the registry gate, typecheck, affected lint, diff checks, and simplification review passed.
+- **Next unit:** `FS-R5-U4`, after Product uses one component with fixture parity and live Commerce truth.
 - **Blocker:** None.
-- **Next concrete action:** Add failing shared-contract, registry-identity, provider-isolation, and forbidden-boundary tests; then normalize fixture/live Product, Shop/Collection, Home, and Content inputs plus their action ports before Product rendering changes begin.
+- **Next concrete action:** Convert the accepted `FashionStoreProductPage` to the shared Product presentation/action contracts, point both registries directly to it, prove fixture and live gallery/options/cart/error/no-JavaScript behavior, then remove the whole-page Product switch and reduced live Product component.
 - **Completion handback:** Green U8 returns to `REL-Pre-DC`. This plan does not freeze or promote a release candidate.
 
 ---
