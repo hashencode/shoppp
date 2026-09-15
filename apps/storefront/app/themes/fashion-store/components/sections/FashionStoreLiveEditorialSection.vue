@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreHomeMagazine as magazine } from "./home-content";
-import type { FashionStoreHomeSectionProperties } from "./live-home-section-context";
-import { resolveHomeAsset } from "./live-home-section-context";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import { resolveHomeAsset } from "./home-section-context";
 import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();

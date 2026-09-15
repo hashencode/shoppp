@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
-import type { FashionStoreHomeSectionProperties } from "./live-home-section-context";
-import { resolveLiveHomeData } from "./live-home-section-context";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import { resolveLiveHomeData } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const viewModel = computed(() => resolveLiveHomeData(properties.viewModel));

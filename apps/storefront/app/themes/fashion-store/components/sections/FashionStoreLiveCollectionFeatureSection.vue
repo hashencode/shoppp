@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { fashionStoreHomeCollectionImages as collectionImages } from "./home-content";
-import type { FashionStoreHomeSectionProperties } from "./live-home-section-context";
-import { resolveLiveHomeData } from "./live-home-section-context";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import { resolveLiveHomeData } from "./home-section-context";
 import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const viewModel = computed(() => resolveLiveHomeData(properties.viewModel));
 const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
-import { resolveHomeAsset } from "./live-home-section-context";
+import { resolveHomeAsset } from "./home-section-context";
 
 function sourceAsset(sourcePath: string): string {
   return resolveHomeAsset(properties.resolveAsset, sourcePath);

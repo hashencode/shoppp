@@ -6,8 +6,8 @@ import { storefrontPreviewIntentCountKey } from "../../../../theme-engine/presen
 import type { FashionStoreHomeData } from "../../fixtures/home";
 import { useFashionStorePreviewCart } from "../../composables/useFashionStorePreviewCart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
-import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
-import { resolveFixtureHomeData, resolveHomeAsset } from "./fixture-home-section-context";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import { resolveFixtureHomeData, resolveHomeAsset } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const data = computed(() => resolveFixtureHomeData(properties.viewModel));

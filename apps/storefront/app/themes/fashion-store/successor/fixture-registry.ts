@@ -1,14 +1,14 @@
 import type { ThemeRegistry } from "../../../theme-engine/registry";
 import FashionStoreHomeShell from "../components/FashionStoreHomeShell.vue";
-import FashionStoreFixtureBrandStripSection from "../components/sections/FashionStoreFixtureBrandStripSection.vue";
+import FashionStoreBrandStripSection from "../components/sections/FashionStoreBrandStripSection.vue";
 import FashionStoreFixtureCategoriesSection from "../components/sections/FashionStoreFixtureCategoriesSection.vue";
 import FashionStoreFixtureCollectionFeatureSection from "../components/sections/FashionStoreFixtureCollectionFeatureSection.vue";
 import FashionStoreFixtureEditorialSection from "../components/sections/FashionStoreFixtureEditorialSection.vue";
-import FashionStoreFixtureHeroSection from "../components/sections/FashionStoreFixtureHeroSection.vue";
-import FashionStoreFixtureMarqueeSection from "../components/sections/FashionStoreFixtureMarqueeSection.vue";
-import FashionStoreFixturePromotionSection from "../components/sections/FashionStoreFixturePromotionSection.vue";
+import FashionStoreHeroSection from "../components/sections/FashionStoreHeroSection.vue";
+import FashionStoreMarqueeSection from "../components/sections/FashionStoreMarqueeSection.vue";
+import FashionStorePromotionSection from "../components/sections/FashionStorePromotionSection.vue";
 import FashionStoreFixtureProductsSection from "../components/sections/FashionStoreFixtureProductsSection.vue";
-import FashionStoreFixtureServicesSection from "../components/sections/FashionStoreFixtureServicesSection.vue";
+import FashionStoreServicesSection from "../components/sections/FashionStoreServicesSection.vue";
 import FashionStoreProductMerchandisingSection from "../components/sections/FashionStoreProductMerchandisingSection.vue";
 import {
   fixtureThemeRegistry as inheritedFixtureRegistry,
@@ -29,16 +29,16 @@ export const fixtureThemeRegistry = {
   sectionComposition: fashionStoreSectionComposition,
   sections: {
     ...inheritedSections,
-    "fashion-store.brand-strip": FashionStoreFixtureBrandStripSection,
+    "fashion-store.brand-strip": FashionStoreBrandStripSection,
     "fashion-store.categories": FashionStoreFixtureCategoriesSection,
     "fashion-store.collection-feature": FashionStoreFixtureCollectionFeatureSection,
     "fashion-store.editorial": FashionStoreFixtureEditorialSection,
-    "fashion-store.hero": FashionStoreFixtureHeroSection,
-    "fashion-store.marquee": FashionStoreFixtureMarqueeSection,
+    "fashion-store.hero": FashionStoreHeroSection,
+    "fashion-store.marquee": FashionStoreMarqueeSection,
     "fashion-store.products": FashionStoreFixtureProductsSection,
     "fashion-store.product-merchandising": FashionStoreProductMerchandisingSection,
-    "fashion-store.promotion": FashionStoreFixturePromotionSection,
-    "fashion-store.services": FashionStoreFixtureServicesSection,
+    "fashion-store.promotion": FashionStorePromotionSection,
+    "fashion-store.services": FashionStoreServicesSection,
   },
 } satisfies ThemeRegistry;
 

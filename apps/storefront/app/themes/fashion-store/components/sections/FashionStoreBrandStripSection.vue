@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
-import { resolveFixtureHomeData } from "./fixture-home-section-context";
-import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import {
+  resolveFashionStoreHomeFoundation,
+  resolveFashionStoreHomeSectionContext,
+  resolveHomeAsset,
+} from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
-const data = computed(() => resolveFixtureHomeData(properties.viewModel));
-const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
-const brandCopies = computed(() => (presentation.value.brands === "decor-continuous" ? 2 : 1));
-import { resolveHomeAsset } from "./fixture-home-section-context";
+const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
+const foundation = computed(() => resolveFashionStoreHomeFoundation(properties.viewModel));
+const brandCopies = computed(() =>
+  context.value.presentation.brands === "decor-continuous" ? 2 : 1,
+);
 
 function sourceAsset(sourcePath: string): string {
   return resolveHomeAsset(properties.resolveAsset, sourcePath);
@@ -18,14 +22,14 @@ function sourceAsset(sourcePath: string): string {
   <section
     class="half-section border-bottom border-color-extra-medium-gray"
     data-home-section="brands"
-    :data-presentation-variant="presentation.brands"
+    :data-presentation-variant="context.presentation.brands"
   >
     <div class="container">
       <div
         class="row row-cols-2 row-cols-md-5 row-cols-sm-3 position-relative justify-content-center"
         data-anime='{ "el": "childs", "translateY": [-15, 0], "scale": [0.8, 1], "opacity": [0,1], "duration": 300, "delay": 0, "staggervalue": 100, "easing": "easeOutQuad" }'
       >
-        <template v-if="presentation.brands === 'decor-continuous'">
+        <template v-if="context.presentation.brands === 'decor-continuous'">
           <div
             v-for="copy in brandCopies"
             :key="copy"
@@ -33,7 +37,7 @@ function sourceAsset(sourcePath: string): string {
             :aria-hidden="copy === 2 ? 'true' : undefined"
           >
             <div
-              v-for="brand in data.brands"
+              v-for="brand in foundation.brands"
               :key="`${copy}-${brand.name}`"
               class="col text-center sm-mb-30px"
             >
@@ -44,7 +48,11 @@ function sourceAsset(sourcePath: string): string {
           </div>
         </template>
         <template v-else>
-          <div v-for="brand in data.brands" :key="brand.name" class="col text-center sm-mb-30px">
+          <div
+            v-for="brand in foundation.brands"
+            :key="brand.name"
+            class="col text-center sm-mb-30px"
+          >
             <span
               ><img class="h-30px" :alt="brand.name" :src="sourceAsset(brand.sourceImage)"
             /></span>

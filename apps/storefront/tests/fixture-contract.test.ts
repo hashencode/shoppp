@@ -493,8 +493,6 @@ describe("storefront experience fixtures", () => {
       [
         "themes/fashion-store/components/FashionStoreHomeRoute.vue",
         "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
-        "themes/fashion-store/components/sections/fixture-home-section-context.ts",
-        "themes/fashion-store/components/sections/live-home-section-context.ts",
         "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
         "themes/fashion-store/contracts/home-merchandising.ts",
       ],
@@ -506,18 +504,6 @@ describe("storefront experience fixtures", () => {
       },
       {
         file: "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
-        rule: "provider-kind-layout-switch",
-      },
-      {
-        file: "themes/fashion-store/components/sections/fixture-home-section-context.ts",
-        rule: "duplicate-provider-context",
-      },
-      {
-        file: "themes/fashion-store/components/sections/live-home-section-context.ts",
-        rule: "duplicate-provider-context",
-      },
-      {
-        file: "themes/fashion-store/components/sections/live-home-section-context.ts",
         rule: "provider-kind-layout-switch",
       },
     ]);

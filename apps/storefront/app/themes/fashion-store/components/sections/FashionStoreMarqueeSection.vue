@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
-import { resolveFixtureHomeData } from "./fixture-home-section-context";
-import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import {
+  resolveFashionStoreHomeFoundation,
+  resolveFashionStoreHomeSectionContext,
+} from "./home-section-context";
 import { useFashionStoreMotionViewport } from "../../composables/useFashionStoreMotionViewport";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
-const data = computed(() => resolveFixtureHomeData(properties.viewModel));
-const marqueeMessages = computed(() => data.value.marquee);
-const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
+const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
+const foundation = computed(() => resolveFashionStoreHomeFoundation(properties.viewModel));
+const marqueeMessages = computed(() => foundation.value.marquee);
 const root = ref<HTMLElement>();
 const viewportVisible = useFashionStoreMotionViewport(root);
 const documentHidden = ref(false);
@@ -46,7 +48,7 @@ onBeforeUnmount(() => {
     ref="root"
     class="p-0 border-top border-bottom border-color-extra-medium-gray"
     data-home-section="marquee"
-    :data-presentation-variant="presentation.marquee"
+    :data-presentation-variant="context.presentation.marquee"
   >
     <div class="container-fluid">
       <div class="row position-relative">

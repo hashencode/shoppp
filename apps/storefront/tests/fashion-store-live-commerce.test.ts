@@ -213,18 +213,22 @@ describe("Fashion Store live commerce boundary", () => {
     const [liveHome, productCard] = await Promise.all([
       Promise.all(
         [
-          "Hero",
-          "Services",
+          "../sections/FashionStoreHeroSection.vue",
+          "../sections/FashionStoreServicesSection.vue",
           "Categories",
           "BestSellers",
-          "Promotion",
+          "../sections/FashionStorePromotionSection.vue",
           "CollectionFeature",
-          "BrandStrip",
+          "../sections/FashionStoreBrandStripSection.vue",
           "FeaturedProducts",
-          "Marquee",
+          "../sections/FashionStoreMarqueeSection.vue",
           "Editorial",
         ].map((name) =>
-          source(`themes/fashion-store/components/sections/FashionStoreLive${name}Section.vue`),
+          source(
+            name.startsWith("../")
+              ? `themes/fashion-store/components/${name.slice(3)}`
+              : `themes/fashion-store/components/sections/FashionStoreLive${name}Section.vue`,
+          ),
         ),
       ).then((sources) => sources.join("\n")),
       source("themes/fashion-store/components/shared/FashionStoreProductCard.vue"),

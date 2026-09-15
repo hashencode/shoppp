@@ -88,3 +88,19 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - Fixture Collection and Shop browser suite: 25 passed with 23 viewport-specific skips; after unified-card refinement, the four affected desktop geometry/filter/action cases passed, including the regression that exposed and fixed legacy-field reads in the local cart branch.
 - Live Commerce browser suite passed 15/15 before final contract simplification; the new dedicated landing/detail/Shop/history scenario passed again after normalization. Existing Nuxt conditional layout/page and renderer `instance` warnings remain unchanged.
 - Storefront `nuxt typecheck`, affected ESLint, Prettier, repository import boundaries, and `git diff --check` passed. Generated/public artifacts were restored to the committed remote-live state.
+
+## 2026-09-15 — U5 shared foundational Home presentation
+
+### Outcome
+
+- Fixture and live successor registries now resolve Hero, Services, Promotion, Brand Strip, and Marquee to the same neutral components. The ten provider-specific component files and the two provider-specific Home context readers are removed.
+- One Home foundation resolver normalizes fixture and live services, promotion, brands, and marquee content without leaking provider selection into the components. Live keeps truthful collection routing and omits the fixture-only promotion code; both modes retain the accepted fixture structure and visual classes.
+- Hero continues to use the established shared Decor-derived motion owner. Marquee retains viewport, document-visibility, reduced-motion, remount, and teardown behavior without introducing a second timer or motion implementation.
+- A registry-identity assertion now freezes the five converged mappings while U6-owned editorial and merchandising sections remain explicitly paired.
+
+### Verification
+
+- Focused Home source, registry, service-icon, provider-boundary, and live-commerce suites: 64 passed, 0 failed.
+- Combined and isolated Home browser profiles each passed 12 applicable cases with 12 viewport-specific skips, covering desktop/mobile, normal/reduced-motion, composition, route behavior, and approved presentations.
+- Motion/performance browser evidence passed 2/2 across desktop DPR2 and mobile DPR3. Visible Hero budgets remained within thresholds; offscreen and reduced-motion samples recorded zero animation frames and zero layer/paint lifecycle work.
+- Storefront typecheck, affected lint/format, repository boundary, and diff checks completed before commit. Generated/public artifacts were restored to the committed remote-live state; existing Nuxt conditional layout/page and renderer `instance` warnings remain unchanged.

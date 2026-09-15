@@ -16,15 +16,15 @@ import { fashionStoreAssetId, themeAssets } from "../app/themes/fashion-store/re
 
 const componentRoot = new URL("../app/themes/fashion-store/components/", import.meta.url);
 const fixtureSectionPaths = [
-  "sections/FashionStoreFixtureHeroSection.vue",
-  "sections/FashionStoreFixtureServicesSection.vue",
+  "sections/FashionStoreHeroSection.vue",
+  "sections/FashionStoreServicesSection.vue",
   "sections/FashionStoreFixtureCategoriesSection.vue",
   "sections/FashionStoreFixtureBestSellersSection.vue",
-  "sections/FashionStoreFixturePromotionSection.vue",
+  "sections/FashionStorePromotionSection.vue",
   "sections/FashionStoreFixtureCollectionFeatureSection.vue",
-  "sections/FashionStoreFixtureBrandStripSection.vue",
+  "sections/FashionStoreBrandStripSection.vue",
   "sections/FashionStoreFixtureFeaturedProductsSection.vue",
-  "sections/FashionStoreFixtureMarqueeSection.vue",
+  "sections/FashionStoreMarqueeSection.vue",
   "sections/FashionStoreFixtureEditorialSection.vue",
 ] as const;
 const regionMarkers: Readonly<Record<string, string>> = {
@@ -142,7 +142,7 @@ describe("Fashion Store complete static source home", () => {
     expect(body).toContain("fashionStoreAssetId");
     expect(host).toContain("<FashionStoreDecorHomeBody");
     expect(model).toContain("FashionStoreDecorHomeModel");
-    expect(model).toContain("resolveFashionStoreMerchandising");
+    expect(model).toContain("resolveFashionStoreLegacyMerchandising");
   });
 
   test("pins the canonical Header, product-card, carousel, CTA, and footer seams", async () => {

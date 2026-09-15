@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-09-15-1350-refactor-fashion-store-presentation-convergence-plan.md
-current_unit: FS-R5-U5
+current_unit: FS-R5-U6
 ---
 
 # Shoppp Product Master Plan
@@ -67,10 +67,10 @@ historical evidence remain unchanged inside the owning plans.
 ## Current execution pointer
 
 - **Active product plan:** `FS-R5` — [Fashion Store Fixture and Live Presentation Convergence](2026-09-15-1350-refactor-fashion-store-presentation-convergence-plan.md), activated after FS-F8 completed U7 and handed back through REL-Pre-DC.
-- **Current parent/child stage:** `FS-R5-U5` — converge the foundational non-merchandising Home sections without changing approved composition or motion.
+- **Current parent/child stage:** `FS-R5-U6` — converge Home editorial and merchandising sections while preserving Catalog truth and the accepted fixture layout.
 - **Current feature scope:** Preserve separate deterministic fixture and release-backed live data providers while converging Fashion routes and Home sections on one canonical component tree whose visual baseline is the accepted fixture presentation.
-- **Next action:** Normalize and converge the foundational Hero, Services, Promotion, Brand Strip, and Marquee Home sections while preserving approved composition, motion, and truthful absence policy.
-- **Blocker:** None for FS-R5-U5. REL's existing Pre-DC blockers remain preserved and no candidate is frozen.
+- **Next action:** Normalize Categories, Collection Feature, and Editorial inputs into shared components, prove empty and short-array behavior, then converge product merchandising through the shared card and action contracts.
+- **Blocker:** None for FS-R5-U6. REL's existing Pre-DC blockers remain preserved and no candidate is frozen.
 - **Completed predecessor:** `FS-F8` completed U1-U7 on 2026-09-15 with the 13-product/24-variant D1 catalog, 18 verified R2 media objects, authoritative staging cart proof, fixture isolation, and protected-preview boundary green.
 - **Completed FS-F6 handoff:** U1-U4 closed on 2026-09-13 with focused motion and Hero behavior, combined/isolated Home, stable Lighthouse, full Fashion Store, accessibility, production/static, type, lint/format, impact-selection, human motion, review, and diff evidence green under the unchanged motion and accessibility gates. The handoff advances no candidate, DC, deployment, or PG state.
 - **Completed FS-F5 handoff:** Combined Decor Home now uses a bounded 1320px layout for featured categories, products, journal, client logos, and Footer while isolated source review and full-bleed regions retain their prior geometry. Boundary, responsive, type, lint, and production-build evidence passed; candidate, DC, deployment, and PG state are unchanged.
@@ -559,7 +559,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-R5-U5` is the single current product execution pointer; `REL-Pre-DC` remains preserved with its blocker explicit, and no candidate, DC, deployment, or PG state has advanced.
+- `FS-R5-U6` is the single current product execution pointer; `REL-Pre-DC` remains preserved with its blocker explicit, and no candidate, DC, deployment, or PG state has advanced.
 - The retired `fashion`, `decor`, and `decor-store` implementations, retained reference naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.

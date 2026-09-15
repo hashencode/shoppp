@@ -222,27 +222,19 @@ describe("Fashion Store preview registration", () => {
     expect(JSON.stringify(calls)).not.toContain("filter");
   });
 
-  test("uses one Fashion-owned Decor Hero contract in fixture and live Home renderers", async () => {
-    const [fixtureHome, liveHome, contract] = await Promise.all([
+  test("uses one Fashion-owned Decor Hero contract in the shared Home renderer", async () => {
+    const [home, contract] = await Promise.all([
       readFile(
         resolve(
           import.meta.dir,
-          "../app/themes/fashion-store/components/sections/FashionStoreFixtureHeroSection.vue",
-        ),
-        "utf8",
-      ),
-      readFile(
-        resolve(
-          import.meta.dir,
-          "../app/themes/fashion-store/components/sections/FashionStoreLiveHeroSection.vue",
+          "../app/themes/fashion-store/components/sections/FashionStoreHeroSection.vue",
         ),
         "utf8",
       ),
       import("../app/themes/fashion-store/contracts/home-hero"),
     ]);
 
-    expect(fixtureHome).toContain("<FashionStoreDecorHero");
-    expect(liveHome).toContain("<FashionStoreDecorHero");
+    expect(home).toContain("<FashionStoreDecorHero");
     expect(contract.fashionStoreDecorHeroSlides.map(({ title, price }) => [title, price])).toEqual([
       ["Corby sofas", "$199.00"],
       ["Verona sofas", "$259.00"],
@@ -749,29 +741,41 @@ describe("Fashion Store preview registration", () => {
     }
   });
 
+  test("shares foundational Home section owners across fixture and live registries", () => {
+    for (const type of [
+      "fashion-store.hero",
+      "fashion-store.services",
+      "fashion-store.promotion",
+      "fashion-store.brand-strip",
+      "fashion-store.marquee",
+    ]) {
+      expect(fixtureThemeRegistry.sections[type]).toBe(themeRegistry.sections[type]);
+    }
+  });
+
   test("removes page-owned Home shells and landmarks from both presentation modes", async () => {
     const sectionDirectory = resolve(
       import.meta.dir,
       "../app/themes/fashion-store/components/sections",
     );
-    const sectionNames = [
-      "Hero",
-      "Services",
-      "Categories",
-      "BestSellers",
-      "Promotion",
-      "CollectionFeature",
-      "BrandStrip",
-      "FeaturedProducts",
-      "Marquee",
-      "Editorial",
-    ];
     const sectionSources = await Promise.all(
-      ["Fixture", "Live"].flatMap((mode) =>
-        sectionNames.map((name) =>
-          readFile(resolve(sectionDirectory, `FashionStore${mode}${name}Section.vue`), "utf8"),
-        ),
-      ),
+      [
+        "FashionStoreHeroSection.vue",
+        "FashionStoreServicesSection.vue",
+        "FashionStorePromotionSection.vue",
+        "FashionStoreBrandStripSection.vue",
+        "FashionStoreMarqueeSection.vue",
+        ...[
+          "Categories",
+          "BestSellers",
+          "CollectionFeature",
+          "FeaturedProducts",
+          "Editorial",
+        ].flatMap((name) => [
+          `FashionStoreFixture${name}Section.vue`,
+          `FashionStoreLive${name}Section.vue`,
+        ]),
+      ].map((name) => readFile(resolve(sectionDirectory, name), "utf8")),
     );
     for (const source of sectionSources) {
       expect(source).not.toContain("<FashionStoreShell");
@@ -878,7 +882,7 @@ describe("Fashion Store preview registration", () => {
       readFile(
         resolve(
           import.meta.dir,
-          "../app/themes/fashion-store/components/sections/FashionStoreLiveMarqueeSection.vue",
+          "../app/themes/fashion-store/components/sections/FashionStoreMarqueeSection.vue",
         ),
         "utf8",
       ),

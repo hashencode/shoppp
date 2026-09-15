@@ -3,14 +3,14 @@ import FashionStoreCarousel from "../shared/FashionStoreCarousel.vue";
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { FashionStoreHomeData } from "../../fixtures/home";
 import { fashionStoreRoutePaths } from "../../page-contracts";
-import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
-import { resolveFixtureHomeData } from "./fixture-home-section-context";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
+import { resolveFixtureHomeData } from "./home-section-context";
 import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const data = computed(() => resolveFixtureHomeData(properties.viewModel));
 const presentation = computed(() => resolveFashionStoreHomePresentation(properties.viewModel));
-import { resolveHomeAsset } from "./fixture-home-section-context";
+import { resolveHomeAsset } from "./home-section-context";
 
 function sourceAsset(sourcePath: string): string {
   return resolveHomeAsset(properties.resolveAsset, sourcePath);

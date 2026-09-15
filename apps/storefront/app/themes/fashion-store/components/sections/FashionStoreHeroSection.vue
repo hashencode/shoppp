@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import FashionStoreDecorHero from "../FashionStoreDecorHero.vue";
-import type { FashionStoreHomeSectionProperties } from "./fixture-home-section-context";
+import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 </script>
