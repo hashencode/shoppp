@@ -13,16 +13,12 @@ import FashionStoreProductMerchandisingSection from "../components/sections/Fash
 import { themeAssets, themeRegistry as inheritedRegistry, themeRoutes } from "../registry";
 import { fashionStoreSectionComposition } from "./composition";
 
-const inheritedSections = Object.fromEntries(
-  Object.entries(inheritedRegistry.sections).filter(([type]) => type !== "fashion-store.home"),
-);
-
 export const themeRegistry = {
   ...inheritedRegistry,
   rendererShell: FashionStoreHomeShell,
   sectionComposition: fashionStoreSectionComposition,
   sections: {
-    ...inheritedSections,
+    ...inheritedRegistry.sections,
     "fashion-store.brand-strip": FashionStoreBrandStripSection,
     "fashion-store.categories": FashionStoreCategoriesSection,
     "fashion-store.collection-feature": FashionStoreCollectionFeatureSection,

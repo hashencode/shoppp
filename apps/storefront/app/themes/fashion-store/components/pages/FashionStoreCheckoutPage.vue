@@ -18,6 +18,7 @@ import { fashionStoreAssetId } from "../../resources";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  instance?: unknown;
   resolveAsset: ThemeAssetResolver;
   viewModel: PresentationViewModel;
 }>();

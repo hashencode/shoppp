@@ -78,7 +78,7 @@ describe("executed behavior-mode evidence", () => {
         root: resolve(import.meta.dir, ".."),
         themeId: "fashion-store",
       }),
-    ).resolves.toBe(31);
+    ).resolves.toBe(36);
   });
 
   test("filters valid evidence owned by another page contract", async () => {
@@ -97,7 +97,7 @@ describe("executed behavior-mode evidence", () => {
         root: resolve(import.meta.dir, ".."),
         themeId: "fashion-store",
       }),
-    ).resolves.toBe(31);
+    ).resolves.toBe(36);
   });
 
   test("rejects a missing mode and ignores evidence from failed tests", async () => {

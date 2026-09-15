@@ -11,6 +11,7 @@ import FashionStoreShell from "../shared/FashionStoreShell.vue";
 import FashionStoreShopPage from "./FashionStoreShopPage.vue";
 
 const properties = defineProps<{
+  instance?: unknown;
   resolveAsset: ThemeAssetResolver;
   viewModel: PresentationViewModel;
 }>();

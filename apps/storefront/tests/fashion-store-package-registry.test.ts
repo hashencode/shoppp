@@ -12,11 +12,12 @@ import {
   fashionStoreSuccessorPackage,
 } from "../app/themes/fashion-store/package-registry";
 import { migrateFashionStoreV1Overrides } from "../app/themes/fashion-store/migrations";
+import { fixtureThemeRegistry as baseFixtureRegistry } from "../app/themes/fashion-store/fixture-registry";
+import { themeRegistry as baseLiveRegistry } from "../app/themes/fashion-store/registry";
 import { fashionStoreHomeSections } from "../app/themes/fashion-store/successor/composition";
-import {
-  divergentFashionStoreRegistryTypes,
-  requireFashionStoreRegistryIdentity,
-} from "./support/fashion-store-presentation-boundary";
+import { fixtureThemeRegistry as successorFixtureRegistry } from "../app/themes/fashion-store/successor/fixture-registry";
+import { themeRegistry as successorLiveRegistry } from "../app/themes/fashion-store/successor/registry";
+import { requireFashionStoreRegistryIdentity } from "./support/fashion-store-presentation-boundary";
 
 describe("Fashion Store exact package registry", () => {
   test("retains the supported 1.0.0 source package as byte-stable immutable history", async () => {
@@ -211,43 +212,23 @@ describe("Fashion Store exact package registry", () => {
     );
 
     expect(activeTheme).toContain('from "../themes/fashion-store/successor/registry"');
-    expect(activeTheme).toContain('from "../themes/fashion-store/successor/fixture-registry"');
+    expect(activeTheme).not.toContain('from "../themes/fashion-store/successor/fixture-registry"');
     expect(activeTheme).not.toContain('from "../themes/fashion-store/registry"');
     expect(activeTheme).not.toContain('from "../themes/fashion-store/fixture-registry"');
     expect(activeTheme).toContain('"configurationSchemaVersion": 2');
     expect(activeTheme).toContain('"themeVersion": "1.1.0"');
   });
 
-  test("freezes current registry forks and rejects any undeclared visual divergence", async () => {
-    const [baseLive, baseFixture, successorLive, successorFixture] = await Promise.all([
-      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"), "utf8"),
-      readFile(resolve(import.meta.dir, "../app/themes/fashion-store/fixture-registry.ts"), "utf8"),
-      readFile(
-        resolve(import.meta.dir, "../app/themes/fashion-store/successor/registry.ts"),
-        "utf8",
-      ),
-      readFile(
-        resolve(import.meta.dir, "../app/themes/fashion-store/successor/fixture-registry.ts"),
-        "utf8",
-      ),
-    ]);
-
-    expect(divergentFashionStoreRegistryTypes(baseLive, baseFixture)).toEqual([
-      "fashion-store.collection",
-      "fashion-store.content",
-      "fashion-store.home",
-    ]);
-    expect(divergentFashionStoreRegistryTypes(successorLive, successorFixture)).toEqual([
-      "fashion-store.brand-strip",
-      "fashion-store.categories",
-      "fashion-store.collection-feature",
-      "fashion-store.editorial",
-      "fashion-store.hero",
-      "fashion-store.marquee",
-      "fashion-store.products",
-      "fashion-store.promotion",
-      "fashion-store.services",
-    ]);
+  test("shares exact component identity and rejects any synthetic visual divergence", () => {
+    for (const [live, fixture] of [
+      [baseLiveRegistry, baseFixtureRegistry],
+      [successorLiveRegistry, successorFixtureRegistry],
+    ] as const) {
+      expect(Object.keys(fixture.sections).sort()).toEqual(Object.keys(live.sections).sort());
+      for (const type of Object.keys(live.sections)) {
+        expect(fixture.sections[type]).toBe(live.sections[type]);
+      }
+    }
 
     expect(() =>
       requireFashionStoreRegistryIdentity(

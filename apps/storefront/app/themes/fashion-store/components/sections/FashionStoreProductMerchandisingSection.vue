@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import FashionStoreDecorHomeBody from "../home/FashionStoreDecorHomeBody.vue";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
-import { buildFashionStoreLiveDecorHomeModel } from "../../contracts/decor-home";
+import { buildFashionStoreDecorHomeModel } from "../../contracts/decor-home";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
-const model = computed(() => buildFashionStoreLiveDecorHomeModel(properties.viewModel));
+const model = computed(() => buildFashionStoreDecorHomeModel(properties.viewModel));
 </script>
 
 <template>

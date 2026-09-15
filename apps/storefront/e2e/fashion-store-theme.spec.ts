@@ -471,15 +471,6 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
   const hero = page.locator(".swiper.full-screen");
   const heroBefore = Number(await hero.getAttribute("data-motion-active-index"));
 
-  const carousel = page.locator("[data-fashion-store-collection-carousel]");
-  const collectionArrow = carousel.locator(".content-arrow").first();
-  await expect(collectionArrow.locator('[data-fashion-store-icon="arrow-right"] svg')).toHaveCount(
-    1,
-  );
-  const collectionBefore = await carousel.getAttribute("data-collection-index");
-  await expect
-    .poll(() => carousel.getAttribute("data-collection-index"), { timeout: 5_500 })
-    .not.toBe(collectionBefore);
   await expect
     .poll(() => hero.getAttribute("data-motion-active-index"), { timeout: 10_000 })
     .not.toBe(String(heroBefore));
@@ -491,6 +482,17 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
   await hero.focus();
   await page.keyboard.press("ArrowRight");
   await expect(hero).toHaveAttribute("data-motion-active-index", String(interactionTarget));
+
+  const carousel = page.locator("[data-fashion-store-collection-carousel]");
+  await carousel.scrollIntoViewIfNeeded();
+  const collectionArrow = carousel.locator(".content-arrow").first();
+  await expect(collectionArrow.locator('[data-fashion-store-icon="arrow-right"] svg')).toHaveCount(
+    1,
+  );
+  const collectionBefore = await carousel.getAttribute("data-collection-index");
+  await expect
+    .poll(() => carousel.getAttribute("data-collection-index"), { timeout: 5_500 })
+    .not.toBe(collectionBefore);
 
   const socialRail = page.locator(".sticky-wrap");
   await expect(socialRail).toBeVisible();
@@ -539,6 +541,7 @@ test("collection loop remains continuous with semantic indices", async ({ page }
   test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/");
   const carousel = page.locator("[data-fashion-store-collection-carousel]");
+  await carousel.scrollIntoViewIfNeeded();
   await carousel.focus();
   for (let index = 0; index < 5; index += 1) {
     await page.keyboard.press("ArrowRight");
@@ -555,6 +558,7 @@ test("collection autoplay resumes only after every local pause reason clears", a
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
   const carousel = page.locator("[data-fashion-store-collection-carousel]");
+  await carousel.scrollIntoViewIfNeeded();
   await carousel.hover();
   await expect(carousel).toHaveAttribute("data-motion-paused", /hover/);
   await carousel.focus();

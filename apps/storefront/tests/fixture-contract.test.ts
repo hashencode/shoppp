@@ -491,42 +491,35 @@ describe("storefront experience fixtures", () => {
     const findings = await auditFashionStorePresentationBoundary(
       resolve(import.meta.dir, "../app"),
       [
-        "themes/fashion-store/components/FashionStoreHomeRoute.vue",
         "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
         "themes/fashion-store/contracts/home-merchandising.ts",
       ],
     );
-    expect(findings).toEqual([
-      {
-        file: "themes/fashion-store/components/FashionStoreHomeRoute.vue",
-        rule: "provider-kind-layout-switch",
-      },
-    ]);
+    expect(findings).toEqual([]);
   });
 
   test("keeps the complete Fashion Store live component graph behind presentation ports", async () => {
     const appRoot = resolve(import.meta.dir, "../app");
     const componentRoot = resolve(import.meta.dir, "../app/themes/fashion-store/components");
-    const registrySource = await readFile(
-      resolve(import.meta.dir, "../app/themes/fashion-store/registry.ts"),
+    const pageRegistrySource = await readFile(
+      resolve(import.meta.dir, "../app/themes/fashion-store/page-registry.ts"),
       "utf8",
     );
     const componentPathBySymbol = new Map<string, string>();
-    for (const match of registrySource.matchAll(
+    for (const match of pageRegistrySource.matchAll(
       /^import\s+(\w+)\s+from\s+["']\.\/components\/([^"']+\.vue)["'];/gm,
     )) {
       componentPathBySymbol.set(match[1]!, match[2]!);
     }
-    for (const match of registrySource.matchAll(
+    for (const match of pageRegistrySource.matchAll(
       /const\s+(\w+)\s*=\s*defineAsyncComponent\(\s*\(\)\s*=>\s*import\(["']\.\/components\/([^"']+\.vue)["']\)/g,
     )) {
       componentPathBySymbol.set(match[1]!, match[2]!);
     }
     const registryRootBySection = Object.fromEntries(
-      [...registrySource.matchAll(/^\s*"(fashion-store\.[^"]+)"\s*:\s*(\w+),/gm)].map((match) => [
-        match[1]!,
-        componentPathBySymbol.get(match[2]!),
-      ]),
+      [...pageRegistrySource.matchAll(/^\s*"(fashion-store\.[^"]+)"\s*:\s*(\w+),/gm)].map(
+        (match) => [match[1]!, componentPathBySymbol.get(match[2]!)],
+      ),
     );
 
     expect(registryRootBySection).toEqual({
@@ -534,7 +527,6 @@ describe("storefront experience fixtures", () => {
       "fashion-store.checkout": "pages/FashionStoreCheckoutPage.vue",
       "fashion-store.collection": "pages/FashionStoreCollectionPage.vue",
       "fashion-store.content": "pages/FashionStoreContentPage.vue",
-      "fashion-store.home": "FashionStoreLiveHomePage.vue",
       "fashion-store.product": "pages/FashionStoreProductPage.vue",
     });
     const roots = [...new Set(Object.values(registryRootBySection))].map((path) =>

@@ -16,19 +16,13 @@ import {
 } from "../fixture-registry";
 import { fashionStoreFixtureBindingAliases, fashionStoreSectionComposition } from "./composition";
 
-const inheritedSections = Object.fromEntries(
-  Object.entries(inheritedFixtureRegistry.sections).filter(
-    ([type]) => type !== "fashion-store.home",
-  ),
-);
-
 export const fixtureThemeRegistry = {
   ...inheritedFixtureRegistry,
   fixtureBindingAliases: fashionStoreFixtureBindingAliases,
   rendererShell: FashionStoreHomeShell,
   sectionComposition: fashionStoreSectionComposition,
   sections: {
-    ...inheritedSections,
+    ...inheritedFixtureRegistry.sections,
     "fashion-store.brand-strip": FashionStoreBrandStripSection,
     "fashion-store.categories": FashionStoreCategoriesSection,
     "fashion-store.collection-feature": FashionStoreCollectionFeatureSection,

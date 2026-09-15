@@ -236,7 +236,7 @@ test("renders approved Home presentations and switches authoritative product gro
   await page.goto("/", { waitUntil: "networkidle" });
   const viewportWidth = page.viewportSize()?.width ?? 0;
 
-  const home = page.locator("[data-fashion-store-live-home]");
+  const home = page.locator("[data-fashion-store-home-ready]");
   await expect(home).toHaveCount(1);
   await expect(home).toHaveAttribute(
     "data-fashion-store-home-composition",

@@ -698,11 +698,11 @@ test("live Home preserves all sections and card outcomes across input modes", as
   expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
     true,
   );
-  const home = page.locator("[data-fashion-store-live-home]");
+  const home = page.locator("[data-fashion-store-home-ready]");
   await expect(home).toHaveCount(1);
   await expect(home.locator("[data-home-section]")).toHaveCount(11);
   const accessibility = await new AxeBuilder({ page })
-    .include("[data-fashion-store-live-home]")
+    .include("[data-fashion-store-home-ready]")
     .exclude('[data-home-section="product-merchandising"]')
     .exclude('[data-home-section="collection"] [aria-hidden="true"]')
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])

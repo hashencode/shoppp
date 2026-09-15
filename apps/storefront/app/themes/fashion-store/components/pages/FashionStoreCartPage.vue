@@ -14,6 +14,7 @@ import FashionStoreShell from "../shared/FashionStoreShell.vue";
 import FashionStoreQuantityInput from "../shared/FashionStoreQuantityInput.vue";
 
 const properties = defineProps<{
+  instance?: unknown;
   resolveAsset: ThemeAssetResolver;
   viewModel: PresentationViewModel;
 }>();

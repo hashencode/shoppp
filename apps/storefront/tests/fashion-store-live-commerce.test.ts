@@ -255,13 +255,10 @@ describe("Fashion Store live commerce boundary", () => {
     expect(liveSources[2]).not.toContain("storefrontActionAdapterKey");
   });
 
-  test("keeps the remaining Home dispatcher while Product uses one visual component", async () => {
-    const [homeRoute, productPage] = await Promise.all([
-      source("themes/fashion-store/components/FashionStoreHomeRoute.vue"),
-      source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
-    ]);
-    expect(homeRoute).toContain("defineAsyncComponent");
-    expect(homeRoute).toContain("viewModel.kind === 'home'");
+  test("keeps Product on one visual component after removing the retired Home dispatcher", async () => {
+    const productPage = await source(
+      "themes/fashion-store/components/pages/FashionStoreProductPage.vue",
+    );
     expect(productPage).not.toContain("defineAsyncComponent");
     expect(productPage).not.toMatch(/viewModel\.kind\s*===\s*["']product["']/);
   });
@@ -270,23 +267,16 @@ describe("Fashion Store live commerce boundary", () => {
     const [liveHome, productCard] = await Promise.all([
       Promise.all(
         [
-          "../sections/FashionStoreHeroSection.vue",
-          "../sections/FashionStoreServicesSection.vue",
-          "../sections/FashionStoreCategoriesSection.vue",
-          "../sections/FashionStoreProductsSection.vue",
-          "../sections/FashionStorePromotionSection.vue",
-          "../sections/FashionStoreCollectionFeatureSection.vue",
-          "../sections/FashionStoreBrandStripSection.vue",
-          "../sections/FashionStoreProductsSection.vue",
-          "../sections/FashionStoreMarqueeSection.vue",
-          "../sections/FashionStoreEditorialSection.vue",
-        ].map((name) =>
-          source(
-            name.startsWith("../")
-              ? `themes/fashion-store/components/${name.slice(3)}`
-              : `themes/fashion-store/components/sections/FashionStoreLive${name}Section.vue`,
-          ),
-        ),
+          "FashionStoreHeroSection.vue",
+          "FashionStoreServicesSection.vue",
+          "FashionStoreCategoriesSection.vue",
+          "FashionStoreProductsSection.vue",
+          "FashionStorePromotionSection.vue",
+          "FashionStoreCollectionFeatureSection.vue",
+          "FashionStoreBrandStripSection.vue",
+          "FashionStoreMarqueeSection.vue",
+          "FashionStoreEditorialSection.vue",
+        ].map((name) => source(`themes/fashion-store/components/sections/${name}`)),
       ).then((sources) => sources.join("\n")),
       source("themes/fashion-store/components/shared/FashionStoreProductCard.vue"),
     ]);
@@ -294,7 +284,7 @@ describe("Fashion Store live commerce boundary", () => {
     expect(liveHome).toContain("FashionStoreProductCard");
     expect(liveHome).not.toMatch(/\/fixtures\/|useCommerceApi|useGuestCart|\$fetch|\bfetch\s*\(/);
     expect(liveHome.match(/This collection does not have published products yet\./g)).toHaveLength(
-      2,
+      1,
     );
     for (const section of [
       "hero",
@@ -349,16 +339,24 @@ describe("Fashion Store live commerce boundary", () => {
       reviews: false,
       wishlist: false,
     });
-    const [contentPage, contentState, contentContract, fixtureRegistry, liveRegistry] =
-      await Promise.all([
-        source("themes/fashion-store/components/pages/FashionStoreContentPage.vue"),
-        source("themes/fashion-store/components/pages/FashionStoreContentState.vue"),
-        source("themes/fashion-store/contracts/content-presentation.ts"),
-        source("themes/fashion-store/fixture-registry.ts"),
-        source("themes/fashion-store/registry.ts"),
-      ]);
-    expect(fixtureRegistry).toContain('import("./components/pages/FashionStoreContentPage.vue")');
-    expect(liveRegistry).toContain('import("./components/pages/FashionStoreContentPage.vue")');
+    const [
+      contentPage,
+      contentState,
+      contentContract,
+      pageRegistry,
+      fixtureRegistry,
+      liveRegistry,
+    ] = await Promise.all([
+      source("themes/fashion-store/components/pages/FashionStoreContentPage.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreContentState.vue"),
+      source("themes/fashion-store/contracts/content-presentation.ts"),
+      source("themes/fashion-store/page-registry.ts"),
+      source("themes/fashion-store/fixture-registry.ts"),
+      source("themes/fashion-store/registry.ts"),
+    ]);
+    expect(pageRegistry).toContain('import("./components/pages/FashionStoreContentPage.vue")');
+    expect(fixtureRegistry).toContain('from "./page-registry"');
+    expect(liveRegistry).toContain('from "./page-registry"');
     expect(contentPage).not.toContain("viewModel.kind");
     expect(contentPage).toContain("resolveFashionStoreContentPresentation");
     expect(contentContract).toContain('viewModel.kind === "theme-section"');

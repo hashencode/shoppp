@@ -26,6 +26,13 @@ function componentSources(directory = componentsRoot): Array<{ path: string; sou
 }
 
 describe("Fashion Store semantic interaction contract", () => {
+  test("contains no provider-specific visual component or selector", () => {
+    for (const { path, source } of componentSources()) {
+      expect(path).not.toMatch(/FashionStore(?:Live|Fixture).*(?:Page|Section)\.vue$/);
+      expect(source, path).not.toMatch(/data-fashion-store-(?:live|fixture)-/);
+    }
+  });
+
   test("maps every source-parity behavior row to one or more non-overlapping semantic rows", () => {
     expect(() =>
       assertFashionStoreInteractionContractComplete(
@@ -391,9 +398,6 @@ describe("Fashion Store semantic interaction contract", () => {
       expect(source, path).not.toMatch(/@click\.prevent(?:\s|>)/);
     }
 
-    const home = readFileSync(join(componentsRoot, "FashionStoreHome.vue"), "utf8");
-    expect(home).not.toMatch(/href="\/"/);
-
     const shell = readFileSync(join(componentsRoot, "shared/FashionStoreShell.vue"), "utf8");
     expect(shell).not.toContain("handleInternalNavigation");
     expect(shell).not.toContain('document.addEventListener("click"');
@@ -401,7 +405,8 @@ describe("Fashion Store semantic interaction contract", () => {
 
   test("keeps every remaining product merchandising surface on the shared card", () => {
     const sharedCardConsumers = [
-      "FashionStoreLiveHomePage.vue",
+      "sections/FashionStoreProductsSection.vue",
+      "home/FashionStoreDecorHomeBody.vue",
       "pages/FashionStoreProductPage.vue",
       "pages/FashionStoreShopPage.vue",
       "pages/FashionStoreWishlistPage.vue",

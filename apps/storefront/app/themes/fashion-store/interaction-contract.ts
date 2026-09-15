@@ -312,13 +312,7 @@ const semanticDispositionByBehavior = {
     affordance(".fashion-product-options", commerce("variant.select", "productId", "variantId")),
     affordance(".product-info .quantity", local("product-quantity")),
   ],
-  "product-tabs-reviews": [
-    affordance("#tab .nav-link", local("product-tabs")),
-    affordance(
-      "#tab form",
-      unavailable("Product review submission is not available in live mode."),
-    ),
-  ],
+  "product-tabs-reviews": [affordance("#tab .nav-link", local("product-tabs"))],
   "promotional-marquee": local("promotional-marquee"),
   "scroll-progress-indicator": local("scroll-progress"),
   "shop-filters": [
@@ -606,28 +600,6 @@ const sharedRows = [
     owner: "fashion-store",
     parity: ["structural", "behavioral", "absence"],
     role: "local-state",
-    routeId: "fashion-store-shared",
-  },
-  {
-    behaviorId: "shared-product-review-fragment",
-    breakpoints: ["all"],
-    candidate: "[data-fashion-store-product] a[href='#tab']",
-    disposition: {
-      kind: "internal-navigation",
-      target: { kind: "fragment", target: "#tab" },
-    },
-    evidence: ["product-review-fragment"],
-    fallback: "The native product review fragment remains available without JavaScript.",
-    id: "fashion-store-product-review-fragment",
-    inputModes: ["pointer", "keyboard", "touch", "reduced-motion", "no-js"],
-    inputOutcomes: inputOutcomes(
-      "The browser moves to the product information tabs.",
-      "The native review fragment remains available without JavaScript.",
-    ),
-    outcome: "The review summary moves to the product information tabs.",
-    owner: "browser-navigation",
-    parity: ["structural", "behavioral", "absence"],
-    role: "navigation",
     routeId: "fashion-store-shared",
   },
   {

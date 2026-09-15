@@ -359,24 +359,24 @@ test("collection-slide-1 temporal: contract-driven collection exposes cards and 
     const desktop = isFashionStoreViewport(testInfo, "desktop");
     const minimumVisibleCards = desktop ? 3 : 1;
     const maximumCardWidthRatio = desktop ? 0.45 : 1.05;
-    const [sourceResult, implementationResult] = await Promise.all([
-      runCollectionBehavior({
-        behavior,
-        maximumCardWidthRatio,
-        minimumVisibleCards,
-        mode: "temporal",
-        page: source,
-        side: "source",
-      }),
-      runCollectionBehavior({
-        behavior,
-        maximumCardWidthRatio,
-        minimumVisibleCards,
-        mode: "temporal",
-        page,
-        side: "implementation",
-      }),
-    ]);
+    await source.bringToFront();
+    const sourceResult = await runCollectionBehavior({
+      behavior,
+      maximumCardWidthRatio,
+      minimumVisibleCards,
+      mode: "temporal",
+      page: source,
+      side: "source",
+    });
+    await page.bringToFront();
+    const implementationResult = await runCollectionBehavior({
+      behavior,
+      maximumCardWidthRatio,
+      minimumVisibleCards,
+      mode: "temporal",
+      page,
+      side: "implementation",
+    });
     expect(sourceResult.moved).toBe(true);
     expect(implementationResult.moved).toBe(true);
     expect(

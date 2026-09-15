@@ -26,13 +26,12 @@ export function fashionStoreDecorProductsMessage(
   }
 }
 
-function buildDecorHomeModel(viewModel: PresentationViewModel): FashionStoreDecorHomeModel {
+export function buildFashionStoreDecorHomeModel(
+  viewModel: PresentationViewModel,
+): FashionStoreDecorHomeModel {
   return {
     articleHref: "/magazine",
     collectionHref: "/collections",
     merchandising: resolveFashionStoreMerchandising(viewModel),
   };
 }
-
-export const buildFashionStoreFixtureDecorHomeModel = buildDecorHomeModel;
-export const buildFashionStoreLiveDecorHomeModel = buildDecorHomeModel;

@@ -196,7 +196,30 @@ export async function probeCollectionCarouselOutcome(options: {
   const carousel = page.locator(carouselSelector).first();
   await carousel.scrollIntoViewIfNeeded();
   await carousel.waitFor({ state: "visible" });
+  await page.waitForFunction(
+    (selector) =>
+      !document
+        .querySelector(selector)
+        ?.getAttribute("data-motion-paused")
+        ?.split(" ")
+        .includes("offscreen"),
+    carouselSelector,
+    { timeout: 2_000 },
+  );
   const interactionRequested = Boolean(options.advanceSelector || options.advanceKey);
+  if (!interactionRequested) {
+    await page.mouse.move(0, 0);
+    await page.waitForFunction(
+      (selector) =>
+        !document
+          .querySelector(selector)
+          ?.getAttribute("data-motion-paused")
+          ?.split(" ")
+          .includes("hover"),
+      carouselSelector,
+      { timeout: 2_000 },
+    );
+  }
   if (interactionRequested) {
     await carousel.hover();
     await carousel.evaluate((element) => {

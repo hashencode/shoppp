@@ -151,3 +151,18 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - The focused live unsupported-content and Wishlist recovery scenario passed with accessibility, SPA return, browser Back, and no-JavaScript assertions. The complete live suite passed 16/16 during U7 implementation.
 - The unchanged full motion/performance matrix remained green after scoping offscreen carousel suspension to Home: desktop measured 38.998 ms Layerize, 111.966 ms paint lifecycle, and 671.844 ms RunTask; mobile measured 43.642 ms, 91.444 ms, and 620.067 ms. Offscreen and reduced-idle controls remained zero.
 - U7 is complete. The next Fashion convergence unit is U8; the product master keeps `ADM-LIST-U6` active and advances only the preserved Fashion return pointer to `FS-R5-U8`.
+
+## 2026-09-15 — U8 final convergence and governed handback
+
+### Outcome
+
+- Fixture and live registries now import one shared async page registry, so Cart, Checkout, Collection, Content, and Product use exact component identity across both providers. Home remains the canonical decomposed section sequence.
+- The retired whole-Home component, route dispatcher, and live Home page are deleted. Provider-specific visual filenames, the old live-home readiness selector, and the duplicate fixture/live Decor Home model aliases are absent from the active component graph.
+- Product review behavior and named-state/evidence expectations now match the rendered contract. Carousel probes explicitly establish viewport and hover readiness, preventing offscreen pause behavior from creating timing-only test drift.
+
+### Verification
+
+- Focused registry, interaction, provider, fixture-boundary, and Fashion contract suites passed 70/70 after simplification; Storefront typecheck, affected ESLint, formatting, import boundaries, theme catalog verification, and source-equivalence policy/tests passed.
+- The complete live Commerce matrix passed 16/16. The complete fixture browser matrix passed 288 applicable cases with 252 intentional viewport/profile skips; all fifteen page behavior reports verified. Combined and isolated Home profiles each passed 12 applicable cases with 12 intentional skips.
+- Accessibility passed 8/8. The unchanged motion/performance gate passed 2/2 on desktop DPR2 and mobile DPR3 with zero effective offscreen and reduced-idle work. Mobile Lighthouse route budgets passed after one transient Home retry.
+- `FS-R5-U1` through `FS-R5-U8` are complete. Authority returns to the preserved `REL-Pre-DC` tail without freezing a candidate or advancing DC, deployment, or PG state.

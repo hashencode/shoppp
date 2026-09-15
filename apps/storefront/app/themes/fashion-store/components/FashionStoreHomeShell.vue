@@ -32,7 +32,7 @@ onMounted(() => {
       class="d-flex flex-column"
       data-fashion-store-home-sections
       :data-fashion-store-home-composition="homeProfile.composition"
-      :data-fashion-store-live-home="hydrated || undefined"
+      :data-fashion-store-home-ready="hydrated || undefined"
     >
       <slot />
     </main>

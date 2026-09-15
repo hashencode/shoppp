@@ -454,13 +454,16 @@ describe("Fashion Store preview registration", () => {
     expect(successorHero.settings.some(({ id }) => id === "merchandising-visible")).toBe(false);
   });
 
-  test("keeps collection looping aligned with its four semantic cards", async () => {
+  test("keeps collection looping aligned with its semantic cards", async () => {
     const component = await readFile(
-      resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
+      resolve(
+        import.meta.dir,
+        "../app/themes/fashion-store/components/sections/FashionStoreCollectionFeatureSection.vue",
+      ),
       "utf8",
     );
-    expect(component).toContain("[...data.value.collection, ...data.value.collection]");
-    expect(component).toContain(':semantic-slide-count="data.collection.length"');
+    expect(component).toContain("[...items, ...items]");
+    expect(component).toContain(':semantic-slide-count="editorial.collection.items.length"');
     expect(component).toContain('@active-index-change="collectionIndex = $event"');
   });
 
@@ -786,7 +789,7 @@ describe("Fashion Store preview registration", () => {
     }
   });
 
-  test("removes page-owned Home shells and landmarks from both presentation modes", async () => {
+  test("keeps the shared Home sections free of page-owned shells and landmarks", async () => {
     const sectionDirectory = resolve(
       import.meta.dir,
       "../app/themes/fashion-store/components/sections",
@@ -807,23 +810,6 @@ describe("Fashion Store preview registration", () => {
     for (const source of sectionSources) {
       expect(source).not.toContain("<FashionStoreShell");
       expect(source).not.toContain('id="fashion-store-main"');
-    }
-    const [legacyFixtureHome, legacyLiveHome] = await Promise.all([
-      readFile(
-        resolve(import.meta.dir, "../app/themes/fashion-store/components/FashionStoreHome.vue"),
-        "utf8",
-      ),
-      readFile(
-        resolve(
-          import.meta.dir,
-          "../app/themes/fashion-store/components/FashionStoreLiveHomePage.vue",
-        ),
-        "utf8",
-      ),
-    ]);
-    for (const source of [legacyFixtureHome, legacyLiveHome]) {
-      expect(source).toContain("<FashionStoreShell");
-      expect(source).toContain('id="fashion-store-main"');
     }
   });
 
