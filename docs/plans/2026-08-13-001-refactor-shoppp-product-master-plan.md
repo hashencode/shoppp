@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-09-15-1350-refactor-fashion-store-presentation-convergence-plan.md
-current_unit: FS-R5-U6
+current_plan: 2026-09-15-1723-refactor-admin-query-list-convergence-plan.md
+current_unit: ADM-LIST-U6
 ---
 
 # Shoppp Product Master Plan
@@ -67,9 +67,9 @@ historical evidence remain unchanged inside the owning plans.
 ## Current execution pointer
 
 - **Active product plan:** `ADM-LIST` — [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md), activated by the user's 2026-09-15 implementation authorization.
-- **Current parent/child stage:** `ADM-LIST-U5` — converge Notification Jobs while preserving Replay authorization, errors, and authoritative status reloads.
+- **Current parent/child stage:** `ADM-LIST-U6` — standardize Users and Invitations with independent list lifecycles and an isolated Roles lookup.
 - **Current feature scope:** Converge Admin query-oriented lists on the standard explicit Query/Reset, table-state, pagination, refresh, and error language while preserving domain actions and truthful offset, cursor, and multi-resource semantics.
-- **Next action:** Add failing Notification Jobs tests for explicit Query/Reset, pagination, Replay permissions/errors, and action/query races, then migrate the jobs list.
+- **Next action:** Add failing Users/Invitations tests for tab-scoped drafts, shared-search fan-out, independent error/retry, role lookup, and guarded actions, then compose the standard primitives.
 - **Blocker:** None. `FS-R5-U7` is the exact preserved return pointer; REL's existing Pre-DC blockers remain preserved and no candidate is frozen.
 - **Completed predecessor:** `FS-F8` completed U1-U7 on 2026-09-15 with the 13-product/24-variant D1 catalog, 18 verified R2 media objects, authoritative staging cart proof, fixture isolation, and protected-preview boundary green.
 - **Completed FS-F6 handoff:** U1-U4 closed on 2026-09-13 with focused motion and Hero behavior, combined/isolated Home, stable Lighthouse, full Fashion Store, accessibility, production/static, type, lint/format, impact-selection, human motion, review, and diff evidence green under the unchanged motion and accessibility gates. The handoff advances no candidate, DC, deployment, or PG state.
@@ -440,7 +440,7 @@ focused test alone.
 | `MASTER`    | This plan                                                                                                                              | Whole-product navigation, lineage and active pointer                                                                                    | Active product authority                                                                                                                                                                               | Updated with every product-level pointer or classification change                                                                                                               |
 | `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md)                                                        | Bounded Admin onboarding feature over COM/THEME/IAM                                                                                     | Complete — U1–U5 closed on 2026-09-03; guide implementation, local verification and maintenance documentation delivered                                                                                | Retains completed guide evidence with no implementation tail; existing product contracts and REL retain their authority                                                         |
 | `ADM-I18N`  | [Admin Internationalization Completion](2026-09-03-1553-fix-admin-i18n-completion-plan.md)                                             | Bounded Admin localization correction over COM/THEME/IAM                                                                                | Complete on 2026-09-03; U1–U6 closed                                                                                                                                                                   | Retains remediation/local-verification evidence and explicit review limits; no implementation tail. REL retains candidate and production authority.                             |
-| `ADM-LIST`  | [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md)                                           | Active Admin-wide convergence for query-oriented lists over Commerce/IAM and the approved Standard List Page baseline                   | **Active at U5 — U1 established shared contracts; U2-U4 migrated Orders, Roles, Inventory, and Revenue Report with focused/browser verification green**                                                  | Owns U1–U8 and focused local verification; green U8 restores FS-R5-U7 without changing candidate/deployment/PG state                                                            |
+| `ADM-LIST`  | [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md)                                           | Active Admin-wide convergence for query-oriented lists over Commerce/IAM and the approved Standard List Page baseline                   | **Active at U6 — U1 established shared contracts; U2-U5 migrated five direct Recipe pages with focused/browser/E2E verification green**                                                                  | Owns U1–U8 and focused local verification; green U8 restores FS-R5-U7 without changing candidate/deployment/PG state                                                            |
 
 ## Decision hierarchy and supersessions
 
@@ -560,7 +560,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-R5-U7` is the preserved Fashion return pointer while `ADM-LIST-U5` remains the active product execution pointer; `REL-Pre-DC` remains preserved with its blocker explicit, and no candidate, DC, deployment, or PG state has advanced.
+- `FS-R5-U7` is the preserved Fashion return pointer while `ADM-LIST-U6` remains the active product execution pointer; `REL-Pre-DC` remains preserved with its blocker explicit, and no candidate, DC, deployment, or PG state has advanced.
 - The retired `fashion`, `decor`, and `decor-store` implementations, retained reference naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.

@@ -1,15 +1,22 @@
 import type { NotificationJob, NotificationJobStatus } from '@shoppp/contracts'
-import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, App } from 'antd'
+import { Alert, App, Button, Form, Input, Modal, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import { hasPermission } from '../../../infrastructure/auth/permissions'
 import { useAuth } from '../../../infrastructure/auth/use-auth'
-import { useLocalizedApiError } from '../../../shared/i18n/api-error'
 import {
   fetchNotificationJobs,
   replayNotification,
+  type NotificationJobFilters,
 } from '../../../services/operations/notifications-api'
 import { useCurrentTranslate, useI18n } from '../../../shared/contexts/i18n-context'
+import { useLocalizedApiError } from '../../../shared/i18n/api-error'
+import {
+  StandardListPageRecipe,
+  type StandardListPageSpec,
+  type TemplateListFilterField,
+} from '../../../shared/template-kit/list'
 
 void React
 
@@ -21,133 +28,281 @@ const statusColors: Record<NotificationJobStatus, string> = {
   sent: 'success',
 }
 
+const notificationStatuses: NotificationJobStatus[] = [
+  'pending',
+  'processing',
+  'sent',
+  'failed',
+  'dead_letter',
+]
+
+const notificationTypes: NotificationJob['type'][] = [
+  'order_receipt',
+  'payment_failed',
+  'cancellation',
+  'refund',
+  'shipment',
+  'payment_reconciliation',
+  'admin_invitation',
+  'admin_password_reset',
+]
+
+type NotificationJobFilterValues = {
+  query?: string
+  status?: NotificationJobStatus
+  type?: NotificationJob['type']
+}
+
+type NotificationJobListResponse = Awaited<ReturnType<typeof fetchNotificationJobs>>
+
+const toFilters = (values: NotificationJobFilterValues): NotificationJobFilters => ({
+  query: values.query?.trim() || undefined,
+  status: values.status,
+  type: values.type,
+})
+
+const ReloadBridge = ({
+  reload,
+  capture,
+}: {
+  reload: () => Promise<void>
+  capture: (reload: () => Promise<void>) => void
+}) => {
+  useEffect(() => capture(reload), [capture, reload])
+  return null
+}
+
 export const NotificationJobsPage = () => {
   const { message } = App.useApp()
   const { role, permissions } = useAuth()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
-  const [items, setItems] = useState<NotificationJob[]>([])
-  const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
-  const [committedQuery, setCommittedQuery] = useState('')
-  const [status, setStatus] = useState<NotificationJobStatus>()
-  const [type, setType] = useState<NotificationJob['type']>()
-  const [page, setPage] = useState(1)
-  const [total, setTotal] = useState(0)
   const [replayJob, setReplayJob] = useState<NotificationJob | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<{ reason: string }>()
-  const pageSize = 20
+  const reloadRef = useRef<() => Promise<void>>(async () => undefined)
   const canReplay = hasPermission(role, 'operations.replay', permissions)
+  const captureReload = useCallback((reload: () => Promise<void>) => {
+    reloadRef.current = reload
+  }, [])
 
-  const load = useCallback(
-    async (nextPage = 1) => {
-      setLoading(true)
-      try {
-        const response = await fetchNotificationJobs({
-          page: nextPage,
-          pageSize,
-          ...(committedQuery ? { query: committedQuery } : {}),
-          ...(status ? { status } : {}),
-          ...(type ? { type } : {}),
-        })
-        setItems(response.data)
-        setPage(response.page)
-        setTotal(response.total)
-      } catch (error) {
-        void message.error(localizeError(error))
-      } finally {
-        setLoading(false)
-      }
-    },
-    [message, committedQuery, localizeError, status, type]
-  )
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void load(1), 0)
-    return () => window.clearTimeout(timer)
-  }, [load])
-
-  const columns = useMemo(
+  const filterFields = useMemo<TemplateListFilterField<NotificationJobFilterValues>[]>(
     () => [
-      { key: 'id', title: t('Job ID'), dataIndex: 'id', width: 230 },
-      { key: 'kind', title: t('Kind'), dataIndex: 'kind', width: 160 },
       {
-        key: 'type',
-        title: t('Job type'),
-        dataIndex: 'type',
-        width: 190,
-        render: (value: string) => t(value),
+        type: 'input',
+        name: 'query',
+        label: t('Job ID'),
+        inputProps: {
+          'aria-label': t('Search notification jobs'),
+          placeholder: t('Order reference or job ID'),
+          type: 'search',
+        },
       },
       {
-        key: 'status',
-        title: t('Status'),
-        dataIndex: 'status',
-        width: 130,
-        render: (value: NotificationJobStatus) => <Tag color={statusColors[value]}>{t(value)}</Tag>,
+        type: 'select',
+        name: 'status',
+        label: t('Status'),
+        options: notificationStatuses.map((value) => ({ label: t(value), value })),
+        selectProps: {
+          'aria-label': t('Filter notification status'),
+          allowClear: true,
+        },
       },
       {
-        key: 'order',
-        title: t('Order'),
-        dataIndex: 'orderReference',
-        width: 180,
-        render: (value: string | null) => value ?? t('Checkout only'),
-      },
-      { key: 'recipient', title: t('Recipient'), dataIndex: 'recipient', width: 220 },
-      {
-        key: 'attempts',
-        title: t('Attempts'),
-        width: 120,
-        render: (_: unknown, job: NotificationJob) => `${job.attemptCount} / ${job.maxAttempts}`,
-      },
-      {
-        key: 'error',
-        title: t('Last error'),
-        dataIndex: 'lastErrorCode',
-        width: 220,
-        render: (value: string | null) => value ?? '—',
-      },
-      {
-        key: 'updated',
-        title: t('Updated'),
-        dataIndex: 'updatedAt',
-        width: 180,
-        render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
-      },
-      {
-        key: 'actions',
-        title: t('Actions'),
-        width: 120,
-        fixed: 'right' as const,
-        render: (_: unknown, job: NotificationJob) =>
-          canReplay && job.status === 'dead_letter' ? (
-            <Button
-              type="link"
-              onClick={() => {
-                form.resetFields()
-                setReplayJob(job)
-              }}
-            >
-              {t('Replay')}
-            </Button>
-          ) : null,
+        type: 'select',
+        name: 'type',
+        label: t('Job type'),
+        options: notificationTypes.map((value) => ({ label: t(value), value })),
+        selectProps: {
+          'aria-label': t('Filter notification type'),
+          allowClear: true,
+        },
       },
     ],
-    [canReplay, form, t]
+    [t]
+  )
+
+  const spec = useMemo<
+    StandardListPageSpec<
+      NotificationJobFilterValues,
+      NotificationJobFilters,
+      NotificationJobListResponse,
+      NotificationJob,
+      Error
+    >
+  >(
+    () => ({
+      pageTitle: t('Automation recovery'),
+      cardTitle: t('Automation recovery'),
+      tableId: 'notification-jobs-list',
+      initialFilters: {},
+      toFilters,
+      pagination: {
+        defaultPageSize: 20,
+        includeAllDataOption: false,
+        maxPageSize: 100,
+        pageSizeOptions: [20, 50, 100],
+      },
+      buildRequestFilters: ({ filters, current, pageSize }) => ({
+        ...filters,
+        page: current,
+        pageSize,
+      }),
+      request: fetchNotificationJobs,
+      selectItems: (response) => response?.data ?? [],
+      mapError: (error) => new Error(localizeError(error)),
+      filterFields,
+      renderBeforeFilter: (
+        <p className="text-slate-500">
+          {t(
+            'Inspect bounded notification and provider attempts, then safely replay exhausted work.'
+          )}
+        </p>
+      ),
+      buildColumns: ({ resolveActionColumnWidth }) => [
+        { key: 'id', title: t('Job ID'), dataIndex: 'id', width: 230 },
+        { key: 'kind', title: t('Kind'), dataIndex: 'kind', width: 160 },
+        {
+          key: 'type',
+          title: t('Job type'),
+          dataIndex: 'type',
+          width: 190,
+          render: (value: string) => t(value),
+        },
+        {
+          key: 'status',
+          title: t('Status'),
+          dataIndex: 'status',
+          width: 130,
+          render: (value: NotificationJobStatus) => (
+            <Tag color={statusColors[value]}>{t(value)}</Tag>
+          ),
+        },
+        {
+          key: 'order',
+          title: t('Order'),
+          dataIndex: 'orderReference',
+          width: 180,
+          render: (value: string | null) => value ?? t('Checkout only'),
+        },
+        { key: 'recipient', title: t('Recipient'), dataIndex: 'recipient', width: 220 },
+        {
+          key: 'attempts',
+          title: t('Attempts'),
+          width: 120,
+          render: (_: unknown, job) => `${job.attemptCount} / ${job.maxAttempts}`,
+        },
+        {
+          key: 'error',
+          title: t('Last error'),
+          dataIndex: 'lastErrorCode',
+          width: 220,
+          render: (value: string | null) => value ?? '—',
+        },
+        {
+          key: 'updated',
+          title: t('Updated'),
+          dataIndex: 'updatedAt',
+          width: 180,
+          render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+        },
+        {
+          key: 'actions',
+          title: t('Actions'),
+          width: resolveActionColumnWidth(120),
+          fixed: 'right' as const,
+          render: (_: unknown, job) =>
+            canReplay && job.status === 'dead_letter' ? (
+              <Button
+                type="link"
+                className="!px-0"
+                onClick={() => {
+                  form.resetFields()
+                  setReplayJob(job)
+                }}
+              >
+                {t('Replay')}
+              </Button>
+            ) : null,
+        },
+      ],
+      buildTableNode: ({
+        columns,
+        dataSource,
+        loading,
+        pagination,
+        reload,
+        tableClassName,
+        tableSize,
+        virtualScroll,
+      }) => (
+        <>
+          <ReloadBridge reload={reload} capture={captureReload} />
+          <Table<NotificationJob>
+            className={tableClassName}
+            rowKey="id"
+            columns={columns}
+            dataSource={dataSource}
+            loading={loading}
+            size={tableSize}
+            pagination={pagination}
+            virtual={virtualScroll.enabled}
+            scroll={virtualScroll.enabled ? virtualScroll.scroll : { x: 1730 }}
+            expandable={{
+              expandedRowRender: (job) => (
+                <Table
+                  rowKey="id"
+                  pagination={false}
+                  dataSource={job.attempts}
+                  locale={{ emptyText: t('No delivery attempt has run yet.') }}
+                  scroll={{ x: 880 }}
+                  columns={[
+                    {
+                      key: 'number',
+                      title: t('Attempt'),
+                      dataIndex: 'attemptNumber',
+                      width: 100,
+                    },
+                    { key: 'result', title: t('Result'), dataIndex: 'result', width: 190 },
+                    { key: 'error', title: t('Error code'), dataIndex: 'errorCode', width: 220 },
+                    {
+                      key: 'provider',
+                      title: t('Provider message'),
+                      dataIndex: 'providerMessageId',
+                      width: 220,
+                    },
+                    {
+                      key: 'completed',
+                      title: t('Completed'),
+                      dataIndex: 'completedAt',
+                      width: 180,
+                      render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+                    },
+                  ]}
+                />
+              ),
+            }}
+          />
+        </>
+      ),
+      stateCopy: {
+        errorTitle: t('List could not be loaded'),
+        emptyTitle: t('No notification jobs match these filters.'),
+        emptyDescription: t('Reset the filters and search again.'),
+      },
+    }),
+    [canReplay, captureReload, filterFields, form, localizeError, t]
   )
 
   const submitReplay = async ({ reason }: { reason: string }) => {
     if (!replayJob) return
     setSubmitting(true)
     try {
-      const updated = await replayNotification(replayJob.id, {
-        confirm: true,
-        reason,
-      })
-      setItems((current) => current.map((job) => (job.id === updated.id ? updated : job)))
+      await replayNotification(replayJob.id, { confirm: true, reason })
       setReplayJob(null)
       void message.success(translateNow('Notification queued for safe replay.'))
+      await reloadRef.current()
     } catch (error) {
       void message.error(localizeError(error))
     } finally {
@@ -156,100 +311,8 @@ export const NotificationJobsPage = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('Automation recovery')}</h1>
-        <p className="text-slate-500">
-          {t(
-            'Inspect bounded notification and provider attempts, then safely replay exhausted work.'
-          )}
-        </p>
-      </div>
-      <Space wrap>
-        <Input.Search
-          aria-label={t('Search notification jobs')}
-          allowClear
-          value={query}
-          placeholder={t('Order reference or job ID')}
-          className="w-80"
-          onChange={(event) => setQuery(event.target.value)}
-          onSearch={(value) => setCommittedQuery(value.trim())}
-        />
-        <Select
-          aria-label={t('Filter notification status')}
-          allowClear
-          value={status}
-          placeholder={t('Status')}
-          className="w-44"
-          options={['pending', 'processing', 'sent', 'failed', 'dead_letter'].map((value) => ({
-            label: t(value),
-            value,
-          }))}
-          onChange={(value) => setStatus(value)}
-        />
-        <Select
-          aria-label={t('Filter notification type')}
-          allowClear
-          value={type}
-          placeholder={t('Job type')}
-          className="w-52"
-          options={[
-            'order_receipt',
-            'payment_failed',
-            'cancellation',
-            'refund',
-            'shipment',
-            'payment_reconciliation',
-            'admin_invitation',
-            'admin_password_reset',
-          ].map((value) => ({ label: t(value), value }))}
-          onChange={(value) => setType(value)}
-        />
-      </Space>
-      <Table<NotificationJob>
-        rowKey="id"
-        columns={columns}
-        dataSource={items}
-        loading={loading}
-        locale={{ emptyText: t('No notification jobs match these filters.') }}
-        pagination={{
-          current: page,
-          pageSize,
-          showSizeChanger: false,
-          total,
-          onChange: (nextPage) => void load(nextPage),
-        }}
-        scroll={{ x: 1730 }}
-        expandable={{
-          expandedRowRender: (job) => (
-            <Table
-              rowKey="id"
-              pagination={false}
-              dataSource={job.attempts}
-              locale={{ emptyText: t('No delivery attempt has run yet.') }}
-              scroll={{ x: 880 }}
-              columns={[
-                { key: 'number', title: t('Attempt'), dataIndex: 'attemptNumber', width: 100 },
-                { key: 'result', title: t('Result'), dataIndex: 'result', width: 190 },
-                { key: 'error', title: t('Error code'), dataIndex: 'errorCode', width: 220 },
-                {
-                  key: 'provider',
-                  title: t('Provider message'),
-                  dataIndex: 'providerMessageId',
-                  width: 220,
-                },
-                {
-                  key: 'completed',
-                  title: t('Completed'),
-                  dataIndex: 'completedAt',
-                  width: 180,
-                  render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
-                },
-              ]}
-            />
-          ),
-        }}
-      />
+    <>
+      <StandardListPageRecipe spec={spec} />
       <Modal
         title={t('Replay notification')}
         open={Boolean(replayJob)}
@@ -267,7 +330,7 @@ export const NotificationJobsPage = () => {
             'Replay keeps the original provider idempotency identity and is fully audited.'
           )}
         />
-        <Form form={form} layout="vertical" onFinish={submitReplay}>
+        <Form form={form} layout="vertical" onFinish={(values) => void submitReplay(values)}>
           <Form.Item
             name="reason"
             label={t('Reason')}
@@ -281,6 +344,6 @@ export const NotificationJobsPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </>
   )
 }

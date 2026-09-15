@@ -38,18 +38,18 @@ tail_owner: ADM-LIST-until-local-verification-and-handback
 - **Upstream product authority:** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` owns the plan register, active pointer, product-level sequence, and supersession history.
 - **Inherited baseline:** Commerce owns order, revenue, inventory, export, and adjustment facts. IAM owns users, invitations, roles, audit, and authorization. Admin i18n owns visible copy. The Standard List Page capability-adaptation plan and the current Catalog/query-template implementations own the accepted query-page primitives and recipe behavior.
 - **Explicit supersessions:** None until a unit lands. Completed units supersede only the corresponding page-local filter/list orchestration named in that unit; domain clients, routes, permissions, modals, and writes remain under their existing authorities.
-- **Parallel plans:** `FS-R5-U6` is paused as the recorded return pointer while `ADM-LIST` owns the active implementation tail.
-- **Tail ownership:** `ADM-LIST` owns U1-U8 and focused local verification. Green U8 restores `FS-R5-U6` unless a later explicit product-sequence decision names a replacement. Handback does not change `REL`, candidate, deployment, or PG state.
+- **Parallel plans:** `FS-R5-U7` is paused as the recorded return pointer while `ADM-LIST` owns the active implementation tail; this replaces the activation-time U6 return point after the parallel Fashion plan advanced.
+- **Tail ownership:** `ADM-LIST` owns U1-U8 and focused local verification. Green U8 restores `FS-R5-U7` unless a later explicit product-sequence decision names a replacement. Handback does not change `REL`, candidate, deployment, or PG state.
 
 ## Execution Checkpoint
 
 - **Classification:** Active bounded Admin query-list successor.
-- **Current unit:** `ADM-LIST-U5` — converge Notification Jobs while preserving Replay authorization, errors, and authoritative status reloads.
-- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Order Revenue Report to `StandardListPageRecipe`, aligning deep-link form/request defaults, reset-to-entry baseline, committed-filter headings/export, date-only/timezone truth, authorization, and replacement/refresh errors; 37 focused component/shared tests, two native-browser tests, Admin typecheck, affected lint/format, and diff checks passed.
-- **Next unit:** `ADM-LIST-U6`, after Notification Jobs Query/Reset, pagination, Replay, and action/query-race evidence passes.
+- **Current unit:** `ADM-LIST-U6` — standardize Users and Invitations with two truthful independent list lifecycles and an isolated Roles lookup.
+- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Revenue Report with 37 focused and two native-browser tests green. `ADM-LIST-U5` — migrated Notification Jobs to `StandardListPageRecipe`, preserving 20-row pagination, committed Query/Reset, Replay permission/reason/idempotency/errors, and latest-request-wins authoritative reload; five component tests, one Replay E2E, Admin typecheck, affected lint/format, and diff checks passed.
+- **Next unit:** `ADM-LIST-U7`, after Users/Invitations independent state, shared-search commit, role lookup, and IAM action evidence passes.
 - **Blocker:** None.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7 → U8.
-- **Next concrete action:** Add failing Notification Jobs tests for explicit Query/Reset, pagination, Replay permission/error behavior, and latest committed-filter reload before migrating its orchestration.
+- **Next concrete action:** Add failing Users/Invitations tests for tab-scoped drafts, shared-search fan-out, independent pagination/error/retry, isolated role lookup, and guarded invitation actions before composing standard primitives.
 
 ## Product Contract
 
