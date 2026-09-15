@@ -345,6 +345,39 @@ test("live non-Home and platform routes share Experience presentation around aut
   await expect(page.getByText(/We process contact, delivery, order/)).toBeVisible();
 });
 
+test("live Collection landing, collection detail, and Shop share the accepted catalog presentation", async ({
+  page,
+}) => {
+  await page.goto("/collections", { waitUntil: "networkidle" });
+  const landing = page.locator("[data-fashion-store-collection]");
+  await expect(landing).toBeVisible();
+  await expect(landing.locator("[data-fashion-store-catalog-grid]")).toHaveCount(0);
+  const collectionLink = landing.getByRole("link", { name: "Travel essentials" }).first();
+  await expect(collectionLink).toHaveAttribute("href", "/collections/travel-essentials");
+
+  await collectionLink.click();
+  const collectionGrid = page.locator("[data-fashion-store-catalog-grid]");
+  await expect(page).toHaveURL(/\/collections\/travel-essentials$/);
+  await expect(collectionGrid).toHaveAttribute("data-layout", "none");
+  await expect(collectionGrid.getByRole("heading", { level: 1 })).toHaveText("Shop the collection");
+  await expect(collectionGrid.locator("[data-fashion-store-product-card]")).toHaveCount(2);
+  await expect(collectionGrid.locator(".shop-sidebar, .pagination")).toHaveCount(0);
+
+  await page.goto("/shop", { waitUntil: "networkidle" });
+  const shop = page.locator("[data-fashion-store-catalog-grid]");
+  await expect(shop).toHaveAttribute("data-layout", "left");
+  await expect(shop.getByRole("heading", { level: 1 })).toHaveText("Shop");
+  await expect(shop.locator("[data-fashion-store-product-card]")).toHaveCount(2);
+  await expect(shop.locator(".shop-sidebar, .pagination")).toHaveCount(0);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/collections\/travel-essentials$/);
+  await expect(page.locator("[data-fashion-store-catalog-grid]")).toHaveAttribute(
+    "data-layout",
+    "none",
+  );
+});
+
 test("live browse-to-order journey converges on an authoritative paid return", async ({
   page,
 }, testInfo) => {

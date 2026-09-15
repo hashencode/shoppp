@@ -551,7 +551,7 @@ describe("storefront experience fixtures", () => {
     expect(registryRootBySection).toEqual({
       "fashion-store.cart": "pages/FashionStoreCartPage.vue",
       "fashion-store.checkout": "pages/FashionStoreCheckoutPage.vue",
-      "fashion-store.collection": "pages/FashionStoreLiveCollectionPage.vue",
+      "fashion-store.collection": "pages/FashionStoreCollectionPage.vue",
       "fashion-store.content": "pages/FashionStoreLiveContentPage.vue",
       "fashion-store.home": "FashionStoreLiveHomePage.vue",
       "fashion-store.product": "pages/FashionStoreProductPage.vue",

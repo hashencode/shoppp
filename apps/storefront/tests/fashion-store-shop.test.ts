@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+import { normalizeFashionStoreCatalogPresentation } from "../app/themes/fashion-store/contracts/catalog-presentation";
 import {
   fashionStoreShopData,
+  fashionStoreShopFixtures,
   filterFashionStoreShopProducts,
 } from "../app/themes/fashion-store/fixtures/pages/shop";
 import {
@@ -110,5 +112,20 @@ describe("Fashion Store Shop layout family", () => {
       "faq",
       "contact",
     ]);
+  });
+
+  test("normalizes every fixture Shop route into the accepted shared grid", () => {
+    for (const { layout, route } of fashionStoreShopSourcePages) {
+      const presentation = normalizeFashionStoreCatalogPresentation(
+        fashionStoreShopFixtures["fashion-store-shop"].viewModels.shop,
+        route,
+      );
+      expect(presentation.variant).toBe("grid");
+      if (presentation.variant !== "grid") throw new Error("Expected a Shop grid.");
+      expect(presentation.layout).toBe(layout);
+      expect(presentation.items).toHaveLength(12);
+      expect(presentation.pagination).toBe(true);
+      expect(presentation.filters.category).toHaveLength(7);
+    }
   });
 });

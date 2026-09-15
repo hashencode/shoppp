@@ -2,13 +2,10 @@
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { recordPreviewIntent } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import { resolveFashionStoreShopLayout } from "../../contracts/pages/shop";
-import {
-  filterFashionStoreShopProducts,
-  type FashionStoreShopData,
-  type FashionStoreShopFilterGroup,
-} from "../../fixtures/pages/shop";
+import type {
+  FashionStoreCatalogGridPresentation,
+  FashionStoreShopFilterGroup,
+} from "../../contracts/catalog-presentation";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreCarousel from "../shared/FashionStoreCarousel.vue";
@@ -17,45 +14,59 @@ import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  presentation: FashionStoreCatalogGridPresentation;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
 }>();
 
-const router = useRouter();
-const page = computed(() => resolveFashionStoreShopLayout(router.currentRoute.value.path));
-const layout = computed(() => page.value.layout);
-const data = computed<FashionStoreShopData>(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Shop requires a theme-section fixture.");
-  }
-  return properties.viewModel.data as unknown as FashionStoreShopData;
-});
 const activeFilters = reactive<Partial<Record<FashionStoreShopFilterGroup, string>>>({});
 const filterGroups = ["category", "color", "size"] as const;
 const visibleProducts = computed(() =>
-  filterFashionStoreShopProducts(data.value.products, activeFilters),
+  properties.presentation.items.filter(({ filters }) =>
+    Object.entries(activeFilters).every(([group, value]) =>
+      value ? filters[group as FashionStoreShopFilterGroup]?.includes(value) : true,
+    ),
+  ),
 );
 const currentPage = ref(2);
 const actionCount = ref(0);
 const arrivalIndex = ref(0);
 const arrivalCarousel = ref<{ next(): void; previous(): void }>();
 
-const rowClass = computed(() => (layout.value === "left" ? "row flex-row-reverse" : "row"));
+const rowClass = computed(() =>
+  properties.presentation.layout === "left" ? "row flex-row-reverse" : "row",
+);
 const gridColumnClass = computed(() =>
-  layout.value === "none"
+  properties.presentation.layout === "none"
     ? "col-12 md-mb-60px"
-    : layout.value === "left"
+    : properties.presentation.layout === "left"
       ? "col-xxl-10 col-lg-9 ps-5 md-ps-15px md-mb-60px"
       : "col-xxl-10 col-lg-9 pe-5 md-pe-15px md-mb-60px",
 );
-const hasSidebar = computed(() => layout.value !== "none");
-const arrivalGroups = computed(() => data.value.arrivals);
+const hasSidebar = computed(
+  () =>
+    properties.presentation.layout !== "none" &&
+    (filterGroups.some((group) => properties.presentation.filters[group]?.length) ||
+      properties.presentation.filters.tag?.length ||
+      properties.presentation.arrivals.length > 0),
+);
+const arrivalGroups = computed(() => properties.presentation.arrivals);
+
+watch(
+  () => properties.presentation,
+  () => {
+    for (const group of Object.keys(activeFilters) as FashionStoreShopFilterGroup[]) {
+      delete activeFilters[group];
+    }
+    currentPage.value = 2;
+    arrivalIndex.value = 0;
+  },
+);
 
 function sourceAsset(sourcePath: string): string {
   return properties.resolveAsset(fashionStoreAssetId(sourcePath));
 }
 
-function arrivalGroup(index: number): FashionStoreShopData["arrivals"][number] {
+function arrivalGroup(index: number) {
   const group = arrivalGroups.value[index];
   if (!group) throw new Error(`Missing Fashion Store arrival group ${index}.`);
   return group;
@@ -67,15 +78,16 @@ function toggleFilter(group: FashionStoreShopFilterGroup, label: string): void {
 }
 
 function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
-  const action = data.value.productActions[kind];
-  recordPreviewIntent(action, `fashion-store.${page.value.id}.product`);
+  const action = properties.presentation.productActions?.[kind];
+  if (!action) return;
+  recordPreviewIntent(action, "fashion-store.catalog.product");
   actionCount.value += 1;
 }
 </script>
 
 <template>
   <FashionStoreShell
-    :announcement="data.announcement"
+    v-bind="{ announcement: presentation.announcement }"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >
@@ -83,14 +95,18 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
       id="fashion-store-main"
       data-fashion-store-shop
       data-runtime-status="ready"
-      :data-layout="layout"
+      data-fashion-store-catalog-grid
+      :data-layout="presentation.layout"
       :data-preview-intent-count="actionCount"
       :data-visible-product-count="visibleProducts.length"
       :data-active-tag="activeFilters.tag || undefined"
     >
-      <FashionStorePageTitle title="Shop" />
+      <FashionStorePageTitle :title="presentation.title" />
       <section class="pt-0 ps-6 pe-6 lg-ps-2 lg-pe-2 sm-ps-0 sm-pe-0">
         <div class="container-fluid">
+          <p v-if="presentation.description" class="text-center mb-45px">
+            {{ presentation.description }}
+          </p>
           <div :class="rowClass">
             <div :class="gridColumnClass">
               <ul
@@ -100,13 +116,19 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
                 <li class="grid-sizer" aria-hidden="true"></li>
                 <FashionStoreProductCard
                   v-for="product in visibleProducts"
-                  :key="product.id"
-                  :product="product"
+                  :key="product.product.productId"
+                  :product="product.product"
                   :resolve-asset="resolveAsset"
                   @intent="recordProductIntent"
                 />
               </ul>
-              <div class="w-100 d-flex mt-4 justify-content-center md-mt-30px">
+              <p v-if="visibleProducts.length === 0" class="text-center" role="status">
+                {{ presentation.emptyMessage }}
+              </p>
+              <div
+                v-if="presentation.pagination && visibleProducts.length > 0"
+                class="w-100 d-flex mt-4 justify-content-center md-mt-30px"
+              >
                 <ul class="pagination pagination-style-01 fs-13 fw-500 mb-0">
                   <li class="page-item">
                     <button
@@ -153,7 +175,7 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
                   >Filter by {{ group === "category" ? "categories" : group }}</span
                 >
                 <ul class="shop-filter fs-16" :class="`${group}-filter`">
-                  <li v-for="option in data.filters[group]" :key="option.label">
+                  <li v-for="option in presentation.filters[group] || []" :key="option.label">
                     <button
                       type="button"
                       :class="{ active: activeFilters[group] === option.label }"
@@ -172,7 +194,7 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
                 </ul>
               </div>
 
-              <div class="mb-30px">
+              <div v-if="arrivalGroups.length" class="mb-30px">
                 <div class="d-flex align-items-center mb-20px">
                   <span class="alt-font fw-500 fs-19 text-dark-gray">New arrivals</span>
                   <div class="d-flex ms-auto">
@@ -247,13 +269,13 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
                 </FashionStoreCarousel>
               </div>
 
-              <div>
+              <div v-if="presentation.filters.tag?.length">
                 <span class="alt-font fw-500 fs-19 text-dark-gray d-block mb-10px"
                   >Filter by tags</span
                 >
                 <div class="shop-filter tag-cloud fs-16">
                   <button
-                    v-for="option in data.filters.tag"
+                    v-for="option in presentation.filters.tag"
                     :key="option.label"
                     type="button"
                     :class="{ active: activeFilters.tag === option.label }"

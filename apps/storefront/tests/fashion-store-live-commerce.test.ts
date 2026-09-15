@@ -186,15 +186,16 @@ describe("Fashion Store live commerce boundary", () => {
 
   test("keeps live theme surfaces on presentation view models and injected intent ports", async () => {
     const liveSources = await Promise.all([
-      source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreCollectionPage.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreShopPage.vue"),
       source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
     ]);
     for (const value of liveSources) {
       expect(value).not.toMatch(/\/fixtures\/|useCommerceApi|useGuestCart|\$fetch|\bfetch\s*\(/);
     }
-    expect(liveSources[1]).toContain("useFashionStoreProductActionPort");
-    expect(liveSources[1]).not.toContain("runtimeCommercePortKey");
-    expect(liveSources[1]).not.toContain("storefrontActionAdapterKey");
+    expect(liveSources[2]).toContain("useFashionStoreProductActionPort");
+    expect(liveSources[2]).not.toContain("runtimeCommercePortKey");
+    expect(liveSources[2]).not.toContain("storefrontActionAdapterKey");
   });
 
   test("keeps the remaining Home dispatcher while Product uses one visual component", async () => {
@@ -229,7 +230,6 @@ describe("Fashion Store live commerce boundary", () => {
       source("themes/fashion-store/components/shared/FashionStoreProductCard.vue"),
     ]);
 
-    expect(liveHome).not.toContain("FashionStoreLiveCatalog");
     expect(liveHome).toContain("FashionStoreProductCard");
     expect(liveHome).not.toMatch(/\/fixtures\/|useCommerceApi|useGuestCart|\$fetch|\bfetch\s*\(/);
     expect(liveHome.match(/This collection does not have published products yet\./g)).toHaveLength(
@@ -322,13 +322,14 @@ describe("Fashion Store live commerce boundary", () => {
   });
 
   test("shares Home shell edits and platform presentation without replacing Commerce facts", async () => {
-    const [host, shell, content, product, catalog, cart, checkout, order, policy] =
+    const [host, shell, content, product, collection, shop, cart, checkout, order, policy] =
       await Promise.all([
         source("StorefrontExperience.vue"),
         source("themes/fashion-store/components/shared/FashionStoreShell.vue"),
         source("themes/fashion-store/components/pages/FashionStoreLiveContentPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
-        source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreCollectionPage.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreShopPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreCartPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreCheckoutPage.vue"),
         source("pages/orders/[token].vue"),
@@ -338,7 +339,7 @@ describe("Fashion Store live commerce boundary", () => {
     expect(host).toContain("provide(storefrontPresentationShellKey, experienceShell)");
     expect(host).toContain("provide(storefrontPlatformPresentationKey, platformPresentation)");
     expect(shell).toContain("inject(storefrontPresentationShellKey");
-    for (const surface of [content, product, catalog]) {
+    for (const surface of [content, product, collection, shop]) {
       expect(surface).not.toMatch(/announcement=(?:"|')/);
     }
     for (const surface of [cart, checkout]) {

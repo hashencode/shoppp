@@ -405,7 +405,6 @@ describe("Fashion Store semantic interaction contract", () => {
       "pages/FashionStoreProductPage.vue",
       "pages/FashionStoreShopPage.vue",
       "pages/FashionStoreWishlistPage.vue",
-      "shared/FashionStoreLiveCatalog.vue",
     ];
 
     for (const relativePath of sharedCardConsumers) {

@@ -6,6 +6,7 @@ import type {
   PresentationProductCard,
   PresentationViewModel,
 } from "../../../theme-engine/view-models";
+import { presentationProductCardSchema } from "../../../theme-engine/view-models";
 
 /**
  * Explicit compatibility input for source-parity preview product cards.
@@ -89,6 +90,14 @@ export const fashionStoreProductCardPresentationSchema = z
     actionState: productActionStateSchema,
     badge: z.enum(["Hot", "New"]).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
+    commerce: z
+      .object({
+        currency: presentationProductCardSchema.shape.currency,
+        slug: presentationProductCardSchema.shape.slug,
+        staticPurchase: presentationProductCardSchema.shape.staticPurchase,
+      })
+      .strict()
+      .optional(),
     controls: z.array(z.enum(["add-to-cart", "quick-view", "wishlist"])).max(3),
     destination: productCardDestinationSchema,
     media: productGalleryItemSchema.optional(),
@@ -198,6 +207,11 @@ export function normalizeFashionStoreLiveProductCard(
   return fashionStoreProductCardPresentationSchema.parse({
     actionState: product.actionState,
     compareAtPriceLabel: product.compareAtPriceLabel,
+    commerce: {
+      currency: product.currency,
+      slug: product.slug,
+      staticPurchase: product.staticPurchase,
+    },
     controls: [],
     destination: { href: product.href, kind: "available" },
     media: product.media ? { ...product.media, kind: "url" } : undefined,

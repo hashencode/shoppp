@@ -59,10 +59,13 @@ const liveCard = computed(() =>
     ? (properties.product as PresentationProductCard)
     : undefined,
 );
+const normalizedCommerce = computed(() => normalizedCard.value?.commerce);
 const actionState = ref<PresentationProductCard["actionState"]["kind"]>(
-  liveCard.value?.actionState.kind ?? "available",
+  liveCard.value?.actionState.kind ?? normalizedCard.value?.actionState.kind ?? "available",
 );
-const statusMessage = ref(liveCard.value?.actionState.message ?? "");
+const statusMessage = ref(
+  liveCard.value?.actionState.message ?? normalizedCard.value?.actionState.message ?? "",
+);
 const runtimePriceLabel = ref<string>();
 const runtimeCompareAtPriceLabel = ref<string>();
 const hydrated = ref(false);
@@ -120,7 +123,7 @@ const card = computed(() => {
 const cardVariant = computed(() => liveCard.value?.visualVariant ?? "default");
 const wishlistContext = computed(() => properties.context === "wishlist");
 const directPurchase = computed(() => {
-  const purchase = liveCard.value?.staticPurchase;
+  const purchase = liveCard.value?.staticPurchase ?? normalizedCommerce.value?.staticPurchase;
   return purchase?.kind === "direct-add" ? purchase : undefined;
 });
 const directActionLabel = computed(() => {
@@ -146,17 +149,22 @@ onMounted(() => {
 
 async function addToCart(): Promise<void> {
   const product = liveCard.value;
+  const commerce = normalizedCommerce.value;
   const purchase = directPurchase.value;
-  if (!product || !purchase) {
+  if ((!product && !commerce) || !purchase) {
     const fixtureProduct = properties.product as FashionStoreLegacyProductCard;
+    const localCard = normalizedCard.value;
     previewCart.add({
       color: "",
-      name: fixtureProduct.name,
-      price: fixtureProduct.price,
+      name: localCard?.name ?? fixtureProduct.name,
+      price: localCard?.priceLabel ?? fixtureProduct.price,
       quantity: 1,
-      sourceImage: fixtureProduct.sourceImage,
-      total: fixtureProduct.price,
-      variantId: fixtureProduct.id,
+      sourceImage:
+        localCard?.media?.kind === "theme-asset"
+          ? localCard.media.path
+          : fixtureProduct.sourceImage,
+      total: localCard?.priceLabel ?? fixtureProduct.price,
+      variantId: localCard?.productId ?? fixtureProduct.id,
     });
     emit("intent", "cart");
     return;
@@ -171,7 +179,11 @@ async function addToCart(): Promise<void> {
   try {
     const verified = await verifyProductCartAdd(
       runtimeCommerce,
-      { currency: product.currency, productId: product.productId, slug: product.slug },
+      {
+        currency: product?.currency ?? commerce!.currency,
+        productId: card.value.id,
+        slug: product?.slug ?? commerce!.slug,
+      },
       purchase.variantId,
       1,
     );
@@ -195,7 +207,7 @@ async function addToCart(): Promise<void> {
       ? formatCommerceMoney(verifiedVariant.money.compareAtAmount, verifiedVariant.money.currency)
       : undefined;
     actionState.value = "succeeded";
-    statusMessage.value = `${product.name} was added to your cart.`;
+    statusMessage.value = `${card.value.name} was added to your cart.`;
   } catch {
     actionState.value = "retry";
     statusMessage.value = "The item was not added. Review any changes and try again.";
@@ -277,8 +289,9 @@ watch(
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
           >
             <span class="quick-view-text button-text">{{
-              liveCard?.staticPurchase.kind === "choose-options"
-                ? liveCard.staticPurchase.label
+              (liveCard?.staticPurchase ?? normalizedCommerce?.staticPurchase)?.kind ===
+              "choose-options"
+                ? (liveCard?.staticPurchase ?? normalizedCommerce?.staticPurchase)?.label
                 : "Choose options"
             }}</span>
           </NuxtLink>

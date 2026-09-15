@@ -72,3 +72,19 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - Live Commerce browser: the pre-simplification suite passed 15/15; after simplification the Product option/cart/no-JavaScript/SPA/Back scenario passed with the remaining 14 scenarios unchanged and previously green in the same review run.
 - Preview production build, `nuxt typecheck`, affected ESLint, Prettier, repository import boundaries, and `git diff --check`: passed. Generated/public artifacts were restored to the committed remote-live state.
 - Existing Nuxt conditional layout/page and renderer `instance` warnings remain unchanged. The generated-mode-sensitive package-registry assertion remains assigned to U8.
+
+## 2026-09-15 — U4 shared Shop and Collection presentation
+
+### Outcome
+
+- Fixture and live inputs normalize into one Fashion-owned catalog presentation before rendering. `/collections` remains a category landing, while `/shop`, its layout variants, and `/collections/:slug` use the accepted Shop grid and shared ProductCard.
+- Fixture filters, counts, arrivals, pagination, preview actions, and source imagery remain deterministic. Live uses Catalog collection membership, R2 media, prices, compare-at labels, and purchase routing, and omits filters, arrivals, and pagination when the selected release cannot authoritatively supply them.
+- Both registries resolve `fashion-store.collection` to `FashionStoreCollectionPage.vue`. The live-only Collection wrapper and reduced catalog component are deleted, and tests no longer preserve provider-specific component identities.
+- Presentation changes reset filter, page, and arrival state. Direct navigation and `/collections → /collections/:slug → /shop → Back` traversal retain route semantics without fixture fallback or stale state.
+
+### Verification
+
+- Focused catalog, ProductCard, registry, provider, and boundary suites: 50 passed, 0 failed after simplification.
+- Fixture Collection and Shop browser suite: 25 passed with 23 viewport-specific skips; after unified-card refinement, the four affected desktop geometry/filter/action cases passed, including the regression that exposed and fixed legacy-field reads in the local cart branch.
+- Live Commerce browser suite passed 15/15 before final contract simplification; the new dedicated landing/detail/Shop/history scenario passed again after normalization. Existing Nuxt conditional layout/page and renderer `instance` warnings remain unchanged.
+- Storefront `nuxt typecheck`, affected ESLint, Prettier, repository import boundaries, and `git diff --check` passed. Generated/public artifacts were restored to the committed remote-live state.

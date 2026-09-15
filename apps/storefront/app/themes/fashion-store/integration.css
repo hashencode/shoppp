@@ -2637,3 +2637,7 @@ body[data-fashion-store-shell="true"] {
     transform: none !important;
   }
 }
+.fashion-store-collection-placeholder {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+}
