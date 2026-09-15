@@ -160,6 +160,16 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   await expect(
     product.locator(".fashion-product-options > fieldset:last-child > .d-flex.mb-35px"),
   ).toHaveCount(1);
+  expect(
+    await product
+      .locator(".fashion-product-color-text-options label > span")
+      .evaluateAll((labels) =>
+        labels.every((label) => {
+          const style = getComputedStyle(label);
+          return style.whiteSpace === "nowrap" && label.scrollWidth <= label.clientWidth;
+        }),
+      ),
+  ).toBe(true);
   await expect(product.locator("#tab > .container > .row > .col-12.tab-style-04")).toHaveCount(1);
   await expect(product.locator("#tab .tab-content > .tab-pane")).toHaveCount(4);
   await expect(

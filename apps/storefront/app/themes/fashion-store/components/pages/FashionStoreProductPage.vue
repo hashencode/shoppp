@@ -365,7 +365,14 @@ watch(
                     :class="groupIndex === displayedOptionGroups.length - 1 ? 'mb-35px' : 'mb-20px'"
                   >
                     <span class="text-dark-gray alt-font me-15px fw-500">{{ group.name }}</span>
-                    <ul :class="group.name === 'Color' ? 'shop-color' : 'shop-size'" class="mb-0">
+                    <ul
+                      :class="
+                        group.name === 'Color'
+                          ? 'shop-color fashion-product-color-text-options'
+                          : 'shop-size'
+                      "
+                      class="mb-0"
+                    >
                       <li v-for="value in group.values" :key="value">
                         <input
                           :id="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`"

@@ -3,6 +3,7 @@ import type { ThemeBehaviorContract } from "../../../../../e2e/support/theme-beh
 type FashionStoreProductRegionTreatment = "hidden" | "populated" | "source-shaped-empty";
 
 interface FashionStoreProductRegionLedgerEntry {
+  adaptation?: string;
   allowedTreatments: readonly FashionStoreProductRegionTreatment[];
   dataOwner: string;
   forbiddenWhenUnavailable?: readonly string[];
@@ -71,6 +72,8 @@ export const fashionStoreProductRegionLedger = [
     sourceSelector: "section:nth-of-type(2) > .container > .row",
   },
   {
+    adaptation:
+      "Color option names use source-shaped text chips because current Catalog/Commerce presentation data has no authoritative swatch colors; names are never converted into inferred CSS colors.",
     allowedTreatments: ["populated"],
     dataOwner: "Catalog identity, price, description, SKU, options, and variants",
     geometryAnchors: [

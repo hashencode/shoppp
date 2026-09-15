@@ -109,6 +109,37 @@
   outline-offset: 3px;
 }
 
+[data-fashion-store-product] .fashion-product-color-text-options li {
+  margin-right: 6px;
+}
+
+[data-fashion-store-product] .fashion-product-color-text-options input + label span {
+  display: flex;
+  width: auto;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--extra-medium-gray);
+  color: var(--dark-gray);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+[data-fashion-store-product]
+  .fashion-product-color-text-options
+  input[type="radio"]:checked
+  + label
+  span::after {
+  inset: -1px;
+  width: auto;
+  height: auto;
+  border-color: var(--dark-gray);
+}
+
 .fashion-store-home .swiper[data-motion-paused~="offscreen"] {
   content-visibility: auto;
 }
