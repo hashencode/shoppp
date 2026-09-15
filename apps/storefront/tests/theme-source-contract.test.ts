@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import {
@@ -79,8 +80,8 @@ describe("source-contract comparison", () => {
         .map((evidence) => `${region.id}: missing ${evidence}`),
     );
 
-    expect(fashionStoreProductSourcePage.sourceSha256).toBe(
-      "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
+    expect(createHash("sha256").update(source).digest("hex")).toBe(
+      fashionStoreProductSourcePage.sourceSha256,
     );
     expect(missingSourceEvidence).toEqual([]);
   });

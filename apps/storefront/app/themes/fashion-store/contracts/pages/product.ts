@@ -80,8 +80,8 @@ export const fashionStoreProductRegionLedger = [
     id: "product-summary-and-options",
     implementationEvidence: [
       'class="d-block d-sm-flex align-items-center mb-15px"',
-      'class="d-flex align-items-center mb-20px"',
-      'class="d-flex align-items-center mb-35px"',
+      'class="d-flex align-items-center"',
+      "'mb-35px' : 'mb-20px'",
     ],
     implementationSelector: ".product-info",
     sourceClasses: ["d-sm-flex", "align-items-center", "shop-color", "shop-size"],

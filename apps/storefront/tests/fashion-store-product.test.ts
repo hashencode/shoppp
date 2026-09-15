@@ -12,6 +12,14 @@ import {
 } from "../app/themes/fashion-store/contracts/pages/product";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
 
+const productPageSource = readFile(
+  new URL(
+    "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
+    import.meta.url,
+  ),
+  "utf8",
+);
+
 describe("Fashion Store product detail", () => {
   test("keeps internal page fit owned by the shared canonical shell", async () => {
     const [shell, footer, integration] = await Promise.all([
@@ -83,13 +91,7 @@ describe("Fashion Store product detail", () => {
   });
 
   test("preserves every required Product baseline relationship named by the region ledger", async () => {
-    const component = await readFile(
-      new URL(
-        "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
-        import.meta.url,
-      ),
-      "utf8",
-    );
+    const component = await productPageSource;
     const missingRelationships = fashionStoreProductRegionLedger.flatMap((region) =>
       region.implementationEvidence
         .filter((evidence) => !component.includes(evidence))
@@ -115,13 +117,7 @@ describe("Fashion Store product detail", () => {
   });
 
   test("keeps unsupported Product facts out when their ledger owner is unavailable", async () => {
-    const component = await readFile(
-      new URL(
-        "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
-        import.meta.url,
-      ),
-      "utf8",
-    );
+    const component = await productPageSource;
     const forbiddenContent = fashionStoreProductRegionLedger.flatMap(
       ({ forbiddenWhenUnavailable = [], id }) =>
         forbiddenWhenUnavailable
@@ -146,13 +142,7 @@ describe("Fashion Store product detail", () => {
   });
 
   test("keeps a meaningful product heading in prerendered preview HTML", async () => {
-    const source = await readFile(
-      new URL(
-        "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
-        import.meta.url,
-      ),
-      "utf8",
-    );
+    const source = await productPageSource;
 
     expect(source).toContain('<h1 class="visually-hidden">{{ presentation.name }}</h1>');
     expect(source).toContain("useFashionStoreProductActionPort");

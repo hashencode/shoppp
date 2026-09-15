@@ -154,6 +154,12 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       ".product-info .fashion-product-secondary-actions .icon-with-text-style-08 .feature-box",
     ),
   ).toHaveCount(3);
+  await expect(
+    product.locator(".fashion-product-options > fieldset:not(:last-child) > .d-flex.mb-20px"),
+  ).toHaveCount(1);
+  await expect(
+    product.locator(".fashion-product-options > fieldset:last-child > .d-flex.mb-35px"),
+  ).toHaveCount(1);
   await expect(product.locator("#tab > .container > .row > .col-12.tab-style-04")).toHaveCount(1);
   await expect(product.locator("#tab .tab-content > .tab-pane")).toHaveCount(4);
   await expect(

@@ -148,12 +148,12 @@ export const fashionStoreProductPresentationSchema = z
     optionGroups: z.array(productOptionGroupSchema).max(20),
     optionalRegions: z
       .object({
-        assurance: z.literal("hidden"),
-        delivery: z.literal("hidden"),
-        reviews: z.literal("source-shaped-empty"),
-        shipping: z.literal("source-shaped-empty"),
-        specifications: z.literal("source-shaped-empty"),
-        taxonomy: z.literal("hidden"),
+        assurance: z.literal(unavailableProductRegions.assurance),
+        delivery: z.literal(unavailableProductRegions.delivery),
+        reviews: z.literal(unavailableProductRegions.reviews),
+        shipping: z.literal(unavailableProductRegions.shipping),
+        specifications: z.literal(unavailableProductRegions.specifications),
+        taxonomy: z.literal(unavailableProductRegions.taxonomy),
       })
       .strict(),
     priceLabel: z.string().trim().min(1).max(80),

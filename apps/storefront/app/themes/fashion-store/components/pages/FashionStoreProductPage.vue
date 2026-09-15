@@ -37,7 +37,7 @@ const optionError = ref("");
 const optionErrorElement = ref<HTMLElement | null>(null);
 const galleryIndex = ref(0);
 const galleryPaused = ref(false);
-const descriptionMediaFailed = ref(false);
+const failedDescriptionMediaSource = ref("");
 const activeTab = ref<"description" | "information" | "shipping" | "reviews">("description");
 const tabIds = ["description", "information", "shipping", "reviews"] as const;
 const cartAddCount = ref(0);
@@ -79,6 +79,7 @@ const addDisabled = computed(
     runtimeProduct.value?.availability === "out-of-stock" ||
     runtimeProduct.value?.availability === "unavailable",
 );
+const descriptionMediaSource = computed(() => gallerySource(0));
 
 function gallerySource(index: number): string {
   const item = displayedGallery.value[index];
@@ -176,7 +177,7 @@ function resetProductState(): void {
   optionError.value = "";
   galleryIndex.value = 0;
   galleryPaused.value = false;
-  descriptionMediaFailed.value = false;
+  failedDescriptionMediaSource.value = "";
   activeTab.value = "description";
   cartAddCount.value = 0;
   optionUpdateCount.value = 0;
@@ -357,34 +358,9 @@ watch(
                 >
                   <legend class="visually-hidden">{{ group.name }}</legend>
                   <div
-                    v-if="groupIndex === displayedOptionGroups.length - 1"
-                    class="d-flex align-items-center mb-35px"
+                    class="d-flex align-items-center"
+                    :class="groupIndex === displayedOptionGroups.length - 1 ? 'mb-35px' : 'mb-20px'"
                   >
-                    <span class="text-dark-gray alt-font me-15px fw-500">{{ group.name }}</span>
-                    <ul :class="group.name === 'Color' ? 'shop-color' : 'shop-size'" class="mb-0">
-                      <li v-for="value in group.values" :key="value">
-                        <input
-                          :id="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`"
-                          class="fashion-product-option-input"
-                          type="radio"
-                          :name="`product-${group.name}`"
-                          :value="value"
-                          :checked="selectedOptions[group.name] === value"
-                          :disabled="
-                            (actionPort.authoritative &&
-                              (!hydrated || runtimeState.kind !== 'ready')) ||
-                            !optionValueAvailable(group.name, value)
-                          "
-                          aria-describedby="product-option-error"
-                          @change="selectOption(group.name, value)"
-                        />
-                        <label :for="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`">
-                          <span>{{ value }}</span>
-                        </label>
-                      </li>
-                    </ul>
-                  </div>
-                  <div v-else class="d-flex align-items-center mb-20px">
                     <span class="text-dark-gray alt-font me-15px fw-500">{{ group.name }}</span>
                     <ul :class="group.name === 'Color' ? 'shop-color' : 'shop-size'" class="mb-0">
                       <li v-for="value in group.values" :key="value">
@@ -568,11 +544,14 @@ watch(
                     </div>
                     <div class="col-lg-6 col-md-8">
                       <img
-                        v-if="displayedGallery[0] && !descriptionMediaFailed"
-                        :src="gallerySource(0)"
+                        v-if="
+                          descriptionMediaSource &&
+                          failedDescriptionMediaSource !== descriptionMediaSource
+                        "
+                        :src="descriptionMediaSource"
                         :alt="displayedGallery[0].alt ?? presentation.name"
                         class="w-100"
-                        @error="descriptionMediaFailed = true"
+                        @error="failedDescriptionMediaSource = descriptionMediaSource"
                       />
                       <div
                         v-else
