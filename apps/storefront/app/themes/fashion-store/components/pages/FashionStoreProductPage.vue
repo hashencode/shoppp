@@ -80,6 +80,9 @@ const addDisabled = computed(
     runtimeProduct.value?.availability === "unavailable",
 );
 const descriptionMediaSource = computed(() => gallerySource(0));
+const descriptionMediaAlt = computed(
+  () => displayedGallery.value[0]?.alt ?? presentation.value.name,
+);
 
 function gallerySource(index: number): string {
   const item = displayedGallery.value[index];
@@ -549,7 +552,7 @@ watch(
                           failedDescriptionMediaSource !== descriptionMediaSource
                         "
                         :src="descriptionMediaSource"
-                        :alt="displayedGallery[0].alt ?? presentation.name"
+                        :alt="descriptionMediaAlt"
                         class="w-100"
                         @error="failedDescriptionMediaSource = descriptionMediaSource"
                       />
