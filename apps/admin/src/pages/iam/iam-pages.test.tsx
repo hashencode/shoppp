@@ -108,22 +108,29 @@ const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items
 let inviteAttempts = 0
 let userDetailLoads = 0
 let roleDetailLoads = 0
+let userLoads = 0
 let invitationLoads = 0
 let roleLoads = 0
+let userQueries: Record<string, string>[] = []
+let invitationQueries: Record<string, string>[] = []
 let roleQueries: Record<string, string>[] = []
 let roleCreateBody: unknown
+let inviteBodies: Array<Record<string, unknown>> = []
 const originalLanguages = Object.getOwnPropertyDescriptor(window.navigator, 'languages')
 
 const server = setupServer(
-  http.get('*/admin/iam/users', () => {
+  http.get('*/admin/iam/users', ({ request }) => {
+    userLoads += 1
+    userQueries.push(Object.fromEntries(new URL(request.url).searchParams.entries()))
     return HttpResponse.json({ data: page([alice, disabledUser]) })
   }),
   http.get('*/admin/iam/users/:id', ({ params }) => {
     userDetailLoads += 1
     return HttpResponse.json({ data: params.id === alice.id ? alice : disabledUser })
   }),
-  http.get('*/admin/iam/invitations', () => {
+  http.get('*/admin/iam/invitations', ({ request }) => {
     invitationLoads += 1
+    invitationQueries.push(Object.fromEntries(new URL(request.url).searchParams.entries()))
     return HttpResponse.json({ data: page([expiredInvitation]) })
   }),
   http.get('*/admin/iam/roles', ({ request }) => {
@@ -139,7 +146,8 @@ const server = setupServer(
     roleDetailLoads += 1
     return HttpResponse.json({ data: params.id === adminRole.id ? adminRole : supportRole })
   }),
-  http.post('*/admin/iam/invitations', async () => {
+  http.post('*/admin/iam/invitations', async ({ request }) => {
+    inviteBodies.push((await request.json()) as Record<string, unknown>)
     inviteAttempts += 1
     if (inviteAttempts === 1) {
       return HttpResponse.json(
@@ -179,10 +187,14 @@ afterEach(() => {
   inviteAttempts = 0
   userDetailLoads = 0
   roleDetailLoads = 0
+  userLoads = 0
   invitationLoads = 0
   roleLoads = 0
+  userQueries = []
+  invitationQueries = []
   roleQueries = []
   roleCreateBody = undefined
+  inviteBodies = []
   if (originalLanguages) Object.defineProperty(window.navigator, 'languages', originalLanguages)
   else Reflect.deleteProperty(window.navigator, 'languages')
 })
@@ -360,10 +372,147 @@ describe('IAM management pages', () => {
     expect(screen.queryByRole('button', { name: /Invite user/i })).toBeNull()
   })
 
+  it('keeps filters draft-only and commits shared search to both independent resources', async () => {
+    renderPage(<UsersPage />)
+    await waitFor(() => expect(userLoads).toBe(1))
+    await waitFor(() => expect(invitationLoads).toBe(1))
+
+    fireEvent.mouseDown(screen.getByLabelText('User status'))
+    fireEvent.click((await screen.findAllByText('Disabled')).at(-1)!)
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(userLoads).toBe(1)
+    expect(invitationLoads).toBe(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /Search/ }))
+    await waitFor(() => expect(userLoads).toBe(2))
+    expect(invitationLoads).toBe(1)
+    expect(userQueries.at(-1)).toMatchObject({ page: '1', status: 'disabled' })
+
+    fireEvent.change(screen.getByLabelText('Search users and invitations'), {
+      target: { value: 'alice@example.test' },
+    })
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(userLoads).toBe(2)
+    expect(invitationLoads).toBe(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /Search/ }))
+    await waitFor(() => expect(userLoads).toBe(3))
+    await waitFor(() => expect(invitationLoads).toBe(2))
+    expect(userQueries.at(-1)).toMatchObject({ page: '1', search: 'alice@example.test' })
+    expect(invitationQueries.at(-1)).toMatchObject({
+      page: '1',
+      search: 'alice@example.test',
+    })
+  })
+
+  it('paginates users without moving or reloading invitations', async () => {
+    server.use(
+      http.get('*/admin/iam/users', ({ request }) => {
+        userLoads += 1
+        const query = Object.fromEntries(new URL(request.url).searchParams.entries())
+        userQueries.push(query)
+        return HttpResponse.json({
+          data: { ...page([alice, disabledUser]), page: Number(query.page), total: 30 },
+        })
+      })
+    )
+    renderPage(<UsersPage />)
+    await screen.findByText('Alice Admin')
+    await waitFor(() => expect(invitationLoads).toBe(1))
+
+    fireEvent.click(screen.getByTitle('2'))
+    await waitFor(() => expect(userQueries.at(-1)).toMatchObject({ page: '2', pageSize: '25' }))
+    expect(invitationLoads).toBe(1)
+  })
+
+  it('resets only visible status scope and preserves the hidden tab draft', async () => {
+    renderPage(<UsersPage />)
+    await waitFor(() => expect(invitationLoads).toBe(1))
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    fireEvent.mouseDown(screen.getByLabelText('Invitation status'))
+    fireEvent.click((await screen.findAllByText('Revoked')).at(-1)!)
+    fireEvent.click(screen.getByRole('tab', { name: /^Users$/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() => expect(userLoads).toBe(2))
+    expect(invitationLoads).toBe(1)
+
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Search/ }))
+    await waitFor(() => expect(invitationLoads).toBe(2))
+    expect(invitationQueries.at(-1)).toMatchObject({ page: '1', status: 'revoked' })
+  })
+
+  it('keeps user results usable when invitations fail and retries invitations independently', async () => {
+    server.use(
+      http.get('*/admin/iam/invitations', () =>
+        HttpResponse.json(
+          { error: { code: 'QUERY_SERVER_ERROR', message: 'Invitations unavailable.' } },
+          { status: 503 }
+        )
+      )
+    )
+    renderPage(<UsersPage />)
+
+    expect(await screen.findByText('Alice Admin')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    expect(await screen.findByText('Invitations unavailable.')).toBeTruthy()
+
+    server.use(
+      http.get('*/admin/iam/invitations', ({ request }) => {
+        invitationLoads += 1
+        invitationQueries.push(Object.fromEntries(new URL(request.url).searchParams.entries()))
+        return HttpResponse.json({ data: page([expiredInvitation]) })
+      })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('expired@example.test')).toBeTruthy()
+    expect(userLoads).toBe(1)
+  })
+
+  it('keeps lists visible when the auxiliary roles lookup fails', async () => {
+    server.use(
+      http.get('*/admin/iam/roles', () =>
+        HttpResponse.json(
+          { error: { code: 'QUERY_SERVER_ERROR', message: 'Roles unavailable.' } },
+          { status: 503 }
+        )
+      )
+    )
+    renderPage(<UsersPage />)
+
+    expect(await screen.findByText('Alice Admin')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    expect(await screen.findByText('expired@example.test')).toBeTruthy()
+    expect(screen.getByText('Roles unavailable.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Invite user/i }).hasAttribute('disabled')).toBe(true)
+  })
+
+  it('hides invitation mutations without user-write authority', async () => {
+    server.use(
+      http.get('*/admin/iam/invitations', () =>
+        HttpResponse.json({
+          data: page([{ ...expiredInvitation, status: 'pending' as const }]),
+        })
+      )
+    )
+    renderPage(<UsersPage />, { permissions: ['iam.users.read'] })
+    fireEvent.click(await screen.findByRole('tab', { name: /Invitations/i }))
+    expect(await screen.findByText('expired@example.test')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Resend' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull()
+  })
+
   it('keeps invite failures actionable and supports an idempotent retry', async () => {
     renderPage(<UsersPage />)
     await waitFor(() => expect(screen.getByText('Alice Admin')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: /Invite user/i }))
+    const inviteButton = screen.getByRole('button', { name: /Invite user/i })
+    await waitFor(() => expect(inviteButton.hasAttribute('disabled')).toBe(false))
+    fireEvent.click(inviteButton)
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.test' } })
     fireEvent.change(screen.getByLabelText('Display name'), { target: { value: 'New User' } })
     fireEvent.mouseDown(screen.getByLabelText('Role'))
@@ -373,6 +522,7 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
     await waitFor(() => expect(inviteAttempts).toBe(2))
     expect(await screen.findByText('Invitation created.')).toBeTruthy()
+    expect(inviteBodies[0]?.idempotencyKey).toBe(inviteBodies[1]?.idempotencyKey)
   })
 
   it('degrades user writes safely when role visibility is absent', async () => {

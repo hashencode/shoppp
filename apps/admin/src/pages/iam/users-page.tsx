@@ -7,7 +7,9 @@ import type {
 } from '@shoppp/contracts'
 import {
   Alert,
+  App,
   Button,
+  Card,
   Form,
   Input,
   Modal,
@@ -17,14 +19,14 @@ import {
   Table,
   Tabs,
   Tag,
-  App,
 } from 'antd'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
-import { normalizeApiError } from '../../infrastructure/http/api-client'
+import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
 import {
   createAdminInvitation,
   fetchAdminInvitations,
@@ -32,13 +34,53 @@ import {
   fetchAdminUsers,
   resendAdminInvitation,
   revokeAdminInvitation,
+  type IamPage,
 } from '../../services/iam/api'
+import {
+  buildListToolbarColumnSettingOptions,
+  ListToolbarActions,
+} from '../../shared/components/list-toolbar-actions'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { useTheme } from '../../shared/contexts/theme-context'
+import { useListViewPreferences } from '../../shared/hooks/use-list-view-preferences'
+import { useStandardPagination } from '../../shared/hooks/use-standard-pagination'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
+import {
+  buildSearchGridProps,
+  buildStandardListPagination,
+  STANDARD_LIST_TABLE_CLASS_NAME,
+  TemplateListContent,
+  TemplateListFilterForm,
+  type TemplateListFilterField,
+  useTemplateListController,
+} from '../../shared/template-kit/list'
 
 void React
 
 type InviteValues = { displayName?: string; email: string; roleId: string }
 type Translate = (message: string) => string
+type ActiveTab = 'users' | 'invitations'
+type FilterValues = {
+  search?: string
+  userStatus?: AdminUserStatus
+  invitationStatus?: AdminInvitationStatus
+}
+type UserFilters = {
+  page: number
+  pageSize: number
+  search?: string
+  status?: AdminUserStatus
+}
+type InvitationFilters = {
+  page: number
+  pageSize: number
+  search?: string
+  status?: AdminInvitationStatus
+}
+
+const PAGE_SIZE = 25
+const PAGE_SIZE_OPTIONS = [25, 50, 100]
+const ROLE_FILTERS = { page: 1, pageSize: 100 } as const
 
 const newIdempotencyKey = (prefix: string) =>
   `${prefix}-${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-request`}`
@@ -84,210 +126,500 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
   )
 }
 
+type IndependentListCardProps<TItem> = {
+  tableId: string
+  columns: ColumnsType<TItem>
+  data: TItem[]
+  rowKey: string
+  loading: boolean
+  error: ApiError | null
+  showInitialLoading: boolean
+  showError: boolean
+  showEmpty: boolean
+  showPartial: boolean
+  pagination: TablePaginationConfig
+  scrollX: number
+  emptyTitle: string
+  onReload: () => void
+  onResetEmpty: () => void
+}
+
+const IndependentListCard = <TItem extends object>({
+  tableId,
+  columns,
+  data,
+  rowKey,
+  loading,
+  error,
+  showInitialLoading,
+  showError,
+  showEmpty,
+  showPartial,
+  pagination,
+  scrollX,
+  emptyTitle,
+  onReload,
+  onResetEmpty,
+}: IndependentListCardProps<TItem>) => {
+  const {
+    tableSize,
+    selectedColumnKeys,
+    columnOrder,
+    hasCustomColumnOrder,
+    setTableSize,
+    setSelectedColumnKeys,
+    setColumnOrder,
+    clearColumnOrder,
+  } = useListViewPreferences({
+    tableId,
+    defaultColumnKeys: columns
+      .filter((column) => typeof column.key === 'string')
+      .map((column) => String(column.key)),
+    defaultDensity: 'middle',
+  })
+  const orderedColumns = useMemo(() => {
+    if (columnOrder.length === 0) return columns
+    const byKey = new Map(
+      columns
+        .filter((column) => typeof column.key === 'string')
+        .map((column) => [String(column.key), column])
+    )
+    const ordered = columnOrder
+      .map((key) => byKey.get(key))
+      .filter((column): column is ColumnsType<TItem>[number] => Boolean(column))
+    const orderedKeys = new Set(ordered.map((column) => String(column.key)))
+    return [
+      ...ordered,
+      ...columns.filter(
+        (column) => typeof column.key !== 'string' || !orderedKeys.has(String(column.key))
+      ),
+    ]
+  }, [columnOrder, columns])
+  const visibleColumns = useMemo(
+    () =>
+      orderedColumns.filter(
+        (column) =>
+          typeof column.key !== 'string' || selectedColumnKeys.includes(String(column.key))
+      ),
+    [orderedColumns, selectedColumnKeys]
+  )
+  const tableNode = (
+    <Table<TItem>
+      className={STANDARD_LIST_TABLE_CLASS_NAME}
+      rowKey={rowKey}
+      columns={visibleColumns}
+      dataSource={data}
+      loading={loading}
+      size={tableSize}
+      pagination={pagination}
+      scroll={{ x: scrollX }}
+    />
+  )
+
+  return (
+    <Card
+      variant="borderless"
+      extra={
+        <ListToolbarActions
+          tableSize={tableSize}
+          onTableSizeChange={setTableSize}
+          onClearColumnSort={clearColumnOrder}
+          clearColumnSortDisabled={!hasCustomColumnOrder}
+          reloadLoading={loading}
+          onReload={onReload}
+          columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+          selectedColumnKeys={selectedColumnKeys}
+          onSelectedColumnKeysChange={setSelectedColumnKeys}
+          onColumnSettingOrderChange={setColumnOrder}
+        />
+      }
+    >
+      <TemplateListContent
+        showInitialLoading={showInitialLoading}
+        showError={showError}
+        showPartial={showPartial}
+        showEmpty={showEmpty}
+        errorMessage={error?.message}
+        partialMessage={error?.message}
+        onRetry={onReload}
+        onReloadPartial={onReload}
+        onResetEmpty={onResetEmpty}
+        copy={{
+          errorTitle: 'List could not be loaded',
+          emptyTitle,
+          emptyDescription: emptyTitle,
+        }}
+        tableNode={tableNode}
+      />
+    </Card>
+  )
+}
+
 export const UsersPage = () => {
   const { message } = App.useApp()
   const navigate = useNavigate()
   const { locale, t } = useI18n()
+  const { searchCompactLayout } = useTheme()
   const { permissions, role: roleKey, session } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.users.write', permissions)
   const canReadRoles = hasPermission(roleKey, 'iam.roles.read', permissions)
   const canInvite = canWrite && canReadRoles
-  const [users, setUsers] = useState<AdminUser[]>([])
-  const [invitations, setInvitations] = useState<AdminInvitation[]>([])
-  const [roles, setRoles] = useState<AdminRole[]>([])
+  const [activeTab, setActiveTab] = useState<ActiveTab>('users')
+  const [filterForm] = Form.useForm<FilterValues>()
+  const [committedSearch, setCommittedSearch] = useState<string | undefined>()
+  const [committedUserStatus, setCommittedUserStatus] = useState<AdminUserStatus | undefined>()
+  const [committedInvitationStatus, setCommittedInvitationStatus] = useState<
+    AdminInvitationStatus | undefined
+  >()
+  const [userRequestVersion, setUserRequestVersion] = useState(0)
+  const [invitationRequestVersion, setInvitationRequestVersion] = useState(0)
   const [userTotal, setUserTotal] = useState(0)
   const [invitationTotal, setInvitationTotal] = useState(0)
-  const [userPage, setUserPage] = useState(1)
-  const [invitationPage, setInvitationPage] = useState(1)
-  const [userStatus, setUserStatus] = useState<AdminUserStatus | undefined>()
-  const [invitationStatus, setInvitationStatus] = useState<AdminInvitationStatus | undefined>()
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm<InviteValues>()
   const inviteKey = useRef(newIdempotencyKey('admin-invite'))
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setLoadError(null)
-    try {
-      const [userResult, invitationResult, roleResult] = await Promise.all([
-        fetchAdminUsers({
-          page: userPage,
-          pageSize: 25,
-          search: search || undefined,
-          status: userStatus,
-        }),
-        fetchAdminInvitations({
-          page: invitationPage,
-          pageSize: 25,
-          search: search || undefined,
-          status: invitationStatus,
-        }),
-        canReadRoles ? fetchAdminRoles({ page: 1, pageSize: 100 }) : Promise.resolve(null),
-      ])
-      setUsers(userResult.items)
-      setUserTotal(userResult.total)
-      setInvitations(invitationResult.items)
-      setInvitationTotal(invitationResult.total)
-      setRoles(roleResult?.items ?? [])
-    } catch (error) {
-      setLoadError(normalizeApiError(error).message)
-    } finally {
-      setLoading(false)
-    }
-  }, [canReadRoles, invitationPage, invitationStatus, search, userPage, userStatus])
+  const {
+    current: userPage,
+    pageSize: userPageSize,
+    pagination: userPagination,
+    resetPage: resetUserPage,
+  } = useStandardPagination({
+    total: userTotal,
+    defaultPageSize: PAGE_SIZE,
+    includeAllDataOption: false,
+    maxPageSize: 100,
+    pageSizeOptions: PAGE_SIZE_OPTIONS,
+  })
+  const {
+    current: invitationPage,
+    pageSize: invitationPageSize,
+    pagination: invitationPagination,
+    resetPage: resetInvitationPage,
+  } = useStandardPagination({
+    total: invitationTotal,
+    defaultPageSize: PAGE_SIZE,
+    includeAllDataOption: false,
+    maxPageSize: 100,
+    pageSizeOptions: PAGE_SIZE_OPTIONS,
+  })
+  const userFilters = useMemo<UserFilters>(
+    () => ({
+      page: userPage,
+      pageSize: userPageSize,
+      search: committedSearch,
+      status: committedUserStatus,
+    }),
+    [committedSearch, committedUserStatus, userPage, userPageSize]
+  )
+  const invitationFilters = useMemo<InvitationFilters>(
+    () => ({
+      page: invitationPage,
+      pageSize: invitationPageSize,
+      search: committedSearch,
+      status: committedInvitationStatus,
+    }),
+    [committedInvitationStatus, committedSearch, invitationPage, invitationPageSize]
+  )
+
+  const usersController = useTemplateListController<
+    UserFilters,
+    IamPage<AdminUser>,
+    AdminUser,
+    ApiError
+  >({
+    filters: userFilters,
+    request: fetchAdminUsers,
+    selectItems: (response) => response?.items ?? [],
+    mapError: normalizeApiError,
+    transformResponse: (response) => {
+      setUserTotal(response.total)
+      return response
+    },
+  })
+  const invitationsController = useTemplateListController<
+    InvitationFilters,
+    IamPage<AdminInvitation>,
+    AdminInvitation,
+    ApiError
+  >({
+    filters: invitationFilters,
+    request: fetchAdminInvitations,
+    selectItems: (response) => response?.items ?? [],
+    mapError: normalizeApiError,
+    transformResponse: (response) => {
+      setInvitationTotal(response.total)
+      return response
+    },
+  })
+  const rolesController = useTemplateListController<
+    typeof ROLE_FILTERS,
+    IamPage<AdminRole>,
+    AdminRole,
+    ApiError
+  >({
+    filters: ROLE_FILTERS,
+    request: fetchAdminRoles,
+    selectItems: (response) => response?.items ?? [],
+    mapError: normalizeApiError,
+    enableAutoRefresh: false,
+  })
+  const loadUsers = usersController.load
+  const loadInvitations = invitationsController.load
+  const loadRoles = rolesController.load
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0)
-    return () => window.clearTimeout(timer)
-  }, [load])
+    void loadUsers()
+  }, [loadUsers, userRequestVersion])
+  useEffect(() => {
+    void loadInvitations()
+  }, [invitationRequestVersion, loadInvitations])
+  useEffect(() => {
+    if (canReadRoles) void loadRoles()
+  }, [canReadRoles, loadRoles])
 
-  const assignableRoles = roles.filter(
+  const latestInvitationLoadRef = useRef(loadInvitations)
+  useEffect(() => {
+    latestInvitationLoadRef.current = loadInvitations
+  }, [loadInvitations])
+  const reloadLatestInvitations = useCallback(async () => {
+    await latestInvitationLoadRef.current()
+  }, [])
+
+  const assignableRoles = rolesController.data.filter(
     (candidate) =>
       candidate.enabled &&
       (!candidate.protected || session?.role.protected === true) &&
       candidate.permissions.every((permission) => permissions?.includes(permission))
   )
+  const filterFields = useMemo<TemplateListFilterField<FilterValues>[]>(
+    () => [
+      {
+        type: 'input',
+        name: 'search',
+        label: t('Search'),
+        inputProps: {
+          'aria-label': t('Search users and invitations'),
+          placeholder: t('Search by name or email'),
+        },
+      },
+      activeTab === 'users'
+        ? {
+            type: 'select' as const,
+            name: 'userStatus' as const,
+            label: t('Status'),
+            options: [
+              { label: t('Active'), value: 'active' },
+              { label: t('Disabled'), value: 'disabled' },
+            ],
+            selectProps: {
+              'aria-label': t('User status'),
+              placeholder: t('All user states'),
+            },
+          }
+        : {
+            type: 'select' as const,
+            name: 'invitationStatus' as const,
+            label: t('Status'),
+            options: ['pending', 'accepted', 'revoked', 'expired'].map((value) => ({
+              label: t(value[0].toUpperCase() + value.slice(1)),
+              value,
+            })),
+            selectProps: {
+              'aria-label': t('Invitation status'),
+              placeholder: t('All invitation states'),
+            },
+          },
+    ],
+    [activeTab, t]
+  )
+  const searchGridProps = useMemo(
+    () => buildSearchGridProps(filterFields.length),
+    [filterFields.length]
+  )
 
-  const userColumns = [
-    {
-      key: 'user',
-      title: t('User'),
-      render: (_: unknown, user: AdminUser) => (
-        <div>
-          <div className="font-medium">{user.displayName}</div>
-          <div className="text-sm text-slate-500">{user.email}</div>
-        </div>
-      ),
-    },
-    { key: 'role', title: t('Role'), render: (_: unknown, user: AdminUser) => user.role.name },
-    {
-      key: 'status',
-      title: t('Status'),
-      render: (_: unknown, user: AdminUser) => statusTag(user.status, t),
-    },
-    {
-      key: 'actions',
-      title: t('Actions'),
-      width: 100,
-      render: (_: unknown, user: AdminUser) => (
-        <Button type="link" className="!px-0" onClick={() => navigate(`/access/users/${user.id}`)}>
-          {t('Inspect')}
-        </Button>
-      ),
-    },
-  ]
+  const applyVisibleFilters = useCallback(
+    (values: FilterValues) => {
+      const search = values.search?.trim() || undefined
+      const searchChanged = search !== committedSearch
+      setCommittedSearch(search)
 
-  const invitationColumns = [
-    {
-      key: 'invitee',
-      title: t('Invitee'),
-      render: (_: unknown, invitation: AdminInvitation) => (
-        <div>
-          <div className="font-medium">{invitation.displayName ?? t('Pending user')}</div>
-          <div className="text-sm text-slate-500">{invitation.email}</div>
-        </div>
-      ),
+      if (activeTab === 'users') {
+        setCommittedUserStatus(values.userStatus)
+        resetUserPage()
+        setUserRequestVersion((version) => version + 1)
+        if (searchChanged) {
+          resetInvitationPage()
+          setInvitationRequestVersion((version) => version + 1)
+        }
+        return
+      }
+
+      setCommittedInvitationStatus(values.invitationStatus)
+      resetInvitationPage()
+      setInvitationRequestVersion((version) => version + 1)
+      if (searchChanged) {
+        resetUserPage()
+        setUserRequestVersion((version) => version + 1)
+      }
     },
-    {
-      key: 'role',
-      title: t('Role'),
-      render: (_: unknown, invitation: AdminInvitation) => invitation.role.name,
-    },
-    {
-      key: 'expires',
-      title: t('Expires'),
-      render: (_: unknown, invitation: AdminInvitation) =>
-        new Date(invitation.expiresAt).toLocaleDateString(locale),
-    },
-    {
-      key: 'status',
-      title: t('Status'),
-      render: (_: unknown, invitation: AdminInvitation) => statusTag(invitation.status, t),
-    },
-    {
-      key: 'delivery',
-      title: t('Email delivery'),
-      render: (_: unknown, invitation: AdminInvitation) => deliveryTag(invitation, t),
-    },
-    {
-      key: 'actions',
-      title: t('Actions'),
-      width: 190,
-      render: (_: unknown, invitation: AdminInvitation) =>
-        canWrite && invitation.status === 'pending' ? (
-          <Space>
-            <Button
-              type="link"
-              className="!px-0"
-              onClick={async () => {
-                try {
-                  await resendAdminInvitation(invitation.id, {
-                    expectedVersion: invitation.version,
-                    idempotencyKey: newIdempotencyKey(`admin-invite-resend-${invitation.id}`),
-                  })
-                  void message.success(t('Invitation queued for resend.'))
-                  await load()
-                } catch (error) {
-                  void message.error(normalizeApiError(error).message)
-                }
-              }}
-            >
-              {t('Resend')}
-            </Button>
-            <Popconfirm
-              title={t('Revoke this invitation?')}
-              description={t('The invitee will no longer be able to activate it.')}
-              okText={t('Confirm revoke')}
-              onConfirm={async () => {
-                try {
-                  await revokeAdminInvitation(invitation.id, {
-                    expectedVersion: invitation.version,
-                  })
-                  void message.success(t('Invitation revoked.'))
-                  await load()
-                } catch (error) {
-                  void message.error(normalizeApiError(error).message)
-                }
-              }}
-            >
-              <Button danger type="link" className="!px-0">
-                {t('Revoke')}
+    [activeTab, committedSearch, resetInvitationPage, resetUserPage]
+  )
+  const resetVisibleFilters = useCallback(() => {
+    const nextValues = filterForm.getFieldsValue(true)
+    nextValues.search = undefined
+    if (activeTab === 'users') nextValues.userStatus = undefined
+    else nextValues.invitationStatus = undefined
+    filterForm.setFieldsValue(nextValues)
+    applyVisibleFilters(nextValues)
+  }, [activeTab, applyVisibleFilters, filterForm])
+
+  const userColumns = useMemo<ColumnsType<AdminUser>>(
+    () => [
+      {
+        key: 'user',
+        title: t('User'),
+        render: (_: unknown, user) => (
+          <div>
+            <div className="font-medium">{user.displayName}</div>
+            <div className="text-sm text-slate-500">{user.email}</div>
+          </div>
+        ),
+      },
+      { key: 'role', title: t('Role'), render: (_: unknown, user) => user.role.name },
+      {
+        key: 'status',
+        title: t('Status'),
+        render: (_: unknown, user) => statusTag(user.status, t),
+      },
+      {
+        key: 'actions',
+        title: t('Actions'),
+        width: 100,
+        render: (_: unknown, user) => (
+          <Button
+            type="link"
+            className="!px-0"
+            onClick={() => navigate(`/access/users/${user.id}`)}
+          >
+            {t('Inspect')}
+          </Button>
+        ),
+      },
+    ],
+    [navigate, t]
+  )
+  const invitationColumns = useMemo<ColumnsType<AdminInvitation>>(
+    () => [
+      {
+        key: 'invitee',
+        title: t('Invitee'),
+        render: (_: unknown, invitation) => (
+          <div>
+            <div className="font-medium">{invitation.displayName ?? t('Pending user')}</div>
+            <div className="text-sm text-slate-500">{invitation.email}</div>
+          </div>
+        ),
+      },
+      {
+        key: 'role',
+        title: t('Role'),
+        render: (_: unknown, invitation) => invitation.role.name,
+      },
+      {
+        key: 'expires',
+        title: t('Expires'),
+        render: (_: unknown, invitation) =>
+          new Date(invitation.expiresAt).toLocaleDateString(locale),
+      },
+      {
+        key: 'status',
+        title: t('Status'),
+        render: (_: unknown, invitation) => statusTag(invitation.status, t),
+      },
+      {
+        key: 'delivery',
+        title: t('Email delivery'),
+        render: (_: unknown, invitation) => deliveryTag(invitation, t),
+      },
+      {
+        key: 'actions',
+        title: t('Actions'),
+        width: 190,
+        render: (_: unknown, invitation) =>
+          canWrite && invitation.status === 'pending' ? (
+            <Space>
+              <Button
+                type="link"
+                className="!px-0"
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      await resendAdminInvitation(invitation.id, {
+                        expectedVersion: invitation.version,
+                        idempotencyKey: newIdempotencyKey(`admin-invite-resend-${invitation.id}`),
+                      })
+                      void message.success(t('Invitation queued for resend.'))
+                      await reloadLatestInvitations()
+                    } catch (error) {
+                      void message.error(normalizeApiError(error).message)
+                    }
+                  })()
+                }}
+              >
+                {t('Resend')}
               </Button>
-            </Popconfirm>
-          </Space>
-        ) : null,
-    },
-  ]
+              <Popconfirm
+                title={t('Revoke this invitation?')}
+                description={t('The invitee will no longer be able to activate it.')}
+                okText={t('Confirm revoke')}
+                onConfirm={() => {
+                  void (async () => {
+                    try {
+                      await revokeAdminInvitation(invitation.id, {
+                        expectedVersion: invitation.version,
+                      })
+                      void message.success(t('Invitation revoked.'))
+                      await reloadLatestInvitations()
+                    } catch (error) {
+                      void message.error(normalizeApiError(error).message)
+                    }
+                  })()
+                }}
+              >
+                <Button danger type="link" className="!px-0">
+                  {t('Revoke')}
+                </Button>
+              </Popconfirm>
+            </Space>
+          ) : null,
+      },
+    ],
+    [canWrite, locale, message, reloadLatestInvitations, t]
+  )
+
+  const pageExtra = canInvite ? (
+    <Button
+      type="primary"
+      disabled={rolesController.loading || Boolean(rolesController.error)}
+      onClick={() => {
+        inviteKey.current = newIdempotencyKey('admin-invite')
+        setInviteError(null)
+        form.resetFields()
+        setInviteOpen(true)
+      }}
+    >
+      {t('Invite user')}
+    </Button>
+  ) : null
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{t('Users and invitations')}</h1>
-          <p className="text-slate-500">
-            {t('Manage human accounts, activation, status, and role assignment.')}
-          </p>
-        </div>
-        {canInvite ? (
-          <Button
-            type="primary"
-            onClick={() => {
-              inviteKey.current = newIdempotencyKey('admin-invite')
-              setInviteError(null)
-              form.resetFields()
-              setInviteOpen(true)
-            }}
-          >
-            {t('Invite user')}
-          </Button>
-        ) : null}
-      </div>
-
+    <CustomPageRecipe title={t('Users and invitations')} extra={pageExtra}>
+      <p className="text-slate-500">
+        {t('Manage human accounts, activation, status, and role assignment.')}
+      </p>
       {canWrite && !canReadRoles ? (
         <Alert
           type="info"
@@ -297,97 +629,81 @@ export const UsersPage = () => {
           )}
         />
       ) : null}
-
-      {loadError ? (
+      {canInvite && rolesController.error ? (
         <Alert
           type="error"
           showIcon
-          title={loadError}
-          action={<Button onClick={() => void load()}>{t('Retry')}</Button>}
+          title={rolesController.error.message}
+          action={<Button onClick={() => void loadRoles()}>{t('Retry')}</Button>}
         />
       ) : null}
-      <Input.Search
-        allowClear
-        aria-label={t('Search users and invitations')}
-        placeholder={t('Search by name or email')}
-        onSearch={(value) => {
-          setSearch(value.trim())
-          setUserPage(1)
-          setInvitationPage(1)
-        }}
-      />
+
+      <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
+        <TemplateListFilterForm<FilterValues>
+          form={filterForm}
+          formProps={{ initialValues: {} }}
+          fields={filterFields}
+          fieldColProps={searchGridProps.formItem}
+          labelCol={searchGridProps.labelItem}
+          wrapperCol={searchGridProps.inputItem}
+          actionsColProps={searchGridProps.actions}
+          compactLayout={searchCompactLayout}
+          submitLoading={
+            activeTab === 'users' ? usersController.loading : invitationsController.loading
+          }
+          onSubmit={applyVisibleFilters}
+          onReset={resetVisibleFilters}
+        />
+      </Card>
+
       <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key as ActiveTab)}
         items={[
           {
             key: 'users',
             label: t('Users'),
             children: (
-              <Space orientation="vertical" className="w-full" size="middle">
-                <Select
-                  allowClear
-                  aria-label={t('User status')}
-                  className="min-w-40"
-                  placeholder={t('All user states')}
-                  options={[
-                    { label: t('Active'), value: 'active' },
-                    { label: t('Disabled'), value: 'disabled' },
-                  ]}
-                  onChange={(value) => {
-                    setUserStatus(value)
-                    setUserPage(1)
-                  }}
-                />
-                <Table<AdminUser>
-                  rowKey="id"
-                  columns={userColumns}
-                  dataSource={users}
-                  loading={loading}
-                  locale={{ emptyText: t('No users match these filters.') }}
-                  pagination={{
-                    current: userPage,
-                    pageSize: 25,
-                    total: userTotal,
-                    onChange: setUserPage,
-                  }}
-                  scroll={{ x: 720 }}
-                />
-              </Space>
+              <IndependentListCard<AdminUser>
+                tableId="iam-users-list"
+                columns={userColumns}
+                data={usersController.data}
+                rowKey="id"
+                loading={usersController.loading}
+                error={usersController.error}
+                showInitialLoading={usersController.showInitialLoading}
+                showError={usersController.showError}
+                showEmpty={usersController.showEmpty}
+                showPartial={usersController.showPartial}
+                pagination={buildStandardListPagination(userPagination, locale)}
+                scrollX={720}
+                emptyTitle={t('No users match these filters.')}
+                onReload={() => void loadUsers()}
+                onResetEmpty={resetVisibleFilters}
+              />
             ),
           },
           {
             key: 'invitations',
             label: t('Invitations'),
             children: (
-              <Space orientation="vertical" className="w-full" size="middle">
-                <Select
-                  allowClear
-                  aria-label={t('Invitation status')}
-                  className="min-w-40"
-                  placeholder={t('All invitation states')}
-                  options={['pending', 'accepted', 'revoked', 'expired'].map((value) => ({
-                    label: t(value[0].toUpperCase() + value.slice(1)),
-                    value,
-                  }))}
-                  onChange={(value) => {
-                    setInvitationStatus(value)
-                    setInvitationPage(1)
-                  }}
-                />
-                <Table<AdminInvitation>
-                  rowKey="id"
-                  columns={invitationColumns}
-                  dataSource={invitations}
-                  loading={loading}
-                  locale={{ emptyText: t('No invitations match these filters.') }}
-                  pagination={{
-                    current: invitationPage,
-                    pageSize: 25,
-                    total: invitationTotal,
-                    onChange: setInvitationPage,
-                  }}
-                  scroll={{ x: 860 }}
-                />
-              </Space>
+              <IndependentListCard<AdminInvitation>
+                tableId="iam-invitations-list"
+                columns={invitationColumns}
+                data={invitationsController.data}
+                rowKey="id"
+                loading={invitationsController.loading}
+                error={invitationsController.error}
+                showInitialLoading={invitationsController.showInitialLoading}
+                showError={invitationsController.showError}
+                showEmpty={invitationsController.showEmpty}
+                showPartial={invitationsController.showPartial}
+                pagination={buildStandardListPagination(invitationPagination, locale)}
+                scrollX={860}
+                emptyTitle={t('No invitations match these filters.')}
+                onReload={() => void loadInvitations()}
+                onResetEmpty={resetVisibleFilters}
+              />
             ),
           },
         ]}
@@ -419,7 +735,7 @@ export const UsersPage = () => {
               })
               void message.success(t('Invitation created.'))
               setInviteOpen(false)
-              await load()
+              await reloadLatestInvitations()
             } catch (error) {
               setInviteError(normalizeApiError(error).message)
             } finally {
@@ -444,6 +760,6 @@ export const UsersPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </CustomPageRecipe>
   )
 }
