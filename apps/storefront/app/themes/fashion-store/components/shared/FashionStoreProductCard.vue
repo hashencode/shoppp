@@ -11,7 +11,10 @@ import {
 } from "../../../../theme-engine/runtime-commerce";
 import type { PresentationProductCard } from "../../../../theme-engine/view-models";
 import { fashionStoreLiveCapabilities } from "../../capability-matrix";
-import type { FashionStoreLegacyProductCard } from "../../contracts/product-card";
+import type {
+  FashionStoreLegacyProductCard,
+  FashionStoreProductCardPresentation,
+} from "../../contracts/product-card";
 import { useFashionStorePreviewCart } from "../../composables/useFashionStorePreviewCart";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
@@ -20,7 +23,8 @@ const properties = withDefaults(
   defineProps<{
     context?: "catalog" | "wishlist";
     surface?: "catalog" | "home-merchandising";
-    product: FashionStoreLegacyProductCard | PresentationProductCard;
+    product:
+      FashionStoreLegacyProductCard | FashionStoreProductCardPresentation | PresentationProductCard;
     resolveAsset: ThemeAssetResolver;
   }>(),
   { context: "catalog", surface: "catalog" },
@@ -33,10 +37,27 @@ const emit = defineEmits<{
 const actionAdapter = inject(storefrontActionAdapterKey);
 const cartState = inject(storefrontCartStateKey);
 const runtimeCommerce = inject(runtimeCommercePortKey);
-const liveProduct = computed(() => "staticPurchase" in properties.product);
-const previewCart = useFashionStorePreviewCart(liveProduct.value ? [] : undefined);
+const normalizedCard = computed(() =>
+  "destination" in properties.product
+    ? (properties.product as FashionStoreProductCardPresentation)
+    : undefined,
+);
+const localActions = computed(() =>
+  normalizedCard.value
+    ? normalizedCard.value.controls.includes("add-to-cart")
+    : !("staticPurchase" in properties.product),
+);
+const localWishlist = computed(
+  () => normalizedCard.value?.controls.includes("wishlist") ?? localActions.value,
+);
+const localQuickView = computed(
+  () => normalizedCard.value?.controls.includes("quick-view") ?? localActions.value,
+);
+const previewCart = useFashionStorePreviewCart(localActions.value ? undefined : []);
 const liveCard = computed(() =>
-  liveProduct.value ? (properties.product as PresentationProductCard) : undefined,
+  "staticPurchase" in properties.product
+    ? (properties.product as PresentationProductCard)
+    : undefined,
 );
 const actionState = ref<PresentationProductCard["actionState"]["kind"]>(
   liveCard.value?.actionState.kind ?? "available",
@@ -46,10 +67,31 @@ const runtimePriceLabel = ref<string>();
 const runtimeCompareAtPriceLabel = ref<string>();
 const hydrated = ref(false);
 const renderedActionState = computed(() =>
-  liveProduct.value && !hydrated.value ? "loading" : actionState.value,
+  !localActions.value && !hydrated.value ? "loading" : actionState.value,
 );
 
 const card = computed(() => {
+  if (normalizedCard.value) {
+    const product = normalizedCard.value;
+    return {
+      alt: product.media?.alt ?? product.name,
+      badge: product.badge,
+      href:
+        product.destination.kind === "available"
+          ? product.destination.href
+          : fashionStoreRoutePaths.product,
+      id: product.productId,
+      image:
+        product.media?.kind === "url"
+          ? product.media.src
+          : product.media
+            ? properties.resolveAsset(fashionStoreAssetId(product.media.path))
+            : undefined,
+      name: product.name,
+      originalPrice: product.compareAtPriceLabel ?? "",
+      price: product.priceLabel,
+    };
+  }
   if (liveCard.value) {
     return {
       alt: liveCard.value.media?.alt ?? liveCard.value.name,
@@ -182,23 +224,23 @@ watch(
     class="grid-item"
     data-fashion-store-product-card
     :data-product-surface="properties.surface"
-    :data-action-state="liveProduct ? renderedActionState : undefined"
+    :data-action-state="localActions ? undefined : renderedActionState"
     :data-card-variant="cardVariant"
     :data-product-id="card.id"
   >
     <div class="shop-box mb-10px">
       <div class="shop-image mb-20px">
-        <a :href="card.href" data-fashion-store-route>
+        <NuxtLink :to="card.href" data-fashion-store-route>
           <img v-if="card.image" :src="card.image" :alt="card.alt" width="600" height="765" />
           <span v-else class="fashion-store-product-placeholder" aria-hidden="true"></span>
           <span v-if="card.badge" class="lable" :class="card.badge.toLowerCase()">{{
             card.badge
           }}</span>
           <div class="shop-overlay bg-gradient-gray-light-dark-transparent"></div>
-        </a>
+        </NuxtLink>
         <div class="shop-buttons-wrap">
           <button
-            v-if="!liveProduct"
+            v-if="localActions"
             type="button"
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
             :class="{ 'fashion-wishlist-add': wishlistContext }"
@@ -228,9 +270,9 @@ watch(
               directActionLabel
             }}</span>
           </button>
-          <a
+          <NuxtLink
             v-else
-            :href="card.href"
+            :to="card.href"
             data-fashion-store-route
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
           >
@@ -239,12 +281,13 @@ watch(
                 ? liveCard.staticPurchase.label
                 : "Choose options"
             }}</span>
-          </a>
+          </NuxtLink>
         </div>
         <div
           v-if="
             properties.surface === 'home-merchandising' ||
-            !liveProduct ||
+            localWishlist ||
+            localQuickView ||
             fashionStoreLiveCapabilities.wishlist ||
             fashionStoreLiveCapabilities.productQuickView
           "
@@ -254,7 +297,7 @@ watch(
             <li
               v-if="
                 properties.surface === 'home-merchandising' ||
-                !liveProduct ||
+                localWishlist ||
                 fashionStoreLiveCapabilities.wishlist
               "
             >
@@ -263,21 +306,21 @@ watch(
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 :class="{ 'fashion-wishlist-remove': wishlistContext }"
                 :aria-label="
-                  liveProduct && !fashionStoreLiveCapabilities.wishlist
+                  !localWishlist && !fashionStoreLiveCapabilities.wishlist
                     ? 'Wishlist unavailable'
                     : wishlistContext
                       ? `Remove ${card.name} from wishlist`
                       : 'Add to wishlist'
                 "
                 :content="
-                  liveProduct && !fashionStoreLiveCapabilities.wishlist
+                  !localWishlist && !fashionStoreLiveCapabilities.wishlist
                     ? 'Wishlist unavailable'
                     : wishlistContext
                       ? 'Remove from wishlist'
                       : 'Add to wishlist'
                 "
-                :disabled="liveProduct && !fashionStoreLiveCapabilities.wishlist"
-                :aria-disabled="liveProduct && !fashionStoreLiveCapabilities.wishlist"
+                :disabled="!localWishlist && !fashionStoreLiveCapabilities.wishlist"
+                :aria-disabled="!localWishlist && !fashionStoreLiveCapabilities.wishlist"
                 data-card-action="wishlist"
                 @click="$emit('intent', 'wishlist')"
               >
@@ -287,13 +330,13 @@ watch(
             <li
               v-if="
                 properties.surface === 'home-merchandising' ||
-                !liveProduct ||
+                localQuickView ||
                 fashionStoreLiveCapabilities.productQuickView
               "
             >
               <FashionStoreTooltip
                 as="a"
-                v-if="liveProduct || wishlistContext"
+                v-if="!localQuickView || wishlistContext"
                 :href="card.href"
                 data-fashion-store-route
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
@@ -318,12 +361,12 @@ watch(
         </div>
       </div>
       <div class="shop-footer text-center">
-        <a
+        <NuxtLink
           v-if="properties.surface !== 'home-merchandising'"
-          :href="card.href"
+          :to="card.href"
           data-fashion-store-route
           class="fashion-store-product-title alt-font text-dark-gray fs-19 fw-500"
-          >{{ card.name }}</a
+          >{{ card.name }}</NuxtLink
         >
         <span v-else class="fashion-store-product-title alt-font text-dark-gray fs-19 fw-500">{{
           card.name
@@ -333,7 +376,7 @@ watch(
           >{{ card.price }}
         </div>
         <p
-          v-if="liveProduct"
+          v-if="liveCard"
           class="visually-hidden"
           :role="actionState === 'retry' ? 'alert' : 'status'"
           aria-live="polite"

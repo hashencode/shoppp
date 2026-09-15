@@ -63,6 +63,7 @@ describe("runtime commerce presentation", () => {
           label: "Size: M",
           money: { amount: 6500, compareAtAmount: 8500, currency: "USD" },
           options: { Size: "M" },
+          sku: "JACKET-M",
         },
         {
           availability: "out-of-stock",
@@ -70,6 +71,7 @@ describe("runtime commerce presentation", () => {
           label: "Size: L",
           money: { amount: 6700, currency: "USD" },
           options: { Size: "L" },
+          sku: "JACKET-L",
         },
       ],
     });

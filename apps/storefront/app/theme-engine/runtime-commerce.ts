@@ -16,6 +16,7 @@ export interface RuntimeProductVariant {
   label: string;
   money: ProductPrice;
   options: Readonly<Record<string, string>>;
+  sku: string;
 }
 
 export interface RuntimeProductState {
@@ -98,6 +99,7 @@ export function toRuntimeProductState(product: Product, currency: string): Runti
       label: variantLabel(variant.options) || variant.sku,
       money: variant.price,
       options: variant.options,
+      sku: variant.sku,
     } satisfies RuntimeProductVariant;
   });
   const productPublished = product.status === "published";

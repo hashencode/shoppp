@@ -162,6 +162,7 @@ export const experienceFixtureRegistry = {
           },
         ],
         priceLabel: "$129 fixture price",
+        relatedProducts: [],
         state: "populated",
         variants: [
           { id: "cabin", label: "Cabin", optionValues: { size: "Cabin" }, selected: true },

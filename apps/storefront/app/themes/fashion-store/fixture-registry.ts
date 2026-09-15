@@ -30,7 +30,7 @@ const FashionStoreContentPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreContentRoute.vue"),
 );
 const FashionStoreProductPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreProductRoute.vue"),
+  () => import("./components/pages/FashionStoreProductPage.vue"),
 );
 
 export const fixtureThemeRegistry = {

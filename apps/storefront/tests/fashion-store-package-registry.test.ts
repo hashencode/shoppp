@@ -236,7 +236,6 @@ describe("Fashion Store exact package registry", () => {
       "fashion-store.collection",
       "fashion-store.content",
       "fashion-store.home",
-      "fashion-store.product",
     ]);
     expect(divergentFashionStoreRegistryTypes(successorLive, successorFixture)).toEqual([
       "fashion-store.brand-strip",

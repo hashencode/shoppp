@@ -1218,6 +1218,43 @@ describe("theme-neutral storefront composer", () => {
         name: "Selected collection",
       },
     });
+
+    const productWithoutRelatedBinding = composeExperienceRoute({
+      experience: {
+        ...liveSnapshot,
+        bindings: [],
+        resolvedTemplates: [
+          {
+            id: "product-template",
+            pageType: "product",
+            requiredCapabilities: [],
+            sections: [
+              {
+                blocks: [],
+                capabilities: [],
+                id: "product",
+                settings: { "presentation-copy": "Editor product copy" },
+                type: "fashion-store.product",
+                visible: true,
+              },
+            ],
+          },
+        ],
+      },
+      locale: "en-US",
+      path: "/products/selected-product",
+      release: canonicalRelease,
+      route: testRoute("product", "/products/selected-product", {
+        productId: canonicalRelease.products[0].id,
+        slug: canonicalRelease.products[0].slug,
+      }),
+    });
+    expect(productWithoutRelatedBinding.viewModels.product).toMatchObject({
+      relatedCollection: {
+        id: canonicalRelease.collections[0].id,
+      },
+      relatedProducts: expect.any(Array),
+    });
   });
 
   test("bounds Home to the first 24 eligible products", () => {

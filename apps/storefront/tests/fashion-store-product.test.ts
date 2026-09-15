@@ -26,10 +26,7 @@ describe("Fashion Store product detail", () => {
         ),
         "utf8",
       ),
-      readFile(
-        new URL("../app/themes/fashion-store/integration.css", import.meta.url),
-        "utf8",
-      ),
+      readFile(new URL("../app/themes/fashion-store/integration.css", import.meta.url), "utf8"),
     ]);
 
     expect(shell).not.toContain("home-layout");
@@ -102,7 +99,13 @@ describe("Fashion Store product detail", () => {
       "utf8",
     );
 
-    expect(source).toContain('<h1 class="visually-hidden">{{ data.product.name }}</h1>');
+    expect(source).toContain('<h1 class="visually-hidden">{{ presentation.name }}</h1>');
+    expect(source).toContain("useFashionStoreProductActionPort");
+    expect(source).toContain("resetProductState");
+    expect(source).toContain("previousIdentity");
+    expect(source).not.toMatch(/\/fixtures\/|runtimeCommercePortKey|storefrontActionAdapterKey/);
+    expect(source).not.toContain("25,000+");
+    expect(source).not.toContain("2,488 Reviews");
   });
 
   test("readiness enables product only after its page contract is complete", () => {

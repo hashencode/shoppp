@@ -426,7 +426,7 @@ test("live browse-to-order journey converges on an authoritative paid return", a
     .click();
   await expect(page).toHaveURL(/\/products\/relaxed-corduroy-shirt$/);
 
-  const product = page.locator("[data-fashion-store-live-product]");
+  const product = page.locator("[data-fashion-store-product]");
   await product.getByRole("radio", { name: "Green" }).check();
   await product.getByRole("radio", { name: "XL" }).check();
   await product.getByRole("button", { name: "Add to cart" }).click();
@@ -503,7 +503,7 @@ test("live Product requires a valid grouped option combination and stays truthfu
   });
 
   await page.goto("/products/relaxed-corduroy-shirt", { waitUntil: "networkidle" });
-  const product = page.locator("[data-fashion-store-live-product]");
+  const product = page.locator("[data-fashion-store-product]");
   await expect(product.getByRole("group", { name: "Color" })).toBeVisible();
   await expect(product.getByRole("group", { name: "Size" })).toBeVisible();
   await product.getByRole("button", { name: "Add to cart" }).click();
@@ -524,8 +524,31 @@ test("live Product requires a valid grouped option combination and stays truthfu
   expect(submitted).toMatchObject({ quantity: 3, variantId });
   expect(addRequests).toBe(1);
 
+  const timeOrigin = await page.evaluate(() => performance.timeOrigin);
+  await product
+    .locator("[data-fashion-store-product-card]")
+    .filter({ hasText: "Atlas Carry-on" })
+    .getByRole("link", { name: "Atlas Carry-on", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/products\/atlas-carry-on$/);
+  await expect(page.locator(".product-info h4")).toHaveText("Atlas Carry-on");
+  await expect(page.getByRole("group", { name: "Style" })).toBeVisible();
+  await expect(page.getByLabel("Quantity", { exact: true })).toHaveValue("1");
+  await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
+    "data-cart-add-count",
+    "0",
+  );
+  expect(await page.evaluate(() => performance.timeOrigin)).toBe(timeOrigin);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/products\/relaxed-corduroy-shirt$/);
+  await expect(page.locator(".product-info h4")).toHaveText("Relaxed corduroy shirt");
+  await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Size" })).toBeVisible();
+  await expect(page.getByLabel("Quantity", { exact: true })).toHaveValue("1");
+
   const accessibility = await new AxeBuilder({ page })
-    .include("[data-fashion-store-live-product]")
+    .include("[data-fashion-store-product]")
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(
@@ -537,7 +560,7 @@ test("live Product requires a valid grouped option combination and stays truthfu
   try {
     const noJsPage = await noJsContext.newPage();
     await noJsPage.goto(new URL("/products/relaxed-corduroy-shirt", page.url()).href);
-    const noJsProduct = noJsPage.locator("[data-fashion-store-live-product]");
+    const noJsProduct = noJsPage.locator("[data-fashion-store-product]");
     await expect(noJsProduct.getByText("Shopping actions require JavaScript.")).toBeVisible();
     await expect(noJsProduct.getByRole("button", { name: "Add to cart" })).toBeDisabled();
     await expect(
@@ -581,7 +604,7 @@ test("live Product enables retry after initial Commerce revalidation fails", asy
   });
 
   await page.goto("/products/relaxed-corduroy-shirt", { waitUntil: "networkidle" });
-  const product = page.locator("[data-fashion-store-live-product]");
+  const product = page.locator("[data-fashion-store-product]");
   const retry = product.getByRole("button", { name: "Retry and add to cart" });
   await expect(retry).toBeEnabled();
   productUnavailable = false;

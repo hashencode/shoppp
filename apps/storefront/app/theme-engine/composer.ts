@@ -1189,7 +1189,7 @@ export function composeExperienceRoute(
       );
       const relatedCollection = relatedBinding
         ? collectionsById.get(relatedBinding.reference.id)
-        : undefined;
+        : [...collectionsById.values()].find(({ productIds }) => productIds.includes(product.id));
       const viewModel = productViewModel(
         release,
         productsById,

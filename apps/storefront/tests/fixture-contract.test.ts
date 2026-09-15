@@ -347,12 +347,27 @@ describe("storefront experience fixtures", () => {
       src: "https://media.example.test/relaxed-shirt.jpg",
       width: 600,
     });
+    expect(
+      fashionStoreProductPresentationSchema.safeParse({
+        ...live,
+        gallery: [{ ...live.gallery[0]!, src: "/media/relaxed-shirt.jpg" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      fashionStoreProductPresentationSchema.safeParse({
+        ...live,
+        gallery: [{ ...live.gallery[0]!, src: "//evil.example/relaxed-shirt.jpg" }],
+      }).success,
+    ).toBe(false);
     expect(fixture.optionalRegions).toEqual({ reviews: "empty", specifications: "hidden" });
     expect(live.optionalRegions).toEqual(fixture.optionalRegions);
     expect(live.productId).toBe("prod_01JFIXTURETEST000000000001");
     expect(fixture.relatedProducts[0]).toMatchObject({
       actionState: { kind: "available" },
-      destination: { kind: "unavailable" },
+      destination: {
+        href: `/products/${fashionStoreProductData.related[0]?.id}`,
+        kind: "available",
+      },
       media: { kind: "theme-asset" },
       name: fashionStoreProductData.related[0]?.name,
       priceLabel: fashionStoreProductData.related[0]?.price,
@@ -477,7 +492,6 @@ describe("storefront experience fixtures", () => {
       resolve(import.meta.dir, "../app"),
       [
         "themes/fashion-store/components/FashionStoreHomeRoute.vue",
-        "themes/fashion-store/components/pages/FashionStoreProductRoute.vue",
         "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
         "themes/fashion-store/components/sections/fixture-home-section-context.ts",
         "themes/fashion-store/components/sections/live-home-section-context.ts",
@@ -488,10 +502,6 @@ describe("storefront experience fixtures", () => {
     expect(findings).toEqual([
       {
         file: "themes/fashion-store/components/FashionStoreHomeRoute.vue",
-        rule: "provider-kind-layout-switch",
-      },
-      {
-        file: "themes/fashion-store/components/pages/FashionStoreProductRoute.vue",
         rule: "provider-kind-layout-switch",
       },
       {
@@ -509,14 +519,6 @@ describe("storefront experience fixtures", () => {
       {
         file: "themes/fashion-store/components/sections/live-home-section-context.ts",
         rule: "provider-kind-layout-switch",
-      },
-      {
-        file: "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
-        rule: "raw-provider-union",
-      },
-      {
-        file: "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
-        rule: "direct-provider-action-selection",
       },
     ]);
   });
@@ -552,7 +554,7 @@ describe("storefront experience fixtures", () => {
       "fashion-store.collection": "pages/FashionStoreLiveCollectionPage.vue",
       "fashion-store.content": "pages/FashionStoreLiveContentPage.vue",
       "fashion-store.home": "FashionStoreLiveHomePage.vue",
-      "fashion-store.product": "pages/FashionStoreLiveProductPage.vue",
+      "fashion-store.product": "pages/FashionStoreProductPage.vue",
     });
     const roots = [...new Set(Object.values(registryRootBySection))].map((path) =>
       resolve(componentRoot, path),

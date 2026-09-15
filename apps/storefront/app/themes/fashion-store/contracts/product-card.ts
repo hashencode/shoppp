@@ -35,10 +35,14 @@ const productOptionGroupSchema = z
   .strict();
 const productVariantSchema = z
   .object({
+    availability: z.enum(["in-stock", "out-of-stock"]).optional(),
+    compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     id: productIdentifierSchema,
     label: z.string().trim().min(1).max(100),
     optionValues: z.record(z.string().trim().min(1).max(80), z.string().trim().min(1).max(160)),
+    priceLabel: z.string().trim().min(1).max(80).optional(),
     selected: z.boolean(),
+    sku: z.string().trim().min(1).max(160).optional(),
   })
   .strict();
 const productGalleryItemSchema = z.discriminatedUnion("kind", [
@@ -56,8 +60,10 @@ const productGalleryItemSchema = z.discriminatedUnion("kind", [
       kind: z.literal("url"),
       src: z
         .string()
-        .url()
-        .refine((value) => value.startsWith("https://")),
+        .trim()
+        .min(1)
+        .max(2_000)
+        .refine((value) => value.startsWith("https://") || /^\/(?!\/)/.test(value)),
       width: z.number().int().positive(),
     })
     .strict(),
@@ -83,6 +89,7 @@ export const fashionStoreProductCardPresentationSchema = z
     actionState: productActionStateSchema,
     badge: z.enum(["Hot", "New"]).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
+    controls: z.array(z.enum(["add-to-cart", "quick-view", "wishlist"])).max(3),
     destination: productCardDestinationSchema,
     media: productGalleryItemSchema.optional(),
     name: z.string().trim().min(1).max(160),
@@ -115,6 +122,7 @@ export const fashionStoreProductPresentationSchema = z
   .object({
     controls: z.array(productControlSchema).max(8),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
+    currency: z.string().trim().length(3).toUpperCase(),
     description: z.string().trim().min(1).max(2_000),
     gallery: z.array(productGalleryItemSchema).max(12),
     name: z.string().trim().min(1).max(160),
@@ -149,6 +157,7 @@ interface FashionStoreFixtureProductPresentationInput {
       name: string;
       originalPrice: string;
       price: string;
+      sku?: string;
     };
     related: readonly FashionStoreLegacyProductCard[];
   };
@@ -160,6 +169,7 @@ interface FashionStoreFixtureProductPresentationInput {
     label: string;
     optionValues: Readonly<Record<string, string>>;
     selected: boolean;
+    sku?: string;
   }[];
 }
 
@@ -173,6 +183,7 @@ export function normalizeFashionStoreLegacyProductCard(
     actionState: { kind: "available", message: "This preview action is available locally." },
     badge: product.badge,
     compareAtPriceLabel: product.originalPrice,
+    controls: ["add-to-cart", "quick-view", "wishlist"],
     destination: href ? { href, kind: "available" } : { kind: "unavailable" },
     media: { alt: product.name, kind: "theme-asset", path: product.sourceImage },
     name: product.name,
@@ -187,6 +198,7 @@ export function normalizeFashionStoreLiveProductCard(
   return fashionStoreProductCardPresentationSchema.parse({
     actionState: product.actionState,
     compareAtPriceLabel: product.compareAtPriceLabel,
+    controls: [],
     destination: { href: product.href, kind: "available" },
     media: product.media ? { ...product.media, kind: "url" } : undefined,
     name: product.name,
@@ -224,6 +236,7 @@ export function normalizeFashionStoreFixtureProductPresentation(
   return fashionStoreProductPresentationSchema.parse({
     controls: fixtureControls(data.actions),
     compareAtPriceLabel: data.product.originalPrice,
+    currency: "USD",
     description: data.product.description,
     gallery: data.gallery.map((path) => ({ kind: "theme-asset", path })),
     name: data.product.name,
@@ -236,12 +249,13 @@ export function normalizeFashionStoreFixtureProductPresentation(
     productId: input.productId,
     relatedProducts: data.related
       .slice(0, 8)
-      .map((product) => normalizeFashionStoreLegacyProductCard(product)),
+      .map((product) => normalizeFashionStoreLegacyProductCard(product, `/products/${product.id}`)),
     slug: input.slug,
     state: input.state ?? "populated",
     variants: input.variants.map((variant) => ({
       ...variant,
       optionValues: { ...variant.optionValues },
+      sku: variant.sku ?? data.product.sku,
     })),
   });
 }
@@ -255,6 +269,7 @@ export function normalizeFashionStoreLiveProductPresentation(
   return fashionStoreProductPresentationSchema.parse({
     controls: liveControls(input.actions),
     compareAtPriceLabel: input.compareAtPriceLabel,
+    currency: input.resource.money.currency,
     description: input.description,
     gallery: input.media.map((media) => ({ ...media, kind: "url" })),
     name: input.heading,
@@ -264,21 +279,66 @@ export function normalizeFashionStoreLiveProductPresentation(
     productId: input.resource.id,
     relatedProducts: input.relatedProducts.map(normalizeFashionStoreLiveProductCard),
     slug: input.resource.slug,
-    state: input.state,
+    state: input.state === "success" ? "populated" : input.state,
     variants: input.variants,
   });
 }
 
+function fixtureVariants(data: FashionStoreFixtureProductPresentationInput["data"]) {
+  const colors = data.options.colors;
+  const sizes = data.options.sizes;
+  return colors.flatMap((color) =>
+    sizes.map((size) => ({
+      id: `preview-${color.id}-${size.id}`,
+      label: `${color.label} / ${size.label}`,
+      optionValues: { Color: color.label, Size: size.label },
+      selected: color === colors.at(-1) && size === sizes.at(-1),
+      sku: data.product.sku,
+    })),
+  );
+}
+
+/** Normalize either serializable Product source before it reaches the shared page. */
+export function normalizeFashionStoreProductPresentation(
+  input: PresentationViewModel,
+): FashionStoreProductPresentation {
+  if (input.kind === "product") return normalizeFashionStoreLiveProductPresentation(input);
+  if (input.kind !== "theme-section") {
+    throw new Error("Fashion Store Product requires a Product presentation source.");
+  }
+  const data = input.data as unknown as FashionStoreFixtureProductPresentationInput["data"];
+  return normalizeFashionStoreFixtureProductPresentation({
+    data,
+    productId: "preview-relaxed-corduroy-shirt",
+    slug: "relaxed-corduroy-shirt",
+    state: input.state === "success" ? "populated" : input.state,
+    variants: fixtureVariants(data),
+  });
+}
+
 export interface FashionStoreProductActionInput {
+  currency: string;
+  media?: FashionStoreProductPresentation["gallery"][number];
+  optionValues: Readonly<Record<string, string>>;
+  priceLabel: string;
   productId: string;
+  productName: string;
   quantity: number;
+  slug: string;
   variantId: string;
 }
 
 export interface FashionStoreProductActionOutcome {
-  kind: "succeeded" | "unavailable" | "failed";
+  kind: "succeeded" | "unavailable" | "incomplete" | "failed";
   message: string;
   priceLabel?: string;
+}
+
+export interface FashionStoreProductRuntimeState {
+  availability: "in-stock" | "out-of-stock" | "unavailable";
+  gallery: FashionStoreProductPresentation["gallery"];
+  optionGroups: FashionStoreProductPresentation["optionGroups"];
+  variants: FashionStoreProductPresentation["variants"];
 }
 
 /**
@@ -287,6 +347,9 @@ export interface FashionStoreProductActionOutcome {
  */
 export interface FashionStoreProductActionPort {
   addToCart(input: FashionStoreProductActionInput): Promise<FashionStoreProductActionOutcome>;
+  authoritative: boolean;
+  perform(input: { label: string; role: "compare" | "question" | "share" | "wishlist" }): void;
+  revalidate(): Promise<FashionStoreProductRuntimeState | null>;
 }
 
 export const fashionStoreProductActionPortKey = Symbol(

@@ -797,30 +797,20 @@ test("Product fixture updates the shared cart without reaching Commerce", async 
   });
 });
 
-test("product-reviews-tab interaction: tabs are keyboard operable and review data stays local", async ({
+test("product-reviews-tab interaction: tabs are keyboard operable and unsupported reviews stay truthful", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
-  const requests: string[] = [];
-  page.on("request", (request) => {
-    if (request.method() !== "GET") requests.push(request.url());
-  });
   await prepareProduct(page);
   const description = page.getByRole("tab", { name: "Description" });
   await description.focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Additional information" })).toBeFocused();
-  await page.getByRole("tab", { name: "Reviews (3)" }).click();
-  await expect(page.getByRole("tabpanel", { name: "Reviews (3)" })).toBeVisible();
-  await page.getByLabel("Your name*").fill("Ada");
-  await page.getByLabel("Your email address*").fill("ada@example.test");
-  await page.getByLabel(/I accept the crafto/).check();
-  await page.getByRole("button", { name: "Submit review" }).click();
-  await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
-    "data-review-attempt-count",
-    "1",
+  await page.getByRole("tab", { name: "Reviews (0)" }).click();
+  await expect(page.getByRole("tabpanel", { name: "Reviews (0)" })).toContainText(
+    "No published reviews are available.",
   );
-  expect(requests).toEqual([]);
+  await expect(page.getByRole("button", { name: "Submit review" })).toHaveCount(0);
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "product-tabs-reviews",

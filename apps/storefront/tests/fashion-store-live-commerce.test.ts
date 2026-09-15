@@ -187,23 +187,25 @@ describe("Fashion Store live commerce boundary", () => {
   test("keeps live theme surfaces on presentation view models and injected intent ports", async () => {
     const liveSources = await Promise.all([
       source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),
-      source("themes/fashion-store/components/pages/FashionStoreLiveProductPage.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
     ]);
     for (const value of liveSources) {
       expect(value).not.toMatch(/\/fixtures\/|useCommerceApi|useGuestCart|\$fetch|\bfetch\s*\(/);
     }
-    expect(liveSources[1]).toContain("runtimeCommercePortKey");
-    expect(liveSources[1]).toContain("storefrontActionAdapterKey");
+    expect(liveSources[1]).toContain("useFashionStoreProductActionPort");
+    expect(liveSources[1]).not.toContain("runtimeCommercePortKey");
+    expect(liveSources[1]).not.toContain("storefrontActionAdapterKey");
   });
 
-  test("dispatches fixture-heavy home and product implementations only for fixture view models", async () => {
-    const dispatchers = await Promise.all([
+  test("keeps the remaining Home dispatcher while Product uses one visual component", async () => {
+    const [homeRoute, productPage] = await Promise.all([
       source("themes/fashion-store/components/FashionStoreHomeRoute.vue"),
-      source("themes/fashion-store/components/pages/FashionStoreProductRoute.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
     ]);
-    expect(dispatchers.every((value) => value.includes("defineAsyncComponent"))).toBe(true);
-    expect(dispatchers[0]).toContain("viewModel.kind === 'home'");
-    expect(dispatchers[1]).toContain("viewModel.kind === 'product'");
+    expect(homeRoute).toContain("defineAsyncComponent");
+    expect(homeRoute).toContain("viewModel.kind === 'home'");
+    expect(productPage).not.toContain("defineAsyncComponent");
+    expect(productPage).not.toMatch(/viewModel\.kind\s*===\s*["']product["']/);
   });
 
   test("renders the full live Home and keeps no-JavaScript purchase controls inert", async () => {
@@ -261,14 +263,14 @@ describe("Fashion Store live commerce boundary", () => {
 
   test("uses the established accessible gallery for multi-media live products", async () => {
     const [liveProduct, gallery] = await Promise.all([
-      source("themes/fashion-store/components/pages/FashionStoreLiveProductPage.vue"),
+      source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
       source("themes/fashion-store/components/shared/FashionStoreProductGallery.vue"),
     ]);
 
-    expect(liveProduct).toContain("displayedMedia.length > 1");
+    expect(liveProduct).toContain("displayedGallery.value");
     expect(liveProduct).toContain("FashionStoreProductGallery");
     expect(liveProduct).toContain("FashionStoreProductLightbox");
-    expect(liveProduct).toContain('v-else-if="displayedMedia[0]"');
+    expect(liveProduct).toContain('v-if="galleryImages.length"');
     expect(gallery).toContain('aria-label="Product gallery"');
     expect(gallery).toContain(':alt="imageAlt(image)"');
   });
@@ -325,7 +327,7 @@ describe("Fashion Store live commerce boundary", () => {
         source("StorefrontExperience.vue"),
         source("themes/fashion-store/components/shared/FashionStoreShell.vue"),
         source("themes/fashion-store/components/pages/FashionStoreLiveContentPage.vue"),
-        source("themes/fashion-store/components/pages/FashionStoreLiveProductPage.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
         source("themes/fashion-store/components/shared/FashionStoreLiveCatalog.vue"),
         source("themes/fashion-store/components/pages/FashionStoreCartPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreCheckoutPage.vue"),
