@@ -41,7 +41,7 @@ const foundation = computed(() => resolveFashionStoreHomeFoundation(properties.v
             </div>
             <div class="feature-box-content">
               <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{ service.title }}</span>
-              <p class="fs-16 lh-24">{{ service.description }}</p>
+              <p class="fs-16 lh-24 text-dark-gray">{{ service.description }}</p>
             </div>
           </div>
         </div>

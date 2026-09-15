@@ -109,6 +109,17 @@
   outline-offset: 3px;
 }
 
+.fashion-store-home .swiper[data-motion-paused~="offscreen"] {
+  content-visibility: auto;
+}
+
+.fashion-store-home .swiper[data-motion-paused~="offscreen"] .swiper-wrapper,
+.fashion-store-home .swiper[data-motion-paused~="offscreen"] .swiper-slide {
+  transition: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
 [data-fashion-store-product] .fashion-product-secondary-actions button {
   color: var(--dark-gray);
   cursor: pointer;

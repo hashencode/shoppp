@@ -215,14 +215,14 @@ describe("Fashion Store live commerce boundary", () => {
         [
           "../sections/FashionStoreHeroSection.vue",
           "../sections/FashionStoreServicesSection.vue",
-          "Categories",
-          "BestSellers",
+          "../sections/FashionStoreCategoriesSection.vue",
+          "../sections/FashionStoreProductsSection.vue",
           "../sections/FashionStorePromotionSection.vue",
-          "CollectionFeature",
+          "../sections/FashionStoreCollectionFeatureSection.vue",
           "../sections/FashionStoreBrandStripSection.vue",
-          "FeaturedProducts",
+          "../sections/FashionStoreProductsSection.vue",
           "../sections/FashionStoreMarqueeSection.vue",
-          "Editorial",
+          "../sections/FashionStoreEditorialSection.vue",
         ].map((name) =>
           source(
             name.startsWith("../")
@@ -243,16 +243,15 @@ describe("Fashion Store live commerce boundary", () => {
       "hero",
       "services",
       "categories",
-      "best-sellers",
       "promotion",
       "collection",
       "brands",
-      "featured-products",
       "marquee",
       "magazine",
     ]) {
       expect(liveHome).toContain(`data-home-section="${section}"`);
     }
+    expect(liveHome).toContain(':data-home-section="variant"');
     expect(liveHome).not.toContain('visual-variant="home"');
     expect(productCard).toContain("runtimeCommercePortKey");
     expect(productCard).toContain("storefrontActionAdapterKey");

@@ -104,6 +104,7 @@ export const fashionStoreProductCardPresentationSchema = z
     name: z.string().trim().min(1).max(160),
     priceLabel: z.string().trim().min(1).max(80),
     productId: productIdentifierSchema,
+    visualVariant: presentationProductCardSchema.shape.visualVariant.optional(),
   })
   .strict();
 
@@ -218,6 +219,7 @@ export function normalizeFashionStoreLiveProductCard(
     name: product.name,
     priceLabel: product.priceLabel,
     productId: product.productId,
+    visualVariant: product.visualVariant,
   });
 }
 

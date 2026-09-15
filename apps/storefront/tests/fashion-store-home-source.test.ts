@@ -18,22 +18,22 @@ const componentRoot = new URL("../app/themes/fashion-store/components/", import.
 const fixtureSectionPaths = [
   "sections/FashionStoreHeroSection.vue",
   "sections/FashionStoreServicesSection.vue",
-  "sections/FashionStoreFixtureCategoriesSection.vue",
-  "sections/FashionStoreFixtureBestSellersSection.vue",
+  "sections/FashionStoreCategoriesSection.vue",
+  "sections/FashionStoreProductsSection.vue",
   "sections/FashionStorePromotionSection.vue",
-  "sections/FashionStoreFixtureCollectionFeatureSection.vue",
+  "sections/FashionStoreCollectionFeatureSection.vue",
   "sections/FashionStoreBrandStripSection.vue",
-  "sections/FashionStoreFixtureFeaturedProductsSection.vue",
+  "sections/FashionStoreProductsSection.vue",
   "sections/FashionStoreMarqueeSection.vue",
-  "sections/FashionStoreFixtureEditorialSection.vue",
+  "sections/FashionStoreEditorialSection.vue",
 ] as const;
 const regionMarkers: Readonly<Record<string, string>> = {
   brands: 'data-home-section="brands"',
-  "best-sellers": 'data-home-section="best-sellers"',
+  "best-sellers": ':data-home-section="variant"',
   categories: 'data-home-section="categories"',
   collection: 'data-home-section="collection"',
   cookie: "cookie-message",
-  "featured-products": 'data-home-section="featured-products"',
+  "featured-products": ':data-home-section="variant"',
   footer: "footer-dark",
   header: "header-with-topbar",
   hero: 'data-home-section="hero"',
@@ -142,7 +142,7 @@ describe("Fashion Store complete static source home", () => {
     expect(body).toContain("fashionStoreAssetId");
     expect(host).toContain("<FashionStoreDecorHomeBody");
     expect(model).toContain("FashionStoreDecorHomeModel");
-    expect(model).toContain("resolveFashionStoreLegacyMerchandising");
+    expect(model).toContain("resolveFashionStoreMerchandising");
   });
 
   test("pins the canonical Header, product-card, carousel, CTA, and footer seams", async () => {

@@ -86,16 +86,3 @@ export const fashionStoreMerchandisingDataSchema = fashionStoreMerchandisingInpu
     ),
   }),
 );
-
-/** Transitional reader for the existing Decor Home body; U6 removes it when
- * that component starts consuming the normalized presentation above. */
-export function resolveFashionStoreLegacyMerchandising(viewModel: PresentationViewModel) {
-  if (viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store merchandising requires a theme-section ViewModel.");
-  }
-  if (viewModel.state !== "populated") return { state: viewModel.state } as const;
-  const parsed = fashionStoreMerchandisingInputSchema.safeParse(viewModel.data.merchandising);
-  return parsed.success
-    ? ({ data: parsed.data, state: "populated" } as const)
-    : ({ state: "validation-error" } as const);
-}

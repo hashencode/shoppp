@@ -2,8 +2,9 @@
 import { Autoplay, Keyboard, Parallax } from "swiper/modules";
 import type { Swiper as SwiperInstance, SwiperOptions } from "swiper/types";
 import { Swiper, SwiperSlide } from "swiper/vue";
+import { fashionStoreMotionIntersectionVisible } from "../../composables/useFashionStoreMotionViewport";
 
-type PauseReason = "document-hidden" | "focus" | "hover" | "reduced-motion";
+type PauseReason = "document-hidden" | "focus" | "hover" | "offscreen" | "reduced-motion";
 
 const properties = withDefaults(
   defineProps<{
@@ -75,6 +76,7 @@ const paused = computed(() => [...pauseReasons].join(","));
 const effectiveSpeed = computed(() => (reducedMotion.value ? 0 : properties.speedMs));
 
 let reducedMotionQuery: MediaQueryList | undefined;
+let viewportObserver: IntersectionObserver | undefined;
 
 function handleReducedMotion(): void {
   reducedMotion.value = reducedMotionQuery?.matches === true;
@@ -121,6 +123,17 @@ function handleSwiper(instance: SwiperInstance): void {
   syncActiveIndex(instance);
   syncDirection(instance);
   hydrated.value = true;
+  if ("IntersectionObserver" in window) {
+    setPause("offscreen", true);
+    viewportObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries.find(({ target }) => target === instance.el);
+        if (entry) setPause("offscreen", !fashionStoreMotionIntersectionVisible(entry));
+      },
+      { threshold: 0 },
+    );
+    viewportObserver.observe(instance.el);
+  }
   syncAutoplay();
 }
 
@@ -163,6 +176,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   reducedMotionQuery?.removeEventListener("change", handleReducedMotion);
   document.removeEventListener("visibilitychange", handleVisibility);
+  viewportObserver?.disconnect();
+  viewportObserver = undefined;
 });
 
 defineExpose({ next, previous, select, swiper: carousel });
@@ -195,6 +210,7 @@ defineExpose({ next, previous, select, swiper: carousel });
     :data-motion-paused="paused"
     :data-motion-phase="motionPhase"
     :data-motion-ready="hydrated"
+    :data-semantic-slide-count="semanticCount"
     @swiper="handleSwiper"
     @slide-change="syncActiveIndex"
     @transition-start="motionPhase = 'transition'"

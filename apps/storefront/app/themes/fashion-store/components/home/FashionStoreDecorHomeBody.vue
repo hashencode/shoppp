@@ -4,13 +4,12 @@ import type { Swiper as SwiperInstance, SwiperOptions } from "swiper/types";
 import { Swiper, SwiperSlide } from "swiper/vue";
 
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationProductCard } from "../../../../theme-engine/view-models";
 import { fashionStoreAssetId } from "../../resources";
 import {
   fashionStoreDecorProductsMessage,
   type FashionStoreDecorHomeModel,
 } from "../../contracts/decor-home";
-import type { FashionStoreLegacyProductCard } from "../../contracts/product-card";
+import type { FashionStoreProductCardPresentation } from "../../contracts/product-card";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { useFashionStoreMotionViewport } from "../../composables/useFashionStoreMotionViewport";
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
@@ -27,16 +26,12 @@ function asset(path: string): string {
   return properties.resolveAsset(fashionStoreAssetId(path));
 }
 
-const currentProducts = computed<
-  readonly (FashionStoreLegacyProductCard | PresentationProductCard)[]
->(() => {
+const currentProducts = computed<readonly FashionStoreProductCardPresentation[]>(() => {
   if (properties.model.merchandising.state !== "populated") return [];
   const group = properties.model.merchandising.data.groups.find(
     ({ id }) => id === selectedGroup.value,
   );
-  return (group?.products ?? []) as readonly (
-    FashionStoreLegacyProductCard | PresentationProductCard
-  )[];
+  return group?.products ?? [];
 });
 
 const productsMessage = computed(() =>
@@ -48,30 +43,24 @@ const collectionProducts = computed(() => {
   if (merchandising.state !== "populated") return [];
   const products =
     merchandising.data.groups.find(({ id }) => id === "best-sellers")?.products ?? [];
-  return products.slice(0, 3).map((product) => {
-    if ("staticPurchase" in product) {
-      return {
-        actionState: product.actionState.kind,
-        alt: product.media?.alt ?? product.name,
-        href: product.href,
-        id: product.productId,
-        image: product.media?.src,
-        name: product.name,
-        originalPrice: "",
-        price: product.priceLabel,
-      };
-    }
-    return {
-      actionState: "available",
-      alt: product.name,
-      href: fashionStoreRoutePaths.product,
-      id: product.id,
-      image: asset(product.sourceImage),
-      name: product.name,
-      originalPrice: product.originalPrice,
-      price: product.price,
-    };
-  });
+  return products.slice(0, 3).map((product) => ({
+    actionState: product.actionState.kind,
+    alt: product.media?.alt ?? product.name,
+    href:
+      product.destination.kind === "available"
+        ? product.destination.href
+        : fashionStoreRoutePaths.product,
+    id: product.productId,
+    image:
+      product.media?.kind === "url"
+        ? product.media.src
+        : product.media
+          ? asset(product.media.path)
+          : undefined,
+    name: product.name,
+    originalPrice: product.compareAtPriceLabel ?? "",
+    price: product.priceLabel,
+  }));
 });
 
 const collectionIndex = ref(0);
@@ -506,7 +495,7 @@ onBeforeUnmount(() => {
                       <li class="grid-sizer"></li>
                       <FashionStoreProductCard
                         v-for="product in currentProducts.slice(0, 8)"
-                        :key="'productId' in product ? product.productId : product.id"
+                        :key="product.productId"
                         :product="product"
                         :resolve-asset="resolveAsset"
                         :surface="'home-merchandising'"

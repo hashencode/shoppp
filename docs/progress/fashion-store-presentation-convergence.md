@@ -104,3 +104,17 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - Combined and isolated Home browser profiles each passed 12 applicable cases with 12 viewport-specific skips, covering desktop/mobile, normal/reduced-motion, composition, route behavior, and approved presentations.
 - Motion/performance browser evidence passed 2/2 across desktop DPR2 and mobile DPR3. Visible Hero budgets remained within thresholds; offscreen and reduced-motion samples recorded zero animation frames and zero layer/paint lifecycle work.
 - Storefront typecheck, affected lint/format, repository boundary, and diff checks completed before commit. Generated/public artifacts were restored to the committed remote-live state; existing Nuxt conditional layout/page and renderer `instance` warnings remain unchanged.
+
+## 2026-09-15 — U6 Home editorial and merchandising implementation checkpoint
+
+### Outcome
+
+- Fixture and live successor registries now resolve Categories, Collection Feature, Editorial, Best Sellers, Featured Products, Products, and Product Merchandising through shared components and normalized Home contracts. Twelve paired provider-specific components are removed.
+- Live product cards retain Catalog identities, R2 media, current/compare-at prices, purchase routing, truthful empty/error states, and runtime Commerce actions; fixture cards retain local preview actions. Editorial/theme content no longer borrows fixture-only counts, dates, authors, or sale claims in live mode.
+- The shared carousel now pauses autoplay outside the viewport and exposes its semantic slide count. This removed the reproducible offscreen Swiper animation leak; offscreen and reduced-idle performance samples now report zero effective work.
+
+### Verification and open gate
+
+- Focused Home/registry/Commerce tests, Storefront typecheck, live Home/Commerce browser coverage, fixture desktop/responsive critical paths, and combined/isolated Home matrices passed. Paired component names and the legacy merchandising reader are absent from runtime source.
+- U6 is not complete: the unchanged dedicated motion/performance gate remains red on visible-Hero Layerize and RunTask budgets after convergence. A clean exported U5 control measured 200.665 ms Layerize and 1298.672 ms RunTask in the same environment; current U6 desktop samples repeatedly measured roughly 566–711 ms Layerize and 1459–1828 ms RunTask. The control itself narrowly missed only RunTask in that sample, while U6 reproducibly adds a material Layerize regression.
+- Thresholds were not changed. Temporary visibility, containment, transition, and component-family isolation probes were removed after they failed to identify a safe production fix. The next action remains U6.3 profiling and optimization; U7 has not started.

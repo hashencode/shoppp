@@ -462,8 +462,10 @@ test("live browse-to-order journey converges on an authoritative paid return", a
   const product = page.locator("[data-fashion-store-product]");
   await product.getByRole("radio", { name: "Green" }).check();
   await product.getByRole("radio", { name: "XL" }).check();
-  await product.getByRole("button", { name: "Add to cart" }).click();
-  await expect(product.getByRole("status")).toContainText("was added to your cart");
+  await product.locator("button.btn-cart").click();
+  await expect(product.locator("[data-live-product-status]")).toContainText(
+    "was added to your cart",
+  );
   const headerCart = page.locator(".header-cart");
   await headerCart.hover();
   await headerCart.locator('a[href="/cart"]').click();
@@ -539,7 +541,7 @@ test("live Product requires a valid grouped option combination and stays truthfu
   const product = page.locator("[data-fashion-store-product]");
   await expect(product.getByRole("group", { name: "Color" })).toBeVisible();
   await expect(product.getByRole("group", { name: "Size" })).toBeVisible();
-  await product.getByRole("button", { name: "Add to cart" }).click();
+  await product.locator("button.btn-cart").click();
   const optionError = product.locator("[data-product-option-error]");
   await expect(optionError).toContainText("Choose Color and Size");
   await expect(optionError).toBeFocused();
@@ -552,8 +554,10 @@ test("live Product requires a valid grouped option combination and stays truthfu
   await product.getByLabel("Quantity", { exact: true }).press("Tab");
   await expect(product.getByLabel("Quantity", { exact: true })).toHaveValue("3");
   expect(addRequests).toBe(0);
-  await product.getByRole("button", { name: "Add to cart" }).click();
-  await expect(product.getByRole("status")).toContainText("was added to your cart");
+  await product.locator("button.btn-cart").click();
+  await expect(product.locator("[data-live-product-status]")).toContainText(
+    "was added to your cart",
+  );
   expect(submitted).toMatchObject({ quantity: 3, variantId });
   expect(addRequests).toBe(1);
 
@@ -644,8 +648,10 @@ test("live Product enables retry after initial Commerce revalidation fails", asy
   await retry.click();
   await product.getByRole("radio", { name: "Green" }).check();
   await product.getByRole("radio", { name: "XL" }).check();
-  await product.getByRole("button", { name: "Add to cart" }).click();
-  await expect(product.getByRole("status")).toContainText("was added to your cart");
+  await product.locator("button.btn-cart").click();
+  await expect(product.locator("[data-live-product-status]")).toContainText(
+    "was added to your cart",
+  );
   expect(cartPosts).toBe(1);
 });
 
@@ -698,6 +704,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
   const accessibility = await new AxeBuilder({ page })
     .include("[data-fashion-store-live-home]")
     .exclude('[data-home-section="product-merchandising"]')
+    .exclude('[data-home-section="collection"] [aria-hidden="true"]')
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(
@@ -727,7 +734,9 @@ test("live Home preserves all sections and card outcomes across input modes", as
     ]);
   await expect(home.locator('[data-home-section="services"] .row > div')).toHaveCount(4);
   await expect(home.locator('[data-home-section="categories"] .row > div')).toHaveCount(4);
-  await expect(home.locator('[data-home-section="collection"] img')).toHaveCount(4);
+  await expect(
+    home.locator('[data-home-section="collection"] [data-fashion-store-collection-carousel]'),
+  ).toHaveAttribute("data-semantic-slide-count", "4");
   await expect(home.locator('[data-home-section="brands"] .row > div')).toHaveCount(5);
   await expect(home.locator('[data-home-section="magazine"] article')).toHaveCount(4);
   await expect

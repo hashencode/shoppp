@@ -1,16 +1,25 @@
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
+import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { SectionInstance } from "@shoppp/contracts";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { homeViewModelSchema } from "../../../../theme-engine/view-models";
 import { fashionStoreAssetId } from "../../resources";
 import { fashionStoreHomeDataSchema, type FashionStoreHomeData } from "../../fixtures/home";
 import { resolveFashionStoreHomePresentation } from "../../contracts/home-presentation";
-import { resolveFashionStoreMerchandising } from "../../contracts/home-merchandising";
+import {
+  buildFashionStoreMerchandisingGroups,
+  fashionStoreMerchandisingDataSchema,
+  resolveFashionStoreMerchandising,
+} from "../../contracts/home-merchandising";
 import {
   fashionStoreHomeBrands,
+  fashionStoreHomeCategories,
+  fashionStoreHomeCollectionImages,
   fashionStoreHomeMarquee,
+  fashionStoreHomeMagazine,
   fashionStoreHomeServices,
 } from "./home-content";
+import { fashionStoreRoutePaths } from "../../page-contracts";
 
 export interface FashionStoreHomeSectionProperties {
   instance: SectionInstance;
@@ -39,8 +48,40 @@ export interface FashionStoreHomeFoundationPresentation {
   }[];
 }
 
+export interface FashionStoreHomeEditorialPresentation {
+  categories: readonly {
+    href: string;
+    itemCount?: string;
+    name: string;
+    sourceImage: string;
+  }[];
+  collection: {
+    description?: string;
+    eyebrow: string;
+    href: string;
+    items: readonly { name: string; sourceImage: string; subtitle?: string }[];
+    title: { emphasis?: string; lead: string };
+  };
+  magazine: readonly {
+    articleHref: string;
+    author?: string;
+    date?: string;
+    indexHref: string;
+    name: string;
+    sourceImage: string;
+  }[];
+}
+
 const parsedFixtureHome = new WeakMap<object, FashionStoreHomeData>();
 const parsedLiveHome = new WeakMap<object, LiveHomeViewModel>();
+
+function isLiveHomeViewModel(viewModel: PresentationViewModel): boolean {
+  return (
+    viewModel.kind === "home" ||
+    (viewModel.kind === "theme-section" &&
+      homeViewModelSchema.safeParse(viewModel.data.home).success)
+  );
+}
 
 export function resolveFixtureHomeData(viewModel: PresentationViewModel): FashionStoreHomeData {
   if (viewModel.kind !== "theme-section") {
@@ -106,22 +147,122 @@ function liveFoundation(data: LiveHomeViewModel): FashionStoreHomeFoundationPres
 export function resolveFashionStoreHomeFoundation(
   viewModel: PresentationViewModel,
 ): FashionStoreHomeFoundationPresentation {
-  const live =
-    viewModel.kind === "home" ||
-    (viewModel.kind === "theme-section" &&
-      homeViewModelSchema.safeParse(viewModel.data.home).success);
-  return live
+  return isLiveHomeViewModel(viewModel)
     ? liveFoundation(resolveLiveHomeData(viewModel))
     : fixtureFoundation(resolveFixtureHomeData(viewModel));
+}
+
+export function resolveFashionStoreHomeEditorial(
+  viewModel: PresentationViewModel,
+): FashionStoreHomeEditorialPresentation {
+  if (isLiveHomeViewModel(viewModel)) {
+    const data = resolveLiveHomeData(viewModel);
+    return {
+      categories: fashionStoreHomeCategories.map(([name, sourceImage]) => ({
+        href: data.featuredCollection.href,
+        name,
+        sourceImage,
+      })),
+      collection: {
+        eyebrow: "Curated for you",
+        href: data.featuredCollection.href,
+        items: fashionStoreHomeCollectionImages.map((sourceImage, index) => ({
+          name: `${data.featuredCollection.name} look ${index + 1}`,
+          sourceImage,
+        })),
+        title: { lead: data.featuredCollection.name },
+      },
+      magazine: fashionStoreHomeMagazine.map(([name, sourceImage]) => ({
+        articleHref: fashionStoreRoutePaths.article,
+        indexHref: fashionStoreRoutePaths.magazine,
+        name,
+        sourceImage,
+      })),
+    };
+  }
+
+  const data = resolveFixtureHomeData(viewModel);
+  return {
+    categories: data.categories.map((category) => ({
+      ...category,
+      href: fashionStoreRoutePaths.collection,
+    })),
+    collection: {
+      description: "Flash summer sale 70% off on selected collection for him.",
+      eyebrow: "Lookbook 2023",
+      href: fashionStoreRoutePaths.collection,
+      items: data.collection,
+      title: { emphasis: "collection", lead: "New arrival" },
+    },
+    magazine: data.magazine.map((entry) => ({
+      ...entry,
+      articleHref: fashionStoreRoutePaths.article,
+      indexHref: fashionStoreRoutePaths.magazine,
+    })),
+  };
+}
+
+export function resolveFashionStoreHomeProductActions(
+  viewModel: PresentationViewModel,
+): Partial<Record<"cart" | "quickView" | "wishlist", PreviewAction>> {
+  if (isLiveHomeViewModel(viewModel)) {
+    return {};
+  }
+  const data = resolveFixtureHomeData(viewModel);
+  return {
+    cart: data.cartAction,
+    quickView: data.quickViewAction,
+    wishlist: data.wishlistAction,
+  };
 }
 
 export function resolveFashionStoreHomeSectionContext(
   viewModel: PresentationViewModel,
 ): FashionStoreHomeSectionContext {
-  const merchandising =
-    viewModel.kind === "theme-section" && Object.hasOwn(viewModel.data, "merchandising")
-      ? resolveFashionStoreMerchandising(viewModel)
-      : undefined;
+  let merchandising: ReturnType<typeof resolveFashionStoreMerchandising> | undefined;
+  if (viewModel.kind === "theme-section" && viewModel.data.merchandising !== undefined) {
+    merchandising = resolveFashionStoreMerchandising(viewModel);
+  } else if (isLiveHomeViewModel(viewModel)) {
+    const home = resolveLiveHomeData(viewModel);
+    merchandising =
+      home.state === "populated"
+        ? {
+            data: fashionStoreMerchandisingDataSchema.parse({
+              groups: buildFashionStoreMerchandisingGroups(home.products, home.featuredProduct),
+            }),
+            state: "populated",
+          }
+        : { state: home.state };
+  } else if (
+    viewModel.kind === "theme-section" &&
+    viewModel.data.sectionType === "fashion-store.products"
+  ) {
+    const home = resolveFixtureHomeData(viewModel);
+    const normalizeInput = (product: FashionStoreHomeData["bestSellers"][number], id: string) => ({
+      ...product,
+      categories: [],
+      colors: [],
+      id,
+      sizes: [],
+      tags: [],
+    });
+    const bestSellers = home.bestSellers.map((product, index) =>
+      normalizeInput(product, `fashion-store-merchandising-${index + 1}`),
+    );
+    const featured = home.featuredProducts.map((product, index) =>
+      normalizeInput(product, `fashion-store-featured-${index + 1}`),
+    );
+    merchandising = {
+      data: fashionStoreMerchandisingDataSchema.parse({
+        groups: [
+          { id: "new-arrivals", products: bestSellers.slice(-8).reverse() },
+          { id: "best-sellers", products: bestSellers },
+          { id: "featured", products: featured },
+        ],
+      }),
+      state: "populated",
+    };
+  }
   return {
     ...(merchandising ? { merchandising } : {}),
     presentation:

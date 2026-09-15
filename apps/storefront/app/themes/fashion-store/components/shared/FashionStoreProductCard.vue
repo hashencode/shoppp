@@ -120,7 +120,9 @@ const card = computed(() => {
   };
 });
 
-const cardVariant = computed(() => liveCard.value?.visualVariant ?? "default");
+const cardVariant = computed(
+  () => normalizedCard.value?.visualVariant ?? liveCard.value?.visualVariant ?? "default",
+);
 const wishlistContext = computed(() => properties.context === "wishlist");
 const directPurchase = computed(() => {
   const purchase = liveCard.value?.staticPurchase ?? normalizedCommerce.value?.staticPurchase;
@@ -389,7 +391,7 @@ watch(
           >{{ card.price }}
         </div>
         <p
-          v-if="liveCard"
+          v-if="liveCard || normalizedCommerce"
           class="visually-hidden"
           :role="actionState === 'retry' ? 'alert' : 'status'"
           aria-live="polite"

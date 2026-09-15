@@ -741,13 +741,18 @@ describe("Fashion Store preview registration", () => {
     }
   });
 
-  test("shares foundational Home section owners across fixture and live registries", () => {
+  test("shares converged Home section owners across fixture and live registries", () => {
     for (const type of [
       "fashion-store.hero",
       "fashion-store.services",
       "fashion-store.promotion",
       "fashion-store.brand-strip",
       "fashion-store.marquee",
+      "fashion-store.categories",
+      "fashion-store.collection-feature",
+      "fashion-store.editorial",
+      "fashion-store.products",
+      "fashion-store.product-merchandising",
     ]) {
       expect(fixtureThemeRegistry.sections[type]).toBe(themeRegistry.sections[type]);
     }
@@ -765,16 +770,10 @@ describe("Fashion Store preview registration", () => {
         "FashionStorePromotionSection.vue",
         "FashionStoreBrandStripSection.vue",
         "FashionStoreMarqueeSection.vue",
-        ...[
-          "Categories",
-          "BestSellers",
-          "CollectionFeature",
-          "FeaturedProducts",
-          "Editorial",
-        ].flatMap((name) => [
-          `FashionStoreFixture${name}Section.vue`,
-          `FashionStoreLive${name}Section.vue`,
-        ]),
+        "FashionStoreProductsSection.vue",
+        "FashionStoreCategoriesSection.vue",
+        "FashionStoreCollectionFeatureSection.vue",
+        "FashionStoreEditorialSection.vue",
       ].map((name) => readFile(resolve(sectionDirectory, name), "utf8")),
     );
     for (const source of sectionSources) {
