@@ -1562,15 +1562,15 @@ export async function captureThemeRouteRegion(options: {
           source.addStyleTag({
             content: mixedSourceRegions
               .map(
-                ({ pageSourceSelector }) =>
-                  `${pageSourceSelector} { display: none !important; }`,
+                ({ pageSourceSelector }) => `${pageSourceSelector} { display: none !important; }`,
               )
               .join("\n"),
           }),
           implementation.addStyleTag({
             content: mixedSourceRegions
-              .map(({ implementationSelector, pageImplementationSelector }) =>
-                `${pageImplementationSelector ?? implementationSelector} { display: none !important; }`,
+              .map(
+                ({ implementationSelector, pageImplementationSelector }) =>
+                  `${pageImplementationSelector ?? implementationSelector} { display: none !important; }`,
               )
               .join("\n"),
           }),
@@ -1690,9 +1690,10 @@ export async function captureThemeRouteRegion(options: {
         ]);
       if (!fullPage && region.sourcePixelIgnoreSelectors?.length)
         await source.addStyleTag({
-          content: region.sourcePixelIgnoreSelectors
-            .map((selector) => `${region.sourceSelector} ${selector}`)
-            .join(", ") + " { visibility: hidden !important; }",
+          content:
+            region.sourcePixelIgnoreSelectors
+              .map((selector) => `${region.sourceSelector} ${selector}`)
+              .join(", ") + " { visibility: hidden !important; }",
         });
       const mutuallyHidden =
         region.kind !== "full-page-smoke" &&

@@ -20,12 +20,12 @@ The U9 runtime lifecycle contract passed 3/3. Four focused browser checks confir
 
 The same Chromium 151 desktop, no-preference, cold-route probe produced the following cumulative encoded-body totals. Every route used only the local origin, and every final route requested exactly two font files (Figtree and Outfit). No legacy plugin CSS, icon-font file, jQuery script or monolithic vendor script was requested.
 
-| Route | U1 baseline | U10 result | Reduction | Final JS | Final CSS | Final fonts |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `/` | 1,432,403 B | 431,124 B | 69.9% | 242,930 B | 135,931 B | 52,263 B |
-| `/cart` | 920,363 B | 401,657 B | 56.4% | 213,463 B | 135,931 B | 52,263 B |
-| `/checkout` | 924,587 B | 405,192 B | 56.2% | 216,998 B | 135,931 B | 52,263 B |
-| `/products/relaxed-corduroy-shirt` | 1,110,279 B | 443,905 B | 60.0% | 254,807 B | 136,835 B | 52,263 B |
-| `/shop` | 1,075,817 B | 428,828 B | 60.1% | 240,634 B | 135,931 B | 52,263 B |
+| Route                              | U1 baseline | U10 result | Reduction |  Final JS | Final CSS | Final fonts |
+| ---------------------------------- | ----------: | ---------: | --------: | --------: | --------: | ----------: |
+| `/`                                | 1,432,403 B |  431,124 B |     69.9% | 242,930 B | 135,931 B |    52,263 B |
+| `/cart`                            |   920,363 B |  401,657 B |     56.4% | 213,463 B | 135,931 B |    52,263 B |
+| `/checkout`                        |   924,587 B |  405,192 B |     56.2% | 216,998 B | 135,931 B |    52,263 B |
+| `/products/relaxed-corduroy-shirt` | 1,110,279 B |  443,905 B |     60.0% | 254,807 B | 136,835 B |    52,263 B |
+| `/shop`                            | 1,075,817 B |  428,828 B |     60.1% | 240,634 B | 135,931 B |    52,263 B |
 
 The machine-readable before/after breakdown, including transfer bytes, request counts, browser version and origins, is retained in [the final resource baseline](fashion-store-final-resource-baseline.json). Static generation, static verification and all per-route initial-JavaScript budgets passed with the final dependency boundary.

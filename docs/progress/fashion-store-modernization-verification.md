@@ -17,18 +17,18 @@ build targets remain implementation constraints and are not presented as device 
 
 ## Final verification matrix
 
-| Verification | Result |
-| --- | --- |
-| `bun run test:fashion-store` | Passed: 34 unit tests, 15 live tests, 240 fixture browser tests; 204 expected skips. All 16 behavior-report verifiers passed. |
-| Full compatibility entry | Passed: 84/84 across available Chromium, Firefox, and WebKit projects, desktop/mobile viewports, ordinary/reduced motion, temporal checks, and no-JS checks. |
-| Representative deep cross-browser matrix | Passed: 24 tests; 12 expected skips. Covered desktop/mobile gallery behavior, modal module failure/retry, first-touch behavior, and Tooltip placement in all three engines. |
-| Desktop drag and WebKit mobile tap probe | Passed: 2/2; dragging does not open the lightbox and a mobile tap does. |
-| `bun run test:perf:fashion-store -- --workers=1` | Passed: 1/1 performance suite. The home cold attempt missed the performance/LCP gate and the allowed retry passed; all other named routes passed on their recorded attempts. |
-| Static generation and verification | Passed: Nuxt preview generation, `finalize-static.ts`, `verify-static.ts`, bundle budget, and selected-theme isolation. |
-| Initial JS gzip budget | Passed on every Fashion Store route. `/` 73,719 bytes; shop/collection variants 69,587; product 82,769; cart 70,955; checkout 72,842; remaining named routes 78,139, all below 307,200 bytes. |
-| `bun run typecheck` | Passed. |
-| Root `bun run lint` | Passed: ESLint, import boundaries, and Admin lint. |
-| `git diff --check` | Passed. |
+| Verification                                     | Result                                                                                                                                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run test:fashion-store`                     | Passed: 34 unit tests, 15 live tests, 240 fixture browser tests; 204 expected skips. All 16 behavior-report verifiers passed.                                                                 |
+| Full compatibility entry                         | Passed: 84/84 across available Chromium, Firefox, and WebKit projects, desktop/mobile viewports, ordinary/reduced motion, temporal checks, and no-JS checks.                                  |
+| Representative deep cross-browser matrix         | Passed: 24 tests; 12 expected skips. Covered desktop/mobile gallery behavior, modal module failure/retry, first-touch behavior, and Tooltip placement in all three engines.                   |
+| Desktop drag and WebKit mobile tap probe         | Passed: 2/2; dragging does not open the lightbox and a mobile tap does.                                                                                                                       |
+| `bun run test:perf:fashion-store -- --workers=1` | Passed: 1/1 performance suite. The home cold attempt missed the performance/LCP gate and the allowed retry passed; all other named routes passed on their recorded attempts.                  |
+| Static generation and verification               | Passed: Nuxt preview generation, `finalize-static.ts`, `verify-static.ts`, bundle budget, and selected-theme isolation.                                                                       |
+| Initial JS gzip budget                           | Passed on every Fashion Store route. `/` 73,719 bytes; shop/collection variants 69,587; product 82,769; cart 70,955; checkout 72,842; remaining named routes 78,139, all below 307,200 bytes. |
+| `bun run typecheck`                              | Passed.                                                                                                                                                                                       |
+| Root `bun run lint`                              | Passed: ESLint, import boundaries, and Admin lint.                                                                                                                                            |
+| `git diff --check`                               | Passed.                                                                                                                                                                                       |
 
 The compatibility run used the locally available engine versions recorded by the U1 baseline:
 Chromium 151.0.7922.34, Playwright Firefox 153.0, and Playwright WebKit 26.5. The matrix uses
@@ -39,14 +39,14 @@ viewport scenarios into silent skips.
 
 Final Lighthouse results retained by the run:
 
-| Route | Performance | LCP | TBT | CLS |
-| --- | ---: | ---: | ---: | ---: |
-| `/` | 0.74 first attempt; 1.00 retry | 5,574.57 ms first; 1,127.17 ms retry | 46 ms first; 0 ms retry | 0.00098456 |
-| `/shop` | 1.00 | 1,278.09 ms | 0.5 ms | 0.0006736 |
-| `/products/relaxed-corduroy-shirt` | 0.93 | 3,155.34 ms | 2 ms | 0.0000748 |
-| `/cart` | 1.00 | 1,427.29 ms | 0 ms | 0.0012279 |
-| `/checkout` | 1.00 | 1,427.00 ms | 0 ms | 0 |
-| `/magazine` | 1.00 | 1,515.01 ms | 0 ms | 0.0004332 |
+| Route                              |                    Performance |                                  LCP |                     TBT |        CLS |
+| ---------------------------------- | -----------------------------: | -----------------------------------: | ----------------------: | ---------: |
+| `/`                                | 0.74 first attempt; 1.00 retry | 5,574.57 ms first; 1,127.17 ms retry | 46 ms first; 0 ms retry | 0.00098456 |
+| `/shop`                            |                           1.00 |                          1,278.09 ms |                  0.5 ms |  0.0006736 |
+| `/products/relaxed-corduroy-shirt` |                           0.93 |                          3,155.34 ms |                    2 ms |  0.0000748 |
+| `/cart`                            |                           1.00 |                          1,427.29 ms |                    0 ms |  0.0012279 |
+| `/checkout`                        |                           1.00 |                          1,427.00 ms |                    0 ms |          0 |
+| `/magazine`                        |                           1.00 |                          1,515.01 ms |                    0 ms |  0.0004332 |
 
 The retained same-route cold Chromium resource comparison records cumulative compressed JS, CSS,
 and font reductions of 56.2%-69.9% across home, shop, product, cart, and checkout. Exact request

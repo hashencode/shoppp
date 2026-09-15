@@ -51,14 +51,7 @@ test("Canonical Footer follows representative short and long route bodies", asyn
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Shell-fit evidence runs once.");
 
-  const routes = [
-    "/",
-    "/products/relaxed-corduroy-shirt",
-    "/shop",
-    "/about",
-    "/cart",
-    "/checkout",
-  ];
+  const routes = ["/", "/products/relaxed-corduroy-shirt", "/shop", "/about", "/cart", "/checkout"];
   let canonicalWidth: number | undefined;
 
   for (const route of routes) {

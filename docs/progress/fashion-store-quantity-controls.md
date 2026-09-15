@@ -4,12 +4,12 @@ The [FS-R1 plan](../plans/2026-09-03-1750-refactor-fashion-store-components-depe
 
 ## Existing contracts
 
-| Consumer | Authority and normalization | Submission |
-| --- | --- | --- |
-| Fixture Product | Page-local quantity; finite values floor/clamp to 1–20, invalid values become 1 through `clampFashionStoreProductQuantity` | Buttons and committed text edits call `updateQuantity`; unchanged values do not record a preview intent; no Commerce request |
-| Live Product | Page-local requested quantity; `MAX_CART_LINE_QUANTITY` in the shared Commerce contract is 20; `verifyProductCartAdd` remains the inventory/price and final normalization boundary | Editing quantity is local; Add remains the existing verified action with its pending/error state |
-| Fixture Cart | Fixture line owns quantity; floor/clamp to 1–20 | A committed change updates the local fixture and preview intent only |
-| Live Cart | Existing cart owner owns quantity and monetary totals; floor/clamp to 1–20 | One committed change invokes the existing cart port once; pending disables edits and failure retains the authoritative cart |
+| Consumer        | Authority and normalization                                                                                                                                                        | Submission                                                                                                                   |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Fixture Product | Page-local quantity; finite values floor/clamp to 1–20, invalid values become 1 through `clampFashionStoreProductQuantity`                                                         | Buttons and committed text edits call `updateQuantity`; unchanged values do not record a preview intent; no Commerce request |
+| Live Product    | Page-local requested quantity; `MAX_CART_LINE_QUANTITY` in the shared Commerce contract is 20; `verifyProductCartAdd` remains the inventory/price and final normalization boundary | Editing quantity is local; Add remains the existing verified action with its pending/error state                             |
+| Fixture Cart    | Fixture line owns quantity; floor/clamp to 1–20                                                                                                                                    | A committed change updates the local fixture and preview intent only                                                         |
+| Live Cart       | Existing cart owner owns quantity and monetary totals; floor/clamp to 1–20                                                                                                         | One committed change invokes the existing cart port once; pending disables edits and failure retains the authoritative cart  |
 
 The shared input may hold an unfinished text draft, but cannot own committed cart state, inventory, requests or money. A commit must restore the displayed controlled value even when normalization produces the same value or the owner rejects an asynchronous update. Product, Cart and the plain live number input retain their existing markup classes and labels; no extra live increment/decrement controls are introduced.
 

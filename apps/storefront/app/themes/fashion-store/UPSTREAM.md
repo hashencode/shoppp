@@ -45,34 +45,34 @@ resolver IDs and build imports are declared in `decor-home-assets.ts`; each dige
 both the named source file and the same-named delivered file. No script, stylesheet, product fact,
 or retired runtime was copied.
 
-| Source and delivered file | Intrinsic size | Source and delivered SHA-256 |
-| --- | --- | --- |
-| `demo-decor-store-banner-04.jpg` | `1280x640` | `66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f` |
-| `demo-decor-store-blog-03.jpg` | `600x445` | `2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743` |
-| `demo-decor-store-blog-04.jpg` | `600x445` | `3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76` |
-| `demo-decor-store-blog-07.jpg` | `600x445` | `d8b50dc900e773d22ceec74b7e22d135c5977c5be7336126592d9870fb159201` |
-| `demo-decor-store-blog-08.jpg` | `600x445` | `72d5fb42009c6b87366ce970d3d1b94d63628ed5af418de888076baabb000b3c` |
-| `demo-decor-store-client-01.png` | `195x50` | `8afe51f61a3ac538a02100806701fa42b6859cea86aade4f8ab2b291823438c2` |
-| `demo-decor-store-client-02.png` | `195x50` | `72acf1c388d1bf3bbf6cb7625d74c77a520557656299385d1b7d1c7ed33c1605` |
-| `demo-decor-store-client-03.png` | `195x50` | `9b7162520bfc801de37b564544881f8fa3660eab5b23ade402447ade0e9d9dd3` |
-| `demo-decor-store-client-04.png` | `195x50` | `f89ec329ce508494d030288064e3c66d558ae3915683027903b5ac7b4c8d78ee` |
-| `demo-decor-store-client-05.png` | `195x50` | `549242dd7871041c7dd21b784d2a8996c4600697b78cc75cd6cc7061e46bfa49` |
-| `demo-decor-store-icon-01.png` | `65x65` | `1e88b606ad380b33347b426e4b2c18d15ba2ff16ebb8bfc6fd79e6abf7ac1e88` |
-| `demo-decor-store-icon-02.png` | `65x65` | `f0b3f3f195abf4df9e90c55fa0fac98b1c61f48088a17f68534d888d83406a21` |
-| `demo-decor-store-icon-03.png` | `65x65` | `36690cf010c6186567803fbd679a1a1c2da1807368a7b82caa74d9bb80a8cdb4` |
-| `demo-decor-store-icon-04.png` | `65x65` | `4e69b6fd34a250206cc79fb81fbe6de12f415b0c348d53408cf7be6b2ed228b2` |
-| `demo-decor-store-icon-05.png` | `65x65` | `976204602bbffccce8fa6e627052143a14c39561b858943d8a26bb857e3b16d0` |
-| `demo-decor-store-icon-06.png` | `60x50` | `2388c1af1eb90062847124bbdb9f6add7b766bda4914385263efa1408e4a86fb` |
-| `demo-decor-store-icon-07.png` | `60x50` | `91c6b093e916549dfa92cb2c3d31369a20179da4c5cab06d57c70c057322e24e` |
-| `demo-decor-store-icon-08.png` | `60x50` | `a4607c544042891bd0f79a281f0378f9c360bf0e37177bb4b2d9435485f10018` |
-| `demo-decor-store-icon-09.png` | `60x50` | `276855245df061ac56175dcde73c07b19cfa729459b8f6e2d9f05ec5a9790533` |
-| `demo-decor-store-icon-10.png` | `65x65` | `5c8f8e6aee635452d9763a525dac168faa994355e56a75bd7b81052ab606e21b` |
-| `demo-decor-store-logo-black.png` | `167x36` | `667d763440051f4275c39499fa3ab0f6dd2ee3c267f4537993c63ade5c04211c` |
-| `demo-decor-store-logo-black@2x.png` | `334x72` | `4043b614c16e96f3615b81bb1639cd1dfe0aabb8f9222b4ee53efbab61ff7018` |
-| `demo-decor-store-main-banner-01.jpg` | `580x540` | `0369707b74459e63e93524405f1b1b2f0a2fbf96f81549f2f61d16640b450425` |
-| `demo-decor-store-main-banner-02.jpg` | `580x260` | `1edf394126b5134f74c9a84a669e9eeef7f6fe8102a1a9651a6f4b81bdcb27d6` |
-| `demo-decor-store-main-banner-03.jpg` | `580x260` | `56fe556e846fdf9c53eb64c6f7eca496310d96d0a7470dbe822fd106e006e81a` |
-| `demo-decor-store-product-slider-bg-img.jpg` | `640x640` | `c8eaee3addc081649d4bf7209dcbfd89c152d020266056cfbf6beee8e6ceeb61` |
+| Source and delivered file                    | Intrinsic size | Source and delivered SHA-256                                       |
+| -------------------------------------------- | -------------- | ------------------------------------------------------------------ |
+| `demo-decor-store-banner-04.jpg`             | `1280x640`     | `66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f` |
+| `demo-decor-store-blog-03.jpg`               | `600x445`      | `2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743` |
+| `demo-decor-store-blog-04.jpg`               | `600x445`      | `3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76` |
+| `demo-decor-store-blog-07.jpg`               | `600x445`      | `d8b50dc900e773d22ceec74b7e22d135c5977c5be7336126592d9870fb159201` |
+| `demo-decor-store-blog-08.jpg`               | `600x445`      | `72d5fb42009c6b87366ce970d3d1b94d63628ed5af418de888076baabb000b3c` |
+| `demo-decor-store-client-01.png`             | `195x50`       | `8afe51f61a3ac538a02100806701fa42b6859cea86aade4f8ab2b291823438c2` |
+| `demo-decor-store-client-02.png`             | `195x50`       | `72acf1c388d1bf3bbf6cb7625d74c77a520557656299385d1b7d1c7ed33c1605` |
+| `demo-decor-store-client-03.png`             | `195x50`       | `9b7162520bfc801de37b564544881f8fa3660eab5b23ade402447ade0e9d9dd3` |
+| `demo-decor-store-client-04.png`             | `195x50`       | `f89ec329ce508494d030288064e3c66d558ae3915683027903b5ac7b4c8d78ee` |
+| `demo-decor-store-client-05.png`             | `195x50`       | `549242dd7871041c7dd21b784d2a8996c4600697b78cc75cd6cc7061e46bfa49` |
+| `demo-decor-store-icon-01.png`               | `65x65`        | `1e88b606ad380b33347b426e4b2c18d15ba2ff16ebb8bfc6fd79e6abf7ac1e88` |
+| `demo-decor-store-icon-02.png`               | `65x65`        | `f0b3f3f195abf4df9e90c55fa0fac98b1c61f48088a17f68534d888d83406a21` |
+| `demo-decor-store-icon-03.png`               | `65x65`        | `36690cf010c6186567803fbd679a1a1c2da1807368a7b82caa74d9bb80a8cdb4` |
+| `demo-decor-store-icon-04.png`               | `65x65`        | `4e69b6fd34a250206cc79fb81fbe6de12f415b0c348d53408cf7be6b2ed228b2` |
+| `demo-decor-store-icon-05.png`               | `65x65`        | `976204602bbffccce8fa6e627052143a14c39561b858943d8a26bb857e3b16d0` |
+| `demo-decor-store-icon-06.png`               | `60x50`        | `2388c1af1eb90062847124bbdb9f6add7b766bda4914385263efa1408e4a86fb` |
+| `demo-decor-store-icon-07.png`               | `60x50`        | `91c6b093e916549dfa92cb2c3d31369a20179da4c5cab06d57c70c057322e24e` |
+| `demo-decor-store-icon-08.png`               | `60x50`        | `a4607c544042891bd0f79a281f0378f9c360bf0e37177bb4b2d9435485f10018` |
+| `demo-decor-store-icon-09.png`               | `60x50`        | `276855245df061ac56175dcde73c07b19cfa729459b8f6e2d9f05ec5a9790533` |
+| `demo-decor-store-icon-10.png`               | `65x65`        | `5c8f8e6aee635452d9763a525dac168faa994355e56a75bd7b81052ab606e21b` |
+| `demo-decor-store-logo-black.png`            | `167x36`       | `667d763440051f4275c39499fa3ab0f6dd2ee3c267f4537993c63ade5c04211c` |
+| `demo-decor-store-logo-black@2x.png`         | `334x72`       | `4043b614c16e96f3615b81bb1639cd1dfe0aabb8f9222b4ee53efbab61ff7018` |
+| `demo-decor-store-main-banner-01.jpg`        | `580x540`      | `0369707b74459e63e93524405f1b1b2f0a2fbf96f81549f2f61d16640b450425` |
+| `demo-decor-store-main-banner-02.jpg`        | `580x260`      | `1edf394126b5134f74c9a84a669e9eeef7f6fe8102a1a9651a6f4b81bdcb27d6` |
+| `demo-decor-store-main-banner-03.jpg`        | `580x260`      | `56fe556e846fdf9c53eb64c6f7eca496310d96d0a7470dbe822fd106e006e81a` |
+| `demo-decor-store-product-slider-bg-img.jpg` | `640x640`      | `c8eaee3addc081649d4bf7209dcbfd89c152d020266056cfbf6beee8e6ceeb61` |
 
 The `@2x` logo is the only retina pair and is exactly twice the intrinsic width and height of its
 base logo.

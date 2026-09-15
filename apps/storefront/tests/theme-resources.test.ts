@@ -35,7 +35,7 @@ describe("selected theme resources", () => {
     const rows = provenance
       .split("## FS-F4 Decor Home copied visual assets")[1]!
       .split("\n## ")[0]!
-      .matchAll(/^\| `([^`]+)` \| `(\d+)x(\d+)` \| `([a-f0-9]{64})` \|$/gm);
+      .matchAll(/^\|\s*`([^`]+)`\s*\|\s*`(\d+)x(\d+)`\s*\|\s*`([a-f0-9]{64})`\s*\|$/gm);
     const records = [...rows].map(([, file, width, height, sha256]) => ({
       file: file!,
       height: Number(height),
@@ -51,10 +51,7 @@ describe("selected theme resources", () => {
             `../../../templates/Crafto - The Multipurpose HTML5 Template/html/images/${record.file}`,
             import.meta.url,
           ),
-          new URL(
-            `../app/themes/fashion-store/assets/decor-home/${record.file}`,
-            import.meta.url,
-          ),
+          new URL(`../app/themes/fashion-store/assets/decor-home/${record.file}`, import.meta.url),
         ].map(async (asset) => {
           const bytes = await readFile(asset);
           expect(createHash("sha256").update(bytes).digest("hex")).toBe(record.sha256);

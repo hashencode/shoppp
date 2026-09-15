@@ -24,19 +24,19 @@ retains evidence only and does not define a second current-unit queue.
 
 ## Retained verification
 
-| Gate | Result |
-| --- | --- |
-| Type and lint | Root typecheck and lint passed. |
-| Source/theme contracts | Source-equivalence verification passed 158 checks with zero failures; theme verification passed. |
-| Focused unit coverage | The final Fashion and source-tool unit selection passed 90 tests, including controlled source-ledger drift and GSAP `fromTo()` exception fallback. |
-| Hero browsers | Chromium, Firefox, and WebKit matrix passed 32 tests with 40 intentional applicability skips, including SSR, no-JS, reduced motion, threshold, lifecycle, and GSAP-failure behavior. |
-| Regional visual parity | All eight Decor-referenced Hero captures passed the unchanged 0.4% threshold. Diff ratios: desktop DPR1 `0.0002715`, desktop DPR2 `0.0002104`, laptop DPR1 `0.0004709`, laptop DPR2 `0.0003719`, tablet DPR1 `0.0010033`, tablet DPR2 `0.0008968`, mobile DPR1 `0.0022085`, mobile DPR2 `0.0008214`. |
-| Named state | Decor-referenced settled slide 2 passed using the repository-owned font and the two declared absence masks. |
-| Decor compatibility | Decor unit acceptance passed 14 tests; Decor browser acceptance passed 15 tests with 6 intentional skips. No Decor implementation file changed. |
-| Build and static preview | Fashion production preview build and Fashion static preview verification passed. |
-| Bundle isolation | Home initial JavaScript is 72,751 bytes gzip and Product is 83,092 bytes gzip, both below the 307,200-byte gate; selected-theme isolation passed. |
-| Performance and accessibility | All six performance routes passed (the Home cold attempt had one transient failure and passed on retry); the available accessibility suite passed 8 tests. |
-| Review closure | The required simplification pass was applied. Independent validation of the adversarial, reliability, and performance review findings found no remaining P0/P1/P2 issue after the source-ledger and GSAP fault-injection additions. |
+| Gate                          | Result                                                                                                                                                                                                                                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Type and lint                 | Root typecheck and lint passed.                                                                                                                                                                                                                                                                      |
+| Source/theme contracts        | Source-equivalence verification passed 158 checks with zero failures; theme verification passed.                                                                                                                                                                                                     |
+| Focused unit coverage         | The final Fashion and source-tool unit selection passed 90 tests, including controlled source-ledger drift and GSAP `fromTo()` exception fallback.                                                                                                                                                   |
+| Hero browsers                 | Chromium, Firefox, and WebKit matrix passed 32 tests with 40 intentional applicability skips, including SSR, no-JS, reduced motion, threshold, lifecycle, and GSAP-failure behavior.                                                                                                                 |
+| Regional visual parity        | All eight Decor-referenced Hero captures passed the unchanged 0.4% threshold. Diff ratios: desktop DPR1 `0.0002715`, desktop DPR2 `0.0002104`, laptop DPR1 `0.0004709`, laptop DPR2 `0.0003719`, tablet DPR1 `0.0010033`, tablet DPR2 `0.0008968`, mobile DPR1 `0.0022085`, mobile DPR2 `0.0008214`. |
+| Named state                   | Decor-referenced settled slide 2 passed using the repository-owned font and the two declared absence masks.                                                                                                                                                                                          |
+| Decor compatibility           | Decor unit acceptance passed 14 tests; Decor browser acceptance passed 15 tests with 6 intentional skips. No Decor implementation file changed.                                                                                                                                                      |
+| Build and static preview      | Fashion production preview build and Fashion static preview verification passed.                                                                                                                                                                                                                     |
+| Bundle isolation              | Home initial JavaScript is 72,751 bytes gzip and Product is 83,092 bytes gzip, both below the 307,200-byte gate; selected-theme isolation passed.                                                                                                                                                    |
+| Performance and accessibility | All six performance routes passed (the Home cold attempt had one transient failure and passed on retry); the available accessibility suite passed 8 tests.                                                                                                                                           |
+| Review closure                | The required simplification pass was applied. Independent validation of the adversarial, reliability, and performance review findings found no remaining P0/P1/P2 issue after the source-ledger and GSAP fault-injection additions.                                                                  |
 
 Representative retained local artifacts are
 `/tmp/fs-r2-region-final/fashion-store/report.json` and

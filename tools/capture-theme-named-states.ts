@@ -261,7 +261,9 @@ async function resetFashion(page: Page, side: "implementation" | "source"): Prom
     if (await decorHero.count()) {
       await decorHero.evaluate((element) => {
         (
-          element as HTMLElement & { swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void } }
+          element as HTMLElement & {
+            swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void };
+          }
         ).swiper?.autoplay?.stop();
         (
           element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
@@ -314,12 +316,17 @@ async function applyFashionAction(
       const decorHero = page.locator("#decor-store-slider");
       if (await decorHero.count()) {
         await page.waitForFunction(() =>
-          document.querySelector("#decor-store-slider")?.classList.contains("revslider-initialised"),
+          document
+            .querySelector("#decor-store-slider")
+            ?.classList.contains("revslider-initialised"),
         );
         await page.evaluate((index) => {
           const jquery = (
             window as typeof window & {
-              jQuery?: (selector: string) => { revpause?(): void; revshowslide?(index: number): void };
+              jQuery?: (selector: string) => {
+                revpause?(): void;
+                revshowslide?(index: number): void;
+              };
             }
           ).jQuery;
           jquery?.("#decor-store-slider").revshowslide?.(index + 1);
@@ -336,7 +343,9 @@ async function applyFashionAction(
       } else {
         await page.locator(".swiper.full-screen").evaluate((element, index) => {
           (
-            element as HTMLElement & { swiper?: { slideToLoop?(index: number, speed: number): void } }
+            element as HTMLElement & {
+              swiper?: { slideToLoop?(index: number, speed: number): void };
+            }
           ).swiper?.slideToLoop?.(index, 0);
         }, action.index);
       }
@@ -344,7 +353,9 @@ async function applyFashionAction(
       const hero = page.locator("#fashion-store-decor-hero");
       await hero.evaluate((element, index) => {
         (
-          element as HTMLElement & { swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void } }
+          element as HTMLElement & {
+            swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void };
+          }
         ).swiper?.autoplay?.stop();
         (
           element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
@@ -354,8 +365,7 @@ async function applyFashionAction(
         (index) =>
           document
             .querySelector("#fashion-store-decor-hero")
-            ?.getAttribute("data-motion-active-index") ===
-            String(index) &&
+            ?.getAttribute("data-motion-active-index") === String(index) &&
           document.querySelector("#fashion-store-decor-hero")?.getAttribute("data-motion-phase") ===
             "idle",
         action.index,
@@ -477,9 +487,8 @@ async function applyFashionStoreAction(
   const waitForHeroIdle = () =>
     page.waitForFunction(
       () =>
-        document
-          .querySelector("#fashion-store-decor-hero")
-          ?.getAttribute("data-motion-phase") === "idle",
+        document.querySelector("#fashion-store-decor-hero")?.getAttribute("data-motion-phase") ===
+        "idle",
     );
   const hero = page.locator("#fashion-store-decor-hero");
   if (!(await hero.evaluate((element) => element.classList.contains("swiper-initialized")))) {
@@ -500,7 +509,9 @@ async function applyFashionStoreAction(
   await waitForHeroIdle();
   await hero.evaluate((element) => {
     (
-      element as HTMLElement & { swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void } }
+      element as HTMLElement & {
+        swiper?: { autoplay?: { stop(): void }; slideTo(index: number, speed: number): void };
+      }
     ).swiper?.autoplay?.stop();
     (
       element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }

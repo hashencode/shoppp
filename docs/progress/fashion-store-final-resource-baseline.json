@@ -9,9 +9,7 @@
       "before": {
         "encodedBodyBytes": 1432403,
         "transferBytes": 1445603,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 394667,
@@ -33,9 +31,7 @@
       "after": {
         "encodedBodyBytes": 431124,
         "transferBytes": 443424,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 242930,
@@ -63,9 +59,7 @@
       "before": {
         "encodedBodyBytes": 920363,
         "transferBytes": 933563,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 390985,
@@ -87,9 +81,7 @@
       "after": {
         "encodedBodyBytes": 401657,
         "transferBytes": 414257,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 213463,
@@ -117,9 +109,7 @@
       "before": {
         "encodedBodyBytes": 924587,
         "transferBytes": 938087,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 395209,
@@ -141,9 +131,7 @@
       "after": {
         "encodedBodyBytes": 405192,
         "transferBytes": 417792,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "css": {
             "encodedBodyBytes": 135931,
@@ -171,9 +159,7 @@
       "before": {
         "encodedBodyBytes": 1110279,
         "transferBytes": 1125279,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 397949,
@@ -195,9 +181,7 @@
       "after": {
         "encodedBodyBytes": 443905,
         "transferBytes": 458005,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "css": {
             "encodedBodyBytes": 136835,
@@ -225,9 +209,7 @@
       "before": {
         "encodedBodyBytes": 1075817,
         "transferBytes": 1089917,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 389875,
@@ -249,9 +231,7 @@
       "after": {
         "encodedBodyBytes": 428828,
         "transferBytes": 442028,
-        "origins": [
-          "http://127.0.0.1:3426"
-        ],
+        "origins": ["http://127.0.0.1:3426"],
         "byType": {
           "js": {
             "encodedBodyBytes": 240634,

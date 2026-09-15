@@ -46,11 +46,7 @@ describe("Fashion named-state capture", () => {
       fashionStoreNamedStateSelection()
         .contracts.filter(({ id }) => id.startsWith("hero-slide-"))
         .map(({ sourcePath }) => sourcePath),
-    ).toEqual([
-      "/demo-decor-store.html",
-      "/demo-decor-store.html",
-      "/demo-decor-store.html",
-    ]);
+    ).toEqual(["/demo-decor-store.html", "/demo-decor-store.html", "/demo-decor-store.html"]);
     expect(fashionStoreNamedStateSelection("cart")).toMatchObject({
       evidenceThemeId: "fashion-store/cart",
       routeId: "fashion-store-cart",

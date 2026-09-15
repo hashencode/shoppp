@@ -21,9 +21,9 @@ below remain historical FS-R1 evidence and are not relabeled as v14 results.
 
 ## 来源与许可证
 
-| 包 | 精确来源 | 许可证与版权 | 拟用入口 |
-| --- | --- | --- | --- |
-| Swiper 11.2.10 | [npm 元数据](https://registry.npmjs.org/swiper/11.2.10)、[npm tarball](https://registry.npmjs.org/swiper/-/swiper-11.2.10.tgz)、[上游仓库](https://github.com/nolimits4web/Swiper) | MIT；包内 LICENSE：Copyright (c) 2019 Vladimir Kharlampidi | `swiper/vue`、`swiper/modules`、`swiper/css` 及实际使用模块 CSS |
+| 包              | 精确来源                                                                                                                                                                           | 许可证与版权                                                     | 拟用入口                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Swiper 11.2.10  | [npm 元数据](https://registry.npmjs.org/swiper/11.2.10)、[npm tarball](https://registry.npmjs.org/swiper/-/swiper-11.2.10.tgz)、[上游仓库](https://github.com/nolimits4web/Swiper) | MIT；包内 LICENSE：Copyright (c) 2019 Vladimir Kharlampidi       | `swiper/vue`、`swiper/modules`、`swiper/css` 及实际使用模块 CSS   |
 | Bootstrap 5.3.2 | [npm 元数据](https://registry.npmjs.org/bootstrap/5.3.2)、[npm tarball](https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.2.tgz)、[上游仓库](https://github.com/twbs/bootstrap) | MIT；包内 LICENSE：Copyright (c) 2011–2023 The Bootstrap Authors | `bootstrap/js/dist/modal.js`，只在客户端导入；保留所需 Modal 样式 |
 
 2026-09-03 核对 npm 元数据、解包内 `package.json`/`LICENSE` 与本地锁文件：
@@ -45,14 +45,14 @@ below remain historical FS-R1 evidence and are not relabeled as v14 results.
 
 ## 结果
 
-| 验证 | 结果与边界 |
-| --- | --- |
-| Vue SSR | 通过，`window` 和 `document` 均为 `undefined`，输出含所有 slide 文本及 Modal 内容；SSR 构建成功 |
-| 客户端构建 | 通过；Modal 为独立动态 chunk。此 probe 的包大小混入 Vue、验证页面和完整 Bootstrap CSS，不作为 R12 应用预算证据 |
-| Bootstrap 无客户端边界导入 | 按预期复现 `ReferenceError: document is not defined`；不可在 SSR 路径顶层导入 |
-| Chromium 151.0.7922.34 | 下述 7 组检查全部通过；零 pageerror、零 browser warning/error |
-| Firefox 153.0 | 下述 7 组检查全部通过；零 pageerror、零 browser warning/error |
-| WebKit 26.5 | 下述 7 组检查全部通过；零 pageerror、零 browser warning/error；不是 Safari 16.4 验收 |
+| 验证                       | 结果与边界                                                                                                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Vue SSR                    | 通过，`window` 和 `document` 均为 `undefined`，输出含所有 slide 文本及 Modal 内容；SSR 构建成功                |
+| 客户端构建                 | 通过；Modal 为独立动态 chunk。此 probe 的包大小混入 Vue、验证页面和完整 Bootstrap CSS，不作为 R12 应用预算证据 |
+| Bootstrap 无客户端边界导入 | 按预期复现 `ReferenceError: document is not defined`；不可在 SSR 路径顶层导入                                  |
+| Chromium 151.0.7922.34     | 下述 7 组检查全部通过；零 pageerror、零 browser warning/error                                                  |
+| Firefox 153.0              | 下述 7 组检查全部通过；零 pageerror、零 browser warning/error                                                  |
+| WebKit 26.5                | 下述 7 组检查全部通过；零 pageerror、零 browser warning/error；不是 Safari 16.4 验收                           |
 
 每个引擎相同 1280 × 800 视口、相同 production 产物，验证：
 

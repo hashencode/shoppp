@@ -256,5 +256,4 @@ defineExpose({ closeCart });
   min-height: 32px;
   line-height: 32px;
 }
-
 </style>
