@@ -15,7 +15,9 @@ import {
 } from "../contracts/product-card";
 import { useFashionStorePreviewCart } from "./useFashionStorePreviewCart";
 
-function runtimePresentation(product: RuntimeProductState): FashionStoreProductRuntimeState {
+export function normalizeFashionStoreRuntimeProductState(
+  product: RuntimeProductState,
+): FashionStoreProductRuntimeState {
   return {
     availability: product.availability,
     gallery: product.media.map((item) => ({ ...item, kind: "url" as const })),
@@ -55,7 +57,7 @@ export function useFashionStoreProductActionPort(
           productId: presentation.value.productId,
           slug: presentation.value.slug,
         });
-        return runtimePresentation(product);
+        return normalizeFashionStoreRuntimeProductState(product);
       },
       async addToCart(input) {
         const verified = await verifyProductCartAdd(

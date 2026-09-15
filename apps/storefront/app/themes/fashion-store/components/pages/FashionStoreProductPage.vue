@@ -37,6 +37,7 @@ const optionError = ref("");
 const optionErrorElement = ref<HTMLElement | null>(null);
 const galleryIndex = ref(0);
 const galleryPaused = ref(false);
+const descriptionMediaFailed = ref(false);
 const activeTab = ref<"description" | "information" | "shipping" | "reviews">("description");
 const tabIds = ["description", "information", "shipping", "reviews"] as const;
 const cartAddCount = ref(0);
@@ -175,6 +176,7 @@ function resetProductState(): void {
   optionError.value = "";
   galleryIndex.value = 0;
   galleryPaused.value = false;
+  descriptionMediaFailed.value = false;
   activeTab.value = "description";
   cartAddCount.value = 0;
   optionUpdateCount.value = 0;
@@ -276,19 +278,21 @@ watch(
         class="top-space-margin bg-gradient-very-light-gray pt-20px pb-20px ps-45px pe-45px sm-ps-15px sm-pe-15px"
       >
         <div class="container-fluid">
-          <nav class="breadcrumb breadcrumb-style-01 fs-14" aria-label="Breadcrumb">
-            <ul>
-              <li>
-                <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a>
-                <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
-              </li>
-              <li>
-                <a :href="fashionStoreRoutePaths['shop-left']" data-fashion-store-route>Shop</a>
-                <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
-              </li>
-              <li>{{ presentation.name }}</li>
-            </ul>
-          </nav>
+          <div class="row align-items-center">
+            <nav class="col-12 breadcrumb breadcrumb-style-01 fs-14" aria-label="Breadcrumb">
+              <ul>
+                <li>
+                  <a :href="fashionStoreRoutePaths.home" data-fashion-store-route>Home</a>
+                  <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
+                <li>
+                  <a :href="fashionStoreRoutePaths['shop-left']" data-fashion-store-route>Shop</a>
+                  <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
+                </li>
+                <li>{{ presentation.name }}</li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </section>
 
@@ -330,9 +334,11 @@ watch(
               <h4 class="alt-font text-dark-gray fw-500 mb-5px" role="heading" aria-level="2">
                 {{ presentation.name }}
               </h4>
-              <p v-if="selectedVariant?.sku">
-                <span class="text-dark-gray fw-500">SKU: </span>{{ selectedVariant.sku }}
-              </p>
+              <div class="d-block d-sm-flex align-items-center mb-15px">
+                <div v-if="selectedVariant?.sku">
+                  <span class="text-dark-gray fw-500">SKU: </span>{{ selectedVariant.sku }}
+                </div>
+              </div>
               <div class="product-price mb-10px" data-live-product-price>
                 <span class="text-dark-gray fs-28 xs-fs-24 fw-700 ls-minus-1px">
                   <del v-if="displayedCompareAtPrice" class="text-medium-gray me-10px fw-400">{{
@@ -343,35 +349,68 @@ watch(
               </div>
               <p>{{ presentation.description }}</p>
 
-              <fieldset
-                v-for="group in displayedOptionGroups"
-                :key="group.name"
-                class="fashion-product-options border-0 p-0 m-0 mt-20px"
-              >
-                <legend class="text-dark-gray alt-font fw-500">{{ group.name }}</legend>
-                <ul :class="group.name === 'Color' ? 'shop-color' : 'shop-size'" class="mb-0">
-                  <li v-for="value in group.values" :key="value">
-                    <input
-                      :id="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`"
-                      class="fashion-product-option-input"
-                      type="radio"
-                      :name="`product-${group.name}`"
-                      :value="value"
-                      :checked="selectedOptions[group.name] === value"
-                      :disabled="
-                        (actionPort.authoritative &&
-                          (!hydrated || runtimeState.kind !== 'ready')) ||
-                        !optionValueAvailable(group.name, value)
-                      "
-                      aria-describedby="product-option-error"
-                      @change="selectOption(group.name, value)"
-                    />
-                    <label :for="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`">
-                      <span>{{ value }}</span>
-                    </label>
-                  </li>
-                </ul>
-              </fieldset>
+              <div class="fashion-product-options mt-20px">
+                <fieldset
+                  v-for="(group, groupIndex) in displayedOptionGroups"
+                  :key="group.name"
+                  class="border-0 p-0 m-0"
+                >
+                  <legend class="visually-hidden">{{ group.name }}</legend>
+                  <div
+                    v-if="groupIndex === displayedOptionGroups.length - 1"
+                    class="d-flex align-items-center mb-35px"
+                  >
+                    <span class="text-dark-gray alt-font me-15px fw-500">{{ group.name }}</span>
+                    <ul :class="group.name === 'Color' ? 'shop-color' : 'shop-size'" class="mb-0">
+                      <li v-for="value in group.values" :key="value">
+                        <input
+                          :id="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`"
+                          class="fashion-product-option-input"
+                          type="radio"
+                          :name="`product-${group.name}`"
+                          :value="value"
+                          :checked="selectedOptions[group.name] === value"
+                          :disabled="
+                            (actionPort.authoritative &&
+                              (!hydrated || runtimeState.kind !== 'ready')) ||
+                            !optionValueAvailable(group.name, value)
+                          "
+                          aria-describedby="product-option-error"
+                          @change="selectOption(group.name, value)"
+                        />
+                        <label :for="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`">
+                          <span>{{ value }}</span>
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <div v-else class="d-flex align-items-center mb-20px">
+                    <span class="text-dark-gray alt-font me-15px fw-500">{{ group.name }}</span>
+                    <ul :class="group.name === 'Color' ? 'shop-color' : 'shop-size'" class="mb-0">
+                      <li v-for="value in group.values" :key="value">
+                        <input
+                          :id="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`"
+                          class="fashion-product-option-input"
+                          type="radio"
+                          :name="`product-${group.name}`"
+                          :value="value"
+                          :checked="selectedOptions[group.name] === value"
+                          :disabled="
+                            (actionPort.authoritative &&
+                              (!hydrated || runtimeState.kind !== 'ready')) ||
+                            !optionValueAvailable(group.name, value)
+                          "
+                          aria-describedby="product-option-error"
+                          @change="selectOption(group.name, value)"
+                        />
+                        <label :for="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`">
+                          <span>{{ value }}</span>
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                </fieldset>
+              </div>
 
               <p
                 v-if="optionError"
@@ -385,7 +424,7 @@ watch(
                 {{ optionError }}
               </p>
               <div
-                class="d-flex align-items-center flex-column flex-sm-row mt-25px mb-20px position-relative"
+                class="d-flex align-items-center flex-column flex-sm-row mb-20px position-relative"
               >
                 <FashionStoreQuantityInput
                   class="me-15px xs-mb-15px order-1"
@@ -437,18 +476,34 @@ watch(
                     ['compare', 'question', 'share'].includes(role),
                   )"
                   :key="control.role"
-                  class="col-auto"
+                  class="col-auto icon-with-text-style-08"
                 >
-                  <button
-                    type="button"
-                    class="alt-font fw-500 text-dark-gray"
-                    :disabled="!control.enabled || actionPort.authoritative"
-                    @click="
-                      perform(control.role as 'compare' | 'question' | 'share', control.label)
-                    "
-                  >
-                    {{ control.label }}
-                  </button>
+                  <div class="feature-box feature-box-left-icon-middle d-inline-flex align-middle">
+                    <div class="feature-box-icon me-10px">
+                      <FashionStoreIcon
+                        :name="
+                          control.role === 'compare'
+                            ? 'repeat'
+                            : control.role === 'question'
+                              ? 'mail'
+                              : 'share-2'
+                        "
+                        class="align-middle text-dark-gray"
+                      />
+                    </div>
+                    <div class="feature-box-content">
+                      <button
+                        type="button"
+                        class="alt-font fw-500 text-dark-gray d-block"
+                        :disabled="!control.enabled || actionPort.authoritative"
+                        @click="
+                          perform(control.role as 'compare' | 'question' | 'share', control.label)
+                        "
+                      >
+                        {{ control.label }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -458,51 +513,146 @@ watch(
 
       <section id="tab" class="pt-4 sm-pt-40px fashion-product-tabs">
         <div class="container">
-          <div class="tab-style-04">
-            <ul
-              class="nav nav-tabs border-0 justify-content-center alt-font fs-19"
-              role="tablist"
-              aria-label="Product information"
-            >
-              <li v-for="(tab, index) in tabIds" :key="tab" class="nav-item" role="presentation">
-                <button
-                  :id="`product-tab-${tab}`"
-                  class="nav-link"
-                  :class="{ active: activeTab === tab }"
-                  type="button"
-                  role="tab"
-                  :aria-selected="activeTab === tab"
-                  :aria-controls="`product-panel-${tab}`"
-                  @click="activeTab = tab"
-                  @keydown="handleTabKey($event, index)"
+          <div class="row">
+            <div class="col-12 tab-style-04">
+              <ul
+                class="nav nav-tabs border-0 justify-content-center alt-font fs-19"
+                role="tablist"
+                aria-label="Product information"
+              >
+                <li v-for="(tab, index) in tabIds" :key="tab" class="nav-item" role="presentation">
+                  <button
+                    :id="`product-tab-${tab}`"
+                    class="nav-link"
+                    :class="{ active: activeTab === tab }"
+                    type="button"
+                    role="tab"
+                    :aria-selected="activeTab === tab"
+                    :aria-controls="`product-panel-${tab}`"
+                    :tabindex="activeTab === tab ? 0 : -1"
+                    @click="activeTab = tab"
+                    @keydown="handleTabKey($event, index)"
+                  >
+                    {{
+                      tab === "information"
+                        ? "Additional information"
+                        : tab === "shipping"
+                          ? "Shipping and return"
+                          : tab === "reviews"
+                            ? "Reviews (0)"
+                            : "Description"
+                    }}
+                    <span class="tab-border bg-dark-gray"></span>
+                  </button>
+                </li>
+              </ul>
+              <div class="mb-5 h-1px w-100 bg-extra-medium-gray sm-mt-10px xs-mb-8"></div>
+              <div class="tab-content">
+                <div
+                  id="product-panel-description"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{
+                    active: activeTab === 'description',
+                    show: activeTab === 'description',
+                  }"
+                  role="tabpanel"
+                  aria-labelledby="product-tab-description"
+                  :hidden="activeTab !== 'description'"
                 >
-                  {{
-                    tab === "information"
-                      ? "Additional information"
-                      : tab === "reviews"
-                        ? "Reviews (0)"
-                        : tab[0]!.toUpperCase() + tab.slice(1)
-                  }}
-                </button>
-              </li>
-            </ul>
-            <div
-              v-for="tab in tabIds"
-              v-show="activeTab === tab"
-              :id="`product-panel-${tab}`"
-              :key="tab"
-              class="fashion-product-tab-panel pt-40px pb-40px"
-              role="tabpanel"
-              :aria-labelledby="`product-tab-${tab}`"
-            >
-              <p v-if="tab === 'description'">{{ presentation.description }}</p>
-              <p v-else-if="tab === 'information'">
-                Additional product information is not available.
-              </p>
-              <p v-else-if="tab === 'shipping'">
-                Shipping information is not available for this product.
-              </p>
-              <p v-else>No published reviews are available.</p>
+                  <div class="row align-items-center justify-content-center">
+                    <div class="col-lg-6 md-mb-40px">
+                      <h4 class="alt-font text-dark-gray fw-500 mb-20px w-90 lg-w-100">
+                        {{ presentation.name }}
+                      </h4>
+                      <p class="w-90">{{ presentation.description }}</p>
+                    </div>
+                    <div class="col-lg-6 col-md-8">
+                      <img
+                        v-if="displayedGallery[0] && !descriptionMediaFailed"
+                        :src="gallerySource(0)"
+                        :alt="displayedGallery[0].alt ?? presentation.name"
+                        class="w-100"
+                        @error="descriptionMediaFailed = true"
+                      />
+                      <div
+                        v-else
+                        class="fashion-store-product-placeholder"
+                        role="img"
+                        :aria-label="presentation.name"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  id="product-panel-information"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{
+                    active: activeTab === 'information',
+                    show: activeTab === 'information',
+                  }"
+                  role="tabpanel"
+                  aria-labelledby="product-tab-information"
+                  :hidden="activeTab !== 'information'"
+                >
+                  <div
+                    v-if="presentation.optionalRegions.specifications === 'source-shaped-empty'"
+                    class="row m-0"
+                    data-product-region-state="information"
+                  >
+                    <div
+                      class="col-lg-2 col-md-3 col-sm-4 pt-10px pb-10px text-dark-gray alt-font fw-500"
+                    >
+                      Product details
+                    </div>
+                    <div class="col-lg-10 col-md-9 col-sm-8 pt-10px pb-10px">
+                      Additional product information is not available.
+                    </div>
+                  </div>
+                </div>
+                <div
+                  id="product-panel-shipping"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{ active: activeTab === 'shipping', show: activeTab === 'shipping' }"
+                  role="tabpanel"
+                  aria-labelledby="product-tab-shipping"
+                  :hidden="activeTab !== 'shipping'"
+                >
+                  <div
+                    v-if="presentation.optionalRegions.shipping === 'source-shaped-empty'"
+                    class="row"
+                    data-product-region-state="shipping"
+                  >
+                    <div class="col-12 col-md-6 last-paragraph-no-margin sm-mb-30px">
+                      <h2 class="alt-font fs-22">Shipping information</h2>
+                      <p>Shipping information is not available for this product.</p>
+                    </div>
+                    <div class="col-12 col-md-6 last-paragraph-no-margin">
+                      <h2 class="alt-font fs-22">Return information</h2>
+                      <p>Return information is not available for this product.</p>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  id="product-panel-reviews"
+                  class="tab-pane fade in fashion-product-tab-panel"
+                  :class="{ active: activeTab === 'reviews', show: activeTab === 'reviews' }"
+                  role="tabpanel"
+                  aria-labelledby="product-tab-reviews"
+                  :hidden="activeTab !== 'reviews'"
+                >
+                  <div
+                    v-if="presentation.optionalRegions.reviews === 'source-shaped-empty'"
+                    class="row align-items-center mb-6 sm-mb-10"
+                    data-product-region-state="reviews"
+                  >
+                    <div class="col-12 text-center">
+                      <h5 class="alt-font text-dark-gray fw-500 mb-0">
+                        No published reviews are available.
+                      </h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -513,7 +663,10 @@ watch(
           <div class="row mb-5">
             <div class="col-12 text-center">
               <h2 class="alt-font text-dark-gray mb-0 ls-minus-2px">
-                Related <span class="text-highlight fw-600">products</span>
+                Related
+                <span class="text-highlight fw-600"
+                  >products<span class="bg-base-color h-5px bottom-2px"></span
+                ></span>
               </h2>
             </div>
           </div>

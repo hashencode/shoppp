@@ -145,6 +145,21 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   await expect(product.locator(".product-info")).toContainText("$85.00$65.00");
   await expect(product.locator("[role='tab']")).toHaveCount(4);
   await expect(
+    product.locator(
+      ".top-space-margin > .container-fluid > .row.align-items-center > .col-12.breadcrumb",
+    ),
+  ).toHaveCount(1);
+  await expect(
+    product.locator(
+      ".product-info .fashion-product-secondary-actions .icon-with-text-style-08 .feature-box",
+    ),
+  ).toHaveCount(3);
+  await expect(product.locator("#tab > .container > .row > .col-12.tab-style-04")).toHaveCount(1);
+  await expect(product.locator("#tab .tab-content > .tab-pane")).toHaveCount(4);
+  await expect(
+    product.locator(".fashion-product-related h2 .text-highlight > .bg-base-color"),
+  ).toHaveCount(1);
+  await expect(
     product.locator(".fashion-product-related > .container > ul > .grid-item"),
   ).toHaveCount(4);
   const relatedCardActions = product.locator(

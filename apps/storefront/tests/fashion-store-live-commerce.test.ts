@@ -6,6 +6,7 @@ import { resolveThemeRoute } from "../app/theme-engine/routes";
 import type { PresentationViewModel } from "../app/theme-engine/view-models";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
+import { normalizeFashionStoreRuntimeProductState } from "../app/themes/fashion-store/composables/useFashionStoreProductActionPort";
 import { resolveFashionStoreContentPresentation } from "../app/themes/fashion-store/contracts/content-presentation";
 import { fashionStoreContentData } from "../app/themes/fashion-store/fixtures/pages/content";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
@@ -20,6 +21,50 @@ async function source(path: string): Promise<string> {
 }
 
 describe("Fashion Store live commerce boundary", () => {
+  test("keeps revalidated Product inventory, price, and SKU Commerce-authoritative", () => {
+    const runtime = normalizeFashionStoreRuntimeProductState({
+      availability: "in-stock",
+      media: [],
+      optionGroups: [{ name: "Color", values: ["Blue", "Green"] }],
+      variants: [
+        {
+          availability: "out-of-stock",
+          id: "var-blue",
+          label: "Blue",
+          money: { amount: 6500, compareAtAmount: 8500, currency: "USD" },
+          options: { Color: "Blue" },
+          sku: "LIVE-BLUE",
+        },
+        {
+          availability: "in-stock",
+          id: "var-green",
+          label: "Green",
+          money: { amount: 7200, currency: "USD" },
+          options: { Color: "Green" },
+          sku: "LIVE-GREEN",
+        },
+      ],
+    });
+
+    expect(runtime.availability).toBe("in-stock");
+    expect(runtime.variants).toEqual([
+      expect.objectContaining({
+        availability: "out-of-stock",
+        compareAtPriceLabel: "$85.00",
+        id: "var-blue",
+        priceLabel: "$65.00",
+        sku: "LIVE-BLUE",
+      }),
+      expect.objectContaining({
+        availability: "in-stock",
+        compareAtPriceLabel: undefined,
+        id: "var-green",
+        priceLabel: "$72.00",
+        sku: "LIVE-GREEN",
+      }),
+    ]);
+  });
+
   test("normalizes complete content, unavailable routes, and wishlist recovery without provider layout state", () => {
     const fixture = resolveFashionStoreContentPresentation(
       {

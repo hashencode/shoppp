@@ -282,10 +282,23 @@ describe("storefront experience fixtures", () => {
       slug: "relaxed-shirt",
       variants: [
         {
+          availability: "out-of-stock",
+          compareAtPriceLabel: "$85.00",
           id: "fixture-relaxed-shirt-blue",
           label: "Blue",
           optionValues: { Color: "Blue" },
+          priceLabel: "$65.00",
+          selected: false,
+          sku: "FIXTURE-BLUE",
+        },
+        {
+          availability: "in-stock",
+          id: "fixture-relaxed-shirt-green",
+          label: "Green",
+          optionValues: { Color: "Green" },
+          priceLabel: "$72.00",
           selected: true,
+          sku: "FIXTURE-GREEN",
         },
       ],
     });
@@ -328,6 +341,12 @@ describe("storefront experience fixtures", () => {
           id: "live-blue",
           label: "Blue",
           optionValues: { Color: "Blue" },
+          selected: false,
+        },
+        {
+          id: "live-green",
+          label: "Green",
+          optionValues: { Color: "Green" },
           selected: true,
         },
       ],
@@ -359,8 +378,31 @@ describe("storefront experience fixtures", () => {
         gallery: [{ ...live.gallery[0]!, src: "//evil.example/relaxed-shirt.jpg" }],
       }).success,
     ).toBe(false);
-    expect(fixture.optionalRegions).toEqual({ reviews: "empty", specifications: "hidden" });
+    expect(fixture.optionalRegions).toEqual({
+      assurance: "hidden",
+      delivery: "hidden",
+      reviews: "source-shaped-empty",
+      shipping: "source-shaped-empty",
+      specifications: "source-shaped-empty",
+      taxonomy: "hidden",
+    });
     expect(live.optionalRegions).toEqual(fixture.optionalRegions);
+    expect(fixture.variants.find(({ selected }) => selected)).toMatchObject({
+      availability: "in-stock",
+      id: "fixture-relaxed-shirt-green",
+      priceLabel: "$72.00",
+      sku: "FIXTURE-GREEN",
+    });
+    const selectedLiveVariant = live.variants.find(({ selected }) => selected);
+    expect(selectedLiveVariant).toMatchObject({ id: "live-green" });
+    expect(selectedLiveVariant).not.toHaveProperty("sku");
+    for (const normalized of [fixture, live]) {
+      expect(normalized).not.toHaveProperty("reviews");
+      expect(normalized).not.toHaveProperty("shipping");
+      expect(normalized).not.toHaveProperty("specifications");
+      expect(normalized).not.toHaveProperty("payments");
+      expect(normalized).not.toHaveProperty("brand");
+    }
     expect(live.productId).toBe("prod_01JFIXTURETEST000000000001");
     expect(fixture.relatedProducts[0]).toMatchObject({
       actionState: { kind: "available" },
@@ -387,6 +429,50 @@ describe("storefront experience fixtures", () => {
         variants: live.variants,
       }),
     ).toThrow("requires a Catalog product resource");
+    expect(() =>
+      normalizeFashionStoreLiveProductPresentation({
+        ...live,
+        actions: [],
+        heading: " ",
+        kind: "product",
+        media: [],
+        optionGroups: [],
+        priceLabel: live.priceLabel,
+        relatedProducts: [],
+        resource: {
+          availability: "unknown",
+          id: live.productId,
+          kind: "product",
+          media: [],
+          money: { amount: 6500, currency: "USD" },
+          name: live.name,
+          slug: live.slug,
+          variantIds: live.variants.map(({ id }) => id),
+        },
+        variants: live.variants,
+      }),
+    ).toThrow();
+  });
+
+  test("keeps Product fixture normalization and local actions network-independent", async () => {
+    const [fixtureSource, actionPortSource] = await Promise.all([
+      readFile(
+        resolve(import.meta.dir, "../app/themes/fashion-store/fixtures/pages/product.ts"),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/composables/useFashionStoreProductActionPort.ts",
+        ),
+        "utf8",
+      ),
+    ]);
+
+    expect(fixtureSource).not.toMatch(/\$fetch|\bfetch\s*\(|useCommerceApi|runtimeCommercePort/);
+    expect(actionPortSource).toContain("recordPreviewIntent(");
+    expect(actionPortSource).toContain("previewCart.add(");
+    expect(actionPortSource).not.toMatch(/\/fixtures\/|fashionStoreProductData/);
   });
 
   test("defines one product action port without provider mode or Commerce DTOs", async () => {

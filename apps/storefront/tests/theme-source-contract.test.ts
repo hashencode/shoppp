@@ -1,4 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+
+import {
+  fashionStoreProductRegionLedger,
+  fashionStoreProductSourcePage,
+} from "../app/themes/fashion-store/contracts/pages/product";
 
 import {
   compareSourceContractSnapshots,
@@ -59,6 +65,26 @@ function snapshot(): SourceContractSnapshot {
 }
 
 describe("source-contract comparison", () => {
+  test("traces every Product ledger region to the immutable source HTML", async () => {
+    const source = await readFile(
+      new URL(
+        "../app/themes/fashion-store/upstream/demo-fashion-store-single-product.html",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const missingSourceEvidence = fashionStoreProductRegionLedger.flatMap((region) =>
+      region.sourceEvidence
+        .filter((evidence) => !source.includes(evidence))
+        .map((evidence) => `${region.id}: missing ${evidence}`),
+    );
+
+    expect(fashionStoreProductSourcePage.sourceSha256).toBe(
+      "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
+    );
+    expect(missingSourceEvidence).toEqual([]);
+  });
+
   test("retains targeted evidence for controlled Fashion Store copy, count, icon, asset, and geometry defects", () => {
     const reference = snapshot();
     reference.probes[0]!.elements[0]!.pseudoStyles!.before.content = '"\\e8e1"';

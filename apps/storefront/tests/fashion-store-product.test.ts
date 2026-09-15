@@ -6,7 +6,10 @@ import {
   clampFashionStoreProductQuantity,
   fashionStoreProductData,
 } from "../app/themes/fashion-store/fixtures/pages/product";
-import { fashionStoreProductSourcePage } from "../app/themes/fashion-store/contracts/pages/product";
+import {
+  fashionStoreProductRegionLedger,
+  fashionStoreProductSourcePage,
+} from "../app/themes/fashion-store/contracts/pages/product";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
 
 describe("Fashion Store product detail", () => {
@@ -46,6 +49,8 @@ describe("Fashion Store product detail", () => {
 
   test("pins the product source and its deterministic presentation facts", () => {
     expect(fashionStoreProductSourcePage).toMatchObject({
+      baselineComponentCommit: "f3be48b38cd265ae16a65394431901e1f4b1cd5b",
+      baselineComponentSha256: "9788cad519037756258d65691152b97f1b5aacfc6a07f1245302dc7c97dd2060",
       id: "product",
       route: "/products/relaxed-corduroy-shirt",
       sourceEntry: "demo-fashion-store-single-product.html",
@@ -75,6 +80,56 @@ describe("Fashion Store product detail", () => {
       "Crewneck sweatshirt",
       "Skinny trousers",
     ]);
+  });
+
+  test("preserves every required Product baseline relationship named by the region ledger", async () => {
+    const component = await readFile(
+      new URL(
+        "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const missingRelationships = fashionStoreProductRegionLedger.flatMap((region) =>
+      region.implementationEvidence
+        .filter((evidence) => !component.includes(evidence))
+        .map((evidence) => `${region.id}: missing ${evidence}`),
+    );
+
+    expect(missingRelationships).toEqual([]);
+  });
+
+  test("declares truthful treatment for every Product region without fixture-only live defaults", () => {
+    expect(
+      fashionStoreProductRegionLedger.every(({ allowedTreatments }) => allowedTreatments.length),
+    ).toBe(true);
+    expect(
+      fashionStoreProductRegionLedger.find(({ id }) => id === "assurance-and-taxonomy")
+        ?.allowedTreatments,
+    ).toEqual(["hidden", "populated"]);
+    for (const id of ["information-panel", "shipping-panel", "reviews-panel"]) {
+      expect(
+        fashionStoreProductRegionLedger.find((region) => region.id === id)?.allowedTreatments,
+      ).toContain("source-shaped-empty");
+    }
+  });
+
+  test("keeps unsupported Product facts out when their ledger owner is unavailable", async () => {
+    const component = await readFile(
+      new URL(
+        "../app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const forbiddenContent = fashionStoreProductRegionLedger.flatMap(
+      ({ forbiddenWhenUnavailable = [], id }) =>
+        forbiddenWhenUnavailable
+          .filter((content) => component.includes(content))
+          .map((content) => `${id}: leaked ${content}`),
+    );
+
+    expect(forbiddenContent).toEqual([]);
   });
 
   test("builds one bounded typed cart request from the selected fixture state", () => {

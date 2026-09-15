@@ -58,6 +58,34 @@ describe("theme fidelity matrix", () => {
     expect(route.regions.find(({ id }) => id === "header")?.sourcePath).toBeUndefined();
   });
 
+  test("tracks Product subregions whose relationships and geometry regressed", () => {
+    const route = themeFidelityMatrix.find(({ id }) => id === "fashion-store-product")!;
+    expect(route.regions.map(({ id }) => id)).toEqual([
+      "header",
+      "breadcrumb",
+      "breadcrumb-content",
+      "gallery",
+      "product-info",
+      "product-actions",
+      "tabs",
+      "tab-navigation",
+      "tab-panels",
+      "related-heading",
+      "related-grid",
+      "related-products",
+      "footer",
+      "full-page",
+    ]);
+    expect(route.regions.find(({ id }) => id === "breadcrumb-content")).toMatchObject({
+      implementationSelector: "section:nth-of-type(1) > .container-fluid > .row.align-items-center",
+      sourceSelector: "section:nth-of-type(1) > .container-fluid > .row.align-items-center",
+    });
+    expect(route.regions.find(({ id }) => id === "tab-panels")).toMatchObject({
+      implementationSelector: "#tab .tab-content",
+      sourceSelector: "#tab .tab-content",
+    });
+  });
+
   test("rejects fidelity states that drift away from the behavior contract", () => {
     const missing = structuredClone(themeFidelityMatrix);
     const fashionHome = missing.find(({ id }) => id === "fashion-store-home")!;

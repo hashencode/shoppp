@@ -128,6 +128,15 @@ const productControlSchema = z
   })
   .strict();
 
+const unavailableProductRegions = {
+  assurance: "hidden",
+  delivery: "hidden",
+  reviews: "source-shaped-empty",
+  shipping: "source-shaped-empty",
+  specifications: "source-shaped-empty",
+  taxonomy: "hidden",
+} as const;
+
 export const fashionStoreProductPresentationSchema = z
   .object({
     controls: z.array(productControlSchema).max(8),
@@ -139,8 +148,12 @@ export const fashionStoreProductPresentationSchema = z
     optionGroups: z.array(productOptionGroupSchema).max(20),
     optionalRegions: z
       .object({
-        reviews: z.literal("empty"),
-        specifications: z.literal("hidden"),
+        assurance: z.literal("hidden"),
+        delivery: z.literal("hidden"),
+        reviews: z.literal("source-shaped-empty"),
+        shipping: z.literal("source-shaped-empty"),
+        specifications: z.literal("source-shaped-empty"),
+        taxonomy: z.literal("hidden"),
       })
       .strict(),
     priceLabel: z.string().trim().min(1).max(80),
@@ -175,9 +188,12 @@ interface FashionStoreFixtureProductPresentationInput {
   slug: string;
   state?: FashionStoreProductPresentation["state"];
   variants: readonly {
+    availability?: "in-stock" | "out-of-stock";
+    compareAtPriceLabel?: string;
     id: string;
     label: string;
     optionValues: Readonly<Record<string, string>>;
+    priceLabel?: string;
     selected: boolean;
     sku?: string;
   }[];
@@ -260,7 +276,7 @@ export function normalizeFashionStoreFixtureProductPresentation(
       { name: "Color", values: data.options.colors.map(({ label }) => label) },
       { name: "Size", values: data.options.sizes.map(({ label }) => label) },
     ],
-    optionalRegions: { reviews: "empty", specifications: "hidden" },
+    optionalRegions: unavailableProductRegions,
     priceLabel: data.product.price,
     productId: input.productId,
     relatedProducts: data.related
@@ -290,7 +306,7 @@ export function normalizeFashionStoreLiveProductPresentation(
     gallery: input.media.map((media) => ({ ...media, kind: "url" })),
     name: input.heading,
     optionGroups: input.optionGroups,
-    optionalRegions: { reviews: "empty", specifications: "hidden" },
+    optionalRegions: unavailableProductRegions,
     priceLabel: input.priceLabel,
     productId: input.resource.id,
     relatedProducts: input.relatedProducts.map(normalizeFashionStoreLiveProductCard),
@@ -309,7 +325,7 @@ function fixtureVariants(data: FashionStoreFixtureProductPresentationInput["data
       label: `${color.label} / ${size.label}`,
       optionValues: { Color: color.label, Size: size.label },
       selected: color === colors.at(-1) && size === sizes.at(-1),
-      sku: data.product.sku,
+      ...(data.product.sku ? { sku: data.product.sku } : {}),
     })),
   );
 }
