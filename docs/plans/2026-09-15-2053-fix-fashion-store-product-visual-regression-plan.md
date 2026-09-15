@@ -26,11 +26,11 @@ current_unit: FS-F9-U4
 ### Execution Checkpoint
 
 - **Classification:** Active bounded Fashion Product visual correction.
-- **Current unit:** `FS-F9-U4` — run the complete automated matrix and matched-viewport human review before returning authority to REL.
+- **Current unit:** `FS-F9-U4` — automated parity, review, and repository gates are complete; matched-viewport human approval remains before returning authority to REL.
 - **Completed units:** `FS-F9-U1` through `FS-F9-U3` — immutable contract/red characterization, provider-neutral state reconciliation, and shared renderer restoration evidence are retained in [`docs/progress/fashion-store-product-visual-regression.md`](../progress/fashion-store-product-visual-regression.md).
 - **Next unit:** `FS-F9-U4`.
-- **Blocker:** None.
-- **Next concrete action:** Run the complete Fashion Store, repository, build/static, source-equivalence, impact-selection, HMR, and matched fixture/live viewport gates; present desktop/mobile comparisons for human approval before handback.
+- **Blocker:** Human approval of the retained source/fixture/live desktop and mobile comparisons is pending.
+- **Next concrete action:** Review the corrected matched-viewport evidence in `test-results/u4-product-human-review/20260915T152838Z-corrected/` and approve it or identify a concrete mismatched region; approval authorizes the FS-F9-U4 completion handback.
 - **Completion handback:** `FS-F9-U4` returns to `REL-Pre-DC` without freezing or promoting a release candidate.
 
 ---

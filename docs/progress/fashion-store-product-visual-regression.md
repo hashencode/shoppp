@@ -54,3 +54,24 @@ candidate identity, DC state, deployment state, or PG state.
 - The six-file focused unit suite passed 65 tests with 1,431 expectations. Storefront Nuxt
   typecheck passed. Live Commerce Playwright passed 16 tests. Product Playwright passed 23 tests
   with 41 matrix-defined skips. Targeted lint, formatting, and `git diff --check` passed.
+
+## 2026-09-16 — U4 automated parity and review gates
+
+- The complete Fashion Store matrix, source-equivalence, theme-impact selection, production/static
+  build, repository type/lint/format/boundary gates, and reversible fixture/live HMR probes passed.
+  The theme-impact performance run retained a 0.92 Product Lighthouse score with a 3,312 ms LCP;
+  the permitted Home retry passed at 0.99 with a 1,128 ms LCP.
+- Corrected source, fixture, and live captures at 1,440 x 1,000 and 390 x 844 are retained under
+  `test-results/u4-product-human-review/20260915T152838Z-corrected/`. The capture manifest pins the
+  fixture/live release, Product, variant, route, viewport, and timestamp identities; all visible
+  images loaded and no cookie overlay remained.
+- Full `ce-code-review` receipt
+  `20260915-234332-082f4265` confirmed three gate gaps. The follow-up extracted one shared Product
+  composition assertion, added matched live desktop/mobile geometry and forbidden-content checks,
+  made the Color chip locator non-vacuous, and directly tested description-media failure plus
+  remount recovery. No finding remains unapplied.
+- Post-review Product Playwright passed 27 tests with 41 matrix-defined skips. The complete live
+  Commerce Playwright suite passed 17 tests, including the pinned matched-viewports Product case.
+  Storefront typecheck, targeted lint/format, and `git diff --check` passed after the review fixes.
+- U4 remains open only for the plan-mandated human matched-viewport approval. Automated checks and
+  screenshots do not replace that decision and no candidate, DC, deployment, or PG state advanced.

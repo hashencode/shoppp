@@ -1,5 +1,9 @@
+import { readFile } from "node:fs/promises";
+
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
+
+import { expectFashionStoreProductComposition } from "./support/fashion-store-product-composition";
 
 test.setTimeout(60_000);
 
@@ -17,6 +21,12 @@ const shippingAddress = {
   postalCode: "78701",
   region: "TX",
 };
+const liveProductCompositionIdentity = {
+  catalogReleaseId: "representative-release-2026-07-30",
+  productId: "prod_01JFASHIONLIVE0000000002",
+  route: "/products/relaxed-corduroy-shirt",
+  selectedVariantId: variantId,
+} as const;
 
 function cart(
   options: {
@@ -100,7 +110,7 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
   await expect(page.locator("body")).toHaveClass(home ? /fashion-store-home/ : /^$/);
 }
 
-function liveProduct(productId: string) {
+function liveProduct(productId: string, mediaOrigin?: string) {
   const atlas = productId.endsWith("0000000001");
   const name = atlas ? "Atlas Carry-on" : "Relaxed corduroy shirt";
   const slug = atlas ? "atlas-carry-on" : "relaxed-corduroy-shirt";
@@ -117,7 +127,21 @@ function liveProduct(productId: string) {
   return {
     description: `${name} live description`,
     id: productId,
-    media: [],
+    media: mediaOrigin
+      ? [
+          {
+            alt: name,
+            height: atlas ? 1_200 : 765,
+            id: atlas ? "media_01J00000000000000000000001" : "media_01J00000000000000000000002",
+            position: 0,
+            src: new URL(
+              atlas ? "/media/atlas-carry-on.svg" : "/media/relaxed-corduroy-shirt.jpg",
+              mediaOrigin,
+            ).href,
+            width: atlas ? 1_200 : 600,
+          },
+        ]
+      : [],
     name,
     options: atlas
       ? [{ name: "Style", values: ["Standard"] }]
@@ -606,6 +630,88 @@ test("live Product requires a valid grouped option combination and stays truthfu
   } finally {
     await noJsContext.close();
   }
+});
+
+test("live Product retains matched desktop and mobile composition geometry", async ({ page }) => {
+  const requestedProductIds: string[] = [];
+  let submitted: Record<string, unknown> | undefined;
+  await installLiveCommerce(page, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace(/^\/api/, "");
+    const productMatch = path.match(/^\/catalog\/products\/by-id\/([^/]+)\/live$/);
+    if (productMatch && request.method() === "GET") {
+      const productId = decodeURIComponent(productMatch[1]!);
+      requestedProductIds.push(productId);
+      await route.fulfill({
+        contentType: "application/json",
+        json: { data: liveProduct(productId, new URL(request.url()).origin) },
+      });
+      return;
+    }
+    if (path === "/cart" && request.method() === "GET") {
+      await route.fulfill({
+        contentType: "application/json",
+        json: { data: cart({ quantity: 0 }) },
+      });
+      return;
+    }
+    if (path === "/cart/lines" && request.method() === "POST") {
+      submitted = request.postDataJSON() as Record<string, unknown>;
+      await route.fulfill({ contentType: "application/json", json: { data: cart() } });
+      return;
+    }
+    await route.abort();
+  });
+
+  const buildInput = JSON.parse(
+    await readFile(
+      new URL(
+        "../fixtures/experience/.generated/fashion-store-live-e2e-input.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ) as {
+    catalogRelease: {
+      products: Array<{ id: string; slug: string; variants: Array<{ id: string }> }>;
+      releaseId: string;
+    };
+  };
+  const retainedProduct = buildInput.catalogRelease.products.find(
+    ({ slug }) => slug === liveProductCompositionIdentity.route.split("/").at(-1),
+  );
+  expect(buildInput.catalogRelease.releaseId).toBe(liveProductCompositionIdentity.catalogReleaseId);
+  expect(retainedProduct).toMatchObject({
+    id: liveProductCompositionIdentity.productId,
+    slug: "relaxed-corduroy-shirt",
+  });
+  expect(retainedProduct?.variants.map(({ id }) => id)).toContain(
+    liveProductCompositionIdentity.selectedVariantId,
+  );
+
+  for (const [viewport, size] of [
+    ["desktop", { height: 1_000, width: 1_440 }],
+    ["mobile", { height: 844, width: 390 }],
+  ] as const) {
+    await page.setViewportSize(size);
+    await page.goto(liveProductCompositionIdentity.route, { waitUntil: "networkidle" });
+    await expectFashionStoreProductComposition(page, {
+      colorChipCount: 2,
+      name: "Relaxed corduroy shirt",
+      relatedProductCount: 1,
+      secondaryActionCount: 0,
+      viewport,
+    });
+    await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Size" })).toBeVisible();
+  }
+
+  expect(new Set(requestedProductIds)).toEqual(new Set([liveProductCompositionIdentity.productId]));
+  await page.getByRole("radio", { name: "Green" }).check();
+  await page.getByRole("radio", { name: "XL" }).check();
+  await page.locator("[data-fashion-store-product] button.btn-cart").click();
+  await expect(page.locator("[data-live-product-status]")).toContainText("was added to your cart");
+  expect(submitted).toMatchObject({ variantId: liveProductCompositionIdentity.selectedVariantId });
 });
 
 test("live Product enables retry after initial Commerce revalidation fails", async ({ page }) => {

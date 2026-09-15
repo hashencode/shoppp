@@ -2,6 +2,7 @@ import { isFashionStoreViewport } from "./support/fashion-store-project";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
+import { expectFashionStoreProductComposition } from "./support/fashion-store-product-composition";
 
 const sourceOrigin = `http://127.0.0.1:${Number(
   process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427,
@@ -139,46 +140,18 @@ test("Product preserves source structure, facts, assets, and responsive geometry
 }, testInfo) => {
   await prepareProduct(page, false);
   const product = page.locator("[data-fashion-store-product]");
-  await expect(product.locator("h1")).toHaveText("Relaxed corduroy shirt");
+  const viewport = page.viewportSize()!.width >= 992 ? "desktop" : "mobile";
+  await expectFashionStoreProductComposition(page, {
+    colorChipCount: 3,
+    name: "Relaxed corduroy shirt",
+    relatedProductCount: 4,
+    secondaryActionCount: 3,
+    viewport,
+  });
   await expect(product.locator(".product-image-thumb button")).toHaveCount(6);
   await expect(product.locator(".slider-product-prev, .slider-product-next")).toHaveCount(0);
   await expect(product.locator(".product-info")).toContainText("$85.00$65.00");
   await expect(product.locator("[role='tab']")).toHaveCount(4);
-  await expect(
-    product.locator(
-      ".top-space-margin > .container-fluid > .row.align-items-center > .col-12.breadcrumb",
-    ),
-  ).toHaveCount(1);
-  await expect(
-    product.locator(
-      ".product-info .fashion-product-secondary-actions .icon-with-text-style-08 .feature-box",
-    ),
-  ).toHaveCount(3);
-  await expect(
-    product.locator(".fashion-product-options > fieldset:not(:last-child) > .d-flex.mb-20px"),
-  ).toHaveCount(1);
-  await expect(
-    product.locator(".fashion-product-options > fieldset:last-child > .d-flex.mb-35px"),
-  ).toHaveCount(1);
-  expect(
-    await product
-      .locator(".fashion-product-color-text-options label > span")
-      .evaluateAll((labels) =>
-        labels.every((label) => {
-          const style = getComputedStyle(label);
-          const bounds = label.getBoundingClientRect();
-          return style.whiteSpace === "nowrap" && bounds.height === 32 && bounds.width >= 32;
-        }),
-      ),
-  ).toBe(true);
-  await expect(product.locator("#tab > .container > .row > .col-12.tab-style-04")).toHaveCount(1);
-  await expect(product.locator("#tab .tab-content > .tab-pane")).toHaveCount(4);
-  await expect(
-    product.locator(".fashion-product-related h2 .text-highlight > .bg-base-color"),
-  ).toHaveCount(1);
-  await expect(
-    product.locator(".fashion-product-related > .container > ul > .grid-item"),
-  ).toHaveCount(4);
   const relatedCardActions = product.locator(
     "[data-fashion-store-product-card] .shop-hover button",
   );
@@ -208,16 +181,12 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       ),
   ).toBe(true);
 
-  const [breadcrumb, gallery, info] = await Promise.all([
-    product.locator("section:nth-of-type(1)").boundingBox(),
+  const [gallery, info] = await Promise.all([
     product.locator(".fashion-product-gallery .row.overflow-hidden").boundingBox(),
     product.locator(".product-info").boundingBox(),
   ]);
-  const viewportWidth = page.viewportSize()!.width;
-  expect(Math.round(breadcrumb!.y)).toBe(viewportWidth >= 992 ? 96 : 80);
   expect(gallery).not.toBeNull();
   expect(info).not.toBeNull();
-  if (page.viewportSize()!.width >= 992) expect(gallery!.x).toBeLessThan(info!.x);
 
   if (isFashionStoreViewport(testInfo, "desktop")) {
     const source = await page.context().newPage();
@@ -238,6 +207,34 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       await source.close();
     }
   }
+});
+
+test("Product description media falls back accessibly and recovers on remount", async ({
+  page,
+}) => {
+  await prepareProduct(page);
+  const descriptionPanel = page.locator("#product-panel-description");
+  const descriptionImage = descriptionPanel.locator("img");
+  await expect(descriptionImage).toBeVisible();
+  await descriptionImage.dispatchEvent("error");
+  await expect(descriptionImage).toHaveCount(0);
+  await expect(descriptionPanel.getByRole("img", { name: "Relaxed corduroy shirt" })).toHaveClass(
+    /\bfashion-store-product-placeholder\b/,
+  );
+
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator("[data-fashion-store-product][data-runtime-status='ready']").waitFor();
+  const recoveredImage = page.locator("#product-panel-description img");
+  await expect(recoveredImage).toBeVisible();
+  await recoveredImage.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      recoveredImage.evaluate(
+        (image) =>
+          (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+      ),
+    )
+    .toBe(true);
 });
 
 test("Canonical internal shell fits the page at Header breakpoint edges", async ({

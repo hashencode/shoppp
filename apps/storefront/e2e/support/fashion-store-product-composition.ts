@@ -1,0 +1,83 @@
+import { expect, type Page } from "@playwright/test";
+
+import { fashionStoreProductRegionLedger } from "../../app/themes/fashion-store/contracts/pages/product";
+
+const geometryTolerancePx = 2;
+const forbiddenProductContent = fashionStoreProductRegionLedger.flatMap(
+  ({ forbiddenWhenUnavailable = [] }) => forbiddenWhenUnavailable,
+);
+
+interface FashionStoreProductCompositionExpectation {
+  colorChipCount: number;
+  name: string;
+  relatedProductCount: number;
+  secondaryActionCount: number;
+  viewport: "desktop" | "mobile";
+}
+
+export async function expectFashionStoreProductComposition(
+  page: Page,
+  expectation: FashionStoreProductCompositionExpectation,
+): Promise<void> {
+  const product = page.locator("[data-fashion-store-product]");
+  await expect(product).toHaveAttribute("data-runtime-status", "ready");
+  await expect(product.locator("h1")).toHaveText(expectation.name);
+  await expect(
+    product.locator(
+      ".top-space-margin > .container-fluid > .row.align-items-center > .col-12.breadcrumb",
+    ),
+  ).toHaveCount(1);
+  const secondaryActions = product.locator(".product-info .fashion-product-secondary-actions");
+  await expect(secondaryActions).toHaveCount(1);
+  await expect(secondaryActions.locator(".icon-with-text-style-08 .feature-box")).toHaveCount(
+    expectation.secondaryActionCount,
+  );
+  await expect(
+    product.locator(".fashion-product-options > fieldset:not(:last-child) > .d-flex.mb-20px"),
+  ).toHaveCount(1);
+  await expect(
+    product.locator(".fashion-product-options > fieldset:last-child > .d-flex.mb-35px"),
+  ).toHaveCount(1);
+
+  const colorChips = product.locator(".fashion-product-color-text-options label > span");
+  await expect(colorChips).toHaveCount(expectation.colorChipCount);
+  expect(
+    await colorChips.evaluateAll((labels) =>
+      labels.every((label) => {
+        const style = getComputedStyle(label);
+        const bounds = label.getBoundingClientRect();
+        return style.whiteSpace === "nowrap" && bounds.height === 32 && bounds.width >= 32;
+      }),
+    ),
+  ).toBe(true);
+
+  await expect(product.locator("#tab > .container > .row > .col-12.tab-style-04")).toHaveCount(1);
+  await expect(product.locator("#tab .tab-content > .tab-pane")).toHaveCount(4);
+  await expect(
+    product.locator(".fashion-product-related h2 .text-highlight > .bg-base-color"),
+  ).toHaveCount(expectation.relatedProductCount > 0 ? 1 : 0);
+  await expect(
+    product.locator(".fashion-product-related > .container > ul > .grid-item"),
+  ).toHaveCount(expectation.relatedProductCount);
+  for (const forbidden of forbiddenProductContent)
+    await expect(product).not.toContainText(forbidden);
+
+  const [breadcrumb, gallery, info, overflow] = await Promise.all([
+    product.locator("section:nth-of-type(1)").boundingBox(),
+    product.locator(".fashion-product-gallery .row.overflow-hidden").boundingBox(),
+    product.locator(".product-info").boundingBox(),
+    page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+  ]);
+  expect(breadcrumb).not.toBeNull();
+  expect(gallery).not.toBeNull();
+  expect(info).not.toBeNull();
+  expect(Math.round(breadcrumb!.y)).toBe(expectation.viewport === "desktop" ? 96 : 80);
+  expect(overflow).toBeLessThanOrEqual(geometryTolerancePx);
+  if (expectation.viewport === "desktop") {
+    expect(gallery!.x).toBeLessThan(info!.x);
+    expect(gallery!.width).toBeGreaterThan(info!.width);
+  } else {
+    expect(Math.abs(gallery!.x - info!.x)).toBeLessThanOrEqual(geometryTolerancePx);
+    expect(gallery!.y).toBeLessThan(info!.y);
+  }
+}
