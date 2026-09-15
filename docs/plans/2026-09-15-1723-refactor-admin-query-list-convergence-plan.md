@@ -44,12 +44,12 @@ tail_owner: ADM-LIST-until-local-verification-and-handback
 ## Execution Checkpoint
 
 - **Classification:** Active bounded Admin query-list successor.
-- **Current unit:** `ADM-LIST-U4` — converge Order Revenue Report while preserving deep-link defaults, date/timezone truth, and export authorization.
-- **Completed units:** `ADM-LIST-U1` — recorded the behavior matrix and established recurring shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory to `StandardListPageRecipe`, preserving 20-row pagination, History/Adjust actions, permissions, validation/error behavior, idempotent payloads, and latest committed-filter authoritative reload; six focused tests, Admin typecheck, affected lint/format, and diff checks passed.
-- **Next unit:** `ADM-LIST-U5`, after Report deep-link, reset, export, and stale-result evidence passes.
+- **Current unit:** `ADM-LIST-U5` — converge Notification Jobs while preserving Replay authorization, errors, and authoritative status reloads.
+- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Order Revenue Report to `StandardListPageRecipe`, aligning deep-link form/request defaults, reset-to-entry baseline, committed-filter headings/export, date-only/timezone truth, authorization, and replacement/refresh errors; 37 focused component/shared tests, two native-browser tests, Admin typecheck, affected lint/format, and diff checks passed.
+- **Next unit:** `ADM-LIST-U6`, after Notification Jobs Query/Reset, pagination, Replay, and action/query-race evidence passes.
 - **Blocker:** None.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7 → U8.
-- **Next concrete action:** Add failing Report tests for URL-derived visible/request defaults, reset-to-entry baseline, date-only/timezone behavior, committed-filter headings/export, and error states before migrating its orchestration.
+- **Next concrete action:** Add failing Notification Jobs tests for explicit Query/Reset, pagination, Replay permission/error behavior, and latest committed-filter reload before migrating its orchestration.
 
 ## Product Contract
 

@@ -150,6 +150,16 @@ describe('OrderReportPage', () => {
     )
     renderPage(['reporting.read', 'reporting.export'])
     await screen.findByText('ORD-REPORT01')
+    expect(
+      screen.getByRole('combobox', { name: 'Report currency' }).closest('.ant-select')?.textContent
+    ).toContain('USD')
+    expect(
+      screen.getByRole('combobox', { name: 'Report time zone' }).closest('.ant-select')?.textContent
+    ).toContain('America/New_York')
+    expect((screen.getByLabelText('Report start date') as HTMLInputElement).value).toBe(
+      '2026-09-01'
+    )
+    expect((screen.getByLabelText('Report end date') as HTMLInputElement).value).toBe('2026-09-03')
     expect(orderQueries).toEqual([
       {
         currency: 'USD',
@@ -163,12 +173,14 @@ describe('OrderReportPage', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search report orders' }), {
       target: { value: '  ORD-REPORT01  ' },
     })
-    fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Search report orders' }), {
-      key: 'Enter',
-      code: 'Enter',
-    })
+    expect(orderQueries).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: /^(loading )?Search$/ }))
     await waitFor(() => expect(orderQueries).toHaveLength(2))
     expect(orderQueries[1]).toEqual({ ...orderQueries[0], query: 'ORD-REPORT01' })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Report currency' }))
+    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+    expect(screen.getByRole('columnheader', { name: 'Gross (USD)' })).toBeTruthy()
+    expect(screen.queryByRole('columnheader', { name: 'Gross (EUR)' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
     expect(
       screen.getByText(
@@ -193,5 +205,136 @@ describe('OrderReportPage', () => {
     )
     expect(exportIdempotencyKey).toMatch(/^report-export-/)
     await waitFor(() => expect(screen.getByText('Download export (1 rows)')).toBeTruthy())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() => expect(orderQueries).toHaveLength(3), { timeout: 3_000 })
+    expect(orderQueries[2]).toEqual(orderQueries[0])
+    expect(
+      screen.getByRole('combobox', { name: 'Report currency' }).closest('.ant-select')?.textContent
+    ).toContain('USD')
+    expect((screen.getByLabelText('Report start date') as HTMLInputElement).value).toBe(
+      '2026-09-01'
+    )
+    expect((screen.getByLabelText('Report end date') as HTMLInputElement).value).toBe('2026-09-03')
+  })
+
+  it('keeps the audited export modal open when export creation fails', async () => {
+    server.use(
+      http.post('*/admin/reporting/exports', () =>
+        HttpResponse.json(
+          { error: { code: 'report_export_failed', message: 'Export failed.' } },
+          { status: 503 }
+        )
+      )
+    )
+    renderPage(['reporting.read', 'reporting.export'])
+    await screen.findByText('ORD-REPORT01')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Export reason' }), {
+      target: { value: 'Month-end reconciliation' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm export' }))
+
+    expect(await screen.findByText('Request failed. Please try again later.')).toBeTruthy()
+    expect(screen.getByText('Export scoped order report')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Confirm export' })).toBeTruthy()
+  })
+
+  it('updates currency headings only after the draft filters are submitted', async () => {
+    renderPage(['reporting.read'])
+    await screen.findByText('ORD-REPORT01')
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Report currency' }))
+    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+    expect(screen.getByRole('columnheader', { name: 'Gross (USD)' })).toBeTruthy()
+    expect(orderQueries).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /^(loading )?Search$/ }))
+    await waitFor(() => expect(orderQueries.at(-1)?.currency).toBe('EUR'))
+    expect(await screen.findByRole('columnheader', { name: 'Gross (EUR)' })).toBeTruthy()
+  })
+
+  it('normalizes invalid inbound report parameters before showing or requesting them', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/reports/orders?currency=BTC&startDate=2026-02-30&endDate=invalid&timeZone=Mars%2FBase'
+    )
+    renderPage(['reporting.read'])
+    await screen.findByText('ORD-REPORT01')
+
+    const firstQuery = orderQueries[0]!
+    expect(firstQuery.currency).toBe('USD')
+    expect(firstQuery.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(firstQuery.startDate).not.toBe('2026-02-30')
+    expect(firstQuery.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(firstQuery.timeZone).not.toBe('Mars/Base')
+    expect((screen.getByLabelText('Report start date') as HTMLInputElement).value).toBe(
+      firstQuery.startDate
+    )
+    expect((screen.getByLabelText('Report end date') as HTMLInputElement).value).toBe(
+      firstQuery.endDate
+    )
+    expect(
+      screen.getByRole('combobox', { name: 'Report time zone' }).closest('.ant-select')?.textContent
+    ).toContain(firstQuery.timeZone)
+  })
+
+  it('keeps matching rows under the standard same-scope refresh error state', async () => {
+    let failRefresh = false
+    server.use(
+      http.get('*/admin/reporting/orders', ({ request }) => {
+        orderQueries.push(Object.fromEntries(new URL(request.url).searchParams))
+        if (failRefresh) {
+          return HttpResponse.json(
+            { error: { code: 'report_unavailable', message: 'Report is unavailable.' } },
+            { status: 503 }
+          )
+        }
+        return HttpResponse.json({ data: [order], meta: { page: 1, pageSize: 20, total: 1 } })
+      })
+    )
+
+    renderPage(['reporting.read'])
+    await screen.findByText('ORD-REPORT01')
+
+    failRefresh = true
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByText('Request failed. Please try again later.')).toBeTruthy()
+    expect(screen.getByText('ORD-REPORT01')).toBeTruthy()
+  })
+
+  it('hides mismatched rows after a replacement query fails and retries that committed query', async () => {
+    let failReplacement = false
+    server.use(
+      http.get('*/admin/reporting/orders', ({ request }) => {
+        orderQueries.push(Object.fromEntries(new URL(request.url).searchParams))
+        if (failReplacement) {
+          return HttpResponse.json(
+            { error: { code: 'report_unavailable', message: 'Report is unavailable.' } },
+            { status: 503 }
+          )
+        }
+        return HttpResponse.json({ data: [order], meta: { page: 1, pageSize: 20, total: 1 } })
+      })
+    )
+
+    renderPage(['reporting.read'])
+    await screen.findByText('ORD-REPORT01')
+
+    failReplacement = true
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search report orders' }), {
+      target: { value: 'broken' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^(loading )?Search$/ }))
+    await waitFor(() => expect(orderQueries.at(-1)?.query).toBe('broken'))
+    expect(await screen.findByText('List could not be loaded')).toBeTruthy()
+    expect(screen.queryByText('ORD-REPORT01')).toBeNull()
+
+    failReplacement = false
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('ORD-REPORT01')).toBeTruthy()
+    expect(orderQueries.at(-1)).toMatchObject({ query: 'broken', page: '1', pageSize: '20' })
   })
 })
