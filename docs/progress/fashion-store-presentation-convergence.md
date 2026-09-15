@@ -1,0 +1,38 @@
+# Fashion Store Presentation Convergence Evidence
+
+This file retains stable evidence for FS-R5. The FS-R5 plan and product master remain the only authorities for current-unit status, blockers, and next action.
+
+## 2026-09-15 — U1 presentation-fork characterization
+
+### Inventory summary
+
+- Base registries diverge for four section types: Home, Product, Collection, and Content. Cart and Checkout already resolve to the same components and remain integration-validation surfaces.
+- Successor Home registries diverge for nine types: Hero, Services, Categories, Promotion, Collection Feature, Brand Strip, Products, Marquee, and Editorial. Product Merchandising already resolves to one component.
+- Whole-tree selection exists in `FashionStoreHomeRoute.vue`, `FashionStoreProductRoute.vue`, and `FashionStoreContentRoute.vue`; `FashionStoreCollectionPage.vue` also branches between collection landing and product-grid implementations.
+- Fixture and live Home use two context readers, while Home merchandising retains one fixture/live discriminated union. These normalization forks belong to U2 rather than to visual components.
+- Existing provider-specific selectors and filename assertions are characterization debt, not target contracts. U3-U7 replace them with shared route/section identities; U8 owns the final forbidden-fork and stale-reference audit.
+
+### Surface ownership matrix
+
+| Surface | Current fork and render shapes | Canonical presentation and field authority | Action and state authority | Owning unit and primary evidence |
+| --- | --- | --- | --- | --- |
+| Product | Fixture `theme-section` selects `FashionStoreProductPage`; live `product` selects `FashionStoreLiveProductPage`. | The accepted fixture page owns structure. Catalog Release/Commerce own product identity, description, price/compare-at, media, SKU, options, variants, availability, and related published membership. Experience/theme own supporting labels and decorative content. Synthetic reviews render a truthful zero/empty state; unsupported facts hide or use an accepted empty treatment. | A neutral port owns actions: fixture records local preview intents/cart state; live retains server revalidation, cart mutation, and error authority. Gallery, lightbox, tabs, quantity, and option selection remain local UI state. | U2 contracts, U3 rendering, U8 selector cleanup. Unit owners: product and live-commerce tests; browser owners: Product source/interaction/responsive tests and live commerce/no-JS tests. |
+| Shop and Collection | Fixture `theme-section` selects the Collection landing or accepted Shop page; live `collection-grid` selects the live wrapper/catalog. | `/collections` remains a landing; `/shop`, Shop variants, and `/collections/:slug` remain product grids. The fixture grid/layout is canonical. Catalog owns collection order/membership and product facts; Experience owns intro/decorative content. Fixture filters, counts, and arrival groups survive only when derivable from authoritative catalog fields. | Fixture filtering/carousel/intents remain local; live cards use Commerce through the neutral product action port. Empty/error/unknown collection states never borrow fixture products. | U2 contracts, U4 rendering, U8 naming cleanup. Shop, Collection, and live-commerce unit/browser owners cover routing, source geometry, filters, keyboard/touch, history, responsive, cards, and errors. |
+| Home foundation | Base Home switches between a fixture monolith and a reduced live page; successor registries select paired Hero, Services, Promotion, Brand Strip, and Marquee components. | The accepted fixture structure, `FashionStoreHomeShell`, approved section order, visible-copy budget, responsive rules, and motion contracts are canonical. Experience/theme own composition, editorial copy, and decorative assets; unsupported service promises are omitted. | Navigation and local motion state only. Existing Hero/marquee owners retain timer, resize, visibility, remount, and reduced-motion behavior. | U2 normalization, U5 rendering, U8 legacy-root cleanup. Home source/theme/service-icon and unified-Home browser tests own composition, motion, responsive, and accessibility evidence. |
+| Home editorial and merchandising | Paired Categories, Collection Feature, Editorial, Best Sellers, Featured Products, and Products wrappers consume different fixture/live Home envelopes. | Fixture layout is canonical. Catalog owns product/card facts, order, identity, R2 media, price/compare-at, options, and availability. Experience/theme own headings, section composition, editorial labels, links, and decorative imagery. Unsupported fixture counts or editorial claims do not enter live mode. | Fixture product interactions remain local; live product cards keep Commerce authority through the neutral action port. Empty and short collections are explicit bounded states. | U2 normalization, U6 rendering, U8 cleanup. Home source, merchandising/interaction contracts, empty-state, live-commerce, and unified-Home browser tests own evidence. |
+| Content and recovery | Fixture `theme-section` selects About, FAQ, Magazine, Article, Contact, Account, or Wishlist skeletons; live `state`/`collection-grid` selects one generic live page. | Each accepted route-specific fixture skeleton is canonical. Experience owns published heading/message/media/link content; Catalog owns Wishlist recovery products. Fixture-only timeline, Q&A, address, author, comment, and similar facts require an authoritative source or a truthful empty/hidden treatment. | Fixture forms may remain explicit local simulations. Live Account and Contact are unavailable/non-submit without an authoritative adapter. Wishlist persistence is not invented; live recovery cards may use authorized Commerce actions. | U2 contracts, U7 rendering, U8 generic-selector cleanup. Content/information/magazine unit and browser suites plus live-commerce tests own structure, actions, fallback, navigation, accessibility, and responsive evidence. |
+
+### Behavior and state ledger
+
+- Every affected family retains direct load, client navigation, Back/Forward restoration, remount, no-JavaScript, populated, empty, unavailable, malformed/error, desktop, and mobile coverage.
+- Product and merchandising retain hover, focus, click, keyboard, touch, price/inventory refresh, retry, cart synchronization, gallery/lightbox, and option-combination coverage.
+- Home retains load, scroll, timer, resize, visibility, reduced-motion, carousel/marquee, combined profile, and isolated profile coverage.
+- Content retains accordion, tabs, pagination, form validation, local-simulation truth, focus restoration, and unavailable-action coverage.
+- Shared Header, Footer, Shell, ProductCard, Gallery, MiniCart, Cart, and Checkout remain their existing owners and are regression surfaces, not new provider forks.
+
+### Baseline evidence and disposition
+
+- `fashion-store-theme.test.ts`, `fashion-store-home-source.test.ts`, and `fashion-store-live-commerce.test.ts`: 45 passed, 0 failed.
+- Representative fixture browser baseline across Collection, Content, Product, and all three Shop variants: 44 passed, 26 project-inapplicable skips, 0 failed on desktop/mobile projects.
+- Focused live browser baseline: 15 passed, 0 failed, including grouped options, cart/checkout, failure recovery, no-JavaScript, Home, and collection/Product presentation.
+- Every identified fork is assigned to U2-U7, with U8 owning final compatibility, name, selector, and reverse-reference cleanup. R7-R10 and KTD1/KTD5 settle every observed field/action gap; no unresolved authority or route-semantic blocker remains.

@@ -6,7 +6,7 @@ deepened: 2026-09-15
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
-plan_role: bounded-successor
+plan_role: active-bounded-successor
 plan_alias: FS-R5
 ---
 
@@ -31,17 +31,17 @@ plan_alias: FS-R5
 - **Upstream product authority:** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` owns the product map, plan register, active pointer, product sequence, and release state.
 - **Inherited baseline:** `docs/plans/2026-08-11-001-feat-fashion-store-functional-integration-plan.md` established separate fixture/live providers and their trust boundary. `docs/plans/2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md` established shared controls and live transaction ownership. `FS-R4` established the canonical Header/Footer. `FS-F8` supplies the 13-product, 24-variant D1/R2 release and live development path.
 - **Explicit supersessions:** `FS-R5` supersedes only the use of separate fixture/live page and Home-section components, route wrappers that choose a whole page by ViewModel kind, provider-specific visual naming, and tests that require those visual forks. It does not supersede the two providers, fixture isolation, D1/R2/Catalog Release authority, runtime price and inventory revalidation, Experience ownership, or private-preview authorization.
-- **Parallel plans:** `FS-F8-U7` remains the only active product unit while this plan is queued. `REL-Pre-DC` remains preserved; no candidate is frozen. This plan must not be activated until `FS-F8-U7` completes its current live proof and handback.
-- **Tail ownership:** After `FS-F8` returns to `REL-Pre-DC`, activation of `FS-R5-U1` requires a same-change master-pointer update. Green `FS-R5-U8` returns authority to `REL-Pre-DC` without advancing candidate, DC, deployment, or PG state.
+- **Parallel plans:** `FS-F8-U7` completed and handed back through `REL-Pre-DC` on 2026-09-15. `REL-Pre-DC` remains preserved; no candidate is frozen.
+- **Tail ownership:** `FS-R5-U1` is active with the product master pointer updated in the same change. Green `FS-R5-U8` returns authority to `REL-Pre-DC` without advancing candidate, DC, deployment, or PG state.
 
 ## Execution Checkpoint
 
-- **Classification:** Planned bounded successor; not active.
-- **Current unit:** None. `FS-F8-U7` remains the active product unit.
-- **Completed units:** None.
-- **Next unit:** `FS-R5-U1`, after the `FS-F8-U7` handback.
-- **Blocker:** `FS-F8-U7` must finish the deployed catalog proof and return to `REL-Pre-DC` before this plan can activate.
-- **Next concrete action:** Complete `FS-F8-U7`; then activate `FS-R5-U1` in this plan and the product master in the same change.
+- **Classification:** Active bounded Fashion presentation successor.
+- **Current unit:** `FS-R5-U2` — establish shared presentation contracts, mode-neutral action ports, and automated drift gates.
+- **Completed units:** `FS-R5-U1` — inventoried four base page registry forks, nine successor Home registry forks, three whole-page switches plus one Collection branch, two Home readers, one merchandising union, provider-specific selector/test debt, field authority, action ownership, route semantics, and behavior states. All forks are assigned to U2-U7, 45 focused unit tests, 44 representative fixture browser cases, and 15 focused live browser cases passed with no unresolved blocker.
+- **Next unit:** `FS-R5-U3`, after U2 proves equivalent render contracts and registry/boundary drift gates.
+- **Blocker:** None.
+- **Next concrete action:** Add failing shared-contract, registry-identity, provider-isolation, and forbidden-boundary tests; then normalize fixture/live Product, Shop/Collection, Home, and Content inputs plus their action ports before Product rendering changes begin.
 - **Completion handback:** Green U8 returns to `REL-Pre-DC`. This plan does not freeze or promote a release candidate.
 
 ---

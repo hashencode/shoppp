@@ -34,3 +34,17 @@ This file retains focused evidence for FS-F8. Execution status, current-unit own
 - Tools and workspace typecheck — passed, including API, Admin, Storefront, contracts, DB, and domain packages.
 - Storefront generation prerendered the reviewed Fashion catalog routes; static preview verification passed before artifact upload and activation.
 
+## 2026-09-15 — U7 live proof and handback
+
+### Outcome
+
+- `bun run dev:fashion-store:live` fetched `fashion-store-live-2026-09-13-v1-shopper-release` directly from remote Fashion staging D1, generated the local live snapshot, started Nuxt at `http://127.0.0.1:3435`, and completed `vue-tsc` with zero errors while watching for changes.
+- Home, Shop, collection `fashion-store`, all 13 product routes, Cart, and Checkout returned HTTP 200 locally. The generated release contained exactly 13 products, 24 variants, and 18 product media records.
+- All 18 release media objects returned HTTP 200 from `pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev`; the Fashion staging API health endpoint returned HTTP 200 and the private Preview root returned HTTP 401 without a session.
+- A staging commerce probe created a USD cart, added `var_01JFS8SHOP00000000000001`, read back one authoritative line with subtotal 18,900, then removed the line and confirmed the cart was empty and could not check out.
+- `bun run test:fashion-store-live` passed 15/15 focused live browser tests, covering Home, Shop/collection/Product presentation, grouped Relaxed option truth, no-JavaScript behavior, authoritative cart mutations, checkout completion/cancellation/retry, error recovery, and quantity serialization.
+- The U6 receipt remains the authority for unchanged administrator identity/session counts and successful protected credential probes; the U7 reads and private 401 probe introduced no IAM/Auth mutation. Fixture generation remained the existing deterministic local path and the live command selected remote D1 explicitly.
+
+### Handback
+
+- FS-F8 completed U1-U7 and returned through `REL-Pre-DC` without freezing a candidate or advancing DC, deployment, or PG state. The product pointer then activated `FS-R5-U1` for fixture/live presentation convergence.
