@@ -3,8 +3,11 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { composeExperienceRoute } from "../app/theme-engine/composer";
 import { resolveThemeRoute } from "../app/theme-engine/routes";
+import type { PresentationViewModel } from "../app/theme-engine/view-models";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
+import { resolveFashionStoreContentPresentation } from "../app/themes/fashion-store/contracts/content-presentation";
+import { fashionStoreContentData } from "../app/themes/fashion-store/fixtures/pages/content";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 import { fashionStoreSectionComposition } from "../app/themes/fashion-store/successor/registry";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
@@ -17,6 +20,60 @@ async function source(path: string): Promise<string> {
 }
 
 describe("Fashion Store live commerce boundary", () => {
+  test("normalizes complete content, unavailable routes, and wishlist recovery without provider layout state", () => {
+    const fixture = resolveFashionStoreContentPresentation(
+      {
+        data: fashionStoreContentData,
+        kind: "theme-section",
+        state: "populated",
+      },
+      "about",
+    );
+    expect(fixture.detail).toBe(fashionStoreContentData.about);
+    expect(fixture.state).toMatchObject({ heading: "About", state: "populated" });
+
+    const unavailable = resolveFashionStoreContentPresentation(
+      {
+        action: { id: "shop", intent: "navigation", label: "Shop", target: "/shop" },
+        heading: "Account unavailable",
+        kind: "state",
+        message: "Accounts are unavailable.",
+        state: "unavailable",
+      },
+      "account",
+    );
+    expect(unavailable).toEqual({
+      state: {
+        action: { id: "shop", intent: "navigation", label: "Shop", target: "/shop" },
+        heading: "Account unavailable",
+        media: undefined,
+        message: "Accounts are unavailable.",
+        products: [],
+        relatedAction: undefined,
+        state: "unavailable",
+      },
+    });
+
+    const product = { productId: "catalog-product" } as Extract<
+      PresentationViewModel,
+      { kind: "collection-grid" }
+    >["products"][number];
+    const wishlist = resolveFashionStoreContentPresentation(
+      {
+        collections: [],
+        description: "Wishlist recovery",
+        heading: "Wishlist",
+        kind: "collection-grid",
+        products: [product],
+        state: "unavailable",
+      },
+      "wishlist",
+    );
+    expect(wishlist.detail).toBeUndefined();
+    expect(wishlist.state.products).toEqual([product]);
+    expect(wishlist.state.action).toEqual({ label: "Continue shopping", target: "/shop" });
+  });
+
   test("generates Catalog bindings that compose the deployed U13 routes", async () => {
     const script = await import("../scripts/prepare-fashion-store-live-e2e");
     expect(typeof script.fashionStoreLiveBuildInput).toBe("function");
@@ -292,20 +349,28 @@ describe("Fashion Store live commerce boundary", () => {
       reviews: false,
       wishlist: false,
     });
-    const [contentRoute, liveContent] = await Promise.all([
-      source("themes/fashion-store/components/pages/FashionStoreContentRoute.vue"),
-      source("themes/fashion-store/components/pages/FashionStoreLiveContentPage.vue"),
-    ]);
-    expect(contentRoute).toContain("defineAsyncComponent");
-    expect(contentRoute).toContain("viewModel.kind === 'state'");
-    expect(liveContent).not.toMatch(/<form|useCommerceApi|useGuestCart|\/fixtures\//);
-    expect(liveContent).toContain("viewModel.action.label");
-    expect(liveContent).toContain('href="/shop"');
-    expect(liveContent).toContain("no recovery products are currently published");
-    expect(liveContent).toContain("Return home");
-    expect(liveContent).toContain("FashionStoreProductCard");
-    expect(liveContent).toContain("viewModel.products");
-    expect(liveContent).not.toContain("fashion-wishlist-remove");
+    const [contentPage, contentState, contentContract, fixtureRegistry, liveRegistry] =
+      await Promise.all([
+        source("themes/fashion-store/components/pages/FashionStoreContentPage.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreContentState.vue"),
+        source("themes/fashion-store/contracts/content-presentation.ts"),
+        source("themes/fashion-store/fixture-registry.ts"),
+        source("themes/fashion-store/registry.ts"),
+      ]);
+    expect(fixtureRegistry).toContain('import("./components/pages/FashionStoreContentPage.vue")');
+    expect(liveRegistry).toContain('import("./components/pages/FashionStoreContentPage.vue")');
+    expect(contentPage).not.toContain("viewModel.kind");
+    expect(contentPage).toContain("resolveFashionStoreContentPresentation");
+    expect(contentContract).toContain('viewModel.kind === "theme-section"');
+    expect(contentContract).toContain('viewModel.kind === "collection-grid"');
+    expect(contentState).not.toMatch(/<form|useCommerceApi|useGuestCart|\/fixtures\//);
+    expect(contentState).toContain("presentation.action.label");
+    expect(contentContract).toContain('target: "/shop"');
+    expect(contentContract).toContain("no recovery products are currently published");
+    expect(contentState).toContain("Return home");
+    expect(contentState).toContain("FashionStoreProductCard");
+    expect(contentState).toContain("presentation.products");
+    expect(contentState).not.toContain("fashion-wishlist-remove");
   });
 
   test("shares the readonly guest cart with every mounted live cart surface", async () => {
@@ -329,7 +394,7 @@ describe("Fashion Store live commerce boundary", () => {
       await Promise.all([
         source("StorefrontExperience.vue"),
         source("themes/fashion-store/components/shared/FashionStoreShell.vue"),
-        source("themes/fashion-store/components/pages/FashionStoreLiveContentPage.vue"),
+        source("themes/fashion-store/components/pages/FashionStoreContentPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreCollectionPage.vue"),
         source("themes/fashion-store/components/pages/FashionStoreShopPage.vue"),

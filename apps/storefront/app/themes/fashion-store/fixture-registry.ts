@@ -27,7 +27,7 @@ const FashionStoreCollectionPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreCollectionPage.vue"),
 );
 const FashionStoreContentPage = defineAsyncComponent(
-  () => import("./components/pages/FashionStoreContentRoute.vue"),
+  () => import("./components/pages/FashionStoreContentPage.vue"),
 );
 const FashionStoreProductPage = defineAsyncComponent(
   () => import("./components/pages/FashionStoreProductPage.vue"),

@@ -1006,7 +1006,10 @@ test("live build-local search clears stale results and supports keyboard navigat
   await expectLiveCanonicalShell(page, true);
 });
 
-test("live routes keep unsupported pages truthful and policies Catalog-bound", async ({ page }) => {
+test("live routes keep unsupported pages truthful and policies Catalog-bound", async ({
+  browser,
+  page,
+}, testInfo) => {
   const nonGetRequests: string[] = [];
   await installLiveCommerce(page, async (route) => {
     const request = route.request();
@@ -1029,8 +1032,13 @@ test("live routes keep unsupported pages truthful and policies Catalog-bound", a
   });
 
   await page.goto("/account", { waitUntil: "networkidle" });
-  const account = page.locator("[data-fashion-store-live-content]");
-  await expect(account).toHaveAttribute("data-content-state", "unavailable");
+  const account = page.locator(
+    '[data-fashion-store-content][data-fashion-store-content-route="account"]',
+  );
+  await expect(account.locator("[data-fashion-store-content-state]")).toHaveAttribute(
+    "data-content-state",
+    "unavailable",
+  );
   await expect(account.getByRole("heading", { level: 1 })).toHaveText("Account unavailable");
   await expect(account.getByRole("link", { name: "Continue shopping" })).toHaveAttribute(
     "href",
@@ -1038,10 +1046,20 @@ test("live routes keep unsupported pages truthful and policies Catalog-bound", a
   );
   await expect(account.getByRole("link", { name: "Return home" })).toHaveAttribute("href", "/");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
+  await account.getByRole("link", { name: "Return home" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await page.goBack();
+  await expect(page).toHaveURL((url) => url.pathname === "/account");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Account unavailable");
 
   await page.goto("/wishlist", { waitUntil: "networkidle" });
-  const wishlist = page.locator("[data-fashion-store-live-content]");
-  await expect(wishlist).toHaveAttribute("data-content-state", "unavailable");
+  const wishlist = page.locator(
+    '[data-fashion-store-content][data-fashion-store-content-route="wishlist"]',
+  );
+  await expect(wishlist.locator("[data-fashion-store-content-state]")).toHaveAttribute(
+    "data-content-state",
+    "unavailable",
+  );
   await expect(wishlist.getByRole("heading", { level: 1 })).toHaveText("Wishlist");
   await expect(wishlist).toContainText("Saved wishlists are not available yet.");
   const recoveryCards = wishlist.locator("[data-fashion-store-product-card]");
@@ -1063,9 +1081,27 @@ test("live routes keep unsupported pages truthful and policies Catalog-bound", a
   );
   await expect(wishlist.getByRole("link", { name: "Return home" })).toHaveAttribute("href", "/");
   expect(
-    (await new AxeBuilder({ page }).include("[data-fashion-store-live-content]").analyze())
-      .violations,
+    (await new AxeBuilder({ page }).include("[data-fashion-store-content]").analyze()).violations,
   ).toEqual([]);
+
+  const noJavaScript = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const noJavaScriptPage = await noJavaScript.newPage();
+    await noJavaScriptPage.goto(new URL("/account", String(testInfo.project.use.baseURL)).href, {
+      waitUntil: "networkidle",
+    });
+    await expect(
+      noJavaScriptPage.locator(
+        '[data-fashion-store-content][data-fashion-store-content-route="account"]',
+      ),
+    ).toContainText("Customer accounts are not available yet.");
+    await expect(noJavaScriptPage.getByRole("link", { name: "Continue shopping" })).toHaveAttribute(
+      "href",
+      "/shop",
+    );
+  } finally {
+    await noJavaScript.close();
+  }
 
   await page.goto("/policies/live-preview-policy-proof", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Live preview policy proof");

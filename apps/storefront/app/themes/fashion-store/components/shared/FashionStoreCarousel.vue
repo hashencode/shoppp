@@ -14,6 +14,7 @@ const properties = withDefaults(
     keyboard?: boolean;
     loop?: boolean;
     parallax?: boolean;
+    pauseWhenOffscreen?: boolean;
     rewind?: boolean;
     semanticSlideCount?: number;
     slideClass?: string;
@@ -30,6 +31,7 @@ const properties = withDefaults(
     keyboard: true,
     loop: false,
     parallax: false,
+    pauseWhenOffscreen: false,
     rewind: false,
     semanticSlideCount: undefined,
     slideClass: undefined,
@@ -123,7 +125,7 @@ function handleSwiper(instance: SwiperInstance): void {
   syncActiveIndex(instance);
   syncDirection(instance);
   hydrated.value = true;
-  if ("IntersectionObserver" in window) {
+  if (properties.pauseWhenOffscreen && "IntersectionObserver" in window) {
     setPause("offscreen", true);
     viewportObserver = new IntersectionObserver(
       (entries) => {

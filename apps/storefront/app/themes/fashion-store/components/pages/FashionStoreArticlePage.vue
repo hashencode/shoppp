@@ -1,24 +1,18 @@
 <script setup lang="ts">
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import type { FashionStoreContentData } from "../../fixtures/pages/content";
+import type { FashionStoreArticleData } from "../../contracts/content-presentation";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreEditorialCard from "../shared/FashionStoreEditorialCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  data: FashionStoreArticleData;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
 }>();
 
-const data = computed(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Article requires a theme-section fixture.");
-  }
-  return (properties.viewModel.data as unknown as FashionStoreContentData).article;
-});
+const data = computed(() => properties.data);
 const localActionCount = ref(0);
 const commentSubmitCount = ref(0);
 

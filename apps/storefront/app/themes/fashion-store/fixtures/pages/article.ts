@@ -1,33 +1,7 @@
-import type { FashionStoreIconName } from "../../icons/ui";
-import type { FashionStoreMagazinePost } from "./magazine";
-
-export interface FashionStoreArticleComment {
-  author: string;
-  date: string;
-  depth: 0 | 1;
-  sourceImage: string;
-  text: string;
-}
-
-export interface FashionStoreArticleData {
-  announcement: string;
-  author: {
-    bio: string;
-    name: string;
-    role: string;
-    sourceImage: string;
-  };
-  comments: readonly FashionStoreArticleComment[];
-  lead: {
-    author: string;
-    category: string;
-    date: string;
-    title: string;
-  };
-  media: readonly string[];
-  related: readonly FashionStoreMagazinePost[];
-  shareLinks: readonly { href: string; icon: FashionStoreIconName; label: string }[];
-}
+import type {
+  FashionStoreArticleData,
+  FashionStoreMagazinePost,
+} from "../../contracts/content-presentation";
 
 const related = (
   title: string,

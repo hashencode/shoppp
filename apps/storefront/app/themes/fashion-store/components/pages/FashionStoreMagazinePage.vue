@@ -1,24 +1,18 @@
 <script setup lang="ts">
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import type { FashionStoreContentData } from "../../fixtures/pages/content";
+import type { FashionStoreMagazineData } from "../../contracts/content-presentation";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreEditorialCard from "../shared/FashionStoreEditorialCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  data: FashionStoreMagazineData;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
 }>();
 
-const data = computed(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Magazine requires a theme-section fixture.");
-  }
-  return (properties.viewModel.data as unknown as FashionStoreContentData).magazine;
-});
+const data = computed(() => properties.data);
 const paginationIntentCount = ref(0);
 
 function sourceAsset(sourcePath: string): string {

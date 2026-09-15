@@ -2,25 +2,21 @@
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import { recordPreviewIntent, storefrontActionAdapterKey } from "../../../../theme-engine/actions";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import type { FashionStoreContentData } from "../../fixtures/pages/content";
-import { buildFashionStoreProductCartRequest } from "../../fixtures/pages/product";
+import {
+  buildFashionStoreWishlistPreviewCartRequest,
+  type FashionStoreWishlistData,
+} from "../../contracts/content-presentation";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreProductCard from "../shared/FashionStoreProductCard.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  data: FashionStoreWishlistData;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
 }>();
 
-const data = computed(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Wishlist requires a theme-section fixture.");
-  }
-  return (properties.viewModel.data as unknown as FashionStoreContentData).wishlist;
-});
+const data = computed(() => properties.data);
 const products = ref([...data.value.products]);
 const actionAdapter = inject(storefrontActionAdapterKey);
 const cartAddCount = ref(0);
@@ -45,7 +41,7 @@ async function addToCart(productId: string): Promise<void> {
     await actionAdapter({
       context: "fashion-store.wishlist.cart",
       currency: "USD",
-      input: buildFashionStoreProductCartRequest(1),
+      input: buildFashionStoreWishlistPreviewCartRequest(),
       kind: "cart.add",
     });
     cartAddCount.value += 1;

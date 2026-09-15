@@ -72,6 +72,7 @@ function sourceAsset(sourcePath: string): string {
               :speed-ms="650"
               :autoplay-ms="4_000"
               :loop="editorial.collection.items.length > 1"
+              :pause-when-offscreen="true"
               :breakpoints="{
                 576: { slidesPerView: 2 },
                 768: { slidesPerView: 3 },

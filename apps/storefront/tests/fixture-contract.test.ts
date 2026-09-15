@@ -492,7 +492,6 @@ describe("storefront experience fixtures", () => {
       resolve(import.meta.dir, "../app"),
       [
         "themes/fashion-store/components/FashionStoreHomeRoute.vue",
-        "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
         "themes/fashion-store/components/shared/FashionStoreProductCard.vue",
         "themes/fashion-store/contracts/home-merchandising.ts",
       ],
@@ -500,10 +499,6 @@ describe("storefront experience fixtures", () => {
     expect(findings).toEqual([
       {
         file: "themes/fashion-store/components/FashionStoreHomeRoute.vue",
-        rule: "provider-kind-layout-switch",
-      },
-      {
-        file: "themes/fashion-store/components/pages/FashionStoreContentRoute.vue",
         rule: "provider-kind-layout-switch",
       },
     ]);
@@ -538,7 +533,7 @@ describe("storefront experience fixtures", () => {
       "fashion-store.cart": "pages/FashionStoreCartPage.vue",
       "fashion-store.checkout": "pages/FashionStoreCheckoutPage.vue",
       "fashion-store.collection": "pages/FashionStoreCollectionPage.vue",
-      "fashion-store.content": "pages/FashionStoreLiveContentPage.vue",
+      "fashion-store.content": "pages/FashionStoreContentPage.vue",
       "fashion-store.home": "FashionStoreLiveHomePage.vue",
       "fashion-store.product": "pages/FashionStoreProductPage.vue",
     });

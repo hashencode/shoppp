@@ -1,14 +1,7 @@
-import type { FashionStoreAccordionItem } from "../../components/shared/FashionStoreAccordion.vue";
-
-export interface FashionStoreFaqCategory {
-  label: string;
-  questions: readonly FashionStoreAccordionItem[];
-}
-
-export interface FashionStoreFaqData {
-  announcement: string;
-  categories: readonly FashionStoreFaqCategory[];
-}
+import type {
+  FashionStoreFaqCategory,
+  FashionStoreFaqData,
+} from "../../contracts/content-presentation";
 
 const answer =
   "Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took galley of type and scrambled to make type.";
@@ -28,7 +21,7 @@ const returns = [
   "Need more help?",
   "What if my item is damaged or faulty?",
 ] as const;
-const questions = (titles: readonly string[]): readonly FashionStoreAccordionItem[] =>
+const questions = (titles: readonly string[]): FashionStoreFaqCategory["questions"] =>
   titles.map((title) => ({ body: answer, title }));
 
 export const fashionStoreFaqData = {

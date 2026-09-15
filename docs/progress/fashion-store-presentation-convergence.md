@@ -133,3 +133,21 @@ This file retains stable evidence for FS-R5. The FS-R5 plan and product master r
 - Hero desktop/mobile browser regression: 12 passed, 6 viewport-inapplicable skips, 0 failed. Static first paint, accepted layer choreography, offscreen pause/resume, native Swiper threshold/lazy preload, no-JavaScript, source timing, complete-cycle remount, and GSAP-load fallback remain green.
 - The unchanged full motion/performance matrix passed 2/2. Desktop medians were 37.768 ms Layerize, 169.3 ms paint lifecycle, and 916.9 ms RunTask; mobile medians were 40.992 ms, 96.329 ms, and 663.414 ms respectively, against 250/250/1200 ms limits. Both offscreen and reduced-idle controls recorded zero Layerize, paint lifecycle, and effective page-activity RunTask work.
 - U6 is complete. The next Fashion convergence unit is U7; the product master keeps `ADM-LIST-U5` active and advances only the preserved Fashion return pointer to `FS-R5-U7`.
+
+## 2026-09-15 — U7 shared content and recovery presentation
+
+### Outcome
+
+- Fixture and live registries now resolve `fashion-store.content` directly to one `FashionStoreContentPage.vue`. The generic live content page and provider-kind route wrapper are deleted.
+- About, FAQ, Magazine, Article, Contact, Account, and Wishlist data shapes now belong to a provider-neutral content presentation contract. Fixture implementations satisfy that contract; route components no longer inspect raw presentation unions.
+- Structured fixture content retains each accepted route-specific information architecture and local-only interactions. Live unavailable routes use the same canonical route owner with truthful headings, messages, exits, and no simulated Account or Contact submission.
+- Live Wishlist recovery renders published Catalog products through the shared ProductCard contract. Direct navigation, SPA navigation, browser Back restoration, and no-JavaScript output retain route identity without fixture content leakage or stale local state.
+- Carousel viewport suspension is opt-in and enabled only for the converged Home collection feature. This preserves the independently governed About carousel autoplay contract while retaining U6's offscreen Home performance behavior.
+
+### Verification
+
+- Focused content, information, magazine, registry, live-commerce, and motion owners: 71 passed, 0 failed; Storefront typecheck, affected ESLint, Prettier, repository import boundaries, and diff checks passed.
+- Fixture content/information/magazine browser matrix: 26 applicable cases passed, 20 project-inapplicable cases skipped, 0 failed across desktop/mobile projects.
+- The focused live unsupported-content and Wishlist recovery scenario passed with accessibility, SPA return, browser Back, and no-JavaScript assertions. The complete live suite passed 16/16 during U7 implementation.
+- The unchanged full motion/performance matrix remained green after scoping offscreen carousel suspension to Home: desktop measured 38.998 ms Layerize, 111.966 ms paint lifecycle, and 671.844 ms RunTask; mobile measured 43.642 ms, 91.444 ms, and 620.067 ms. Offscreen and reduced-idle controls remained zero.
+- U7 is complete. The next Fashion convergence unit is U8; the product master keeps `ADM-LIST-U6` active and advances only the preserved Fashion return pointer to `FS-R5-U8`.

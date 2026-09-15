@@ -1,14 +1,4 @@
-export interface FashionStoreContactData {
-  announcement: string;
-  locations: readonly {
-    address: readonly string[];
-    city: string;
-    email: string;
-    name: string;
-    phone: string;
-  }[];
-  privacyCopy: string;
-}
+import type { FashionStoreContactData } from "../../contracts/content-presentation";
 
 export const fashionStoreContactData = {
   announcement: "Enjoy FREE standard delivery on orders over $100.",

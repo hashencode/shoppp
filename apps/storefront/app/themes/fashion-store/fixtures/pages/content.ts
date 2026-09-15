@@ -1,35 +1,11 @@
-import type { PreviewAction } from "../../../../theme-engine/actions";
 import type { ExperienceFixtureRegistry } from "../../../../theme-engine/view-models";
-import { fashionStoreShopData, type FashionStoreShopProduct } from "./shop";
-import { fashionStoreAboutData, type FashionStoreAboutData } from "./about";
-import { fashionStoreArticleData, type FashionStoreArticleData } from "./article";
-import { fashionStoreContactData, type FashionStoreContactData } from "./contact";
-import { fashionStoreFaqData, type FashionStoreFaqData } from "./faq";
-import { fashionStoreMagazineData, type FashionStoreMagazineData } from "./magazine";
-
-export interface FashionStoreWishlistData {
-  actions: {
-    cart: PreviewAction;
-    remove: PreviewAction;
-  };
-  announcement: string;
-  products: readonly FashionStoreShopProduct[];
-}
-
-export interface FashionStoreAccountData {
-  announcement: string;
-  privacyCopy: string;
-}
-
-export interface FashionStoreContentData {
-  account: FashionStoreAccountData;
-  about: FashionStoreAboutData;
-  article: FashionStoreArticleData;
-  contact: FashionStoreContactData;
-  faq: FashionStoreFaqData;
-  magazine: FashionStoreMagazineData;
-  wishlist: FashionStoreWishlistData;
-}
+import type { FashionStoreContentData } from "../../contracts/content-presentation";
+import { fashionStoreAboutData } from "./about";
+import { fashionStoreArticleData } from "./article";
+import { fashionStoreContactData } from "./contact";
+import { fashionStoreFaqData } from "./faq";
+import { fashionStoreMagazineData } from "./magazine";
+import { fashionStoreShopData } from "./shop";
 
 export const fashionStoreContentData = {
   account: {

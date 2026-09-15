@@ -1,23 +1,17 @@
 <script setup lang="ts">
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import type { FashionStoreContentData } from "../../fixtures/pages/content";
+import type { FashionStoreContactData } from "../../contracts/content-presentation";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStorePageTitle from "../shared/FashionStorePageTitle.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  data: FashionStoreContactData;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
 }>();
 
-const data = computed(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store Contact requires a theme-section fixture.");
-  }
-  return (properties.viewModel.data as unknown as FashionStoreContentData).contact;
-});
+const data = computed(() => properties.data);
 const submitCount = ref(0);
 const overlapContainer = ref<HTMLElement | null>(null);
 const overlapMargin = ref("");

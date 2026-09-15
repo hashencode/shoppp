@@ -1,16 +1,4 @@
-import type { FashionStoreAccordionItem } from "../../components/shared/FashionStoreAccordion.vue";
-
-export interface FashionStoreAboutData {
-  accordion: readonly FashionStoreAccordionItem[];
-  announcement: string;
-  brandLogos: readonly string[];
-  carouselImages: readonly string[];
-  story: {
-    body: readonly string[];
-    eyebrow: string;
-  };
-  timeline: readonly { body: string; number: string; title: string }[];
-}
+import type { FashionStoreAboutData } from "../../contracts/content-presentation";
 
 const accordionBody =
   "We deliver customized marketing campaign to use your audience to make a positive move.";

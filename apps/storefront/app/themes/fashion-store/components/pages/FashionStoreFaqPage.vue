@@ -1,22 +1,16 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
-import type { FashionStoreContentData } from "../../fixtures/pages/content";
+import type { FashionStoreFaqData } from "../../contracts/content-presentation";
 import FashionStoreAccordion from "../shared/FashionStoreAccordion.vue";
 import FashionStorePageTitle from "../shared/FashionStorePageTitle.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
 const properties = defineProps<{
+  data: FashionStoreFaqData;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
 }>();
 
-const data = computed(() => {
-  if (properties.viewModel.kind !== "theme-section") {
-    throw new Error("Fashion Store FAQ requires a theme-section fixture.");
-  }
-  return (properties.viewModel.data as unknown as FashionStoreContentData).faq;
-});
+const data = computed(() => properties.data);
 const activeCategory = ref(0);
 const activeQuestion = ref<number | null>(0);
 

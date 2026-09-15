@@ -1,18 +1,7 @@
-export interface FashionStoreMagazinePost {
-  author: string;
-  date: string;
-  sourceImage: string;
-  title: string;
-}
-
-export interface FashionStoreMagazineData {
-  announcement: string;
-  pagination: {
-    active: string;
-    pages: readonly string[];
-  };
-  posts: readonly FashionStoreMagazinePost[];
-}
+import type {
+  FashionStoreMagazineData,
+  FashionStoreMagazinePost,
+} from "../../contracts/content-presentation";
 
 const post = (
   title: string,
