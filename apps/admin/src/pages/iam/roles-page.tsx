@@ -28,14 +28,22 @@ type RoleSearchValues = {
   search?: string
 }
 
-type RoleListFilters = {
-  page?: number
-  pageSize?: number
-  search?: string
-}
+type RoleListFilters = NonNullable<Parameters<typeof fetchAdminRoles>[0]>
 
 const toFilters = (values: RoleSearchValues): RoleListFilters => ({
   search: values.search?.trim() || undefined,
+})
+
+const buildRoleRequestFilters: StandardListPageSpec<
+  RoleSearchValues,
+  RoleListFilters,
+  IamPage<AdminRole>,
+  AdminRole,
+  ApiError
+>['buildRequestFilters'] = ({ filters, current, pageSize }) => ({
+  ...filters,
+  page: current,
+  pageSize,
 })
 
 const CreateRoleAction = ({
@@ -165,11 +173,7 @@ export const RolesPage = () => {
         maxPageSize: 100,
         pageSizeOptions: [25, 50, 100],
       },
-      buildRequestFilters: ({ filters, current, pageSize }) => ({
-        ...filters,
-        page: current,
-        pageSize,
-      }),
+      buildRequestFilters: buildRoleRequestFilters,
       request: fetchAdminRoles,
       selectItems: (response) => response?.items ?? [],
       mapError: normalizeApiError,

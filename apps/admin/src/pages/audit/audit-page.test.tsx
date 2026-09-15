@@ -137,6 +137,46 @@ describe('AuditPage', () => {
     expect(requests.at(-1)).toEqual({ pageSize: '25' })
   })
 
+  it('ignores an older cursor response after Reset restarts the committed query', async () => {
+    let releaseCursorRequest: (() => void) | undefined
+    const cursorGate = new Promise<void>((resolve) => {
+      releaseCursorRequest = resolve
+    })
+    let firstPageLoads = 0
+    server.use(
+      http.get('*/admin/audit', async ({ request }) => {
+        const query = Object.fromEntries(new URL(request.url).searchParams.entries())
+        requests.push(query)
+        if (query.cursor) {
+          await cursorGate
+          return HttpResponse.json({
+            data: [auditEvent('stale-cursor')],
+            meta: { nextCursor: null },
+          })
+        }
+        firstPageLoads += 1
+        return HttpResponse.json({
+          data: [auditEvent(firstPageLoads === 1 ? 'first' : 'fresh-reset')],
+          meta: { nextCursor: firstPageLoads === 1 ? 'cursor-next' : null },
+        })
+      })
+    )
+    renderAudit()
+    await screen.findByText('orders.first')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    await waitFor(() => expect(requests.at(-1)).toEqual({ cursor: 'cursor-next', pageSize: '25' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await screen.findByText('orders.fresh-reset')
+
+    releaseCursorRequest?.()
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(screen.queryByText('orders.stale-cursor')).toBeNull()
+    expect(screen.getByText('orders.fresh-reset')).toBeTruthy()
+  })
+
   it('hides mismatched rows after a replacement failure and retries the committed query', async () => {
     renderAudit()
     await screen.findByText('orders.first')

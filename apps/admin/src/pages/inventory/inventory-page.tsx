@@ -37,6 +37,18 @@ const toFilters = (values: InventorySearchValues): InventoryFilters => ({
   query: values.query?.trim() || undefined,
 })
 
+const buildInventoryRequestFilters: StandardListPageSpec<
+  InventorySearchValues,
+  InventoryFilters,
+  InventoryListResponse,
+  InventoryListItem,
+  Error
+>['buildRequestFilters'] = ({ filters, current, pageSize }) => ({
+  ...filters,
+  page: current,
+  pageSize,
+})
+
 const ReloadBridge = ({
   reload,
   capture,
@@ -125,11 +137,7 @@ export const InventoryPage = () => {
         maxPageSize: 100,
         pageSizeOptions: [20, 50, 100],
       },
-      buildRequestFilters: ({ filters, current, pageSize }) => ({
-        ...filters,
-        page: current,
-        pageSize,
-      }),
+      buildRequestFilters: buildInventoryRequestFilters,
       request: fetchInventory,
       selectItems: (response) => response?.data ?? [],
       mapError: (error) => new Error(localizeError(error)),

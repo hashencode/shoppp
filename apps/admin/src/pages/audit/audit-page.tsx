@@ -1,4 +1,4 @@
-import type { AuditEvent, AuditQuery } from '@shoppp/contracts'
+import { auditQuerySchema, type AuditEvent, type AuditQuery } from '@shoppp/contracts'
 import { Button, Card, Form, Space, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
@@ -21,13 +21,14 @@ import {
   TemplateListFilterForm,
   type TemplateListFilterField,
   useTemplateListController,
+  useTemplateListFilters,
 } from '../../shared/template-kit/list'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
 type AuditFilterValues = Pick<AuditQuery, 'action' | 'result' | 'targetType'>
-type AuditResponse = { data: AuditEvent[]; nextCursor: string | null }
+type AuditResponse = Awaited<ReturnType<typeof fetchAuditEvents>>
 
 const PAGE_SIZE = 25
 const TABLE_ID = 'audit-events-list'
@@ -43,17 +44,29 @@ export const AuditPage = () => {
   const { searchCompactLayout } = useTheme()
   const localizeError = useLocalizedApiError()
   const [filterForm] = Form.useForm<AuditFilterValues>()
-  const [committedFilters, setCommittedFilters] = useState<AuditFilterValues>({})
-  const [cursorIndex, setCursorIndex] = useState(0)
   const [cursorTrail, setCursorTrail] = useState<Array<string | undefined>>([undefined])
+  const cursorIndex = cursorTrail.length - 1
+  const resetCursor = useCallback(() => setCursorTrail([undefined]), [])
+  const {
+    filters: committedFilters,
+    requestVersion,
+    onSubmit: commitFilters,
+    onReset: resetFilters,
+  } = useTemplateListFilters<AuditFilterValues, AuditFilterValues>({
+    form: filterForm,
+    initialFilters: {},
+    toFilters: normalizeFilters,
+    onResetPage: resetCursor,
+    autoApplyOnValuesChange: false,
+  })
 
   const requestFilters = useMemo<AuditQuery>(
     () => ({
       ...committedFilters,
       pageSize: PAGE_SIZE,
-      ...(cursorTrail[cursorIndex] ? { cursor: cursorTrail[cursorIndex] } : {}),
+      ...(cursorTrail.at(-1) ? { cursor: cursorTrail.at(-1) } : {}),
     }),
-    [committedFilters, cursorIndex, cursorTrail]
+    [committedFilters, cursorTrail]
   )
   const controller = useTemplateListController<AuditQuery, AuditResponse, AuditEvent, ApiError>({
     filters: requestFilters,
@@ -65,30 +78,17 @@ export const AuditPage = () => {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, requestVersion])
 
-  const commitFilters = useCallback((values: AuditFilterValues) => {
-    setCursorIndex(0)
-    setCursorTrail([undefined])
-    setCommittedFilters(normalizeFilters(values))
-  }, [])
-  const resetFilters = useCallback(() => {
-    filterForm.resetFields()
-    commitFilters({})
-  }, [commitFilters, filterForm])
-  const goToFirstPage = useCallback(() => {
-    setCursorIndex(0)
-    setCursorTrail((current) => current.slice(0, 1))
-  }, [])
+  const goToFirstPage = resetCursor
   const goToPreviousPage = useCallback(() => {
-    setCursorIndex((current) => Math.max(0, current - 1))
+    setCursorTrail((current) => (current.length > 1 ? current.slice(0, -1) : current))
   }, [])
   const goToNextPage = useCallback(() => {
     const nextCursor = controller.response?.nextCursor
     if (!nextCursor) return
-    setCursorTrail((current) => [...current.slice(0, cursorIndex + 1), nextCursor])
-    setCursorIndex((current) => current + 1)
-  }, [controller.response?.nextCursor, cursorIndex])
+    setCursorTrail((current) => [...current, nextCursor])
+  }, [controller.response?.nextCursor])
 
   const columns = useMemo<ColumnsType<AuditEvent>>(
     () => [
@@ -206,7 +206,7 @@ export const AuditPage = () => {
         type: 'select',
         name: 'result',
         label: t('Result'),
-        options: ['allowed', 'denied', 'succeeded', 'failed'].map((value) => ({
+        options: auditQuerySchema.shape.result.unwrap().options.map((value) => ({
           label: t(value),
           value,
         })),

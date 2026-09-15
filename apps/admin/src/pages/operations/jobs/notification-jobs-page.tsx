@@ -1,4 +1,9 @@
-import type { NotificationJob, NotificationJobStatus } from '@shoppp/contracts'
+import {
+  notificationJobSchema,
+  notificationJobStatusSchema,
+  type NotificationJob,
+  type NotificationJobStatus,
+} from '@shoppp/contracts'
 import { Alert, App, Button, Form, Input, Modal, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -28,24 +33,8 @@ const statusColors: Record<NotificationJobStatus, string> = {
   sent: 'success',
 }
 
-const notificationStatuses: NotificationJobStatus[] = [
-  'pending',
-  'processing',
-  'sent',
-  'failed',
-  'dead_letter',
-]
-
-const notificationTypes: NotificationJob['type'][] = [
-  'order_receipt',
-  'payment_failed',
-  'cancellation',
-  'refund',
-  'shipment',
-  'payment_reconciliation',
-  'admin_invitation',
-  'admin_password_reset',
-]
+const notificationStatuses = notificationJobStatusSchema.options
+const notificationTypes = notificationJobSchema.shape.type.options
 
 type NotificationJobFilterValues = {
   query?: string
@@ -59,6 +48,18 @@ const toFilters = (values: NotificationJobFilterValues): NotificationJobFilters 
   query: values.query?.trim() || undefined,
   status: values.status,
   type: values.type,
+})
+
+const buildNotificationJobRequestFilters: StandardListPageSpec<
+  NotificationJobFilterValues,
+  NotificationJobFilters,
+  NotificationJobListResponse,
+  NotificationJob,
+  Error
+>['buildRequestFilters'] = ({ filters, current, pageSize }) => ({
+  ...filters,
+  page: current,
+  pageSize,
 })
 
 const ReloadBridge = ({
@@ -144,11 +145,7 @@ export const NotificationJobsPage = () => {
         maxPageSize: 100,
         pageSizeOptions: [20, 50, 100],
       },
-      buildRequestFilters: ({ filters, current, pageSize }) => ({
-        ...filters,
-        page: current,
-        pageSize,
-      }),
+      buildRequestFilters: buildNotificationJobRequestFilters,
       request: fetchNotificationJobs,
       selectItems: (response) => response?.data ?? [],
       mapError: (error) => new Error(localizeError(error)),

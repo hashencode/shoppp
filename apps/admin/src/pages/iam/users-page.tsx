@@ -1,9 +1,11 @@
-import type {
-  AdminInvitation,
-  AdminInvitationStatus,
-  AdminRole,
-  AdminUser,
-  AdminUserStatus,
+import {
+  adminInvitationStatusSchema,
+  adminUserStatusSchema,
+  type AdminInvitation,
+  type AdminInvitationStatus,
+  type AdminRole,
+  type AdminUser,
+  type AdminUserStatus,
 } from '@shoppp/contracts'
 import {
   Alert,
@@ -129,14 +131,16 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
 type IndependentListCardProps<TItem> = {
   tableId: string
   columns: ColumnsType<TItem>
-  data: TItem[]
   rowKey: string
-  loading: boolean
-  error: ApiError | null
-  showInitialLoading: boolean
-  showError: boolean
-  showEmpty: boolean
-  showPartial: boolean
+  queryState: {
+    data: TItem[]
+    loading: boolean
+    error: ApiError | null
+    showInitialLoading: boolean
+    showError: boolean
+    showEmpty: boolean
+    showPartial: boolean
+  }
   pagination: TablePaginationConfig
   scrollX: number
   emptyTitle: string
@@ -147,20 +151,22 @@ type IndependentListCardProps<TItem> = {
 const IndependentListCard = <TItem extends object>({
   tableId,
   columns,
-  data,
   rowKey,
-  loading,
-  error,
-  showInitialLoading,
-  showError,
-  showEmpty,
-  showPartial,
+  queryState,
   pagination,
   scrollX,
   emptyTitle,
   onReload,
   onResetEmpty,
 }: IndependentListCardProps<TItem>) => {
+  const { data, error, loading, showEmpty, showError, showInitialLoading, showPartial } = queryState
+  const defaultColumnKeys = useMemo(
+    () =>
+      columns
+        .filter((column) => typeof column.key === 'string')
+        .map((column) => String(column.key)),
+    [columns]
+  )
   const {
     tableSize,
     selectedColumnKeys,
@@ -172,9 +178,7 @@ const IndependentListCard = <TItem extends object>({
     clearColumnOrder,
   } = useListViewPreferences({
     tableId,
-    defaultColumnKeys: columns
-      .filter((column) => typeof column.key === 'string')
-      .map((column) => String(column.key)),
+    defaultColumnKeys,
     defaultDensity: 'middle',
   })
   const orderedColumns = useMemo(() => {
@@ -410,10 +414,10 @@ export const UsersPage = () => {
             type: 'select' as const,
             name: 'userStatus' as const,
             label: t('Status'),
-            options: [
-              { label: t('Active'), value: 'active' },
-              { label: t('Disabled'), value: 'disabled' },
-            ],
+            options: adminUserStatusSchema.options.map((value) => ({
+              label: t(value[0].toUpperCase() + value.slice(1)),
+              value,
+            })),
             selectProps: {
               'aria-label': t('User status'),
               placeholder: t('All user states'),
@@ -423,7 +427,7 @@ export const UsersPage = () => {
             type: 'select' as const,
             name: 'invitationStatus' as const,
             label: t('Status'),
-            options: ['pending', 'accepted', 'revoked', 'expired'].map((value) => ({
+            options: adminInvitationStatusSchema.options.map((value) => ({
               label: t(value[0].toUpperCase() + value.slice(1)),
               value,
             })),
@@ -667,14 +671,8 @@ export const UsersPage = () => {
               <IndependentListCard<AdminUser>
                 tableId="iam-users-list"
                 columns={userColumns}
-                data={usersController.data}
                 rowKey="id"
-                loading={usersController.loading}
-                error={usersController.error}
-                showInitialLoading={usersController.showInitialLoading}
-                showError={usersController.showError}
-                showEmpty={usersController.showEmpty}
-                showPartial={usersController.showPartial}
+                queryState={usersController}
                 pagination={buildStandardListPagination(userPagination, locale)}
                 scrollX={720}
                 emptyTitle={t('No users match these filters.')}
@@ -690,14 +688,8 @@ export const UsersPage = () => {
               <IndependentListCard<AdminInvitation>
                 tableId="iam-invitations-list"
                 columns={invitationColumns}
-                data={invitationsController.data}
                 rowKey="id"
-                loading={invitationsController.loading}
-                error={invitationsController.error}
-                showInitialLoading={invitationsController.showInitialLoading}
-                showError={invitationsController.showError}
-                showEmpty={invitationsController.showEmpty}
-                showPartial={invitationsController.showPartial}
+                queryState={invitationsController}
                 pagination={buildStandardListPagination(invitationPagination, locale)}
                 scrollX={860}
                 emptyTitle={t('No invitations match these filters.')}

@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/co
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { useI18n } from '../../shared/contexts/i18n-context'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { renderInLocale } from '../../test/render-in-locale'
 import { templateRoutes } from '../../routes/routes.config'
@@ -92,6 +93,11 @@ const renderPage = (permissions: readonly AdminPermission[]) =>
     </AuthTestProvider>
   )
 
+const LocaleSwitch = () => {
+  const { setLocale } = useI18n()
+  return <button onClick={() => setLocale('zh-CN')}>Switch language</button>
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   adjustmentBody = undefined
@@ -106,6 +112,25 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('InventoryPage', () => {
+  it('retranslates without refetching the committed inventory query', async () => {
+    renderInLocale(
+      <AuthTestProvider role="inventory_operator" permissions={['inventory.read']}>
+        <ThemeProvider>
+          <LocaleSwitch />
+          <InventoryPage />
+        </ThemeProvider>
+      </AuthTestProvider>,
+      'en-US'
+    )
+
+    await screen.findByText('Carry-on')
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(inventoryQueries).toEqual([{ page: '1', pageSize: '20' }])
+  })
+
   it('keeps the inventory route guarded by the read permission', () => {
     expect(templateRoutes.find(({ key }) => key === 'inventory')).toMatchObject({
       path: '/inventory',

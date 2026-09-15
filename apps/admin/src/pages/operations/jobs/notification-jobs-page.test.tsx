@@ -145,7 +145,10 @@ describe('NotificationJobsPage', () => {
       screen.getByRole('combobox', { name: 'Filter notification status' }).closest('.ant-select')
         ?.textContent
     ).toContain('failed')
-    await waitFor(() => expect(requests).toEqual(['', 'failed']))
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(requests).toEqual(['', 'failed'])
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
   })
 

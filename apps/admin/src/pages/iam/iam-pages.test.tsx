@@ -429,6 +429,29 @@ describe('IAM management pages', () => {
     expect(invitationLoads).toBe(1)
   })
 
+  it('paginates invitations without moving or reloading users', async () => {
+    server.use(
+      http.get('*/admin/iam/invitations', ({ request }) => {
+        invitationLoads += 1
+        const query = Object.fromEntries(new URL(request.url).searchParams.entries())
+        invitationQueries.push(query)
+        return HttpResponse.json({
+          data: { ...page([expiredInvitation]), page: Number(query.page), total: 30 },
+        })
+      })
+    )
+    renderPage(<UsersPage />)
+    await screen.findByText('Alice Admin')
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    await screen.findByText('expired@example.test')
+
+    fireEvent.click(screen.getByTitle('2'))
+    await waitFor(() =>
+      expect(invitationQueries.at(-1)).toMatchObject({ page: '2', pageSize: '25' })
+    )
+    expect(userLoads).toBe(1)
+  })
+
   it('resets only visible status scope and preserves the hidden tab draft', async () => {
     renderPage(<UsersPage />)
     await waitFor(() => expect(invitationLoads).toBe(1))
@@ -472,6 +495,35 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('expired@example.test')).toBeTruthy()
     expect(userLoads).toBe(1)
+  })
+
+  it('keeps invitation results usable when users fail and retries users independently', async () => {
+    server.use(
+      http.get('*/admin/iam/users', () => {
+        userLoads += 1
+        return HttpResponse.json(
+          { error: { code: 'QUERY_SERVER_ERROR', message: 'Users unavailable.' } },
+          { status: 503 }
+        )
+      })
+    )
+    renderPage(<UsersPage />)
+
+    expect(await screen.findByText('Users unavailable.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    expect(await screen.findByText('expired@example.test')).toBeTruthy()
+
+    server.use(
+      http.get('*/admin/iam/users', ({ request }) => {
+        userLoads += 1
+        userQueries.push(Object.fromEntries(new URL(request.url).searchParams.entries()))
+        return HttpResponse.json({ data: page([alice, disabledUser]) })
+      })
+    )
+    fireEvent.click(screen.getByRole('tab', { name: /^Users$/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('Alice Admin')).toBeTruthy()
+    expect(invitationLoads).toBe(1)
   })
 
   it('keeps lists visible when the auxiliary roles lookup fails', async () => {
@@ -642,6 +694,23 @@ describe('IAM management pages', () => {
 
     fireEvent.click(document.querySelector('.ant-pagination-next button')!)
     await waitFor(() => expect(requests.at(-1)?.page).toBe('2'))
+  })
+
+  it('retranslates roles without refetching the committed query', async () => {
+    renderPage(
+      <>
+        <LocaleSwitch />
+        <RolesPage />
+      </>,
+      { path: '/access/roles' }
+    )
+
+    await screen.findByText('Administrator')
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(roleQueries).toEqual([{ page: '1', pageSize: '25' }])
   })
 
   it('keeps Inspect navigation to the selected role id', async () => {

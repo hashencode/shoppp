@@ -1,4 +1,4 @@
-import type { AdminOrder } from '@shoppp/contracts'
+import { fulfillmentStatusSchema, type AdminOrder } from '@shoppp/contracts'
 import { Button, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import React, { useMemo } from 'react'
@@ -30,6 +30,18 @@ const toFilters = (values: OrderSearchValues): OrderFilters => ({
   fulfillmentStatus: values.fulfillmentStatus,
   paymentStatus: values.paymentStatus,
   query: values.query?.trim() || undefined,
+})
+
+const buildOrderRequestFilters: StandardListPageSpec<
+  OrderSearchValues,
+  OrderFilters,
+  OrderListResponse,
+  AdminOrder,
+  Error
+>['buildRequestFilters'] = ({ filters, current, pageSize }) => ({
+  ...filters,
+  page: current,
+  pageSize,
 })
 
 export const OrderListPage = () => {
@@ -71,9 +83,7 @@ export const OrderListPage = () => {
           allowClear: true,
           placeholder: t('Fulfillment status'),
         },
-        options: ['unfulfilled', 'picking', 'packed', 'shipped', 'delivered', 'canceled'].map(
-          (value) => ({ label: t(value), value })
-        ),
+        options: fulfillmentStatusSchema.options.map((value) => ({ label: t(value), value })),
       },
     ],
     [t]
@@ -94,11 +104,7 @@ export const OrderListPage = () => {
         maxPageSize: 100,
         pageSizeOptions: [20, 50, 100],
       },
-      buildRequestFilters: ({ filters, current, pageSize }) => ({
-        ...filters,
-        page: current,
-        pageSize,
-      }),
+      buildRequestFilters: buildOrderRequestFilters,
       request: fetchOrders,
       selectItems: (response) => response?.data ?? [],
       mapError: (error) => new Error(localizeError(error)),

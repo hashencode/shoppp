@@ -7,6 +7,7 @@ import { setupServer } from 'msw/node'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { useI18n } from '../../shared/contexts/i18n-context'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { renderInLocale } from '../../test/render-in-locale'
 import { OrderListPage } from './order-list-page'
@@ -85,6 +86,11 @@ const renderPage = () =>
     'en-US'
   )
 
+const LocaleSwitch = () => {
+  const { setLocale } = useI18n()
+  return <button onClick={() => setLocale('zh-CN')}>Switch language</button>
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   orderQueries = []
@@ -96,6 +102,27 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('OrderListPage', () => {
+  it('retranslates without refetching the committed order query', async () => {
+    renderInLocale(
+      <AuthTestProvider role="order_operator" permissions={['orders.read']}>
+        <ThemeProvider>
+          <LocaleSwitch />
+          <MemoryRouter initialEntries={['/orders']}>
+            <OrderListPage />
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthTestProvider>,
+      'en-US'
+    )
+
+    await screen.findByText('ORD-LIST01')
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    expect(orderQueries).toEqual([{ page: '1', pageSize: '20' }])
+  })
+
   it('commits draft filters only on Search and restores the entry baseline on Reset', async () => {
     renderPage()
 
