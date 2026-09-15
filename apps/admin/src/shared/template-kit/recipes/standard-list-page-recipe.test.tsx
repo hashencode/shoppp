@@ -79,6 +79,218 @@ const renderWithTheme = (
 }
 
 describe('StandardListPageRecipe', () => {
+  it('supports list-only specs without a form route', async () => {
+    const originalOpen = window.open
+    const openCalls: unknown[][] = []
+    window.open = ((...args: unknown[]) => {
+      openCalls.push(args)
+      return null
+    }) as typeof window.open
+    let capturedOpenFormPage: (() => void) | undefined
+    const spec: StandardListPageSpec<
+      FilterValues,
+      RequestFilters,
+      Response,
+      { id: number; name: string },
+      Error
+    > = {
+      pageTitle: '只读列表',
+      tableId: 'recipe-test-list-without-form-route',
+      initialFilters: {},
+      toFilters: () => ({}),
+      request: async () => ({ data: [{ id: 1, name: 'demo' }], current: 1, size: 10, total: 1 }),
+      selectItems: (response) => response?.data ?? [],
+      filterFields: [],
+      buildColumns: ({ openFormPage }) => {
+        capturedOpenFormPage = () => openFormPage('modify', '1')
+        return []
+      },
+      buildTableNode: ({ dataSource }) => <div>{dataSource[0]?.name}</div>,
+    }
+
+    renderWithTheme(<StandardListPageRecipe spec={spec} />)
+
+    await screen.findByText('demo')
+    expect(() => capturedOpenFormPage?.()).not.toThrow()
+    expect(openCalls).toHaveLength(0)
+    window.open = originalOpen
+  })
+
+  it('separates visible initial form values from initial request filters', async () => {
+    const requestCalls: RequestFilters[] = []
+    const spec: StandardListPageSpec<
+      FilterValues,
+      RequestFilters,
+      Response,
+      { id: number; name: string },
+      Error
+    > = {
+      pageTitle: '初始筛选',
+      tableId: 'recipe-test-list-initial-form-values',
+      initialFilters: { name: 'request-baseline' },
+      initialFormValues: { name: 'visible-baseline' },
+      toFilters: (values) => ({ name: values.name }),
+      request: async (filters) => {
+        requestCalls.push(filters)
+        return { data: [{ id: 1, name: filters.name ?? 'empty' }], current: 1, size: 10, total: 1 }
+      },
+      selectItems: (response) => response?.data ?? [],
+      filterFields: [
+        { type: 'input', name: 'name', label: '名称', inputProps: { placeholder: '名称' } },
+      ],
+      buildColumns: () => [],
+      buildTableNode: ({ dataSource }) => (
+        <div data-testid="initial-values-row">{dataSource[0]?.name}</div>
+      ),
+    }
+
+    renderWithTheme(<StandardListPageRecipe spec={spec} />)
+
+    await waitFor(() => expect(requestCalls).toHaveLength(1))
+    expect(requestCalls[0]).toMatchObject({ name: 'request-baseline' })
+    expect((screen.getByPlaceholderText('名称') as HTMLInputElement).value).toBe('visible-baseline')
+
+    fireEvent.change(screen.getByPlaceholderText('名称'), { target: { value: 'draft' } })
+    fireEvent.click(screen.getByRole('button', { name: /重\s*置/ }))
+
+    await waitFor(() => expect(requestCalls).toHaveLength(2))
+    expect(requestCalls[1]).toMatchObject({ name: 'request-baseline' })
+    expect((screen.getByPlaceholderText('名称') as HTMLInputElement).value).toBe('visible-baseline')
+  })
+
+  it('exposes committed filters to toolbar and table extension renderers', async () => {
+    const spec: StandardListPageSpec<
+      FilterValues,
+      RequestFilters,
+      Response,
+      { id: number; name: string },
+      Error
+    > = {
+      pageTitle: '已提交筛选',
+      tableId: 'recipe-test-list-applied-filters',
+      initialFilters: { name: 'initial' },
+      initialFormValues: { name: 'initial' },
+      toFilters: (values) => ({ name: values.name?.trim() }),
+      request: async (filters) => ({
+        data: [{ id: 1, name: filters.name ?? 'empty' }],
+        current: 1,
+        size: 10,
+        total: 1,
+      }),
+      selectItems: (response) => response?.data ?? [],
+      filterFields: [
+        { type: 'input', name: 'name', label: '名称', inputProps: { placeholder: '筛选名称' } },
+      ],
+      toolbarExtra: ({ appliedFilters }) => (
+        <span data-testid="toolbar-filter">{appliedFilters.name}</span>
+      ),
+      toolbarExtraVisible: true,
+      buildColumns: () => [],
+      buildTableNode: ({ appliedFilters }) => (
+        <div data-testid="table-filter">{appliedFilters.name}</div>
+      ),
+    }
+
+    renderWithTheme(<StandardListPageRecipe spec={spec} />)
+
+    await screen.findByText('initial')
+    fireEvent.change(screen.getByPlaceholderText('筛选名称'), { target: { value: 'draft' } })
+    expect(screen.getByTestId('toolbar-filter').textContent).toBe('initial')
+    expect(screen.getByTestId('table-filter').textContent).toBe('initial')
+
+    fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }))
+    await waitFor(() => expect(screen.getByTestId('toolbar-filter').textContent).toBe('draft'))
+    await waitFor(() => expect(screen.getByTestId('table-filter').textContent).toBe('draft'), {
+      timeout: 3_000,
+    })
+  })
+
+  it('hides mismatched rows behind a blocking error when a replacement query fails', async () => {
+    const requestCalls: RequestFilters[] = []
+    const spec: StandardListPageSpec<
+      FilterValues,
+      RequestFilters,
+      Response,
+      { id: number; name: string },
+      Error
+    > = {
+      pageTitle: '替换查询错误',
+      tableId: 'recipe-test-list-replacement-error',
+      initialFilters: { name: 'initial' },
+      initialFormValues: { name: 'initial' },
+      toFilters: (values) => ({ name: values.name }),
+      request: async (filters) => {
+        requestCalls.push(filters)
+        if (filters.name === 'broken') {
+          throw new Error('replacement failed')
+        }
+        return { data: [{ id: 1, name: 'old-row' }], current: 1, size: 10, total: 1 }
+      },
+      selectItems: (response) => response?.data ?? [],
+      filterFields: [
+        {
+          type: 'input',
+          name: 'name',
+          label: '名称',
+          inputProps: { placeholder: '替换筛选' },
+        },
+      ],
+      buildColumns: () => [],
+      buildTableNode: ({ dataSource }) => <div>{dataSource[0]?.name}</div>,
+    }
+
+    renderWithTheme(<StandardListPageRecipe spec={spec} />)
+    await screen.findByText('old-row')
+
+    fireEvent.change(screen.getByPlaceholderText('替换筛选'), { target: { value: 'broken' } })
+    fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }))
+
+    await screen.findByText('replacement failed')
+    expect(screen.queryByText('old-row')).toBeNull()
+    expect(requestCalls.at(-1)).toMatchObject({ name: 'broken' })
+  })
+
+  it('keeps matching rows under a partial error when a same-scope refresh fails', async () => {
+    let requestCount = 0
+    const spec: StandardListPageSpec<
+      FilterValues,
+      RequestFilters,
+      Response,
+      { id: number; name: string },
+      Error
+    > = {
+      pageTitle: '刷新错误',
+      tableId: 'recipe-test-list-refresh-error',
+      initialFilters: {},
+      toFilters: () => ({}),
+      request: async () => {
+        requestCount += 1
+        if (requestCount > 1) {
+          throw new Error('refresh failed')
+        }
+        return { data: [{ id: 1, name: 'matching-row' }], current: 1, size: 10, total: 1 }
+      },
+      selectItems: (response) => response?.data ?? [],
+      filterFields: [],
+      buildColumns: () => [],
+      buildTableNode: ({ dataSource, reload }) => (
+        <div>
+          <span>{dataSource[0]?.name}</span>
+          <button type="button" onClick={() => void reload()}>
+            refresh-probe
+          </button>
+        </div>
+      ),
+    }
+
+    renderWithTheme(<StandardListPageRecipe spec={spec} />)
+    await screen.findByText('matching-row')
+    fireEvent.click(screen.getByRole('button', { name: 'refresh-probe' }))
+
+    await screen.findByText('refresh failed')
+    expect(screen.getByText('matching-row')).toBeTruthy()
+  })
+
   it('does not auto request on filter value change and only queries on submit', async () => {
     const requestCalls: RequestFilters[] = []
     const spec: StandardListPageSpec<

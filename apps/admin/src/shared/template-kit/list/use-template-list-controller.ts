@@ -59,8 +59,11 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
   const { message } = App.useApp()
   const [response, setResponse] = useState<TResponse | null>(null)
   const [extendedLoading, setExtendedLoading] = useState(false)
+  const [sameScopeRefreshError, setSameScopeRefreshError] = useState(false)
   const transformResponseRef = useRef(transformResponse)
   const activeLoadIdRef = useRef(0)
+  const representedFiltersRef = useRef<TFilter | null>(null)
+  const hasRepresentedResponseRef = useRef(false)
   const {
     loading,
     error,
@@ -88,6 +91,16 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
       const minimumLoadingMs = options?.minimumLoadingMs ?? 0
       const shouldExtendLoading = minimumLoadingMs > 0
       const requestStartedAt = Date.now()
+      const requestedFilters = filters
+      const isSameScopeRefresh =
+        hasRepresentedResponseRef.current && representedFiltersRef.current === requestedFilters
+
+      setSameScopeRefreshError(false)
+      if (!isSameScopeRefresh) {
+        hasRepresentedResponseRef.current = false
+        representedFiltersRef.current = null
+        setResponse(null)
+      }
 
       if (shouldExtendLoading) {
         setExtendedLoading(true)
@@ -115,12 +128,17 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
 
       const requestResult = await runRequest(filters)
       if (requestResult.status !== 'success') {
+        if (requestResult.status === 'error' && activeLoadIdRef.current === loadId) {
+          setSameScopeRefreshError(isSameScopeRefresh)
+        }
         await settleExtendedLoading()
         return
       }
 
       const nextResponse = requestResult.data
       if (nextResponse == null) {
+        hasRepresentedResponseRef.current = false
+        representedFiltersRef.current = null
         setResponse(null)
         await settleExtendedLoading()
         return
@@ -130,6 +148,8 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
         options?.transformResponse?.(nextResponse) ??
         transformResponseRef.current?.(nextResponse) ??
         nextResponse
+      hasRepresentedResponseRef.current = true
+      representedFiltersRef.current = requestedFilters
       setResponse(applied)
       await settleExtendedLoading()
 
@@ -171,7 +191,7 @@ export const useTemplateListController = <TFilter, TResponse, TItem, TError = un
     hasData: Boolean(response),
     isEmpty: data.length === 0,
     hasError: Boolean(error),
-    isPartial: isPartial ? isPartial(response) : false,
+    isPartial: (isPartial ? isPartial(response) : false) || sameScopeRefreshError,
   })
 
   return {

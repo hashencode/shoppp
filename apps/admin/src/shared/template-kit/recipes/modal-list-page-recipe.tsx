@@ -138,8 +138,9 @@ export const ModalListPageRecipe = <
 
     return spec.toolbarExtra({
       reload,
+      appliedFilters: filters,
     })
-  }, [reload, spec])
+  }, [filters, reload, spec])
 
   const searchColProps = useMemo(() => buildSearchGridProps(visibleFieldCount), [visibleFieldCount])
   const modalListTableProps = useMemo(
@@ -170,6 +171,7 @@ export const ModalListPageRecipe = <
     dataSource,
     loading,
     reload,
+    appliedFilters: filters,
     tableSize: modalListTableProps.size,
     current,
     pageSize,
@@ -199,6 +201,7 @@ export const ModalListPageRecipe = <
       {spec.filterFields.length > 0 ? (
         <TemplateListFilterForm<TFilterValues>
           form={filterForm}
+          formProps={{ initialValues: spec.initialFormValues }}
           fields={spec.filterFields}
           fieldColProps={searchColProps.formItem}
           labelCol={searchColProps.labelItem}
@@ -227,7 +230,10 @@ export const ModalListPageRecipe = <
         showPartial={showPartial}
         showEmpty={showEmpty}
         errorMessage={(error as { message?: string } | null)?.message}
-        partialMessage={(response as { partialMessage?: string } | null)?.partialMessage}
+        partialMessage={
+          (error as { message?: string } | null)?.message ??
+          (response as { partialMessage?: string } | null)?.partialMessage
+        }
         onRetry={() => {
           void load()
         }}

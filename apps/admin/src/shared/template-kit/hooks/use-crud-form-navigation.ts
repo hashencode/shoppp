@@ -45,9 +45,13 @@ export const goBackOrCloseWindow = (
   closeWindowWithFallback(fallbackPath, targetWindow, appBasePath)
 }
 
-export const useCrudFormNavigation = (formRoute: string) => {
+export const useCrudFormNavigation = (formRoute?: string) => {
   const openFormPage = useCallback(
     (mode: FormMode, resourceKey?: string) => {
+      if (!formRoute) {
+        return
+      }
+
       const params = new URLSearchParams({ mode })
       if (resourceKey) {
         params.set('id', resourceKey)

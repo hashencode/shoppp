@@ -243,8 +243,9 @@ export const StandardListPageRecipe = <
 
     return spec.toolbarExtra({
       reload,
+      appliedFilters: filters,
     })
-  }, [reload, spec])
+  }, [filters, reload, spec])
 
   const orderedColumns = useMemo<ColumnsType<TItem>>(() => {
     if (columnOrder.length === 0) {
@@ -319,6 +320,7 @@ export const StandardListPageRecipe = <
     dataSource,
     loading,
     reload,
+    appliedFilters: filters,
     tableSize,
     current,
     pageSize,
@@ -362,6 +364,7 @@ export const StandardListPageRecipe = <
         >
           <TemplateListFilterForm<TFilterValues>
             form={filterForm}
+            formProps={{ initialValues: spec.initialFormValues }}
             fields={spec.filterFields}
             fieldColProps={searchColProps.formItem}
             labelCol={searchColProps.labelItem}
@@ -435,7 +438,10 @@ export const StandardListPageRecipe = <
           showPartial={showPartial}
           showEmpty={showEmpty}
           errorMessage={(error as { message?: string } | null)?.message}
-          partialMessage={(response as { partialMessage?: string } | null)?.partialMessage}
+          partialMessage={
+            (error as { message?: string } | null)?.message ??
+            (response as { partialMessage?: string } | null)?.partialMessage
+          }
           onRetry={() => {
             void load()
           }}

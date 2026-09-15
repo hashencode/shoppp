@@ -8,13 +8,19 @@ import type { StandardPaginationConfig } from '../../hooks/use-standard-paginati
 import type { PermissionKey } from '../../../infrastructure/auth/permissions'
 import type { FormMode } from '../../../routes/form-route-contract'
 
-type StandardListToolbarExtra =
+type StandardListExtensionHelpers<TRequestFilters> = {
+  reload: () => Promise<void>
+  appliedFilters: TRequestFilters
+}
+
+type StandardListToolbarExtra<TRequestFilters> =
   | {
       toolbarExtra?: never
       toolbarExtraVisible?: never
     }
   | {
-      toolbarExtra: ReactNode | ((helpers: { reload: () => Promise<void> }) => ReactNode)
+      toolbarExtra:
+        ReactNode | ((helpers: StandardListExtensionHelpers<TRequestFilters>) => ReactNode)
       toolbarExtraVisible: boolean
     }
 
@@ -30,9 +36,10 @@ export type StandardListPageSpec<
   pageTitleHidden?: boolean
   cardTitle?: string
   tableId: string
-  formRoute: string
+  formRoute?: string
   openFormPage?: (mode: FormMode, resourceKey?: string) => void
   initialFilters: TRequestFilters
+  initialFormValues?: TFilterValues
   toFilters: (values: TFilterValues) => TRequestFilters
   buildRequestFilters?: (context: {
     filters: TRequestFilters
@@ -71,6 +78,7 @@ export type StandardListPageSpec<
     dataSource: TItem[]
     loading: boolean
     reload: () => Promise<void>
+    appliedFilters: TRequestFilters
     tableSize: 'large' | 'middle' | 'small'
     selectedColumnKeys: string[]
     setTableSize: (size: 'large' | 'middle' | 'small') => void
@@ -90,4 +98,4 @@ export type StandardListPageSpec<
       }
     }
   }) => ReactNode
-} & StandardListToolbarExtra
+} & StandardListToolbarExtra<TRequestFilters>

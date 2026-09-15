@@ -203,4 +203,120 @@ describe('useTemplateListController', () => {
 
     expect(result.current.loading).toBe(false)
   })
+
+  it('clears rows when a replacement query fails', async () => {
+    const request = async (filters: Filters): Promise<Response> => {
+      if (filters.name === 'broken') {
+        throw new Error('replacement failed')
+      }
+
+      return { data: [{ key: '1', name: filters.name ?? 'initial' }] }
+    }
+    const initialFilters: Filters = { name: 'initial' }
+    const replacementFilters: Filters = { name: 'broken' }
+
+    const { result, rerender } = renderHook(
+      ({ filters }: { filters: Filters }) =>
+        useTemplateListController<Filters, Response, Item, ListError>({
+          filters,
+          request,
+          selectItems: (response) => response?.data ?? [],
+          mapError: (error) => ({ message: (error as Error).message }),
+        }),
+      { initialProps: { filters: initialFilters } }
+    )
+
+    await act(async () => {
+      await result.current.load()
+    })
+    expect(result.current.data).toEqual([{ key: '1', name: 'initial' }])
+
+    rerender({ filters: replacementFilters })
+    await act(async () => {
+      await result.current.load()
+    })
+
+    expect(result.current.data).toEqual([])
+    expect(result.current.response).toBeNull()
+    expect(result.current.showError).toBe(true)
+    expect(result.current.showPartial).toBe(false)
+  })
+
+  it('retains matching rows and shows a partial error when same-scope refresh fails', async () => {
+    let shouldFail = false
+    const stableFilters: Filters = { name: 'stable' }
+    const request = async (): Promise<Response> => {
+      if (shouldFail) {
+        throw new Error('refresh failed')
+      }
+
+      return { data: [{ key: '1', name: 'stable' }] }
+    }
+
+    const { result } = renderHook(() =>
+      useTemplateListController<Filters, Response, Item, ListError>({
+        filters: stableFilters,
+        request,
+        selectItems: (response) => response?.data ?? [],
+        mapError: (error) => ({ message: (error as Error).message }),
+      })
+    )
+
+    await act(async () => {
+      await result.current.load()
+    })
+    shouldFail = true
+    await act(async () => {
+      await result.current.load()
+    })
+
+    expect(result.current.data).toEqual([{ key: '1', name: 'stable' }])
+    expect(result.current.showError).toBe(false)
+    expect(result.current.showPartial).toBe(true)
+    expect(result.current.error).toEqual({ message: 'refresh failed' })
+  })
+
+  it('lets the latest replacement failure win over an older successful request', async () => {
+    let resolveInitial: ((response: Response) => void) | undefined
+    const initialFilters: Filters = { name: 'slow' }
+    const replacementFilters: Filters = { name: 'broken' }
+    const request = (filters: Filters): Promise<Response> => {
+      if (filters.name === 'slow') {
+        return new Promise((resolve) => {
+          resolveInitial = resolve
+        })
+      }
+
+      return Promise.reject(new Error('latest failed'))
+    }
+
+    const { result, rerender } = renderHook(
+      ({ filters }: { filters: Filters }) =>
+        useTemplateListController<Filters, Response, Item, ListError>({
+          filters,
+          request,
+          selectItems: (response) => response?.data ?? [],
+          mapError: (error) => ({ message: (error as Error).message }),
+        }),
+      { initialProps: { filters: initialFilters } }
+    )
+
+    let initialLoad: Promise<void> | undefined
+    act(() => {
+      initialLoad = result.current.load()
+    })
+    rerender({ filters: replacementFilters })
+
+    await act(async () => {
+      await result.current.load()
+    })
+    await act(async () => {
+      resolveInitial?.({ data: [{ key: '1', name: 'stale' }] })
+      await initialLoad
+    })
+
+    expect(result.current.data).toEqual([])
+    expect(result.current.error).toEqual({ message: 'latest failed' })
+    expect(result.current.showError).toBe(true)
+  })
 })
