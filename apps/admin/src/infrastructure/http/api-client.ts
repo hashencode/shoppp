@@ -38,6 +38,7 @@ const LOCAL_API_ERROR_CODES = [
   'fashion_u8_operator_catalog_release_mismatch',
   'fashion_u8_operator_approval_conflict',
   'last_admin_change_denied',
+  'invalid_audit_cursor',
   'role_has_dependencies',
   'self_role_edit_denied',
   'stale_role_version',

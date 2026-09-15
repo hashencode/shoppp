@@ -44,12 +44,12 @@ tail_owner: ADM-LIST-until-local-verification-and-handback
 ## Execution Checkpoint
 
 - **Classification:** Active bounded Admin query-list successor.
-- **Current unit:** `ADM-LIST-U7` — standardize Audit with truthful forward-only cursor navigation and no fabricated total.
-- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Revenue Report with 37 focused and two native-browser tests green. `ADM-LIST-U5` — migrated Notification Jobs with five component tests and one Replay E2E green. `ADM-LIST-U6` — composed Users/Invitations from `CustomPageRecipe` and standard primitives, preserving independent list controllers, tab-scoped drafts, shared-search fan-out, isolated Roles lookup, guarded invitation actions, localization, and accessibility; 25 IAM component tests, four native-browser tests, Admin typecheck, affected lint/format, and diff checks passed.
-- **Next unit:** `ADM-LIST-U8`, after Audit cursor, recovery, permissions, and standard presentation evidence passes.
+- **Current unit:** `ADM-LIST-U8` — run cross-page verification, simplification, review, and governance handback.
+- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Revenue Report with 37 focused and two native-browser tests green. `ADM-LIST-U5` — migrated Notification Jobs with five component tests and one Replay E2E green. `ADM-LIST-U6` — standardized Users/Invitations with 25 IAM component and four native-browser tests green. `ADM-LIST-U7` — composed Audit from standard primitives while preserving forward-only cursor truth, explicit Query/Reset, first/previous/next/restart, invalid-cursor recovery, no-total presentation, permissions, localization, and table identity; 36 focused API/page/route tests, 12 direct Audit component tests, one native-browser test, Admin typecheck, affected lint/format, table-width audit, and diff checks passed.
+- **Next unit:** None; U8 owns the remaining verification and return to `FS-R5-U8`.
 - **Blocker:** None.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7 → U8.
-- **Next concrete action:** Add failing Audit tests for first/next/back/restart, exhausted and invalid cursors, explicit Query/Reset, errors/retry, permissions, and truthful no-total presentation before composing standard primitives.
+- **Next concrete action:** Run the complete Admin verification matrix, simplify the accumulated diff, complete code review, resolve eligible findings, retain final evidence, and restore the recorded product pointer.
 
 ## Product Contract
 

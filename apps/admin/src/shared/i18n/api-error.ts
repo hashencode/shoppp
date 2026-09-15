@@ -60,6 +60,7 @@ const API_ERROR_MESSAGE: Record<ApiErrorCode, string> = {
   human_password_required: 'A human administrator account is required.',
   identity_not_enabled: 'This administrator account is disabled.',
   invalid_admin_credentials: 'The email or password is incorrect.',
+  invalid_audit_cursor: 'The audit cursor is invalid.',
   last_admin_change_denied: 'The last protected administrator cannot be changed.',
   password_change_conflict: 'The password changed concurrently. Please try again.',
   password_reset_token_invalid: 'This password reset link is invalid or expired.',
