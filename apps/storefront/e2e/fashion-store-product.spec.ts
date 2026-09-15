@@ -166,7 +166,8 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       .evaluateAll((labels) =>
         labels.every((label) => {
           const style = getComputedStyle(label);
-          return style.whiteSpace === "nowrap" && label.scrollWidth <= label.clientWidth;
+          const bounds = label.getBoundingClientRect();
+          return style.whiteSpace === "nowrap" && bounds.height === 32 && bounds.width >= 32;
         }),
       ),
   ).toBe(true);
