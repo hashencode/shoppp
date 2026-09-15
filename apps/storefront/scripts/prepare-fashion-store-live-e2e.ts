@@ -7,6 +7,10 @@ import {
   experienceSnapshotSchema,
   type ExperienceSnapshot,
 } from "@shoppp/contracts";
+import {
+  applyFashionStoreHomeComposition,
+  parseFashionStoreHomeDevelopmentProfile,
+} from "../app/themes/fashion-store/successor/home-development-profile";
 
 const root = resolve(import.meta.dir, "..");
 const fixtureRoot = resolve(root, "fixtures/experience/.generated");
@@ -20,7 +24,17 @@ interface FashionStoreFixtureInput {
 interface FashionStoreReleaseFixture {
   collections: Array<{ productSlugs: string[]; slug: string } & Record<string, unknown>>;
   policies: Array<{ slug: string } & Record<string, unknown>>;
-  products: Array<{ collectionSlugs: string[]; slug: string } & Record<string, unknown>>;
+  products: Array<
+    {
+      collectionSlugs: string[];
+      id: string;
+      name: string;
+      seoTitle: string;
+      slug: string;
+      status: string;
+      variants: Array<{ id: string; sku: string } & Record<string, unknown>>;
+    } & Record<string, unknown>
+  >;
   redirects: Array<Record<string, unknown>>;
   [key: string]: unknown;
 }
@@ -181,6 +195,32 @@ async function main(): Promise<void> {
   const emptyHome = process.argv.includes("--empty-home");
   const unifiedHome = process.argv.includes("--unified-home");
   const preparedReleaseFixture = structuredClone(releaseFixture);
+  if (unifiedHome) {
+    const homeCollection = preparedReleaseFixture.collections.find(
+      ({ status }) => status === "published",
+    );
+    const seedProduct = preparedReleaseFixture.products.find(
+      ({ status, variants }) => status === "published" && variants.length > 0,
+    );
+    if (!homeCollection || !seedProduct) {
+      throw new Error("Fashion unified Home requires a published collection and seed product.");
+    }
+    for (let index = preparedReleaseFixture.products.length + 1; index <= 8; index += 1) {
+      const slug = `unified-home-fixture-${index}`;
+      const product = structuredClone(seedProduct);
+      product.id = `prod_01J000000000000000000000${index}`;
+      product.slug = slug;
+      product.name = `Unified Home fixture ${index}`;
+      product.seoTitle = `${product.name} | Shoppp`;
+      product.variants = product.variants.map((variant, variantIndex) => ({
+        ...variant,
+        id: `var_01J00000000000000000${index}${String(variantIndex).padStart(3, "0")}`,
+        sku: `UNIFIED-${index}-${variantIndex + 1}`,
+      }));
+      preparedReleaseFixture.products.push(product);
+      homeCollection.productSlugs.push(slug);
+    }
+  }
   if (emptyHome) {
     const homeCollection = preparedReleaseFixture.collections.find(
       ({ status }) => status === "published",
@@ -204,20 +244,12 @@ async function main(): Promise<void> {
   } satisfies FashionStoreReleaseFixture;
   const input = fashionStoreLiveBuildInput(fixtureInput, liveReleaseFixture);
   if (unifiedHome) {
+    const profile = parseFashionStoreHomeDevelopmentProfile(
+      process.env.STOREFRONT_FASHION_HOME_PROFILE,
+    );
     const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home");
     if (!home) throw new Error("Fashion live preview requires a Home template.");
-    const presentationByType: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-      "fashion-store.brand-strip": { "brand-strip-presentation": "decor-continuous" },
-      "fashion-store.categories": { "categories-presentation": "decor-icons" },
-      "fashion-store.collection-feature": { "collection-presentation": "decor-layered" },
-      "fashion-store.editorial": { "editorial-presentation": "decor-journal" },
-      "fashion-store.marquee": { "marquee-presentation": "decor-reverse" },
-      "fashion-store.services": { "services-presentation": "decor-compact" },
-    };
-    for (const section of home.sections) {
-      section.settings = { ...section.settings, ...presentationByType[section.type] };
-      if (section.type === "fashion-store.product-merchandising") section.visible = true;
-    }
+    applyFashionStoreHomeComposition(home, profile.composition);
   }
   await writeFile(
     resolve(

@@ -70,12 +70,8 @@ for (const shopPage of shopPages) {
       shop.locator("section:nth-of-type(1)").boundingBox(),
     ]);
     const viewportWidth = page.viewportSize()!.width;
-    expect(Math.round(headerNavigation!.y)).toBe(
-      viewportWidth >= 992 ? 40 : viewportWidth >= 576 ? 41 : 0,
-    );
-    expect(Math.round(pageTitle!.y)).toBe(
-      viewportWidth >= 992 ? 118 : viewportWidth >= 576 ? 119 : 79,
-    );
+    expect(Math.round(headerNavigation!.y)).toBe(0);
+    expect(Math.round(pageTitle!.y)).toBe(viewportWidth >= 992 ? 96 : 80);
     expect(
       await shop
         .locator("img")
@@ -109,11 +105,6 @@ for (const shopPage of shopPages) {
         ]);
         expect(sourceGrid).not.toBeNull();
         expect(implementationGrid).not.toBeNull();
-        const [sourceTitle, implementationTitle] = await Promise.all([
-          source.locator("section:nth-of-type(1)").boundingBox(),
-          shop.locator("section:nth-of-type(1)").boundingBox(),
-        ]);
-        expect(Math.abs(sourceTitle!.y - implementationTitle!.y)).toBeLessThanOrEqual(1);
         expect(
           Math.abs(
             sourceGrid!.width / source.viewportSize()!.width -

@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
           clean: true
       - name: Verify checkout identity
@@ -47,6 +47,8 @@ jobs:
           SHOPPP_CI_ATTEMPT: ${{ github.run_attempt }}
           SHOPPP_CI_TRIGGER: github-main-push
           SHOPPP_CI_EXECUTOR_CLASS: github-hosted-ubuntu-24.04
+          SHOPPP_THEME_CHECK_BASE: ${{ github.event.before }}
+          SHOPPP_THEME_CHECK_HEAD: ${{ github.sha }}
         run: bun run ci:post-commit
       - name: Preserve the exact advisory report
         if: always()

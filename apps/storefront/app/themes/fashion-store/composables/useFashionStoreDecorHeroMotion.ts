@@ -30,7 +30,6 @@ export function createFashionStoreDecorHeroTimeline(
         element,
         {
           autoAlpha: 0,
-          filter: layer.role === "title" || layer.role === "price" ? "blur(10px)" : "none",
           scale: shapeLayer ? 0.5 : 1,
           x: imageLayer ? 50 : 0,
           y: imageLayer ? 0 : 50,
@@ -39,7 +38,6 @@ export function createFashionStoreDecorHeroTimeline(
           autoAlpha: 1,
           duration: layer.durationMs / 1_000,
           ease: layer.ease,
-          filter: "blur(0px)",
           scale: 1,
           x: 0,
           y: 0,
@@ -83,7 +81,7 @@ export function useFashionStoreDecorHeroMotion(root: Ref<HTMLElement | undefined
   function setFinalState(slide: HTMLElement): void {
     if (!gsapModule) return;
     gsapModule.gsap.set(slide.querySelectorAll<HTMLElement>("[data-hero-layer]"), {
-      clearProps: "opacity,transform,filter,willChange",
+      clearProps: "opacity,transform,willChange",
     });
   }
 
@@ -101,10 +99,11 @@ export function useFashionStoreDecorHeroMotion(root: Ref<HTMLElement | undefined
       gsapModule.gsap,
       slide,
       () => {
-          if (activeGeneration !== generation) return;
-          setFinalState(slide);
-          phase.value = "idle";
-          settle();
+        if (activeGeneration !== generation) return;
+        setFinalState(slide);
+        timeline = undefined;
+        phase.value = "idle";
+        settle();
       },
       () => {
         clear();
@@ -116,9 +115,12 @@ export function useFashionStoreDecorHeroMotion(root: Ref<HTMLElement | undefined
     if (nextTimeline) timeline = nextTimeline;
   }
 
-  function setHidden(hidden: boolean): void {
-    if (hidden) timeline?.pause();
-    else if (!reducedMotion.value) timeline?.play();
+  function setSuspended(suspended: boolean): void {
+    if (suspended) {
+      timeline?.pause();
+    } else if (!reducedMotion.value && timeline) {
+      timeline.play();
+    }
   }
 
   onMounted(async () => {
@@ -142,6 +144,6 @@ export function useFashionStoreDecorHeroMotion(root: Ref<HTMLElement | undefined
     phase: readonly(phase),
     ready: readonly(ready),
     reducedMotion: readonly(reducedMotion),
-    setHidden,
+    setSuspended,
   };
 }

@@ -259,6 +259,20 @@ describe("Fashion Store live commerce boundary", () => {
     expect(productCard).not.toContain("exposeTouchActions");
   });
 
+  test("uses the established accessible gallery for multi-media live products", async () => {
+    const [liveProduct, gallery] = await Promise.all([
+      source("themes/fashion-store/components/pages/FashionStoreLiveProductPage.vue"),
+      source("themes/fashion-store/components/shared/FashionStoreProductGallery.vue"),
+    ]);
+
+    expect(liveProduct).toContain("displayedMedia.length > 1");
+    expect(liveProduct).toContain("FashionStoreProductGallery");
+    expect(liveProduct).toContain("FashionStoreProductLightbox");
+    expect(liveProduct).toContain('v-else-if="displayedMedia[0]"');
+    expect(gallery).toContain('aria-label="Product gallery"');
+    expect(gallery).toContain(':alt="imageAlt(image)"');
+  });
+
   test("keeps unsupported capabilities absent from live surfaces while preserving truthful exits", async () => {
     expect(fashionStoreLiveCapabilities).toEqual({
       account: false,

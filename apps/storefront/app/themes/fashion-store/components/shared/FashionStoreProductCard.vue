@@ -19,10 +19,11 @@ import { fashionStoreAssetId } from "../../resources";
 const properties = withDefaults(
   defineProps<{
     context?: "catalog" | "wishlist";
+    surface?: "catalog" | "home-merchandising";
     product: FashionStoreLegacyProductCard | PresentationProductCard;
     resolveAsset: ThemeAssetResolver;
   }>(),
-  { context: "catalog" },
+  { context: "catalog", surface: "catalog" },
 );
 
 const emit = defineEmits<{
@@ -42,6 +43,7 @@ const actionState = ref<PresentationProductCard["actionState"]["kind"]>(
 );
 const statusMessage = ref(liveCard.value?.actionState.message ?? "");
 const runtimePriceLabel = ref<string>();
+const runtimeCompareAtPriceLabel = ref<string>();
 const hydrated = ref(false);
 const renderedActionState = computed(() =>
   liveProduct.value && !hydrated.value ? "loading" : actionState.value,
@@ -56,7 +58,7 @@ const card = computed(() => {
       id: liveCard.value.productId,
       image: liveCard.value.media?.src,
       name: liveCard.value.name,
-      originalPrice: "",
+      originalPrice: runtimeCompareAtPriceLabel.value ?? liveCard.value.compareAtPriceLabel ?? "",
       price: runtimePriceLabel.value ?? liveCard.value.priceLabel,
     };
   }
@@ -146,6 +148,10 @@ async function addToCart(): Promise<void> {
       verified.input.expectedUnitPrice.amount,
       verified.input.expectedUnitPrice.currency,
     );
+    const verifiedVariant = verified.product.variants.find(({ id }) => id === verified.variantId);
+    runtimeCompareAtPriceLabel.value = verifiedVariant?.money.compareAtAmount
+      ? formatCommerceMoney(verifiedVariant.money.compareAtAmount, verifiedVariant.money.currency)
+      : undefined;
     actionState.value = "succeeded";
     statusMessage.value = `${product.name} was added to your cart.`;
   } catch {
@@ -175,6 +181,7 @@ watch(
   <li
     class="grid-item"
     data-fashion-store-product-card
+    :data-product-surface="properties.surface"
     :data-action-state="liveProduct ? renderedActionState : undefined"
     :data-card-variant="cardVariant"
     :data-product-id="card.id"
@@ -196,6 +203,7 @@ watch(
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
             :class="{ 'fashion-wishlist-add': wishlistContext }"
             aria-label="Add to cart"
+            data-card-action="cart"
             @click="addToCart"
           >
             <FashionStoreIcon name="shopping-bag" /><span class="quick-view-text button-text"
@@ -207,6 +215,7 @@ watch(
             type="button"
             class="alt-font btn btn-small btn-box-shadow btn-white btn-round-edge left-icon add-to-cart"
             :aria-label="directActionLabel"
+            data-card-action="cart"
             :disabled="
               renderedActionState === 'loading' ||
               renderedActionState === 'pending' ||
@@ -234,6 +243,7 @@ watch(
         </div>
         <div
           v-if="
+            properties.surface === 'home-merchandising' ||
             !liveProduct ||
             fashionStoreLiveCapabilities.wishlist ||
             fashionStoreLiveCapabilities.productQuickView
@@ -241,21 +251,46 @@ watch(
           class="shop-hover d-flex justify-content-center"
         >
           <ul>
-            <li v-if="!liveProduct || fashionStoreLiveCapabilities.wishlist">
+            <li
+              v-if="
+                properties.surface === 'home-merchandising' ||
+                !liveProduct ||
+                fashionStoreLiveCapabilities.wishlist
+              "
+            >
               <FashionStoreTooltip
                 type="button"
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 :class="{ 'fashion-wishlist-remove': wishlistContext }"
                 :aria-label="
-                  wishlistContext ? `Remove ${card.name} from wishlist` : 'Add to wishlist'
+                  liveProduct && !fashionStoreLiveCapabilities.wishlist
+                    ? 'Wishlist unavailable'
+                    : wishlistContext
+                      ? `Remove ${card.name} from wishlist`
+                      : 'Add to wishlist'
                 "
-                :content="wishlistContext ? 'Remove from wishlist' : 'Add to wishlist'"
+                :content="
+                  liveProduct && !fashionStoreLiveCapabilities.wishlist
+                    ? 'Wishlist unavailable'
+                    : wishlistContext
+                      ? 'Remove from wishlist'
+                      : 'Add to wishlist'
+                "
+                :disabled="liveProduct && !fashionStoreLiveCapabilities.wishlist"
+                :aria-disabled="liveProduct && !fashionStoreLiveCapabilities.wishlist"
+                data-card-action="wishlist"
                 @click="$emit('intent', 'wishlist')"
               >
                 <FashionStoreIcon name="heart" class="fs-16" />
               </FashionStoreTooltip>
             </li>
-            <li v-if="!liveProduct || fashionStoreLiveCapabilities.productQuickView">
+            <li
+              v-if="
+                properties.surface === 'home-merchandising' ||
+                !liveProduct ||
+                fashionStoreLiveCapabilities.productQuickView
+              "
+            >
               <FashionStoreTooltip
                 as="a"
                 v-if="liveProduct || wishlistContext"
@@ -273,6 +308,7 @@ watch(
                 class="w-40px h-40px bg-white text-dark-gray d-flex align-items-center justify-content-center rounded-circle ms-5px me-5px"
                 aria-label="Quick shop"
                 content="Quick shop"
+                data-card-action="quick-view"
                 @click="$emit('intent', 'quickView')"
               >
                 <FashionStoreIcon name="eye" class="fs-16" />
@@ -283,11 +319,15 @@ watch(
       </div>
       <div class="shop-footer text-center">
         <a
+          v-if="properties.surface !== 'home-merchandising'"
           :href="card.href"
           data-fashion-store-route
-          class="alt-font text-dark-gray fs-19 fw-500"
+          class="fashion-store-product-title alt-font text-dark-gray fs-19 fw-500"
           >{{ card.name }}</a
         >
+        <span v-else class="fashion-store-product-title alt-font text-dark-gray fs-19 fw-500">{{
+          card.name
+        }}</span>
         <div class="price lh-22 fs-16 text-dark-gray">
           <del>{{ card.originalPrice }}</del
           >{{ card.price }}

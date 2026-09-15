@@ -7,6 +7,10 @@ import * as z from "zod";
 import { fashionStoreManifest } from "../app/themes/fashion-store/successor/manifest";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/successor/presets/source-parity";
+import {
+  applyFashionStoreHomeComposition,
+  parseFashionStoreHomeDevelopmentProfile,
+} from "../app/themes/fashion-store/successor/home-development-profile";
 import type { ExperienceBuildInput } from "./prepare-experience";
 
 const previewFixtureSchema = z
@@ -87,6 +91,14 @@ async function main(): Promise<void> {
     themeId as PreviewThemeId,
     "https://preview.example.test",
   );
+  if (themeId === "fashion-store") {
+    const profile = parseFashionStoreHomeDevelopmentProfile(
+      process.env.STOREFRONT_FASHION_HOME_PROFILE,
+    );
+    const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home");
+    if (!home) throw new Error("Fashion preview requires a Home template.");
+    applyFashionStoreHomeComposition(home, profile.composition);
+  }
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(input, null, 2)}\n`);
   console.log(`Prepared ${themeId} preview fixture at ${outputPath}.`);

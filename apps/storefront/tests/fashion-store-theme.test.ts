@@ -27,6 +27,7 @@ import {
   buildFashionStoreMerchandisingGroups,
   resolveFashionStoreMerchandising,
 } from "../app/themes/fashion-store/contracts/home-merchandising";
+import { fashionStoreDecorProductsMessage } from "../app/themes/fashion-store/contracts/decor-home";
 import { fashionStoreHomeFixtures } from "../app/themes/fashion-store/fixtures/home";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
 import { renderActiveThemeModule } from "../scripts/prepare-experience";
@@ -34,10 +35,79 @@ import {
   assertFashionStoreDecorHeroSourceTiming,
   fashionStoreDecorHeroContract,
   fashionStoreDecorHeroLayerTimeline,
+  fashionStoreDecorHeroSourceLayerTimeline,
 } from "../app/themes/fashion-store/contracts/home-hero";
 import { createFashionStoreDecorHeroTimeline } from "../app/themes/fashion-store/composables/useFashionStoreDecorHeroMotion";
+import {
+  defaultFashionStoreHomeDevelopmentProfile,
+  parseFashionStoreHomeDevelopmentProfile,
+} from "../app/themes/fashion-store/successor/home-development-profile";
+import { fashionStoreBehaviorContract } from "../app/themes/fashion-store/behavior-contract";
 
 describe("Fashion Store preview registration", () => {
+  test("routes generic motion and marquee behavior through their stable owners", async () => {
+    const genericConfig = await readFile(
+      resolve(import.meta.dir, "../playwright.fashion-store.config.ts"),
+      "utf8",
+    );
+    expect(genericConfig).toMatch(
+      /testIgnore:\s*\[[\s\S]*"fashion-store-animation-performance\.spec\.ts"/,
+    );
+
+    const marquee = fashionStoreBehaviorContract.behaviors.find(
+      ({ id }) => id === "promotional-marquee",
+    );
+    expect(marquee?.actions.source.selector).toBe("section:nth-of-type(9)");
+    expect(marquee?.actions.implementation.selector).toBe('[data-home-section="marquee"]');
+    expect(marquee?.evidenceStates[0]?.namedState).toMatchObject({
+      implementationSelector: '[data-home-section="marquee"]',
+      sourceSelector: "section:nth-of-type(9)",
+    });
+  });
+
+  test("keeps the Home development profile composition-only", () => {
+    expect(defaultFashionStoreHomeDevelopmentProfile).toBe("combined");
+    expect(parseFashionStoreHomeDevelopmentProfile()).toEqual({
+      composition: "combined",
+      serialized: "combined",
+    });
+    expect(parseFashionStoreHomeDevelopmentProfile("isolated")).toEqual({
+      composition: "isolated",
+      serialized: "isolated",
+    });
+    for (const obsoleteProfile of [
+      "combined:decor:transparent-overlay",
+      "combined:fashion:solid",
+      "isolated:decor:transparent-overlay",
+    ]) {
+      expect(() => parseFashionStoreHomeDevelopmentProfile(obsoleteProfile)).toThrow();
+    }
+  });
+
+  test("keeps active Fashion Store commands on the composition-only profile", async () => {
+    const [packageSource, animationConfig, unifiedHomeSpec] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../package.json"), "utf8"),
+      readFile(
+        resolve(import.meta.dir, "../playwright.fashion-store-animation-performance.config.ts"),
+        "utf8",
+      ),
+      readFile(resolve(import.meta.dir, "../e2e/fashion-store-live-unified-home.spec.ts"), "utf8"),
+    ]);
+    const scripts = (JSON.parse(packageSource) as { scripts: Record<string, string> }).scripts;
+
+    expect(scripts["dev:fashion-store"]).toContain("STOREFRONT_FASHION_HOME_PROFILE=combined");
+    expect(scripts["dev:fashion-store:home-isolated"]).toContain(
+      "STOREFRONT_FASHION_HOME_PROFILE=isolated",
+    );
+    expect(scripts["dev:fashion-store:decor-isolated"]).toBeUndefined();
+    expect(scripts["test:fashion-store-home:headers"]).toBeUndefined();
+    expect(scripts["test:fashion-store"]).not.toContain("test:fashion-store-home:headers");
+    expect(animationConfig).toContain('const profile = "combined"');
+    expect(animationConfig).toContain('testMatch: "fashion-store-animation-performance.spec.ts"');
+    expect(animationConfig.match(/name: "motion-/g)).toHaveLength(2);
+    expect(unifiedHomeSpec).not.toContain('.split(\n  ":",');
+  });
+
   test("publishes unified defaults without changing source-parity defaults", () => {
     const sourceHome = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
     const unifiedHome = fashionStoreUnifiedPreset.templates.find(
@@ -52,16 +122,7 @@ describe("Fashion Store preview registration", () => {
       unifiedHome.sections.map(({ id, visible }) => ({ id, visible })),
     );
     expect(unifiedHome.sections.map(({ settings, type }) => ({ settings, type }))).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          settings: expect.objectContaining({ "categories-presentation": "decor-icons" }),
-          type: "fashion-store.categories",
-        }),
-        expect.objectContaining({
-          settings: expect.objectContaining({ "brand-strip-presentation": "decor-continuous" }),
-          type: "fashion-store.brand-strip",
-        }),
-      ]),
+      sourceHome.sections.map(({ settings, type }) => ({ settings, type })),
     );
     expect(
       unifiedHome.sections.find(({ id }) => id === "fashion-store-home-product-merchandising")
@@ -74,7 +135,7 @@ describe("Fashion Store preview registration", () => {
   test("rejects controlled drift from the independently observed Decor timing ledger", () => {
     const observed = {
       autoplayMs: fashionStoreDecorHeroContract.autoplayMs,
-      layers: fashionStoreDecorHeroLayerTimeline.map(({ delayMs, durationMs, role }) => ({
+      layers: fashionStoreDecorHeroSourceLayerTimeline.map(({ delayMs, durationMs, role }) => ({
         delayMs,
         durationMs,
         role,
@@ -84,6 +145,19 @@ describe("Fashion Store preview registration", () => {
       transitionMs: fashionStoreDecorHeroContract.transitionMs,
     };
     expect(() => assertFashionStoreDecorHeroSourceTiming(observed)).not.toThrow();
+    expect(
+      fashionStoreDecorHeroLayerTimeline.filter(
+        (layer, index) =>
+          layer.delayMs !== fashionStoreDecorHeroSourceLayerTimeline[index]!.delayMs ||
+          layer.durationMs !== fashionStoreDecorHeroSourceLayerTimeline[index]!.durationMs,
+      ),
+    ).toEqual([
+      expect.objectContaining({ delayMs: 1_000, durationMs: 400, role: "product" }),
+      expect.objectContaining({ delayMs: 1_200, durationMs: 400, role: "title" }),
+      expect.objectContaining({ delayMs: 1_500, durationMs: 400, role: "price" }),
+      expect.objectContaining({ delayMs: 1_700, durationMs: 400, role: "cta" }),
+      expect.objectContaining({ delayMs: 2_200, durationMs: 400, role: "next" }),
+    ]);
     expect(() =>
       assertFashionStoreDecorHeroSourceTiming({
         ...observed,
@@ -125,6 +199,27 @@ describe("Fashion Store preview registration", () => {
     expect(result).toBeUndefined();
     expect(reverted).toBe(true);
     expect(failed).toBe(true);
+  });
+
+  test("keeps Hero layer choreography free of paint-heavy filter animation", () => {
+    const calls: unknown[][] = [];
+    const timeline = {
+      fromTo: (...arguments_: unknown[]) => calls.push(arguments_),
+      kill: () => undefined,
+      pause: () => undefined,
+      play: () => undefined,
+      revert: () => undefined,
+    };
+    const result = createFashionStoreDecorHeroTimeline(
+      { timeline: () => timeline },
+      { querySelector: () => ({}) as HTMLElement },
+      () => undefined,
+      () => undefined,
+    );
+
+    expect(result).toBe(timeline);
+    expect(calls).toHaveLength(fashionStoreDecorHeroLayerTimeline.length);
+    expect(JSON.stringify(calls)).not.toContain("filter");
   });
 
   test("uses one Fashion-owned Decor Hero contract in fixture and live Home renderers", async () => {
@@ -526,7 +621,7 @@ describe("Fashion Store preview registration", () => {
 
   test("resolves Product group membership, fallback, and local states", () => {
     expect(buildFashionStoreMerchandisingGroups([1, 2, 3, 4, 5], 3)).toEqual([
-      { id: "new-arrivals", products: [1, 2, 3, 4] },
+      { id: "new-arrivals", products: [5, 4, 3, 2, 1] },
       { id: "best-sellers", products: [1, 2, 3, 4, 5] },
       { id: "featured", products: [3] },
     ]);
@@ -534,8 +629,11 @@ describe("Fashion Store preview registration", () => {
       id: "featured",
       products: [1],
     });
+    expect(buildFashionStoreMerchandisingGroups([1, 2, 3, 4, 5, 6, 7, 8, 9])[0]?.products).toEqual([
+      9, 8, 7, 6, 5, 4, 3, 2,
+    ]);
 
-    for (const state of ["loading", "validation-error", "unavailable"] as const) {
+    for (const state of ["loading", "empty", "validation-error", "unavailable"] as const) {
       expect(resolveFashionStoreMerchandising({ data: {}, kind: "theme-section", state })).toEqual({
         state,
       });
@@ -543,22 +641,37 @@ describe("Fashion Store preview registration", () => {
     expect(
       resolveFashionStoreMerchandising({ data: {}, kind: "theme-section", state: "populated" }),
     ).toEqual({ state: "validation-error" });
+
+    expect(fashionStoreDecorProductsMessage({ state: "loading" }, 0)).toBe("Products are loading…");
+    expect(fashionStoreDecorProductsMessage({ state: "empty" }, 0)).toBe(
+      "No products are available.",
+    );
+    expect(fashionStoreDecorProductsMessage({ state: "unavailable" }, 0)).toBe(
+      "Products are temporarily unavailable.",
+    );
+    expect(fashionStoreDecorProductsMessage({ state: "validation-error" }, 0)).toBe(
+      "Products could not be loaded.",
+    );
   });
 
   test("keeps Product groups on native controls and local state ownership", async () => {
     const component = await readFile(
       resolve(
         import.meta.dir,
-        "../app/themes/fashion-store/components/sections/FashionStoreProductMerchandisingSection.vue",
+        "../app/themes/fashion-store/components/home/FashionStoreDecorHomeBody.vue",
       ),
       "utf8",
     );
     expect(component).toContain("<button");
-    expect(component).toContain(':aria-pressed="group.id === selectedId"');
+    expect(component).toContain(":aria-pressed=\"selectedGroup === 'best-sellers'\"");
     expect(component).not.toMatch(/role=["']tab(?:list)?["']/);
-    expect(component).toContain("overflow-x: auto");
-    expect(component).toContain("prefers-reduced-motion: reduce");
-    expect(component).toContain("groups[0]?.id");
+    expect(component).toContain("selectedGroup = 'new-arrivals'");
+    expect(component).toContain(':data-merchandising-panel="selectedGroup"');
+    expect(component).toContain("<FashionStoreProductCard");
+    expect(component).toContain("collectionProducts");
+    expect(component).toContain(':data-product-id="product.id"');
+    expect(component).toContain(':href="product.href"');
+    expect(component).not.toMatch(/Wooden cabinet|Modern chair|Classic stools/);
     expect(component).not.toContain(".focus(");
   });
 
@@ -751,5 +864,42 @@ describe("Fashion Store preview registration", () => {
 
     expect(source).not.toContain("fashion-store");
     expect(source).not.toContain("/themes/");
+  });
+
+  test("exposes stable per-owner Home motion observation surfaces", async () => {
+    const [hero, fashionMarquee, decorHome] = await Promise.all([
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/FashionStoreDecorHero.vue",
+        ),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/sections/FashionStoreLiveMarqueeSection.vue",
+        ),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          import.meta.dir,
+          "../app/themes/fashion-store/components/home/FashionStoreDecorHomeBody.vue",
+        ),
+        "utf8",
+      ),
+    ]);
+
+    expect(hero).toContain('id="fashion-store-decor-hero"');
+    expect(hero).toContain(":data-motion-active-index=");
+    expect(hero).toContain(":data-motion-phase=");
+    expect(hero).toContain("data-hero-layer=");
+    expect(fashionMarquee).toContain("data-fashion-store-marquee");
+    expect(decorHome).toContain('data-decor-region="promotional-marquee"');
+    expect(decorHome).toContain('data-decor-region="collection-carousel"');
+    expect(decorHome).toContain('data-decor-region="client-marquee"');
+    expect(decorHome).toContain(":data-motion-active-index=");
+    expect(decorHome).toContain(":data-motion-phase=");
   });
 });

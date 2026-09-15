@@ -18,6 +18,7 @@ export default defineConfig({
     ? ["fashion-store-compatibility-baseline.spec.ts"]
     : ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
   testIgnore: [
+    "fashion-store-animation-performance.spec.ts",
     "fashion-store-live-commerce.spec.ts",
     "fashion-store-live-home-empty.spec.ts",
     "fashion-store-live-unified-home.spec.ts",

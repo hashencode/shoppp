@@ -25,6 +25,31 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("adds nullable compare-at prices while preserving existing current prices", async () => {
+    await seedLaunchFixture(env.DB);
+    const columns = await env.DB.prepare("PRAGMA table_info(prices)").all<{
+      name: string;
+      notnull: number;
+    }>();
+    expect(columns.results).toContainEqual(
+      expect.objectContaining({ name: "compare_at_amount", notnull: 0 }),
+    );
+    expect(
+      await env.DB.prepare(
+        "SELECT amount, compare_at_amount FROM prices WHERE id = 'price_fixture_0001'",
+      ).first(),
+    ).toEqual({ amount: 2_500, compare_at_amount: null });
+
+    await env.DB.prepare(
+      "UPDATE prices SET compare_at_amount = 3000 WHERE id = 'price_fixture_0001'",
+    ).run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE prices SET compare_at_amount = amount WHERE id = 'price_fixture_0001'",
+      ).run(),
+    ).rejects.toThrow();
+  });
+
   test("adds nullable administrator identity expiry without changing existing identities", async () => {
     const columns = await env.DB.prepare("PRAGMA table_info(admin_identities)").all<{
       name: string;

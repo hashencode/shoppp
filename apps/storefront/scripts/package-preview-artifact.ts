@@ -92,16 +92,20 @@ async function main(): Promise<void> {
   const catalogReleaseId = argumentValue(arguments_, "--catalog-release-id");
   const outputRoot = argumentValue(arguments_, "--output");
   const manifestPath = argumentValue(arguments_, "--manifest");
+  const resultPath = argumentValue(arguments_, "--result");
   if (!snapshotId || !outputRoot || !manifestPath) {
     throw new Error(
       "Usage: bun scripts/package-preview-artifact.ts --snapshot-id=<id> --output=<directory> --manifest=<path>",
     );
   }
-  console.log(
-    JSON.stringify(
-      await packagePreviewArtifact({ catalogReleaseId, manifestPath, outputRoot, snapshotId }),
-    ),
-  );
+  const artifact = await packagePreviewArtifact({
+    ...(catalogReleaseId ? { catalogReleaseId } : {}),
+    manifestPath,
+    outputRoot,
+    snapshotId,
+  });
+  if (resultPath) await writeFile(resolve(resultPath), `${JSON.stringify(artifact)}\n`);
+  console.log(JSON.stringify(artifact));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

@@ -63,7 +63,7 @@ test("cart-open interaction: behavior runner verifies preview cart outcome on bo
       }),
       runPreviewBehavior({
         behavior,
-        contentPattern: /Ribbed tank.*Pleated dress/,
+        contentPattern: /Your cart is empty\./,
         page,
         panelSelector: ".header-cart .cart-item-list",
         side: "implementation",
@@ -95,6 +95,10 @@ test("marquee-paused temporal: behavior runner observes real displacement on bot
   try {
     await Promise.all([prepare(source, "source"), prepare(page, "implementation")]);
     const behavior = behaviorRow(fashionStoreBehaviorContract, "promotional-marquee");
+    await Promise.all([
+      source.locator(behavior.actions.source.selector).scrollIntoViewIfNeeded(),
+      page.locator(behavior.actions.implementation.selector).scrollIntoViewIfNeeded(),
+    ]);
     const [sourceResult, implementationResult] = await Promise.all([
       runContinuousMovementBehavior({
         behavior,
@@ -106,7 +110,7 @@ test("marquee-paused temporal: behavior runner observes real displacement on bot
         behavior,
         page,
         side: "implementation",
-        trackSelector: "section:nth-of-type(9) .swiper-wrapper",
+        trackSelector: '[data-home-section="marquee"] .swiper-wrapper',
       }),
     ]);
     expect(sourceResult.displacement).toBeGreaterThan(1);

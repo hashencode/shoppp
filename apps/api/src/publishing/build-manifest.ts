@@ -11,6 +11,7 @@ export interface StorefrontMedia {
 
 export interface StorefrontPrice {
   amount: number;
+  compareAtAmount?: number;
   currency: string;
 }
 
@@ -97,6 +98,7 @@ interface VariantRow {
 
 interface PriceRow {
   amount: number;
+  compare_at_amount: number | null;
   currency: string;
   variant_id: string;
 }
@@ -321,7 +323,7 @@ export async function buildCatalogReleaseManifest(
       .all<VariantRow>(),
     db
       .prepare(
-        `SELECT p.variant_id, p.amount, pl.currency
+        `SELECT p.variant_id, p.amount, p.compare_at_amount, pl.currency
            FROM prices p
            JOIN price_lists pl ON pl.id = p.price_list_id
            JOIN product_variants v ON v.id = p.variant_id
@@ -400,7 +402,13 @@ export async function buildCatalogReleaseManifest(
           id: variant.id,
           prices: prices.results
             .filter((price) => price.variant_id === variant.id)
-            .map((price) => ({ amount: price.amount, currency: price.currency })),
+            .map((price) => ({
+              amount: price.amount,
+              ...(price.compare_at_amount === null
+                ? {}
+                : { compareAtAmount: price.compare_at_amount }),
+              currency: price.currency,
+            })),
           sku: variant.sku,
           status: variant.status,
           title: variant.title,

@@ -1,26 +1,6 @@
 import type { FashionStoreLegacyCartLine } from "../contracts/cart";
 
 const previewCartStateKey = "fashion-store-preview-cart-lines";
-const defaultPreviewCartLines: readonly FashionStoreLegacyCartLine[] = [
-  {
-    color: "Black",
-    name: "Ribbed tank",
-    price: "$23.00",
-    quantity: 1,
-    sourceImage: "images/demo-fashion-store-product-01.jpg",
-    total: "$23.00",
-    variantId: "preview-ribbed-tank",
-  },
-  {
-    color: "Black",
-    name: "Pleated dress",
-    price: "$15.00",
-    quantity: 1,
-    sourceImage: "images/demo-fashion-store-product-02.jpg",
-    total: "$15.00",
-    variantId: "preview-pleated-dress",
-  },
-];
 
 function priceAmount(price: string): number {
   const amount = Number(price.replace(/[^0-9.-]/g, ""));
@@ -41,7 +21,7 @@ function lineWithQuantity(
 }
 
 export function useFashionStorePreviewCart(
-  initialLines: readonly FashionStoreLegacyCartLine[] = defaultPreviewCartLines,
+  initialLines: readonly FashionStoreLegacyCartLine[] = [],
 ) {
   const lines = useState<FashionStoreLegacyCartLine[]>(previewCartStateKey, () =>
     initialLines.map((line) => ({ ...line })),

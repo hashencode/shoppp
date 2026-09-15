@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  assertFashionCatalogMigrationReadiness,
   assertFashionStagingReadiness,
   type FashionStagingReadinessSnapshot,
 } from "./verify-fashion-staging-readiness";
@@ -313,5 +314,66 @@ describe("Fashion staging deployment readiness", () => {
     expect(() => assertFashionStagingReadiness(ordinaryAdmin)).toThrow(
       /PREVIEW_HANDOFF_ORIGIN must target the dedicated Fashion Admin/,
     );
+  });
+});
+
+describe("Fashion staging live catalog readiness", () => {
+  const fingerprint = "a".repeat(64);
+  const manifestDigest = "b".repeat(64);
+  const expected = {
+    acceptanceReleaseId: "acceptance-release",
+    catalogVersion: "fashion-store-live-v1",
+    iamFingerprint: fingerprint,
+    manifestDigest,
+    shopperReleaseId: "shopper-release",
+  };
+  const preflight = { activeWorkCount: 0, iamFingerprint: fingerprint };
+  const receipt = {
+    acceptanceReleaseId: expected.acceptanceReleaseId,
+    catalogVersion: expected.catalogVersion,
+    iamFingerprint: fingerprint,
+    manifestDigest,
+    mediaCount: 18,
+    productCount: 13,
+    shopperReleaseId: expected.shopperReleaseId,
+    status: "applied" as const,
+    variantCount: 24,
+  };
+
+  test("accepts exact identities, counts, and an unchanged IAM fingerprint", () => {
+    expect(assertFashionCatalogMigrationReadiness({ expected, preflight, receipt })).toEqual(
+      receipt,
+    );
+  });
+
+  test("fails closed on active work, IAM drift, identity drift, or partial counts", () => {
+    expect(() =>
+      assertFashionCatalogMigrationReadiness({
+        expected,
+        preflight: { ...preflight, activeWorkCount: 1 },
+        receipt,
+      }),
+    ).toThrow("active_work");
+    expect(() =>
+      assertFashionCatalogMigrationReadiness({
+        expected,
+        preflight,
+        receipt: { ...receipt, iamFingerprint: "c".repeat(64) },
+      }),
+    ).toThrow("iam_drift");
+    expect(() =>
+      assertFashionCatalogMigrationReadiness({
+        expected,
+        preflight,
+        receipt: { ...receipt, shopperReleaseId: "different" },
+      }),
+    ).toThrow("identity_mismatch");
+    expect(() =>
+      assertFashionCatalogMigrationReadiness({
+        expected,
+        preflight,
+        receipt: { ...receipt, mediaCount: 17 },
+      }),
+    ).toThrow("count_mismatch");
   });
 });

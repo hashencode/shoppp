@@ -72,6 +72,7 @@ describe("repository-owned CI validation", () => {
       "lint-boundaries",
       "types",
       "unit-contracts",
+      "theme-impact",
     ]);
     expect(CI_TIERS["post-commit"].map((gate) => gate.name)).toEqual([
       "reproducible-install",
@@ -79,6 +80,7 @@ describe("repository-owned CI validation", () => {
       "lint-boundaries",
       "types",
       "unit-contracts",
+      "theme-impact",
       "worker-integration",
       "production-builds",
     ]);

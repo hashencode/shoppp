@@ -100,7 +100,9 @@ test("renders the permanent furniture Hero in a complete static first state", as
   await expect(hero.locator("[role='tooltip'], [data-hero-tooltip]")).toHaveCount(0);
 });
 
-test("keeps the first slide static and layers later accepted changes", async ({ page }, testInfo) => {
+test("keeps the first slide static and layers later accepted changes", async ({
+  page,
+}, testInfo) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
   await expectClientRuntimeStarted(page);
@@ -136,6 +138,65 @@ test("keeps the first slide static and layers later accepted changes", async ({ 
       mode: "interaction",
     });
   }
+});
+
+test("pauses one Hero generation offscreen until every pause reason clears", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isChromiumDesktop(testInfo), "One fixed viewport proves composed Hero suspension.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/", { waitUntil: "networkidle" });
+  await expectClientRuntimeStarted(page);
+
+  const hero = page.locator("#fashion-store-decor-hero");
+  await expect(hero).toHaveAttribute("data-runtime-status", "operational");
+  await hero.evaluate((element) =>
+    (
+      element as HTMLElement & { swiper?: { autoplay?: { stop(): void } } }
+    ).swiper?.autoplay?.stop(),
+  );
+  await hero.locator(".swiper-slide-active [data-hero-layer='next']").click();
+  await expect(hero).toHaveAttribute("data-active-slide", "2");
+  await expect(hero).toHaveAttribute("data-action-phase", "layer-busy");
+  // Let Swiper's 300ms slide transition settle so the assertion isolates the
+  // GSAP generation rather than the active-slide class handoff.
+  await page.waitForTimeout(800);
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(hero).toHaveAttribute("data-motion-paused", /viewport-hidden/);
+  const progressBefore = await hero
+    .locator(".swiper-slide-active [data-hero-layer]")
+    .evaluateAll((layers) =>
+      layers.map((layer) => ({
+        opacity: getComputedStyle(layer).opacity,
+        transform: getComputedStyle(layer).transform,
+      })),
+    );
+  await page.waitForTimeout(1_200);
+  expect(
+    await hero.locator(".swiper-slide-active [data-hero-layer]").evaluateAll((layers) =>
+      layers.map((layer) => ({
+        opacity: getComputedStyle(layer).opacity,
+        transform: getComputedStyle(layer).transform,
+      })),
+    ),
+  ).toEqual(progressBefore);
+  await expect(hero).toHaveAttribute("data-active-slide", "2");
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.scrollTo(0, 0);
+  });
+  await expect(hero).toHaveAttribute("data-motion-paused", /document-hidden/);
+  await expect(hero).not.toHaveAttribute("data-motion-paused", /viewport-hidden/);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(hero).toHaveAttribute("data-motion-paused", "");
+  await expect(hero).toHaveAttribute("data-action-phase", "idle", { timeout: 5_000 });
+  await expect(hero).toHaveAttribute("data-active-slide", "2");
 });
 
 test("uses native Swiper threshold and adjacent lazy preload without custom loading state", async ({
@@ -177,7 +238,10 @@ test("binds all Hero content and layer timings to the independent Decor source",
   browser,
   page,
 }, testInfo) => {
-  test.skip(!isChromiumDesktop(testInfo), "One source runtime pass freezes the independent ledger.");
+  test.skip(
+    !isChromiumDesktop(testInfo),
+    "One source runtime pass freezes the independent ledger.",
+  );
   const source = await browser.newPage({ viewport: page.viewportSize()! });
   try {
     await Promise.all([prepareDecorSource(source), page.goto("/", { waitUntil: "networkidle" })]);
@@ -210,7 +274,10 @@ test("binds all Hero content and layer timings to the independent Decor source",
       ["14", "thumbnail"],
     ] as const) {
       const frames = await source.locator(`#slide-1-layer-${layer}`).getAttribute("data-frames");
-      const entrance = JSON.parse(frames ?? "[]")[0] as { delay?: number | string; speed?: number | string };
+      const entrance = JSON.parse(frames ?? "[]")[0] as {
+        delay?: number | string;
+        speed?: number | string;
+      };
       observedLayers.push({
         delayMs: Number(entrance.delay),
         durationMs: Number(entrance.speed),
@@ -247,21 +314,29 @@ test("binds all Hero content and layer timings to the independent Decor source",
         jquery?.("#decor-store-slider").revshowslide?.(nextIndex);
       }, sourceIndex);
       await page.locator("#fashion-store-decor-hero").evaluate((element, nextIndex) => {
-        (element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }).swiper
-          ?.slideTo(nextIndex, 0);
+        (
+          element as HTMLElement & { swiper?: { slideTo(index: number, speed: number): void } }
+        ).swiper?.slideTo(nextIndex, 0);
       }, index);
-      await expect(
-        source.locator("#decor-store-slider > ul > li.active-revslide"),
-      ).toContainText(title);
-      await expect(page.locator(".swiper-slide-active [data-hero-layer='title']")).toHaveText(title);
+      await expect(source.locator("#decor-store-slider > ul > li.active-revslide")).toContainText(
+        title,
+      );
+      await expect(page.locator(".swiper-slide-active [data-hero-layer='title']")).toHaveText(
+        title,
+      );
     }
   } finally {
     await source.close();
   }
 });
 
-test("rejects 74px and opens Swiper's native threshold gate at 76px", async ({ page }, testInfo) => {
-  test.skip(!isChromiumDesktop(testInfo), "Desktop Chromium provides deterministic pointer geometry.");
+test("rejects 74px and opens Swiper's native threshold gate at 76px", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    !isChromiumDesktop(testInfo),
+    "Desktop Chromium provides deterministic pointer geometry.",
+  );
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "networkidle" });
   await expectClientRuntimeStarted(page);
@@ -313,7 +388,10 @@ test("stops after one complete cycle and remounts one clean Hero", async ({ page
 });
 
 test("keeps the Hero atomic when the GSAP runtime cannot load", async ({ page }, testInfo) => {
-  test.skip(!isChromiumDesktop(testInfo), "One engine and viewport prove the load-failure boundary.");
+  test.skip(
+    !isChromiumDesktop(testInfo),
+    "One engine and viewport prove the load-failure boundary.",
+  );
   let blockedGsapRuntime = false;
   await page.route("**/_nuxt/*.js", async (route) => {
     const response = await route.fetch();

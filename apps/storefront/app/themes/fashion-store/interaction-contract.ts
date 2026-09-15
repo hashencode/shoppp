@@ -55,16 +55,21 @@ const commerce = (
 interface SemanticDefinition {
   candidate: string;
   disposition: StorefrontInteractionDisposition;
+  fallback?: string;
+  outcome?: string;
+  reducedMotion?: string;
 }
 const affordance = (
   candidate: string,
   disposition: StorefrontInteractionDisposition,
-): SemanticDefinition => ({ candidate, disposition });
+  outcomes: Pick<SemanticDefinition, "fallback" | "outcome" | "reducedMotion"> = {},
+): SemanticDefinition => ({ candidate, disposition, ...outcomes });
 
 function inputOutcomes(
   outcome: string,
   fallback: string,
   branches: ThemeBehaviorContract["behaviors"][number]["branches"] = [],
+  reducedMotion = outcome,
 ) {
   const branch = (input: "keyboard" | "mouse" | "touch") =>
     branches.find((candidate) => candidate.input === input)?.outcome ?? outcome;
@@ -72,7 +77,7 @@ function inputOutcomes(
     keyboard: branch("keyboard"),
     noJs: fallback,
     pointer: branch("mouse"),
-    reducedMotion: fallback,
+    reducedMotion,
     touch: branch("touch"),
   };
 }
@@ -228,7 +233,61 @@ const semanticDispositionByBehavior = {
     affordance(".fashion-magazine-grid .grid-item", local("magazine-card-state")),
   ],
   "magazine-pagination-presentation": local("magazine-pagination"),
-  "new-arrival-collection-carousel": local("new-arrival-carousel"),
+  "merchandising-selector-tabs": [
+    affordance(
+      "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-decor-product-tabs] .nav-link",
+      local("merchandising-product-group"),
+    ),
+  ],
+  "new-arrival-collection-carousel": [
+    affordance(
+      "[data-home-section='product-merchandising'] [data-decor-region='collection-carousel'] [data-decor-collection-carousel] .swiper-button-prev",
+      local("new-arrival-carousel-previous"),
+      {
+        fallback: "The current collection item remains readable without JavaScript.",
+        outcome: "The previous collection item becomes visible.",
+        reducedMotion:
+          "The previous collection item becomes visible immediately while autoplay remains paused.",
+      },
+    ),
+    affordance(
+      "[data-home-section='product-merchandising'] [data-decor-region='collection-carousel'] [data-decor-collection-carousel] .swiper-button-next",
+      local("new-arrival-carousel-next"),
+      {
+        fallback: "The current collection item remains readable without JavaScript.",
+        outcome: "The next collection item becomes visible.",
+        reducedMotion:
+          "The next collection item becomes visible immediately while autoplay remains paused.",
+      },
+    ),
+  ],
+  "home-merchandising-product-actions": [
+    affordance(
+      "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-fashion-store-product-card][data-product-surface='home-merchandising'] [data-card-action='cart']",
+      commerce("cart.add", "productId", "variantId"),
+      {
+        fallback:
+          "Product details remain readable without JavaScript; no cart mutation is claimed.",
+        outcome: "The selected product is added once to the shared preview cart.",
+      },
+    ),
+    affordance(
+      "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-fashion-store-product-card][data-product-surface='home-merchandising'] [data-card-action='wishlist']",
+      unavailable("Wishlist persistence is not available in the Home merchandising fixture."),
+      {
+        fallback: "Product details remain readable without JavaScript.",
+        outcome: "The unavailable wishlist utility issues no persistence request or success claim.",
+      },
+    ),
+    affordance(
+      "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-fashion-store-product-card][data-product-surface='home-merchandising'] button[data-card-action='quick-view']",
+      unavailable("Product quick-view content is not available in the Home merchandising fixture."),
+      {
+        fallback: "The retained product link remains available without JavaScript.",
+        outcome: "The unavailable quick-view utility opens no modal and makes no navigation claim.",
+      },
+    ),
+  ],
   "product-card-actions": [
     affordance(
       ".shop-modern .grid-item .shop-image > a, .shop-modern .grid-item a.add-to-cart[data-fashion-store-route]",
@@ -328,26 +387,32 @@ function behaviorRows(): unknown[] {
       const evidence = behavior.evidenceStates.flatMap(({ fidelityState, namedState }) =>
         namedState?.id ? [namedState.id] : fidelityState ? [fidelityState] : [],
       );
-      return definitions.map(({ candidate, disposition }, index) => ({
-        behaviorId: behavior.id,
-        breakpoints: breakpoints.length > 0 ? breakpoints : ["all"],
-        candidate,
-        disposition,
-        evidence: evidence.length > 0 ? evidence : [`${behavior.id}-outcome`],
-        fallback: behavior.fallback.outcome,
-        id: `${contract.routeId}-${behavior.id}${definitions.length > 1 ? `-${index + 1}` : ""}`,
-        inputModes: ["pointer", "keyboard", "touch", "reduced-motion", "no-js"],
-        inputOutcomes: inputOutcomes(
-          behavior.outcome,
-          behavior.fallback.outcome,
-          behavior.branches,
-        ),
-        outcome: behavior.outcome,
-        owner: behavior.owner,
-        parity: ["structural", "behavioral", "absence"],
-        role: roleFor(disposition),
-        routeId: contract.routeId,
-      }));
+      return definitions.map(
+        ({ candidate, disposition, fallback, outcome, reducedMotion }, index) => ({
+          behaviorId: behavior.id,
+          breakpoints: breakpoints.length > 0 ? breakpoints : ["all"],
+          candidate,
+          disposition,
+          evidence: evidence.length > 0 ? evidence : [`${behavior.id}-outcome`],
+          fallback: fallback ?? behavior.fallback.outcome,
+          id: `${contract.routeId}-${behavior.id}${definitions.length > 1 ? `-${index + 1}` : ""}`,
+          inputModes: ["pointer", "keyboard", "touch", "reduced-motion", "no-js"],
+          inputOutcomes: inputOutcomes(
+            outcome ?? behavior.outcome,
+            fallback ?? behavior.fallback.outcome,
+            behavior.branches,
+            reducedMotion ??
+              (behavior.modes.includes("temporal")
+                ? behavior.fallback.outcome
+                : (outcome ?? behavior.outcome)),
+          ),
+          outcome: outcome ?? behavior.outcome,
+          owner: behavior.owner,
+          parity: ["structural", "behavioral", "absence"],
+          role: roleFor(disposition),
+          routeId: contract.routeId,
+        }),
+      );
     }),
   );
 }

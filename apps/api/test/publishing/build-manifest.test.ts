@@ -45,7 +45,7 @@ describe("storefront build manifest", () => {
             {
               optionValues: {},
               id: "var_01J00000000000000000000000",
-              prices: [{ amount: 12_900, currency: "USD" }],
+              prices: [{ amount: 12_900, compareAtAmount: 15_000, currency: "USD" }],
               sku: "ACTIVE",
               status: "active",
               title: "Default",
@@ -112,6 +112,9 @@ describe("storefront build manifest", () => {
       { from: "/products/old-carry-on", status: 301, to: "/products/carry-on" },
     ]);
     expect(manifest.products[0]?.variants.map((variant) => variant.sku)).toEqual(["ACTIVE"]);
+    expect(manifest.products[0]?.variants[0]?.prices).toEqual([
+      { amount: 12_900, compareAtAmount: 15_000, currency: "USD" },
+    ]);
     expect(manifest.schemaVersion).toBe(2);
     expect(manifest.products[0]).toMatchObject({
       collectionIds: ["col_01J00000000000000000000000"],

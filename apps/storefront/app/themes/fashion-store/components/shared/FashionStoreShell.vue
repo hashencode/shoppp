@@ -18,6 +18,7 @@ const properties = withDefaults(
   defineProps<{
     announcement?: string;
     announcementLink?: PresentationShellViewModel["announcementLink"];
+    contentLayout?: "source" | "wide";
     variant?: "home" | "page";
     footer?: PresentationShellViewModel["footer"];
     header?: PresentationShellViewModel["header"];
@@ -27,6 +28,7 @@ const properties = withDefaults(
     showStickySocials?: boolean;
   }>(),
   {
+    contentLayout: "source",
     variant: "page",
     previewIntentCount: 0,
     showStickySocials: true,
@@ -84,9 +86,14 @@ useHead(() => ({
         .filter(Boolean)
         .join(" ") || undefined,
     "data-mobile-nav-style": "classic",
+    "data-fashion-store-content-layout": properties.contentLayout,
     "data-fashion-store-shell": "true",
   },
-  htmlAttrs: { class: documentReadyClass.value, lang: "en" },
+  htmlAttrs: {
+    class: documentReadyClass.value,
+    "data-fashion-store-document": "true",
+    lang: "en",
+  },
   link: [
     {
       as: "font" as const,
@@ -163,14 +170,13 @@ onMounted(() => {
     :announcement="announcement"
     :announcement-link="announcementLink"
     :configuration="header"
-    :home-layout="variant === 'home'"
+    :background="variant === 'home' ? 'transparent-overlay' : 'solid'"
     :resolve-asset="resolveAsset"
     @search-open-change="searchOpen = $event"
   />
   <slot />
   <FashionStoreFooter
     :configuration="footer"
-    :home-layout="variant === 'home'"
     :resolve-asset="resolveAsset"
     :source-asset="sourceAsset"
   />

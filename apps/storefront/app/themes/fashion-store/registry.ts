@@ -3,6 +3,7 @@ import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";
 import "./upstream/demos/fashion-store/fashion-store.css";
 import "./integration.css";
+import "./decor-home-source.css";
 import { defineAsyncComponent } from "vue";
 import type { ThemeRegistry } from "../../theme-engine/registry";
 import { fashionStoreCompositionAdapter } from "./composition";

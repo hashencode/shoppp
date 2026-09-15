@@ -14,6 +14,7 @@ interface PublicProductRow {
 
 interface PublicVariantRow {
   available_quantity: number;
+  compare_at_amount: number | null;
   id: string;
   option_values_json: string;
   price_amount: number;
@@ -77,6 +78,7 @@ async function getLiveProductBy(
     db
       .prepare(
         `SELECT v.id, v.sku, v.title, v.option_values_json, pr.amount AS price_amount,
+                pr.compare_at_amount,
                 ${availableQuantitySql}
                   AS available_quantity
            FROM product_variants v
@@ -120,7 +122,13 @@ async function getLiveProductBy(
       available: variant.available_quantity > 0,
       id: variant.id,
       options: values,
-      price: { amount: variant.price_amount, currency },
+      price: {
+        amount: variant.price_amount,
+        ...(variant.compare_at_amount === null
+          ? {}
+          : { compareAtAmount: variant.compare_at_amount }),
+        currency,
+      },
       sku: variant.sku,
     };
   });

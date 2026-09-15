@@ -46,7 +46,7 @@ async function resetAndSeed(): Promise<void> {
       "INSERT INTO price_lists (id, code, currency, status, created_at, updated_at) VALUES ('pl_usd', 'GLOBAL-USD', 'USD', 'active', ?, ?)",
     ).bind(now, now),
     env.DB.prepare(
-      "INSERT INTO prices (id, price_list_id, variant_id, amount, created_at, updated_at) VALUES ('price_usd', 'pl_usd', ?, 12900, ?, ?)",
+      "INSERT INTO prices (id, price_list_id, variant_id, amount, compare_at_amount, created_at, updated_at) VALUES ('price_usd', 'pl_usd', ?, 12900, 15000, ?, ?)",
     ).bind(ids.variant, now, now),
     env.DB.prepare(
       "INSERT INTO warehouses (id, code, name, created_at) VALUES (?, 'PRIMARY', 'Primary', ?)",
@@ -162,7 +162,7 @@ describe("guest cart authority", () => {
           {
             available: true,
             id: ids.variant,
-            price: { amount: 12_900, currency: "USD" },
+            price: { amount: 12_900, compareAtAmount: 15_000, currency: "USD" },
           },
         ],
       },
@@ -177,7 +177,7 @@ describe("guest cart authority", () => {
         "INSERT INTO price_lists (id, code, currency, status, created_at, updated_at) VALUES ('pl_usd_priority', 'A-USD', 'USD', 'active', ?, ?)",
       ).bind(now, now),
       env.DB.prepare(
-        "INSERT INTO prices (id, price_list_id, variant_id, amount, created_at, updated_at) VALUES ('price_usd_priority', 'pl_usd_priority', ?, 9900, ?, ?)",
+        "INSERT INTO prices (id, price_list_id, variant_id, amount, compare_at_amount, created_at, updated_at) VALUES ('price_usd_priority', 'pl_usd_priority', ?, 9900, 12000, ?, ?)",
       ).bind(ids.variant, now, now),
     ]);
     const app = createApp();
@@ -191,7 +191,7 @@ describe("guest cart authority", () => {
         variants: [
           {
             id: ids.variant,
-            price: { amount: 9_900, currency: "USD" },
+            price: { amount: 9_900, compareAtAmount: 12_000, currency: "USD" },
           },
         ],
       },

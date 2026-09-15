@@ -3,10 +3,20 @@ import * as z from "zod";
 const priceSchema = z
   .object({
     amount: z.int().nonnegative(),
+    compareAtAmount: z.int().nonnegative().optional(),
     currency: z.string().regex(/^[A-Z]{3}$/),
     priceListCode: z.string().min(2).max(64),
   })
-  .strict();
+  .strict()
+  .superRefine((price, context) => {
+    if (price.compareAtAmount !== undefined && price.compareAtAmount <= price.amount) {
+      context.addIssue({
+        code: "custom",
+        message: "Compare-at amount must be greater than the current amount.",
+        path: ["compareAtAmount"],
+      });
+    }
+  });
 
 const variantSchema = z
   .object({

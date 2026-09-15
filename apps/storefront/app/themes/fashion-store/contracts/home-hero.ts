@@ -66,7 +66,7 @@ export const fashionStoreDecorHeroContract = {
   transitionMs: 300,
 } as const;
 
-export const fashionStoreDecorHeroLayerTimeline = [
+export const fashionStoreDecorHeroSourceLayerTimeline = [
   { delayMs: 500, durationMs: 300, ease: "power3.inOut", role: "pattern" },
   { delayMs: 900, durationMs: 500, ease: "back.out", role: "shape" },
   { delayMs: 1_000, durationMs: 800, ease: "power3.inOut", role: "product" },
@@ -76,6 +76,20 @@ export const fashionStoreDecorHeroLayerTimeline = [
   { delayMs: 2_200, durationMs: 1_000, ease: "power3.inOut", role: "next" },
   { delayMs: 2_600, durationMs: 1_000, ease: "power4.inOut", role: "thumbnail" },
 ] as const;
+
+// FS-F6 keeps the source order, delays, and total 3.6s span, while shortening
+// only the five overlapping layers selected by the fixed motion budget.
+export const fashionStoreDecorHeroLayerTimeline = fashionStoreDecorHeroSourceLayerTimeline.map(
+  (layer) =>
+    layer.role === "product"
+      ? { ...layer, durationMs: 400 }
+      : layer.role === "title" ||
+          layer.role === "price" ||
+          layer.role === "cta" ||
+          layer.role === "next"
+        ? { ...layer, durationMs: 400 }
+        : layer,
+);
 
 export interface FashionStoreDecorHeroSourceTiming {
   autoplayMs: number;
@@ -94,7 +108,7 @@ export function assertFashionStoreDecorHeroSourceTiming(
 ): void {
   const expected = {
     autoplayMs: fashionStoreDecorHeroContract.autoplayMs,
-    layers: fashionStoreDecorHeroLayerTimeline.map(({ delayMs, durationMs, role }) => ({
+    layers: fashionStoreDecorHeroSourceLayerTimeline.map(({ delayMs, durationMs, role }) => ({
       delayMs,
       durationMs,
       role,

@@ -82,6 +82,28 @@ describe("public contracts", () => {
   test("accepts catalog, cart, checkout, and admin order DTOs without persistence fields", () => {
     expect(productSchema.parse(product).slug).toBe("travel-bottle");
     expect(
+      productSchema.parse({
+        ...product,
+        variants: [
+          {
+            ...product.variants[0],
+            price: { amount: 2_500, compareAtAmount: 3_000, currency: "USD" },
+          },
+        ],
+      }).variants[0]?.price,
+    ).toEqual({ amount: 2_500, compareAtAmount: 3_000, currency: "USD" });
+    expect(
+      productSchema.safeParse({
+        ...product,
+        variants: [
+          {
+            ...product.variants[0],
+            price: { amount: 2_500, compareAtAmount: 2_500, currency: "USD" },
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
       cartSchema.parse({
         adjustments: [],
         canCheckout: false,

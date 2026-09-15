@@ -6,6 +6,7 @@ import {
   catalogReleaseSupportsStableReferences,
   parseCatalogRelease,
   resolveStableCatalogReference,
+  type CanonicalCatalogRelease,
 } from "../src/catalog";
 
 const canonicalRelease = {
@@ -108,6 +109,29 @@ describe("catalog release contracts", () => {
         kind: "product",
       }),
     ).toMatchObject({ id: "prd_01J00000000000000000000000", slug: "carry-on" });
+  });
+
+  test("accepts optional compare-at pricing and keeps historical schema-v2 releases readable", () => {
+    expect(
+      canonicalCatalogReleaseSchema.parse(canonicalRelease).products[0]?.variants[0]?.prices[0]
+        ?.compareAtAmount,
+    ).toBeUndefined();
+
+    const saleRelease = structuredClone(canonicalRelease) as unknown as CanonicalCatalogRelease;
+    saleRelease.products[0]!.variants[0]!.prices[0] = {
+      amount: 12_900,
+      compareAtAmount: 15_000,
+      currency: "USD",
+    };
+    expect(
+      canonicalCatalogReleaseSchema.parse(saleRelease).products[0]?.variants[0]?.prices[0],
+    ).toEqual({ amount: 12_900, compareAtAmount: 15_000, currency: "USD" });
+
+    for (const compareAtAmount of [12_900, 12_899, -1, 15_000.5]) {
+      const invalid = structuredClone(saleRelease);
+      invalid.products[0]!.variants[0]!.prices[0]!.compareAtAmount = compareAtAmount;
+      expect(canonicalCatalogReleaseSchema.safeParse(invalid).success).toBe(false);
+    }
   });
 
   test("rejects duplicate identities, slug collisions, malformed money, and unknown fields", () => {

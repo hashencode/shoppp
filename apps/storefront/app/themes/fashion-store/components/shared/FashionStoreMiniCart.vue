@@ -11,7 +11,6 @@ import { useFashionStorePreviewCart } from "../../composables/useFashionStorePre
 import { fashionStoreRoutePaths } from "../../page-contracts";
 
 const properties = defineProps<{
-  homeLayout?: boolean;
   sourceAsset: (sourcePath: string) => string;
 }>();
 
@@ -107,7 +106,7 @@ defineExpose({ closeCart });
   <div class="header-cart-icon icon">
     <div
       class="header-cart dropdown"
-      :class="{ open: cartOpen, 'home-layout': homeLayout }"
+      :class="{ open: cartOpen }"
       :data-fashion-store-commerce-mode="liveCommerceMode ? 'live' : 'fixture'"
       @mouseenter="cartOpen = true"
       @mouseleave="handleCartMouseLeave"
@@ -247,7 +246,7 @@ defineExpose({ closeCart });
 
 .header-cart > .fashion-store-source-action {
   position: relative;
-  padding-left: 18px;
+  padding-left: 14px;
   color: var(--dark-gray);
   font-size: 17px;
 }
@@ -258,7 +257,4 @@ defineExpose({ closeCart });
   line-height: 32px;
 }
 
-.header-cart.home-layout > .fashion-store-source-action {
-  padding-left: 14px;
-}
 </style>

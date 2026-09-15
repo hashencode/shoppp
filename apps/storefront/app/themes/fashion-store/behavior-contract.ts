@@ -147,7 +147,11 @@ export const fashionStoreBehaviorContract = {
           outcome: "Cart trigger remains available.",
         },
       ],
-      disposition: { kind: "reproduced" },
+      disposition: {
+        kind: "approved-adaptation",
+        reason:
+          "The source template preloads two demonstration products, but the shopper cart must remain empty until an explicit add action.",
+      },
       evidenceStates: [
         named({
           action: { kind: "cart" },
@@ -164,8 +168,9 @@ export const fashionStoreBehaviorContract = {
       id: "header-cart-preview",
       initialState: "closed",
       modes: ["interaction", "fallback"],
-      outcome: "Hovering or activating the cart reveals the current cart and its controls.",
-      owner: "source-runtime",
+      outcome:
+        "Hovering or activating the cart reveals the current cart and its controls; a new shopper starts with an empty cart.",
+      owner: "approved-adaptation",
       region: "header",
       role: "commerce-action",
       sourceCandidate: ".header-cart, .header-cart a",
@@ -248,6 +253,114 @@ export const fashionStoreBehaviorContract = {
       sourceCandidate: "#decor-store-slider",
       sourceSelector: "#decor-store-slider",
       triggers: ["hover"],
+    }),
+    row({
+      actions: {
+        implementation: {
+          kind: "click",
+          selector:
+            "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-decor-product-tabs] .nav-link",
+        },
+        source: { kind: "click", selector: ".tab-style-04 .nav-tabs .nav-link" },
+      },
+      branches: [
+        {
+          id: "pointer-selection",
+          input: "mouse",
+          outcome: "The chosen merchandising product group becomes visible.",
+        },
+        {
+          id: "keyboard-selection",
+          input: "keyboard",
+          outcome: "The chosen merchandising product group becomes visible.",
+        },
+      ],
+      disposition: { kind: "reproduced" },
+      evidenceStates: [
+        named({
+          action: { kind: "initial" },
+          capture: "element",
+          id: "merchandising-new-arrivals",
+          implementationSelector: '[data-merchandising-panel="new-arrivals"]',
+          sourceSelector: "#tab_five2",
+        }),
+      ],
+      fallback: {
+        outcome: "The initial best-sellers product group remains readable without JavaScript.",
+        strategy: "stable-first-state",
+      },
+      id: "merchandising-selector-tabs",
+      initialState: "best-sellers",
+      modes: ["interaction", "fallback"],
+      outcome: "Selecting a merchandising tab displays exactly its local product group.",
+      owner: "source-runtime",
+      region: "best-sellers",
+      role: "state-control",
+      sourceCandidate: ".tab-style-04 .nav-tabs .nav-link",
+      sourceSelector: ".tab-style-04 .nav-tabs",
+      triggers: ["click", "keyboard", "touch"],
+    }),
+    row({
+      actions: {
+        implementation: {
+          kind: "hover",
+          selector:
+            "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-product-surface='home-merchandising'] .shop-image",
+        },
+        source: {
+          kind: "hover",
+          selector: ".tab-style-04 .shop-boxed .shop-box .shop-image",
+        },
+      },
+      branches: [],
+      disposition: {
+        kind: "approved-adaptation",
+        reason:
+          "Home keeps the Decor card action placement while mapping add-to-cart to the preview commerce contract, reporting unavailable wishlist and quick-view actions truthfully, and removing the duplicate title link in favor of the retained image link.",
+      },
+      evidenceStates: [
+        named({
+          action: { kind: "initial" },
+          capture: "element",
+          id: "home-merchandising-product-default",
+          implementationSelector:
+            "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-product-surface='home-merchandising'] .shop-image",
+          sourceSelector: ".tab-style-04 .shop-boxed .shop-box .shop-image",
+        }),
+        named({
+          action: { kind: "product-hover" },
+          capture: "element",
+          id: "home-merchandising-product-hover",
+          implementationSelector:
+            "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-product-surface='home-merchandising'] .shop-image",
+          sourceSelector: ".tab-style-04 .shop-boxed .shop-box .shop-image",
+        }),
+        named({
+          action: { kind: "product-focus" },
+          capture: "element",
+          id: "home-merchandising-product-focus",
+          implementationSelector:
+            "[data-home-section='product-merchandising'] [data-decor-region='products'] [data-product-surface='home-merchandising'] .shop-image",
+          sourceSelector: ".tab-style-04 .shop-boxed .shop-box .shop-image",
+        }),
+      ],
+      fallback: {
+        outcome:
+          "The retained product link remains keyboard focusable and unavailable actions make no success claim.",
+        strategy: "native-control",
+      },
+      id: "home-merchandising-product-actions",
+      initialState: "default",
+      modes: ["static", "interaction", "fallback"],
+      outcome:
+        "Decor-derived product actions appear on hover and focus with truthful navigation, commerce, and unavailable outcomes.",
+      owner: "approved-adaptation",
+      region: "best-sellers",
+      role: "commerce-action",
+      sourceCandidate:
+        ".tab-style-04 .shop-boxed .shop-image > a, .tab-style-04 .shop-boxed .shop-hover a, .tab-style-04 .shop-boxed .shop-footer > a",
+      sourceSelector: ".tab-style-04 .shop-boxed",
+      triggers: ["hover", "focus", "keyboard", "touch"],
     }),
     row({
       actions: {
@@ -354,7 +467,7 @@ export const fashionStoreBehaviorContract = {
     }),
     row({
       actions: {
-        implementation: { kind: "observe", selector: "section:nth-of-type(9)" },
+        implementation: { kind: "observe", selector: '[data-home-section="marquee"]' },
         source: { kind: "observe", selector: "section:nth-of-type(9)" },
       },
       branches: [],
@@ -365,7 +478,7 @@ export const fashionStoreBehaviorContract = {
             action: { kind: "pause" },
             capture: "element",
             id: "marquee-paused",
-            implementationSelector: "section:nth-of-type(9)",
+            implementationSelector: '[data-home-section="marquee"]',
             sourceSelector: "section:nth-of-type(9)",
           },
           "marquee-paused",

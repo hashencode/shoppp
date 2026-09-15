@@ -16,7 +16,7 @@ type SearchOverlayHandle = {
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
-  homeLayout?: boolean;
+  background?: "solid" | "transparent-overlay";
   announcement?: string;
   announcementLink?: HomeViewModel["announcementLink"];
   configuration?: HomeViewModel["shell"]["header"];
@@ -49,6 +49,29 @@ function densityAsset(standardPath: string, highDensityPath: string): string {
 function configuredLogo(): string | undefined {
   const logo = properties.configuration?.logo;
   return logo ? resolveFashionStoreEditorMedia(properties.resolveAsset, logo) : undefined;
+}
+
+const configuredBrandName = computed(
+  () => properties.configuration?.logo?.alt.trim() || "Lifestyle",
+);
+
+function fallbackLogo(): string {
+  return densityAsset(
+    "images/demo-fashion-store-logo-black.png",
+    "images/demo-fashion-store-logo-black@2x.png",
+  );
+}
+
+function fallbackLogoAt2x(): string {
+  return sourceAsset("images/demo-fashion-store-logo-black@2x.png");
+}
+
+function compactFallbackLogo(): string {
+  return fallbackLogo();
+}
+
+function compactFallbackLogoAt2x(): string {
+  return fallbackLogoAt2x();
 }
 
 onMounted(() => {
@@ -100,6 +123,11 @@ async function closeTransient(restoreMenuFocus = false): Promise<void> {
     dropdown?.querySelector(".dropdown-toggle")?.classList.remove("show");
     dropdown?.querySelector(".dropdown-toggle")?.setAttribute("aria-expanded", "false");
   });
+  document
+    .querySelectorAll(
+      "[data-fashion-store-header] .navbar.submenu-light, [data-fashion-store-header] .navbar.submenu-dark",
+    )
+    .forEach((element) => element.classList.remove("submenu-light", "submenu-dark"));
   if (shouldRestoreMenuFocus) {
     await nextTick();
     menuToggle.value?.focus();
@@ -111,12 +139,15 @@ defineExpose({ closeTransient });
 
 <template>
   <header
-    class="header-with-topbar"
-    :class="{ 'fashion-store-header-home': homeLayout }"
+    class="header-with-topbar fashion-store-header-canonical"
+    :class="`fashion-store-header-surface-${background ?? 'solid'}`"
     data-fashion-store-header="true"
     @click="handleHeaderNavigation"
   >
-    <nav class="navbar navbar-expand-lg header-light bg-white disable-fixed center-logo">
+    <nav
+      class="navbar navbar-expand-lg header-light bg-white disable-fixed"
+      :data-header-hover="background === 'transparent-overlay' ? 'light' : undefined"
+    >
       <div class="container-fluid">
         <div class="col-auto col-xxl-3 col-lg-2 menu-logo">
           <div class="header-icon d-none d-lg-flex">
@@ -168,42 +199,29 @@ defineExpose({ closeTransient });
               >
             </div>
           </div>
-          <a class="navbar-brand" href="/" data-fashion-store-route aria-label="Lifestyle home">
+          <a
+            class="navbar-brand"
+            href="/"
+            data-fashion-store-route
+            :aria-label="`${configuredBrandName} home`"
+          >
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
-              v-bind:src="
-                configuredLogo() ??
-                densityAsset(
-                  'images/demo-fashion-store-logo-black.png',
-                  'images/demo-fashion-store-logo-black@2x.png',
-                )
-              "
-              v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
+              v-bind:src="configuredLogo() ?? fallbackLogo()"
+              v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="alt-logo"
-              v-bind:src="
-                configuredLogo() ??
-                densityAsset(
-                  'images/demo-fashion-store-logo-black.png',
-                  'images/demo-fashion-store-logo-black@2x.png',
-                )
-              "
-              v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
+              v-bind:src="configuredLogo() ?? fallbackLogo()"
+              v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="mobile-logo"
-              v-bind:src="
-                configuredLogo() ??
-                densityAsset(
-                  'images/demo-fashion-store-logo-black.png',
-                  'images/demo-fashion-store-logo-black@2x.png',
-                )
-              "
-              v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-black@2x.png')"
+              v-bind:src="configuredLogo() ?? compactFallbackLogo()"
+              v-bind:data-at2x="configuredLogo() ?? compactFallbackLogoAt2x()"
             />
           </a>
         </div>
@@ -726,6 +744,7 @@ defineExpose({ closeTransient });
             <div v-if="accountVisible" class="widget-text icon alt-font">
               <a
                 :href="fashionStoreRoutePaths.account"
+                class="fashion-store-header-labeled-action"
                 data-fashion-store-route
                 aria-label="Account"
                 ><FashionStoreIcon name="user" class="d-inline-block me-5px" /><span
@@ -734,11 +753,7 @@ defineExpose({ closeTransient });
                 ></a
               >
             </div>
-            <FashionStoreMiniCart
-              ref="miniCart"
-              :home-layout="homeLayout"
-              :source-asset="sourceAsset"
-            />
+            <FashionStoreMiniCart ref="miniCart" :source-asset="sourceAsset" />
           </div>
         </div>
       </div>
@@ -747,6 +762,37 @@ defineExpose({ closeTransient });
 </template>
 
 <style scoped>
+.fashion-store-header-surface-transparent-overlay {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 20;
+}
+
+.fashion-store-header-surface-transparent-overlay .navbar {
+  background: transparent !important;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.fashion-store-header-surface-transparent-overlay .navbar.submenu-light {
+  background: #fff !important;
+  box-shadow: 0 0 50px rgb(0 0 0 / 10%);
+}
+
+.fashion-store-header-surface-solid .navbar {
+  background: #fff !important;
+}
+
+.fashion-store-header-canonical {
+  --alt-font: "Plus Jakarta Sans", sans-serif;
+  --primary-font: "Plus Jakarta Sans", sans-serif;
+}
+
+.fashion-store-header-canonical :deep(.fashion-store-header-labeled-action) {
+  font-weight: 600;
+}
+
 .fashion-store-source-action {
   appearance: none;
   background: transparent;
@@ -756,61 +802,175 @@ defineExpose({ closeTransient });
   padding: 0;
 }
 
-:where(.fashion-store-header-home) .container,
-:where(.fashion-store-header-home) .container-fluid,
-:where(.fashion-store-header-home) .container-lg,
-:where(.fashion-store-header-home) .container-md,
-:where(.fashion-store-header-home) .container-sm,
-:where(.fashion-store-header-home) .container-xl,
-:where(.fashion-store-header-home) .container-xxl {
+:where(.fashion-store-header-canonical) .container,
+:where(.fashion-store-header-canonical) .container-fluid,
+:where(.fashion-store-header-canonical) .container-lg,
+:where(.fashion-store-header-canonical) .container-md,
+:where(.fashion-store-header-canonical) .container-sm,
+:where(.fashion-store-header-canonical) .container-xl,
+:where(.fashion-store-header-canonical) .container-xxl {
   padding-right: 15px;
   padding-left: 15px;
 }
 
-:where(.fashion-store-header-home) .row {
+:where(.fashion-store-header-canonical) .row {
   margin-right: -15px;
   margin-left: -15px;
 }
 
-:where(.fashion-store-header-home) .row > * {
+:where(.fashion-store-header-canonical) .row > * {
   padding-right: 15px;
   padding-left: 15px;
 }
 
-:where(.fashion-store-header-home) .navbar {
+:where(.fashion-store-header-canonical) .navbar {
   line-height: 32px;
   padding: 0;
 }
 
 /* Preserve Crafto's breakpoint-specific navigation gutters after the scoped
    Bootstrap gutter normalization above. */
-.fashion-store-header-home .navbar > .container-fluid {
+.fashion-store-header-canonical .navbar > .container-fluid {
   padding-right: 45px;
   padding-left: 45px;
 }
 
 @media (max-width: 1199px) {
-  .fashion-store-header-home .navbar > .container-fluid {
+  .fashion-store-header-canonical .navbar > .container-fluid {
     padding-right: 35px;
     padding-left: 35px;
   }
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
-  .fashion-store-header-home .navbar {
+  .fashion-store-header-canonical .navbar {
     padding-right: 15px;
     padding-left: 15px;
   }
 }
 
 @media (max-width: 991px) {
-  .fashion-store-header-home .navbar > .container-fluid {
+  .fashion-store-header-canonical .navbar {
+    min-height: 80px;
+  }
+
+  .fashion-store-header-canonical.fashion-store-header-surface-transparent-overlay .navbar {
+    background: #fff !important;
+  }
+
+  .fashion-store-header-canonical .navbar > .container-fluid {
+    padding-right: 15px;
+    padding-left: 15px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .fashion-store-header-canonical .menu-logo,
+  .fashion-store-header-canonical .menu-order,
+  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
+    width: auto;
+    max-width: none;
     padding-right: 0;
     padding-left: 0;
   }
+
+  .fashion-store-header-canonical .menu-logo {
+    order: 1;
+    min-width: 0;
+    margin-right: auto;
+  }
+
+  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
+    order: 2;
+  }
+
+  .fashion-store-header-canonical .menu-order {
+    order: 3;
+    margin-left: 12px;
+  }
 }
 
-.fashion-store-header-home .navbar.disable-fixed {
+.fashion-store-header-canonical .navbar.disable-fixed {
   top: 0 !important;
+}
+
+@media (min-width: 992px) {
+  .fashion-store-header-canonical .navbar {
+    padding: 0;
+  }
+
+  .fashion-store-header-canonical .navbar > .container-fluid {
+    display: flex;
+    align-items: center;
+    min-height: 96px;
+  }
+
+  .fashion-store-header-canonical .menu-logo,
+  .fashion-store-header-canonical .menu-order,
+  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
+    width: auto;
+    max-width: none;
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+
+  .fashion-store-header-canonical .menu-logo > .header-icon {
+    display: none !important;
+  }
+
+  .fashion-store-header-canonical .navbar-brand {
+    position: static;
+    display: flex;
+    max-width: 167px;
+    margin: 0;
+    transform: none;
+  }
+
+  .fashion-store-header-canonical .navbar-brand img {
+    max-width: 100%;
+    max-height: 36px;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .fashion-store-header-canonical .navbar-collapse,
+  .fashion-store-header-canonical .navbar-nav {
+    width: auto;
+  }
+
+  .fashion-store-header-canonical .navbar-collapse {
+    flex: 0 0 auto;
+    display: flex !important;
+    gap: 0;
+  }
+
+  .fashion-store-header-canonical .navbar-left,
+  .fashion-store-header-canonical .navbar-right {
+    flex: 0 1 auto;
+    width: auto;
+  }
+
+  .fashion-store-header-canonical .navbar-nav .nav-link {
+    padding-right: 20px;
+    padding-left: 20px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
+    margin-left: auto;
+  }
+
+  .fashion-store-header-canonical .navbar > .container-fluid > :last-child .header-icon {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .fashion-store-header-canonical .navbar-nav .nav-link {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
 }
 </style>

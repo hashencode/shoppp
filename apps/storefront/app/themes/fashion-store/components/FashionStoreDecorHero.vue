@@ -6,6 +6,7 @@ import { Swiper, SwiperSlide } from "swiper/vue";
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
 import { fashionStoreDecorHeroContract, fashionStoreDecorHeroSlides } from "../contracts/home-hero";
 import { useFashionStoreDecorHeroMotion } from "../composables/useFashionStoreDecorHeroMotion";
+import { useFashionStoreMotionViewport } from "../composables/useFashionStoreMotionViewport";
 import plusJakartaFontUrl from "../assets/hero/plus-jakarta-sans-latin.woff2?url";
 import FashionStoreIcon from "./shared/FashionStoreIcon.vue";
 
@@ -28,7 +29,18 @@ const swiper = shallowRef<SwiperInstance>();
 const activeIndex = ref(0);
 const initialized = ref(false);
 const completedCycle = ref(false);
+const documentHidden = ref(false);
 const motion = useFashionStoreDecorHeroMotion(root);
+const viewportVisible = useFashionStoreMotionViewport(root);
+type MotionPauseReason = "document-hidden" | "reduced-motion" | "viewport-hidden";
+const motionPauseReasons = computed(() => {
+  const reasons = new Set<MotionPauseReason>();
+  if (documentHidden.value) reasons.add("document-hidden");
+  if (motion.reducedMotion.value) reasons.add("reduced-motion");
+  if (!viewportVisible.value) reasons.add("viewport-hidden");
+  return reasons;
+});
+const motionPauseReason = computed(() => [...motionPauseReasons.value].join(","));
 const runtimeStatus = computed(() =>
   initialized.value && motion.ready.value ? "operational" : "static",
 );
@@ -44,15 +56,10 @@ function handleSwiper(instance: SwiperInstance): void {
 function syncSuspension(): void {
   const instance = swiper.value;
   if (!instance?.autoplay) return;
-  if (
-    runtimeStatus.value !== "operational" ||
-    document.hidden ||
-    motion.reducedMotion.value
-  ) {
+  if (runtimeStatus.value !== "operational" || motionPauseReasons.value.size > 0) {
     instance.autoplay.stop();
-  }
-  else if (!completedCycle.value) instance.autoplay.start();
-  motion.setHidden(document.hidden);
+  } else if (!completedCycle.value) instance.autoplay.start();
+  motion.setSuspended(motionPauseReasons.value.size > 0);
 }
 
 function syncInputBoundary(): void {
@@ -100,18 +107,21 @@ function requestNext(): void {
   swiper.value?.slideNext();
 }
 
-onMounted(() => document.addEventListener("visibilitychange", syncSuspension));
-onBeforeUnmount(() => document.removeEventListener("visibilitychange", syncSuspension));
-watch([motion.ready, motion.reducedMotion], syncSuspension);
+function updateDocumentVisibility(): void {
+  documentHidden.value = document.hidden;
+}
+
+onMounted(() => {
+  updateDocumentVisibility();
+  document.addEventListener("visibilitychange", updateDocumentVisibility);
+});
+onBeforeUnmount(() => document.removeEventListener("visibilitychange", updateDocumentVisibility));
+watch([motion.ready, motionPauseReasons], syncSuspension);
 watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
 </script>
 
 <template>
-  <section
-    ref="root"
-    class="fashion-store-decor-hero"
-    aria-label="Featured furniture"
-  >
+  <section ref="root" class="fashion-store-decor-hero" aria-label="Featured furniture">
     <Swiper
       id="fashion-store-decor-hero"
       :modules="[Autoplay, EffectFade, Keyboard]"
@@ -135,6 +145,7 @@ watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
       :data-motion-active-index="activeIndex"
       :data-motion-phase="motion.phase.value"
       :data-motion-ready="runtimeStatus === 'operational' ? 'true' : 'false'"
+      :data-motion-paused="motionPauseReason"
       :data-runtime-status="runtimeStatus"
       @swiper="handleSwiper"
       @real-index-change="handleSlideChange"

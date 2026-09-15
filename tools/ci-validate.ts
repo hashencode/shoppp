@@ -99,6 +99,11 @@ const FAST_GATES: readonly GateDefinition[] = [
     command: ["bun", "run", "test"],
     nonzeroFailureClassification: "test",
   },
+  {
+    name: "theme-impact",
+    command: ["bun", "run", "check:theme-impact"],
+    nonzeroFailureClassification: "test",
+  },
 ];
 
 export const CI_TIERS: Readonly<Record<CiTier, readonly GateDefinition[]>> = {

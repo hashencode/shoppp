@@ -3,9 +3,13 @@ import { computed } from "vue";
 import { fashionStoreBrandIcons } from "../../icons/brands";
 import { fashionStoreUiIcons, type FashionStoreIconName } from "../../icons/ui";
 
-const properties = withDefaults(defineProps<{ name: FashionStoreIconName; filled?: boolean }>(), {
-  filled: false,
-});
+const properties = withDefaults(
+  defineProps<{ name: FashionStoreIconName; filled?: boolean; strokeWidth?: number }>(),
+  {
+    filled: false,
+    strokeWidth: 2,
+  },
+);
 const uiIcon = computed(
   () => fashionStoreUiIcons[properties.name as keyof typeof fashionStoreUiIcons],
 );
@@ -22,7 +26,7 @@ const brandIcon = computed(
       width="1em"
       height="1em"
       :fill="filled ? 'currentColor' : 'none'"
-      :stroke-width="2"
+      :stroke-width="strokeWidth"
       aria-hidden="true"
       focusable="false"
     />

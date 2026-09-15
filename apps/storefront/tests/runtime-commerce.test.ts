@@ -35,7 +35,7 @@ const liveProduct = productSchema.parse({
       available: true,
       id: "var_01JRUNTIMECOMMERCE000000001",
       options: { Size: "M" },
-      price: { amount: 6500, currency: "USD" },
+      price: { amount: 6500, compareAtAmount: 8500, currency: "USD" },
       sku: "JACKET-M",
     },
     {
@@ -61,7 +61,7 @@ describe("runtime commerce presentation", () => {
           availability: "in-stock",
           id: liveProduct.variants[0]!.id,
           label: "Size: M",
-          money: { amount: 6500, currency: "USD" },
+          money: { amount: 6500, compareAtAmount: 8500, currency: "USD" },
           options: { Size: "M" },
         },
         {
@@ -184,7 +184,7 @@ describe("runtime commerce presentation", () => {
     expect(revalidationCount).toBe(1);
     expect(verified).toMatchObject({
       input: {
-        expectedUnitPrice: liveProduct.variants[0]!.price,
+        expectedUnitPrice: { amount: 6500, currency: "USD" },
         quantity: 2,
         variantId: liveProduct.variants[0]!.id,
       },

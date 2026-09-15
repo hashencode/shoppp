@@ -2,6 +2,18 @@ import * as z from "zod";
 
 import { moneySchema, publicIdSchema } from "./common";
 
+export const catalogPriceSchema = moneySchema
+  .extend({ compareAtAmount: z.int().nonnegative().optional() })
+  .superRefine((price, context) => {
+    if (price.compareAtAmount !== undefined && price.compareAtAmount <= price.amount) {
+      context.addIssue({
+        code: "custom",
+        message: "Compare-at amount must be greater than the current amount.",
+        path: ["compareAtAmount"],
+      });
+    }
+  });
+
 export const productStatusSchema = z.enum(["draft", "scheduled", "published", "archived"]);
 export const catalogBuildResultSchema = z
   .object({
@@ -40,7 +52,7 @@ export const productVariantSchema = z
     available: z.boolean(),
     id: publicIdSchema,
     options: z.record(z.string(), z.string()),
-    price: moneySchema,
+    price: catalogPriceSchema,
     sku: z.string().min(1).max(80),
   })
   .strict();
@@ -109,7 +121,7 @@ const catalogReleaseVariantSchema = z
   .object({
     id: publicIdSchema,
     optionValues: z.record(z.string().min(1).max(80), z.string().min(1).max(160)),
-    prices: z.array(moneySchema).min(1),
+    prices: z.array(catalogPriceSchema).min(1),
     sku: z.string().trim().min(1).max(80),
     status: z.enum(["active", "disabled"]),
     title: z.string().trim().min(1).max(160),

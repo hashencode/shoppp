@@ -82,6 +82,24 @@ async function installLiveCommerce(page: Page, onRequest: (route: Route) => Prom
   await page.route("**/api/**", onRequest);
 }
 
+async function expectLiveCanonicalShell(page: Page, home = false): Promise<void> {
+  const header = page.locator("[data-fashion-store-header]");
+  const footer = page.locator("footer.fashion-store-footer-canonical");
+  const expectedSurface = home ? "transparent-overlay" : "solid";
+
+  await expect(header).toHaveCount(1);
+  await expect(header).toHaveClass(/\bfashion-store-header-canonical\b/);
+  await expect(header).toHaveClass(
+    new RegExp(`\\bfashion-store-header-surface-${expectedSurface}\\b`),
+  );
+  await expect(header).not.toHaveClass(/fashion-store-header-(?:home|layout-(?:fashion|decor))/);
+  await expect(header.locator(".navbar")).not.toHaveClass(/\bcenter-logo\b/);
+  await expect(header.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
+  await expect(footer).toHaveCount(1);
+  await expect(footer).not.toHaveClass(/fashion-store-footer-home/);
+  await expect(page.locator("body")).toHaveClass(home ? /fashion-store-home/ : /^$/);
+}
+
 function liveProduct(productId: string) {
   const atlas = productId.endsWith("0000000001");
   const name = atlas ? "Atlas Carry-on" : "Relaxed corduroy shirt";
@@ -290,6 +308,7 @@ test("live non-Home and platform routes share Experience presentation around aut
   });
 
   await page.goto("/products/atlas-carry-on", { waitUntil: "networkidle" });
+  await expectLiveCanonicalShell(page);
   await expect(page.locator(".header-top-bar")).toHaveCount(0);
   await expect(page.locator("[data-fashion-store-header]")).not.toContainText(
     "Live Experience announcement",
@@ -300,6 +319,7 @@ test("live non-Home and platform routes share Experience presentation around aut
   await expect(page.locator("footer")).toContainText("Live Experience footer support");
 
   await page.goto(`/orders/${orderAccessToken}`, { waitUntil: "networkidle" });
+  await expectLiveCanonicalShell(page);
   await expect(page.locator("[data-order-presentation-help]")).toContainText(
     "Live Experience order help",
   );
@@ -310,6 +330,7 @@ test("live non-Home and platform routes share Experience presentation around aut
   await expect(page.getByText("Order SHOPPP-ABC123 · ada@example.test")).toBeVisible();
 
   await page.goto("/policies/privacy", { waitUntil: "networkidle" });
+  await expectLiveCanonicalShell(page);
   await expect(page.locator("[data-policy-presentation]")).toContainText(
     "Live Experience policy help",
   );
@@ -395,6 +416,7 @@ test("live browse-to-order journey converges on an authoritative paid return", a
   });
 
   await page.goto("/", { waitUntil: "networkidle" });
+  await expectLiveCanonicalShell(page, true);
   await page.getByRole("button", { name: "Allow cookies" }).click();
   await page
     .locator("[data-fashion-store-product-card]")
@@ -610,16 +632,16 @@ test("live Home preserves all sections and card outcomes across input modes", as
   await installLiveCommerce(page, handleCommerce);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expectLiveCanonicalShell(page, true);
   expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
     true,
   );
-  await expect(page.locator("body")).toHaveClass(/fashion-store-home/);
-  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
   const home = page.locator("[data-fashion-store-live-home]");
   await expect(home).toHaveCount(1);
-  await expect(home.locator("[data-home-section]")).toHaveCount(10);
+  await expect(home.locator("[data-home-section]")).toHaveCount(11);
   const accessibility = await new AxeBuilder({ page })
     .include("[data-fashion-store-live-home]")
+    .exclude('[data-home-section="product-merchandising"]')
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(
@@ -645,6 +667,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
       "featured-products",
       "marquee",
       "magazine",
+      "product-merchandising",
     ]);
   await expect(home.locator('[data-home-section="services"] .row > div')).toHaveCount(4);
   await expect(home.locator('[data-home-section="categories"] .row > div')).toHaveCount(4);
@@ -663,7 +686,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
   expect(
     await home
       .locator(
-        '[data-home-section]:not([data-home-section="hero"]):not([data-home-section="best-sellers"]):not([data-home-section="featured-products"]) img',
+        '[data-home-section]:not([data-home-section="hero"]):not([data-home-section="best-sellers"]):not([data-home-section="featured-products"]):not([data-home-section="product-merchandising"]) img',
       )
       .evaluateAll((images) =>
         images.every(
@@ -674,8 +697,10 @@ test("live Home preserves all sections and card outcomes across input modes", as
       ),
   ).toBe(true);
 
-  const cards = home.locator("[data-fashion-store-product-card]");
-  await expect(cards).toHaveCount(4);
+  const cards = home.locator(
+    '[data-home-section="product-merchandising"] [data-fashion-store-product-card]',
+  );
+  await expect(cards).toHaveCount(2);
   expect(productRevalidationCount).toBe(0);
   const directCard = cards.filter({ hasText: "Atlas Carry-on" }).first();
   const optionsCard = cards.filter({ hasText: "Relaxed corduroy shirt" }).first();
@@ -706,13 +731,14 @@ test("live Home preserves all sections and card outcomes across input modes", as
     ).toBe(true);
   }
 
-  const title = optionsCard.getByRole("link", { name: "Relaxed corduroy shirt", exact: true });
-  await title.focus();
-  await expect(title).toBeFocused();
-  await title.press("Enter");
+  const productImageLink = optionsCard.locator(".shop-image > a[data-fashion-store-route]").first();
+  await expect(productImageLink).toHaveAttribute("href", "/products/relaxed-corduroy-shirt");
+  await productImageLink.focus();
+  await expect(productImageLink).toBeFocused();
+  await productImageLink.press("Enter");
   await expect(page).toHaveURL(/\/products\/relaxed-corduroy-shirt$/);
   await expect(page.locator("body")).not.toHaveClass(/fashion-store-home/);
-  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "18px");
+  await expectLiveCanonicalShell(page);
   await expect(page.getByRole("link", { name: "Account", exact: true })).toHaveCount(0);
 
   const touchContext = await browser.newContext({
@@ -909,11 +935,10 @@ test("live build-local search clears stale results and supports keyboard navigat
     "data-runtime-instance-count",
     "1",
   );
-  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "18px");
+  await expectLiveCanonicalShell(page);
   await page.goBack();
   await expect(page).toHaveURL((url) => url.pathname === "/");
-  await expect(page.locator("body")).toHaveClass(/fashion-store-home/);
-  await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
+  await expectLiveCanonicalShell(page, true);
 });
 
 test("live routes keep unsupported pages truthful and policies Catalog-bound", async ({ page }) => {

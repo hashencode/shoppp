@@ -113,8 +113,11 @@ For every visible region record:
 - asset identity, intrinsic size, crop, object position, and 1x/2x pairing;
 - computed font family, real weight, size, line height, letter spacing, and text width;
 - colors, borders, radii, shadows, visibility, and bounding boxes;
+- relational geometry: glyph-to-control centers, sibling order and spacing, and containment within
+  the owning surface rather than only each element's independent width and height;
 - desktop, laptop, tablet, and mobile composition;
-- pointer, keyboard, touch, focus, dismissal, disabled, and reduced-motion behavior;
+- pointer, keyboard, touch, focus, context-menu/right-click, dismissal, disabled, and reduced-motion
+  behavior;
 - motion direction, easing, duration, delay, loop, autoplay, pause, midpoint, exit, and interruption.
 
 Before implementing the first page, build a cross-page surface census across every declared source
@@ -212,6 +215,8 @@ Also prove that the harness rejects:
   or uses source-incompatible control/backdrop geometry;
 - a shared semantic control that passes on the first route but regains user-agent appearance,
   background, border, padding, or font on another registered consumer; and
+- an icon-only control whose outer box is correct while its glyph is off-center, or a state selector
+  that preserves visibility while overwriting one axis of a composite transform;
 - a state declared in the behavior ledger but absent from the fidelity matrix.
 
 The harness must capture structured DOM inventory, visible copy, links, image properties,
@@ -273,6 +278,10 @@ compare and reset the browser defaults that changed (`appearance`, background, b
 font, and color) before applying source styles. Render each shared component in every consumer
 context and fail on a computed-style, geometry, or overflow signature that differs without a
 source-backed reason.
+Treat CSS ownership at the property and state level. When base positioning uses a composite
+`transform`, hover, focus, focus-within, active, disabled, and context-menu-triggered focus rules
+must preserve every axis they do not intentionally change. Do not let a legacy utility class and a
+successor component rule both own spacing or alignment for the same icon-only control.
 The ownership map from Gate 2 must be resolved before the first consumer is implemented. Add a
 contract or static check that rejects a page-local duplicate of an owned surface; visual similarity
 alone is not permission to create a second renderer.
@@ -310,7 +319,8 @@ Run acceptance in five modes:
    transition duration/easing, and at least one in-flight frame before and after elapsed time and
    across the loop boundary. An index-only change or instantaneous final transform is not motion
    parity.
-3. **Interaction:** exercise hover, focus, click, Escape, outside click, keyboard, and touch.
+3. **Interaction:** exercise hover, focus, click, context-menu/right-click, Escape, outside click,
+   keyboard, and touch.
 4. **Scroll/fixed:** keep sticky rails and progress controls visible; verify thresholds, progress,
    fixed geometry, and back-to-top without route changes.
 5. **Fallback:** cover no-JS, individual capability failure, reduced motion, and remount cleanup.

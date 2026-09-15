@@ -1,6 +1,6 @@
 export const fashionStoreHomeServices = [
   ["Free delivery", "On qualifying orders", "truck"],
-  ["Secure payment", "Protected checkout", "shield"],
+  ["Secure payment", "Protected checkout", "credit-card"],
   ["Easy returns", "Straightforward support", "refresh-cw"],
   ["Real support", "Help when you need it", "headphones"],
 ] as const;

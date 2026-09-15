@@ -11,16 +11,30 @@ function exposeStaticContent(root: ParentNode): void {
 
 function initializeDesktopDropdowns(root: ParentNode, lifecycle: FashionStoreLifecycle): void {
   const dropdowns = [...root.querySelectorAll<HTMLElement>(".navbar .nav-item.dropdown")];
-  const close = (dropdown: HTMLElement): void => dropdown.classList.remove("open", "menu-left");
+  const navbar = root.querySelector<HTMLElement>(".navbar[data-header-hover]");
+  const syncHeaderTone = (): void => {
+    const menuOpen = dropdowns.some((dropdown) => dropdown.classList.contains("open"));
+    const tone = navbar?.dataset.headerHover;
+    navbar?.classList.toggle("submenu-light", menuOpen && tone === "light");
+    navbar?.classList.toggle("submenu-dark", menuOpen && tone === "dark");
+  };
+  const close = (dropdown: HTMLElement): void => {
+    dropdown.classList.remove("open", "menu-left");
+    syncHeaderTone();
+  };
   for (const dropdown of dropdowns) {
     lifecycle.listen(dropdown, "mouseenter", () => {
       if (innerWidth < 992) return;
       for (const sibling of dropdowns) if (sibling !== dropdown) close(sibling);
       dropdown.classList.add("open");
+      syncHeaderTone();
     });
     lifecycle.listen(dropdown, "mouseleave", () => close(dropdown));
   }
-  lifecycle.addCleanup(() => dropdowns.forEach(close));
+  lifecycle.addCleanup(() => {
+    dropdowns.forEach((dropdown) => dropdown.classList.remove("open", "menu-left"));
+    navbar?.classList.remove("submenu-light", "submenu-dark");
+  });
 }
 
 export function initializeFashionStoreCapabilities(

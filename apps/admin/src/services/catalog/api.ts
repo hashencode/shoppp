@@ -29,7 +29,12 @@ export type ProductDraftPayload = {
   variants: Array<{
     dimensionsMm?: { height: number; length: number; width: number }
     optionValues: Record<string, string>
-    prices: Array<{ amount: number; currency: string; priceListCode: string }>
+    prices: Array<{
+      amount: number
+      compareAtAmount?: number
+      currency: string
+      priceListCode: string
+    }>
     sku: string
     title: string
     weightGrams: number
@@ -63,6 +68,7 @@ export type ProductDetail = {
   }>
   prices: Array<{
     amount: number
+    compare_at_amount?: number | null
     currency: string
     price_list_code: string
     variant_id: string

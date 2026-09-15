@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 
 import { canonicalCatalogReleaseSchema } from "../packages/contracts/src";
 
-import { createFashionStagingU12SeedPlan } from "./prepare-fashion-staging-u12";
+import {
+  createFashionStagingU12SeedPlan,
+  createFashionStoreLiveU12Variables,
+} from "./prepare-fashion-staging-u12";
 
 describe("Fashion staging U12 one-time seed plan", () => {
   test("builds one deterministic canonical Catalog with all three Commerce archetypes", () => {
@@ -50,6 +53,31 @@ describe("Fashion staging U12 one-time seed plan", () => {
       FASHION_U12_SINGLE_VARIANT_PRODUCT_ID: "prod_01JFASHIONLIVE0000000001",
       FASHION_U12_UNAVAILABLE_PRODUCT_ID: "prod_01JFASHIONLIVE0000000003",
       FASHION_U12_WAREHOUSE_ID: "warehouse_fashion_staging",
+    });
+  });
+
+  test("maps live shopper identities while keeping unavailable acceptance separate", () => {
+    const variables = createFashionStoreLiveU12Variables({
+      acceptanceProduct: { id: "prod_acceptance_only" },
+      catalog: {
+        products: [
+          { id: "prod_single", name: "Single", slug: "single", variants: [{ id: "var_single" }] },
+          {
+            id: "prod_multi",
+            name: "Multi",
+            slug: "multi",
+            variants: [{ id: "var_multi_1" }, { id: "var_multi_2" }],
+          },
+        ],
+        warehouse: { id: "warehouse_fashion_staging" },
+      },
+    });
+
+    expect(variables).toMatchObject({
+      FASHION_U12_MULTI_VARIANT_PRODUCT_ID: "prod_multi",
+      FASHION_U12_SINGLE_VARIANT_PRODUCT_ID: "prod_single",
+      FASHION_U12_UNAVAILABLE_PRODUCT_ID: "prod_acceptance_only",
+      FASHION_U13_VARIANT_ID: "var_single",
     });
   });
 });

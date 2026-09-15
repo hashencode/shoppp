@@ -12,6 +12,8 @@ import {
   type RuntimeProductState,
 } from "../../../../theme-engine/runtime-commerce";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
+import FashionStoreProductGallery from "../shared/FashionStoreProductGallery.vue";
+import FashionStoreProductLightbox from "../shared/FashionStoreProductLightbox.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 import FashionStoreQuantityInput from "../shared/FashionStoreQuantityInput.vue";
 
@@ -40,6 +42,10 @@ const selectedOptions = ref<Record<string, string>>({
 const optionError = ref("");
 const optionErrorElement = ref<HTMLElement | null>(null);
 const addCount = ref(0);
+const galleryIndex = ref(0);
+const galleryPaused = ref(false);
+const productGallery = ref<InstanceType<typeof FashionStoreProductGallery>>();
+const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
 
 const displayedOptionGroups = computed(
   () => runtimeProduct.value?.optionGroups ?? properties.viewModel.optionGroups,
@@ -58,9 +64,13 @@ const displayedPrice = computed(() => {
     ? formatCommerceMoney(money.amount, money.currency)
     : properties.viewModel.priceLabel;
 });
-const displayedMedia = computed(
-  () => runtimeProduct.value?.media[0] ?? properties.viewModel.media[0],
-);
+const displayedCompareAtPrice = computed(() => {
+  const money = selectedRuntimeVariant.value?.money;
+  return money?.compareAtAmount
+    ? formatCommerceMoney(money.compareAtAmount, money.currency)
+    : properties.viewModel.compareAtPriceLabel;
+});
+const displayedMedia = computed(() => runtimeProduct.value?.media ?? properties.viewModel.media);
 const canAttemptAdd = computed(
   () =>
     Boolean(runtimeCommerce && properties.viewModel.resource && actionAdapter) &&
@@ -100,6 +110,19 @@ function optionValueAvailable(groupName: string, value: string): boolean {
     groupName,
     value,
   );
+}
+
+function showGallery(index: number): void {
+  if (displayedMedia.value.length === 0) return;
+  galleryIndex.value =
+    ((index % displayedMedia.value.length) + displayedMedia.value.length) %
+    displayedMedia.value.length;
+  productGallery.value?.select(galleryIndex.value);
+}
+
+function openGalleryLightbox(): void {
+  galleryPaused.value = true;
+  lightbox.value?.open();
 }
 
 async function showOptionError(message: string): Promise<void> {
@@ -228,12 +251,21 @@ onMounted(() => {
         <div class="container">
           <div class="row align-items-start">
             <div class="col-lg-7 md-mb-40px">
+              <FashionStoreProductGallery
+                v-if="displayedMedia.length > 1"
+                ref="productGallery"
+                :images="displayedMedia"
+                :paused="galleryPaused"
+                :resolve-asset="resolveAsset"
+                @active-index-change="galleryIndex = $event"
+                @open="openGalleryLightbox"
+              />
               <img
-                v-if="displayedMedia"
-                :src="displayedMedia.src"
-                :alt="displayedMedia.alt"
-                :width="displayedMedia.width"
-                :height="displayedMedia.height"
+                v-else-if="displayedMedia[0]"
+                :src="displayedMedia[0].src"
+                :alt="displayedMedia[0].alt"
+                :width="displayedMedia[0].width"
+                :height="displayedMedia[0].height"
                 class="w-100"
               />
               <div
@@ -256,7 +288,10 @@ onMounted(() => {
               <p class="alt-font text-uppercase fs-12 fw-600 mb-10px">Selected catalog release</p>
               <h1 class="alt-font text-dark-gray fw-600">{{ viewModel.heading }}</h1>
               <p class="fs-22 fw-600 text-dark-gray" data-live-product-price>
-                {{ displayedPrice }}
+                <del v-if="displayedCompareAtPrice" class="me-10px">{{
+                  displayedCompareAtPrice
+                }}</del
+                >{{ displayedPrice }}
               </p>
               <p>{{ viewModel.description }}</p>
               <a
@@ -333,6 +368,20 @@ onMounted(() => {
           </div>
         </div>
       </section>
+
+      <FashionStoreProductLightbox
+        v-if="displayedMedia.length > 1 && displayedMedia[galleryIndex]"
+        ref="lightbox"
+        :src="displayedMedia[galleryIndex]!.src"
+        :alt="displayedMedia[galleryIndex]!.alt"
+        :current="galleryIndex + 1"
+        :total="displayedMedia.length"
+        @previous="showGallery(galleryIndex - 1)"
+        @next="showGallery(galleryIndex + 1)"
+        @opened="galleryPaused = true"
+        @closed="galleryPaused = false"
+        @unavailable="galleryPaused = false"
+      />
     </main>
   </FashionStoreShell>
 </template>

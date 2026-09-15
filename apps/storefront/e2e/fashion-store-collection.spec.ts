@@ -132,10 +132,11 @@ test("collection-card-focus interaction: cards expose pointer and keyboard state
   );
 });
 
-test("Shared header controls keep source styling on every consumer route", async ({
+test("Shared header controls preserve route styling and truthful preview-cart states", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "The shared shell matrix runs once.");
+  test.setTimeout(90_000);
   for (const route of fashionStorePreviewRoutes) {
     await page.goto(route, { waitUntil: "networkidle" });
     const cartTrigger = page.getByRole("button", { name: "Open cart" });
@@ -145,23 +146,39 @@ test("Shared header controls keep source styling on every consumer route", async
       "rgba(0, 0, 0, 0)",
     );
     await expect(cartTrigger, `${route} cart trigger`).toHaveCSS("border-top-width", "0px");
-
-    const closeControls = page.locator(".cart-item-list .close");
-    expect(await closeControls.count(), `${route} mini-cart controls`).toBeGreaterThan(0);
-    expect(
-      await closeControls.evaluateAll((controls) =>
-        controls.every((control) => {
-          const style = getComputedStyle(control);
-          return (
-            style.appearance === "none" &&
-            style.backgroundColor === "rgba(0, 0, 0, 0)" &&
-            style.borderTopWidth === "0px"
-          );
-        }),
-      ),
-      `${route} mini-cart close controls`,
-    ).toBe(true);
   }
+
+  await page.goto("/", { waitUntil: "networkidle" });
+  await page
+    .getByRole("button", { name: "Allow cookies" })
+    .click({ timeout: 2_000 })
+    .catch(() => undefined);
+  const cartTrigger = page.getByRole("button", { name: "Open cart" });
+  await cartTrigger.click();
+  await expect(page.locator(".cart-item-list")).toContainText("Your cart is empty.");
+  await expect(page.locator(".cart-item-list .close")).toHaveCount(0);
+  await cartTrigger.click();
+
+  const firstCard = page
+    .locator('[data-home-section="product-merchandising"] [data-fashion-store-product-card]')
+    .first();
+  await firstCard.hover();
+  await firstCard.getByRole("button", { name: "Add to cart" }).click();
+  await cartTrigger.click();
+  const populatedCloseControls = page.locator(".cart-item-list .close");
+  await expect(populatedCloseControls).toHaveCount(1);
+  expect(
+    await populatedCloseControls.evaluateAll((controls) =>
+      controls.every((control) => {
+        const style = getComputedStyle(control);
+        return (
+          style.appearance === "none" &&
+          style.backgroundColor === "rgba(0, 0, 0, 0)" &&
+          style.borderTopWidth === "0px"
+        );
+      }),
+    ),
+  ).toBe(true);
 });
 
 test("Collection reduced-motion, fallback content, teardown, and remount stay deterministic", async ({

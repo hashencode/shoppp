@@ -6,8 +6,14 @@ import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { fashionStoreAssetId } from "../../resources";
 
 type PauseReason = "document-hidden" | "focus" | "hover" | "lightbox" | "reduced-motion";
+interface ProductGalleryImage {
+  alt: string;
+  height: number;
+  src: string;
+  width: number;
+}
 const properties = defineProps<{
-  images: readonly string[];
+  images: readonly (ProductGalleryImage | string)[];
   paused: boolean;
   resolveAsset: ThemeAssetResolver;
 }>();
@@ -26,8 +32,26 @@ const loopEnabled = computed(() => properties.images.length > 1);
 let reducedMotionQuery: MediaQueryList | undefined;
 let touchStart: { x: number; y: number } | undefined;
 
-function sourceAsset(sourcePath: string): string {
-  return properties.resolveAsset(fashionStoreAssetId(sourcePath));
+function sourceAsset(image: ProductGalleryImage | string): string {
+  return typeof image === "string"
+    ? properties.resolveAsset(fashionStoreAssetId(image))
+    : image.src;
+}
+
+function imageAlt(image: ProductGalleryImage | string): string {
+  return typeof image === "string" ? "" : image.alt;
+}
+
+function imageHeight(image: ProductGalleryImage | string): number {
+  return typeof image === "string" ? 765 : image.height;
+}
+
+function imageKey(image: ProductGalleryImage | string): string {
+  return typeof image === "string" ? image : image.src;
+}
+
+function imageWidth(image: ProductGalleryImage | string): number {
+  return typeof image === "string" ? 600 : image.width;
 }
 
 function syncAutoplay(): void {
@@ -194,7 +218,7 @@ defineExpose({ select });
       >
         <SwiperSlide
           v-for="(image, index) in images"
-          :key="image"
+          :key="imageKey(image)"
           class="gallery-box"
           :inert="index !== activeIndex"
           :aria-hidden="index === activeIndex ? undefined : 'true'"
@@ -210,9 +234,9 @@ defineExpose({ select });
             <img
               class="w-100"
               :src="sourceAsset(image)"
-              alt=""
-              width="600"
-              height="765"
+              :alt="imageAlt(image)"
+              :width="imageWidth(image)"
+              :height="imageHeight(image)"
               draggable="false"
             />
           </button>
@@ -234,15 +258,15 @@ defineExpose({ select });
       >
         <SwiperSlide
           v-for="(image, index) in images"
-          :key="image"
+          :key="imageKey(image)"
           :data-active="index === activeIndex ? 'true' : undefined"
         >
           <img
             class="w-100"
             :src="sourceAsset(image)"
             alt=""
-            width="600"
-            height="765"
+            :width="imageWidth(image)"
+            :height="imageHeight(image)"
             draggable="false"
           />
           <button

@@ -46,6 +46,43 @@ async function prepare(page: Page, path: "/account" | "/wishlist"): Promise<void
   if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
+test("Canonical Footer follows representative short and long route bodies", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Shell-fit evidence runs once.");
+
+  const routes = [
+    "/",
+    "/products/relaxed-corduroy-shirt",
+    "/shop",
+    "/about",
+    "/cart",
+    "/checkout",
+  ];
+  let canonicalWidth: number | undefined;
+
+  for (const route of routes) {
+    await page.goto(route, { waitUntil: "networkidle" });
+    await page.evaluate(async () => document.fonts.ready);
+    const footer = page.locator("footer.fashion-store-footer-canonical");
+    await expect(footer).toBeVisible();
+    await expect(footer).not.toHaveClass(/fashion-store-footer-home/);
+
+    const [main, footerBox, footerContainer, overflow] = await Promise.all([
+      page.locator("#fashion-store-main, main").first().boundingBox(),
+      footer.boundingBox(),
+      footer.locator(".container").first().boundingBox(),
+      page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+    ]);
+    expect(main).not.toBeNull();
+    expect(footerBox).not.toBeNull();
+    expect(footerBox!.y).toBeGreaterThanOrEqual(main!.y + main!.height - 1);
+    expect(overflow).toBeLessThanOrEqual(0);
+    canonicalWidth ??= footerContainer!.width;
+    expect(Math.abs(footerContainer!.width - canonicalWidth)).toBeLessThanOrEqual(1);
+  }
+});
+
 test("Wishlist and Account preserve their independent source content and responsive geometry", async ({
   page,
 }, testInfo) => {
@@ -104,7 +141,7 @@ test("wishlist-first-product-actions interaction: cart and wishlist state update
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await prepare(page, "/wishlist");
   const headerCartCount = page.locator(".header-cart .cart-count");
-  await expect(headerCartCount).toHaveText("2");
+  await expect(headerCartCount).toHaveText("0");
   const firstCard = page.locator(".fashion-wishlist-grid > .grid-item").first();
   await firstCard.hover();
   await firstCard.getByRole("button", { name: "Add to cart" }).click();
@@ -118,7 +155,7 @@ test("wishlist-first-product-actions interaction: cart and wishlist state update
     "data-preview-cart-intent-count",
     "1",
   );
-  await expect(headerCartCount).toHaveText("3");
+  await expect(headerCartCount).toHaveText("1");
   await expect(page.getByText(/preview cart intent|No Commerce/i)).toHaveCount(0);
 
   const remove = firstCard.getByRole("button", { name: /Remove Textured sweater/ });

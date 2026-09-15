@@ -23,7 +23,11 @@ const presentation = computed(() => resolveFashionStoreHomePresentation(properti
         <div class="col icon-with-text-style-01 md-mb-35px">
           <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
             <div class="feature-box-icon me-20px">
-              <FashionStoreIcon name="package" class="icon-large text-dark-gray" />
+              <FashionStoreIcon
+                name="package"
+                class="icon-large text-dark-gray"
+                :stroke-width="1.5"
+              />
             </div>
             <div class="feature-box-content">
               <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -37,7 +41,11 @@ const presentation = computed(() => resolveFashionStoreHomePresentation(properti
         <div class="col icon-with-text-style-01 md-mb-35px">
           <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
             <div class="feature-box-icon me-20px">
-              <FashionStoreIcon name="refresh-cw" class="icon-large text-dark-gray" />
+              <FashionStoreIcon
+                name="refresh-cw"
+                class="icon-large text-dark-gray"
+                :stroke-width="1.5"
+              />
             </div>
             <div class="feature-box-content">
               <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -51,7 +59,11 @@ const presentation = computed(() => resolveFashionStoreHomePresentation(properti
         <div class="col icon-with-text-style-01 xs-mb-35px">
           <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
             <div class="feature-box-icon me-20px">
-              <FashionStoreIcon name="credit-card" class="icon-large text-dark-gray" />
+              <FashionStoreIcon
+                name="credit-card"
+                class="icon-large text-dark-gray"
+                :stroke-width="1.5"
+              />
             </div>
             <div class="feature-box-content">
               <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{
@@ -65,7 +77,11 @@ const presentation = computed(() => resolveFashionStoreHomePresentation(properti
         <div class="col icon-with-text-style-01">
           <div class="feature-box feature-box-left-icon-middle last-paragraph-no-margin">
             <div class="feature-box-icon me-20px">
-              <FashionStoreIcon name="phone" class="icon-large text-dark-gray" />
+              <FashionStoreIcon
+                name="phone"
+                class="icon-large text-dark-gray"
+                :stroke-width="1.5"
+              />
             </div>
             <div class="feature-box-content">
               <span class="alt-font fs-20 fw-500 d-block text-dark-gray">{{

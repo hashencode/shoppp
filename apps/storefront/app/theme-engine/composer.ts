@@ -183,6 +183,10 @@ function productViewModel(
         value: variants[0]!.id,
       },
     ],
+    compareAtPriceLabel:
+      money.compareAtAmount === undefined
+        ? undefined
+        : formatCommerceMoney(money.compareAtAmount, money.currency, locale),
     description: requiredTextSetting(settings, "presentation-copy", product.description),
     heading: product.name,
     kind: "product",
@@ -264,6 +268,10 @@ function productCardViewModel(
         message: "Price and availability will be verified before adding.",
       },
       currency: money.currency,
+      compareAtPriceLabel:
+        money.compareAtAmount === undefined
+          ? undefined
+          : formatCommerceMoney(money.compareAtAmount, money.currency, locale),
       href,
       id: product.id,
       media: product.media[0],

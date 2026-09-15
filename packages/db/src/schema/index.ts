@@ -300,11 +300,16 @@ export const prices = sqliteTable(
       .notNull()
       .references(() => productVariants.id, { onDelete: "restrict" }),
     amount: integer("amount").notNull(),
+    compareAtAmount: integer("compare_at_amount"),
     ...timestamps,
   },
   (table) => [
     uniqueIndex("prices_list_variant_unique").on(table.priceListId, table.variantId),
     check("prices_amount_nonnegative", sql`${table.amount} >= 0`),
+    check(
+      "prices_compare_at_amount_valid",
+      sql`${table.compareAtAmount} IS NULL OR (${table.compareAtAmount} >= 0 AND ${table.compareAtAmount} > ${table.amount})`,
+    ),
   ],
 );
 
@@ -382,6 +387,22 @@ export const fashionStagingAcceptanceRuns = sqliteTable(
     ),
   ],
 );
+
+export const fashionStagingCatalogMigrations = sqliteTable("fashion_staging_catalog_migrations", {
+  catalogVersion: text("catalog_version").primaryKey(),
+  manifestDigest: text("manifest_digest").notNull().unique(),
+  catalogManifestJson: text("catalog_manifest_json").notNull(),
+  iamFingerprintBefore: text("iam_fingerprint_before").notNull(),
+  iamFingerprintAfter: text("iam_fingerprint_after").notNull(),
+  shopperReleaseId: text("shopper_release_id").notNull().unique(),
+  acceptanceReleaseId: text("acceptance_release_id").notNull().unique(),
+  productCount: integer("product_count").notNull(),
+  variantCount: integer("variant_count").notNull(),
+  mediaCount: integer("media_count").notNull(),
+  actorId: text("actor_id").notNull(),
+  auditEventId: text("audit_event_id").notNull().unique(),
+  createdAt: text("created_at").notNull(),
+});
 
 export const fashionStagingAcceptanceResources = sqliteTable(
   "fashion_staging_acceptance_resources",

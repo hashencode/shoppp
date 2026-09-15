@@ -278,6 +278,29 @@ export interface FashionStagingU12SeedPlan {
   verifySql: string;
 }
 
+export function createFashionStoreLiveU12Variables(input: {
+  acceptanceProduct: { id: string };
+  catalog: {
+    products: Array<{ id: string; name: string; slug: string; variants: Array<{ id: string }> }>;
+    warehouse: { id: string };
+  };
+}): Record<string, string> {
+  const single = input.catalog.products.find(({ variants }) => variants.length === 1);
+  const multi = input.catalog.products.find(({ variants }) => variants.length > 1);
+  if (!single || !multi) throw new Error("fashion_live_u12_archetypes_missing");
+  return {
+    FASHION_U12_MULTI_VARIANT_PRODUCT_ID: multi.id,
+    FASHION_U12_OPTION_VALUES: JSON.stringify(["gold", "S"]),
+    FASHION_U12_PRODUCT_NAME: single.name,
+    FASHION_U12_PRODUCT_SLUG: single.slug,
+    FASHION_U12_SINGLE_VARIANT_PRODUCT_ID: single.id,
+    FASHION_U12_UNAVAILABLE_PRODUCT_ID: input.acceptanceProduct.id,
+    FASHION_U12_WAREHOUSE_ID: input.catalog.warehouse.id,
+    FASHION_U13_PRODUCT_ID: single.id,
+    FASHION_U13_VARIANT_ID: single.variants[0]!.id,
+  };
+}
+
 export function createFashionStagingU12SeedPlan(): FashionStagingU12SeedPlan {
   const release = catalogRelease();
   const draft = storefrontExperienceDraftInputSchema.parse({

@@ -10,6 +10,43 @@ import { fashionStoreProductSourcePage } from "../app/themes/fashion-store/contr
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
 
 describe("Fashion Store product detail", () => {
+  test("keeps internal page fit owned by the shared canonical shell", async () => {
+    const [shell, footer, integration] = await Promise.all([
+      readFile(
+        new URL(
+          "../app/themes/fashion-store/components/shared/FashionStoreShell.vue",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../app/themes/fashion-store/components/shared/FashionStoreFooter.vue",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL("../app/themes/fashion-store/integration.css", import.meta.url),
+        "utf8",
+      ),
+    ]);
+
+    expect(shell).not.toContain("home-layout");
+    expect(footer).toContain("fashion-store-footer-canonical");
+    expect(footer).not.toContain("fashion-store-footer-home");
+    expect(integration).toContain("--fashion-store-shell-main-offset: 80px");
+    expect(integration).toMatch(
+      /@media \(min-width: 992px\)[\s\S]*--fashion-store-shell-main-offset:\s*96px/,
+    );
+    expect(integration).toMatch(
+      /\[data-fashion-store-header\] \+ main > \.top-space-margin\s*\{[\s\S]*margin-top:\s*var\(--fashion-store-shell-main-offset\)/,
+    );
+    expect(integration).not.toMatch(
+      /\[data-fashion-store-header\] \+ main > \.top-space-margin\s*\{[^}]*margin-top:\s*(?:79|118|119)px/,
+    );
+  });
+
   test("pins the product source and its deterministic presentation facts", () => {
     expect(fashionStoreProductSourcePage).toMatchObject({
       id: "product",

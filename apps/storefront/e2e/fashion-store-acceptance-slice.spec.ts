@@ -16,6 +16,7 @@ import {
 } from "./support/theme-source-inventory";
 import { assertThemeVisibleCopyEquivalent } from "./support/theme-source-contract";
 import {
+  fashionStoreImplementationRegions,
   fashionStoreSourceRegions,
   fashionStoreSourceVisibleCopyExclusions,
 } from "../app/themes/fashion-store/source-contract";
@@ -236,22 +237,26 @@ test("source-inventory static: independent candidates and visible copy match", a
       resetInventoryHero(source, "source"),
       resetInventoryHero(page, "implementation"),
     ]);
-    const regions = fashionStoreSourceRegions.map((region) => ({
+    const sourceRegions = fashionStoreSourceRegions.map((region) => ({
       id: region.key,
       selector: "inventorySelector" in region ? region.inventorySelector : region.selector,
+    }));
+    const implementationRegions = fashionStoreImplementationRegions.map(({ key, selector }) => ({
+      id: key,
+      selector,
     }));
     const [sourceInventory, implementationInventory] = await Promise.all([
       captureThemeSourceInventory({
         contract: fashionStoreBehaviorContract,
         page: source,
-        regions,
+        regions: sourceRegions,
         side: "source",
         visibleCopyExclusions: fashionStoreSourceVisibleCopyExclusions,
       }),
       captureThemeSourceInventory({
         contract: fashionStoreBehaviorContract,
         page,
-        regions,
+        regions: implementationRegions,
         side: "implementation",
       }),
     ]);
@@ -262,9 +267,20 @@ test("source-inventory static: independent candidates and visible copy match", a
       },
       fashionStoreBehaviorContract,
     );
+    const legacyBodyRegionIds = new Set([
+      "services",
+      "categories",
+      "best-sellers",
+      "promo",
+      "collection",
+      "brands",
+      "featured-products",
+      "marquee",
+      "magazine",
+    ]);
     assertThemeVisibleCopyEquivalent(
-      sourceInventory.visibleCopy.filter(({ region }) => region !== "hero"),
-      implementationInventory.visibleCopy.filter(({ region }) => region !== "hero"),
+      sourceInventory.visibleCopy.filter(({ region }) => legacyBodyRegionIds.has(region)),
+      implementationInventory.visibleCopy.filter(({ region }) => legacyBodyRegionIds.has(region)),
     );
     await expect(decorSource.locator("#decor-store-slider")).toContainText("Corby sofas");
     await expect(page.locator("#fashion-store-decor-hero")).toContainText("Corby sofas");

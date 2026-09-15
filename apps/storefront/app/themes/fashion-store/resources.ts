@@ -1,5 +1,6 @@
 import type { ThemeAssetResolver } from "../../theme-engine/assets";
 import type { PresentationViewModel } from "../../theme-engine/view-models";
+import { decorHomeAssets } from "./decor-home-assets";
 
 import image0 from "./upstream/images/apple-touch-icon-114x114.png";
 import image1 from "./upstream/images/apple-touch-icon-57x57.png";
@@ -294,4 +295,5 @@ export const themeAssets = Object.freeze({
     ]),
   ),
   ...decorHeroAssets,
+  ...decorHomeAssets,
 });

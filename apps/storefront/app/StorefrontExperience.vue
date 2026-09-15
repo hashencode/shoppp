@@ -49,28 +49,6 @@ const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAss
 const themeRegistry: ThemeRegistry = activeThemeRegistry;
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
-interface PrivatePreviewContext {
-  contentDigest: string;
-  environment: "private-preview";
-  expiresAt: string;
-  generatedAt: string | null;
-  returnUrl: string;
-  snapshotId: string;
-}
-const privatePreviewContext = ref<PrivatePreviewContext | null>(null);
-if (import.meta.client && activeExperienceProviderInput.mode === "live") {
-  onMounted(async () => {
-    try {
-      const response = await fetch("/__preview/context", {
-        credentials: "same-origin",
-        headers: { Accept: "application/json" },
-      });
-      if (response.ok) privatePreviewContext.value = await response.json();
-    } catch {
-      privatePreviewContext.value = null;
-    }
-  });
-}
 const routeMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
 const experienceSnapshot: ExperienceSnapshot | null = activeExperienceSnapshot;
 const fixturePresentationProvider = createFixturePresentationProvider({
@@ -302,25 +280,6 @@ if (import.meta.client) {
 
 <template>
   <div class="app-shell">
-    <aside
-      v-if="activeExperienceProviderInput.mode === 'live'"
-      class="preview-context"
-      aria-label="Private preview context"
-    >
-      <strong>Private preview</strong> · Catalog
-      {{ activeExperienceProviderInput.identity.catalogReleaseId }} · Experience
-      {{ activeExperienceProviderInput.identity.experienceSnapshotId }} v{{
-        activeExperienceProviderInput.identity.experienceVersion
-      }}
-      · Theme {{ activeExperienceProviderInput.identity.themeId }}
-      {{ activeExperienceProviderInput.identity.themeVersion }} · Platform
-      {{ activeExperienceProviderInput.identity.platformContractVersion }}
-      <template v-if="privatePreviewContext">
-        · Generated {{ privatePreviewContext.generatedAt ?? "pending" }} · Expires
-        {{ privatePreviewContext.expiresAt }} · Content {{ privatePreviewContext.contentDigest }} ·
-        <a :href="privatePreviewContext.returnUrl">Return to editor</a>
-      </template>
-    </aside>
     <ThemeRenderer
       v-if="previewTemplate && presentationProvider"
       :action-adapter="themeActionAdapter"

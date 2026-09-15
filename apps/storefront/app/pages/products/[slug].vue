@@ -128,7 +128,12 @@ const addToCart = async () => {
       <p class="eyebrow">Designed for distance</p>
       <h1>{{ product.name }}</h1>
       <p class="hero-copy">{{ product.description }}</p>
-      <p v-if="price" class="price">{{ formatMoney(price.amount, price.currency) }}</p>
+      <p v-if="price" class="price">
+        <del v-if="price.compareAtAmount">{{
+          formatMoney(price.compareAtAmount, price.currency)
+        }}</del>
+        {{ formatMoney(price.amount, price.currency) }}
+      </p>
       <div class="controls">
         <label>
           Variant

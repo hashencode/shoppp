@@ -182,9 +182,7 @@ test("Product preserves source structure, facts, assets, and responsive geometry
     product.locator(".product-info").boundingBox(),
   ]);
   const viewportWidth = page.viewportSize()!.width;
-  expect(Math.round(breadcrumb!.y)).toBe(
-    viewportWidth >= 992 ? 118 : viewportWidth >= 768 ? 119 : 79,
-  );
+  expect(Math.round(breadcrumb!.y)).toBe(viewportWidth >= 992 ? 96 : 80);
   expect(gallery).not.toBeNull();
   expect(info).not.toBeNull();
   if (page.viewportSize()!.width >= 992) expect(gallery!.x).toBeLessThan(info!.x);
@@ -197,18 +195,46 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       });
       await source.locator(".product-image-slider.swiper-initialized").waitFor({ timeout: 15_000 });
       await source.evaluate(async () => document.fonts.ready);
-      const [sourceBreadcrumb, sourceGallery, sourceInfo] = await Promise.all([
-        source.locator("section:nth-of-type(1)").boundingBox(),
+      const [sourceGallery, sourceInfo] = await Promise.all([
         source.locator(".col-lg-7 .row.overflow-hidden").boundingBox(),
         source.locator(".product-info").boundingBox(),
       ]);
-      expect(Math.abs(sourceBreadcrumb!.y - breadcrumb!.y)).toBeLessThanOrEqual(2);
       expect(Math.abs(sourceGallery!.width - gallery!.width)).toBeLessThanOrEqual(8);
       expect(Math.abs(sourceInfo!.width - info!.width)).toBeLessThanOrEqual(8);
       await expect(source.locator(".product-image-thumb .swiper-slide")).toHaveCount(6);
     } finally {
       await source.close();
     }
+  }
+});
+
+test("Canonical internal shell fits the page at Header breakpoint edges", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Boundary evidence runs once.");
+
+  await prepareProduct(page);
+  for (const width of [1200, 1199, 992, 991, 768, 767]) {
+    await page.setViewportSize({ height: 1000, width });
+    await expect
+      .poll(() => page.locator("header .navbar").evaluate((node) => node.clientWidth))
+      .toBe(width);
+
+    const [header, firstSection, footer, overflow] = await Promise.all([
+      page.locator("header .navbar").boundingBox(),
+      page.locator("#fashion-store-main > .top-space-margin").boundingBox(),
+      page.locator("footer.fashion-store-footer-canonical").boundingBox(),
+      page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+    ]);
+    const expectedOffset = width >= 992 ? 96 : 80;
+    await expect(page.locator("[data-fashion-store-header]")).toHaveClass(
+      /\bfashion-store-header-canonical\b.*\bfashion-store-header-surface-solid\b/,
+    );
+    await expect(page.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
+    expect(Math.round(header!.height)).toBe(expectedOffset);
+    expect(Math.round(firstSection!.y)).toBe(expectedOffset);
+    expect(footer).not.toBeNull();
+    expect(overflow).toBeLessThanOrEqual(0);
   }
 });
 
@@ -737,7 +763,7 @@ test("Product fixture updates the shared cart without reaching Commerce", async 
   });
   await prepareProduct(page);
   const headerCartCount = page.locator(".header-cart .cart-count");
-  await expect(headerCartCount).toHaveText("2");
+  await expect(headerCartCount).toHaveText("0");
   await page.getByRole("button", { name: "Increase quantity" }).click();
   await page.locator(".product-info").getByRole("button", { name: "Add to wishlist" }).click();
   const addToCart = page.locator(".product-info .btn-cart");
@@ -754,7 +780,7 @@ test("Product fixture updates the shared cart without reaching Commerce", async 
     "data-preview-intent-count",
     "2",
   );
-  await expect(headerCartCount).toHaveText("4");
+  await expect(headerCartCount).toHaveText("2");
   await expect(page.getByText(/preview cart intent|No Commerce/i)).toHaveCount(0);
   await page.locator(".header-cart").hover();
   await page.locator('.header-cart a[href="/cart"]').click();

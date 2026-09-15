@@ -64,7 +64,7 @@ export function coalesceRuntimeCommerceRevalidations(
 
 export interface VerifiedCartAdd {
   input: {
-    expectedUnitPrice: ProductPrice;
+    expectedUnitPrice: { amount: number; currency: string };
     quantity: number;
     variantId: string;
   };
@@ -192,7 +192,10 @@ export async function verifyProductCartAdd(
   if (!variant || variant.availability !== "in-stock") return null;
   return {
     input: {
-      expectedUnitPrice: variant.money,
+      expectedUnitPrice: {
+        amount: variant.money.amount,
+        currency: variant.money.currency,
+      },
       quantity: Math.min(MAX_CART_LINE_QUANTITY, Math.max(1, Math.floor(quantity || 1))),
       variantId: variant.id,
     },

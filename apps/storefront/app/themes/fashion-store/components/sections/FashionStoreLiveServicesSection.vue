@@ -18,7 +18,11 @@ const presentation = computed(() => resolveFashionStoreHomePresentation(properti
       <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4">
         <div v-for="service in services" :key="service[0]" class="col md-mb-30px">
           <div class="feature-box d-flex align-items-center">
-            <FashionStoreIcon :name="service[2]" class="me-15px fs-28" />
+            <FashionStoreIcon
+              :name="service[2]"
+              class="me-15px fs-28"
+              :stroke-width="1.5"
+            />
             <div>
               <p class="alt-font fw-600 text-dark-gray mb-0">{{ service[0] }}</p>
               <p class="mb-0 text-dark-gray">{{ service[1] }}</p>

@@ -51,6 +51,42 @@ export interface ScreenshotDiagnosticOptions {
   maximumCrops?: number;
   regionHeight?: number;
   regionWidth?: number;
+  spatialTolerance?: number;
+}
+
+function minimumNeighborhoodDelta(
+  nearby: Buffer,
+  current: Buffer,
+  currentOffset: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  spatialTolerance: number,
+): number {
+  let minimumDelta = 255;
+  for (
+    let candidateY = Math.max(0, y - spatialTolerance);
+    candidateY <= Math.min(height - 1, y + spatialTolerance);
+    candidateY += 1
+  ) {
+    for (
+      let candidateX = Math.max(0, x - spatialTolerance);
+      candidateX <= Math.min(width - 1, x + spatialTolerance);
+      candidateX += 1
+    ) {
+      const candidateOffset = (candidateY * width + candidateX) * 4;
+      let candidateDelta = 0;
+      for (let channel = 0; channel < 3; channel += 1) {
+        candidateDelta = Math.max(
+          candidateDelta,
+          Math.abs(nearby[candidateOffset + channel]! - current[currentOffset + channel]!),
+        );
+      }
+      minimumDelta = Math.min(minimumDelta, candidateDelta);
+    }
+  }
+  return minimumDelta;
 }
 
 export function assertThemeScreenshotDifference(
@@ -162,6 +198,7 @@ export async function compareThemeScreenshots(
   const regionHeight = Math.max(1, diagnosticOptions.regionHeight ?? 120);
   const regionColumns = Math.ceil(reference.info.width / regionWidth);
   const regionRows = Math.ceil(reference.info.height / regionHeight);
+  const spatialTolerance = Math.max(0, Math.floor(diagnosticOptions.spatialTolerance ?? 0));
   const regionChangedPixels = new Uint32Array(regionColumns * regionRows);
   let minimumX = reference.info.width;
   let minimumY = reference.info.height;
@@ -170,7 +207,6 @@ export async function compareThemeScreenshots(
   let channelDeltaTotal = 0;
   for (let pixel = 0; pixel < result.totalPixels; pixel += 1) {
     const offset = pixel * 4;
-    let changed = false;
     let maximumChannelDelta = 0;
     for (let channel = 0; channel < 3; channel += 1) {
       const delta = Math.abs(
@@ -178,16 +214,43 @@ export async function compareThemeScreenshots(
       );
       channelDeltaTotal += delta;
       maximumChannelDelta = Math.max(maximumChannelDelta, delta);
-      changed ||= delta > channelTolerance;
     }
     const x = pixel % reference.info.width;
     const y = Math.floor(pixel / reference.info.width);
+    let comparedChannelDelta = maximumChannelDelta;
+    if (spatialTolerance > 0 && maximumChannelDelta > channelTolerance) {
+      const implementationAgainstReference = minimumNeighborhoodDelta(
+        reference.data,
+        implementation.data,
+        offset,
+        x,
+        y,
+        reference.info.width,
+        reference.info.height,
+        spatialTolerance,
+      );
+      const referenceAgainstImplementation = minimumNeighborhoodDelta(
+        implementation.data,
+        reference.data,
+        offset,
+        x,
+        y,
+        reference.info.width,
+        reference.info.height,
+        spatialTolerance,
+      );
+      comparedChannelDelta = Math.max(
+        implementationAgainstReference,
+        referenceAgainstImplementation,
+      );
+    }
+    const changed = comparedChannelDelta > channelTolerance;
     diff[offset] = changed ? 255 : implementation.data[offset]!;
     diff[offset + 1] = changed ? 0 : implementation.data[offset + 1]!;
     diff[offset + 2] = changed ? 255 : implementation.data[offset + 2]!;
     diff[offset + 3] = changed ? 255 : 80;
     heatmap[offset] = changed ? 255 : 0;
-    heatmap[offset + 1] = changed ? Math.max(0, 255 - maximumChannelDelta) : 0;
+    heatmap[offset + 1] = changed ? Math.max(0, 255 - comparedChannelDelta) : 0;
     heatmap[offset + 2] = 0;
     heatmap[offset + 3] = changed ? 220 : 0;
     if (changed) {

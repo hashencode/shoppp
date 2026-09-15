@@ -38,6 +38,7 @@ Run:
 ```sh
 bun run verify:source-equivalence
 bun run verify:themes
+bun run check:theme-impact
 bun run --cwd apps/storefront test
 bun run --cwd apps/storefront test:<theme-id>
 STOREFRONT_THEME=<theme-id> bun run --cwd apps/storefront test:perf
@@ -49,6 +50,12 @@ drift, duplicate IDs, bad versions or provenance, unsupported
 platform ranges, invalid schemas and capabilities, missing routes, and migration gaps. The theme
 and performance suites prove static content, responsive layouts, no-JavaScript behavior,
 accessibility, selected-theme bundle isolation, and mobile Lighthouse budgets.
+
+`check:theme-impact` reads the current Git change set. Theme-local components, CSS, tests, and
+configuration run that theme's `test:<theme-id>` suite; shared storefront theme infrastructure runs
+the full theme matrix; unrelated paths skip browser work. A new theme directory without a matching
+test script fails closed. Main's advisory post-commit workflow applies the same routing, while
+`ci:fast` applies it to local working changes and release validation always runs the complete matrix.
 
 A minimal internal theme may use only registered `core.*` Sections with one complete preset. The
 matrix test demonstrates that such a third fixture validates without modifying the renderer.

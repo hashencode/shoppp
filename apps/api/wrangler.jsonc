@@ -149,6 +149,9 @@
         "TURNSTILE_HOSTNAMES": "shoppp-storefront-fashion-preview.hashencode.workers.dev",
         "CLOUDFLARE_ACCOUNT_ID": "449e7f42fe4c4e55d5c674e2e7c57c8d",
         "D1_DATABASE_ID": "eb1ca4ef-3121-4d02-b20e-e619eac1cecc",
+        "D1_DATABASE_NAME": "shoppp-fashion-staging",
+        "MEDIA_BUCKET_NAME": "shoppp-fashion-staging-media",
+        "WORKER_NAME": "shoppp-api-fashion-staging",
       },
       "send_email": [
         {

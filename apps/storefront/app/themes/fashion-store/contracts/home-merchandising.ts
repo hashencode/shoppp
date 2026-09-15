@@ -9,7 +9,7 @@ export function buildFashionStoreMerchandisingGroups<T>(
   featuredProduct?: T,
 ) {
   return [
-    { id: "new-arrivals" as const, products: products.slice(0, 4) },
+    { id: "new-arrivals" as const, products: products.slice(-8).reverse() },
     { id: "best-sellers" as const, products: products.slice(0, 8) },
     {
       id: "featured" as const,

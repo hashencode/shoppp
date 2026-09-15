@@ -89,6 +89,7 @@ export const platformRoutePresentationViewModelSchema = z.discriminatedUnion("ki
 ]);
 const productSummarySchema = z
   .object({
+    compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     href: z.string().regex(/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
     id: z.union([storefrontIdentifierSchema, publicIdSchema]),
     media: mediaSchema.optional(),
@@ -106,6 +107,7 @@ export const presentationProductCardSchema = z
       })
       .strict(),
     currency: z.string().trim().length(3).toUpperCase(),
+    compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     href: z.string().regex(/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/),
     id: publicIdSchema,
     media: mediaSchema.optional(),
@@ -277,6 +279,7 @@ const productViewModelSchema = z
   .object({
     ...stateShape,
     actions: z.array(previewActionSchema).min(1).max(8),
+    compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     description: copySchema,
     heading: headingSchema,
     kind: z.literal("product"),

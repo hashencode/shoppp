@@ -25,6 +25,60 @@ export interface MotionContractTolerance {
   numeric: number;
 }
 
+export interface PageActivityTraceEvent {
+  dur?: number;
+  name?: string;
+  ph?: string;
+  pid?: number;
+  ts?: number;
+  tid?: number;
+}
+
+export function pageActivityRunTaskDuration(
+  events: PageActivityTraceEvent[],
+  thread: Pick<PageActivityTraceEvent, "pid" | "tid">,
+  activityNames: ReadonlySet<string>,
+): number {
+  // Sorting once lets the descending task sweep reuse every eligible activity interval instead
+  // of rescanning the full trace for each RunTask.
+  const threadEvents = events.filter(
+    (event) => event.ph === "X" && event.pid === thread.pid && event.tid === thread.tid,
+  );
+  const activityIntervals = threadEvents
+    .filter(
+      (event): event is PageActivityTraceEvent & { ts: number } =>
+        event.ts !== undefined && activityNames.has(event.name ?? ""),
+    )
+    .map((event) => ({ end: event.ts + (event.dur ?? 0), start: event.ts }))
+    .sort((left, right) => right.start - left.start);
+  const tasks = threadEvents
+    .filter(
+      (event): event is PageActivityTraceEvent & { ts: number } =>
+        event.name === "RunTask" && event.ts !== undefined,
+    )
+    .map((event) => ({
+      duration: event.dur ?? 0,
+      end: event.ts + (event.dur ?? 0),
+      start: event.ts,
+    }))
+    .sort((left, right) => right.start - left.start);
+
+  let activityIndex = 0;
+  let earliestEligibleEnd = Number.POSITIVE_INFINITY;
+  let totalDuration = 0;
+  for (const task of tasks) {
+    while (
+      activityIndex < activityIntervals.length &&
+      activityIntervals[activityIndex]!.start >= task.start
+    ) {
+      earliestEligibleEnd = Math.min(earliestEligibleEnd, activityIntervals[activityIndex]!.end);
+      activityIndex += 1;
+    }
+    if (earliestEligibleEnd <= task.end) totalDuration += task.duration;
+  }
+  return totalDuration / 1_000;
+}
+
 export function compareMotionContractSnapshots(
   reference: MotionContractSnapshot,
   implementation: MotionContractSnapshot,

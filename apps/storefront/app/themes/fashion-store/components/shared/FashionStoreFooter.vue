@@ -11,7 +11,6 @@ import { resolveFashionStoreEditorMedia } from "../../resources";
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
-  homeLayout?: boolean;
   configuration?: HomeViewModel["shell"]["footer"];
   resolveAsset: ThemeAssetResolver;
   sourceAsset: (sourcePath: string) => string;
@@ -36,25 +35,38 @@ function configuredLogo(): string | undefined {
   const logo = properties.configuration?.logo;
   return logo ? resolveFashionStoreEditorMedia(properties.resolveAsset, logo) : undefined;
 }
+
+const configuredBrandName = computed(
+  () => properties.configuration?.logo?.alt.trim() || "Lifestyle",
+);
+
+function fallbackLogo(): string {
+  return densityAsset(
+    "images/demo-fashion-store-logo-white.png",
+    "images/demo-fashion-store-logo-white@2x.png",
+  );
+}
+
+function fallbackLogoAt2x(): string {
+  return sourceAsset("images/demo-fashion-store-logo-white@2x.png");
+}
 </script>
 
 <template>
-  <footer class="footer-dark bg-dark-gray p-0" :class="{ 'fashion-store-footer-home': homeLayout }">
+  <footer class="footer-dark bg-dark-gray p-0 fashion-store-footer-canonical">
     <div class="container">
       <div class="row align-items-center pt-35px pb-35px">
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">
-          <a href="/" data-fashion-store-route class="footer-logo" aria-label="Lifestyle home"
+          <a
+            href="/"
+            data-fashion-store-route
+            class="footer-logo"
+            :aria-label="`${configuredBrandName} home`"
             ><img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
-              v-bind:src="
-                configuredLogo() ??
-                densityAsset(
-                  'images/demo-fashion-store-logo-white.png',
-                  'images/demo-fashion-store-logo-white@2x.png',
-                )
-              "
-              v-bind:data-at2x="sourceAsset('images/demo-fashion-store-logo-white@2x.png')"
+              v-bind:src="configuredLogo() ?? fallbackLogo()"
+              v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
           /></a>
         </div>
 
@@ -366,23 +378,23 @@ function configuredLogo(): string | undefined {
 </template>
 
 <style scoped>
-:where(.fashion-store-footer-home) .container,
-:where(.fashion-store-footer-home) .container-fluid,
-:where(.fashion-store-footer-home) .container-lg,
-:where(.fashion-store-footer-home) .container-md,
-:where(.fashion-store-footer-home) .container-sm,
-:where(.fashion-store-footer-home) .container-xl,
-:where(.fashion-store-footer-home) .container-xxl {
+:where(.fashion-store-footer-canonical) .container,
+:where(.fashion-store-footer-canonical) .container-fluid,
+:where(.fashion-store-footer-canonical) .container-lg,
+:where(.fashion-store-footer-canonical) .container-md,
+:where(.fashion-store-footer-canonical) .container-sm,
+:where(.fashion-store-footer-canonical) .container-xl,
+:where(.fashion-store-footer-canonical) .container-xxl {
   padding-right: 15px;
   padding-left: 15px;
 }
 
-:where(.fashion-store-footer-home) .row {
+:where(.fashion-store-footer-canonical) .row {
   margin-right: -15px;
   margin-left: -15px;
 }
 
-:where(.fashion-store-footer-home) .row > * {
+:where(.fashion-store-footer-canonical) .row > * {
   padding-right: 15px;
   padding-left: 15px;
 }

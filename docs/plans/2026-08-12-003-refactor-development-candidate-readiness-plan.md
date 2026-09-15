@@ -90,9 +90,10 @@ DC is validation-only. DC1 remains blocked until all of the following are true:
 
 Fashion Store U12 and U8 are complete in their owning plan as of 2026-09-01 and no longer block
 Pre-DC. Current blockers are the unaudited product-level capability set and approved deferrals,
-reconciliation of every selected capability against its owning plan, and candidate-identity fields
-not yet fully enforced by `release:validate`. Existing U13 evidence remains a narrow deployed
-product-lookup, fresh-cart, and stable-variant-add proof rather than candidate evidence.
+reconciliation of every selected capability against its owning plan, the deferred Home
+configuration/immutable-Preview successor, and candidate-identity fields not yet fully enforced by
+`release:validate`. Existing U13 evidence remains a narrow deployed product-lookup, fresh-cart, and
+stable-variant-add proof rather than candidate evidence.
 
 FS-R3 completed U1-U8 on 2026-09-07 and returned this plan to `REL-Pre-DC`. The Candidate Template
 Matrix has not been frozen, no candidate identity has been selected, and DC1-DC4 and PG1-PG5 remain
@@ -236,13 +237,13 @@ assignment and readiness preparation should begin during U work so legal, provid
 operations, and accessibility blockers surface early. Their final approvals still bind the exact
 candidate. PG5 remains the terminal promotion authorization.
 
-| Gate                             | Named authority        | Required decision/evidence                                                                                |
-| -------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| PG1 Merchant and provider        | Merchant owner         | Entity eligibility, currencies, payouts, Stripe/webhook ownership, and reconciliation acceptance          |
-| PG2 Legal and market             | Legal/compliance owner | Product category, tax, policy text, cookies/analytics, and shipping-country approval                      |
-| PG3 Production infrastructure    | Infrastructure owner   | Production resources, domains, secrets, alert destination, backup, and GitHub environment protection      |
+| Gate                             | Named authority        | Required decision/evidence                                                                                                                                 |
+| -------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PG1 Merchant and provider        | Merchant owner         | Entity eligibility, currencies, payouts, Stripe/webhook ownership, and reconciliation acceptance                                                           |
+| PG2 Legal and market             | Legal/compliance owner | Product category, tax, policy text, cookies/analytics, and shipping-country approval                                                                       |
+| PG3 Production infrastructure    | Infrastructure owner   | Production resources, domains, secrets, alert destination, backup, and GitHub environment protection                                                       |
 | PG4 Operations and accessibility | Operations owner       | Support/escalation, representative iOS/Android, automated keyboard/focus/semantic accessibility evidence, provider dashboard, and external alert reception |
-| PG5 Promotion                    | Release approver       | Exact candidate, DC evidence, recent production backup, and explicit `PROMOTE <release-id>` authorization |
+| PG5 Promotion                    | Release approver       | Exact candidate, DC evidence, recent production backup, and explicit `PROMOTE <release-id>` authorization                                                  |
 
 ## Historical U-to-DC mapping
 
@@ -250,14 +251,14 @@ Historical U identifiers, dependencies, and retained evidence remain unchanged. 
 corrected when an older plan mistakes an implementation stream for a product boundary. Their
 release-oriented evidence is consumed as follows:
 
-| Existing authority                                      | Candidate use                                                                                                                            |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Cross-border commerce U13                               | Prior DC2 and DC4 staging evidence; rerun where candidate identity changed                                                               |
-| Multi-user IAM U9 and evidence ledger                   | DC2 identity proof, DC4 isolation, and PG3/PG5 prerequisites                                                                             |
-| Theme Platform U9 and retained Fashion/Decor evidence   | DC3 candidate-template evidence or non-blocking compatibility observations, according to frozen scope                                     |
-| Fashion Store functional U13                            | Early DC2 private topology/add-to-cart evidence only                                                                                     |
-| Fashion Store functional U12 and U8                     | Pre-DC implementation completion inputs; after completion, rerun their machinery against the exact Activation Target as DC2/DC3 evidence |
-| Fashion Store page-suite U12                            | DC3 page and behavior evidence                                                                                                           |
+| Existing authority                                    | Candidate use                                                                                                                            |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Cross-border commerce U13                             | Prior DC2 and DC4 staging evidence; rerun where candidate identity changed                                                               |
+| Multi-user IAM U9 and evidence ledger                 | DC2 identity proof, DC4 isolation, and PG3/PG5 prerequisites                                                                             |
+| Theme Platform U9 and retained Fashion/Decor evidence | DC3 candidate-template evidence or non-blocking compatibility observations, according to frozen scope                                    |
+| Fashion Store functional U13                          | Early DC2 private topology/add-to-cart evidence only                                                                                     |
+| Fashion Store functional U12 and U8                   | Pre-DC implementation completion inputs; after completion, rerun their machinery against the exact Activation Target as DC2/DC3 evidence |
+| Fashion Store page-suite U12                          | DC3 page and behavior evidence                                                                                                           |
 
 No historical unit is renamed, renumbered, or marked incomplete solely because this mapping exists.
 

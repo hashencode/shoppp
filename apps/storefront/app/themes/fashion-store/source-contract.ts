@@ -186,6 +186,48 @@ export const fashionStoreSourceRegions = [
 
 export const fashionStoreSourceRegionOrder = fashionStoreSourceRegions.map(({ key }) => key);
 
+export const fashionStoreImplementationRegions = [
+  { key: "header", selector: "[data-fashion-store-header]" },
+  { key: "hero", selector: '[data-home-section="hero"]' },
+  { key: "services", selector: '[data-home-section="services"]' },
+  { key: "categories", selector: '[data-home-section="categories"]' },
+  { key: "best-sellers", selector: '[data-home-section="best-sellers"]' },
+  { key: "promo", selector: '[data-home-section="promotion"]' },
+  { key: "collection", selector: '[data-home-section="collection"]' },
+  { key: "brands", selector: '[data-home-section="brands"]' },
+  { key: "featured-products", selector: '[data-home-section="featured-products"]' },
+  { key: "marquee", selector: '[data-home-section="marquee"]' },
+  { key: "magazine", selector: '[data-home-section="magazine"]' },
+  { key: "footer", selector: "footer.fashion-store-footer-canonical" },
+  { key: "cookie", selector: ".cookie-message" },
+  { key: "sticky", selector: ".sticky-wrap" },
+  { key: "scroll-progress", selector: ".scroll-progress" },
+] as const;
+
+export const fashionStoreImplementationHomeSectionOrder = [
+  "hero",
+  "services",
+  "categories",
+  "best-sellers",
+  "promotion",
+  "collection",
+  "brands",
+  "featured-products",
+  "marquee",
+  "magazine",
+  "product-merchandising",
+] as const;
+
+export const fashionStoreNestedDecorRegionOrder = [
+  "featured-categories",
+  "products",
+  "promotional-marquee",
+  "collection-carousel",
+  "client-marquee",
+  "journal",
+  "services",
+] as const;
+
 export const fashionStoreSourceVisibleCopyExclusions = [
   {
     copy: ["Enjoy FREE standard delivery on orders over $100.", "Shop now"],
@@ -209,4 +251,42 @@ export const fashionStoreSourceContract = {
     "css/responsive.css",
     "demos/fashion-store/fashion-store.css",
   ],
+} as const;
+
+export const fashionStoreDecorHomeContract = {
+  approvedFashionRegions: [
+    "announcement",
+    "sticky-social-rail",
+    "footer",
+    "cookie",
+    "scroll-progress",
+  ],
+  mountHost: "fashion-store.product-merchandising",
+  regions: [
+    { id: "hero", owner: "FashionStoreDecorHero", source: "hero", retained: true },
+    {
+      id: "categories",
+      owner: "FashionStoreDecorHomeBody",
+      source: "featured-categories",
+      icons: 6,
+      banners: 3,
+    },
+    {
+      id: "product-merchandising",
+      owner: "FashionStoreDecorHomeBody",
+      source: "products",
+      choices: ["best-sellers", "new-arrivals"],
+    },
+    { id: "marquee", owner: "FashionStoreDecorHomeBody", source: "promotional-marquee", items: 6 },
+    {
+      id: "collection",
+      owner: "FashionStoreDecorHomeBody",
+      source: "collection-carousel",
+      items: 3,
+    },
+    { id: "brands", owner: "FashionStoreDecorHomeBody", source: "client-marquee", items: 8 },
+    { id: "magazine", owner: "FashionStoreDecorHomeBody", source: "journal", items: 4 },
+    { id: "services", owner: "FashionStoreDecorHomeBody", source: "services", items: 4 },
+  ],
+  forbidden: ["decor-theme-runtime", "decor-store-runtime", "remote-font", "decor-global-css"],
 } as const;

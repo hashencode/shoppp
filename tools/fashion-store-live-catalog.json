@@ -1,0 +1,729 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "fashion-store-live-2026-09-13-v1",
+  "currency": "USD",
+  "r2Prefix": "catalog/fashion-store/2026-09-13-v1",
+  "warehouse": {
+    "id": "warehouse_fashion_staging",
+    "code": "FASHION-STAGING",
+    "name": "Fashion staging warehouse"
+  },
+  "collection": {
+    "id": "col_01JFS8LIVE00000000000001",
+    "slug": "fashion-store",
+    "name": "Fashion Store"
+  },
+  "products": [
+    {
+      "id": "prod_01JFS8SHOP00000000000001",
+      "slug": "textured-sweater-01",
+      "name": "Textured sweater",
+      "brand": null,
+      "description": "Textured sweater in blue.",
+      "status": "published",
+      "badge": "New",
+      "shopCardOrder": 1,
+      "source": { "kind": "shop-card", "fixtureId": "textured-sweater-01" },
+      "taxonomy": {
+        "categories": ["Jeans"],
+        "colors": ["Blue"],
+        "sizes": ["M"],
+        "tags": ["Cotton"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000001",
+          "sku": "FS-TEXTURED-SWEATER-01",
+          "title": "Blue / M",
+          "optionValues": { "color": "Blue", "size": "M" },
+          "price": { "amount": 18900, "compareAtAmount": 20000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000001",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-01.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/textured-sweater-01/01-demo-fashion-store-product-01.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "122cd167d1607ee04b72f59bf0d395a70949b26904bfec53a2b4be552f007acd",
+          "alt": "Blue textured sweater",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000002",
+      "slug": "traveller-shirt-02",
+      "name": "Traveller shirt",
+      "brand": null,
+      "description": "Traveller shirt in brown.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 2,
+      "source": { "kind": "shop-card", "fixtureId": "traveller-shirt-02" },
+      "taxonomy": {
+        "categories": ["Casual shirts"],
+        "colors": ["Brown"],
+        "sizes": ["XL"],
+        "tags": ["Shirts"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000002",
+          "sku": "FS-TRAVELLER-SHIRT-02",
+          "title": "Brown / XL",
+          "optionValues": { "color": "Brown", "size": "XL" },
+          "price": { "amount": 28900, "compareAtAmount": 35000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000002",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-02.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/traveller-shirt-02/01-demo-fashion-store-product-02.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "18d205b1aec521356d2a57779b31b36b68395a687b2cf7b0f27abc17ac67b132",
+          "alt": "Brown traveller shirt",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000003",
+      "slug": "crewneck-sweatshirt-03",
+      "name": "Crewneck sweatshirt",
+      "brand": null,
+      "description": "Green crewneck sweatshirt.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 3,
+      "source": { "kind": "shop-card", "fixtureId": "crewneck-sweatshirt-03" },
+      "taxonomy": {
+        "categories": ["Winter jackets"],
+        "colors": ["Green"],
+        "sizes": ["L"],
+        "tags": ["Cotton"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000003",
+          "sku": "FS-CREWNECK-SWEATSHIRT-03",
+          "title": "Green / L",
+          "optionValues": { "color": "Green", "size": "L" },
+          "price": { "amount": 19900, "compareAtAmount": 22000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000003",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-03.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/crewneck-sweatshirt-03/01-demo-fashion-store-product-03.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "9d957b4af833157f439d1eb4d674f2eda620804e9b9f89a9dc88dadb06d56610",
+          "alt": "Green crewneck sweatshirt",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000004",
+      "slug": "skinny-trousers-04",
+      "name": "Skinny trousers",
+      "brand": null,
+      "description": "Black skinny trousers.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 4,
+      "source": { "kind": "shop-card", "fixtureId": "skinny-trousers-04" },
+      "taxonomy": {
+        "categories": ["Trousers"],
+        "colors": ["Black"],
+        "sizes": ["S"],
+        "tags": ["Shirts"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000004",
+          "sku": "FS-SKINNY-TROUSERS-04",
+          "title": "Black / S",
+          "optionValues": { "color": "Black", "size": "S" },
+          "price": { "amount": 25900, "compareAtAmount": 30000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000004",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-04.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/skinny-trousers-04/01-demo-fashion-store-product-04.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "5ab81b281a37f3a9e2985b657748f40c7f95e96476faf5a13e8f87a99339875e",
+          "alt": "Black skinny trousers",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000005",
+      "slug": "sleeve-sweater-05",
+      "name": "Sleeve sweater",
+      "brand": null,
+      "description": "Orange sleeve sweater.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 5,
+      "source": { "kind": "shop-card", "fixtureId": "sleeve-sweater-05" },
+      "taxonomy": {
+        "categories": ["Winter jackets"],
+        "colors": ["Orange"],
+        "sizes": ["XXL"],
+        "tags": ["Tops"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000005",
+          "sku": "FS-SLEEVE-SWEATER-05",
+          "title": "Orange / XXL",
+          "optionValues": { "color": "Orange", "size": "XXL" },
+          "price": { "amount": 23900, "compareAtAmount": 25000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000005",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-05.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/sleeve-sweater-05/01-demo-fashion-store-product-05.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "70efc1db7b711a225aab6ef9e2ea15f7db3df48f1624250777f3707458b9748a",
+          "alt": "Orange sleeve sweater",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000006",
+      "slug": "pocket-sweatshirt-06",
+      "name": "Pocket sweatshirt",
+      "brand": null,
+      "description": "Maroon pocket sweatshirt.",
+      "status": "published",
+      "badge": "Hot",
+      "shopCardOrder": 6,
+      "source": { "kind": "shop-card", "fixtureId": "pocket-sweatshirt-06" },
+      "taxonomy": {
+        "categories": ["Casual shirts"],
+        "colors": ["Maroon"],
+        "sizes": ["L"],
+        "tags": ["Printed"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000006",
+          "sku": "FS-POCKET-SWEATSHIRT-06",
+          "title": "Maroon / L",
+          "optionValues": { "color": "Maroon", "size": "L" },
+          "price": { "amount": 18900, "compareAtAmount": 20000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000006",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-06.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/pocket-sweatshirt-06/01-demo-fashion-store-product-06.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "fc16bbf0c36db4cb4707a5887d11f368c30942089a58fd4e00fd468dd988f4f6",
+          "alt": "Maroon pocket sweatshirt",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000007",
+      "slug": "cotton-sweater-07",
+      "name": "Cotton sweater",
+      "brand": null,
+      "description": "Green cotton sweater.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 7,
+      "source": { "kind": "shop-card", "fixtureId": "cotton-sweater-07" },
+      "taxonomy": {
+        "categories": ["Leggings"],
+        "colors": ["Green"],
+        "sizes": ["M"],
+        "tags": ["Cotton"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000007",
+          "sku": "FS-COTTON-SWEATER-07",
+          "title": "Green / M",
+          "optionValues": { "color": "Green", "size": "M" },
+          "price": { "amount": 12900, "compareAtAmount": 15000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000007",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-07.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/cotton-sweater-07/01-demo-fashion-store-product-07.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "b89849eb634dc45097d97749f2d74dcb07db366f767a408cf8fffe791ebf3675",
+          "alt": "Green cotton sweater",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000008",
+      "slug": "texture-regular-08",
+      "name": "Texture regular",
+      "brand": null,
+      "description": "Blue regular-fit textured top.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 8,
+      "source": { "kind": "shop-card", "fixtureId": "texture-regular-08" },
+      "taxonomy": {
+        "categories": ["Dupattas"],
+        "colors": ["Blue"],
+        "sizes": ["L"],
+        "tags": ["Polyester"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000008",
+          "sku": "FS-TEXTURE-REGULAR-08",
+          "title": "Blue / L",
+          "optionValues": { "color": "Blue", "size": "L" },
+          "price": { "amount": 12000, "compareAtAmount": 17000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000008",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-08.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/texture-regular-08/01-demo-fashion-store-product-08.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "0416aec0bdeb146c0414378245afb18b32346ca075896f0a19b71eec41da1885",
+          "alt": "Blue texture regular top",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000009",
+      "slug": "sequined-dress-09",
+      "name": "Sequined dress",
+      "brand": null,
+      "description": "Maroon sequined dress.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 9,
+      "source": { "kind": "shop-card", "fixtureId": "sequined-dress-09" },
+      "taxonomy": {
+        "categories": ["Swimwear"],
+        "colors": ["Maroon"],
+        "sizes": ["S"],
+        "tags": ["Dresses"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000009",
+          "sku": "FS-SEQUINED-DRESS-09",
+          "title": "Maroon / S",
+          "optionValues": { "color": "Maroon", "size": "S" },
+          "price": { "amount": 15000, "compareAtAmount": 19000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000009",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-09.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/sequined-dress-09/01-demo-fashion-store-product-09.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "2f6578f43554ede966d8ac108dce294dc9d43cacca764777f845b29d4d835793",
+          "alt": "Maroon sequined dress",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000010",
+      "slug": "bermuda-shorts-10",
+      "name": "Bermuda shorts",
+      "brand": null,
+      "description": "Orange Bermuda shorts.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 10,
+      "source": { "kind": "shop-card", "fixtureId": "bermuda-shorts-10" },
+      "taxonomy": {
+        "categories": ["Swimwear"],
+        "colors": ["Orange"],
+        "sizes": ["L"],
+        "tags": ["Shorts"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000010",
+          "sku": "FS-BERMUDA-SHORTS-10",
+          "title": "Orange / L",
+          "optionValues": { "color": "Orange", "size": "L" },
+          "price": { "amount": 10000, "compareAtAmount": 12000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000010",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-10.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/bermuda-shorts-10/01-demo-fashion-store-product-10.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "b30df4b750067a48e8af673ef5c02b89c8b34be98ded3dcb47e882d5ca4c6d34",
+          "alt": "Orange Bermuda shorts",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000011",
+      "slug": "traveller-shirt-11",
+      "name": "Traveller shirt",
+      "brand": null,
+      "description": "Black traveller shirt.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 11,
+      "source": { "kind": "shop-card", "fixtureId": "traveller-shirt-11" },
+      "taxonomy": {
+        "categories": ["Casual shirts"],
+        "colors": ["Black"],
+        "sizes": ["XL"],
+        "tags": ["Coats"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000011",
+          "sku": "FS-TRAVELLER-SHIRT-11",
+          "title": "Black / XL",
+          "optionValues": { "color": "Black", "size": "XL" },
+          "price": { "amount": 25900, "compareAtAmount": 30000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000011",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-11.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/traveller-shirt-11/01-demo-fashion-store-product-11.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "54e221dc5d98c47b95d31e967ce387f44479a03f8d5ea29407edb95c43c1d2ad",
+          "alt": "Black traveller shirt",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000012",
+      "slug": "textured-sweater-12",
+      "name": "Textured sweater",
+      "brand": null,
+      "description": "Brown textured sweater.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 12,
+      "source": { "kind": "shop-card", "fixtureId": "textured-sweater-12" },
+      "taxonomy": {
+        "categories": ["Jeans"],
+        "colors": ["Brown"],
+        "sizes": ["XXL"],
+        "tags": ["Jackets"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000012",
+          "sku": "FS-TEXTURED-SWEATER-12",
+          "title": "Brown / XXL",
+          "optionValues": { "color": "Brown", "size": "XXL" },
+          "price": { "amount": 25900, "compareAtAmount": 30000, "currency": "USD" },
+          "inventory": { "onHand": 25, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000012",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-12.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/textured-sweater-12/01-demo-fashion-store-product-12.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "a1b34ad4c2b97a40350b7dcfe76f835734689e6514d43b2a4136904781071ad9",
+          "alt": "Brown textured sweater",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFASHIONLIVE0000000002",
+      "slug": "relaxed-corduroy-shirt",
+      "name": "Relaxed corduroy shirt",
+      "brand": "Zalando",
+      "description": "Relaxed corduroy shirt with a soft structured finish.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": null,
+      "source": { "kind": "product-detail", "fixtureId": "fashion-store-product" },
+      "taxonomy": {
+        "categories": ["Casual shirts"],
+        "colors": ["gold", "blue", "green"],
+        "sizes": ["S", "M", "L", "XL"],
+        "tags": ["Shirts"]
+      },
+      "variants": [
+        {
+          "id": "var_01JFSHIRTGOLDS00000000001",
+          "sku": "M492300-GOLD-S",
+          "title": "Gold / S",
+          "optionValues": { "color": "gold", "size": "S" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGOLDM00000000001",
+          "sku": "M492300-GOLD-M",
+          "title": "Gold / M",
+          "optionValues": { "color": "gold", "size": "M" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGOLDL00000000001",
+          "sku": "M492300-GOLD-L",
+          "title": "Gold / L",
+          "optionValues": { "color": "gold", "size": "L" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGOLDXL0000000001",
+          "sku": "M492300-GOLD-XL",
+          "title": "Gold / XL",
+          "optionValues": { "color": "gold", "size": "XL" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUES00000000001",
+          "sku": "M492300-BLUE-S",
+          "title": "Blue / S",
+          "optionValues": { "color": "blue", "size": "S" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUEM00000000001",
+          "sku": "M492300-BLUE-M",
+          "title": "Blue / M",
+          "optionValues": { "color": "blue", "size": "M" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUEL00000000001",
+          "sku": "M492300-BLUE-L",
+          "title": "Blue / L",
+          "optionValues": { "color": "blue", "size": "L" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUEXL0000000001",
+          "sku": "M492300-BLUE-XL",
+          "title": "Blue / XL",
+          "optionValues": { "color": "blue", "size": "XL" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENS0000000001",
+          "sku": "M492300-GREEN-S",
+          "title": "Green / S",
+          "optionValues": { "color": "green", "size": "S" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENM0000000001",
+          "sku": "M492300-GREEN-M",
+          "title": "Green / M",
+          "optionValues": { "color": "green", "size": "M" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENL0000000001",
+          "sku": "M492300-GREEN-L",
+          "title": "Green / L",
+          "optionValues": { "color": "green", "size": "L" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENXL000000001",
+          "sku": "M492300-GREEN-XL",
+          "title": "Green / XL",
+          "optionValues": { "color": "green", "size": "XL" },
+          "price": { "amount": 6500, "compareAtAmount": 8500, "currency": "USD" },
+          "inventory": { "onHand": 20, "oversellLimit": 0 },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8DETAIL000000000001",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-01.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/01-demo-fashion-store-product-detail-01.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "78c0b6fc3805e6f1d783c0519951a7bcd449c16c85ec95ea675590d4863d4062",
+          "alt": "Relaxed corduroy shirt front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000002",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-02.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/02-demo-fashion-store-product-detail-02.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "088eaf849e998178103df40b8ecf38af3c75191dc42033c0014c9442e8738a46",
+          "alt": "Relaxed corduroy shirt side view",
+          "order": 2
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000003",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-03.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/03-demo-fashion-store-product-detail-03.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "771e49806f3f56a67448a8a9e6d148962ba90d278c37c466462293f6915fdbb6",
+          "alt": "Relaxed corduroy shirt fabric detail",
+          "order": 3
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000004",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-04.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/04-demo-fashion-store-product-detail-04.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "fb85f4e94254f301b3ced2b311e1c11b855c13fc1f422592428f6f6715507f67",
+          "alt": "Relaxed corduroy shirt sleeve detail",
+          "order": 4
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000005",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-05.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/05-demo-fashion-store-product-detail-05.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "34663c0966e8f85c5560050c5bbf18f589f2b7395d87f51b8d944314feec3efa",
+          "alt": "Relaxed corduroy shirt collar detail",
+          "order": 5
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000006",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-06.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/06-demo-fashion-store-product-detail-06.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "85fd9bb59fb8e783734d1cd3a8082cab04694881c9ebd9b1cd0fc8b7b3ee5626",
+          "alt": "Relaxed corduroy shirt back view",
+          "order": 6
+        }
+      ]
+    }
+  ]
+}

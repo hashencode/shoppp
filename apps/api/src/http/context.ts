@@ -36,6 +36,11 @@ export interface ApiBindings {
   RESERVATION_TTL_MINUTES?: string;
   GUEST_ORDER_TOKEN_TTL_HOURS?: string;
   FASHION_ACCEPTANCE_TOKEN?: string;
+  FASHION_CATALOG_RESET_ENABLED?: string;
+  FASHION_CATALOG_RESET_TOKEN?: string;
+  D1_DATABASE_NAME?: string;
+  MEDIA_BUCKET_NAME?: string;
+  WORKER_NAME?: string;
   PAYMENT_CANCEL_URL?: string;
   PAYMENT_SUCCESS_URL?: string;
   STRIPE_SECRET_KEY?: string;

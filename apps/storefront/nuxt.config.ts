@@ -4,22 +4,24 @@ import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
 import { experienceBuildInputSchema } from "./scripts/prepare-experience";
 import { resolveStorefrontPrerenderRoutes } from "./scripts/resolve-prerender-routes";
+import { parseFashionStoreHomeDevelopmentProfile } from "./app/themes/fashion-store/successor/home-development-profile";
 
 // Keep the approved browser minima stable when the bundler changes its default target.
 const storefrontBrowserTargets = ["chrome111", "edge111", "firefox115", "safari16.4", "ios16.4"];
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
+const fashionStoreHomeProfile = parseFashionStoreHomeDevelopmentProfile(
+  process.env.STOREFRONT_FASHION_HOME_PROFILE,
+);
 const fashionStoreFontImports = [
   "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');",
   "@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap');",
   '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");',
   '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap");',
 ] as const;
+const redirects = manifest.redirects as Array<{ from: string; to: string }>;
 const redirectRules = Object.fromEntries(
-  manifest.redirects.map((redirect) => [
-    redirect.from,
-    { redirect: { to: redirect.to, statusCode: 301 } },
-  ]),
+  redirects.map((redirect) => [redirect.from, { redirect: { to: redirect.to, statusCode: 301 } }]),
 );
 const previewExperienceFile = process.env.STOREFRONT_EXPERIENCE_FILE;
 const previewExperienceInput = previewExperienceFile
@@ -37,6 +39,7 @@ const previewThemeStyles =
           "~/themes/fashion-store/upstream/css/responsive.css",
           "~/themes/fashion-store/upstream/demos/fashion-store/fashion-store.css",
           "~/themes/fashion-store/integration.css",
+          "~/themes/fashion-store/decor-home-source.css",
         ]
       : []
     : [];
@@ -127,6 +130,13 @@ export default defineNuxtConfig({
           "/api": {
             target: process.env.API_PROXY_TARGET,
             changeOrigin: true,
+            headers:
+              process.env.API_PROXY_CATALOG_RELEASE_ID && process.env.API_PROXY_STOREFRONT_ORIGIN
+                ? {
+                    Origin: process.env.API_PROXY_STOREFRONT_ORIGIN,
+                    "X-Preview-Catalog-Release": process.env.API_PROXY_CATALOG_RELEASE_ID,
+                  }
+                : undefined,
             prependPath: false,
           },
         }
@@ -153,6 +163,7 @@ export default defineNuxtConfig({
       siteOrigin: catalogRelease.site.origin,
       releaseId: catalogRelease.releaseId,
       freshnessHours: catalogRelease.site.freshnessHours,
+      fashionStoreHomeProfile: fashionStoreHomeProfile.serialized,
     },
   },
   typescript: { strict: true, typeCheck: true },

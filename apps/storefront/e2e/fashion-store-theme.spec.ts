@@ -17,6 +17,10 @@ import {
 } from "./support/theme-source-contract";
 import { probeNativeCursorVisibility } from "./support/theme-behavior-probes";
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
+import {
+  fashionStoreImplementationHomeSectionOrder,
+  fashionStoreNestedDecorRegionOrder,
+} from "../app/themes/fashion-store/source-contract";
 
 const sourceURL = `http://127.0.0.1:${Number(process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427)}/demo-fashion-store.html`;
 const decorSourceURL = sourceURL.replace("demo-fashion-store.html", "demo-decor-store.html");
@@ -161,7 +165,7 @@ async function regionalPixelGate(
   assertThemeScreenshotDifference(difference, maxChangedPixelRatio);
 }
 
-test("source header, hero, and first product card pass the two-viewport slice", async ({
+test("Home hero and first product card keep their source-region thresholds", async ({
   browser,
   page,
 }, testInfo) => {
@@ -181,19 +185,7 @@ test("source header, hero, and first product card pass the two-viewport slice", 
   );
   await expect(page.locator(".swiper.full-screen")).toHaveAttribute("data-motion-ready", "true");
 
-  const mobile = page.viewportSize()!.width === 390;
   const sourceProbes = [
-    {
-      content: false,
-      id: "navbar",
-      selector: "header .navbar",
-      styles: ["background-color", "padding-top", "padding-bottom"],
-    },
-    {
-      content: false,
-      id: "logo",
-      selector: mobile ? ".navbar-brand .mobile-logo" : ".navbar-brand .default-logo",
-    },
     {
       content: false,
       id: "product",
@@ -202,16 +194,14 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     },
   ] as const;
   const implementationProbes = [
-    { ...sourceProbes[0], selector: "header .navbar" },
     {
-      ...sourceProbes[1],
-      selector: mobile ? ".navbar-brand .mobile-logo" : ".navbar-brand .default-logo",
-    },
-    {
-      ...sourceProbes[2],
-      selector: "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
+      ...sourceProbes[0],
+      selector:
+        '[data-home-section="best-sellers"] .shop-modern .grid-item:nth-child(2) .shop-image',
     },
   ] as const;
+  // FS-R4 explicitly supersedes the legacy source Header/Footer regions. Keep the existing
+  // body-region contract and pixel budgets unchanged; shared-shell tests own canonical geometry.
   const [reference, implementation] = await Promise.all([
     captureSourceContract(source, sourceProbes),
     captureSourceContract(page, implementationProbes),
@@ -225,9 +215,9 @@ test("source header, hero, and first product card pass the two-viewport slice", 
   expect(await page.locator(".fashion-store-hero-slide[data-active=true]").innerText()).toContain(
     "Corby sofas",
   );
-  expect(await page.locator("section:nth-of-type(4) .shop-footer").first().innerText()).toContain(
-    "Textured sweater",
-  );
+  expect(
+    await page.locator('[data-home-section="best-sellers"] .shop-footer').first().innerText(),
+  ).toContain("Textured sweater");
   await regionalPixelGate(
     decorSource,
     page,
@@ -242,7 +232,7 @@ test("source header, hero, and first product card pass the two-viewport slice", 
     source,
     page,
     "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
-    "section:nth-of-type(4) .shop-modern .grid-item:nth-child(2) .shop-image",
+    '[data-home-section="best-sellers"] .shop-modern .grid-item:nth-child(2) .shop-image',
     `${testInfo.project.name}-product`,
     testInfo,
   );
@@ -257,7 +247,27 @@ test("complete source home renders every static region and local image", async (
 
   await expect(page.locator("html")).toHaveAttribute("class", "js");
   await expect(page.locator("body")).toHaveAttribute("data-mobile-nav-style", "classic");
-  await expect(page.locator("body > div#__nuxt section")).toHaveCount(11);
+  const homeSections = page.locator("[data-fashion-store-home-sections] [data-home-section]");
+  await expect(homeSections).toHaveCount(fashionStoreImplementationHomeSectionOrder.length);
+  expect(
+    await homeSections.evaluateAll((sections) =>
+      sections.map((section) => section.getAttribute("data-home-section")),
+    ),
+  ).toEqual([...fashionStoreImplementationHomeSectionOrder]);
+  expect(
+    await homeSections.evaluateAll((sections) =>
+      sections.every((section) => !section.parentElement?.closest("[data-home-section]")),
+    ),
+  ).toBe(true);
+  const nestedDecorRegions = page.locator(
+    '[data-home-section="product-merchandising"] [data-decor-region]',
+  );
+  await expect(nestedDecorRegions).toHaveCount(fashionStoreNestedDecorRegionOrder.length);
+  expect(
+    await nestedDecorRegions.evaluateAll((regions) =>
+      regions.map((region) => region.getAttribute("data-decor-region")),
+    ),
+  ).toEqual([...fashionStoreNestedDecorRegionOrder]);
   await expect(page.locator("section:nth-of-type(2) .feature-box")).toHaveCount(4);
   await expect(page.locator("section:nth-of-type(3) .categories-style-02")).toHaveCount(4);
   await expect(page.locator("section:nth-of-type(4) .grid-item")).toHaveCount(10);
@@ -299,6 +309,11 @@ test("complete source home renders every static region and local image", async (
   recordThemeBehaviorEvidence(
     testInfo,
     { actionOutcome: true, behaviorId: "hero-carousel", mode: "static" },
+    {
+      actionOutcome: true,
+      behaviorId: "home-merchandising-product-actions",
+      mode: "static",
+    },
     { actionOutcome: true, behaviorId: "product-card-actions", mode: "static" },
     {
       actionOutcome: true,
@@ -323,6 +338,53 @@ test("Fashion Store home has no serious accessibility violations", async ({ page
     }
     scrollTo(0, 0);
   });
+
+  const merchandising = page.locator('[data-home-section="product-merchandising"]');
+  const categoryLinks = merchandising.locator(
+    '[data-decor-region="featured-categories"] .icon-box > a',
+  );
+  const categoryNames = [
+    "Browse Lamp category",
+    "Browse Stool category",
+    "Browse Chair category",
+    "Browse Cabinet category",
+    "Browse Light category",
+    "Browse Sofa category",
+  ];
+  await expect(categoryLinks).toHaveCount(categoryNames.length);
+  for (const [index, name] of categoryNames.entries()) {
+    await expect(categoryLinks.nth(index)).toHaveAccessibleName(name);
+  }
+  const clientLinks = merchandising.locator(
+    '[data-decor-region="client-marquee"] .swiper-slide > a',
+  );
+  const clientNames = [
+    "Forbes",
+    "Medium",
+    "Pepperfry",
+    "Article",
+    "Instagram",
+    "Forbes",
+    "Medium",
+    "Pepperfry",
+    "Article",
+    "Instagram",
+  ];
+  await expect(clientLinks).toHaveCount(clientNames.length);
+  for (const [index, name] of clientNames.entries()) {
+    await expect(clientLinks.nth(index)).toHaveAccessibleName(name);
+  }
+  const journalLinks = merchandising.locator('[data-decor-region="journal"] .blog-image > a');
+  const journalNames = [
+    "The best influencers to follow for sartorial inspiration",
+    "Everything you need to know about decor's big night out",
+    "All the best looks & moments from the met gala 2023",
+    "Find a colour palettes that reflects your passion",
+  ];
+  await expect(journalLinks).toHaveCount(journalNames.length);
+  for (const [index, name] of journalNames.entries()) {
+    await expect(journalLinks.nth(index)).toHaveAccessibleName(name);
+  }
 
   const structure = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
@@ -601,7 +663,7 @@ test("legacy runtime requests are absent while static content remains usable", a
   await cartTrigger.focus();
   await page.keyboard.press("Enter");
   await expect(cart.locator(".cart-item-list")).toBeVisible();
-  await expect(cart.locator(".cart-item-list")).toContainText("Ribbed tank");
+  await expect(cart.locator(".cart-item-list")).toContainText("Your cart is empty.");
   await page.keyboard.press("Enter");
   evidence.push({ actionOutcome: true, behaviorId: "header-cart-preview", mode: "fallback" });
 
@@ -622,6 +684,19 @@ test("legacy runtime requests are absent while static content remains usable", a
     await productAction.evaluate((element) => getComputedStyle(element).outlineStyle),
   ).not.toBe("none");
   evidence.push({ actionOutcome: true, behaviorId: "product-card-actions", mode: "fallback" });
+
+  const merchandisingProductAction = page
+    .locator(
+      "[data-home-section='product-merchandising'] [data-product-surface='home-merchandising'] [data-card-action='wishlist']",
+    )
+    .first();
+  await merchandisingProductAction.focus();
+  await expect(merchandisingProductAction).toBeFocused();
+  evidence.push({
+    actionOutcome: true,
+    behaviorId: "home-merchandising-product-actions",
+    mode: "fallback",
+  });
 
   const collectionLayout = await page
     .locator("[data-fashion-store-collection-carousel]")
@@ -644,7 +719,7 @@ test("legacy runtime requests are absent while static content remains usable", a
     mode: "fallback",
   });
 
-  const marquee = page.locator("section:nth-of-type(9)");
+  const marquee = page.locator('[data-home-section="marquee"]');
   await expect(marquee).toContainText("Get 20% off for your first order");
   await expect(marquee).toContainText("The fashion core collection");
   expect(
@@ -826,7 +901,7 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
   const card = page.locator("section:nth-of-type(4) .shop-image").first();
   await card.hover({ force: true });
   const cartCount = page.locator(".header-cart .cart-count");
-  await expect(cartCount).toHaveText("2");
+  await expect(cartCount).toHaveText("0");
 
   const wishlist = card.getByRole("button", { name: "Add to wishlist" });
   await wishlist.focus();
@@ -845,7 +920,7 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
   await card.hover({ force: true });
   await card.getByRole("button", { name: "Add to cart" }).click();
   await expect(marker).toHaveAttribute("data-preview-intent-count", "3");
-  await expect(cartCount).toHaveText("3");
+  await expect(cartCount).toHaveText("1");
 
   const navigationEntries = await page.evaluate(
     () => performance.getEntriesByType("navigation").length,
@@ -865,9 +940,90 @@ test("internal navigation and product actions stay Nuxt-owned", async ({ page },
   });
 });
 
-test("header search and preview cart reproduce the source interactions", async ({
-  page,
-}, testInfo) => {
+test("Home merchandising controls expose their configured outcomes", async ({ page }, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
+  await ready(page, "/");
+
+  const marker = page.locator("[data-fashion-store-source-parity]");
+  const merchandising = page.locator('[data-home-section="product-merchandising"]');
+  const products = merchandising.locator('[data-decor-region="products"]');
+  const cards = products.locator(
+    '[data-fashion-store-product-card][data-product-surface="home-merchandising"]',
+  );
+  const tabs = products.locator("[data-decor-product-tabs] .nav-link");
+
+  await expect(tabs).toHaveCount(2);
+  await expect(tabs.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await tabs.nth(1).click();
+  await expect(products.locator('[data-merchandising-panel="new-arrivals"]')).toBeVisible();
+  await expect(tabs.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await tabs.nth(0).focus();
+  await page.keyboard.press("Enter");
+  await expect(products.locator('[data-merchandising-panel="best-sellers"]')).toBeVisible();
+  await expect(tabs.nth(0)).toHaveAttribute("aria-pressed", "true");
+
+  const firstCard = cards.first();
+  const productHref = await firstCard
+    .locator(".shop-image > a[data-fashion-store-route]")
+    .getAttribute("href");
+  expect(productHref).toMatch(/^\/products\//);
+  const cartCount = page.locator(".header-cart .cart-count");
+  const cartBefore = Number(await cartCount.textContent());
+  await firstCard.locator(".shop-image").hover({ force: true });
+  await firstCard.locator('[data-card-action="cart"]').click();
+  await expect(cartCount).toHaveText(String(cartBefore + 1));
+
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(request.url()));
+  const urlBeforeUtilities = page.url();
+  const intentCountBeforeUtilities = await marker.getAttribute("data-preview-intent-count");
+  await firstCard.locator('[data-card-action="wishlist"]').focus();
+  await page.keyboard.press("Enter");
+  await firstCard.locator('[data-card-action="quick-view"]').focus();
+  await page.keyboard.press("Space");
+  await expect(marker).toHaveAttribute(
+    "data-preview-intent-count",
+    intentCountBeforeUtilities ?? "0",
+  );
+  await expect(page.locator("[role='dialog']")).toHaveCount(0);
+  expect(page.url()).toBe(urlBeforeUtilities);
+  expect(requests.filter((url) => /wishlist|quick[-/]view/i.test(url))).toEqual([]);
+
+  const collection = merchandising.locator(
+    '[data-decor-region="collection-carousel"] [data-decor-collection-carousel]',
+  );
+  await expect(collection).toHaveAttribute("data-motion-paused", /reduced-motion/);
+  await expect(collection).toHaveAttribute("data-motion-active-index", "0");
+  await collection.getByRole("button", { name: "Show next collection item" }).click();
+  await expect(collection).toHaveAttribute("data-motion-active-index", "1");
+  await collection.getByRole("button", { name: "Show previous collection item" }).click();
+  await expect(collection).toHaveAttribute("data-motion-active-index", "0");
+
+  recordThemeBehaviorEvidence(
+    testInfo,
+    {
+      actionOutcome: true,
+      behaviorId: "merchandising-selector-tabs",
+      branches: [
+        { id: "pointer-selection", outcome: true, viewportId: "desktop" },
+        { id: "keyboard-selection", outcome: true, viewportId: "desktop" },
+      ],
+      mode: "interaction",
+    },
+    {
+      actionOutcome: true,
+      behaviorId: "merchandising-selector-tabs",
+      mode: "fallback",
+    },
+    {
+      actionOutcome: true,
+      behaviorId: "home-merchandising-product-actions",
+      mode: "interaction",
+    },
+  );
+});
+
+test("header search works and the preview cart starts empty", async ({ page }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"));
   await ready(page, "/");
 
@@ -887,14 +1043,12 @@ test("header search and preview cart reproduce the source interactions", async (
   await cart.hover();
   await expect(cart).toHaveClass(/open/);
   await expect(cart.locator(".cart-item-list")).toBeVisible();
-  await expect(cart.locator(".cart-count")).toHaveText("2");
-  await expect(cart.locator(".cart-item-list")).toContainText("Ribbed tank");
+  await expect(cart.locator(".cart-count")).toHaveText("0");
+  await expect(cart.locator(".cart-item-list")).toContainText("Your cart is empty.");
   await expect(cart.getByRole("button", { name: /(?:Increase|Decrease) .* quantity/ })).toHaveCount(
     0,
   );
-  await cart.getByRole("button", { name: "Remove Pleated dress from cart" }).click();
-  await expect(cart.locator(".cart-count")).toHaveText("1");
-  await expect(cart.locator(".cart-item-list")).not.toContainText("Pleated dress");
+  await expect(cart.getByRole("button", { name: /Remove .* from cart/ })).toHaveCount(0);
   await page.mouse.move(0, page.viewportSize()!.height - 1);
   await expect(cart).not.toHaveClass(/open/);
   await expect(cart.locator(".cart-item-list")).toBeHidden();
@@ -990,7 +1144,7 @@ test("approved local fonts and SVG icons are active", async ({ browser, page }) 
   await Promise.all([ready(source, sourceURL), ready(page, "/")]);
   const probes = [{ atomic: true, id: "product", selector: ".shop-footer .fs-19" }] as const;
   const implementationProbes = [
-    { ...probes[0], selector: "section:nth-of-type(4) .shop-footer .fs-19" },
+    { ...probes[0], selector: '[data-home-section="best-sellers"] .shop-footer .fs-19' },
   ] as const;
   const [reference, implementation] = await Promise.all([
     captureFontContract(source, probes),
@@ -1001,7 +1155,7 @@ test("approved local fonts and SVG icons are active", async ({ browser, page }) 
     await page.evaluate(() => document.fonts.check("700 120px Plus Jakarta Sans", "Corby")),
   ).toBe(true);
   const cartIcon = page.locator('.add-to-cart [data-fashion-store-icon="shopping-bag"]');
-  await page.locator("section:nth-of-type(4) .shop-box").first().hover();
+  await page.locator('[data-home-section="best-sellers"] .shop-box').first().hover();
   await expect(cartIcon.first().locator("svg")).toBeVisible();
   await expect(cartIcon.first()).toHaveAttribute("aria-hidden", "true");
   expect(fontRequests.filter((url) => !/(figtree|outfit|plus-jakarta-sans)-/i.test(url))).toEqual(
@@ -1117,6 +1271,32 @@ async function attachSharedRegion(
   await testInfo.attach(name, { path, contentType: "image/png" });
 }
 
+async function expectCanonicalShell(page: Page, home: boolean): Promise<void> {
+  const header = page.locator("[data-fashion-store-header]");
+  const footer = page.locator("footer.fashion-store-footer-canonical");
+  const expectedSurface = home ? "transparent-overlay" : "solid";
+
+  await expect(header).toHaveCount(1);
+  await expect(header).toHaveClass(/\bfashion-store-header-canonical\b/);
+  await expect(header).toHaveClass(
+    new RegExp(`\\bfashion-store-header-surface-${expectedSurface}\\b`),
+  );
+  await expect(header).not.toHaveClass(/fashion-store-header-(?:home|layout-(?:fashion|decor))/);
+  await expect(header.locator(".navbar")).not.toHaveClass(/\bcenter-logo\b/);
+  await expect(header.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
+  await expect(footer).toHaveCount(1);
+  await expect(footer).not.toHaveClass(/fashion-store-footer-home/);
+  await expect(page.locator("body")).toHaveClass(home ? /fashion-store-home/ : /^$/);
+
+  const viewportWidth = page.viewportSize()?.width ?? 0;
+  const expectedBackground =
+    home && viewportWidth >= 992 ? "rgba(0, 0, 0, 0)" : "rgb(255, 255, 255)";
+  await expect(header.locator(":scope > .navbar")).toHaveCSS(
+    "background-color",
+    expectedBackground,
+  );
+}
+
 // These checks intentionally bypass ready(): its static capture CSS hides the scroll control.
 for (const route of ["/", "/products/relaxed-corduroy-shirt", "/collections"]) {
   test(`shared shell appearance and controls: ${route}`, async ({ page }, testInfo) => {
@@ -1124,7 +1304,7 @@ for (const route of ["/", "/products/relaxed-corduroy-shirt", "/collections"]) {
     await page.evaluate(async () => document.fonts.ready);
     const header = page.locator("header.header-with-topbar nav.navbar");
     await expect(header).toBeVisible();
-    await expect(page.locator("body")).toHaveClass(route === "/" ? /fashion-store-home/ : /^$/);
+    await expectCanonicalShell(page, route === "/");
     await attachSharedRegion(header, "header", testInfo);
     const search = page.getByRole("link", { name: "Search", exact: true });
     await search.click();
@@ -1139,12 +1319,13 @@ for (const route of ["/", "/products/relaxed-corduroy-shirt", "/collections"]) {
     await cartTrigger.focus();
     await page.keyboard.press("Enter");
     await expect(cartTrigger).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    await expect(cartTrigger).toHaveCSS("padding-left", route === "/" ? "14px" : "18px");
+    await expect(cartTrigger).toHaveCSS("padding-left", "14px");
     await expect(cart.locator(".cart-item-list")).toBeVisible();
     await attachSharedRegion(cart.locator(".cart-item-list"), "mini-cart", testInfo);
     const geometry = await page.evaluate(() => {
       const inspect = (selector: string) => {
-        const element = document.querySelector<HTMLElement>(selector)!;
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) return null;
         const style = getComputedStyle(element);
         const { x, y, width, height } = element.getBoundingClientRect();
         return {
@@ -1253,11 +1434,11 @@ for (const { id, path } of fashionStorePageContracts) {
     );
     await expect(page.locator("header.header-with-topbar nav.navbar")).toBeVisible();
     await expect(page.locator("footer.footer-dark")).toBeVisible();
+    await expectCanonicalShell(page, id === "home");
     await expect(page.getByRole("link", { name: "Search", exact: true })).toBeVisible();
     await expect(
       page.locator(".header-cart").getByRole("button", { name: "Open cart" }),
     ).toBeVisible();
-    await expect(page.locator("body")).toHaveClass(id === "home" ? /fashion-store-home/ : /^$/);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
     ).toBeLessThanOrEqual(1);
@@ -1269,13 +1450,24 @@ test("shared shell survives link navigation and browser history", async ({ page 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/", { waitUntil: "networkidle" });
+  let canonicalBrand: { footer: string | null; header: string | null } | undefined;
   const verifyRoute = async (path: string) => {
     await expect(page).toHaveURL((url) => url.pathname === path);
     const marker = page.locator("[data-fashion-store-source-parity]");
     await expect(marker).toHaveCount(1);
     await expect(marker).toHaveAttribute("data-runtime-status", "ready");
     await expect(marker).toHaveAttribute("data-runtime-instance-count", "1");
-    await expect(page.locator("body")).toHaveClass(path === "/" ? /fashion-store-home/ : /^$/);
+    await expectCanonicalShell(page, path === "/");
+    const brand = await page.evaluate(() => ({
+      footer:
+        document.querySelector<HTMLImageElement>("footer .footer-logo img")?.currentSrc ?? null,
+      header:
+        document.querySelector<HTMLImageElement>(
+          `[data-fashion-store-header] .navbar-brand img.${innerWidth >= 992 ? "default-logo" : "mobile-logo"}`,
+        )?.currentSrc ?? null,
+    }));
+    canonicalBrand ??= brand;
+    expect(brand).toEqual(canonicalBrand);
     await page.evaluate(async () => document.fonts.ready);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),

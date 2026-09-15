@@ -1,4 +1,4 @@
-import { Button, Form, Input, InputNumber, Select, Upload, App } from 'antd'
+import { Alert, Button, Form, Input, InputNumber, Select, Upload, App } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -48,6 +48,7 @@ type CatalogFormValues = {
   categorySlugs?: string
   collectionSlugs?: string
   amount: number
+  compareAtAmount?: number
   currency: string
   priceListCode: string
   mediaKey: string
@@ -94,6 +95,7 @@ const toValues = (detail: ProductDetail): CatalogFormValues => {
     categorySlugs: detail.categories?.map((item) => item.slug).join(', '),
     collectionSlugs: detail.collections?.map((item) => item.slug).join(', '),
     amount: price?.amount ?? 0,
+    compareAtAmount: price?.compare_at_amount ?? undefined,
     currency: price?.currency ?? 'USD',
     priceListCode: price?.price_list_code ?? 'GLOBAL-USD',
     mediaKey: media?.r2_key ?? '',
@@ -148,6 +150,9 @@ const toPayload = (values: CatalogFormValues): ProductDraftPayload => ({
       prices: [
         {
           amount: values.amount,
+          ...(values.compareAtAmount === undefined
+            ? {}
+            : { compareAtAmount: values.compareAtAmount }),
           currency: values.currency.toUpperCase(),
           priceListCode: values.priceListCode,
         },
@@ -194,6 +199,7 @@ export const CatalogFormPage = () => {
   }
 
   const {
+    detailData,
     detailLoading,
     detailError,
     saveLoading,
@@ -225,6 +231,15 @@ export const CatalogFormPage = () => {
   }, [initializeForm])
 
   const isAddMode = parsedMode.ok && parsedMode.mode === 'add'
+  const catalogShapeLocked = Boolean(
+    detailData &&
+      (detailData.product.status === 'published' ||
+        detailData.product.status === 'archived' ||
+        detailData.variants.length !== 1 ||
+        detailData.prices.length !== 1 ||
+        detailData.media.length !== 1)
+  )
+  const effectiveReadonly = isReadonly || catalogShapeLocked
   const spec = useMemo<BasicCrudFormSpec<CatalogFormValues>>(
     () => ({
       parsedMode,
@@ -233,13 +248,17 @@ export const CatalogFormPage = () => {
       detailLoading,
       detailError,
       saveLoading,
-      isReadonly,
+      isReadonly: effectiveReadonly,
       form,
       initialValues: defaults,
       title: t(isAddMode ? 'New product' : 'Product details'),
       contentWidthPreset: 'wide',
       stateCopy: {
-        submitBlockedMessage: t('Readonly mode does not allow catalog changes.'),
+        submitBlockedMessage: t(
+          catalogShapeLocked
+            ? 'This catalog shape cannot be edited without losing stored data.'
+            : 'Readonly mode does not allow catalog changes.'
+        ),
         submitSuccessMessage: t(isAddMode ? 'Product created' : 'Product saved'),
       },
       onBackToList: () =>
@@ -252,7 +271,7 @@ export const CatalogFormPage = () => {
         resetFormValues()
       },
       onSubmit: async (values) => {
-        if (isReadonly) return
+        if (effectiveReadonly) return
         const result = await submitFormValues(values)
         if (result.success) {
           void message.success(translateNow(isAddMode ? 'Product created' : 'Product saved'))
@@ -376,6 +395,22 @@ export const CatalogFormPage = () => {
               >
                 <InputNumber min={0} precision={0} className="w-full" />
               </Form.Item>
+              <Form.Item
+                label={t('Compare-at price (minor currency units)')}
+                name="compareAtAmount"
+                dependencies={['amount']}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator: async (_, value?: number) => {
+                      if (value === undefined || value === null) return
+                      if (value > Number(getFieldValue('amount'))) return
+                      throw new Error(t('Compare-at price must be greater than the current price.'))
+                    },
+                  }),
+                ]}
+              >
+                <InputNumber min={0} precision={0} className="w-full" />
+              </Form.Item>
               <Form.Item label={t('Currency')} name="currency" rules={[{ required: true, len: 3 }]}>
                 <Input maxLength={3} />
               </Form.Item>
@@ -395,7 +430,7 @@ export const CatalogFormPage = () => {
           contentWidthPreset: 'wide',
           renderFields: () => (
             <>
-              {!isReadonly ? (
+              {!effectiveReadonly ? (
                 <Form.Item label={t('Catalog image')} required>
                   <Upload
                     accept="image/jpeg,image/png,image/webp,image/gif"
@@ -450,16 +485,69 @@ export const CatalogFormPage = () => {
           ),
         },
       ],
+      renderAfterForm: detailData ? (
+        <section aria-label={t('Stored catalog shape')} className="space-y-3">
+          {catalogShapeLocked ? (
+            <Alert
+              showIcon
+              type="warning"
+              title={t('This catalog shape is read-only in the scalar editor.')}
+              description={t(
+                'Editing is disabled because this product is published or contains multiple variants, prices, or media items.'
+              )}
+            />
+          ) : null}
+          <p>
+            {detailData.variants.length} {t('variants')} · {detailData.prices.length}{' '}
+            {t('prices')} · {detailData.media.length} {t('media items')}
+          </p>
+          <div>
+            <h3>{t('Stored variants and prices')}</h3>
+            <ul>
+              {detailData.variants.map((variant) => (
+                <li key={variant.id}>
+                  <strong>{variant.sku}</strong> — {variant.title}
+                  <ul>
+                    {detailData.prices
+                      .filter((price) => price.variant_id === variant.id)
+                      .map((price) => (
+                        <li key={`${variant.id}:${price.price_list_code}`}>
+                          {price.amount} {price.currency}
+                          {price.compare_at_amount == null
+                            ? null
+                            : ` (${t('compare at')} ${price.compare_at_amount})`}{' '}
+                          · {price.price_list_code}
+                        </li>
+                      ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3>{t('Stored media')}</h3>
+            <ul>
+              {detailData.media.map((media) => (
+                <li key={media.r2_key}>
+                  <strong>{media.r2_key}</strong> — {media.alt_text} ({media.width}×{media.height})
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null,
     }),
     [
       message,
       detailError,
+      detailData,
       detailLoading,
+      catalogShapeLocked,
+      effectiveReadonly,
       form,
       fromSetupGuide,
       navigate,
       isAddMode,
-      isReadonly,
       loadDetail,
       modeView,
       parsedMode,

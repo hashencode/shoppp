@@ -449,6 +449,53 @@ export function assertFashionStagingReadiness(
   };
 }
 
+export interface FashionCatalogMigrationReadiness {
+  expected: {
+    acceptanceReleaseId: string;
+    catalogVersion: string;
+    iamFingerprint: string;
+    manifestDigest: string;
+    shopperReleaseId: string;
+  };
+  preflight: { activeWorkCount: number; iamFingerprint: string };
+  receipt: {
+    acceptanceReleaseId: string;
+    catalogVersion: string;
+    iamFingerprint: string;
+    manifestDigest: string;
+    mediaCount: number;
+    productCount: number;
+    shopperReleaseId: string;
+    status: "applied" | "already_applied";
+    variantCount: number;
+  };
+}
+
+export function assertFashionCatalogMigrationReadiness(
+  input: FashionCatalogMigrationReadiness,
+): FashionCatalogMigrationReadiness["receipt"] {
+  const { expected, preflight, receipt } = input;
+  assert(preflight.activeWorkCount === 0, "fashion_readiness_active_work");
+  assert(
+    /^[a-f0-9]{64}$/.test(expected.iamFingerprint) &&
+      preflight.iamFingerprint === expected.iamFingerprint &&
+      receipt.iamFingerprint === expected.iamFingerprint,
+    "fashion_readiness_iam_drift",
+  );
+  assert(
+    receipt.catalogVersion === expected.catalogVersion &&
+      receipt.manifestDigest === expected.manifestDigest &&
+      receipt.shopperReleaseId === expected.shopperReleaseId &&
+      receipt.acceptanceReleaseId === expected.acceptanceReleaseId,
+    "fashion_readiness_identity_mismatch",
+  );
+  assert(
+    receipt.productCount === 13 && receipt.variantCount === 24 && receipt.mediaCount === 18,
+    "fashion_readiness_count_mismatch",
+  );
+  return receipt;
+}
+
 function argument(name: string): string {
   const prefix = `--${name}=`;
   const value = process.argv

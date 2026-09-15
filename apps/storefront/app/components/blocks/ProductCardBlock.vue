@@ -26,6 +26,7 @@ const products = computed(() =>
       <span v-else class="product-media-placeholder" aria-hidden="true"></span>
       <div>
         <h3>{{ product.name }}</h3>
+        <del v-if="product.compareAtPriceLabel">{{ product.compareAtPriceLabel }}</del>
         <span>{{ product.priceLabel }}</span>
       </div>
     </NuxtLink>

@@ -259,9 +259,17 @@ export async function createProduct(context: CatalogContext, input: ProductDraft
       statements.push(
         context.env.DB.prepare(
           `INSERT INTO prices
-            (id, price_list_id, variant_id, amount, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-        ).bind(crypto.randomUUID(), listId, variantId, price.amount, now, now),
+            (id, price_list_id, variant_id, amount, compare_at_amount, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        ).bind(
+          crypto.randomUUID(),
+          listId,
+          variantId,
+          price.amount,
+          price.compareAtAmount ?? null,
+          now,
+          now,
+        ),
       );
     }
   }
@@ -400,9 +408,17 @@ export async function updateProduct(
       statements.push(
         context.env.DB.prepare(
           `INSERT INTO prices
-            (id, price_list_id, variant_id, amount, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-        ).bind(crypto.randomUUID(), priceListId, variantId, price.amount, now, now),
+            (id, price_list_id, variant_id, amount, compare_at_amount, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        ).bind(
+          crypto.randomUUID(),
+          priceListId,
+          variantId,
+          price.amount,
+          price.compareAtAmount ?? null,
+          now,
+          now,
+        ),
       );
     }
   }

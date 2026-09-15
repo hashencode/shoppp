@@ -3,6 +3,10 @@ import { readFile } from "node:fs/promises";
 
 import {
   fashionStoreShellSourceInventory,
+  fashionStoreDecorHomeContract,
+  fashionStoreImplementationHomeSectionOrder,
+  fashionStoreImplementationRegions,
+  fashionStoreNestedDecorRegionOrder,
   fashionStoreSourceContract,
   fashionStoreSourceEntries,
   fashionStoreSourceRegions,
@@ -42,6 +46,170 @@ const regionMarkers: Readonly<Record<string, string>> = {
 };
 
 describe("Fashion Store complete static source home", () => {
+  test("keeps source positions separate from stable implementation Home owners", () => {
+    expect(fashionStoreImplementationHomeSectionOrder).toEqual([
+      "hero",
+      "services",
+      "categories",
+      "best-sellers",
+      "promotion",
+      "collection",
+      "brands",
+      "featured-products",
+      "marquee",
+      "magazine",
+      "product-merchandising",
+    ]);
+    expect(fashionStoreNestedDecorRegionOrder).toEqual([
+      "featured-categories",
+      "products",
+      "promotional-marquee",
+      "collection-carousel",
+      "client-marquee",
+      "journal",
+      "services",
+    ]);
+    expect(fashionStoreImplementationRegions.find(({ key }) => key === "marquee")?.selector).toBe(
+      '[data-home-section="marquee"]',
+    );
+    expect(
+      fashionStoreImplementationRegions.find(({ key }) => key === "best-sellers")?.selector,
+    ).toBe('[data-home-section="best-sellers"]');
+    expect(fashionStoreSourceRegions.find(({ key }) => key === "marquee")?.selector).toBe(
+      "section:nth-of-type(9) .swiper-slide",
+    );
+  });
+
+  test("freezes the Decor-derived Home region mapping and approved Fashion shell deviations", () => {
+    expect(fashionStoreDecorHomeContract.regions.map(({ id }) => id)).toEqual([
+      "hero",
+      "categories",
+      "product-merchandising",
+      "marquee",
+      "collection",
+      "brands",
+      "magazine",
+      "services",
+    ]);
+    expect(fashionStoreDecorHomeContract.approvedFashionRegions).toEqual([
+      "announcement",
+      "sticky-social-rail",
+      "footer",
+      "cookie",
+      "scroll-progress",
+    ]);
+    expect(fashionStoreDecorHomeContract.mountHost).toBe("fashion-store.product-merchandising");
+    expect(
+      fashionStoreDecorHomeContract.regions
+        .filter(({ id }) => id !== "hero")
+        .map(({ owner }) => owner),
+    ).toEqual(Array(7).fill("FashionStoreDecorHomeBody"));
+  });
+
+  test("mounts one Fashion-owned source-shaped Decor body with seven ordered regions", async () => {
+    const [body, host, model] = await Promise.all([
+      readFile(new URL("home/FashionStoreDecorHomeBody.vue", componentRoot), "utf8"),
+      readFile(
+        new URL("sections/FashionStoreProductMerchandisingSection.vue", componentRoot),
+        "utf8",
+      ),
+      readFile(new URL("../contracts/decor-home.ts", componentRoot), "utf8"),
+    ]);
+    const regions = [...body.matchAll(/data-decor-region="([^"]+)"/g)].map(([, region]) => region);
+    expect(regions).toEqual([
+      "featured-categories",
+      "products",
+      "promotional-marquee",
+      "collection-carousel",
+      "client-marquee",
+      "journal",
+      "services",
+    ]);
+    for (const marker of [
+      "data-decor-collection-slide",
+      "data-decor-client-track",
+      "data-decor-promotion-track",
+      "<FashionStoreProductCard",
+      ':data-product-id="product.id"',
+      ':href="product.href"',
+      "product.price",
+    ]) {
+      expect(body).toContain(marker);
+    }
+    expect(body).not.toMatch(/Wooden cabinet|Modern chair|Classic stools/);
+    expect(body).not.toContain("decor-home-content");
+    expect(body).not.toContain("v-html");
+    expect(body).toContain("fashionStoreAssetId");
+    expect(host).toContain("<FashionStoreDecorHomeBody");
+    expect(model).toContain("FashionStoreDecorHomeModel");
+    expect(model).toContain("resolveFashionStoreMerchandising");
+  });
+
+  test("pins the canonical Header, product-card, carousel, CTA, and footer seams", async () => {
+    const [body, header, search, productCard, host, integration] = await Promise.all([
+      readFile(new URL("home/FashionStoreDecorHomeBody.vue", componentRoot), "utf8"),
+      readFile(new URL("shared/FashionStoreHeader.vue", componentRoot), "utf8"),
+      readFile(new URL("shared/FashionStoreSearchOverlay.vue", componentRoot), "utf8"),
+      readFile(new URL("shared/FashionStoreProductCard.vue", componentRoot), "utf8"),
+      readFile(
+        new URL("sections/FashionStoreProductMerchandisingSection.vue", componentRoot),
+        "utf8",
+      ),
+      readFile(new URL("../integration.css", componentRoot), "utf8"),
+    ]);
+
+    expect(header).not.toContain("fashion-store-decor-desktop-menu");
+    expect(header).toContain("navbar-collapse justify-content-between");
+    expect(header).toMatch(/fashion-store-header-canonical[\s\S]*font-size:\s*17px/);
+    expect(header).toMatch(/fashion-store-header-canonical[\s\S]*font-weight:\s*600/);
+    expect(header).toContain('class="fashion-store-header-labeled-action"');
+    expect(search).toContain("fashion-store-header-labeled-action");
+    expect(header).toMatch(
+      /fashion-store-header-canonical :deep\(\.fashion-store-header-labeled-action\)[\s\S]*font-weight:\s*600/,
+    );
+    expect(body).toContain(":surface=\"'home-merchandising'\"");
+    expect(productCard).toContain('surface?: "catalog" | "home-merchandising"');
+    expect(productCard).toContain(':data-product-surface="properties.surface"');
+    expect(productCard).not.toContain("data-product-presentation");
+    expect(integration).toContain("aspect-ratio: 6 / 7");
+    expect(integration).toContain("width: 45px");
+    expect(integration).toContain("height: 45px");
+
+    expect(body).toContain('from "swiper/modules"');
+    expect(body).toContain('from "swiper/vue"');
+    expect(body).toContain('effect="fade"');
+    expect(body).toContain(':loop="collectionProducts.length > 1"');
+    expect(body).not.toContain("setInterval(");
+    expect(body).not.toContain("v-show=");
+    expect(integration).not.toMatch(/\.col-md-8\s+span,[\s\S]*color:\s*#18202b\s*!important/);
+    expect(host).toContain("fashion-store-product-merchandising py-0");
+  });
+
+  test("keeps source-width review while opting the combined Home into bounded wide content", async () => {
+    const [homeShell, shell, integration] = await Promise.all([
+      readFile(new URL("FashionStoreHomeShell.vue", componentRoot), "utf8"),
+      readFile(new URL("shared/FashionStoreShell.vue", componentRoot), "utf8"),
+      readFile(new URL("../integration.css", componentRoot), "utf8"),
+    ]);
+
+    expect(homeShell).toContain(":content-layout=");
+    expect(homeShell).toContain("homeProfile.composition === 'combined' ? 'wide' : 'source'");
+    expect(shell).toContain('contentLayout?: "source" | "wide"');
+    expect(shell).toContain('"data-fashion-store-content-layout": properties.contentLayout');
+    expect(integration).toContain("--fashion-store-shell-gutter: 30px");
+    expect(integration).toContain("--fashion-store-shell-max-width: 1320px");
+    expect(integration).toContain('[data-fashion-store-content-layout="wide"]');
+    expect(integration).toMatch(/\.fashion-store-footer-canonical\s+\.container/);
+    expect(integration).not.toMatch(
+      /\[data-fashion-store-content-layout="wide"\]\s+\.fashion-store-footer-canonical/,
+    );
+    for (const region of ["featured-categories", "products", "journal", "client-marquee"]) {
+      expect(integration).toMatch(
+        new RegExp(`\\[data-decor-region="${region}"\\]\\s*>\\s*\\.container`),
+      );
+    }
+    expect(integration).not.toMatch(/^\s*\.container\s*\{[^}]*1320px/ms);
+  });
   test("records the fifteen-entry shell inventory and its two source-driven differences", () => {
     expect(fashionStoreSourceEntries).toHaveLength(15);
     expect(fashionStoreShellSourceInventory.footer.entryCount).toBe(15);
@@ -77,13 +245,78 @@ describe("Fashion Store complete static source home", () => {
     expect(homeSections).not.toContain('<footer class="footer-dark');
     expect(shell).toContain("<FashionStoreHeader");
     expect(shell).toContain("<FashionStoreFooter");
-    expect(header).toMatch(/<header\s+class="header-with-topbar"/);
+    expect(header).toMatch(/<header\s+class="header-with-topbar fashion-store-header-canonical"/);
     expect(header).not.toContain('class="header-top-bar');
     expect(header).toContain("<FashionStoreSearchOverlay");
     expect(header).toContain("<FashionStoreMiniCart");
     expect(search).toContain('class="search-form-wrapper"');
     expect(cart).toContain('class="header-cart dropdown"');
-    expect(footer).toContain('<footer class="footer-dark');
+    expect(footer).toMatch(/<footer\s+[\s\S]*class="footer-dark/);
+  });
+
+  test("uses one canonical Header layout with route-derived surface state", async () => {
+    const [homeShell, shell, header, footer, miniCart, experience, registry, successorRegistry] =
+      await Promise.all([
+        readFile(new URL("FashionStoreHomeShell.vue", componentRoot), "utf8"),
+        readFile(new URL("shared/FashionStoreShell.vue", componentRoot), "utf8"),
+        readFile(new URL("shared/FashionStoreHeader.vue", componentRoot), "utf8"),
+        readFile(new URL("shared/FashionStoreFooter.vue", componentRoot), "utf8"),
+        readFile(new URL("shared/FashionStoreMiniCart.vue", componentRoot), "utf8"),
+        readFile(new URL("../../../StorefrontExperience.vue", componentRoot), "utf8"),
+        readFile(new URL("../registry.ts", componentRoot), "utf8"),
+        readFile(new URL("../successor/registry.ts", componentRoot), "utf8"),
+      ]);
+
+    // Home templates are renderer-owned, while product/content templates use the
+    // same registry and platform routes mount its shared shell directly.
+    expect(successorRegistry).toContain("rendererShell: FashionStoreHomeShell");
+    expect(registry).toContain("platformShell: FashionStoreShell");
+    expect(experience).toMatch(
+      /<ThemeRenderer[\s\S]*v-if="previewTemplate && presentationProvider"/,
+    );
+    expect(experience).toMatch(
+      /:is="themeRegistry\.platformShell"[\s\S]*v-else-if="activeExperienceSnapshot && rendersPlatformRoute/,
+    );
+
+    // Visible shell content remains owned by one injected presentation-shell view model.
+    expect(shell).toContain("inject(storefrontPresentationShellKey, undefined)");
+    expect(shell).toContain("properties.header ?? experienceShell?.value?.header");
+    expect(shell).toContain("properties.footer ?? experienceShell?.value?.footer");
+
+    // Home composition remains configurable, but Header identity and surface are
+    // owned by the shared shell rather than the development profile.
+    expect(homeShell).not.toContain("header-background");
+    expect(homeShell).not.toContain("header-layout");
+    expect(shell).toContain(":background=\"variant === 'home' ? 'transparent-overlay' : 'solid'\"");
+    expect(shell).not.toContain("headerBackground");
+    expect(shell).not.toContain("headerLayout");
+    expect(header).toContain("fashion-store-header-canonical");
+    expect(header).toContain("`fashion-store-header-surface-${background ?? 'solid'}`");
+    expect(header).not.toContain("fashion-store-header-layout-");
+    expect(header).not.toContain("center-logo");
+    expect(header).not.toContain("demo-decor-store-logo");
+    expect(header).toContain("demo-fashion-store-logo-black.png");
+    expect(header).toContain("configuredBrandName");
+    expect(header).toContain('v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"');
+    expect(header).toContain("min-height: 96px");
+    expect(header).toContain("min-height: 80px");
+    expect(header).toContain("padding-right: 45px");
+    expect(header).toContain("padding-right: 35px");
+
+    // Mini-cart and Footer spacing are canonical across Home and internal routes.
+    expect(header).not.toContain("home-layout");
+    expect(miniCart).not.toContain("homeLayout");
+    expect(miniCart).not.toContain("home-layout");
+    expect(miniCart).toMatch(
+      /\.header-cart > \.fashion-store-source-action[\s\S]*padding-left:\s*14px/,
+    );
+    expect(shell).not.toContain("home-layout");
+    expect(footer).not.toContain("homeLayout");
+    expect(footer).not.toContain("fashion-store-footer-home");
+    expect(footer).toContain("fashion-store-footer-canonical");
+    expect(footer).toContain(":where(.fashion-store-footer-canonical) .container");
+    expect(footer).toContain("configuredBrandName");
+    expect(footer).toContain('v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"');
   });
 
   test("keeps all declared regions and source sentinels in source order", async () => {

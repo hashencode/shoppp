@@ -1,4 +1,5 @@
 import React from 'react'
+import { App } from 'antd'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
@@ -6,6 +7,7 @@ import { setupServer } from 'msw/node'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import type { ProductDetail, ProductDraftPayload } from '../../services/catalog/api'
 import { CatalogFormPage } from './catalog-form-page'
 
 void React
@@ -35,7 +37,7 @@ if (!window.ResizeObserver) {
   window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
-const detail = {
+const detail: ProductDetail = {
   product: {
     id: 'product-001',
     slug: 'carry-on',
@@ -57,6 +59,7 @@ const detail = {
   prices: [
     {
       amount: 12900,
+      compare_at_amount: 15900,
       currency: 'USD',
       price_list_code: 'GLOBAL-USD',
       variant_id: 'variant-001',
@@ -81,11 +84,32 @@ const renderReadonly = () =>
     <MemoryRouter initialEntries={['/catalog/products/form?mode=readonly&id=product-001']}>
       <AuthTestProvider permissions={['catalog.read']}>
         <ThemeProvider>
-          <CatalogFormPage />
+          <App>
+            <CatalogFormPage />
+          </App>
         </ThemeProvider>
       </AuthTestProvider>
     </MemoryRouter>
   )
+
+const renderModify = (productDetail: ProductDetail = detail) => {
+  server.use(
+    http.get('*/admin/catalog/products/product-001', () =>
+      HttpResponse.json({ data: productDetail })
+    )
+  )
+  return render(
+    <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
+      <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
+        <ThemeProvider>
+          <App>
+            <CatalogFormPage />
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    </MemoryRouter>
+  )
+}
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => server.resetHandlers())
@@ -110,6 +134,59 @@ describe('CatalogFormPage', () => {
     renderReadonly()
     await waitFor(() => expect(screen.getByText('请返回列表重新选择记录。')).toBeTruthy())
   })
+
+  it('shows every stored variant, price, and media item without allowing a lossy edit', async () => {
+    const productDetail: ProductDetail = {
+      ...detail,
+      product: { ...detail.product, status: 'published' },
+      variants: Array.from({ length: 12 }, (_, index) => ({
+        id: `variant-${index + 1}`,
+        sku: `SKU-${index + 1}`,
+        title: `Variant ${index + 1}`,
+        option_values_json: JSON.stringify({ color: `Color ${index + 1}` }),
+        weight_grams: 100 + index,
+      })),
+      prices: Array.from({ length: 12 }, (_, index) => ({
+        amount: 1000 + index,
+        compare_at_amount: 2000 + index,
+        currency: 'USD',
+        price_list_code: 'GLOBAL-USD',
+        variant_id: `variant-${index + 1}`,
+      })),
+      media: Array.from({ length: 6 }, (_, index) => ({
+        alt_text: `Product view ${index + 1}`,
+        height: 765,
+        r2_key: `catalog/products/view-${index + 1}.jpg`,
+        width: 600,
+      })),
+    }
+
+    renderModify(productDetail)
+
+    expect(await screen.findByText('此商品结构在简化编辑器中为只读。')).toBeTruthy()
+    expect(screen.getByText('SKU-12')).toBeTruthy()
+    expect(screen.getByText('catalog/products/view-6.jpg')).toBeTruthy()
+    expect(screen.getByText(/12 个变体 · 12 个价格 · 6 个媒体项/)).toBeTruthy()
+    expect((screen.getByRole('button', { name: /保\s*存/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('round-trips compare-at price for an editable single-variant draft', async () => {
+    let submitted: ProductDraftPayload | undefined
+    server.use(
+      http.put('*/admin/catalog/products/product-001', async ({ request }) => {
+        submitted = (await request.json()) as ProductDraftPayload
+        return HttpResponse.json({ data: { id: 'product-001', status: 'draft' } })
+      })
+    )
+    renderModify()
+
+    const compareAtInput = await screen.findByLabelText('划线价（最小币种单位）')
+    expect((compareAtInput as HTMLInputElement).value).toBe('15900')
+    fireEvent.change(compareAtInput, { target: { value: '16900' } })
+    fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
+
+    await waitFor(() => expect(submitted?.variants[0]?.prices[0]?.compareAtAmount).toBe(16900))
+  })
 })
 
 const ReturnProbe = () => {
@@ -125,14 +202,16 @@ it('returns to the catalog list in the same guide journey', async () => {
   render(
     <AuthTestProvider permissions={['catalog.read']}>
       <ThemeProvider>
-        <MemoryRouter
-          initialEntries={['/catalog/products/form?mode=readonly&id=product-001&from=setup-guide']}
-        >
-          <Routes>
-            <Route path="/catalog/products/form" element={<CatalogFormPage />} />
-            <Route path="/catalog/products" element={<ReturnProbe />} />
-          </Routes>
-        </MemoryRouter>
+        <App>
+          <MemoryRouter
+            initialEntries={['/catalog/products/form?mode=readonly&id=product-001&from=setup-guide']}
+          >
+            <Routes>
+              <Route path="/catalog/products/form" element={<CatalogFormPage />} />
+              <Route path="/catalog/products" element={<ReturnProbe />} />
+            </Routes>
+          </MemoryRouter>
+        </App>
       </ThemeProvider>
     </AuthTestProvider>
   )

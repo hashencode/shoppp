@@ -1,7 +1,7 @@
 import * as z from "zod";
 
-import { stableCatalogReferenceSchema } from "./catalog";
-import { moneySchema, publicIdSchema } from "./common";
+import { catalogPriceSchema, stableCatalogReferenceSchema } from "./catalog";
+import { publicIdSchema } from "./common";
 import {
   credentialFreeHttpsUrlSchema,
   linkTargetSchema,
@@ -665,7 +665,7 @@ export const presentationProductSchema = z
     id: publicIdSchema,
     kind: z.literal("product"),
     media: z.array(presentationMediaSchema).max(50),
-    money: moneySchema,
+    money: catalogPriceSchema,
     name: z.string().trim().min(1).max(300),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     variantIds: z.array(publicIdSchema).min(1).max(500),

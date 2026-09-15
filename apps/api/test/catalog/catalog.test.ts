@@ -25,7 +25,14 @@ const validProduct = {
   variants: [
     {
       optionValues: { color: "Black" },
-      prices: [{ amount: 12_900, currency: "USD", priceListCode: "GLOBAL-USD" }],
+      prices: [
+        {
+          amount: 12_900,
+          compareAtAmount: 15_000,
+          currency: "USD",
+          priceListCode: "GLOBAL-USD",
+        },
+      ],
       sku: "CASE-CARRY-BLK",
       title: "Black",
       weightGrams: 2_900,
@@ -133,7 +140,10 @@ describe("catalog management and publishing", () => {
       env,
     );
     expect(await detailResponse.json()).toMatchObject({
-      data: { product: { name: "Carry-on Pro", slug: "carry-on-pro" } },
+      data: {
+        prices: [{ amount: 12_900, compare_at_amount: 15_000 }],
+        product: { name: "Carry-on Pro", slug: "carry-on-pro" },
+      },
     });
 
     const previewResponse = await app.fetch(
@@ -184,7 +194,14 @@ describe("catalog management and publishing", () => {
     ).first<{ id: string; manifest_json: string }>();
     const manifest = JSON.parse(release!.manifest_json) as {
       collections: Array<{ id: string; productIds: string[]; status: string }>;
-      products: Array<{ collectionIds: string[]; id: string; slug: string }>;
+      products: Array<{
+        collectionIds: string[];
+        id: string;
+        slug: string;
+        variants: Array<{
+          prices: Array<{ amount: number; compareAtAmount?: number; currency: string }>;
+        }>;
+      }>;
       routes: string[];
     };
     expect(manifest.products).toEqual([
@@ -198,6 +215,9 @@ describe("catalog management and publishing", () => {
       }),
     ]);
     expect(manifest.products[0]?.collectionIds).toEqual([manifest.collections[0]?.id]);
+    expect(manifest.products[0]?.variants[0]?.prices).toEqual([
+      { amount: 12_900, compareAtAmount: 15_000, currency: "USD" },
+    ]);
     expect(manifest.routes).toContain("/products/carry-on-pro");
     const releaseResponse = await app.fetch(
       new Request(`https://api.example.test/build/catalog/releases/${release!.id}`, {

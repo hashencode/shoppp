@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import sharp from "sharp";
 
 import {
   createThemeAssetResolver,
@@ -24,6 +27,45 @@ const fixture = {
 } as const;
 
 describe("selected theme resources", () => {
+  test("pins every copied Decor Home asset to its source digest and dimensions", async () => {
+    const provenance = await readFile(
+      new URL("../app/themes/fashion-store/UPSTREAM.md", import.meta.url),
+      "utf8",
+    );
+    const rows = provenance
+      .split("## FS-F4 Decor Home copied visual assets")[1]!
+      .split("\n## ")[0]!
+      .matchAll(/^\| `([^`]+)` \| `(\d+)x(\d+)` \| `([a-f0-9]{64})` \|$/gm);
+    const records = [...rows].map(([, file, width, height, sha256]) => ({
+      file: file!,
+      height: Number(height),
+      sha256: sha256!,
+      width: Number(width),
+    }));
+    expect(records).toHaveLength(26);
+
+    await Promise.all(
+      records.flatMap((record) =>
+        [
+          new URL(
+            `../../../templates/Crafto - The Multipurpose HTML5 Template/html/images/${record.file}`,
+            import.meta.url,
+          ),
+          new URL(
+            `../app/themes/fashion-store/assets/decor-home/${record.file}`,
+            import.meta.url,
+          ),
+        ].map(async (asset) => {
+          const bytes = await readFile(asset);
+          expect(createHash("sha256").update(bytes).digest("hex")).toBe(record.sha256);
+          expect(await sharp(bytes).metadata()).toEqual(
+            expect.objectContaining({ height: record.height, width: record.width }),
+          );
+        }),
+      ),
+    );
+  });
+
   test("keeps every enabled Fashion Store binding backed by a namespaced fixture", async () => {
     const input = await fashionStorePreviewBuildInput("https://preview.example.test");
     expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual([

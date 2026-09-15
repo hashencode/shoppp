@@ -65,11 +65,14 @@ describe("local-first CI workflow contracts", () => {
     const contents = await postCommitWorkflow;
 
     expect(contents).toContain("ref: ${{ github.sha }}");
+    expect(contents).toContain("fetch-depth: 0");
     expect(contents).toContain('test "$actual_sha" = "$GITHUB_SHA"');
     expect(contents).toContain("SHOPPP_CI_TESTED_SHA: ${{ github.sha }}");
     expect(contents).toContain("SHOPPP_CI_TESTED_TREE: ${{ steps.identity.outputs.tree }}");
     expect(contents).toContain("SHOPPP_CI_EXECUTION_ID: github-${{ github.run_id }}");
     expect(contents).toContain("SHOPPP_CI_ATTEMPT: ${{ github.run_attempt }}");
+    expect(contents).toContain("SHOPPP_THEME_CHECK_BASE: ${{ github.event.before }}");
+    expect(contents).toContain("SHOPPP_THEME_CHECK_HEAD: ${{ github.sha }}");
     expect(contents).toContain(
       "path: artifacts/ci/${{ github.sha }}-${{ steps.identity.outputs.tree }}-github-${{ github.run_id }}-attempt-${{ github.run_attempt }}-post-commit.json",
     );

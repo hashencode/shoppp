@@ -188,6 +188,19 @@ import {
   startFashionStagingAcceptance,
 } from "../testing/fashion-staging";
 import {
+  assertFashionStagingCatalogActivationBuild,
+  closeFashionStagingCatalogReset,
+  FASHION_STAGING_CATALOG_RESET_TARGET,
+  getFashionStagingCatalogPreflight,
+  getFashionStagingCatalogResumableActivation,
+  getFashionStagingCatalogTerminalActivation,
+  isFashionStagingCatalogResetClosed,
+  prepareFashionStagingCatalogActivation,
+  preflightFashionStagingCatalogMedia,
+  resetFashionStagingCatalog,
+  verifyFashionStagingCatalog,
+} from "../testing/fashion-staging-catalog";
+import {
   consumeFashionStagingOperatorRun,
   createFashionStagingOperatorRun,
   getFashionStagingOperatorRun,
@@ -205,6 +218,7 @@ export interface CreateAppOptions {
   readonly buildManifestToken?: string;
   readonly buildTrigger?: BuildTrigger;
   readonly experienceBuildTrigger?: ExperienceBuildTrigger;
+  readonly fashionCatalogResetReviewedPayloadDigest?: string;
   readonly fashionTestSettlementProvider?: StripeTestSettlementProvider;
   readonly storefrontExperienceServiceOptions?: StorefrontExperienceServiceOptions;
   readonly previewTokenSecret?: string;
@@ -407,6 +421,45 @@ function requireFashionAcceptanceCredential(context: Context<ApiEnvironment>): v
   }
 }
 
+function requireFashionCatalogResetCredential(context: Context<ApiEnvironment>): void {
+  requireFashionAcceptanceCredential(context);
+  const target = FASHION_STAGING_CATALOG_RESET_TARGET;
+  const bindingsMatch =
+    context.env.FASHION_CATALOG_RESET_ENABLED === "true" &&
+    context.env.CLOUDFLARE_ACCOUNT_ID === target.cloudflareAccountId &&
+    context.env.WORKER_NAME === target.workerName &&
+    context.env.D1_DATABASE_ID === target.d1DatabaseId &&
+    context.env.D1_DATABASE_NAME === target.d1DatabaseName &&
+    context.env.MEDIA_BUCKET_NAME === target.r2BucketName &&
+    context.env.MEDIA_PUBLIC_ORIGIN === target.mediaOrigin;
+  const token = context.env.FASHION_CATALOG_RESET_TOKEN;
+  if (!bindingsMatch || !token || token.length < 32) {
+    throw new ApiError(
+      404,
+      "fashion_catalog_reset_unavailable",
+      "Fashion catalog reset is unavailable.",
+    );
+  }
+  if (context.req.header("x-fashion-catalog-reset-token") !== token) {
+    throw new ApiError(
+      401,
+      "fashion_catalog_reset_unauthorized",
+      "Fashion catalog reset credential required.",
+    );
+  }
+}
+
+function isFashionCatalogResetRoute(path: string): boolean {
+  return (
+    path === "/health" ||
+    path === "/internal/testing/fashion-staging/catalog-migration/preflight" ||
+    path.startsWith("/internal/testing/fashion-staging/catalog-migration/") ||
+    path === "/internal/testing/fashion-staging/catalog-reset" ||
+    path.startsWith("/internal/testing/fashion-staging/catalog-reset/") ||
+    path.startsWith("/internal/testing/fashion-staging/catalog-activation/")
+  );
+}
+
 function previewSessionCredential(context: Context<ApiEnvironment>): string {
   const cookie = context.req.header("cookie") ?? "";
   const session = cookie
@@ -469,9 +522,134 @@ export function createApp(options: CreateAppOptions = {}) {
     ),
   );
 
+  app.use("*", async (context, next) => {
+    if (
+      context.env.FASHION_CATALOG_RESET_ENABLED === "true" &&
+      !isFashionCatalogResetRoute(context.req.path)
+    ) {
+      throw new ApiError(
+        503,
+        "fashion_catalog_reset_in_progress",
+        "Fashion staging is temporarily unavailable while its catalog is reset.",
+      );
+    }
+    await next();
+  });
+
   app.get("/health", (context) =>
     context.json({ data: { status: "ok" }, meta: { requestId: context.get("requestId") } }),
   );
+  app.get("/internal/testing/fashion-staging/catalog-migration/preflight", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const result = await getFashionStagingCatalogPreflight(context.env.DB);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.get("/internal/testing/fashion-staging/catalog-reset/preflight", async (context) => {
+    requireFashionCatalogResetCredential(context);
+    const result = await getFashionStagingCatalogPreflight(context.env.DB);
+    const resetClosed = await isFashionStagingCatalogResetClosed(context.env.DB);
+    const terminalActivation = await getFashionStagingCatalogTerminalActivation(context.env.DB);
+    const resumableActivation = resetClosed
+      ? null
+      : await getFashionStagingCatalogResumableActivation(context.env.DB);
+    if (resetClosed && !terminalActivation) {
+      throw new ApiError(
+        500,
+        "fashion_catalog_terminal_activation_invalid",
+        "The terminal Fashion catalog activation identity is unavailable.",
+      );
+    }
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: {
+        ...result,
+        activeWorkCount: Math.max(0, result.activeWorkCount - (resumableActivation ? 1 : 0)),
+        resetClosed,
+        resumableActivation,
+        terminalActivation,
+      },
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/internal/testing/fashion-staging/catalog-reset/media-preflight", async (context) => {
+    requireFashionCatalogResetCredential(context);
+    if (await isFashionStagingCatalogResetClosed(context.env.DB)) {
+      throw new ApiError(
+        410,
+        "fashion_catalog_reset_closed",
+        "The one-time Fashion catalog reset is closed.",
+      );
+    }
+    const result = await preflightFashionStagingCatalogMedia(
+      context.env.DB,
+      context.env.MEDIA,
+      await context.req.json(),
+      options.fashionCatalogResetReviewedPayloadDigest,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/internal/testing/fashion-staging/catalog-reset", async (context) => {
+    requireFashionCatalogResetCredential(context);
+    if (await isFashionStagingCatalogResetClosed(context.env.DB)) {
+      throw new ApiError(
+        410,
+        "fashion_catalog_reset_closed",
+        "The one-time Fashion catalog reset is closed.",
+      );
+    }
+    const input: unknown = await context.req.json();
+    const result = await resetFashionStagingCatalog(
+      context.env.DB,
+      context.env.MEDIA,
+      input,
+      context.get("requestId"),
+      new Date(),
+      options.fashionCatalogResetReviewedPayloadDigest,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } }, 201);
+  });
+  app.post("/internal/testing/fashion-staging/catalog-activation/prepare", async (context) => {
+    requireFashionCatalogResetCredential(context);
+    const result = await prepareFashionStagingCatalogActivation(
+      context.env.DB,
+      context.get("requestId"),
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } }, 201);
+  });
+  app.post(
+    "/internal/testing/fashion-staging/catalog-activation/:buildId/complete",
+    async (context) => {
+      requireFashionCatalogResetCredential(context);
+      const buildId = context.req.param("buildId");
+      await assertFashionStagingCatalogActivationBuild(context.env.DB, buildId);
+      const result = await parseJson(context, storefrontExperienceBuildResultSchema);
+      if (result.status !== "deployed") {
+        throw new ApiError(
+          422,
+          "fashion_catalog_activation_result_invalid",
+          "The one-time Fashion catalog activation accepts only a deployed artifact.",
+        );
+      }
+      const build = await recordStorefrontExperienceBuildResult(context, buildId, result);
+      await closeFashionStagingCatalogReset(context.env.DB, buildId, context.get("requestId"));
+      context.header("Cache-Control", "private, no-store");
+      return context.json({ data: build, meta: { requestId: context.get("requestId") } });
+    },
+  );
+  app.get("/internal/testing/fashion-staging/catalog-migration/:version", async (context) => {
+    requireFashionAcceptanceCredential(context);
+    const result = await verifyFashionStagingCatalog(
+      context.env.DB,
+      context.env.MEDIA,
+      context.req.param("version"),
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } });
+  });
   app.post("/internal/testing/fashion-staging/runs", async (context) => {
     requireFashionAcceptanceCredential(context);
     const input = await parseJson(context, fashionAcceptanceAcquireSchema);

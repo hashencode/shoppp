@@ -203,7 +203,7 @@ const canonicalRelease = {
         {
           id: "var_01JTHEMEENGINE000000000001",
           optionValues: { size: "M" },
-          prices: [{ amount: 6500, currency: "USD" }],
+          prices: [{ amount: 6500, compareAtAmount: 8500, currency: "USD" }],
           sku: "SELECTED-M",
           status: "active",
           title: "Medium",
@@ -325,10 +325,9 @@ describe("selected storefront theme generation", () => {
     expect(productionProviderSource).not.toContain(canonicalRelease.releaseId);
     expect(productionProviderSource).toContain("activeCatalogSearchIndex = null");
     expect(storefrontExperienceSource).toContain("activeExperienceProviderInput.mode");
-    expect(storefrontExperienceSource).toContain("preview-context");
-    expect(storefrontExperienceSource).toContain("/__preview/context");
-    expect(storefrontExperienceSource).toContain("Return to editor");
-    expect(storefrontExperienceSource).toContain("contentDigest");
+    expect(storefrontExperienceSource).not.toContain("preview-context");
+    expect(storefrontExperienceSource).not.toContain("/__preview/context");
+    expect(storefrontExperienceSource).not.toContain("Private preview context");
   });
 
   test("rejects unknown, incompatible, unapproved, or caller-supplied module paths", () => {
@@ -455,6 +454,7 @@ describe("theme-neutral storefront composer", () => {
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
     expect(first.viewModels.hero).toMatchObject({
+      compareAtPriceLabel: "$85.00",
       heading: "Selected product",
       kind: "product",
       optionGroups: [{ name: "size", values: ["M"] }],
@@ -527,6 +527,51 @@ describe("theme-neutral storefront composer", () => {
     expect(result.viewModels.hero).toMatchObject({
       heading: "Route-selected product",
       resource: { id: release.products[1]!.id, slug: "route-selected-product" },
+    });
+  });
+
+  test("preserves every ordered release-owned image for the live product gallery", () => {
+    const release = structuredClone(canonicalRelease);
+    release.products[0]!.media = Array.from({ length: 6 }, (_, index) => ({
+      alt: `Selected product view ${index + 1}`,
+      height: 765,
+      src: `https://media.example.test/catalog/selected-product-${index + 1}.jpg`,
+      width: 600,
+    }));
+    const result = composeExperienceRoute({
+      experience: {
+        ...liveSnapshot,
+        resolvedTemplates: [
+          {
+            id: "product-gallery-template",
+            pageType: "product",
+            requiredCapabilities: [],
+            sections: [
+              {
+                blocks: [],
+                capabilities: [],
+                id: "hero",
+                settings: {},
+                type: "synthetic.product",
+                visible: true,
+              },
+            ],
+          },
+        ],
+      },
+      locale: "en-US",
+      path: "/products/selected-product",
+      release,
+      route: testRoute("product", "/products/selected-product", {
+        productId: release.products[0]!.id,
+        slug: release.products[0]!.slug,
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.viewModels.hero).toMatchObject({
+      kind: "product",
+      media: release.products[0]!.media,
     });
   });
 
@@ -634,6 +679,7 @@ describe("theme-neutral storefront composer", () => {
           href: "/products/selected-product",
           id: canonicalRelease.products[0].id,
           name: "Selected product",
+          compareAtPriceLabel: "$85.00",
           priceLabel: "$65.00",
         },
       ],
@@ -726,6 +772,7 @@ describe("theme-neutral storefront composer", () => {
       products: [
         {
           actionState: { kind: "available" },
+          compareAtPriceLabel: "$85.00",
           href: "/products/selected-product",
           productId: canonicalRelease.products[0].id,
           staticPurchase: {

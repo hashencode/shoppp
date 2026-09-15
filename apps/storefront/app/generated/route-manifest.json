@@ -1,22 +1,27 @@
 {
-  "releaseId": "representative-release-2026-07-30",
+  "releaseId": "fashion-store-live-2026-09-13-v1-shopper-release",
   "routes": [
     "/",
-    "/collections/travel-essentials",
+    "/collections/fashion-store",
     "/policies/contact",
     "/policies/cookies",
     "/policies/privacy",
     "/policies/returns",
     "/policies/shipping",
     "/policies/terms",
-    "/products/atlas-carry-on",
-    "/products/relaxed-corduroy-shirt"
+    "/products/bermuda-shorts-10",
+    "/products/cotton-sweater-07",
+    "/products/crewneck-sweatshirt-03",
+    "/products/pocket-sweatshirt-06",
+    "/products/relaxed-corduroy-shirt",
+    "/products/sequined-dress-09",
+    "/products/skinny-trousers-04",
+    "/products/sleeve-sweater-05",
+    "/products/texture-regular-08",
+    "/products/textured-sweater-01",
+    "/products/textured-sweater-12",
+    "/products/traveller-shirt-02",
+    "/products/traveller-shirt-11"
   ],
-  "redirects": [
-    {
-      "from": "/products/carry-on",
-      "to": "/products/atlas-carry-on",
-      "status": 301
-    }
-  ]
+  "redirects": []
 }

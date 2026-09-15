@@ -188,6 +188,23 @@ Compare the original and implementation at matching viewports after:
 Review against the behavior ledger rather than free-form browsing. Any human-discovered omission
 must add a source-contract row and a regression test before it is fixed.
 
+### Assert relationships and state ownership
+
+Correct independent dimensions do not prove correct composition. For controls embedded in cards,
+headers, carousels, and overlays, assert the relationships users perceive: glyph center relative to
+its control, sibling order and spacing, containment within the owning surface, and alignment at
+breakpoint boundaries.
+
+Audit CSS ownership by property and interaction state. A later `focus` or `focus-within` rule can
+silently replace the horizontal axis supplied by a base composite `transform`; context-menu clicks
+can expose that path even when ordinary hover looks correct. Likewise, a legacy utility margin can
+move a glyph inside a correctly sized flex control. Keep one owner for spacing/alignment, preserve
+unmodified transform axes in every state, and cover right-click as a focus-producing interaction.
+
+Use reusable geometry assertions for these invariants, and route theme-bearing Git changes through
+the affected `test:<theme-id>` suite. Shared theme infrastructure must run the complete theme matrix;
+a newly added theme without its own suite must fail closed rather than silently skip validation.
+
 ## Why This Matters
 
 A page can be pixel-close at rest, contain the expected number of nodes, and load its libraries

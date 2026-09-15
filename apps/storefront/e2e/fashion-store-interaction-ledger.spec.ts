@@ -37,11 +37,31 @@ async function prepare(page: Page, path: string): Promise<void> {
   await page.locator("html.js").waitFor();
 }
 
+test("Home merchandising retains the stabilized 28-candidate fingerprint", async ({ page }) => {
+  await prepare(page, "/");
+
+  const merchandising = page.locator('[data-home-section="product-merchandising"]');
+  const products = merchandising.locator('[data-decor-region="products"]');
+  const cards = products.locator(
+    '[data-fashion-store-product-card][data-product-surface="home-merchandising"]',
+  );
+  const collection = merchandising.locator('[data-decor-region="collection-carousel"]');
+
+  await expect(products.locator("[data-decor-product-tabs] .nav-link")).toHaveCount(2);
+  await expect(cards).toHaveCount(8);
+  for (const action of ["cart", "wishlist", "quick-view"] as const) {
+    await expect(cards.locator(`[data-card-action="${action}"]`)).toHaveCount(8);
+  }
+  await expect(
+    collection.locator(
+      "[data-decor-collection-carousel] .swiper-button-prev, [data-decor-collection-carousel] .swiper-button-next",
+    ),
+  ).toHaveCount(2);
+});
+
 test("every rendered Fashion Store candidate maps to exactly one semantic row", async ({
   page,
-}, testInfo) => {
-  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Ledger audit runs once.");
-
+}) => {
   const renderedInteractionIds = new Set<string>();
   for (const contract of fashionStorePageContracts) {
     await prepare(page, contract.path);

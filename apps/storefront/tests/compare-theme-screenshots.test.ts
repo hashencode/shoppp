@@ -101,6 +101,55 @@ describe("theme screenshot comparison", () => {
     expect(() => assertThemeScreenshotDifference(result)).toThrow("dimensions differ");
   });
 
+  test("allows one-pixel rasterization drift without hiding a localized recolor", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "shoppp-theme-diff-"));
+    directories.push(directory);
+    const reference = join(directory, "reference.png");
+    const shifted = join(directory, "shifted.png");
+    const recolored = join(directory, "recolored.png");
+    const deleted = join(directory, "deleted.png");
+    const blackPixel = Buffer.from([0, 0, 0, 255]);
+    await sharp({ create: { background: "#fff", channels: 4, height: 5, width: 5 } })
+      .composite([
+        { input: blackPixel, left: 2, top: 2, raw: { channels: 4, height: 1, width: 1 } },
+      ])
+      .png()
+      .toFile(reference);
+    await sharp({ create: { background: "#fff", channels: 4, height: 5, width: 5 } })
+      .composite([
+        { input: blackPixel, left: 2, top: 3, raw: { channels: 4, height: 1, width: 1 } },
+      ])
+      .png()
+      .toFile(shifted);
+    await sharp({ create: { background: "#fff", channels: 4, height: 5, width: 5 } })
+      .composite([
+        {
+          input: Buffer.from([255, 0, 0, 255]),
+          left: 2,
+          top: 2,
+          raw: { channels: 4, height: 1, width: 1 },
+        },
+      ])
+      .png()
+      .toFile(recolored);
+    await sharp({ create: { background: "#fff", channels: 4, height: 5, width: 5 } })
+      .png()
+      .toFile(deleted);
+
+    const shiftedResult = await compareThemeScreenshots(reference, shifted, undefined, 16, {
+      spatialTolerance: 1,
+    });
+    const recoloredResult = await compareThemeScreenshots(reference, recolored, undefined, 16, {
+      spatialTolerance: 1,
+    });
+    const deletedResult = await compareThemeScreenshots(reference, deleted, undefined, 16, {
+      spatialTolerance: 1,
+    });
+    expect(shiftedResult.changedPixels).toBe(0);
+    expect(recoloredResult.changedPixels).toBe(1);
+    expect(deletedResult.changedPixels).toBe(1);
+  });
+
   test("enforces full-page and named-state acceptance ratios", () => {
     const result = {
       channelTolerance: 16,

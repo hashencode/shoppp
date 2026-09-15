@@ -20,21 +20,62 @@ cross-template copies of these passive image/font bytes. No additional attributi
 required beyond retaining this provenance. Source and delivered SHA-256 values are identical; the
 Decor implementation and its immutable source snapshot remain unchanged.
 
-| Fashion-owned delivery file | Decor source file | SHA-256 |
-| --- | --- | --- |
-| `assets/hero/fashion-store-decor-hero-01-product.png` | `decor-store/upstream/images/demo-decor-store-slider-01-img-01.png` | `54594788dc41dc6506827c9545797222c230a27bdf4632f7abe5f1a9056ac0b4` |
+| Fashion-owned delivery file                                   | Decor source file                                                   | SHA-256                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `assets/hero/fashion-store-decor-hero-01-product.png`         | `decor-store/upstream/images/demo-decor-store-slider-01-img-01.png` | `54594788dc41dc6506827c9545797222c230a27bdf4632f7abe5f1a9056ac0b4` |
 | `assets/hero/fashion-store-decor-hero-01-pattern-desktop.jpg` | `decor-store/upstream/images/demo-decor-store-slider-01-img-02.jpg` | `cf827b426ba54048799b35929bfc51ac92f07fb857392593964f26e4d9b1be72` |
-| `assets/hero/fashion-store-decor-hero-01-pattern-mobile.jpg` | `decor-store/upstream/images/demo-decor-store-slider-01-img-03.jpg` | `74addabd7ebed5e18d4f14655adc468053d42ea2ed1392cecc618778ba1211fc` |
-| `assets/hero/fashion-store-decor-hero-01-thumb.jpg` | `decor-store/upstream/images/demo-decor-store-slider-01-thumb.jpg` | `fda36e97ee8eec86980ad1097bdd79370a8ad89c8a79fcb41fb60dddf6b8df73` |
-| `assets/hero/fashion-store-decor-hero-02-product.png` | `decor-store/upstream/images/demo-decor-store-slider-02-img-04.png` | `611ac9ed11e9a2e6bacfd283107b48bdd4c686436aebd1f18f2752cfca9d1c5c` |
+| `assets/hero/fashion-store-decor-hero-01-pattern-mobile.jpg`  | `decor-store/upstream/images/demo-decor-store-slider-01-img-03.jpg` | `74addabd7ebed5e18d4f14655adc468053d42ea2ed1392cecc618778ba1211fc` |
+| `assets/hero/fashion-store-decor-hero-01-thumb.jpg`           | `decor-store/upstream/images/demo-decor-store-slider-01-thumb.jpg`  | `fda36e97ee8eec86980ad1097bdd79370a8ad89c8a79fcb41fb60dddf6b8df73` |
+| `assets/hero/fashion-store-decor-hero-02-product.png`         | `decor-store/upstream/images/demo-decor-store-slider-02-img-04.png` | `611ac9ed11e9a2e6bacfd283107b48bdd4c686436aebd1f18f2752cfca9d1c5c` |
 | `assets/hero/fashion-store-decor-hero-02-pattern-desktop.jpg` | `decor-store/upstream/images/demo-decor-store-slider-02-img-05.jpg` | `599c5088c5d92f04f218d3916cc7cb3b5633ba7dfefe791b1ed833e09d319612` |
-| `assets/hero/fashion-store-decor-hero-02-pattern-mobile.jpg` | `decor-store/upstream/images/demo-decor-store-slider-02-img-06.jpg` | `e59189a7f35b592efe9f1f4cc5dff16a767d168e50de577314e2dd8e0644b60b` |
-| `assets/hero/fashion-store-decor-hero-02-thumb.jpg` | `decor-store/upstream/images/demo-decor-store-slider-02-thumb.jpg` | `9bb15c7bd916e01f69ce7c5d7cc1b57737c4032e4d4f61877f163deb24001678` |
-| `assets/hero/fashion-store-decor-hero-03-product.png` | `decor-store/upstream/images/demo-decor-store-slider-03-img-07.png` | `e10535e74004c9108d9baeedac01bf84e9bf559203c4bcc4ad16b23a18bf916f` |
+| `assets/hero/fashion-store-decor-hero-02-pattern-mobile.jpg`  | `decor-store/upstream/images/demo-decor-store-slider-02-img-06.jpg` | `e59189a7f35b592efe9f1f4cc5dff16a767d168e50de577314e2dd8e0644b60b` |
+| `assets/hero/fashion-store-decor-hero-02-thumb.jpg`           | `decor-store/upstream/images/demo-decor-store-slider-02-thumb.jpg`  | `9bb15c7bd916e01f69ce7c5d7cc1b57737c4032e4d4f61877f163deb24001678` |
+| `assets/hero/fashion-store-decor-hero-03-product.png`         | `decor-store/upstream/images/demo-decor-store-slider-03-img-07.png` | `e10535e74004c9108d9baeedac01bf84e9bf559203c4bcc4ad16b23a18bf916f` |
 | `assets/hero/fashion-store-decor-hero-03-pattern-desktop.jpg` | `decor-store/upstream/images/demo-decor-store-slider-03-img-08.jpg` | `6997c10814f1db11b187f85fc4254f0c0053441b852a975cc2373edcfd461034` |
-| `assets/hero/fashion-store-decor-hero-03-pattern-mobile.jpg` | `decor-store/upstream/images/demo-decor-store-slider-03-img-09.jpg` | `7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011` |
-| `assets/hero/fashion-store-decor-hero-03-thumb.jpg` | `decor-store/upstream/images/demo-decor-store-slider-03-thumb.jpg` | `2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96` |
-| `assets/hero/plus-jakarta-sans-latin.woff2` | `decor-store/upstream/fonts/plus-jakarta-sans-latin.woff2` | `cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215` |
+| `assets/hero/fashion-store-decor-hero-03-pattern-mobile.jpg`  | `decor-store/upstream/images/demo-decor-store-slider-03-img-09.jpg` | `7e2991a28aba601457783e4480c849c9a37aaeaf27715975ccbe276c402ed011` |
+| `assets/hero/fashion-store-decor-hero-03-thumb.jpg`           | `decor-store/upstream/images/demo-decor-store-slider-03-thumb.jpg`  | `2c6500ae5b3a48b77de35f4f758dcd1379215f62827c06641d880918b471ff96` |
+| `assets/hero/plus-jakarta-sans-latin.woff2`                   | `decor-store/upstream/fonts/plus-jakarta-sans-latin.woff2`          | `cd8db90cd950e26bc8761f65d323588bd5cd112d326d6d322bc7c8ea86771215` |
+
+## FS-F4 Decor Home copied visual assets
+
+`assets/decor-home/` contains only the 26 passive source images used by the corrected Categories,
+collection, client strip, Journal, Services, and Home-logo fallback. They were copied byte-for-byte
+from `templates/Crafto - The Multipurpose HTML5 Template/html/images/` on 2026-09-08. The stable
+resolver IDs and build imports are declared in `decor-home-assets.ts`; each digest below applies to
+both the named source file and the same-named delivered file. No script, stylesheet, product fact,
+or retired runtime was copied.
+
+| Source and delivered file | Intrinsic size | Source and delivered SHA-256 |
+| --- | --- | --- |
+| `demo-decor-store-banner-04.jpg` | `1280x640` | `66e051e40f318c8860e6fc6ca33fa9e0b48f6a487fe683446a229b1ee5c2ba4f` |
+| `demo-decor-store-blog-03.jpg` | `600x445` | `2a6b77cb9e743d6643d59dc10bea00d53bc646b42159f7ad341bfd9723244743` |
+| `demo-decor-store-blog-04.jpg` | `600x445` | `3528389c694c3280c6384ac20fdbf05b72714981ae4ac10f00346311af705d76` |
+| `demo-decor-store-blog-07.jpg` | `600x445` | `d8b50dc900e773d22ceec74b7e22d135c5977c5be7336126592d9870fb159201` |
+| `demo-decor-store-blog-08.jpg` | `600x445` | `72d5fb42009c6b87366ce970d3d1b94d63628ed5af418de888076baabb000b3c` |
+| `demo-decor-store-client-01.png` | `195x50` | `8afe51f61a3ac538a02100806701fa42b6859cea86aade4f8ab2b291823438c2` |
+| `demo-decor-store-client-02.png` | `195x50` | `72acf1c388d1bf3bbf6cb7625d74c77a520557656299385d1b7d1c7ed33c1605` |
+| `demo-decor-store-client-03.png` | `195x50` | `9b7162520bfc801de37b564544881f8fa3660eab5b23ade402447ade0e9d9dd3` |
+| `demo-decor-store-client-04.png` | `195x50` | `f89ec329ce508494d030288064e3c66d558ae3915683027903b5ac7b4c8d78ee` |
+| `demo-decor-store-client-05.png` | `195x50` | `549242dd7871041c7dd21b784d2a8996c4600697b78cc75cd6cc7061e46bfa49` |
+| `demo-decor-store-icon-01.png` | `65x65` | `1e88b606ad380b33347b426e4b2c18d15ba2ff16ebb8bfc6fd79e6abf7ac1e88` |
+| `demo-decor-store-icon-02.png` | `65x65` | `f0b3f3f195abf4df9e90c55fa0fac98b1c61f48088a17f68534d888d83406a21` |
+| `demo-decor-store-icon-03.png` | `65x65` | `36690cf010c6186567803fbd679a1a1c2da1807368a7b82caa74d9bb80a8cdb4` |
+| `demo-decor-store-icon-04.png` | `65x65` | `4e69b6fd34a250206cc79fb81fbe6de12f415b0c348d53408cf7be6b2ed228b2` |
+| `demo-decor-store-icon-05.png` | `65x65` | `976204602bbffccce8fa6e627052143a14c39561b858943d8a26bb857e3b16d0` |
+| `demo-decor-store-icon-06.png` | `60x50` | `2388c1af1eb90062847124bbdb9f6add7b766bda4914385263efa1408e4a86fb` |
+| `demo-decor-store-icon-07.png` | `60x50` | `91c6b093e916549dfa92cb2c3d31369a20179da4c5cab06d57c70c057322e24e` |
+| `demo-decor-store-icon-08.png` | `60x50` | `a4607c544042891bd0f79a281f0378f9c360bf0e37177bb4b2d9435485f10018` |
+| `demo-decor-store-icon-09.png` | `60x50` | `276855245df061ac56175dcde73c07b19cfa729459b8f6e2d9f05ec5a9790533` |
+| `demo-decor-store-icon-10.png` | `65x65` | `5c8f8e6aee635452d9763a525dac168faa994355e56a75bd7b81052ab606e21b` |
+| `demo-decor-store-logo-black.png` | `167x36` | `667d763440051f4275c39499fa3ab0f6dd2ee3c267f4537993c63ade5c04211c` |
+| `demo-decor-store-logo-black@2x.png` | `334x72` | `4043b614c16e96f3615b81bb1639cd1dfe0aabb8f9222b4ee53efbab61ff7018` |
+| `demo-decor-store-main-banner-01.jpg` | `580x540` | `0369707b74459e63e93524405f1b1b2f0a2fbf96f81549f2f61d16640b450425` |
+| `demo-decor-store-main-banner-02.jpg` | `580x260` | `1edf394126b5134f74c9a84a669e9eeef7f6fe8102a1a9651a6f4b81bdcb27d6` |
+| `demo-decor-store-main-banner-03.jpg` | `580x260` | `56fe556e846fdf9c53eb64c6f7eca496310d96d0a7470dbe822fd106e006e81a` |
+| `demo-decor-store-product-slider-bg-img.jpg` | `640x640` | `c8eaee3addc081649d4bf7209dcbfd89c152d020266056cfbf6beee8e6ceeb61` |
+
+The `@2x` logo is the only retina pair and is exactly twice the intrinsic width and height of its
+base logo.
 
 - `js/main.js:80-512` — adapter-reference-only: Header collapse, dropdown, focus-adjacent, and responsive navigation visual state; business search validation is excluded.
 - `js/main.js:521-609` — adapter-reference-only: Shop-grid imagesLoaded and Isotope layout behavior used by the Fashion product surface.
