@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-09-15-1723-refactor-admin-query-list-convergence-plan.md
-current_unit: ADM-LIST-U8
+current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
+current_unit: REL-Pre-DC
 ---
 
 # Shoppp Product Master Plan
@@ -66,11 +66,12 @@ historical evidence remain unchanged inside the owning plans.
 
 ## Current execution pointer
 
-- **Active product plan:** `ADM-LIST` — [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md), activated by the user's 2026-09-15 implementation authorization.
-- **Current parent/child stage:** `ADM-LIST-U8` — run cross-page verification, simplification, review, and governance handback.
-- **Current feature scope:** Converge Admin query-oriented lists on the standard explicit Query/Reset, table-state, pagination, refresh, and error language while preserving domain actions and truthful offset, cursor, and multi-resource semantics.
-- **Next action:** Run the complete Admin verification matrix, simplify and review the accumulated diff, resolve eligible findings, retain final evidence, and restore `REL-Pre-DC`.
-- **Blocker:** None. `REL-Pre-DC` is the exact preserved return pointer after completed `FS-R5`; its existing blockers remain preserved and no candidate is frozen.
+- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
+- **Current parent/child stage:** `REL-Pre-DC` — reconcile the intended product-level capability set before selecting an immutable candidate.
+- **Current feature scope:** Audit the release capability set and approved deferrals, reconcile every selected capability against its owning completed plan, and finish candidate-identity enforcement before DC1.
+- **Next action:** Resume the existing `REL-Pre-DC` reconciliation and candidate-identity enforcement work; do not freeze a candidate until its documented blockers are closed.
+- **Blocker:** The unaudited product-level capability set and approved deferrals, incomplete selected-capability reconciliation, the deferred Home configuration/immutable-Preview successor, and incomplete candidate-identity enforcement in `release:validate`.
+- **Completed ADM-LIST handoff:** U1-U8 converged five offset lists plus the truthful Users/Invitations and Audit exceptions, resolved the review-confirmed locale refetch defect, and passed focused, browser, build, lint, type, and table-width verification. The handoff advances no candidate, DC, deployment, or PG state.
 - **Completed predecessor:** `FS-F8` completed U1-U7 on 2026-09-15 with the 13-product/24-variant D1 catalog, 18 verified R2 media objects, authoritative staging cart proof, fixture isolation, and protected-preview boundary green.
 - **Completed FS-F6 handoff:** U1-U4 closed on 2026-09-13 with focused motion and Hero behavior, combined/isolated Home, stable Lighthouse, full Fashion Store, accessibility, production/static, type, lint/format, impact-selection, human motion, review, and diff evidence green under the unchanged motion and accessibility gates. The handoff advances no candidate, DC, deployment, or PG state.
 - **Completed FS-F5 handoff:** Combined Decor Home now uses a bounded 1320px layout for featured categories, products, journal, client logos, and Footer while isolated source review and full-bleed regions retain their prior geometry. Boundary, responsive, type, lint, and production-build evidence passed; candidate, DC, deployment, and PG state are unchanged.
@@ -440,7 +441,7 @@ focused test alone.
 | `MASTER`    | This plan                                                                                                                              | Whole-product navigation, lineage and active pointer                                                                                    | Active product authority                                                                                                                                                                               | Updated with every product-level pointer or classification change                                                                                                               |
 | `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md)                                                        | Bounded Admin onboarding feature over COM/THEME/IAM                                                                                     | Complete — U1–U5 closed on 2026-09-03; guide implementation, local verification and maintenance documentation delivered                                                                                | Retains completed guide evidence with no implementation tail; existing product contracts and REL retain their authority                                                         |
 | `ADM-I18N`  | [Admin Internationalization Completion](2026-09-03-1553-fix-admin-i18n-completion-plan.md)                                             | Bounded Admin localization correction over COM/THEME/IAM                                                                                | Complete on 2026-09-03; U1–U6 closed                                                                                                                                                                   | Retains remediation/local-verification evidence and explicit review limits; no implementation tail. REL retains candidate and production authority.                             |
-| `ADM-LIST`  | [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md)                                           | Active Admin-wide convergence for query-oriented lists over Commerce/IAM and the approved Standard List Page baseline                   | **Active at U8 — U1-U7 completed shared contracts, five direct Recipe migrations, and both truthful exceptions with focused/browser/E2E verification green**                                             | Owns final cross-page verification and review; green U8 restores `REL-Pre-DC` without changing candidate/deployment/PG state                                                   |
+| `ADM-LIST`  | [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md)                                           | Completed Admin-wide convergence for query-oriented lists over Commerce/IAM and the approved Standard List Page baseline                | **Complete — U1-U8 standardized five direct Recipe pages and two truthful exceptions, resolved the review-confirmed locale refetch defect, and retained final verification evidence**                     | Retains completed Admin query-list evidence with no implementation tail; `REL-Pre-DC` owns the current product action                                                         |
 
 ## Decision hierarchy and supersessions
 
@@ -560,7 +561,7 @@ creating competing detailed ledgers.
 - All existing Shoppp plans appear in the register and retain their historical documents.
 - Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
   visible from one product entry point.
-- `FS-R5-U1` through `FS-R5-U8` are complete while `ADM-LIST-U8` owns final verification and review; `REL-Pre-DC` is the preserved return pointer with its blocker explicit, and no candidate, DC, deployment, or PG state has advanced.
+- `FS-R5-U1` through `FS-R5-U8` and `ADM-LIST-U1` through `ADM-LIST-U8` are complete; `REL-Pre-DC` owns the current product action with its blockers explicit, and no candidate, DC, deployment, or PG state has advanced.
 - The retired `fashion`, `decor`, and `decor-store` implementations, retained reference naming, DC/PG scope, and worktree policy are stated
   without changing product behavior in code.
 - No historical plan is marked complete without an owning completion statement.

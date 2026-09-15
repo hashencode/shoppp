@@ -2,8 +2,8 @@
 title: Admin Query List Behavior and Disposition Matrix
 date: 2026-09-15
 plan: ADM-LIST
-unit: ADM-LIST-U1
-status: frozen-baseline
+unit: ADM-LIST-U8
+status: completed-evidence
 ---
 
 # Admin Query List Behavior and Disposition Matrix
@@ -57,3 +57,22 @@ U8 owns the cross-page check that unique table ids, localization, theme and pref
 not alter committed request scope or trigger data fetches. Domain API redesign, cursor fabrication,
 multi-resource flattening, and page-specific export/write logic in the shared recipe remain out of
 scope.
+
+## U8 completion evidence
+
+- Formal review run `20260915-195350-79a23995` completed with one confirmed P2 finding: locale
+  changes recreated request-filter builders and refetched Orders, Inventory, Notification Jobs,
+  and Roles. The builders are now stable module-level functions, and all four pages have explicit
+  no-refetch regression coverage.
+- Review-requested coverage was added for Invitations pagination isolation, inverse Users failure
+  isolation, and an older Audit cursor response resolving after Reset. The focused five-file suite
+  passed 57/57.
+- The native-browser component suite passed 24/24. Admin typecheck, lint, production build including
+  Worker dry-run, and the 17-file table-width audit passed.
+- Two complete Admin component runs each finished 495/496; the sole failure was the same unrelated
+  ThemeEditor test exceeding its 20-second timeout. Its exact isolated rerun passed 1/1, and all
+  query-list files were green.
+- Notification Replay E2E passed. Reporting E2E stopped before the migrated Revenue Report route on
+  a stale Dashboard summary assertion; direct Revenue Report component and browser coverage passed.
+- No worktree, pull request, candidate freeze, deployment, or PG transition was created. Settings
+  work remained excluded from every Admin commit.

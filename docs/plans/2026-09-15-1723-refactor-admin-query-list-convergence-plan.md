@@ -6,17 +6,17 @@ artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
 execution: code
-plan_role: active-bounded-successor
+plan_role: completed-bounded-successor
 plan_alias: ADM-LIST
 upstream_product_authority: docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md
 inherited_baseline:
   - docs/plans/2026-08-11-001-feat-fashion-store-functional-integration-plan.md
   - docs/plans/2026-09-03-1553-fix-admin-i18n-completion-plan.md
   - docs/plans/2026-09-02-1310-refactor-admin-approved-capability-adaptation-plan.md
-explicit_supersessions: none-until-implementation-lands
+explicit_supersessions: page-local-query-list-orchestration-for-the-seven-named-surfaces
 parallel_plans:
   - docs/plans/2026-09-15-1350-refactor-fashion-store-presentation-convergence-plan.md
-tail_owner: ADM-LIST-until-local-verification-and-handback
+tail_owner: REL-Pre-DC-after-local-verification-and-handback
 ---
 
 # Admin Query List Convergence - Plan
@@ -37,19 +37,20 @@ tail_owner: ADM-LIST-until-local-verification-and-handback
 
 - **Upstream product authority:** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` owns the plan register, active pointer, product-level sequence, and supersession history.
 - **Inherited baseline:** Commerce owns order, revenue, inventory, export, and adjustment facts. IAM owns users, invitations, roles, audit, and authorization. Admin i18n owns visible copy. The Standard List Page capability-adaptation plan and the current Catalog/query-template implementations own the accepted query-page primitives and recipe behavior.
-- **Explicit supersessions:** None until a unit lands. Completed units supersede only the corresponding page-local filter/list orchestration named in that unit; domain clients, routes, permissions, modals, and writes remain under their existing authorities.
-- **Parallel plans:** `FS-R5-U8` is paused as the recorded return pointer while `ADM-LIST` owns the active implementation tail; this replaces the earlier return point after the parallel Fashion plan advanced.
-- **Tail ownership:** `ADM-LIST` owns U1-U8 and focused local verification. Green U8 restores `FS-R5-U8` unless a later explicit product-sequence decision names a replacement. Handback does not change `REL`, candidate, deployment, or PG state.
+- **Explicit supersessions:** Completed units supersede only the corresponding page-local filter/list orchestration named in that unit; domain clients, routes, permissions, modals, and writes remain under their existing authorities.
+- **Parallel plans:** `FS-R5-U8` completed while `ADM-LIST` owned its bounded tail and returned its authority to `REL-Pre-DC`; no parallel implementation remains active at this handback.
+- **Tail ownership:** `ADM-LIST` owned U1-U8 and focused local verification. Green U8 returns the product pointer to `REL-Pre-DC`. Handback does not change candidate, deployment, or PG state.
 
 ## Execution Checkpoint
 
-- **Classification:** Active bounded Admin query-list successor.
-- **Current unit:** `ADM-LIST-U8` — run cross-page verification, simplification, review, and governance handback.
-- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Revenue Report with 37 focused and two native-browser tests green. `ADM-LIST-U5` — migrated Notification Jobs with five component tests and one Replay E2E green. `ADM-LIST-U6` — standardized Users/Invitations with 25 IAM component and four native-browser tests green. `ADM-LIST-U7` — composed Audit from standard primitives while preserving forward-only cursor truth, explicit Query/Reset, first/previous/next/restart, invalid-cursor recovery, no-total presentation, permissions, localization, and table identity; 36 focused API/page/route tests, 12 direct Audit component tests, one native-browser test, Admin typecheck, affected lint/format, table-width audit, and diff checks passed.
-- **Next unit:** None; U8 owns the remaining verification and return to `FS-R5-U8`.
-- **Blocker:** None.
+- **Classification:** Complete bounded Admin query-list successor.
+- **Current unit:** None — `ADM-LIST-U1` through `ADM-LIST-U8` are complete.
+- **Completed units:** `ADM-LIST-U1` — established the behavior matrix and shared contracts with 35 focused tests green. `ADM-LIST-U2` — migrated Orders and Roles with 22 focused tests green. `ADM-LIST-U3` — migrated Inventory with six focused tests green. `ADM-LIST-U4` — migrated Revenue Report with 37 focused and two native-browser tests green. `ADM-LIST-U5` — migrated Notification Jobs with five component tests and one Replay E2E green. `ADM-LIST-U6` — standardized Users/Invitations with 25 IAM component and four native-browser tests green. `ADM-LIST-U7` — composed Audit from standard primitives while preserving forward-only cursor truth, explicit Query/Reset, first/previous/next/restart, invalid-cursor recovery, no-total presentation, permissions, localization, and table identity; 36 focused API/page/route tests, 12 direct Audit component tests, one native-browser test, Admin typecheck, affected lint/format, table-width audit, and diff checks passed. `ADM-LIST-U8` — simplified the seven page implementations, completed formal review, fixed the confirmed locale-driven refetch defect, added cross-page locale, IAM isolation, and Audit overlap regressions, and passed focused tests, browser tests, typecheck, lint, production build, and table-width audit.
+- **Next unit:** None inside this plan. U8 handed authority back to `REL-Pre-DC`.
+- **Blocker:** None inside this completed plan. Existing `REL-Pre-DC` blockers are unchanged.
 - **Execution order:** U1 → U2 → U3 → U4 → U5 → U6 → U7 → U8.
-- **Next concrete action:** Run the complete Admin verification matrix, simplify the accumulated diff, complete code review, resolve eligible findings, retain final evidence, and restore the recorded product pointer.
+- **Next concrete action:** `REL-Pre-DC` resumes its existing capability reconciliation and candidate-identity enforcement work; no candidate is frozen by this handback.
+- **Completion handback:** U8 returned to `REL-Pre-DC`. This plan did not advance candidate, DC, deployment, or PG state.
 
 ## Product Contract
 
