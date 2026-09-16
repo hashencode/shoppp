@@ -11,6 +11,7 @@ export type TableWidthIssueType =
   | 'unknown-width'
   | 'missing-scroll'
   | 'scroll-too-small'
+  | 'action-layout-manual-review'
 
 export type TableWidthIssueSeverity = 'error' | 'warn'
 
@@ -48,7 +49,15 @@ export type SourceAuditResult = {
   tableUsages: TableUsageAudit[]
   columnGroups: ColumnGroupAudit[]
   scrollValues: Array<{ name: string; value: number; line: number }>
+  actionManualReviews: ActionManualReview[]
   issues: TableWidthIssue[]
+}
+
+export type ActionManualReview = {
+  line: number
+  source: string
+  reason: string
+  severity: TableWidthIssueSeverity
 }
 
 const DEFAULT_COLUMN_WIDTH = 120
@@ -390,6 +399,108 @@ const collectNumericConstants = (sourceFile: ts.SourceFile) => {
   return numericConstants
 }
 
+const collectVariableInitializers = (sourceFile: ts.SourceFile) => {
+  const initializers = new Map<string, ts.Expression>()
+  const visit = (node: ts.Node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      initializers.set(node.name.text, node.initializer)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return initializers
+}
+
+const collectActionManualReviews = (
+  sourceFile: ts.SourceFile,
+  numericConstants: Map<string, number>,
+  variableInitializers: Map<string, ts.Expression>
+) => {
+  const actionObjects = new Set<ts.ObjectLiteralExpression>()
+  const strictActionObjects = new Set<ts.ObjectLiteralExpression>()
+
+  const collectFromExpression = (
+    expression: ts.Expression,
+    collected: Set<ts.ObjectLiteralExpression>,
+    visited = new Set<string>()
+  ) => {
+    const unwrappedExpression = unwrapExpression(expression)
+    if (ts.isIdentifier(unwrappedExpression)) {
+      if (visited.has(unwrappedExpression.text)) return
+      const initializer = variableInitializers.get(unwrappedExpression.text)
+      if (!initializer) return
+      const nextVisited = new Set(visited)
+      nextVisited.add(unwrappedExpression.text)
+      collectFromExpression(initializer, collected, nextVisited)
+      return
+    }
+    if (ts.isArrayLiteralExpression(unwrappedExpression)) {
+      for (const element of unwrappedExpression.elements) {
+        if (ts.isSpreadElement(element)) {
+          collectFromExpression(element.expression, collected, visited)
+          continue
+        }
+        const unwrappedElement = unwrapExpression(element as ts.Expression)
+        if (ts.isObjectLiteralExpression(unwrappedElement)) {
+          collected.add(unwrappedElement)
+        } else {
+          collectFromExpression(unwrappedElement, collected, visited)
+        }
+      }
+      return
+    }
+    if (ts.isConditionalExpression(unwrappedExpression)) {
+      collectFromExpression(unwrappedExpression.whenTrue, collected, visited)
+      collectFromExpression(unwrappedExpression.whenFalse, collected, visited)
+    }
+  }
+
+  const visit = (node: ts.Node) => {
+    if (
+      (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+      ts.isIdentifier(node.tagName) &&
+      node.tagName.text === 'ListRowActions'
+    ) {
+      const actionsAttribute = node.attributes.properties.find(
+        (attribute): attribute is ts.JsxAttribute =>
+          ts.isJsxAttribute(attribute) && getJsxAttributeNameText(attribute.name) === 'actions'
+      )
+      const initializer = actionsAttribute?.initializer
+      if (initializer && ts.isJsxExpression(initializer) && initializer.expression) {
+        const reachableObjects = new Set<ts.ObjectLiteralExpression>()
+        collectFromExpression(initializer.expression, reachableObjects)
+        for (const actionObject of reachableObjects) actionObjects.add(actionObject)
+        if (
+          [...reachableObjects].some((actionObject) =>
+            getObjectProperty(actionObject, 'contentWidth')
+          )
+        ) {
+          for (const actionObject of reachableObjects) strictActionObjects.add(actionObject)
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+
+  return [...actionObjects].flatMap((actionObject): ActionManualReview[] => {
+    const key = getObjectProperty(actionObject, 'key')?.initializer
+    const contentWidth = getObjectProperty(actionObject, 'contentWidth')?.initializer
+    const staticKey = key ? getTextValue(key) : undefined
+    const width = contentWidth ? resolveWidth(contentWidth, numericConstants).value : undefined
+    if (staticKey && typeof width === 'number') return []
+    return [
+      {
+        line: getLine(sourceFile, actionObject),
+        source: actionObject.getText(sourceFile),
+        reason:
+          'Action key and contentWidth must be static and contentWidth must reference a local named width map.',
+        severity: strictActionObjects.has(actionObject) ? 'error' : 'warn',
+      },
+    ]
+  })
+}
+
 const buildColumnAudit = (
   sourceFile: ts.SourceFile,
   node: ts.ObjectLiteralExpression,
@@ -590,6 +701,16 @@ const buildIssues = (result: Omit<SourceAuditResult, 'issues'>): TableWidthIssue
     }
   }
 
+  for (const manualReview of result.actionManualReviews) {
+    issues.push({
+      type: 'action-layout-manual-review',
+      severity: manualReview.severity,
+      filePath: result.filePath,
+      line: manualReview.line,
+      message: `${manualReview.reason} Manual review required for "${manualReview.source}".`,
+    })
+  }
+
   return issues
 }
 
@@ -602,11 +723,17 @@ export const auditSourceText = (filePath: string, sourceText: string): SourceAud
     ts.ScriptKind.TSX
   )
   const numericConstants = collectNumericConstants(sourceFile)
+  const variableInitializers = collectVariableInitializers(sourceFile)
   const result = {
     filePath,
     tableUsages: collectTableUsages(sourceFile),
     columnGroups: collectColumnGroups(sourceFile, numericConstants),
     scrollValues: collectScrollValues(sourceFile, numericConstants),
+    actionManualReviews: collectActionManualReviews(
+      sourceFile,
+      numericConstants,
+      variableInitializers
+    ),
   }
 
   return {
@@ -647,7 +774,7 @@ export const auditProject = (rootDir = process.cwd()): SourceAuditResult[] => {
     .map((filePath) =>
       auditSourceText(path.relative(rootDir, filePath), readFileSync(filePath, 'utf8'))
     )
-    .filter((result) => result.tableUsages.length > 0)
+    .filter((result) => result.tableUsages.length > 0 || result.actionManualReviews.length > 0)
 }
 
 const formatIssue = (issue: TableWidthIssue) =>

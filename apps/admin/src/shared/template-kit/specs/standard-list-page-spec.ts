@@ -7,6 +7,7 @@ import type { TemplateListFilterField } from '../list/template-list-filter-form'
 import type { StandardPaginationConfig } from '../../hooks/use-standard-pagination'
 import type { PermissionKey } from '../../../infrastructure/auth/permissions'
 import type { FormMode } from '../../../routes/form-route-contract'
+import type { ActionColumnLayout } from '../list/resolve-action-column-width'
 
 type StandardListExtensionHelpers<TRequestFilters> = {
   reload: () => Promise<void>
@@ -61,6 +62,9 @@ export type StandardListPageSpec<
     openFormPage: (mode: FormMode, resourceKey?: string) => void
     reload: () => Promise<void>
     resolveActionColumnWidth: (baseWidth: number, maxWidth?: number) => number
+    resolveActionColumnLayout: (
+      reachableContentWidthCombinations: ReadonlyArray<ReadonlyArray<number>>
+    ) => ActionColumnLayout
   }) => ColumnsType<TItem>
   createAction?: {
     label: string

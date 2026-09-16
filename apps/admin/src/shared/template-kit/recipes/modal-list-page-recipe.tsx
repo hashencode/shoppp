@@ -2,7 +2,10 @@ import { Form } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildSearchGridProps } from '../list/build-search-grid-props'
 import { buildModalListTableProps, MODAL_LIST_TABLE_SIZE } from '../list/modal-list-rules'
-import { resolveActionColumnWidth } from '../list/resolve-action-column-width'
+import {
+  resolveActionColumnLayout,
+  resolveActionColumnWidth,
+} from '../list/resolve-action-column-width'
 import { TemplateListContent } from '../list/template-list-content'
 import { TemplateListFilterForm } from '../list/template-list-filter-form'
 import { useTemplateListController } from '../list/use-template-list-controller'
@@ -127,6 +130,8 @@ export const ModalListPageRecipe = <
         reload,
         resolveActionColumnWidth: (baseWidth, maxWidth) =>
           resolveActionColumnWidth(baseWidth, MODAL_LIST_TABLE_SIZE, maxWidth),
+        resolveActionColumnLayout: (reachableContentWidthCombinations) =>
+          resolveActionColumnLayout(reachableContentWidthCombinations, MODAL_LIST_TABLE_SIZE),
       }),
     [reload, spec]
   )

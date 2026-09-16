@@ -161,6 +161,38 @@ describe('table width audit', () => {
     expect(result.columnGroups[0]?.columns.map((column) => column.width)).toEqual([100, 142, 140])
   })
 
+  it('rejects missing widths after a reachable action collection adopts the contract', () => {
+    const result = auditSourceText(
+      'src/pages/example.tsx',
+      `
+        const ACTION_CONTENT_WIDTHS = { view: 30, edit: 30 } as const
+        const actions = [
+          { key: 'view', label: '查看' },
+          { key: 'edit', label: '编辑', contentWidth: ACTION_CONTENT_WIDTHS.edit },
+        ]
+        export const Page = () => <ListRowActions actions={actions} />
+      `
+    )
+
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ type: 'action-layout-manual-review', severity: 'error' })
+    )
+  })
+
+  it('keeps fully legacy reachable action collections as warnings', () => {
+    const result = auditSourceText(
+      'src/pages/example.tsx',
+      `
+        const actions = [{ key: 'view', label: '查看' }]
+        export const Page = () => <ListRowActions actions={actions} />
+      `
+    )
+
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ type: 'action-layout-manual-review', severity: 'warn' })
+    )
+  })
+
   it('should suggest widths from column semantics', () => {
     expect(suggestColumnWidth('身份证号')).toBe(190)
     expect(suggestColumnWidth('创建时间')).toBe(180)

@@ -1,11 +1,13 @@
 import { render } from '../../test/render-with-app'
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, rstest } from '@rstest/core'
 import { Button } from 'antd'
 import { FilePreview } from './file-preview'
 
 void React
+
+let pdfPageErrorMode: 'load' | 'render' | null = null
 
 rstest.mock('react-pdf', () => ({
   pdfjs: {
@@ -13,21 +15,33 @@ rstest.mock('react-pdf', () => ({
   },
   Document: ({
     children,
-    error,
     file,
+    onLoadError,
     onLoadSuccess,
   }: {
     children?: React.ReactNode
-    error?: React.ReactNode
     file?: string
+    onLoadError?: (error: Error) => void
     onLoadSuccess?: (result: { numPages: number }) => void
   }) => (
     <div data-testid="pdf-document">
       {file?.includes('broken') ? (
-        error
+        <button type="button" onClick={() => onLoadError?.(new Error('load failed'))}>
+          模拟 PDF 加载失败
+        </button>
       ) : (
         <>
-          <button type="button" onClick={() => onLoadSuccess?.({ numPages: 2 })}>
+          <button
+            type="button"
+            onClick={() => {
+              pdfPageErrorMode = file?.includes('page-load-error')
+                ? 'load'
+                : file?.includes('page-render-error')
+                  ? 'render'
+                  : null
+              onLoadSuccess?.({ numPages: 2 })
+            }}
+          >
             模拟 PDF 加载完成
           </button>
           {children}
@@ -35,8 +49,24 @@ rstest.mock('react-pdf', () => ({
       )}
     </div>
   ),
-  Page: ({ pageNumber, width }: { pageNumber: number; width: number }) => (
-    <div data-testid={`pdf-page-${pageNumber}`} data-width={width} />
+  Page: ({ onLoadError, onRenderError, pageNumber, width }: {
+    onLoadError?: (error: Error) => void
+    onRenderError?: (error: Error) => void
+    pageNumber: number
+    width: number
+  }) => (
+    <div data-testid={`pdf-page-${pageNumber}`} data-width={width}>
+      {pageNumber === 1 && pdfPageErrorMode === 'load' ? (
+        <button type="button" onClick={() => onLoadError?.(new Error('page load failed'))}>
+          模拟 PDF 页面加载失败
+        </button>
+      ) : null}
+      {pageNumber === 1 && pdfPageErrorMode === 'render' ? (
+        <button type="button" onClick={() => onRenderError?.(new Error('page render failed'))}>
+          模拟 PDF 页面渲染失败
+        </button>
+      ) : null}
+    </div>
   ),
 }))
 
@@ -100,6 +130,7 @@ const originalAnchorClick = HTMLAnchorElement.prototype.click
 const originalWindowOpen = window.open
 
 beforeEach(() => {
+  pdfPageErrorMode = null
   fetchedUrl = ''
   fetchedCredentials = undefined
   anchorClickCalled = 0
@@ -137,6 +168,10 @@ afterEach(() => {
   window.URL.revokeObjectURL = originalRevokeObjectURL
   HTMLAnchorElement.prototype.click = originalAnchorClick
   window.open = originalWindowOpen
+  Object.defineProperty(navigator, 'pdfViewerEnabled', {
+    configurable: true,
+    value: undefined,
+  })
 })
 
 describe('FilePreview', () => {
@@ -177,9 +212,60 @@ describe('FilePreview', () => {
       />
     )
     fireEvent.click(screen.getByRole('button', { name: '查看课件' }))
+    fireEvent.click(await screen.findByRole('button', { name: '模拟 PDF 加载失败' }))
 
     expect(await screen.findByText('PDF 预览加载失败')).toBeTruthy()
     expect(screen.getByRole('button', { name: /下载文件/ })).toBeTruthy()
+  })
+
+  it('falls back through native preview after PDF page failures', async () => {
+    Object.defineProperty(navigator, 'pdfViewerEnabled', { configurable: true, value: true })
+    const view = render(
+      <FilePreview title="课件预览" source="/page-load-error.pdf" fileName="页面加载异常.pdf" />
+    )
+    fireEvent.click(screen.getByRole('button', { name: '预览' }))
+    fireEvent.click(await screen.findByRole('button', { name: '模拟 PDF 加载完成' }))
+    fireEvent.click(screen.getByRole('button', { name: '模拟 PDF 页面加载失败' }))
+    expect(await screen.findByTitle('课件预览')).toBeTruthy()
+    expect(fetchedCredentials).toBe('include')
+
+    view.rerender(
+      <FilePreview title="课件预览" source="/page-render-error.pdf" fileName="页面渲染异常.pdf" />
+    )
+    fireEvent.click(await screen.findByRole('button', { name: '模拟 PDF 加载完成' }))
+    fireEvent.click(screen.getByRole('button', { name: '模拟 PDF 页面渲染失败' }))
+    expect(await screen.findByTitle('课件预览')).toBeTruthy()
+  })
+
+  it('aborts a pending native fetch and falls back after the bounded timeout', async () => {
+    Object.defineProperty(navigator, 'pdfViewerEnabled', { configurable: true, value: true })
+    let fetchSignal: AbortSignal | undefined
+    globalThis.fetch = ((_: RequestInfo | URL, init?: RequestInit) => {
+      fetchSignal = init?.signal ?? undefined
+      fetchedCredentials = init?.credentials
+      return new Promise<Response>((_, reject) => {
+        fetchSignal?.addEventListener('abort', () => {
+          reject(new DOMException('Aborted', 'AbortError'))
+        })
+      })
+    }) as typeof fetch
+    render(<FilePreview title="课件预览" source="/broken.pdf" fileName="课程讲义.pdf" />)
+
+    fireEvent.click(screen.getByRole('button', { name: '预览' }))
+    const failure = await screen.findByRole('button', { name: '模拟 PDF 加载失败' })
+    rstest.useFakeTimers()
+    try {
+      fireEvent.click(failure)
+      expect(fetchSignal).toBeDefined()
+      expect(fetchedCredentials).toBe('include')
+      await act(async () => {
+        await rstest.advanceTimersByTimeAsync(15_000)
+      })
+      expect(fetchSignal?.aborted).toBe(true)
+      expect(screen.getByText('PDF 预览加载失败')).toBeTruthy()
+    } finally {
+      rstest.useRealTimers()
+    }
   })
 
   it('loads HLS and MP4-family video only after opening and clears errors on source change', async () => {

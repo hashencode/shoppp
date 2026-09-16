@@ -1,6 +1,10 @@
 import { Button, Divider, Popconfirm } from 'antd'
-import React, { Fragment } from 'react'
+import React, { Fragment, useMemo } from 'react'
 import type { ReactNode } from 'react'
+import {
+  resolveActionRowLayout,
+  type ActionColumnLayoutMode,
+} from '../template-kit/list/resolve-action-column-width'
 import { withAppBasePath } from '../utils/app-base'
 
 void React
@@ -8,6 +12,7 @@ void React
 export type ListRowActionSpec = {
   key: string
   label: ReactNode
+  contentWidth?: number
   danger?: boolean
   disabled?: boolean
   visible?: boolean
@@ -27,6 +32,8 @@ export type ListRowActionSpec = {
 type ListRowActionsProps = {
   actions: ListRowActionSpec[]
   appBasePath?: string
+  layoutMode?: ActionColumnLayoutMode
+  maxRowContentWidth?: number
 }
 
 const renderDirectAction = (action: ListRowActionSpec, appBasePath?: string) => {
@@ -76,16 +83,64 @@ const renderDirectAction = (action: ListRowActionSpec, appBasePath?: string) => 
   )
 }
 
-export const ListRowActions = ({ actions, appBasePath }: ListRowActionsProps) => {
-  const visibleActions = actions.filter((action) => action.visible !== false)
+const renderActionRow = (actions: ListRowActionSpec[], appBasePath?: string) =>
+  actions.map((action, index) => (
+    <Fragment key={action.key}>
+      {renderDirectAction(action, appBasePath)}
+      {index < actions.length - 1 ? <Divider orientation="vertical" /> : null}
+    </Fragment>
+  ))
+
+export const ListRowActions = ({
+  actions,
+  appBasePath,
+  layoutMode,
+  maxRowContentWidth,
+}: ListRowActionsProps) => {
+  const visibleActions = useMemo(
+    () => actions.filter((action) => action.visible !== false),
+    [actions]
+  )
+  const actionRows = useMemo(() => {
+    if (visibleActions.length === 0) return []
+    if (layoutMode !== 'wrapped' || typeof maxRowContentWidth !== 'number') {
+      return [visibleActions]
+    }
+
+    const rowLayout = resolveActionRowLayout(
+      visibleActions.map(({ contentWidth }) => contentWidth ?? Number.POSITIVE_INFINITY)
+    )
+    if (rowLayout.singleLineContentWidth <= maxRowContentWidth || rowLayout.splitIndex === null) {
+      return [visibleActions]
+    }
+
+    return [
+      visibleActions.slice(0, rowLayout.splitIndex),
+      visibleActions.slice(rowLayout.splitIndex),
+    ]
+  }, [layoutMode, maxRowContentWidth, visibleActions])
+
+  if (actionRows.length <= 1) {
+    return (
+      <div
+        className="inline-flex items-center whitespace-nowrap"
+        data-list-row-actions-row={layoutMode ? '' : undefined}
+      >
+        {renderActionRow(actionRows[0] ?? [], appBasePath)}
+      </div>
+    )
+  }
 
   return (
-    <div className="inline-flex items-center">
-      {visibleActions.map((action, index) => (
-        <Fragment key={action.key}>
-          {renderDirectAction(action, appBasePath)}
-          {index < visibleActions.length - 1 ? <Divider orientation="vertical" /> : null}
-        </Fragment>
+    <div className="inline-flex flex-col items-start">
+      {actionRows.map((row, rowIndex) => (
+        <div
+          key={row[0]?.key ?? rowIndex}
+          className="inline-flex items-center whitespace-nowrap"
+          data-list-row-actions-row=""
+        >
+          {renderActionRow(row, appBasePath)}
+        </div>
       ))}
     </div>
   )

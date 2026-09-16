@@ -154,4 +154,41 @@ describe('ListRowActions', () => {
     expect(screen.getByRole('button', { name: '自定义后续操作' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '更多操作' })).toBeNull()
   })
+
+  it('wraps visible actions into independently divided rows', () => {
+    const actions: ListRowActionSpec[] = [
+      { key: 'view', label: '查看', contentWidth: 30 },
+      { key: 'edit', label: '修改', contentWidth: 30 },
+      { key: 'copy', label: '复制', contentWidth: 30 },
+      { key: 'disable', label: '禁用', contentWidth: 30 },
+    ]
+
+    const { container } = render(
+      <ListRowActions actions={actions} layoutMode="wrapped" maxRowContentWidth={100} />
+    )
+
+    const rows = container.querySelectorAll('[data-list-row-actions-row]')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.textContent).toBe('查看修改')
+    expect(rows[1]?.textContent).toBe('复制禁用')
+    expect(rows[0]?.querySelectorAll('.ant-divider-vertical')).toHaveLength(1)
+    expect(rows[1]?.querySelectorAll('.ant-divider-vertical')).toHaveLength(1)
+  })
+
+  it('filters hidden actions before grouping so a short row returns to one line', () => {
+    const actions: ListRowActionSpec[] = [
+      { key: 'view', label: '查看', contentWidth: 30 },
+      { key: 'edit', label: '修改', contentWidth: 86, visible: false },
+      { key: 'copy', label: '复制', contentWidth: 86, visible: false },
+      { key: 'delete', label: '删除', contentWidth: 30 },
+    ]
+
+    const { container } = render(
+      <ListRowActions actions={actions} layoutMode="wrapped" maxRowContentWidth={77} />
+    )
+
+    const rows = container.querySelectorAll('[data-list-row-actions-row]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.textContent).toBe('查看删除')
+  })
 })

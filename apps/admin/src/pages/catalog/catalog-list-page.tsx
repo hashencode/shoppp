@@ -25,8 +25,17 @@ import {
 
 void React
 
-// Fixed action width for “View + Edit + Publish”, including dividers and padding.
-const ACTION_COLUMN_WIDTH = 248
+// Longest localized labels are budgeted at 58px each; the four-action state wraps at 280px.
+const ACTION_CONTENT_WIDTHS = { view: 58, preview: 58, edit: 58, publish: 58 } as const
+const ACTION_LAYOUT_COMBINATIONS = [
+  [ACTION_CONTENT_WIDTHS.view, ACTION_CONTENT_WIDTHS.preview],
+  [
+    ACTION_CONTENT_WIDTHS.view,
+    ACTION_CONTENT_WIDTHS.preview,
+    ACTION_CONTENT_WIDTHS.edit,
+    ACTION_CONTENT_WIDTHS.publish,
+  ],
+] as const
 
 const statusStyle: Record<ProductStatus, { color: string; label: string }> = {
   draft: { color: 'default', label: 'Draft' },
@@ -192,7 +201,9 @@ export const CatalogListPage = () => {
       selectItems: (response) => response?.data ?? [],
       mapError: normalizeApiError,
       filterFields: filters,
-      buildColumns: ({ openFormPage, reload }) => [
+      buildColumns: ({ openFormPage, reload, resolveActionColumnLayout }) => {
+        const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+        return [
         {
           key: 'name',
           title: t('Product'),
@@ -240,29 +251,35 @@ export const CatalogListPage = () => {
         {
           key: 'action',
           title: t('Actions'),
-          width: ACTION_COLUMN_WIDTH,
+          width: actionLayout.columnWidth,
           render: (_, record) => (
             <ListRowActions
+              layoutMode={actionLayout.mode}
+              maxRowContentWidth={actionLayout.maxRowContentWidth}
               actions={[
                 {
                   key: 'view',
                   label: t('View'),
+                  contentWidth: ACTION_CONTENT_WIDTHS.view,
                   onClick: () => openFormPage('readonly', record.id),
                 },
                 {
                   key: 'preview',
                   label: t('Preview'),
+                  contentWidth: ACTION_CONTENT_WIDTHS.preview,
                   onClick: () => handlePreview(record),
                 },
                 {
                   key: 'edit',
                   label: t('Edit'),
+                  contentWidth: ACTION_CONTENT_WIDTHS.edit,
                   visible: canWrite && record.status !== 'published',
                   onClick: () => openFormPage('modify', record.id),
                 },
                 {
                   key: 'publish',
                   label: t('Publish'),
+                  contentWidth: ACTION_CONTENT_WIDTHS.publish,
                   visible: canPublish && record.status !== 'published',
                   render: (
                     <PublishAction
@@ -275,7 +292,8 @@ export const CatalogListPage = () => {
             />
           ),
         },
-      ],
+        ]
+      },
       buildTableNode: ({
         columns,
         dataSource,

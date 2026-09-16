@@ -2,9 +2,13 @@ import { DownloadOutlined } from '@ant-design/icons'
 import { Alert, Button, Image, Modal, Spin, App, theme } from 'antd'
 import type { ModalProps } from 'antd'
 import React, {
+  Component,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useReducer,
+  useRef,
   useState,
   type ComponentType,
   type MouseEvent,
@@ -12,7 +16,12 @@ import React, {
 } from 'react'
 import { downloadBlob } from '../utils/download'
 import { useCurrentTranslate, useI18n } from '../contexts/i18n-context'
-import { FilePreviewPdfContent } from './file-preview-pdf-content'
+import {
+  buildNativePdfUrl,
+  createPdfPreviewFallbackState,
+  reducePdfPreviewFallbackState,
+  supportsNativePdfPreview,
+} from './pdf-preview-fallback'
 
 void React
 
@@ -59,6 +68,7 @@ const MP4_CONTENT_TYPES = new Set([
 ])
 const HLS_CONTENT_TYPES = new Set(['application/vnd.apple.mpegurl', 'application/x-mpegurl'])
 const GENERIC_CONTENT_TYPES = new Set(['application/octet-stream', 'binary/octet-stream'])
+const NATIVE_PDF_FETCH_TIMEOUT_MS = 15_000
 
 const stripQueryAndHash = (value: string) => value.split(/[?#]/)[0] || value
 
@@ -228,6 +238,174 @@ const FilePreviewUnavailable = ({ title, description }: { title: string; descrip
     <Alert showIcon type="warning" title={title} description={description} />
   </div>
 )
+
+type LazyPdfContentProps = {
+  open: boolean
+  source: string
+  onError: () => void
+}
+
+class PdfRendererErrorBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch() {
+    this.props.onError()
+  }
+
+  render() {
+    return this.state.hasError ? null : this.props.children
+  }
+}
+
+const FilePreviewPdfContentLoader = ({ open, source, onError }: LazyPdfContentProps) => {
+  const { t } = useI18n()
+  const [PdfContent, setPdfContent] = useState<ComponentType<LazyPdfContentProps> | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void import('./file-preview-pdf-content')
+      .then((module) => {
+        if (active) setPdfContent(() => module.FilePreviewPdfContent)
+      })
+      .catch(() => {
+        if (active) onError()
+      })
+    return () => {
+      active = false
+    }
+  }, [onError])
+
+  if (!PdfContent) {
+    return (
+      <div className="flex min-h-[360px] items-center justify-center" role="status">
+        <Spin description={t('Loading PDF preview')} />
+      </div>
+    )
+  }
+
+  return (
+    <PdfRendererErrorBoundary onError={onError}>
+      <PdfContent open={open} source={source} onError={onError} />
+    </PdfRendererErrorBoundary>
+  )
+}
+
+const NativePdfFrame = ({
+  source,
+  title,
+  onError,
+}: {
+  source: string
+  title: string
+  onError: () => void
+}) => {
+  const { t } = useI18n()
+  const frameRef = useRef<HTMLIFrameElement>(null)
+  const [frameSource, setFrameSource] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let objectUrl = ''
+    let abortReason: 'cleanup' | 'timeout' | null = null
+    const timeoutId = window.setTimeout(() => {
+      abortReason = 'timeout'
+      controller.abort()
+      onError()
+    }, NATIVE_PDF_FETCH_TIMEOUT_MS)
+
+    void fetch(source, { credentials: 'include', signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`PDF request failed with status ${response.status}`)
+        return response.blob()
+      })
+      .then((blob) => {
+        if (controller.signal.aborted) return
+        const pdfBlob =
+          blob.type === 'application/pdf' ? blob : blob.slice(0, blob.size, 'application/pdf')
+        objectUrl = URL.createObjectURL(pdfBlob)
+        setFrameSource(buildNativePdfUrl(objectUrl))
+      })
+      .catch(() => {
+        if (abortReason === null) onError()
+      })
+      .finally(() => window.clearTimeout(timeoutId))
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      abortReason = 'cleanup'
+      controller.abort()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [onError, source])
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current
+    if (!frame || !frameSource) return
+    frame.addEventListener('error', onError)
+    frame.src = frameSource
+    return () => frame.removeEventListener('error', onError)
+  }, [frameSource, onError])
+
+  if (!frameSource) {
+    return (
+      <div className="flex min-h-[360px] items-center justify-center" role="status">
+        <Spin description={t('Loading PDF preview')} />
+      </div>
+    )
+  }
+
+  return <iframe ref={frameRef} title={title} className="h-[70vh] min-h-[480px] w-full border-0" />
+}
+
+const FilePreviewPdf = ({
+  open,
+  source,
+  session,
+  title,
+}: {
+  open: boolean
+  source: string
+  session: number
+  title: string
+}) => {
+  const { t } = useI18n()
+  const [rendererState, dispatchRendererEvent] = useReducer(
+    reducePdfPreviewFallbackState,
+    undefined,
+    () => createPdfPreviewFallbackState(source, session)
+  )
+  const handlePdfRendererError = useCallback(() => {
+    dispatchRendererEvent({
+      type: 'pdfjs-error',
+      source,
+      session,
+      nativeSupported: supportsNativePdfPreview(),
+    })
+  }, [session, source])
+  const handleNativePdfError = useCallback(() => {
+    dispatchRendererEvent({ type: 'native-error', source, session })
+  }, [session, source])
+
+  if (rendererState.renderer === 'native') {
+    return <NativePdfFrame source={source} title={title} onError={handleNativePdfError} />
+  }
+  if (rendererState.renderer === 'download') {
+    return (
+      <FilePreviewUnavailable
+        title={t('PDF preview failed')}
+        description={t('Online preview is unavailable. Download the file to view it.')}
+      />
+    )
+  }
+  return <FilePreviewPdfContentLoader open={open} source={source} onError={handlePdfRendererError} />
+}
 
 const FilePreviewVideoContent = ({
   source,
@@ -456,10 +634,12 @@ export const FilePreview = ({
             />
           ) : null}
           {modalOpen && !rendererError && previewType === 'pdf' ? (
-            <FilePreviewPdfContent
+            <FilePreviewPdf
               key={`${normalizedSource.source}:${previewSession}`}
               open={modalOpen}
               source={normalizedSource.source}
+              session={previewSession}
+              title={title}
             />
           ) : null}
           {modalOpen && !rendererError && previewType === 'video' ? (

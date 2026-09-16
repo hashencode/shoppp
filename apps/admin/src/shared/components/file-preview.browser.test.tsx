@@ -17,7 +17,28 @@ const IMAGE_SOURCE =
 const HLS_SOURCE =
   'data:application/vnd.apple.mpegurl;base64,I0VYVE0zVQojRVhULVgtVkVSU0lPTjozCiNFWFQtWC1FTkRMSVNUCg=='
 
+const INVALID_PDF_SOURCE = 'data:application/pdf;base64,bm90IGEgcGRm'
+const OTHER_INVALID_PDF_SOURCE = 'data:application/pdf;base64,c3RpbGwgbm90IGEgcGRm'
+const originalPromiseWithResolversDescriptor = Object.getOwnPropertyDescriptor(
+  Promise,
+  'withResolvers'
+)
+const originalPdfViewerEnabledDescriptor = Object.getOwnPropertyDescriptor(
+  navigator,
+  'pdfViewerEnabled'
+)
+
 afterEach(() => {
+  if (originalPromiseWithResolversDescriptor) {
+    Object.defineProperty(Promise, 'withResolvers', originalPromiseWithResolversDescriptor)
+  } else {
+    Reflect.deleteProperty(Promise, 'withResolvers')
+  }
+  if (originalPdfViewerEnabledDescriptor) {
+    Object.defineProperty(navigator, 'pdfViewerEnabled', originalPdfViewerEnabledDescriptor)
+  } else {
+    Reflect.deleteProperty(navigator, 'pdfViewerEnabled')
+  }
   cleanup()
 })
 
@@ -58,6 +79,61 @@ describe('FilePreview browser rendering', () => {
     expect(modal?.getBoundingClientRect().width).toBeLessThanOrEqual(window.innerWidth)
     expect(getComputedStyle(modal as HTMLElement).color).not.toBe('')
   })
+
+  it('recreates native PDF resources across source changes and a controlled reopen', async () => {
+    Object.defineProperty(Promise, 'withResolvers', {
+      configurable: true,
+      writable: true,
+      value: undefined,
+    })
+    Object.defineProperty(navigator, 'pdfViewerEnabled', {
+      configurable: true,
+      value: true,
+    })
+    const originalRevokeObjectURL = window.URL.revokeObjectURL
+    const revokedObjectUrls: string[] = []
+    window.URL.revokeObjectURL = (url) => {
+      revokedObjectUrls.push(String(url))
+      originalRevokeObjectURL.call(window.URL, url)
+    }
+    const preview = (open: boolean, source: string) => (
+      <FilePreview
+        open={open}
+        onOpenChange={() => undefined}
+        trigger={null}
+        title="PDF 会话预览"
+        source={source}
+        fileName="会话课件.pdf"
+      />
+    )
+
+    try {
+      const view = render(preview(true, INVALID_PDF_SOURCE))
+      const firstFrame = await screen.findByTitle('PDF 会话预览', undefined, {
+        timeout: 10_000,
+      })
+
+      view.rerender(preview(true, OTHER_INVALID_PDF_SOURCE))
+      expect(screen.queryByTitle('PDF 会话预览')).toBeNull()
+      const secondFrame = await screen.findByTitle('PDF 会话预览', undefined, {
+        timeout: 10_000,
+      })
+      expect(secondFrame).not.toBe(firstFrame)
+      await waitFor(() => expect(revokedObjectUrls.length).toBeGreaterThanOrEqual(1))
+
+      view.rerender(preview(false, OTHER_INVALID_PDF_SOURCE))
+      await waitFor(() => expect(screen.queryByTitle('PDF 会话预览')).toBeNull())
+
+      view.rerender(preview(true, OTHER_INVALID_PDF_SOURCE))
+      const reopenedFrame = await screen.findByTitle('PDF 会话预览', undefined, {
+        timeout: 10_000,
+      })
+      expect(reopenedFrame).not.toBe(secondFrame)
+      expect(screen.queryByText('PDF 预览加载失败')).toBeNull()
+    } finally {
+      window.URL.revokeObjectURL = originalRevokeObjectURL
+    }
+  }, 30_000)
 
   it('mounts the video player only while open and destroys it after close', async () => {
     render(

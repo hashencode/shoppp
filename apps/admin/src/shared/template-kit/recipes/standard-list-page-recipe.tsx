@@ -21,7 +21,11 @@ import {
   buildStandardListPagination,
   STANDARD_LIST_TABLE_CLASS_NAME,
 } from '../list/standard-list-pagination'
-import { resolveActionColumnWidth } from '../list/resolve-action-column-width'
+import {
+  resolveActionColumnLayout,
+  resolveActionColumnWidth,
+  type ActionColumnLayout,
+} from '../list/resolve-action-column-width'
 import { TemplateListContent } from '../list/template-list-content'
 import { TemplateListFilterForm } from '../list/template-list-filter-form'
 import { useTemplateListController } from '../list/use-template-list-controller'
@@ -35,6 +39,14 @@ const DEFAULT_VIRTUAL_TABLE_WIDTH = 1200
 const EXPLICIT_LIST_LOADING_MIN_DURATION_MS = 1000
 type StandardTableColumn<TItem> = ColumnGroupType<TItem> | ColumnType<TItem>
 const ACTION_COLUMN_KEYS = new Set(['action', 'actions'])
+const COLUMN_DISCOVERY_ACTION_LAYOUT: ActionColumnLayout = {
+  mode: 'single',
+  maxSingleLineContentWidth: 0,
+  maxRowContentWidth: 0,
+  columnWidth: 0,
+  isSupported: true,
+  error: null,
+}
 
 const resolveVirtualScrollX = (columns: Array<{ width?: string | number }>) => {
   const numericWidthSum = columns.reduce((sum, column) => {
@@ -202,6 +214,7 @@ export const StandardListPageRecipe = <
           openFormPage,
           reload,
           resolveActionColumnWidth: (baseWidth) => baseWidth,
+          resolveActionColumnLayout: () => COLUMN_DISCOVERY_ACTION_LAYOUT,
         })
         .filter((column) => typeof column.key === 'string')
         .map((column) => String(column.key)),
@@ -231,6 +244,8 @@ export const StandardListPageRecipe = <
           reload,
           resolveActionColumnWidth: (baseWidth, maxWidth) =>
             resolveActionColumnWidth(baseWidth, tableSize, maxWidth),
+          resolveActionColumnLayout: (reachableContentWidthCombinations) =>
+            resolveActionColumnLayout(reachableContentWidthCombinations, tableSize),
         })
       ),
     [openFormPage, reload, spec, tableSize]

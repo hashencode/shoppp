@@ -23,9 +23,15 @@ import {
 
 void React
 
-// 操作列固定宽度：全部操作直出后，按“查看 + 编辑 + 删除”计算：
-// 28 * 3 + 13 * 2 + 16 = 126。
-const ACTION_COLUMN_WIDTH = 126
+// 最大可达组合：查看 + 编辑 + 删除。2 个汉字各 30px，divider 17px。
+const ACTION_CONTENT_WIDTHS = { view: 30, edit: 30, delete: 30 } as const
+const ACTION_LAYOUT_COMBINATIONS = [
+  [
+    ACTION_CONTENT_WIDTHS.view,
+    ACTION_CONTENT_WIDTHS.edit,
+    ACTION_CONTENT_WIDTHS.delete,
+  ],
+] as const
 
 const statusMap: Record<RuleStatus, { text: string; color: string }> = {
   0: { text: '关闭', color: 'default' },
@@ -237,7 +243,9 @@ export const TableQueryPage = () => {
         eventType: LIST_REFRESH_EVENT.REFRESH_LIST,
       },
       filterFields,
-      buildColumns: ({ openFormPage, reload }) => [
+      buildColumns: ({ openFormPage, reload, resolveActionColumnLayout }) => {
+        const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+        return [
         {
           key: 'name',
           title: '规则名称',
@@ -276,23 +284,28 @@ export const TableQueryPage = () => {
         {
           title: '操作',
           key: 'action',
-          width: ACTION_COLUMN_WIDTH,
+          width: actionLayout.columnWidth,
           render: (_, record) => (
             <ListRowActions
+              layoutMode={actionLayout.mode}
+              maxRowContentWidth={actionLayout.maxRowContentWidth}
               actions={[
                 {
                   key: 'view',
                   label: '查看',
+                  contentWidth: ACTION_CONTENT_WIDTHS.view,
                   onClick: () => openFormPage('readonly', record.key),
                 },
                 {
                   key: 'edit',
                   label: '编辑',
+                  contentWidth: ACTION_CONTENT_WIDTHS.edit,
                   onClick: () => openFormPage('modify', record.key),
                 },
                 {
                   key: 'delete',
                   label: '删除',
+                  contentWidth: ACTION_CONTENT_WIDTHS.delete,
                   danger: true,
                   confirm: {
                     title: '确认删除这条规则吗？',
@@ -310,7 +323,8 @@ export const TableQueryPage = () => {
             />
           ),
         },
-      ],
+        ]
+      },
       buildTableNode: ({
         columns,
         dataSource,

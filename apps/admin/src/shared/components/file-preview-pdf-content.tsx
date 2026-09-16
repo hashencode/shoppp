@@ -62,9 +62,10 @@ const useResponsivePdfPageWidth = (open: boolean) => {
 type FilePreviewPdfContentProps = {
   open: boolean
   source: string
+  onError: () => void
 }
 
-export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentProps) => {
+export const FilePreviewPdfContent = ({ open, source, onError }: FilePreviewPdfContentProps) => {
   const { t } = useI18n()
   const [numPages, setNumPages] = useState<number>()
   const { token } = theme.useToken()
@@ -97,6 +98,7 @@ export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentPro
               />
             </div>
           }
+          onLoadError={onError}
           onLoadSuccess={({ numPages: loadedPages }) => setNumPages(loadedPages)}
         >
           {Array.from({ length: numPages ?? 0 }, (_, index) => (
@@ -111,6 +113,8 @@ export const FilePreviewPdfContent = ({ open, source }: FilePreviewPdfContentPro
                 width={pageWidth}
                 renderAnnotationLayer={false}
                 renderTextLayer={false}
+                onLoadError={onError}
+                onRenderError={onError}
               />
             </div>
           ))}

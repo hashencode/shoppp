@@ -1,5 +1,5 @@
 version: 1
-updatedAt: '2026-07-29'
+updatedAt: '2026-09-16'
 project: codex-admin-quick-start
 
 pageModules:
@@ -116,6 +116,7 @@ componentCatalog:
     responsibilities:
       - 渲染表格行操作
       - 普通行危险动作通过 confirm 渲染 Popconfirm，并直接展示所有可见操作项
+      - 先过滤不可见动作，再按页面声明的正文宽度预算渲染稳定单行或连续双行；分隔线只存在于行内
       - recent-auth、operation ID、冲突恢复和不可撤销页面流程保留现有安全 Modal
       - 为站内根相对链接补齐可选应用部署前缀
     useWhen:
@@ -198,6 +199,7 @@ componentCatalog:
     responsibilities:
       - 按 MIME、文件名和 URL 后缀统一识别图片、PDF、HLS/MP4 视频和未知文件
       - 统一弹窗、加载/失败反馈、播放器销毁和显式下载动作
+      - PDF.js 的文档、页面、动态加载或渲染失败后按 session 降级到 credentialed native blob iframe，再失败时保留下载恢复
       - PDF worker 独立产出、视频播放器在打开时按需加载；下载复用 shared download 合同，仅在传输失败时打开安全原文件地址
     useWhen:
       - 业务页面、上传字段或资源列表需要统一预览并下载文件
