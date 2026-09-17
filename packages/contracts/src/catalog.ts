@@ -217,11 +217,22 @@ export const productReviewDisplaySchema = z
           .object({
             author: z.string().trim().min(1).max(160),
             date: z.string().trim().min(1).max(160),
+            id: publicIdSchema.optional(),
+            rating: z.int().min(1).max(5).optional(),
             text: z.string().trim().min(1).max(2_000),
           })
           .strict(),
       )
-      .max(20),
+      .max(10_000),
+    ratingBands: z
+      .tuple([
+        z.int().nonnegative(),
+        z.int().nonnegative(),
+        z.int().nonnegative(),
+        z.int().nonnegative(),
+        z.int().nonnegative(),
+      ])
+      .optional(),
     provenance: z.string().trim().min(1).max(300),
     updatedAt: z.iso.datetime(),
   })
@@ -241,10 +252,79 @@ export const productReviewDisplaySchema = z
         path: ["entries"],
       });
     }
+    if (reviewDisplay.ratingBands) {
+      if (
+        reviewDisplay.ratingBands.reduce((total, count) => total + count, 0) !== reviewDisplay.count
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Rating bands must total the review count.",
+          path: ["ratingBands"],
+        });
+      }
+      if (
+        reviewDisplay.entries.length !== reviewDisplay.count ||
+        reviewDisplay.entries.some((entry) => !entry.id || !entry.rating)
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Modern review snapshots need every rated entry.",
+          path: ["entries"],
+        });
+      }
+      if (
+        reviewDisplay.entries.length === reviewDisplay.count &&
+        reviewDisplay.entries.every((entry) => entry.rating)
+      ) {
+        const derivedBands = [0, 0, 0, 0, 0];
+        for (const entry of reviewDisplay.entries) derivedBands[entry.rating! - 1]! += 1;
+        if (derivedBands.some((count, index) => count !== reviewDisplay.ratingBands![index])) {
+          context.addIssue({
+            code: "custom",
+            message: "Rating bands must match published entries.",
+            path: ["ratingBands"],
+          });
+        }
+        const average =
+          reviewDisplay.count === 0
+            ? 0
+            : Math.round(
+                (reviewDisplay.entries.reduce((sum, entry) => sum + entry.rating!, 0) * 10) /
+                  reviewDisplay.count,
+              ) / 10;
+        if (average !== reviewDisplay.averageRating) {
+          context.addIssue({
+            code: "custom",
+            message: "Average rating must match published entries.",
+            path: ["averageRating"],
+          });
+        }
+      }
+    }
   });
+export type ProductReviewDisplay = z.infer<typeof productReviewDisplaySchema>;
+
+export const submitProductReviewSchema = z
+  .object({
+    rating: z.int().min(1).max(5),
+    displayName: z.string().trim().min(2).max(80),
+    body: z.string().trim().min(10).max(2_000),
+  })
+  .strict();
+
+export const moderateProductReviewSchema = z
+  .object({
+    decision: z.enum(["approved", "rejected"]),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+export type SubmitProductReview = z.infer<typeof submitProductReviewSchema>;
+export type ModerateProductReview = z.infer<typeof moderateProductReviewSchema>;
 export const productPresentationSchema = z
   .object({
     brand: z.string().trim().min(1).max(160).optional(),
+    purchaseStatus: z.enum(["unverified"]).optional(),
     defaultVariantId: publicIdSchema.optional(),
     detail: z
       .object({
@@ -256,6 +336,9 @@ export const productPresentationSchema = z
       .strict()
       .optional(),
     detailMediaId: publicIdSchema.optional(),
+    colorMediaIds: z
+      .record(z.string().trim().min(1).max(160), z.array(publicIdSchema).min(1).max(50))
+      .optional(),
     reviewDisplay: productReviewDisplaySchema.optional(),
     specifications: z.array(productSpecificationSchema).max(30),
   })
@@ -532,6 +615,23 @@ function validateCanonicalCatalogRelease(
           ["products", productIndex, "presentation", "detailMediaId"],
           "Product presentation references detail media outside the Product.",
         );
+      }
+    }
+    if (product.presentation?.colorMediaIds) {
+      const colorValues = new Set(product.variants.map(({ optionValues }) => optionValues.color));
+      const mediaIds = new Set(product.media.map(({ id }) => id));
+      for (const [color, ids] of Object.entries(product.presentation.colorMediaIds)) {
+        if (
+          !colorValues.has(color) ||
+          ids.some((id) => !mediaIds.has(id)) ||
+          new Set(ids).size !== ids.length
+        ) {
+          addCatalogReleaseIssue(
+            context,
+            ["products", productIndex, "presentation", "colorMediaIds", color],
+            "Color gallery must reference unique media owned by a Product color option.",
+          );
+        }
       }
     }
     validateUniqueReleaseValues(

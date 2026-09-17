@@ -2,6 +2,8 @@ import { SignJWT } from "jose";
 import type { Context } from "hono";
 
 import { getProduct } from "../catalog/products";
+import { getPublishedProductRevisions } from "../catalog/published-revisions";
+import type { PublishedProductReleaseInput } from "../catalog/schemas";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
@@ -72,10 +74,15 @@ export async function recordCatalogBuildResult(
   result: CatalogBuildResult,
 ) {
   const current = await context.env.DB.prepare(
-    "SELECT status, failure_code, deployed_at FROM catalog_releases WHERE id = ?",
+    "SELECT status, failure_code, deployed_at, product_revision_id FROM catalog_releases WHERE id = ?",
   )
     .bind(releaseId)
-    .first<{ deployed_at: string | null; failure_code: string | null; status: string }>();
+    .first<{
+      deployed_at: string | null;
+      failure_code: string | null;
+      product_revision_id: string | null;
+      status: string;
+    }>();
   if (!current) {
     throw new ApiError(404, "catalog_release_not_found", "The catalog release was not found.");
   }
@@ -96,6 +103,7 @@ export async function recordCatalogBuildResult(
   }
 
   const now = new Date().toISOString();
+  const revisionStatus = result.status === "deployed" ? "published" : "draft";
   const transition = context.env.DB.prepare(
     `UPDATE catalog_releases
         SET status = ?, deployed_at = ?, failure_code = ?, updated_at = ?,
@@ -104,13 +112,21 @@ export async function recordCatalogBuildResult(
                 THEN substr(build_correlation_id, length('staging-proof:') + 1)
               ELSE build_correlation_id
             END
-      WHERE id = ? AND status = 'building'`,
+      WHERE id = ? AND status = 'building'
+        AND (? IS NULL OR EXISTS (
+          SELECT 1 FROM product_revisions
+           WHERE id = ? AND status = ? AND updated_at = ?
+        ))`,
   ).bind(
     result.status,
     result.status === "deployed" ? now : null,
     result.status === "failed" ? result.failureCode : null,
     now,
     releaseId,
+    current.product_revision_id,
+    current.product_revision_id,
+    revisionStatus,
+    now,
   );
   const audit = context.env.DB.prepare(
     `INSERT OR IGNORE INTO audit_events
@@ -132,7 +148,24 @@ export async function recordCatalogBuildResult(
     result.status,
     now,
   );
-  const [changed] = await context.env.DB.batch([transition, audit]);
+  const revisionTransition = current.product_revision_id
+    ? context.env.DB.prepare(
+        `UPDATE product_revisions
+            SET status = ?, published_at = ?, updated_at = ?
+          WHERE id = ? AND status = 'building'`,
+      ).bind(
+        revisionStatus,
+        result.status === "deployed" ? now : null,
+        now,
+        current.product_revision_id,
+      )
+    : null;
+  const changes = await context.env.DB.batch([
+    ...(revisionTransition ? [revisionTransition] : []),
+    transition,
+    audit,
+  ]);
+  const changed = changes[revisionTransition ? 1 : 0];
   if (!changed || changed.meta.changes !== 1) {
     const terminal = await context.env.DB.prepare(
       "SELECT status, failure_code, deployed_at FROM catalog_releases WHERE id = ?",
@@ -265,6 +298,149 @@ export async function publishProduct(
     )
       .bind(snapshot.product.status, new Date().toISOString(), productId, frozenVersion)
       .run();
+    throw error;
+  }
+}
+
+export async function publishPublishedProductRevision(
+  context: Context<ApiEnvironment>,
+  productId: string,
+  input: PublishedProductReleaseInput,
+  trigger: BuildTrigger,
+) {
+  const db = context.env.DB;
+  const state = await getPublishedProductRevisions(db, productId);
+  if (state.productVersion !== input.expectedProductVersion) {
+    throw new ApiError(409, "stale_product_version", "The Product changed before publication.");
+  }
+  if ((state.published?.id ?? null) !== input.expectedPublishedRevisionId) {
+    throw new ApiError(409, "stale_product_revision", "A newer Product revision was published.");
+  }
+  if (
+    input.revisionId &&
+    (state.draft?.id !== input.revisionId ||
+      state.draft.status !== "draft" ||
+      state.draft.version !== input.expectedDraftVersion)
+  ) {
+    throw new ApiError(
+      409,
+      "stale_product_revision",
+      "The staged Product revision is unavailable.",
+    );
+  }
+  if (!input.revisionId && input.expectedDraftVersion !== null) {
+    throw new ApiError(
+      422,
+      "product_revision_unexpected",
+      "A review-only release has no draft version.",
+    );
+  }
+  const now = new Date().toISOString();
+  if (input.revisionId) {
+    const claimed = await db
+      .prepare(
+        `UPDATE product_revisions SET status = 'building', updated_at = ?
+          WHERE id = ? AND product_id = ? AND status = 'draft' AND version = ?
+            AND base_product_version = ? AND base_published_revision_id IS ?
+            AND EXISTS (SELECT 1 FROM products WHERE id = ? AND status = 'published' AND version = ?)
+            AND COALESCE((SELECT id FROM product_revisions
+              WHERE product_id = ? AND status = 'published'
+              ORDER BY published_at DESC, id DESC LIMIT 1), '') = COALESCE(?, '')`,
+      )
+      .bind(
+        now,
+        input.revisionId,
+        productId,
+        input.expectedDraftVersion,
+        input.expectedProductVersion,
+        input.expectedPublishedRevisionId,
+        productId,
+        input.expectedProductVersion,
+        productId,
+        input.expectedPublishedRevisionId,
+      )
+      .run();
+    if (claimed.meta.changes !== 1) {
+      throw new ApiError(409, "stale_product_revision", "The staged Product revision changed.");
+    }
+  }
+
+  const releaseId = crypto.randomUUID();
+  try {
+    const manifest = await buildCatalogReleaseManifest(db, {
+      candidateProductId: productId,
+      ...(input.revisionId ? { candidateRevisionId: input.revisionId } : {}),
+      mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
+      releaseId,
+      storefrontOrigin: context.env.STOREFRONT_ORIGIN,
+    });
+    const started = await db
+      .prepare(
+        `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_by, approved_at, product_id,
+           product_revision_id, created_at, updated_at)
+         VALUES (?, 'approved', ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        releaseId,
+        JSON.stringify(manifest),
+        context.get("principal").id,
+        now,
+        productId,
+        input.revisionId,
+        now,
+        now,
+      )
+      .run();
+    const build = await trigger({
+      environment: context.env.ENVIRONMENT,
+      releaseId,
+      requestId: context.get("requestId"),
+    });
+    await db
+      .prepare(
+        `UPDATE catalog_releases SET status = 'building', build_correlation_id = ?, updated_at = ?
+          WHERE id = ? AND status = 'approved'`,
+      )
+      .bind(build.correlationId, new Date().toISOString(), releaseId)
+      .run();
+    if (started.meta.changes !== 1) {
+      throw new ApiError(409, "catalog_build_transition_conflict", "The Catalog release changed.");
+    }
+    await recordAuditEvent(db, {
+      action: "catalog.publish",
+      actorId: context.get("principal").id,
+      actorType: actorTypeForPrincipal(context.get("principal")),
+      id: crypto.randomUUID(),
+      metadata: { buildCorrelationId: build.correlationId, revisionId: input.revisionId },
+      reason: input.reason,
+      requestId: context.get("requestId"),
+      result: "succeeded",
+      targetId: releaseId,
+      targetType: "catalog_release",
+    });
+    return { buildCorrelationId: build.correlationId, releaseId, status: "building" };
+  } catch (error) {
+    await db
+      .prepare(
+        `UPDATE catalog_releases SET status = 'failed', failure_code = ?, updated_at = ?
+          WHERE id = ? AND status IN ('approved', 'building')`,
+      )
+      .bind(
+        error instanceof ApiError ? error.code : "build_hook_failed",
+        new Date().toISOString(),
+        releaseId,
+      )
+      .run();
+    if (input.revisionId) {
+      await db
+        .prepare(
+          `UPDATE product_revisions SET status = 'draft', updated_at = ?
+            WHERE id = ? AND status = 'building'`,
+        )
+        .bind(new Date().toISOString(), input.revisionId)
+        .run();
+    }
     throw error;
   }
 }

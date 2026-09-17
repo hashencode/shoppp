@@ -34,6 +34,36 @@ import {
 type CatalogProduct = CanonicalCatalogRelease["products"][number];
 type CatalogCollection = CanonicalCatalogRelease["collections"][number];
 
+function relatedCollectionForProduct(
+  release: CanonicalCatalogRelease,
+  product: CatalogProduct,
+  collectionId?: string,
+): CatalogCollection | undefined {
+  return (
+    release.collections.find(({ id, status }) => id === collectionId && status === "published") ??
+    release.collections.find(
+      ({ productIds, status }) => status === "published" && productIds.includes(product.id),
+    )
+  );
+}
+
+function selectedRelatedCollectionId(
+  experience: ExperienceSnapshot | undefined,
+  instanceId: string | undefined,
+): string | undefined {
+  for (const binding of experience?.bindings ?? []) {
+    if (
+      binding.kind === "catalog" &&
+      binding.instanceId === instanceId &&
+      binding.settingId === "related-collection" &&
+      binding.reference.kind === "collection"
+    ) {
+      return binding.reference.id;
+    }
+  }
+  return undefined;
+}
+
 export type CompositionDiagnosticCode =
   | "catalog-binding-ambiguous"
   | "catalog-binding-missing"
@@ -164,6 +194,14 @@ function productViewModel(
   const presentationMedia = product.media
     .filter(({ id }) => !presentation?.detailMediaId || id !== presentation.detailMediaId)
     .map(stripCatalogMediaId);
+  const colorMedia = presentation?.colorMediaIds
+    ? Object.fromEntries(
+        Object.entries(presentation.colorMediaIds).map(([color, ids]) => [
+          color,
+          ids.map((id) => product.media.find((media) => media.id === id)!).map(stripCatalogMediaId),
+        ]),
+      )
+    : undefined;
   const selectedVariantId =
     presentation?.defaultVariantId &&
     variants.some(({ id }) => id === presentation.defaultVariantId)
@@ -220,7 +258,13 @@ function productViewModel(
   }
   const detailMedia = presentation?.detailMediaId
     ? product.media.find(({ id }) => id === presentation.detailMediaId)
-    : undefined;
+    : (product.media.find(
+        ({ id }) =>
+          id === presentation?.colorMediaIds?.[selectedVariant.optionValues.color ?? ""]?.at(-1),
+      ) ?? product.media.at(-1));
+  const productCollection = release.collections.find(
+    ({ productIds, status }) => status === "published" && productIds.includes(product.id),
+  );
   const shippingPolicy = release.policies.find(({ slug }) => slug === "shipping");
   const returnsPolicy = release.policies.find(({ slug }) => slug === "returns");
   return productViewModelSchema.parse({
@@ -233,6 +277,7 @@ function productViewModel(
       },
     ],
     brand: presentation?.brand,
+    purchaseStatus: presentation?.purchaseStatus,
     compareAtPriceLabel:
       money.compareAtAmount === undefined
         ? undefined
@@ -248,11 +293,21 @@ function productViewModel(
     heading: product.name,
     kind: "product",
     media: presentationMedia,
+    colorMedia,
     optionDefinitions,
     optionGroups: renderedOptionGroups,
     paymentBrands: publicPaymentBrands.filter(
       (brand) => settings[`payment-brand-${brand}`] === true,
     ),
+    deliverySummary:
+      typeof settings["delivery-summary"] === "string" && settings["delivery-summary"].trim()
+        ? settings["delivery-summary"].trim()
+        : undefined,
+    shippingReturnsSummary:
+      typeof settings["shipping-returns-summary"] === "string" &&
+      settings["shipping-returns-summary"].trim()
+        ? settings["shipping-returns-summary"].trim()
+        : undefined,
     priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
     publishedRoutes: release.routes,
     relatedProducts,
@@ -269,6 +324,9 @@ function productViewModel(
       averageRating: presentation?.reviewDisplay?.averageRating ?? 0,
       count: presentation?.reviewDisplay?.count ?? 0,
       label: `${presentation?.reviewDisplay?.count ?? 0} Reviews`,
+      ...(presentation?.reviewDisplay?.ratingBands
+        ? { ratingBands: presentation.reviewDisplay.ratingBands }
+        : {}),
     },
     reviews: presentation?.reviewDisplay?.entries ?? [],
     shipping:
@@ -278,7 +336,7 @@ function productViewModel(
     specifications: presentation?.specifications ?? [],
     state: "populated",
     taxonomy: {
-      categories: relatedCollection ? [relatedCollection.name] : [],
+      categories: productCollection ? [productCollection.name] : [],
       tags: [],
     },
     variants: variants.map((variant) => ({
@@ -309,12 +367,20 @@ export function composeProductPageModel(input: {
     throw new Error("Product route identity does not match a published Catalog Release product.");
   }
   const productsById = new Map(release.products.map((candidate) => [candidate.id, candidate]));
-  const relatedCollection = release.collections.find(
-    ({ productIds, status }) => status === "published" && productIds.includes(product.id),
-  );
-  const productSettings = input.experience?.resolvedTemplates
+  const productSection = input.experience?.resolvedTemplates
     .find(({ pageType }) => pageType === "product")
-    ?.sections.find(({ type, visible }) => visible && type === "fashion-store.product")?.settings;
+    ?.sections.find(({ type, visible }) => visible && type === "fashion-store.product");
+  const selectedCollectionId = selectedRelatedCollectionId(input.experience, productSection?.id);
+  if (
+    selectedCollectionId &&
+    !release.collections.some(
+      ({ id, status }) => id === selectedCollectionId && status === "published",
+    )
+  ) {
+    throw new Error("Selected related collection is not published in the Catalog Release.");
+  }
+  const relatedCollection = relatedCollectionForProduct(release, product, selectedCollectionId);
+  const productSettings = productSection?.settings;
   const model = productViewModel(
     release,
     productsById,
@@ -358,7 +424,7 @@ function collectionViewModel(
         name: collection.name,
       },
     ],
-    description: requiredTextSetting(settings, "intro-copy", "Discover the latest edit."),
+    description: optionalTextSetting(settings, "intro-copy"),
     heading: requiredTextSetting(settings, "intro-title", collection.name),
     kind: "collection-grid",
     products: collection.productIds.flatMap((productId) => {
@@ -376,7 +442,8 @@ function productCardViewModel(
   locale: string,
   visualVariant: PresentationProductCard["visualVariant"],
 ): PresentationProductCard[] {
-  if (product.status !== "published") return [];
+  if (product.status !== "published" || product.presentation?.purchaseStatus === "unverified")
+    return [];
   const pricedProduct = activeVariantsWithDefaultMoney(product, defaultCurrency);
   if (!pricedProduct) return [];
   const { variants } = pricedProduct;
@@ -443,6 +510,11 @@ function requiredTextSetting(
 ): string {
   const value = settings[key];
   return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function optionalTextSetting(settings: Readonly<Record<string, unknown>>, key: string) {
+  const value = settings[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
 function editorLink(
@@ -545,20 +617,16 @@ function shellViewModel(
     announcement:
       settings["announcement-visible"] === false
         ? undefined
-        : requiredTextSetting(
-            settings,
-            "announcement-text",
-            "Catalog content is published; price and availability are verified before purchase.",
-          ),
+        : optionalTextSetting(settings, "announcement-text"),
     announcementLink: editorLink(adapter, release, settings["announcement-link"]),
     footer: {
-      contactCopy: requiredTextSetting(settings, "footer-contact-copy", "Stay in touch."),
+      contactCopy: optionalTextSetting(settings, "footer-contact-copy"),
       legalLink: editorLink(adapter, release, settings["footer-legal-link"]),
       logo: editorMedia(release, settings["footer-logo"], mediaOrigin),
       socialLink: editorLink(adapter, release, settings["footer-social-link"]),
     },
     header: {
-      contactCopy: requiredTextSetting(settings, "header-contact-copy", "How can we help?"),
+      contactCopy: optionalTextSetting(settings, "header-contact-copy"),
       highlightLink: referenceLink(adapter, release, settings["header-highlight-page"]),
       legalLink: editorLink(adapter, release, settings["header-legal-link"]),
       logo: editorMedia(release, settings["header-logo"], mediaOrigin),
@@ -1297,9 +1365,8 @@ export function composeExperienceRoute(
     }
     if (binding.reference.kind === "product") {
       const product = productsById.get(binding.reference.id)!;
-      const relatedCollection = [...collectionsById.values()].find(
-        ({ productIds, status }) => status === "published" && productIds.includes(product.id),
-      );
+      const selectedCollectionId = selectedRelatedCollectionId(input.experience, instance.id);
+      const relatedCollection = relatedCollectionForProduct(release, product, selectedCollectionId);
       const viewModel = productViewModel(
         release,
         productsById,

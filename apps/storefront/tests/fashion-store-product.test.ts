@@ -57,7 +57,7 @@ describe("Fashion Store product detail", () => {
       /\[data-fashion-store-product\] \.product-info\s*\{[^}]*min-height/,
     );
     expect(integration).toMatch(
-      /\.fashion-product-related \[data-fashion-store-product-card\] \.shop-image img\s*\{[^}]*aspect-ratio:\s*600 \/ 765/,
+      /\.fashion-product-related\s+\[data-fashion-store-product-card\]\s+\.shop-image\s+img\s*\{[^}]*aspect-ratio:\s*600 \/ 765/,
     );
     expect(integration).not.toMatch(
       /\[data-fashion-store-product\] \.fashion-product-tabs\s*\{[^}]*min-height/,
@@ -197,9 +197,9 @@ describe("Fashion Store product detail", () => {
     const requiredBindings = [
       "presentation.brand",
       "presentation.reviewSummary.label",
-      "Estimated delivery:",
-      "Free shipping &amp; returns:",
-      "Guarantee safe and secure checkout",
+      "Delivery timing:",
+      "Shipping &amp; returns:",
+      "Payment methods",
       "Category:",
       "Tags:",
       "presentation.descriptionDetail.eyebrow",

@@ -49,10 +49,14 @@ const validProduct = {
 
 async function resetCatalog(): Promise<void> {
   await env.DB.batch([
+    env.DB.prepare("PRAGMA defer_foreign_keys = ON"),
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM audit_events"),
     env.DB.prepare("DELETE FROM catalog_releases"),
+    env.DB.prepare("DELETE FROM product_reviews"),
+    env.DB.prepare("DELETE FROM product_revisions"),
     env.DB.prepare("DELETE FROM product_media"),
+    env.DB.prepare("DELETE FROM product_media_assets"),
     env.DB.prepare("DELETE FROM prices"),
     env.DB.prepare("DELETE FROM price_lists"),
     env.DB.prepare("DELETE FROM stock_ledger_entries"),
@@ -277,7 +281,7 @@ describe("catalog management and publishing", () => {
         collectionIds: string[];
         id: string;
         media: Array<{ id?: string }>;
-        presentation?: typeof releasePresentation;
+        presentation?: typeof releasePresentation & { reviewDisplay?: { count: number } };
         slug: string;
         variants: Array<{
           prices: Array<{ amount: number; compareAtAmount?: number; currency: string }>;
@@ -300,7 +304,8 @@ describe("catalog management and publishing", () => {
       { amount: 12_900, compareAtAmount: 15_000, currency: "USD" },
     ]);
     expect(manifest.products[0]?.media[0]?.id).toBe(releaseMedia!.id);
-    expect(manifest.products[0]?.presentation).toEqual(releasePresentation);
+    expect(manifest.products[0]?.presentation).toMatchObject(releasePresentation);
+    expect(manifest.products[0]?.presentation?.reviewDisplay).toMatchObject({ count: 0 });
     expect(manifest.routes).toContain("/products/carry-on-pro");
     const releaseResponse = await app.fetch(
       new Request(`https://api.example.test/build/catalog/releases/${release!.id}`, {
@@ -813,6 +818,550 @@ describe("catalog management and publishing", () => {
     ).toEqual({ presentation_json: null });
   });
 
+  test("stages a versioned published Product revision without changing its source row", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    await env.DB.prepare("UPDATE products SET status = 'published' WHERE id = ?")
+      .bind(productId)
+      .run();
+    const originalProduct = await env.DB.prepare(
+      "SELECT name, description, version FROM products WHERE id = ?",
+    )
+      .bind(productId)
+      .first();
+    const expectedProductVersion = await productVersion(productId);
+    const media = await env.DB.prepare(
+      "SELECT id, r2_key, alt_text, width, height FROM product_media WHERE product_id = ?",
+    )
+      .bind(productId)
+      .first<{
+        alt_text: string;
+        height: number;
+        id: string;
+        r2_key: string;
+        width: number;
+      }>();
+    expect(media).not.toBeNull();
+    const content = {
+      description: "A revised, product-specific carry-on description.",
+      media: [
+        {
+          altText: media!.alt_text,
+          height: media!.height,
+          id: media!.id,
+          r2Key: media!.r2_key,
+          width: media!.width,
+        },
+      ],
+      name: "Carry-on revision",
+      presentation: null,
+      seoDescription: validProduct.seoDescription,
+      seoTitle: validProduct.seoTitle,
+    };
+    const draftPath = `/admin/catalog/products/${productId}/revisions/draft`;
+    const stage = (expectedDraftVersion: number | null, nextContent = content) =>
+      app.fetch(
+        request(draftPath, {
+          body: JSON.stringify({
+            content: nextContent,
+            expectedDraftVersion,
+            expectedProductVersion,
+            expectedPublishedRevisionId: null,
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "PUT",
+        }),
+        env,
+      );
+
+    const invalidOptions = await app.fetch(
+      request(draftPath, {
+        body: JSON.stringify({
+          content: {
+            ...content,
+            optionDefinitions: [{ name: "color", presentation: "text", values: [{ label: "Charcoal" }] }],
+            variantOptions: [{ id: "wrong-variant", optionValues: { color: "Charcoal" }, title: "Charcoal" }],
+          },
+          expectedDraftVersion: null,
+          expectedProductVersion,
+          expectedPublishedRevisionId: null,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(invalidOptions.status).toBe(422);
+    expect(await invalidOptions.json()).toMatchObject({ error: { code: "product_revision_options_invalid" } });
+
+    const first = await stage(null);
+    expect(first.status, JSON.stringify(await first.clone().json())).toBe(200);
+    const firstBody = await first.json<{ data: { id: string } }>();
+    expect(firstBody).toMatchObject({
+      data: { content, status: "draft", version: 1 },
+    });
+    expect(
+      await env.DB.prepare("SELECT name, description, version FROM products WHERE id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual(originalProduct);
+    expect((await stage(null)).status).toBe(409);
+    const second = await stage(1, { ...content, name: "Carry-on second revision" });
+    expect(second.status).toBe(200);
+    expect(await second.json()).toMatchObject({
+      data: { content: { name: "Carry-on second revision" }, version: 2 },
+    });
+    const stagedRevision = firstBody;
+    const preview = await app.fetch(
+      request(
+        `/admin/catalog/products/${productId}/revisions/preview?revisionId=${stagedRevision.data.id}`,
+      ),
+      env,
+    );
+    expect(preview.status).toBe(200);
+    expect(await preview.json()).toMatchObject({
+      data: {
+        product: { id: productId, name: "Carry-on second revision" },
+        revisionId: stagedRevision.data.id,
+      },
+    });
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM product_revisions WHERE product_id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({ count: 1 });
+
+    const newMediaId = crypto.randomUUID();
+    const newMediaKey = `catalog/products/${productId}/${newMediaId}.webp`;
+    const ownUpload = await app.fetch(
+      request(`/admin/media/${newMediaKey}`, {
+        body: new Uint8Array([82, 73, 70, 70]),
+        headers: { "Content-Length": "4", "Content-Type": "image/webp" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(ownUpload.status).toBe(201);
+    const ownMedia = {
+      altText: "Product-specific detail image",
+      height: 1200,
+      id: newMediaId,
+      r2Key: newMediaKey,
+      width: 1200,
+    };
+    const withOwnMedia = await stage(2, {
+      ...content,
+      media: [...content.media, ownMedia],
+    });
+    expect(withOwnMedia.status).toBe(200);
+    expect(await withOwnMedia.json()).toMatchObject({ data: { version: 3 } });
+    expect(
+      await env.DB.prepare("SELECT product_id, r2_key FROM product_media_assets WHERE id = ?")
+        .bind(newMediaId)
+        .first(),
+    ).toEqual({ product_id: productId, r2_key: newMediaKey });
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM product_media WHERE product_id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({ count: 1 });
+    const staleMediaId = crypto.randomUUID();
+    const staleMediaKey = `catalog/products/${productId}/${staleMediaId}.webp`;
+    const staleUpload = await app.fetch(
+      request(`/admin/media/${staleMediaKey}`, {
+        body: new Uint8Array([82, 73, 70, 70]),
+        headers: { "Content-Length": "4", "Content-Type": "image/webp" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(staleUpload.status).toBe(201);
+    const staleWrite = await stage(2, {
+      ...content,
+      media: [...content.media, { ...ownMedia, id: staleMediaId, r2Key: staleMediaKey }],
+    });
+    expect(staleWrite.status).toBe(409);
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM product_media_assets WHERE id = ?")
+        .bind(staleMediaId)
+        .first(),
+    ).toEqual({ count: 0 });
+
+    const secondUpload = await app.fetch(
+      request("/admin/media/catalog/products/duffel.webp", {
+        body: new Uint8Array([82, 73, 70, 70]),
+        headers: { "Content-Length": "4", "Content-Type": "image/webp" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(secondUpload.status).toBe(201);
+    const otherProduct = {
+      ...validProduct,
+      media: [{ ...validProduct.media[0]!, r2Key: "catalog/products/duffel.webp" }],
+      slug: "duffel",
+      variants: [{ ...validProduct.variants[0]!, sku: "DUFFEL-001" }],
+    };
+    const otherResponse = await app.fetch(productRequest(otherProduct), env);
+    expect(otherResponse.status).toBe(201);
+    const other = await otherResponse.json<{ data: { id: string } }>();
+    const otherMedia = await env.DB.prepare(
+      "SELECT id, r2_key FROM product_media WHERE product_id = ?",
+    )
+      .bind(other.data.id)
+      .first<{ id: string; r2_key: string }>();
+    const crossProduct = await stage(3, {
+      ...content,
+      media: [
+        {
+          ...content.media[0]!,
+          id: otherMedia!.id,
+          r2Key: otherMedia!.r2_key,
+        },
+      ],
+    });
+    expect(crossProduct.status).toBe(422);
+    expect(await crossProduct.json()).toMatchObject({ error: { code: "cross_product_media" } });
+  });
+
+  test("publishes a staged Product revision and then a review-only release without rewriting history", async () => {
+    const { app } = appFor(
+      "catalog-user",
+      vi.fn(async () => ({ correlationId: crypto.randomUUID() })),
+    );
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const publishInitial = await app.fetch(
+      request(`/admin/catalog/products/${productId}/publish`, {
+        body: JSON.stringify({ reason: "Initial published Product" }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "initial-revision-test-publish",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(publishInitial.status).toBe(202);
+    const initialRelease = await publishInitial.json<{ data: { releaseId: string } }>();
+    const initialManifest = await env.DB.prepare(
+      "SELECT manifest_json FROM catalog_releases WHERE id = ?",
+    )
+      .bind(initialRelease.data.releaseId)
+      .first<{ manifest_json: string }>();
+    const media = await env.DB.prepare(
+      "SELECT id, r2_key, alt_text, width, height FROM product_media WHERE product_id = ?",
+    )
+      .bind(productId)
+      .first<{
+        alt_text: string;
+        height: number;
+        id: string;
+        r2_key: string;
+        width: number;
+      }>();
+    const productVersionBeforeRevision = await productVersion(productId);
+    const variantId = (await env.DB.prepare("SELECT id FROM product_variants WHERE product_id = ?")
+      .bind(productId)
+      .first<{ id: string }>())!.id;
+    const stagedContent = {
+      description: "Revision content bound to this Product ID.",
+      media: [
+        {
+          altText: media!.alt_text,
+          height: media!.height,
+          id: media!.id,
+          r2Key: media!.r2_key,
+          width: media!.width,
+        },
+      ],
+      name: "Revised carry-on",
+      optionDefinitions: [{ name: "color", presentation: "text", values: [{ label: "Charcoal" }] }],
+      presentation: null,
+      seoDescription: validProduct.seoDescription,
+      seoTitle: validProduct.seoTitle,
+      variantOptions: [{ id: variantId, optionValues: { color: "Charcoal" }, title: "Charcoal" }],
+    };
+    const staged = await app.fetch(
+      request(`/admin/catalog/products/${productId}/revisions/draft`, {
+        body: JSON.stringify({
+          content: stagedContent,
+          expectedDraftVersion: null,
+          expectedProductVersion: productVersionBeforeRevision,
+          expectedPublishedRevisionId: null,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(staged.status).toBe(200);
+    const stagedRevision = await staged.json<{ data: { id: string; version: number } }>();
+    const publishRevision = (revisionId: string | null, publishedId: string | null, key: string) =>
+      app.fetch(
+        request(`/admin/catalog/products/${productId}/revisions/publish`, {
+          body: JSON.stringify({
+            expectedDraftVersion: revisionId ? stagedRevision.data.version : null,
+            expectedProductVersion: productVersionBeforeRevision,
+            expectedPublishedRevisionId: publishedId,
+            reason: "Reviewed Product revision",
+            revisionId,
+          }),
+          headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+          method: "POST",
+        }),
+        env,
+      );
+    const releaseResponse = await publishRevision(
+      stagedRevision.data.id,
+      null,
+      "published-revision-test-1",
+    );
+    expect(releaseResponse.status, JSON.stringify(await releaseResponse.clone().json())).toBe(202);
+    const release = await releaseResponse.json<{ data: { releaseId: string } }>();
+    const revisedManifest = await env.DB.prepare(
+      "SELECT manifest_json FROM catalog_releases WHERE id = ?",
+    )
+      .bind(release.data.releaseId)
+      .first<{ manifest_json: string }>();
+    expect(JSON.parse(revisedManifest!.manifest_json)).toMatchObject({
+      products: [
+        {
+          id: productId,
+          name: "Revised carry-on",
+          optionDefinitions: stagedContent.optionDefinitions,
+          variants: [{ id: variantId, optionValues: { color: "Charcoal" } }],
+        },
+      ],
+    });
+    const beforeDeploy = await app.fetch(
+      new Request("https://api.example.test/catalog/products/carry-on/live"),
+      env,
+    );
+    expect(await beforeDeploy.json()).toMatchObject({ data: { name: "Carry-on" } });
+    expect(
+      await env.DB.prepare("SELECT manifest_json FROM catalog_releases WHERE id = ?")
+        .bind(initialRelease.data.releaseId)
+        .first(),
+    ).toEqual(initialManifest);
+    const deployed = await app.fetch(
+      new Request(
+        `https://api.example.test/build/catalog/releases/${release.data.releaseId}/status`,
+        {
+          body: JSON.stringify({ status: "deployed" }),
+          headers: {
+            Authorization: "Bearer test-build-manifest-token-at-least-32-bytes",
+            "Content-Type": "application/json",
+            "Idempotency-Key": "published-revision-test-deployed",
+          },
+          method: "POST",
+        },
+      ),
+      env,
+    );
+    expect(deployed.status).toBe(200);
+    expect(
+      await env.DB.prepare("SELECT status FROM product_revisions WHERE id = ?")
+        .bind(stagedRevision.data.id)
+        .first(),
+    ).toEqual({ status: "published" });
+    const afterDeploy = await app.fetch(
+      new Request("https://api.example.test/catalog/products/carry-on/live"),
+      env,
+    );
+    expect(await afterDeploy.json()).toMatchObject({
+      data: {
+        name: "Revised carry-on",
+        optionDefinitions: stagedContent.optionDefinitions,
+        variants: [{ id: variantId, options: { color: "Charcoal" } }],
+      },
+    });
+    const reviewOnly = await publishRevision(null, stagedRevision.data.id, "review-only-test-1");
+    expect(reviewOnly.status, JSON.stringify(await reviewOnly.clone().json())).toBe(202);
+    const reviewOnlyRelease = await reviewOnly.json<{ data: { releaseId: string } }>();
+    const reviewOnlyManifest = await env.DB.prepare(
+      "SELECT manifest_json FROM catalog_releases WHERE id = ?",
+    )
+      .bind(reviewOnlyRelease.data.releaseId)
+      .first<{ manifest_json: string }>();
+    expect(JSON.parse(reviewOnlyManifest!.manifest_json).products).toEqual(
+      JSON.parse(revisedManifest!.manifest_json).products,
+    );
+    expect(await productVersion(productId)).toBe(productVersionBeforeRevision);
+
+    const secondDraftResponse = await app.fetch(
+      request(`/admin/catalog/products/${productId}/revisions/draft`, {
+        body: JSON.stringify({
+          content: { ...stagedContent, name: "Unbuilt revision" },
+          expectedDraftVersion: null,
+          expectedProductVersion: productVersionBeforeRevision,
+          expectedPublishedRevisionId: stagedRevision.data.id,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(secondDraftResponse.status).toBe(200);
+    const secondDraft = await secondDraftResponse.json<{ data: { id: string; version: number } }>();
+    const failingApp = appFor(
+      "catalog-user",
+      vi.fn(async () => {
+        throw new Error("build hook unavailable");
+      }),
+    ).app;
+    const failedReleaseResponse = await failingApp.fetch(
+      request(`/admin/catalog/products/${productId}/revisions/publish`, {
+        body: JSON.stringify({
+          expectedDraftVersion: secondDraft.data.version,
+          expectedProductVersion: productVersionBeforeRevision,
+          expectedPublishedRevisionId: stagedRevision.data.id,
+          reason: "Try a revised Product build",
+          revisionId: secondDraft.data.id,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "failed-published-revision-test",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(failedReleaseResponse.status).toBe(500);
+    expect(
+      await env.DB.prepare("SELECT status FROM product_revisions WHERE id = ?")
+        .bind(secondDraft.data.id)
+        .first(),
+    ).toEqual({ status: "draft" });
+    expect(
+      await env.DB.prepare("SELECT status FROM product_revisions WHERE id = ?")
+        .bind(stagedRevision.data.id)
+        .first(),
+    ).toEqual({ status: "published" });
+    expect(
+      await env.DB.prepare("SELECT manifest_json FROM catalog_releases WHERE id = ?")
+        .bind(release.data.releaseId)
+        .first(),
+    ).toEqual(revisedManifest);
+  });
+
+  test("builds an approved-only review snapshot in a new release and preserves the old snapshot", async () => {
+    const { app } = appFor(
+      "catalog-user",
+      vi.fn(async () => ({ correlationId: crypto.randomUUID() })),
+    );
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const initialResponse = await app.fetch(
+      request(`/admin/catalog/products/${productId}/publish`, {
+        body: JSON.stringify({ reason: "Initial review snapshot" }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "initial-review-snapshot-001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(initialResponse.status).toBe(202);
+    const initial = await initialResponse.json<{ data: { releaseId: string } }>();
+    const initialRow = await env.DB.prepare(
+      "SELECT manifest_json FROM catalog_releases WHERE id = ?",
+    )
+      .bind(initial.data.releaseId)
+      .first<{ manifest_json: string }>();
+    const initialProduct = JSON.parse(initialRow!.manifest_json).products[0];
+    expect(initialProduct.presentation.reviewDisplay).toMatchObject({
+      averageRating: 0,
+      count: 0,
+      entries: [],
+      ratingBands: [0, 0, 0, 0, 0],
+    });
+
+    const reviews = [
+      { id: crypto.randomUUID(), rating: 5, status: "approved", name: "Five star" },
+      { id: crypto.randomUUID(), rating: 4, status: "approved", name: "Four star" },
+      { id: crypto.randomUUID(), rating: 2, status: "approved", name: "Two star" },
+      { id: crypto.randomUUID(), rating: 1, status: "pending", name: "Pending secret" },
+      { id: crypto.randomUUID(), rating: 1, status: "rejected", name: "Rejected secret" },
+    ];
+    for (const [index, review] of reviews.entries()) {
+      const submittedAt = new Date(Date.parse(NOW) + index * 1_000).toISOString();
+      await env.DB.prepare(
+        `INSERT INTO product_reviews
+          (id, product_id, rating, display_name, body, status, submitted_at,
+           moderated_at, moderated_by, moderation_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(
+          review.id,
+          productId,
+          review.rating,
+          review.name,
+          "A product-specific review with enough useful detail.",
+          review.status,
+          submittedAt,
+          review.status === "pending" ? null : submittedAt,
+          review.status === "pending" ? null : "admin-catalog-user",
+          review.status === "pending" ? null : "Reviewed for release",
+        )
+        .run();
+    }
+
+    const nextResponse = await app.fetch(
+      request(`/admin/catalog/products/${productId}/revisions/publish`, {
+        body: JSON.stringify({
+          expectedDraftVersion: null,
+          expectedProductVersion: await productVersion(productId),
+          expectedPublishedRevisionId: null,
+          reason: "Publish approved review display",
+          revisionId: null,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "review-only-snapshot-001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(nextResponse.status, JSON.stringify(await nextResponse.clone().json())).toBe(202);
+    const next = await nextResponse.json<{ data: { releaseId: string } }>();
+    const nextRow = await env.DB.prepare("SELECT manifest_json FROM catalog_releases WHERE id = ?")
+      .bind(next.data.releaseId)
+      .first<{ manifest_json: string }>();
+    const nextProduct = JSON.parse(nextRow!.manifest_json).products[0];
+    expect(nextProduct).toMatchObject({
+      id: productId,
+      name: initialProduct.name,
+      slug: initialProduct.slug,
+    });
+    expect(nextProduct.presentation.reviewDisplay).toMatchObject({
+      averageRating: 3.7,
+      count: 3,
+      ratingBands: [0, 1, 0, 1, 1],
+      entries: [
+        { id: reviews[2]!.id, rating: 2, author: "Two star" },
+        { id: reviews[1]!.id, rating: 4, author: "Four star" },
+        { id: reviews[0]!.id, rating: 5, author: "Five star" },
+      ],
+    });
+    expect(nextRow!.manifest_json).not.toContain("Pending secret");
+    expect(nextRow!.manifest_json).not.toContain("Rejected secret");
+    expect(
+      await env.DB.prepare("SELECT manifest_json FROM catalog_releases WHERE id = ?")
+        .bind(initial.data.releaseId)
+        .first(),
+    ).toEqual(initialRow);
+  });
+
   test("records an authenticated failed build with a stable machine result", async () => {
     const { app } = appFor();
     const releaseId = "failed-release-001";
@@ -1086,6 +1635,9 @@ describe("catalog management and publishing", () => {
 
     await env.DB.batch([
       env.DB.prepare("DELETE FROM product_media WHERE product_id = ?").bind(originalProductId),
+      env.DB.prepare("DELETE FROM product_media_assets WHERE product_id = ?").bind(
+        originalProductId,
+      ),
       env.DB.prepare("DELETE FROM collection_products WHERE product_id = ?").bind(
         originalProductId,
       ),

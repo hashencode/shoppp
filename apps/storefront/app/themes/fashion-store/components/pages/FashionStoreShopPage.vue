@@ -259,7 +259,9 @@ function recordProductIntent(kind: "cart" | "quickView" | "wishlist"): void {
                             >{{ product.name }}</a
                           >
                           <div class="fs-15 lh-normal">
-                            <del class="me-5px">{{ product.originalPrice }}</del
+                            <del class="me-5px fashion-store-compare-at-price">{{
+                              product.originalPrice
+                            }}</del
                             >{{ product.price }}
                           </div>
                         </div>

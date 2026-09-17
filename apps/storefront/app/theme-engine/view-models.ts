@@ -54,7 +54,7 @@ const presentationLinkSchema = z
   .strict();
 const shellContactSchema = z
   .object({
-    contactCopy: copySchema,
+    contactCopy: copySchema.optional(),
     legalLink: presentationLinkSchema.optional(),
     logo: editorMediaSchema.optional(),
     socialLink: presentationLinkSchema.optional(),
@@ -290,6 +290,7 @@ export const productViewModelSchema = z
     ...stateShape,
     actions: z.array(previewActionSchema).min(1).max(8),
     brand: z.string().trim().min(1).max(160).optional(),
+    purchaseStatus: z.enum(["unverified"]).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     description: z.string().trim().min(1).max(50_000),
     descriptionDetail: z
@@ -304,6 +305,7 @@ export const productViewModelSchema = z
     heading: headingSchema,
     kind: z.literal("product"),
     media: z.array(mediaSchema).max(50),
+    colorMedia: z.record(z.string(), z.array(mediaSchema).min(1).max(50)).optional(),
     optionDefinitions: productOptionDefinitionsSchema.optional(),
     optionGroups: z
       .array(
@@ -316,6 +318,8 @@ export const productViewModelSchema = z
       )
       .max(20),
     paymentBrands: z.array(z.enum(publicPaymentBrands)).max(publicPaymentBrands.length).optional(),
+    deliverySummary: z.string().trim().min(1).max(300).optional(),
+    shippingReturnsSummary: z.string().trim().min(1).max(300).optional(),
     priceLabel: z.string().trim().min(1).max(80),
     publishedRoutes: z.array(z.string().startsWith("/")).max(1_000),
     relatedProducts: z.array(presentationProductCardSchema).max(8).default([]),
@@ -334,6 +338,15 @@ export const productViewModelSchema = z
         averageRating: z.number().min(0).max(5).default(0),
         count: z.number().int().nonnegative(),
         label: z.string().trim().min(1).max(80),
+        ratingBands: z
+          .tuple([
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+          ])
+          .optional(),
       })
       .strict(),
     reviews: z
@@ -342,11 +355,13 @@ export const productViewModelSchema = z
           .object({
             author: z.string().trim().min(1).max(160),
             date: z.string().trim().min(1).max(160),
+            id: publicIdSchema.optional(),
+            rating: z.number().int().min(1).max(5).optional(),
             text: z.string().trim().min(1).max(2_000),
           })
           .strict(),
       )
-      .max(20)
+      .max(10_000)
       .default([]),
     shipping: z
       .object({ returnBody: z.string().trim().min(1).max(2_000), standard: copySchema })

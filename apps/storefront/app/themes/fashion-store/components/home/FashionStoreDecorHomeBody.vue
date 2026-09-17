@@ -688,9 +688,10 @@ onBeforeUnmount(() => {
                   >
                   <div class="d-block">
                     <div class="d-inline-block align-middle fs-18 fw-600 text-dark-gray">
-                      <del v-if="product.originalPrice" class="me-10px">{{
-                        product.originalPrice
-                      }}</del
+                      <del
+                        v-if="product.originalPrice"
+                        class="me-10px fashion-store-compare-at-price"
+                        >{{ product.originalPrice }}</del
                       >{{ product.price }}
                     </div>
                   </div>

@@ -387,7 +387,7 @@ watch(
           card.name
         }}</span>
         <div class="price lh-22 fs-16 text-dark-gray">
-          <del>{{ card.originalPrice }}</del
+          <del class="fashion-store-compare-at-price">{{ card.originalPrice }}</del
           >{{ card.price }}
         </div>
         <p

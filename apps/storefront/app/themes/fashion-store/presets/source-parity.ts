@@ -4,10 +4,7 @@ import { fashionStoreTemplatePageTypes } from "../page-contracts";
 const editableDefaults = {
   cart: { "help-copy": "Need help with your cart?" },
   checkout: { "help-copy": "Secure checkout" },
-  collection: {
-    "intro-copy": "Discover the latest edit.",
-    "intro-title": "Shop the collection",
-  },
+  collection: {},
   content: {
     "about.heading": "About us",
     "about.message": "Learn more about this store.",

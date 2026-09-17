@@ -217,6 +217,33 @@ describe("catalog release contracts", () => {
     expect(canonicalCatalogReleaseSchema.parse(withPresentation).products[0]!.presentation).toEqual(
       withPresentation.products[0]!.presentation,
     );
+    const withApprovedReviews = structuredClone(withPresentation);
+    withApprovedReviews.products[0]!.presentation!.reviewDisplay = {
+      averageRating: 4,
+      count: 2,
+      entries: [
+        {
+          author: "Alex",
+          date: "2026-09-17",
+          id: crypto.randomUUID(),
+          rating: 5,
+          text: "A useful review.",
+        },
+        {
+          author: "Sam",
+          date: "2026-09-17",
+          id: crypto.randomUUID(),
+          rating: 3,
+          text: "A second review.",
+        },
+      ],
+      provenance: "approved-customer-reviews",
+      ratingBands: [0, 0, 1, 0, 1],
+      updatedAt: "2026-09-17T00:00:00.000Z",
+    };
+    expect(canonicalCatalogReleaseSchema.safeParse(withApprovedReviews).success).toBe(true);
+    withApprovedReviews.products[0]!.presentation!.reviewDisplay!.ratingBands = [0, 0, 0, 0, 2];
+    expect(canonicalCatalogReleaseSchema.safeParse(withApprovedReviews).success).toBe(false);
     for (const invalid of [
       {
         ...withPresentation.products[0]!.presentation,

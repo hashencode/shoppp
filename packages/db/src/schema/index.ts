@@ -254,6 +254,80 @@ export const productMedia = sqliteTable(
   ],
 );
 
+export const productRevisions = sqliteTable(
+  "product_revisions",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    baseProductVersion: integer("base_product_version").notNull(),
+    basePublishedRevisionId: text("base_published_revision_id"),
+    version: integer("version").notNull().default(1),
+    status: text("status", { enum: ["draft", "building", "published", "failed"] }).notNull(),
+    contentJson: text("content_json").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    publishedAt: text("published_at"),
+  },
+  (table) => [
+    uniqueIndex("product_revisions_one_open_per_product")
+      .on(table.productId)
+      .where(sql`${table.status} IN ('draft', 'building')`),
+    index("product_revisions_published_lookup")
+      .on(table.productId, table.publishedAt, table.id)
+      .where(sql`${table.status} = 'published'`),
+    check("product_revisions_base_version_positive", sql`${table.baseProductVersion} > 0`),
+    check("product_revisions_version_positive", sql`${table.version} > 0`),
+  ],
+);
+
+export const productMediaAssets = sqliteTable(
+  "product_media_assets",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    r2Key: text("r2_key").notNull().unique(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("product_media_assets_product_lookup").on(table.productId, table.id)],
+);
+
+export const productReviews = sqliteTable(
+  "product_reviews",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    rating: integer("rating").notNull(),
+    displayName: text("display_name").notNull(),
+    body: text("body").notNull(),
+    status: text("status", { enum: ["pending", "approved", "rejected"] })
+      .notNull()
+      .default("pending"),
+    submittedAt: text("submitted_at").notNull(),
+    moderatedAt: text("moderated_at"),
+    moderatedBy: text("moderated_by").references(() => adminIdentities.id, {
+      onDelete: "restrict",
+    }),
+    moderationReason: text("moderation_reason"),
+  },
+  (table) => [
+    index("product_reviews_pending_lookup").on(table.status, table.submittedAt, table.id),
+    index("product_reviews_approved_product_lookup").on(
+      table.productId,
+      table.status,
+      table.submittedAt,
+      table.id,
+    ),
+    check("product_reviews_rating_range", sql`${table.rating} BETWEEN 1 AND 5`),
+  ],
+);
+
 export const productVariants = sqliteTable(
   "product_variants",
   {
@@ -617,6 +691,9 @@ export const catalogReleases = sqliteTable(
     failureCode: text("failure_code"),
     buildCorrelationId: text("build_correlation_id"),
     productId: text("product_id").references(() => products.id, { onDelete: "restrict" }),
+    productRevisionId: text("product_revision_id").references(() => productRevisions.id, {
+      onDelete: "restrict",
+    }),
     ...timestamps,
   },
   (table) => [

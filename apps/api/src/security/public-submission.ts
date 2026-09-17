@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from "hono";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
-import { enforceCheckoutRateLimit, type RateLimiter } from "./rate-limit";
+import { enforceCheckoutRateLimit, enforceReviewRateLimit, type RateLimiter } from "./rate-limit";
 import { enforceTurnstile, type TurnstileVerifier } from "./turnstile";
 
 const MAX_CHECKOUT_BODY_BYTES = 32 * 1_024;
@@ -32,6 +32,25 @@ export function protectCheckoutSubmission(options: {
       ...(options.turnstileRequired === undefined ? {} : { required: options.turnstileRequired }),
       ...(options.turnstileVerifier ? { verifier: options.turnstileVerifier } : {}),
     });
+    await next();
+  };
+}
+
+export function protectReviewSubmission(options: {
+  readonly rateLimiter?: RateLimiter;
+}): MiddlewareHandler<ApiEnvironment> {
+  return async (context, next) => {
+    if (context.req.header("Origin") !== new URL(context.env.STOREFRONT_ORIGIN).origin) {
+      throw new ApiError(403, "origin_forbidden", "The request origin is not allowed.");
+    }
+    const declaredLength = Number(context.req.header("Content-Length") ?? "0");
+    if (
+      (Number.isFinite(declaredLength) && declaredLength > 8 * 1_024) ||
+      (await context.req.raw.clone().arrayBuffer()).byteLength > 8 * 1_024
+    ) {
+      throw new ApiError(413, "review_payload_too_large", "The review request is too large.");
+    }
+    await enforceReviewRateLimit(context, options.rateLimiter ?? context.env.CHECKOUT_RATE_LIMITER);
     await next();
   };
 }

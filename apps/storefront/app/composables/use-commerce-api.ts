@@ -9,6 +9,7 @@ import type {
   PublicRuntimeConfiguration,
   ShippingQuoteRequest,
   UpdateCartLineRequest,
+  SubmitProductReview,
 } from "@shoppp/contracts";
 
 interface ApiData<T> {
@@ -43,6 +44,11 @@ export const useCommerceApi = () => {
     });
   const getPublicRuntimeConfiguration = () =>
     api<ApiData<PublicRuntimeConfiguration>>("/platform/config");
+  const submitProductReview = (slug: string, input: SubmitProductReview, key: string) =>
+    api<ApiData<{ id: string; status: "pending"; submittedAt: string }>>(
+      `/catalog/products/${encodeURIComponent(slug)}/reviews`,
+      { body: input, headers: { "Idempotency-Key": key }, method: "POST" },
+    );
   const createCart = (input: CreateCartRequest) =>
     api<ApiData<{ cart: Cart; token: string }>>("/cart", {
       body: input,
@@ -103,6 +109,7 @@ export const useCommerceApi = () => {
     getPublicRuntimeConfiguration,
     quoteShipping,
     removeCartLine,
+    submitProductReview,
     updateCartLine,
   };
 };

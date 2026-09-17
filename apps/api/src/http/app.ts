@@ -18,6 +18,8 @@ import {
   auditQuerySchema,
   cancelOrderRequestSchema,
   catalogBuildResultSchema,
+  submitProductReviewSchema,
+  moderateProductReviewSchema,
   createCartRequestSchema,
   createInventoryReservationRequestSchema,
   createPrivacyRequestSchema,
@@ -75,9 +77,22 @@ import {
 } from "../catalog/products";
 import { getLiveProduct, getLiveProductById } from "../catalog/public";
 import {
+  getProductReview,
+  listPendingProductReviews,
+  moderateProductReview,
+  submitProductReview,
+} from "../catalog/reviews";
+import {
+  getPublishedProductRevisions,
+  previewPublishedProductRevision,
+  stagePublishedProductRevision,
+} from "../catalog/published-revisions";
+import {
   productDraftSchema,
   productOptionDefinitionsInputSchema,
   productPresentationInputSchema,
+  publishedProductRevisionInputSchema,
+  publishedProductReleaseInputSchema,
   publicationSchema,
 } from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
@@ -137,7 +152,7 @@ import {
 import { createReportExport, downloadReportExport, getReportExport } from "../reporting/export";
 import { getRevenueReport, listReportOrders } from "../reporting/order-metrics";
 import type { RateLimiter } from "../security/rate-limit";
-import { protectCheckoutSubmission } from "../security/public-submission";
+import { protectCheckoutSubmission, protectReviewSubmission } from "../security/public-submission";
 import { safeRequestId } from "../security/redaction";
 import type { TurnstileVerifier } from "../security/turnstile";
 import { getOperationalHealth } from "../observability/health";
@@ -152,6 +167,7 @@ import {
   createPreviewToken,
   defaultBuildTrigger,
   publishProduct,
+  publishPublishedProductRevision,
   recordCatalogBuildResult,
   type BuildTrigger,
 } from "../publishing/releases";
@@ -236,6 +252,7 @@ export interface CreateAppOptions {
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
   readonly checkoutRateLimiter?: RateLimiter;
+  readonly reviewRateLimiter?: RateLimiter;
   readonly exposePasswordResetToken?: boolean;
   readonly passwordResetSecret?: string;
   readonly turnstileRequired?: boolean;
@@ -817,6 +834,12 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/cart", publicCors);
   app.use("/cart/*", publicCors);
   app.use("/catalog/*", publicCors);
+  app.use(
+    "/catalog/products/:slug/reviews",
+    protectReviewSubmission({
+      ...(options.reviewRateLimiter ? { rateLimiter: options.reviewRateLimiter } : {}),
+    }),
+  );
   app.use("/checkout/*", publicCors);
   app.use("/platform/*", publicCors);
   app.use(
@@ -856,6 +879,12 @@ export function createApp(options: CreateAppOptions = {}) {
       return context.body(null, 204);
     },
   );
+  app.post("/catalog/products/:slug/reviews", idempotency("reviews.submit"), async (context) => {
+    const input = await parseJson(context, submitProductReviewSchema);
+    const result = await submitProductReview(context.env.DB, context.req.param("slug"), input);
+    context.header("Cache-Control", "no-store");
+    return context.json({ data: result, meta: { requestId: context.get("requestId") } }, 202);
+  });
   app.get("/catalog/products/:slug/live", async (context) => {
     const currency = (context.req.query("currency") ?? "USD").toUpperCase();
     if (!/^[A-Z]{3}$/.test(currency)) {
@@ -1980,6 +2009,37 @@ export function createApp(options: CreateAppOptions = {}) {
     });
     return downloadPrivacyExport(context, context.req.param("id"));
   });
+  app.get("/admin/catalog/reviews", async (context) => {
+    await requirePermission(context, "reviews.moderate", { type: "product_review" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await listPendingProductReviews(context.env.DB, context.req.query("after")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/catalog/reviews/:id", async (context) => {
+    const id = context.req.param("id");
+    await requirePermission(context, "reviews.moderate", { id, type: "product_review" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: await getProductReview(context.env.DB, id),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/admin/catalog/reviews/:id/moderate",
+    idempotency("reviews.moderate"),
+    async (context) => {
+      const id = context.req.param("id");
+      await requirePermission(context, "reviews.moderate", { id, type: "product_review" });
+      const input = await parseJson(context, moderateProductReviewSchema);
+      context.header("Cache-Control", "private, no-store");
+      return context.json({
+        data: await moderateProductReview(context, id, input),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
   app.get("/admin/catalog/products", async (context) => {
     await requirePermission(context, "catalog.read", { type: "product" });
     return context.json(await listProducts(context));
@@ -2032,6 +2092,35 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/catalog/products/:id/revisions", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.read", { id: productId, type: "product" });
+    return context.json({
+      data: await getPublishedProductRevisions(context.env.DB, productId),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.put("/admin/catalog/products/:id/revisions/draft", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.write", { id: productId, type: "product" });
+    const input = await parseJson(context, publishedProductRevisionInputSchema);
+    return context.json({
+      data: await stagePublishedProductRevision(context, productId, input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/catalog/products/:id/revisions/preview", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.read", { id: productId, type: "product" });
+    const revisionId = context.req.query("revisionId")?.trim();
+    if (!revisionId) {
+      throw new ApiError(400, "product_revision_required", "Choose a staged Product revision.");
+    }
+    return context.json({
+      data: await previewPublishedProductRevision(context, productId, revisionId),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.put("/admin/media/*", async (context) =>
     context.json(
       {
@@ -2073,6 +2162,27 @@ export function createApp(options: CreateAppOptions = {}) {
             options.buildTrigger ?? defaultBuildTrigger(context.env),
             input.reason,
             input.expectedVersion,
+          ),
+          meta: { requestId: context.get("requestId") },
+        },
+        202,
+      );
+    },
+  );
+  app.post(
+    "/admin/catalog/products/:id/revisions/publish",
+    idempotency("catalog.publish"),
+    async (context) => {
+      const productId = context.req.param("id");
+      await requirePermission(context, "catalog.publish", { id: productId, type: "product" });
+      const input = await parseJson(context, publishedProductReleaseInputSchema);
+      return context.json(
+        {
+          data: await publishPublishedProductRevision(
+            context,
+            productId,
+            input,
+            options.buildTrigger ?? defaultBuildTrigger(context.env),
           ),
           meta: { requestId: context.get("requestId") },
         },

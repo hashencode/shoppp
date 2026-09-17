@@ -42,6 +42,8 @@ export const fashionStoreProductParityProfile = {
     colorScheme: "light",
     cookieState: "accepted",
     deviceScaleFactor: 1,
+    // Frozen U1 pixel budgets remain traceable. R21-R23 and approved release-owned
+    // content supersede these as automatic pass/fail gates for the current Product.
     screenshotChangedPixelRatioMax: 0.01,
     screenshotMeanChannelDeltaMax: 5,
   },
@@ -78,6 +80,26 @@ export const fashionStoreProductParityProfile = {
       viewport: { height: 844, width: 390 },
     },
   ],
+} as const;
+
+// R21-R23 supersede only these coordinates in the historical profile. The
+// changed assurance copy and balanced mobile tabs alter downstream height.
+export const fashionStoreProductFeedbackGeometry = {
+  desktop: {
+    documentHeight: 3072,
+    footerY: 2612,
+    productInfoHeight: 899,
+    relatedHeadingY: 1941,
+    tabsY: 1185,
+  },
+  mobile: {
+    documentHeight: 6461,
+    footerY: 5491,
+    productInfoHeight: 1133,
+    relatedHeadingY: 3085,
+    tabsHeight: 132,
+    tabsY: 1982,
+  },
 } as const;
 
 export const fashionStoreProductAuthorityExceptions = [
@@ -172,7 +194,7 @@ export const fashionStoreProductRegionLedger = [
     ],
     id: "product-summary-and-options",
     implementationEvidence: [
-      'class="d-block d-sm-flex align-items-center mb-15px"',
+      'class="d-block d-sm-flex align-items-center mb-15px fashion-product-rating-line"',
       'class="d-flex align-items-center"',
       "'mb-35px' : 'mb-20px'",
     ],
@@ -215,9 +237,9 @@ export const fashionStoreProductRegionLedger = [
     geometryAnchors: [{ classes: ["mb-20px", "mb-15px"], viewport: "all" }],
     id: "assurance-and-taxonomy",
     implementationEvidence: [
-      "Estimated delivery:",
-      "Free shipping &amp; returns:",
-      "Guarantee safe and secure checkout",
+      "Delivery timing:",
+      "Shipping &amp; returns:",
+      "Payment methods",
       "Category:",
       "Tags:",
     ],

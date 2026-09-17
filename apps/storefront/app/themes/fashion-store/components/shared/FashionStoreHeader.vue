@@ -159,7 +159,7 @@ defineExpose({ closeTransient });
       <div class="container-fluid">
         <div class="col-auto col-xxl-3 col-lg-2 menu-logo">
           <div class="header-icon d-none d-lg-flex">
-            <div v-if="configuration" class="widget-text icon alt-font">
+            <div v-if="configuration?.contactCopy" class="widget-text icon alt-font">
               <span>{{ configuration.contactCopy }}</span>
             </div>
             <div v-if="configuration?.highlightLink" class="widget-text icon alt-font">

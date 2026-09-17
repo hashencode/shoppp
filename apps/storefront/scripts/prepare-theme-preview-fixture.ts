@@ -13,6 +13,11 @@ import {
   parseFashionStoreHomeDevelopmentProfile,
 } from "../app/themes/fashion-store/successor/home-development-profile";
 import type { ExperienceBuildInput } from "./prepare-experience";
+import { fashionStoreDemoReviewDisplays } from "./fashion-store-demo-reviews";
+import {
+  createFashionStoreLiveCatalogMigrationPlan,
+  loadFashionStoreLiveCatalog,
+} from "../../../tools/prepare-fashion-store-live-catalog";
 
 const previewFixtureSchema = z
   .object({
@@ -24,6 +29,8 @@ const previewFixtureSchema = z
       .array(z.enum(publicPaymentBrands))
       .max(publicPaymentBrands.length)
       .default([]),
+    productDeliverySummary: z.string().trim().min(1).max(300).optional(),
+    productShippingReturnsSummary: z.string().trim().min(1).max(300).optional(),
     snapshotId: z.string().regex(/^[a-z][a-z0-9-]*$/),
     version: z.int().positive(),
   })
@@ -55,12 +62,54 @@ export async function themePreviewBuildInput(
   const fixture = previewFixtureSchema.parse(
     JSON.parse(await readFile(resolve(import.meta.dir, descriptor.fixturePath), "utf8")),
   );
-  const catalogRelease = canonicalCatalogReleaseSchema.parse(
+  let catalogRelease = canonicalCatalogReleaseSchema.parse(
     JSON.parse(await readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8")),
   );
-  return {
+  if (
+    themeId === "fashion-store" &&
+    process.env.STOREFRONT_FASHION_PRODUCT_CONTENT_CATALOG === "1"
+  ) {
+    const catalog = await loadFashionStoreLiveCatalog({
+      manifestPath: "tools/fashion-store-product-content-catalog.json",
+      repositoryRoot: resolve(import.meta.dir, "../../.."),
+    });
+    const release = createFashionStoreLiveCatalogMigrationPlan(catalog, {
+      expectedIamFingerprint: "0".repeat(64),
+      mediaPublicOrigin: "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev",
+      storefrontOrigin: expectedOrigin,
+    }).shopperRelease;
+    catalogRelease = canonicalCatalogReleaseSchema.parse({
+      ...release,
+      products: release.products.map((product) => {
+        const manifestProduct = catalog.products.find(({ id }) => id === product.id);
+        if (!manifestProduct) throw new Error(`Missing preview Product ${product.id}`);
+        return {
+          ...product,
+          media: product.media.map((item, index) => {
+            const sourcePath = manifestProduct.media[index]?.sourcePath;
+            return sourcePath?.startsWith("apps/storefront/public/")
+              ? { ...item, src: `/${sourcePath.slice("apps/storefront/public/".length)}` }
+              : item;
+          }),
+        };
+      }),
+    });
+  }
+  if (themeId === "fashion-store" && process.env.STOREFRONT_FASHION_DEMO_REVIEWS === "1") {
+    const displays = await fashionStoreDemoReviewDisplays();
+    catalogRelease = canonicalCatalogReleaseSchema.parse({
+      ...catalogRelease,
+      products: catalogRelease.products.map((product) => {
+        const reviewDisplay = displays.get(product.slug);
+        return reviewDisplay && product.presentation
+          ? { ...product, presentation: { ...product.presentation, reviewDisplay } }
+          : product;
+      }),
+    });
+  }
+  const fixtureInput = {
     catalogRelease,
-    environment: "preview",
+    environment: "preview" as const,
     expectedOrigin,
     snapshot: {
       approvedAt: fixture.approvedAt,
@@ -83,6 +132,12 @@ export async function themePreviewBuildInput(
                   ...section,
                   settings: {
                     ...section.settings,
+                    ...(fixture.productDeliverySummary
+                      ? { "delivery-summary": fixture.productDeliverySummary }
+                      : {}),
+                    ...(fixture.productShippingReturnsSummary
+                      ? { "shipping-returns-summary": fixture.productShippingReturnsSummary }
+                      : {}),
                     ...Object.fromEntries(
                       fixture.productPaymentBrands.map((brand) => [`payment-brand-${brand}`, true]),
                     ),
@@ -97,6 +152,58 @@ export async function themePreviewBuildInput(
     },
     themeId: descriptor.manifest.id,
   };
+  if (
+    themeId === "fashion-store" &&
+    process.env.STOREFRONT_FASHION_PRODUCT_CONTENT_CATALOG === "1"
+  ) {
+    const collection = catalogRelease.collections.find(({ status }) => status === "published");
+    const product = catalogRelease.products.find(({ slug }) => slug === "relaxed-corduroy-shirt");
+    if (!collection || !product)
+      throw new Error(
+        "Product content preview requires its published collection and lead Product.",
+      );
+    const liveSnapshot = {
+      ...fixtureInput.snapshot,
+      bindings: [
+        {
+          id: "fashion-store-product-content-home-binding",
+          instanceId: "fashion-store-home",
+          kind: "catalog" as const,
+          reference: { id: collection.id, kind: "collection" as const },
+          settingId: "featured-collection",
+        },
+        {
+          id: "fashion-store-product-content-collection-binding",
+          instanceId: "fashion-store-collection",
+          kind: "catalog" as const,
+          reference: { id: collection.id, kind: "collection" as const },
+          settingId: "fashion-store-live-collection-resource",
+        },
+        {
+          id: "fashion-store-product-content-product-binding",
+          instanceId: "fashion-store-product",
+          kind: "catalog" as const,
+          reference: { id: product.id, kind: "product" as const },
+          settingId: "fashion-store-live-product-resource",
+        },
+      ],
+    };
+    return {
+      ...fixtureInput,
+      inputIdentity: {
+        catalogReleaseId: catalogRelease.releaseId,
+        experienceSnapshotId: liveSnapshot.id,
+        experienceVersion: liveSnapshot.version,
+        platformContractVersion: liveSnapshot.platformContractVersion,
+        themeId: liveSnapshot.themeId,
+        themeVersion: liveSnapshot.themeVersion,
+      },
+      mediaOrigins: ["https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev"],
+      presentationMode: "live",
+      snapshot: liveSnapshot,
+    };
+  }
+  return fixtureInput;
 }
 
 export const fashionStorePreviewBuildInput = (expectedOrigin: string) =>

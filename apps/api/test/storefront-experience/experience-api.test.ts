@@ -25,6 +25,7 @@ import {
   getFashionStagingOperatorRun,
 } from "../../src/testing/fashion-staging-operator";
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
+import { catalogMediaOrigins } from "../../src/storefront-experience/media-origins";
 import type { StorefrontExperienceServiceOptions } from "../../src/storefront-experience/service";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
@@ -147,7 +148,7 @@ const previewCatalogReleaseWithExternalMedia = canonicalCatalogReleaseSchema.par
       : product,
   ),
 });
-const previewMediaOrigins = ["https://media-a.example.test", "https://media-c.example.test"];
+const previewMediaOrigins = catalogMediaOrigins(previewCatalogReleaseWithExternalMedia);
 
 const catalogReadyDraftInput = storefrontExperienceDraftInputSchema.parse({
   ...draftInput,
@@ -823,7 +824,7 @@ describe("storefront experience API", () => {
     );
     expect(
       previewHome?.sections.find(({ id }) => id === "fashion-store-home-categories")?.settings,
-    ).toMatchObject({ "categories-presentation": "decor-icons" });
+    ).toMatchObject({ "categories-presentation": "source" });
   });
 
   test("keeps historical Fashion packages readable and validatable but rejects creation and activation", async () => {

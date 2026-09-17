@@ -176,9 +176,9 @@ test("no-JavaScript shell keeps truthful native browse recovery", async ({
     await expect(page.getByRole("region", { name: "JavaScript limitations" })).toContainText(
       "Shopping actions require JavaScript",
     );
-    await expect(page.getByRole("link", { name: "Browse the published catalog" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Return to the storefront" })).toHaveAttribute(
       "href",
-      "/shop",
+      "/",
     );
   } finally {
     await context.close();

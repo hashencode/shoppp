@@ -77,6 +77,9 @@ describe("selected theme resources", () => {
       input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "product")?.sections[0]
         ?.settings,
     ).toMatchObject({
+      "delivery-summary": "Delivery timing is confirmed for your destination at checkout.",
+      "shipping-returns-summary":
+        "Eligible unused items may be returned within 30 days of delivery.",
       "payment-brand-visa": true,
       "payment-brand-mastercard": true,
       "payment-brand-american-express": true,

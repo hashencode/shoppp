@@ -31,6 +31,7 @@ import {
   useFormModeAccess,
   useListRefreshChannel,
 } from '../../shared/template-kit/hooks'
+import { PublishedProductRevisionEditor } from './published-product-revision-editor'
 
 void React
 
@@ -301,7 +302,9 @@ export const CatalogFormPage = () => {
     setOptionDefinitions(detailData ? deriveOptionDefinitions(detailData) : [])
     setOptionExpectedVersion(detailData?.product.version ?? 0)
     setOptionErrors({})
-    setProductPresentation(detailData ? deriveProductPresentation(detailData) : { specifications: [] })
+    setProductPresentation(
+      detailData ? deriveProductPresentation(detailData) : { specifications: [] }
+    )
     setPresentationExpectedVersion(detailData?.product.version ?? 0)
     setPresentationError(null)
   }
@@ -323,56 +326,62 @@ export const CatalogFormPage = () => {
     detailData.product.status === 'archived'
   )
 
-  const replaceOptionDefinition = useCallback((
-    definitionIndex: number,
-    update: (definition: ProductOptionDefinition) => ProductOptionDefinition
-  ) => {
-    setOptionDefinitions((current) =>
-      current.map((definition, index) =>
-        index === definitionIndex ? update(definition) : definition
+  const replaceOptionDefinition = useCallback(
+    (
+      definitionIndex: number,
+      update: (definition: ProductOptionDefinition) => ProductOptionDefinition
+    ) => {
+      setOptionDefinitions((current) =>
+        current.map((definition, index) =>
+          index === definitionIndex ? update(definition) : definition
+        )
       )
-    )
-  }, [])
+    },
+    []
+  )
 
-  const changePresentation = useCallback((
-    definitionIndex: number,
-    presentation: ProductOptionDefinition['presentation']
-  ) => {
-    const definition = optionDefinitions[definitionIndex]
-    if (!definition || definition.presentation === presentation) return
-    const apply = () =>
-      replaceOptionDefinition(definitionIndex, (current) => ({
-        ...current,
-        presentation,
-        values: current.values.map(({ label, swatch }) =>
-          presentation === 'text' ? { label } : { label, ...(swatch ? { swatch } : {}) }
+  const changePresentation = useCallback(
+    (definitionIndex: number, presentation: ProductOptionDefinition['presentation']) => {
+      const definition = optionDefinitions[definitionIndex]
+      if (!definition || definition.presentation === presentation) return
+      const apply = () =>
+        replaceOptionDefinition(definitionIndex, (current) => ({
+          ...current,
+          presentation,
+          values: current.values.map(({ label, swatch }) =>
+            presentation === 'text' ? { label } : { label, ...(swatch ? { swatch } : {}) }
+          ),
+        }))
+      if (presentation === 'text' && definition.values.some(({ swatch }) => swatch)) {
+        modal.confirm({
+          title: t('Remove color swatches?'),
+          content: t('Changing this option to text presentation removes every saved swatch.'),
+          okText: t('Confirm and save'),
+          onOk: apply,
+        })
+        return
+      }
+      apply()
+    },
+    [modal, optionDefinitions, replaceOptionDefinition, t]
+  )
+
+  const changeSwatch = useCallback(
+    (definitionIndex: number, valueIndex: number, swatch: string) => {
+      replaceOptionDefinition(definitionIndex, (definition) => ({
+        ...definition,
+        values: definition.values.map((value, index) =>
+          index === valueIndex ? { ...value, swatch: swatch.toLowerCase() } : value
         ),
       }))
-    if (presentation === 'text' && definition.values.some(({ swatch }) => swatch)) {
-      modal.confirm({
-        title: t('Remove color swatches?'),
-        content: t('Changing this option to text presentation removes every saved swatch.'),
-        okText: t('Confirm and save'),
-        onOk: apply,
+      setOptionErrors((current) => {
+        const next = { ...current }
+        delete next[`${definitionIndex}:${valueIndex}`]
+        return next
       })
-      return
-    }
-    apply()
-  }, [modal, optionDefinitions, replaceOptionDefinition, t])
-
-  const changeSwatch = useCallback((definitionIndex: number, valueIndex: number, swatch: string) => {
-    replaceOptionDefinition(definitionIndex, (definition) => ({
-      ...definition,
-      values: definition.values.map((value, index) =>
-        index === valueIndex ? { ...value, swatch: swatch.toLowerCase() } : value
-      ),
-    }))
-    setOptionErrors((current) => {
-      const next = { ...current }
-      delete next[`${definitionIndex}:${valueIndex}`]
-      return next
-    })
-  }, [replaceOptionDefinition])
+    },
+    [replaceOptionDefinition]
+  )
 
   const saveOptionDefinitions = useCallback(async () => {
     if (!detailData || optionPresentationReadonly) return
@@ -442,9 +451,7 @@ export const CatalogFormPage = () => {
       labels.add(normalized)
     })
     if (specifications.some(({ label, value }) => !label || !value) || duplicateLabels.size) {
-      setPresentationError(
-        t('Every specification needs a unique label and a non-empty value.')
-      )
+      setPresentationError(t('Every specification needs a unique label and a non-empty value.'))
       return
     }
     const text = (value?: string) => value?.trim() || undefined
@@ -1026,9 +1033,7 @@ export const CatalogFormPage = () => {
                 {t('Add specification')}
               </Button>
             </fieldset>
-            {presentationError ? (
-              <Alert showIcon type="error" title={presentationError} />
-            ) : null}
+            {presentationError ? <Alert showIcon type="error" title={presentationError} /> : null}
             <Button
               type="primary"
               disabled={optionPresentationReadonly}
@@ -1126,5 +1131,16 @@ export const CatalogFormPage = () => {
     ]
   )
 
-  return <BasicCrudFormRecipe spec={spec} />
+  return (
+    <>
+      <BasicCrudFormRecipe spec={spec} />
+      {detailData?.product.status === 'published' ? (
+        <PublishedProductRevisionEditor
+          canEdit={!isReadonly}
+          detail={detailData}
+          onChanged={() => publishRefresh({ source: 'catalog-product-revision' })}
+        />
+      ) : null}
+    </>
+  )
 }

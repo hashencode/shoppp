@@ -6,6 +6,8 @@ import {
   type ProductOptionDefinition,
   type ProductPresentation,
 } from "@shoppp/contracts";
+import { publishedProductRevisionContentSchema } from "../catalog/schemas";
+import type { PublishedProductRevisionContent } from "../catalog/schemas";
 
 import { ApiError } from "../http/errors";
 
@@ -81,6 +83,7 @@ export type StaticRouteManifest = CanonicalCatalogRelease;
 
 interface BuildManifestOptions {
   candidateProductId: string;
+  candidateRevisionId?: string;
   mediaOrigin: string;
   releaseId: string;
   storefrontOrigin: string;
@@ -122,6 +125,16 @@ interface MediaRow {
   product_id: string;
   r2_key: string;
   width: number;
+}
+
+interface ApprovedReviewRow {
+  body: string;
+  display_name: string;
+  id: string;
+  moderated_at: string;
+  product_id: string;
+  rating: number;
+  submitted_at: string;
 }
 
 interface CollectionRow {
@@ -350,6 +363,45 @@ export async function buildCatalogReleaseManifest(
   }
   const productIds = products.results.map((product) => product.id);
   const placeholders = productIds.map(() => "?").join(",");
+  const approvedReviews = await db
+    .prepare(
+      `SELECT id, product_id, rating, display_name, body, submitted_at, moderated_at
+         FROM product_reviews
+        WHERE status = 'approved' AND product_id IN (${placeholders})
+        ORDER BY submitted_at DESC, id DESC LIMIT 10001`,
+    )
+    .bind(...productIds)
+    .all<ApprovedReviewRow>();
+  if (approvedReviews.results.length > 10_000) {
+    throw new ApiError(422, "catalog_review_limit", "Too many reviews for one Catalog Release.");
+  }
+  const revisionRows = await db
+    .prepare(
+      `SELECT id, product_id, status, content_json FROM product_revisions
+        WHERE product_id IN (${placeholders}) AND (status = 'published' OR id = ?)
+        ORDER BY product_id, published_at DESC, id DESC`,
+    )
+    .bind(...productIds, options.candidateRevisionId ?? "")
+    .all<{ content_json: string; id: string; product_id: string; status: string }>();
+  const revisions = new Map<string, PublishedProductRevisionContent>();
+  for (const row of revisionRows.results) {
+    if (row.status === "published" && !revisions.has(row.product_id)) {
+      revisions.set(
+        row.product_id,
+        publishedProductRevisionContentSchema.parse(JSON.parse(row.content_json)),
+      );
+    }
+  }
+  if (options.candidateRevisionId) {
+    const candidate = revisionRows.results.find(({ id }) => id === options.candidateRevisionId);
+    if (!candidate || candidate.product_id !== options.candidateProductId) {
+      throw new ApiError(409, "product_revision_not_found", "The Product revision is unavailable.");
+    }
+    revisions.set(
+      candidate.product_id,
+      publishedProductRevisionContentSchema.parse(JSON.parse(candidate.content_json)),
+    );
+  }
   const [variants, prices, media, collections, memberships] = await Promise.all([
     db
       .prepare(
@@ -410,6 +462,7 @@ export async function buildCatalogReleaseManifest(
       .map((membership) => membership.collection_id),
   );
   const manifestProducts: BuildCatalogInput["products"] = products.results.map((product) => {
+    const revision = revisions.get(product.id);
     const collectionReferences = memberships.results
       .filter((membership) => membership.product_id === product.id)
       .flatMap((membership) => {
@@ -419,7 +472,9 @@ export async function buildCatalogReleaseManifest(
     const productVariants = variants.results
       .filter((variant) => variant.product_id === product.id)
       .map((variant) => ({
-        optionValues: parseSetting<Record<string, string>>(variant.option_values_json, {}),
+        optionValues:
+          revision?.variantOptions?.find(({ id }) => id === variant.id)?.optionValues ??
+          parseSetting<Record<string, string>>(variant.option_values_json, {}),
         id: variant.id,
         prices: prices.results
           .filter((price) => price.variant_id === variant.id)
@@ -432,29 +487,72 @@ export async function buildCatalogReleaseManifest(
           })),
         sku: variant.sku,
         status: variant.status,
-        title: variant.title,
+        title:
+          revision?.variantOptions?.find(({ id }) => id === variant.id)?.title ?? variant.title,
         weightGrams: variant.weight_grams,
       }));
-    const presentation = releasePresentation(product.presentation_json);
+    const sourcePresentation = revision
+      ? (revision.presentation ?? undefined)
+      : releasePresentation(product.presentation_json);
+    const productReviews = approvedReviews.results.filter(
+      (review) => review.product_id === product.id,
+    );
+    const ratingBands: [number, number, number, number, number] = [0, 0, 0, 0, 0];
+    for (const review of productReviews) ratingBands[review.rating - 1]! += 1;
+    const presentation: ProductPresentation = {
+      ...(sourcePresentation ?? { specifications: [] }),
+      reviewDisplay: {
+        averageRating: productReviews.length
+          ? Math.round(
+              (productReviews.reduce((total, review) => total + review.rating, 0) * 10) /
+                productReviews.length,
+            ) / 10
+          : 0,
+        count: productReviews.length,
+        entries: productReviews.map((review) => ({
+          author: review.display_name,
+          date: review.submitted_at.slice(0, 10),
+          id: review.id,
+          rating: review.rating,
+          text: review.body,
+        })),
+        provenance: "approved-customer-reviews",
+        ratingBands,
+        updatedAt: productReviews.reduce(
+          (latest, review) => (review.moderated_at > latest ? review.moderated_at : latest),
+          "1970-01-01T00:00:00.000Z",
+        ),
+      },
+    };
     return {
       collectionIds: collectionReferences.map(({ id }) => id),
       collectionSlugs: collectionReferences.map(({ slug }) => slug),
-      description: product.description,
+      description: revision?.description ?? product.description,
       id: product.id,
-      media: media.results
-        .filter((item) => item.product_id === product.id)
-        .map((item) => ({
-          alt: item.alt_text,
-          height: item.height,
-          id: item.id,
-          src: `${trimSlash(options.mediaOrigin)}/${item.r2_key}`,
-          width: item.width,
-        })),
-      name: product.name,
-      optionDefinitions: releaseOptionDefinitions(product.option_definitions_json, productVariants),
-      ...(presentation ? { presentation } : {}),
-      seoDescription: product.seo_description,
-      seoTitle: product.seo_title,
+      media: revision
+        ? revision.media.map((item) => ({
+            alt: item.altText,
+            height: item.height,
+            id: item.id,
+            src: `${trimSlash(options.mediaOrigin)}/${item.r2Key}`,
+            width: item.width,
+          }))
+        : media.results
+            .filter((item) => item.product_id === product.id)
+            .map((item) => ({
+              alt: item.alt_text,
+              height: item.height,
+              id: item.id,
+              src: `${trimSlash(options.mediaOrigin)}/${item.r2_key}`,
+              width: item.width,
+            })),
+      name: revision?.name ?? product.name,
+      optionDefinitions:
+        revision?.optionDefinitions ??
+        releaseOptionDefinitions(product.option_definitions_json, productVariants),
+      presentation,
+      seoDescription: revision?.seoDescription ?? product.seo_description,
+      seoTitle: revision?.seoTitle ?? product.seo_title,
       slug: product.slug,
       status: product.id === options.candidateProductId ? "published" : product.status,
       variants: productVariants,

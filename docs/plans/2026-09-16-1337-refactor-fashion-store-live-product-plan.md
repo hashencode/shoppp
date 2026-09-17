@@ -8,7 +8,7 @@ product_contract_source: ce-plan-bootstrap
 deepened: 2026-09-16
 execution: code
 plan_alias: FS-F11
-current_unit: FS-F11-U7.2
+current_unit: none
 ---
 
 # Fashion Store Single Live Product Path - Plan
@@ -27,13 +27,13 @@ current_unit: FS-F11-U7.2
 
 ### Execution Checkpoint
 
-- **Classification:** Active successor after FS-F10 human visual rejection.
-- **Current unit:** `FS-F11-U7.2` — rebuild the visible Product from the historical Vue template and bind each dynamic value to its named live owner.
-- **Completed units:** `FS-F11-U1` through `FS-F11-U5` retain their approved target, data-pipeline, single-model, single-host, and Commerce-overlay results. `FS-F11-U7.1` froze the region inventory, data-authority decisions, and unmasked assertions after reopening the visible part of U6.
-- **Current checkpoint:** The required desktop product-summary/options/review/action slice is implemented and its focused unit, type, and desktop browser gates pass. Per the U7.2 execution note, work is paused for direct visual review before completing right-rail Experience data, related ordering, tabs, and mobile.
-- **Blocker:** Human visual confirmation of the desktop core checkpoint is required before the remainder of U7.2. The current truthful unavailable delivery/payment states and collection-derived Atlas related card are visible pending their named data-owner corrections; remote release and promotion work remains unauthorized.
-- **Next concrete action:** After desktop-core confirmation, add versioned public Experience values for delivery, policy, and payment presentation; correct the released related membership/order; then finish tabs and mobile without reintroducing geometry padding or broad screenshot masks.
-- **Completion handback:** Human-approved `FS-F11-U7` evidence may return authority to `REL-Pre-DC`; automated success alone cannot do so.
+- **Classification:** Completed successor; U1-U7, including U7.1-U7.3, closed on 2026-09-17.
+- **Current unit:** None; FS-F11 is complete.
+- **Completed units:** U1-U5 established the approved target, data pipeline, single model, single host, and Commerce overlay. U6 and U7.1-U7.3 restored the Product regions, resolved R21-R23, passed the uninterrupted aggregate, and retained hash-verified, unmasked Vue donor evidence and the user's final visual acceptance.
+- **Current checkpoint:** The shared `#6b6b6b` compare-at gray, portrait-free Reviews, policy-backed Shipping and return, eight-width responsive layout, and single release-backed Product path are implemented. The uninterrupted `check:theme-impact` rerun exited `0`; Storefront/E2E typecheck, formatting, diff checks, and independent final review pass. The unmasked frozen-Vue difference report records the superseded one-percent pixel limit as unmet; R18's explicit exception, named geometry/state checks, and the user's accepted final appearance govern closure.
+- **Blocker:** None within FS-F11. Remote release and promotion work remain outside this plan.
+- **Next concrete action:** None within FS-F11. FS-F12 owns the active Product content/review successor.
+- **Completion handback:** Completed on 2026-09-17 to FS-F12-U1 for Product-specific content, imagery, and real reviews. `REL-Pre-DC` remains the return pointer after FS-F12; no candidate, DC, deployment, or PG state advanced.
 
 ---
 
@@ -86,9 +86,12 @@ The repository already contains the accepted Product component at commit `f3be48
 **Scope and acceptance**
 
 - R17. Shared Header, Shell, Footer, and CSS changes are limited to restoring the historical Vue Product contract; Home, Collection, Cart, Checkout, and information routes must retain their existing verified behavior.
-- R18. Donor parity is measured at `1440x1000` and `390x844` against one U1-frozen historical Vue profile: exact donor-owned static copy and asset-slot inventories, region hierarchy, content-slot count and order, responsive geometry, classes, and media placement; numeric per-region geometry bounds; one screenshot-difference limit; and explicit dynamic masks. The frozen upstream HTML is a secondary design reference, not the acceptance target. Released names, descriptions, media identities, prices, policies, and review values follow R7-R16 and the approved exception ledger instead of copying donor claims. U6 and U7 cannot recalibrate the profile. Selector counts alone are insufficient.
+- R18. Donor parity is measured at `1440x1000` and `390x844` against one U1-frozen historical Vue profile: exact donor-owned static copy and asset-slot inventories, region hierarchy, content-slot count and order, responsive geometry, classes, and media placement; numeric per-region geometry bounds; and an unmasked screenshot-difference report. The frozen upstream HTML is a secondary design reference, not the acceptance target. Released names, descriptions, media identities, prices, policies, and review values follow R7-R16 and the approved exception ledger instead of copying donor claims. U6 and U7 cannot recalibrate the frozen profile. Selector counts alone are insufficient. The original one-percent pixel threshold remains recorded but is superseded as an automatic acceptance gate for the current Product by the user-directed R21-R23 visual changes and release-owned content; named geometry, state, and human visual gates remain binding. This explicit exception does not authorize masks or moving the Vue reference.
 - R19. Human approval is required after fresh source, preview, production-shaped, and Commerce-state evidence. Previous FS-F10 screenshots and automated results cannot authorize handback.
 - R20. FS-F11 performs no remote Catalog mutation, release activation, deployment, candidate freeze, DC, or PG work.
+- R21. The compare-at price uses a light-gray secondary treatment on the Product detail and all Fashion Store Product cards, while current price retains primary emphasis. This named user correction takes precedence over historical styling where they differ.
+- R22. Shipping and return uses the Crafto module's two desktop columns, heading hierarchy, and mobile stack with policy-backed facts; the existing Reviews tab uses its summary/list hierarchy and spacing, with author labels and dates but no reviewer portraits. Rating distribution, Show more, and working Add a review belong to planned FS-F12 because they need new data and submission authority. Template shipping dates and PHP action are never copied.
+- R23. The top rating stars remain one intact group at every responsive width; a long SKU moves to another line first. Review the full Product layout at 320, 390, 768, 992, 1024, 1100, and 1440 CSS pixels, including long-content states, with no horizontal overflow or stranded controls.
 
 ### Field Authority Matrix
 
@@ -137,7 +140,7 @@ The Product main region and its four detail tabs remain structurally present for
 - AE5. **Covers R2, R16.** Given an in-flight revalidation for Product A, when navigation selects Product B and the older response arrives, then Product B keeps its own release model and reset interaction state.
 - AE6. **Covers R11-R13.** Given an unchanged historical release without presentation or review-display metadata, when Product renders, then it remains usable, contains no copied demo claims, uses the source-shaped zero-review state, and renders any swatchless option as text rather than a fabricated color.
 - AE8. **Covers R1, R7-R12, R18.** Given the development catalog is seeded through the public API/release path with the historical Product's color values and review-display snapshot, when the release-backed route renders, then the option controls, selected color, star summary, review count, review tab count, and review entries match the frozen historical Vue target without component literals or fixture-only branches.
-- AE7. **Covers R17-R20.** Given the Product work is locally green, when non-Product compatibility and human screenshot review run, then no handback or remote state advances until the user explicitly approves the fresh evidence.
+- AE7. **Covers R17-R23.** Given the Product work is locally green, when non-Product compatibility and human screenshot review run across the named responsive widths and corrected modules, then no handback or remote state advances until the user explicitly approves the fresh evidence.
 
 ### Success Criteria
 
@@ -484,6 +487,7 @@ The composer combines that aggregate with existing release fields, collection/ca
 
 - **Goal:** Correct the visible page once by restoring the known-good template and binding live values, rather than continuing to patch the reduced reconstruction.
 - **Requirements:** R1-R18; AE1-AE6, AE8.
+- **2026-09-17 feedback requirements:** R21-R23. These named user corrections override only their specified styling/geometry in the frozen historical visual profile.
 - **Dependencies:** U7.1.
 - **Files:**
   - `packages/contracts/src/catalog.ts`
@@ -516,12 +520,14 @@ The composer combines that aggregate with existing release fields, collection/ca
   - Published policy and payment configuration values populate the historical right-rail slots; absent values preserve layout without inventing a delivery date, free-shipping promise, or payment brand.
   - The related grid uses released membership order and the historical card markup; empty membership shows the source-shaped empty state.
   - Runtime Commerce success, failure, and stale responses cannot alter any restored structure or release-owned data.
+- The current price stays visually primary and the compare-at price is light gray; Shipping and return and Reviews tab structure are compared with the named Crafto modules without copying PHP form behavior or unsupported policy claims.
+- At 320, 390, 768, 992, 1024, 1100, and 1440 CSS pixels, a long SKU wraps before the star group, and Product regions retain readable order without overflow or isolated controls.
 - **Verification:** Static donor markup comparison, focused data-owner tests, and direct desktop/mobile inspection agree before aggregate capture work resumes.
 
 #### U7.3 Replace false-green proof and rerun acceptance
 
 - **Goal:** Make the verification fail on the exact defects the user identified, then present only fresh evidence from the corrected single live path.
-- **Requirements:** R18-R20; AE1, AE7-AE8.
+- **Requirements:** R18-R23; AE1, AE7-AE8.
 - **Dependencies:** U7.2.
 - **Files:**
   - `apps/storefront/app/themes/fashion-store/contracts/pages/product.ts`
@@ -538,7 +544,8 @@ The composer combines that aggregate with existing release fields, collection/ca
   - No screenshot mask intersects Product text, controls, containers, tabs, related cards, or the footer boundary.
   - Deterministic and production-shaped captures expose the same component/model/release identity; Commerce-state captures differ only in allowed Variant fields.
   - Human rejection keeps U7 open and records the mismatched region; automated green alone cannot advance the master pointer.
-- **Verification:** Aggregate gates, unmasked matched-viewport evidence, independent review, and explicit user approval all pass before handback.
+- Named computed-style and responsive assertions fail if compare-at regains primary emphasis, the star group splits, the SKU crowds it, or the named tab regions revert to the rejected layout.
+- **Verification:** Aggregate gates, the hash-verified historical Vue donor and unmasked matched-viewport report, named geometry/state checks, independent review, and explicit user approval all pass before handback. The report states the original one-percent pixel threshold is unmet under the R18 exception rather than claiming strict pixel parity.
 
 ---
 
@@ -562,7 +569,7 @@ The composer combines that aggregate with existing release fields, collection/ca
 
 ## Definition of Done
 
-- Every R1-R20 requirement is implemented and verified; any retained blocker keeps FS-F11 incomplete and prevents handback.
+- Every R1-R23 requirement is implemented and verified; any retained blocker keeps FS-F11 incomplete and prevents handback.
 - U1-U7 and U7.1-U7.3 each satisfy their verification outcome and retain focused evidence without creating a second status queue.
 - Product production, preview, and tests render one `ProductPageModel` through one restored `FashionStoreProductPage`.
 - No Product `theme-section` fixture normalizer, fixture-only Product binding, or independent production Product presentation remains.

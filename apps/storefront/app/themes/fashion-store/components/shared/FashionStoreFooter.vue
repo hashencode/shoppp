@@ -138,8 +138,13 @@ function fallbackLogoAt2x(): string {
             </li>
           </ul>
         </div>
-        <div v-if="configuration" class="col-12 text-center text-md-end mt-15px">
-          <span class="text-white me-15px">{{ configuration.contactCopy }}</span>
+        <div
+          v-if="configuration?.contactCopy || configuration?.legalLink || configuration?.socialLink"
+          class="col-12 text-center text-md-end mt-15px"
+        >
+          <span v-if="configuration?.contactCopy" class="text-white me-15px">{{
+            configuration.contactCopy
+          }}</span>
           <a
             v-if="configuration.legalLink"
             :href="configuration.legalLink.href"
@@ -369,46 +374,6 @@ function fallbackLogoAt2x(): string {
                 alt="American Express payment information"
                 v-bind:src="sourceAsset('images/demo-decor-store-payment-icon-04.png')"
             /></a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pt-30px pb-30px bg-nero-grey">
-      <div class="container">
-        <div class="row align-items-center fs-15">
-          <div
-            class="col-12 col-lg-7 last-paragraph-no-margin md-mb-15px text-center text-lg-start lh-22"
-          >
-            <p>
-              This site is protected by reCAPTCHA and the Google
-              <a
-                :href="undefined"
-                data-fashion-store-route
-                aria-disabled="true"
-                class="text-white text-decoration-line-bottom"
-                >privacy policy</a
-              >
-              and
-              <a
-                :href="undefined"
-                data-fashion-store-route
-                aria-disabled="true"
-                class="text-white text-decoration-line-bottom"
-                >terms of service.</a
-              >
-            </p>
-          </div>
-          <div class="col-12 col-lg-5 text-center text-lg-end lh-22">
-            <span
-              >© 2024 Crafto is Proudly Powered by
-              <a
-                href="https://www.themezaa.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-decoration-line-bottom text-white"
-                >ThemeZaa</a
-              ></span
-            >
           </div>
         </div>
       </div>

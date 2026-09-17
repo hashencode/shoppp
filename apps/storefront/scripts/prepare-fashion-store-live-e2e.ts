@@ -198,13 +198,23 @@ async function main(): Promise<void> {
     await readFile(resolve(root, "fixtures/release.json"), "utf8"),
   ) as FashionStoreReleaseFixture;
   const emptyHome = process.argv.includes("--empty-home");
+  const emptyProduct = process.argv.includes("--empty-product");
   const unifiedHome = process.argv.includes("--unified-home");
+  if ([emptyHome, emptyProduct, unifiedHome].filter(Boolean).length > 1) {
+    throw new Error("Choose one Fashion Store live fixture profile.");
+  }
   const preparedReleaseFixture = structuredClone(releaseFixture);
   preparedReleaseFixture.releaseId = "fashion-store-live-2026-09-16-v2-shopper-release";
   const reviewedProduct = preparedReleaseFixture.products.find(
     ({ slug }) => slug === "relaxed-corduroy-shirt",
   );
   if (!reviewedProduct) throw new Error("Fashion live preview requires the reviewed Product.");
+  if (emptyProduct) {
+    const presentation = reviewedProduct.presentation as Record<string, unknown> | undefined;
+    if (!presentation) throw new Error("Fashion Product review fixture has no presentation.");
+    delete presentation.reviewDisplay;
+    preparedReleaseFixture.releaseId = "fashion-store-live-2026-09-16-empty-product";
+  }
   reviewedProduct.optionDefinitions = [
     {
       name: "color",
@@ -231,13 +241,16 @@ async function main(): Promise<void> {
     if (!homeCollection || !seedProduct) {
       throw new Error("Fashion unified Home requires a published collection and seed product.");
     }
-    for (let index = preparedReleaseFixture.products.length + 1; index <= 8; index += 1) {
+    const initialProductCount = preparedReleaseFixture.products.length;
+    for (let offset = 1; homeCollection.productSlugs.length < 8; offset += 1) {
+      const index = initialProductCount + offset;
       const slug = `unified-home-fixture-${index}`;
       const product = structuredClone(seedProduct);
       product.id = `prod_01J000000000000000000000${index}`;
       product.slug = slug;
       product.name = `Unified Home fixture ${index}`;
       product.seoTitle = `${product.name} | Shoppp`;
+      product.collectionSlugs = [...new Set([...product.collectionSlugs, homeCollection.slug])];
       product.variants = product.variants.map((variant, variantIndex) => ({
         ...variant,
         id: `var_01J00000000000000000${index}${String(variantIndex).padStart(3, "0")}`,
@@ -268,7 +281,33 @@ async function main(): Promise<void> {
       origin: "https://live-policy.example.test",
     },
   } satisfies FashionStoreReleaseFixture;
-  const input = fashionStoreLiveBuildInput(fixtureInput, liveReleaseFixture);
+  const productFixtureInput = emptyProduct
+    ? {
+        ...fixtureInput,
+        snapshot: {
+          ...fixtureInput.snapshot,
+          resolvedTemplates: fixtureInput.snapshot.resolvedTemplates.map((template) =>
+            template.pageType === "product"
+              ? {
+                  ...template,
+                  sections: template.sections.map((section) => ({
+                    ...section,
+                    settings: Object.fromEntries(
+                      Object.entries(section.settings).filter(
+                        ([key]) =>
+                          key !== "delivery-summary" &&
+                          key !== "shipping-returns-summary" &&
+                          !key.startsWith("payment-brand-"),
+                      ),
+                    ),
+                  })),
+                }
+              : template,
+          ),
+        },
+      }
+    : fixtureInput;
+  const input = fashionStoreLiveBuildInput(productFixtureInput, liveReleaseFixture);
   if (unifiedHome) {
     const profile = parseFashionStoreHomeDevelopmentProfile(
       process.env.STOREFRONT_FASHION_HOME_PROFILE,
@@ -284,7 +323,9 @@ async function main(): Promise<void> {
         ? "fashion-store-live-unified-home-e2e-input.json"
         : emptyHome
           ? "fashion-store-live-empty-e2e-input.json"
-          : "fashion-store-live-e2e-input.json",
+          : emptyProduct
+            ? "fashion-store-live-empty-product-e2e-input.json"
+            : "fashion-store-live-e2e-input.json",
     ),
     `${JSON.stringify(input, null, 2)}\n`,
   );

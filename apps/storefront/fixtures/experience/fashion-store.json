@@ -132,6 +132,8 @@
     }
   ],
   "experienceId": "experience-fashion-store-fixture",
+  "productDeliverySummary": "Delivery timing is confirmed for your destination at checkout.",
+  "productShippingReturnsSummary": "Eligible unused items may be returned within 30 days of delivery.",
   "productPaymentBrands": [
     "visa",
     "mastercard",

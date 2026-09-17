@@ -112,6 +112,22 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'catalog-reviews',
+    path: '/catalog/reviews',
+    title: 'Reviews',
+    icon: createElement(AuditOutlined),
+    permission: 'reviews.moderate',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Catalog', 'Reviews'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/catalog/review-moderation-page').then((m) => ({
+          default: m.ReviewModerationPage,
+        }))
+      ),
+  },
+  {
     key: 'storefront-themes',
     path: '/storefront/themes',
     title: 'Storefront themes',

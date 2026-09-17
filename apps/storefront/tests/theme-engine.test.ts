@@ -825,6 +825,8 @@ describe("theme-neutral storefront composer", () => {
             capabilities: [],
             id: "product",
             settings: {
+              "delivery-summary": "Timing confirmed at checkout",
+              "shipping-returns-summary": "See published shipping and return policies",
               "payment-brand-visa": true,
               "payment-brand-american-express": false,
               "payment-brand-mastercard": true,
@@ -848,6 +850,16 @@ describe("theme-neutral storefront composer", () => {
 
     expect(result.ok).toBe(true);
     expect(result.viewModels.product.paymentBrands).toEqual(["visa", "mastercard"]);
+    expect(result.viewModels.product).toMatchObject({
+      deliverySummary: "Timing confirmed at checkout",
+      shippingReturnsSummary: "See published shipping and return policies",
+    });
+    expect(
+      normalizeFashionStoreProductPresentation(result.viewModels.product).assurance,
+    ).toMatchObject({
+      deliverySummary: "Timing confirmed at checkout",
+      shippingReturnsSummary: "See published shipping and return policies",
+    });
     expect(
       normalizeFashionStoreProductPresentation(result.viewModels.product).assurance?.payments,
     ).toEqual([
@@ -862,6 +874,19 @@ describe("theme-neutral storefront composer", () => {
         slug: product.slug,
       }).paymentBrands,
     ).toEqual([]);
+    const existingSchemaTwoExperience = structuredClone(experience);
+    existingSchemaTwoExperience.resolvedTemplates[0]!.sections[0]!.settings = {};
+    const existingSchemaTwoPresentation = normalizeFashionStoreProductPresentation(
+      composeProductPageModel({
+        experience: existingSchemaTwoExperience,
+        locale: "en-US",
+        productId: product.id,
+        release,
+        slug: product.slug,
+      }),
+    );
+    expect(existingSchemaTwoPresentation.assurance).toBeUndefined();
+    expect(existingSchemaTwoPresentation.optionalRegions.delivery).toBe("hidden");
     expect(
       composeProductPageModel({
         experience,
@@ -871,6 +896,84 @@ describe("theme-neutral storefront composer", () => {
         slug: product.slug,
       }).paymentBrands,
     ).toEqual(["visa", "mastercard"]);
+  });
+
+  test("uses the selected published related collection on both Product composition paths", () => {
+    const release = structuredClone(canonicalRelease) as CanonicalCatalogRelease;
+    const product = release.products[0]!;
+    const selectedCollection = {
+      ...structuredClone(release.collections[0]!),
+      id: "col_01JTHEMEENGINE000000000002",
+      name: "Editor's related edit",
+      productIds: [],
+      productSlugs: [],
+      slug: "related-edit",
+    };
+    release.collections.push(selectedCollection);
+    const experience = structuredClone(liveSnapshot) as ExperienceSnapshot;
+    experience.bindings = [
+      {
+        id: "product-related",
+        instanceId: "product",
+        kind: "catalog",
+        reference: { id: selectedCollection.id, kind: "collection" },
+        settingId: "related-collection",
+      },
+    ];
+    experience.resolvedTemplates = [
+      {
+        id: "product-template",
+        pageType: "product",
+        requiredCapabilities: [],
+        sections: [
+          {
+            blocks: [],
+            capabilities: [],
+            id: "product",
+            settings: {},
+            type: "fashion-store.product",
+            visible: true,
+          },
+        ],
+      },
+    ];
+
+    const direct = composeProductPageModel({
+      experience,
+      locale: "en-US",
+      productId: product.id,
+      release,
+      slug: product.slug,
+    });
+    const route = composeExperienceRoute({
+      experience,
+      locale: "en-US",
+      path: `/products/${product.slug}`,
+      release,
+      route: testRoute("product", `/products/${product.slug}`, {
+        productId: product.id,
+        slug: product.slug,
+      }),
+    });
+
+    expect(direct.relatedCollection?.id).toBe(selectedCollection.id);
+    expect(direct.relatedProducts).toEqual([]);
+    expect(direct.taxonomy.categories).toEqual([release.collections[0]!.name]);
+    expect(route.ok).toBe(true);
+    expect(route.viewModels.product.relatedCollection?.id).toBe(selectedCollection.id);
+    expect(route.viewModels.product.relatedProducts).toEqual([]);
+    expect(route.viewModels.product.taxonomy.categories).toEqual([release.collections[0]!.name]);
+
+    experience.bindings[0]!.reference.id = "col_01JTHEMEENGINE000000000099";
+    expect(() =>
+      composeProductPageModel({
+        experience,
+        locale: "en-US",
+        productId: product.id,
+        release,
+        slug: product.slug,
+      }),
+    ).toThrow("Selected related collection is not published in the Catalog Release.");
   });
 
   test("composes every generated Fashion Store product route without a product binding", () => {
@@ -1513,6 +1616,7 @@ describe("theme-neutral storefront composer", () => {
       descriptionDetail: {
         bullets: [],
         heading: "Selected product",
+        media: canonicalRelease.products[0].media.at(-1),
         text: "Selected release product",
       },
       reviewSummary: { count: 0, label: "0 Reviews" },

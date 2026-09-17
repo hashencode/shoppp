@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "fashion-store-product-content-2026-09-17-v4",
+  "accepted": [
+    {
+      "productId": "prod_01JFS8SHOP00000000000001",
+      "productSlug": "textured-sweater-01",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-01.jpg",
+      "sourceHeadSha256": "122cd167d1607ee04b72f59bf0d395a70949b26904bfec53a2b4be552f007acd",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000001",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-01-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000001/fashion-store-f12/product-01-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1111,
+        "height": 1416,
+        "sha256": "0eaab89e1b13d6492ffec720976c425a170f290f95281cc0f47096a8c56fb31b",
+        "alt": "Pale blue graphic crew-neck T-shirt, close view of small white graphic on the chest",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000002",
+      "productSlug": "traveller-shirt-02",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-02.jpg",
+      "sourceHeadSha256": "18d205b1aec521356d2a57779b31b36b68395a687b2cf7b0f27abc17ac67b132",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000002",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-02-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000002/fashion-store-f12/product-02-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "7e80b09bc55f0271bc2e2293fd2e3bb00d25ff5f3f0276e28d3c4316032af6be",
+        "alt": "Ivory button-front cardigan, close view of button front",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000003",
+      "productSlug": "crewneck-sweatshirt-03",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-03.jpg",
+      "sourceHeadSha256": "9d957b4af833157f439d1eb4d674f2eda620804e9b9f89a9dc88dadb06d56610",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000003",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-03-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000003/fashion-store-f12/product-03-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "ba0b64489df5c15646408c7e10b3d9fb62f29b6251231375b4af7617b6dbf41a",
+        "alt": "Sage green crew-neck T-shirt, close view of plain front",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000004",
+      "productSlug": "skinny-trousers-04",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-04.jpg",
+      "sourceHeadSha256": "5ab81b281a37f3a9e2985b657748f40c7f95e96476faf5a13e8f87a99339875e",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000004",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-04-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000004/fashion-store-f12/product-04-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "17e4e9dac07342a6f94da06b1721bc8bd88fa398ac1fa6a48b6556f10055b375",
+        "alt": "Cream open-front cardigan, close view of textured surface; inner top shown separately",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000005",
+      "productSlug": "sleeve-sweater-05",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-05.jpg",
+      "sourceHeadSha256": "70efc1db7b711a225aab6ef9e2ea15f7db3df48f1624250777f3707458b9748a",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000005",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-05-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000005/fashion-store-f12/product-05-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "682f30afd3697d19267bcc7f50052b4b572787e1308316372b50e89708ef5664",
+        "alt": "Taupe ribbed sleeveless top, close view of visible ribbed texture",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000007",
+      "productSlug": "cotton-sweater-07",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-07.jpg",
+      "sourceHeadSha256": "b89849eb634dc45097d97749f2d74dcb07db366f767a408cf8fffe791ebf3675",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000007",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-07-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000007/fashion-store-f12/product-07-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "8cceaf9f9dc1990ce4f50a889a6b2f10ac06e1622b7a9e0934d459ef38b55ee9",
+        "alt": "Light gray tie-neck blouse, close view of front neck tie",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000008",
+      "productSlug": "texture-regular-08",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-08.jpg",
+      "sourceHeadSha256": "0416aec0bdeb146c0414378245afb18b32346ca075896f0a19b71eec41da1885",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000008",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-08-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000008/fashion-store-f12/product-08-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "da99ff5064db90129ac2335d9f01cbb67f155385fd3b804a90a8b2e8dfcb65bf",
+        "alt": "Black crew-neck T-shirt, close view of plain front; bag shown separately",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000009",
+      "productSlug": "sequined-dress-09",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-09.jpg",
+      "sourceHeadSha256": "2f6578f43554ede966d8ac108dce294dc9d43cacca764777f845b29d4d835793",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000009",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-09-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000009/fashion-store-f12/product-09-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "f24f8b8511dcb0b95b413b82809758ad066d91766b6be4902de7be8fe052510f",
+        "alt": "Navy single-button blazer, close view of single front button and chest welt pocket",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000010",
+      "productSlug": "bermuda-shorts-10",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-10.jpg",
+      "sourceHeadSha256": "b30df4b750067a48e8af673ef5c02b89c8b34be98ded3dcb47e882d5ca4c6d34",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000010",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-10-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000010/fashion-store-f12/product-10-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "6397efd4960e70d5d1fc15e1fa28e8be9c2536b4549dc52b90d33925719df60e",
+        "alt": "Pale blue popover shirt, close view of open v-shaped neckline",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000011",
+      "productSlug": "traveller-shirt-11",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-11.jpg",
+      "sourceHeadSha256": "54e221dc5d98c47b95d31e967ce387f44479a03f8d5ea29407edb95c43c1d2ad",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000011",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-11-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000011/fashion-store-f12/product-11-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "1228ad0ec0c6091e6f739a2606c62133e82e76e42fab39ad3f29e103685ae38c",
+        "alt": "Light heather-gray crew-neck sweatshirt, close view of plain front",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFS8SHOP00000000000012",
+      "productSlug": "textured-sweater-12",
+      "permission": "User confirmed on 2026-09-17 that existing head photos may be used for derivative generation",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-12.jpg",
+      "sourceHeadSha256": "a1b34ad4c2b97a40350b7dcfe76f835734689e6514d43b2a4136904781071ad9",
+      "generator": "OpenAI image_gen image edit using this Product's head photo as reference",
+      "review": "Accepted after visual comparison with the head photo; garment color, shape, and visible details checked",
+      "generatedMedia": {
+        "id": "media_01JFS12SHOPDETAIL000000012",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-12-detail-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFS8SHOP00000000000012/fashion-store-f12/product-12-detail-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1122,
+        "height": 1402,
+        "sha256": "f31a0cd69542b47514cda779f1a6ddfa52f1e13215c5caec7e985446e9b82cc5",
+        "alt": "Pale gray button-front blouse, close view of button front",
+        "order": 2
+      }
+    },
+    {
+      "productId": "prod_01JFASHIONLIVE0000000002",
+      "productSlug": "relaxed-corduroy-shirt",
+      "permission": "User confirmed derivative rights and requested multiple demonstration colors with matching images on 2026-09-17",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-01.jpg",
+      "sourceHeadSha256": "78c0b6fc3805e6f1d783c0519951a7bcd449c16c85ec95ea675590d4863d4062",
+      "generator": "OpenAI image_gen image edit of the charcoal Product head photo",
+      "review": "Accepted Gold front image after visual comparison of garment collar, pocket, buttons, color, and crop",
+      "generatedMedia": {
+        "id": "media_01JFS12SHIRTGOLDFRONT001",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/charcoal-shirt-gold-front-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFASHIONLIVE0000000002/fashion-store-f12/charcoal-shirt-gold-front-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 600,
+        "height": 765,
+        "sha256": "39a5f28dbc801e0f28054428df814f99fa32db9d865e692bf88e2c25faa01f4b",
+        "alt": "Gold button-front shirt, front view",
+        "order": 5
+      }
+    },
+    {
+      "productId": "prod_01JFASHIONLIVE0000000002",
+      "productSlug": "relaxed-corduroy-shirt",
+      "permission": "User confirmed derivative rights and requested multiple demonstration colors with matching images on 2026-09-17",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-01.jpg",
+      "sourceHeadSha256": "78c0b6fc3805e6f1d783c0519951a7bcd449c16c85ec95ea675590d4863d4062",
+      "generator": "OpenAI image_gen image edit of the charcoal Product head photo",
+      "review": "Accepted Blue front image after visual comparison of garment collar, pocket, buttons, color, and crop",
+      "generatedMedia": {
+        "id": "media_01JFS12SHIRTBLUEFRONT001",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/charcoal-shirt-blue-front-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFASHIONLIVE0000000002/fashion-store-f12/charcoal-shirt-blue-front-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 600,
+        "height": 765,
+        "sha256": "13c8f8f07ad1e9c41ea59f4db9791dd3df9050f2a095eee2b23c88e360e296ec",
+        "alt": "Blue button-front shirt, front view",
+        "order": 6
+      }
+    },
+    {
+      "productId": "prod_01JFASHIONLIVE0000000002",
+      "productSlug": "relaxed-corduroy-shirt",
+      "permission": "User confirmed derivative rights and requested multiple demonstration colors with matching images on 2026-09-17",
+      "sourceHeadPath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-01.jpg",
+      "sourceHeadSha256": "78c0b6fc3805e6f1d783c0519951a7bcd449c16c85ec95ea675590d4863d4062",
+      "generator": "OpenAI image_gen image edit of the charcoal Product head photo",
+      "review": "Accepted Green front image after visual comparison of garment collar, pocket, buttons, color, and crop",
+      "generatedMedia": {
+        "id": "media_01JFS12SHIRTGREENFRONT001",
+        "sourcePath": "apps/storefront/public/media/fashion-store-generated/charcoal-shirt-green-front-v1.jpg",
+        "r2Key": "catalog/products/prod_01JFASHIONLIVE0000000002/fashion-store-f12/charcoal-shirt-green-front-v1.jpg",
+        "mimeType": "image/jpeg",
+        "width": 600,
+        "height": 765,
+        "sha256": "40932a513bcdba1a62871dc98bdc02603a0d2e551c9bd7e5d7fd55b5eda9dbe2",
+        "alt": "Green button-front shirt, front view",
+        "order": 7
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "productId": "prod_01JFS8SHOP00000000000006",
+      "reason": "Generated T-shirt omitted the black front lettering visible on the head photo; original one-image gallery retained"
+    }
+  ],
+  "leadProduct": "Original charcoal media 01-04 and three reviewed AI-derived color fronts are in the successor release. Pale-yellow media 05-06 remain excluded. Historical Gold/Blue/Green SKU identities and new demonstration Charcoal SKUs form a four-color sample assortment; remote Commerce inventory is not yet synchronized."
+}

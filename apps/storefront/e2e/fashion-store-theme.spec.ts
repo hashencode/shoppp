@@ -1500,16 +1500,10 @@ test("shared shell survives link navigation and browser history", async ({ page 
   await verifyRoute("/");
   await page.locator('.shop-footer a[href="/products/relaxed-corduroy-shirt"]').first().click();
   await verifyRoute("/products/relaxed-corduroy-shirt");
-  await page.locator('footer a[href="/collections"]').click();
-  await verifyRoute("/collections");
   await page.locator('header a.navbar-brand[href="/"]').click();
   await verifyRoute("/");
   await page.goBack();
-  await verifyRoute("/collections");
-  await page.goBack();
   await verifyRoute("/products/relaxed-corduroy-shirt");
-  await page.goForward();
-  await verifyRoute("/collections");
   await page.goForward();
   await verifyRoute("/");
 });

@@ -13,6 +13,7 @@ import {
 import releaseFixture from "../apps/storefront/fixtures/release.json";
 
 const DEFAULT_MANIFEST_PATH = "tools/fashion-store-live-catalog.json";
+const PRODUCT_CONTENT_CATALOG_VERSION = "fashion-store-product-content-2026-09-17-v4";
 
 export const FASHION_STORE_LIVE_CATALOG_RESET_TARGET = {
   cloudflareAccountId: "449e7f42fe4c4e55d5c674e2e7c57c8d",
@@ -149,8 +150,15 @@ export function validateFashionStoreLiveCatalog(
 
   const variants = input.products.flatMap((product) => product.variants);
   const media = input.products.flatMap((product) => product.media);
-  assert(variants.length === 24, "manifest must contain exactly 24 SKUs");
-  assert(media.length === 18, "manifest must contain exactly 18 product-owned media objects");
+  const isProductContentCatalog = input.catalogVersion === PRODUCT_CONTENT_CATALOG_VERSION;
+  assert(
+    variants.length === (isProductContentCatalog ? 28 : 24),
+    `manifest must contain exactly ${isProductContentCatalog ? 28 : 24} SKUs`,
+  );
+  assert(
+    media.length === (isProductContentCatalog ? 30 : 18),
+    `manifest must contain exactly ${isProductContentCatalog ? 30 : 18} product-owned media objects`,
+  );
   assertUnique(
     variants.map(({ id }) => id),
     "variant id",
@@ -196,6 +204,20 @@ export function validateFashionStoreLiveCatalog(
           product.media.some(({ id }) => id === product.presentation?.detailMediaId),
         `${product.id} presentation detail media must belong to the Product`,
       );
+      if (product.presentation.colorMediaIds) {
+        assert(
+          JSON.stringify(Object.keys(product.presentation.colorMediaIds).sort()) ===
+            JSON.stringify([...product.taxonomy.colors].sort()),
+          `${product.id} color galleries must cover exact color options`,
+        );
+        for (const [color, ids] of Object.entries(product.presentation.colorMediaIds)) {
+          assertUnique(ids, `${product.id} ${color} gallery media ID`);
+          assert(
+            ids.every((id) => product.media.some((media) => media.id === id)),
+            `${product.id} ${color} gallery media must belong to the Product`,
+          );
+        }
+      }
     }
     const expectedDefinitions = [
       { name: "color", values: product.taxonomy.colors },
@@ -260,8 +282,9 @@ export function validateFashionStoreLiveCatalog(
       assert(item.width > 0 && item.height > 0, `${item.id} dimensions must be positive`);
       assert(/^[a-f0-9]{64}$/.test(item.sha256), `${item.id} checksum must be SHA-256`);
       assert(
-        item.r2Key.startsWith(`${input.r2Prefix}/`),
-        `${item.id} must use the versioned R2 prefix`,
+        item.r2Key.startsWith(`${input.r2Prefix}/`) ||
+          (isProductContentCatalog && item.r2Key.startsWith(`catalog/products/${product.id}/`)),
+        `${item.id} must use its original versioned or Product-owned R2 prefix`,
       );
       assert(
         !item.sourcePath.includes("product-detail-07.jpg"),
@@ -338,7 +361,10 @@ export function createFashionStoreLiveCatalogMigrationPlan(
 ): FashionStoreLiveCatalogMigrationPlan {
   validateFashionStoreLiveCatalog(catalog);
   assert(/^[a-f0-9]{64}$/.test(options.expectedIamFingerprint), "IAM fingerprint must be SHA-256");
-  const generatedAt = "2026-09-13T00:00:00.000Z";
+  const generatedAt =
+    catalog.catalogVersion === PRODUCT_CONTENT_CATALOG_VERSION
+      ? "2026-09-17T00:00:00.000Z"
+      : "2026-09-13T00:00:00.000Z";
   const mediaOrigin = options.mediaPublicOrigin.replace(/\/$/, "");
   const shopperProducts = catalog.products.map((product) => ({
     collectionIds: [catalog.collection.id],

@@ -765,7 +765,10 @@ test("renders approved Home presentations and switches authoritative product gro
   else if (viewportWidth >= 992) expect(new Set(firstRow.slice(0, 3)).size).toBe(1);
   else if (viewportWidth >= 576) expect(new Set(firstRow.slice(0, 2)).size).toBe(1);
   else expect(firstRow[1]).toBeGreaterThan(firstRow[0] ?? 0);
-  const firstDecorCard = productGrid.locator("[data-fashion-store-product-card]").first();
+  const firstDecorCard = productGrid
+    .locator("[data-fashion-store-product-card]")
+    .filter({ has: page.locator("button[data-card-action='cart']") })
+    .first();
   await expect(firstDecorCard).toHaveAttribute("data-product-surface", "home-merchandising");
   const cardGeometry = await firstDecorCard.evaluate((card) => {
     const image = card.querySelector<HTMLElement>(".shop-image")!;
@@ -1277,7 +1280,7 @@ test("keeps collection products reachable without JavaScript", async ({ browser 
     `http://127.0.0.1:${Number(
       process.env.STOREFRONT_FASHION_STORE_LIVE_UNIFIED_HOME_PORT || 3430,
     )}/`,
-    { waitUntil: "domcontentloaded" },
+    { waitUntil: "load" },
   );
   const carousel = page.locator("[data-decor-collection-carousel]");
   await expect(carousel.locator("[data-decor-collection-slide]")).toHaveCount(3);
@@ -1304,10 +1307,16 @@ test("keeps collection products reachable without JavaScript", async ({ browser 
           linkBounds.height > 0 &&
           linkBounds.top >= carouselBounds.top - 1 &&
           linkBounds.bottom <= carouselBounds.bottom + 1,
+        linkBottom: linkBounds.bottom,
+        linkHeight: linkBounds.height,
+        linkTop: linkBounds.top,
+        linkWidth: linkBounds.width,
+        carouselBottom: carouselBounds.bottom,
+        carouselTop: carouselBounds.top,
         scrollTop: carousel.scrollTop,
       };
     });
-    expect(reachability.fullyVisible).toBe(true);
+    expect(reachability.fullyVisible, JSON.stringify(reachability)).toBe(true);
     scrollOffsets.push(reachability.scrollTop);
   }
   expect(scrollOffsets[0]).toBe(0);

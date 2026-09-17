@@ -1,0 +1,1993 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "fashion-store-product-content-2026-09-17-v4",
+  "currency": "USD",
+  "r2Prefix": "catalog/fashion-store/2026-09-13-v1",
+  "warehouse": {
+    "id": "warehouse_fashion_staging",
+    "code": "FASHION-STAGING",
+    "name": "Fashion staging warehouse"
+  },
+  "collection": {
+    "id": "col_01JFS8LIVE00000000000001",
+    "slug": "fashion-store",
+    "name": "Fashion Store"
+  },
+  "products": [
+    {
+      "id": "prod_01JFS8SHOP00000000000001",
+      "slug": "textured-sweater-01",
+      "name": "Pale blue graphic crew-neck T-shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Pale blue"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "M"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Pale blue short-sleeve T-shirt with a crew neck and a small white chest graphic.",
+      "status": "published",
+      "badge": "New",
+      "shopCardOrder": 1,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "textured-sweater-01"
+      },
+      "taxonomy": {
+        "categories": [
+          "T-shirts"
+        ],
+        "colors": [
+          "Pale blue"
+        ],
+        "sizes": [
+          "M"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000001",
+          "sku": "FS-TEXTURED-SWEATER-01",
+          "title": "Pale blue / M",
+          "optionValues": {
+            "color": "Pale blue",
+            "size": "M"
+          },
+          "price": {
+            "amount": 18900,
+            "compareAtAmount": 20000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000001",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-01.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/textured-sweater-01/01-demo-fashion-store-product-01.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "122cd167d1607ee04b72f59bf0d395a70949b26904bfec53a2b4be552f007acd",
+          "alt": "Pale blue graphic crew-neck T-shirt, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000001",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-01-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000001/fashion-store-f12/product-01-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1111,
+          "height": 1416,
+          "sha256": "0eaab89e1b13d6492ffec720976c425a170f290f95281cc0f47096a8c56fb31b",
+          "alt": "Pale blue graphic crew-neck T-shirt, close view of small white graphic on the chest",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000001",
+        "detail": {
+          "body": "A softly colored everyday T-shirt with a small chest graphic visible in the product photo.",
+          "bullets": [
+            "Crew neck",
+            "Short sleeves",
+            "Small white graphic on the chest"
+          ],
+          "heading": "Pale blue graphic crew-neck T-shirt"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Pale blue"
+          },
+          {
+            "label": "Neckline",
+            "value": "Crew neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Short sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Small white graphic on the chest"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000002",
+      "slug": "traveller-shirt-02",
+      "name": "Ivory button-front cardigan",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Ivory"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "XL"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Ivory long-sleeve cardigan with a round neck and a button front.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 2,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "traveller-shirt-02"
+      },
+      "taxonomy": {
+        "categories": [
+          "Cardigans"
+        ],
+        "colors": [
+          "Ivory"
+        ],
+        "sizes": [
+          "XL"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000002",
+          "sku": "FS-TRAVELLER-SHIRT-02",
+          "title": "Ivory / XL",
+          "optionValues": {
+            "color": "Ivory",
+            "size": "XL"
+          },
+          "price": {
+            "amount": 28900,
+            "compareAtAmount": 35000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000002",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-02.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/traveller-shirt-02/01-demo-fashion-store-product-02.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "18d205b1aec521356d2a57779b31b36b68395a687b2cf7b0f27abc17ac67b132",
+          "alt": "Ivory button-front cardigan, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000002",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-02-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000002/fashion-store-f12/product-02-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "7e80b09bc55f0271bc2e2293fd2e3bb00d25ff5f3f0276e28d3c4316032af6be",
+          "alt": "Ivory button-front cardigan, close view of button front",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000002",
+        "detail": {
+          "body": "A light-colored cardigan with a row of front buttons and long sleeves.",
+          "bullets": [
+            "Round neck",
+            "Long sleeves",
+            "Button front"
+          ],
+          "heading": "Ivory button-front cardigan"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Ivory"
+          },
+          {
+            "label": "Neckline",
+            "value": "Round neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Button front"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000003",
+      "slug": "crewneck-sweatshirt-03",
+      "name": "Sage green crew-neck T-shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Sage green"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "L"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Sage green short-sleeve T-shirt with a crew neck and a plain front.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 3,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "crewneck-sweatshirt-03"
+      },
+      "taxonomy": {
+        "categories": [
+          "T-shirts"
+        ],
+        "colors": [
+          "Sage green"
+        ],
+        "sizes": [
+          "L"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000003",
+          "sku": "FS-CREWNECK-SWEATSHIRT-03",
+          "title": "Sage green / L",
+          "optionValues": {
+            "color": "Sage green",
+            "size": "L"
+          },
+          "price": {
+            "amount": 19900,
+            "compareAtAmount": 22000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000003",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-03.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/crewneck-sweatshirt-03/01-demo-fashion-store-product-03.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "9d957b4af833157f439d1eb4d674f2eda620804e9b9f89a9dc88dadb06d56610",
+          "alt": "Sage green crew-neck T-shirt, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000003",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-03-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000003/fashion-store-f12/product-03-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "ba0b64489df5c15646408c7e10b3d9fb62f29b6251231375b4af7617b6dbf41a",
+          "alt": "Sage green crew-neck T-shirt, close view of plain front",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000003",
+        "detail": {
+          "body": "The muted green front is unprinted, with a classic crew neckline.",
+          "bullets": [
+            "Crew neck",
+            "Short sleeves",
+            "Plain front"
+          ],
+          "heading": "Sage green crew-neck T-shirt"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Sage green"
+          },
+          {
+            "label": "Neckline",
+            "value": "Crew neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Short sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Plain front"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000004",
+      "slug": "skinny-trousers-04",
+      "name": "Cream open-front cardigan",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Cream"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "S"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Cream textured open-front cardigan shown over a separate cream inner top.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 4,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "skinny-trousers-04"
+      },
+      "taxonomy": {
+        "categories": [
+          "Cardigans"
+        ],
+        "colors": [
+          "Cream"
+        ],
+        "sizes": [
+          "S"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000004",
+          "sku": "FS-SKINNY-TROUSERS-04",
+          "title": "Cream / S",
+          "optionValues": {
+            "color": "Cream",
+            "size": "S"
+          },
+          "price": {
+            "amount": 25900,
+            "compareAtAmount": 30000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000004",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-04.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/skinny-trousers-04/01-demo-fashion-store-product-04.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "5ab81b281a37f3a9e2985b657748f40c7f95e96476faf5a13e8f87a99339875e",
+          "alt": "Cream open-front cardigan, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000004",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-04-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000004/fashion-store-f12/product-04-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "17e4e9dac07342a6f94da06b1721bc8bd88fa398ac1fa6a48b6556f10055b375",
+          "alt": "Cream open-front cardigan, close view of textured surface; inner top shown separately",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000004",
+        "detail": {
+          "body": "The cardigan has an open front and visible texture. The cropped inner top in the photo is a separate styling piece.",
+          "bullets": [
+            "Open front",
+            "Long sleeves",
+            "Textured surface; inner top shown separately"
+          ],
+          "heading": "Cream open-front cardigan"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Cream"
+          },
+          {
+            "label": "Neckline",
+            "value": "Open front"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Textured surface; inner top shown separately"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000005",
+      "slug": "sleeve-sweater-05",
+      "name": "Taupe ribbed sleeveless top",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Taupe"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "XXL"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Taupe sleeveless top with a scoop neckline and visible ribbed texture.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 5,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "sleeve-sweater-05"
+      },
+      "taxonomy": {
+        "categories": [
+          "Tops"
+        ],
+        "colors": [
+          "Taupe"
+        ],
+        "sizes": [
+          "XXL"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000005",
+          "sku": "FS-SLEEVE-SWEATER-05",
+          "title": "Taupe / XXL",
+          "optionValues": {
+            "color": "Taupe",
+            "size": "XXL"
+          },
+          "price": {
+            "amount": 23900,
+            "compareAtAmount": 25000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000005",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-05.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/sleeve-sweater-05/01-demo-fashion-store-product-05.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "70efc1db7b711a225aab6ef9e2ea15f7db3df48f1624250777f3707458b9748a",
+          "alt": "Taupe ribbed sleeveless top, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000005",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-05-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000005/fashion-store-f12/product-05-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "682f30afd3697d19267bcc7f50052b4b572787e1308316372b50e89708ef5664",
+          "alt": "Taupe ribbed sleeveless top, close view of visible ribbed texture",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000005",
+        "detail": {
+          "body": "A sleeveless top with a scooped neckline and narrow vertical ribbing.",
+          "bullets": [
+            "Scoop neck",
+            "Sleeveless",
+            "Visible ribbed texture"
+          ],
+          "heading": "Taupe ribbed sleeveless top"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Taupe"
+          },
+          {
+            "label": "Neckline",
+            "value": "Scoop neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Sleeveless"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Visible ribbed texture"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000006",
+      "slug": "pocket-sweatshirt-06",
+      "name": "White graphic crew-neck T-shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "White"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "L"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "White short-sleeve T-shirt with a crew neck and black front lettering.",
+      "status": "published",
+      "badge": "Hot",
+      "shopCardOrder": 6,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "pocket-sweatshirt-06"
+      },
+      "taxonomy": {
+        "categories": [
+          "T-shirts"
+        ],
+        "colors": [
+          "White"
+        ],
+        "sizes": [
+          "L"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000006",
+          "sku": "FS-POCKET-SWEATSHIRT-06",
+          "title": "White / L",
+          "optionValues": {
+            "color": "White",
+            "size": "L"
+          },
+          "price": {
+            "amount": 18900,
+            "compareAtAmount": 20000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000006",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-06.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/pocket-sweatshirt-06/01-demo-fashion-store-product-06.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "fc16bbf0c36db4cb4707a5887d11f368c30942089a58fd4e00fd468dd988f4f6",
+          "alt": "White graphic crew-neck T-shirt, front view",
+          "order": 1
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000006",
+        "detail": {
+          "body": "The product photo shows black lettering across the center front.",
+          "bullets": [
+            "Crew neck",
+            "Short sleeves",
+            "Black lettering on the front"
+          ],
+          "heading": "White graphic crew-neck T-shirt"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "White"
+          },
+          {
+            "label": "Neckline",
+            "value": "Crew neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Short sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Black lettering on the front"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000007",
+      "slug": "cotton-sweater-07",
+      "name": "Light gray tie-neck blouse",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Light gray"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "M"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Light gray long-sleeve blouse with a front neck tie and subtle vertical texture.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 7,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "cotton-sweater-07"
+      },
+      "taxonomy": {
+        "categories": [
+          "Blouses"
+        ],
+        "colors": [
+          "Light gray"
+        ],
+        "sizes": [
+          "M"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000007",
+          "sku": "FS-COTTON-SWEATER-07",
+          "title": "Light gray / M",
+          "optionValues": {
+            "color": "Light gray",
+            "size": "M"
+          },
+          "price": {
+            "amount": 12900,
+            "compareAtAmount": 15000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000007",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-07.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/cotton-sweater-07/01-demo-fashion-store-product-07.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "b89849eb634dc45097d97749f2d74dcb07db366f767a408cf8fffe791ebf3675",
+          "alt": "Light gray tie-neck blouse, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000007",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-07-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000007/fashion-store-f12/product-07-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "8cceaf9f9dc1990ce4f50a889a6b2f10ac06e1622b7a9e0934d459ef38b55ee9",
+          "alt": "Light gray tie-neck blouse, close view of front neck tie",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000007",
+        "detail": {
+          "body": "The neckline closes with a soft tie. Subtle vertical texture is visible on the front.",
+          "bullets": [
+            "Tie neck",
+            "Long sleeves",
+            "Front neck tie"
+          ],
+          "heading": "Light gray tie-neck blouse"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Light gray"
+          },
+          {
+            "label": "Neckline",
+            "value": "Tie neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Front neck tie"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000008",
+      "slug": "texture-regular-08",
+      "name": "Black crew-neck T-shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "L"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Black short-sleeve T-shirt with a plain front, styled with a separate crossbody bag.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 8,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "texture-regular-08"
+      },
+      "taxonomy": {
+        "categories": [
+          "T-shirts"
+        ],
+        "colors": [
+          "Black"
+        ],
+        "sizes": [
+          "L"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000008",
+          "sku": "FS-TEXTURE-REGULAR-08",
+          "title": "Black / L",
+          "optionValues": {
+            "color": "Black",
+            "size": "L"
+          },
+          "price": {
+            "amount": 12000,
+            "compareAtAmount": 17000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000008",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-08.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/texture-regular-08/01-demo-fashion-store-product-08.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "0416aec0bdeb146c0414378245afb18b32346ca075896f0a19b71eec41da1885",
+          "alt": "Black crew-neck T-shirt, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000008",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-08-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000008/fashion-store-f12/product-08-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "da99ff5064db90129ac2335d9f01cbb67f155385fd3b804a90a8b2e8dfcb65bf",
+          "alt": "Black crew-neck T-shirt, close view of plain front; bag shown separately",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000008",
+        "detail": {
+          "body": "A plain black crew-neck T-shirt. The crossbody bag in the photo is a separate styling piece.",
+          "bullets": [
+            "Crew neck",
+            "Short sleeves",
+            "Plain front; bag shown separately"
+          ],
+          "heading": "Black crew-neck T-shirt"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Black"
+          },
+          {
+            "label": "Neckline",
+            "value": "Crew neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Short sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Plain front; bag shown separately"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000009",
+      "slug": "sequined-dress-09",
+      "name": "Navy single-button blazer",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Navy"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "S"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Dark navy blazer with a notched lapel, single front button, and chest welt pocket.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 9,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "sequined-dress-09"
+      },
+      "taxonomy": {
+        "categories": [
+          "Blazers"
+        ],
+        "colors": [
+          "Navy"
+        ],
+        "sizes": [
+          "S"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000009",
+          "sku": "FS-SEQUINED-DRESS-09",
+          "title": "Navy / S",
+          "optionValues": {
+            "color": "Navy",
+            "size": "S"
+          },
+          "price": {
+            "amount": 15000,
+            "compareAtAmount": 19000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000009",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-09.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/sequined-dress-09/01-demo-fashion-store-product-09.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "2f6578f43554ede966d8ac108dce294dc9d43cacca764777f845b29d4d835793",
+          "alt": "Navy single-button blazer, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000009",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-09-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000009/fashion-store-f12/product-09-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "f24f8b8511dcb0b95b413b82809758ad066d91766b6be4902de7be8fe052510f",
+          "alt": "Navy single-button blazer, close view of single front button and chest welt pocket",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000009",
+        "detail": {
+          "body": "The blazer has a single-button front and a visible chest welt pocket. The light inner top is a separate styling piece.",
+          "bullets": [
+            "Notched lapel",
+            "Long sleeves",
+            "Single front button and chest welt pocket"
+          ],
+          "heading": "Navy single-button blazer"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Navy"
+          },
+          {
+            "label": "Neckline",
+            "value": "Notched lapel"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Single front button and chest welt pocket"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000010",
+      "slug": "bermuda-shorts-10",
+      "name": "Pale blue popover shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Pale blue"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "L"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Pale blue long-sleeve popover shirt with an open pointed collar and V-shaped neckline.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 10,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "bermuda-shorts-10"
+      },
+      "taxonomy": {
+        "categories": [
+          "Shirts"
+        ],
+        "colors": [
+          "Pale blue"
+        ],
+        "sizes": [
+          "L"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000010",
+          "sku": "FS-BERMUDA-SHORTS-10",
+          "title": "Pale blue / L",
+          "optionValues": {
+            "color": "Pale blue",
+            "size": "L"
+          },
+          "price": {
+            "amount": 10000,
+            "compareAtAmount": 12000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000010",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-10.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/bermuda-shorts-10/01-demo-fashion-store-product-10.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "b30df4b750067a48e8af673ef5c02b89c8b34be98ded3dcb47e882d5ca4c6d34",
+          "alt": "Pale blue popover shirt, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000010",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-10-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000010/fashion-store-f12/product-10-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "6397efd4960e70d5d1fc15e1fa28e8be9c2536b4549dc52b90d33925719df60e",
+          "alt": "Pale blue popover shirt, close view of open v-shaped neckline",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000010",
+        "detail": {
+          "body": "The open collar creates a V-shaped front neckline; the sleeves are long.",
+          "bullets": [
+            "Open pointed collar",
+            "Long sleeves",
+            "Open V-shaped neckline"
+          ],
+          "heading": "Pale blue popover shirt"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Pale blue"
+          },
+          {
+            "label": "Neckline",
+            "value": "Open pointed collar"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Open V-shaped neckline"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000011",
+      "slug": "traveller-shirt-11",
+      "name": "Light heather-gray crew-neck sweatshirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Light heather gray"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "XL"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Light heather-gray long-sleeve sweatshirt with a crew neck and plain front.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 11,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "traveller-shirt-11"
+      },
+      "taxonomy": {
+        "categories": [
+          "Sweatshirts"
+        ],
+        "colors": [
+          "Light heather gray"
+        ],
+        "sizes": [
+          "XL"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000011",
+          "sku": "FS-TRAVELLER-SHIRT-11",
+          "title": "Light heather gray / XL",
+          "optionValues": {
+            "color": "Light heather gray",
+            "size": "XL"
+          },
+          "price": {
+            "amount": 25900,
+            "compareAtAmount": 30000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000011",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-11.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/traveller-shirt-11/01-demo-fashion-store-product-11.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "54e221dc5d98c47b95d31e967ce387f44479a03f8d5ea29407edb95c43c1d2ad",
+          "alt": "Light heather-gray crew-neck sweatshirt, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000011",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-11-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000011/fashion-store-f12/product-11-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "1228ad0ec0c6091e6f739a2606c62133e82e76e42fab39ad3f29e103685ae38c",
+          "alt": "Light heather-gray crew-neck sweatshirt, close view of plain front",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000011",
+        "detail": {
+          "body": "A plain-front sweatshirt in a light heather-gray shade.",
+          "bullets": [
+            "Crew neck",
+            "Long sleeves",
+            "Plain front"
+          ],
+          "heading": "Light heather-gray crew-neck sweatshirt"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Light heather gray"
+          },
+          {
+            "label": "Neckline",
+            "value": "Crew neck"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Plain front"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000012",
+      "slug": "textured-sweater-12",
+      "name": "Pale gray button-front blouse",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "Pale gray-green"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "XXL"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "description": "Pale gray-green long-sleeve blouse with a pointed collar and button front.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": 12,
+      "source": {
+        "kind": "shop-card",
+        "fixtureId": "textured-sweater-12"
+      },
+      "taxonomy": {
+        "categories": [
+          "Blouses"
+        ],
+        "colors": [
+          "Pale gray-green"
+        ],
+        "sizes": [
+          "XXL"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000012",
+          "sku": "FS-TEXTURED-SWEATER-12",
+          "title": "Pale gray-green / XXL",
+          "optionValues": {
+            "color": "Pale gray-green",
+            "size": "XXL"
+          },
+          "price": {
+            "amount": 25900,
+            "compareAtAmount": 30000,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 25,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000012",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-12.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/textured-sweater-12/01-demo-fashion-store-product-12.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "a1b34ad4c2b97a40350b7dcfe76f835734689e6514d43b2a4136904781071ad9",
+          "alt": "Pale gray button-front blouse, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS12SHOPDETAIL000000012",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/product-12-detail-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFS8SHOP00000000000012/fashion-store-f12/product-12-detail-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 1122,
+          "height": 1402,
+          "sha256": "f31a0cd69542b47514cda779f1a6ddfa52f1e13215c5caec7e985446e9b82cc5",
+          "alt": "Pale gray button-front blouse, close view of button front",
+          "order": 2
+        }
+      ],
+      "presentation": {
+        "defaultVariantId": "var_01JFS8SHOP00000000000012",
+        "detail": {
+          "body": "The blouse has a pointed collar and visible front buttons.",
+          "bullets": [
+            "Pointed collar",
+            "Long sleeves",
+            "Button front"
+          ],
+          "heading": "Pale gray button-front blouse"
+        },
+        "specifications": [
+          {
+            "label": "Color",
+            "value": "Pale gray-green"
+          },
+          {
+            "label": "Neckline",
+            "value": "Pointed collar"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Button front"
+          }
+        ]
+      }
+    },
+    {
+      "id": "prod_01JFASHIONLIVE0000000002",
+      "slug": "relaxed-corduroy-shirt",
+      "name": "Button-front shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "color",
+          "values": [
+            {
+              "label": "Charcoal",
+              "swatch": "#393a3d"
+            },
+            {
+              "label": "Gold",
+              "swatch": "#b28a46"
+            },
+            {
+              "label": "Blue",
+              "swatch": "#4f7391"
+            },
+            {
+              "label": "Green",
+              "swatch": "#6d7653"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [
+            {
+              "label": "S"
+            },
+            {
+              "label": "M"
+            },
+            {
+              "label": "L"
+            },
+            {
+              "label": "XL"
+            }
+          ]
+        }
+      ],
+      "brand": null,
+      "presentation": {
+        "defaultVariantId": "var_01JF12CHARCOALSHIRTM0000",
+        "colorMediaIds": {
+          "Charcoal": [
+            "media_01JFS8DETAIL000000000001",
+            "media_01JFS8DETAIL000000000002",
+            "media_01JFS8DETAIL000000000003",
+            "media_01JFS8DETAIL000000000004"
+          ],
+          "Gold": [
+            "media_01JFS12SHIRTGOLDFRONT001"
+          ],
+          "Blue": [
+            "media_01JFS12SHIRTBLUEFRONT001"
+          ],
+          "Green": [
+            "media_01JFS12SHIRTGREENFRONT001"
+          ]
+        },
+        "detail": {
+          "body": "The photographs show the same shirt shape in four demonstration colors, with a pointed collar, button front, long sleeves, and chest patch pocket.",
+          "bullets": [
+            "Pointed collar",
+            "Long sleeves",
+            "Front buttons and chest patch pocket"
+          ],
+          "heading": "Button-front shirt"
+        },
+        "specifications": [
+          {
+            "label": "Available colors",
+            "value": "Charcoal, Gold, Blue, Green"
+          },
+          {
+            "label": "Collar",
+            "value": "Pointed collar"
+          },
+          {
+            "label": "Sleeve",
+            "value": "Long sleeves"
+          },
+          {
+            "label": "Visible detail",
+            "value": "Front buttons and chest patch pocket"
+          }
+        ]
+      },
+      "description": "Long-sleeve shirt with a pointed collar, button front, and chest patch pocket. Available in four demonstration colors.",
+      "status": "published",
+      "badge": null,
+      "shopCardOrder": null,
+      "source": {
+        "kind": "product-detail",
+        "fixtureId": "fashion-store-product"
+      },
+      "taxonomy": {
+        "categories": [
+          "Shirts"
+        ],
+        "colors": [
+          "Charcoal",
+          "Gold",
+          "Blue",
+          "Green"
+        ],
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ],
+        "tags": []
+      },
+      "variants": [
+        {
+          "id": "var_01JF12CHARCOALSHIRTS0000",
+          "sku": "DEMO-CHARCOAL-SHIRT-S",
+          "title": "Charcoal / S",
+          "optionValues": {
+            "color": "Charcoal",
+            "size": "S"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "status": "active",
+          "weightGrams": null
+        },
+        {
+          "id": "var_01JF12CHARCOALSHIRTM0000",
+          "sku": "DEMO-CHARCOAL-SHIRT-M",
+          "title": "Charcoal / M",
+          "optionValues": {
+            "color": "Charcoal",
+            "size": "M"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "status": "active",
+          "weightGrams": null
+        },
+        {
+          "id": "var_01JF12CHARCOALSHIRTL0000",
+          "sku": "DEMO-CHARCOAL-SHIRT-L",
+          "title": "Charcoal / L",
+          "optionValues": {
+            "color": "Charcoal",
+            "size": "L"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "status": "active",
+          "weightGrams": null
+        },
+        {
+          "id": "var_01JF12CHARCOALSHIRTXL000",
+          "sku": "DEMO-CHARCOAL-SHIRT-XL",
+          "title": "Charcoal / XL",
+          "optionValues": {
+            "color": "Charcoal",
+            "size": "XL"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "status": "active",
+          "weightGrams": null
+        },
+        {
+          "id": "var_01JFSHIRTGOLDS00000000001",
+          "sku": "M492300-GOLD-S",
+          "title": "Gold / S",
+          "optionValues": {
+            "color": "Gold",
+            "size": "S"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGOLDM00000000001",
+          "sku": "M492300-GOLD-M",
+          "title": "Gold / M",
+          "optionValues": {
+            "color": "Gold",
+            "size": "M"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGOLDL00000000001",
+          "sku": "M492300-GOLD-L",
+          "title": "Gold / L",
+          "optionValues": {
+            "color": "Gold",
+            "size": "L"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGOLDXL0000000001",
+          "sku": "M492300-GOLD-XL",
+          "title": "Gold / XL",
+          "optionValues": {
+            "color": "Gold",
+            "size": "XL"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUES00000000001",
+          "sku": "M492300-BLUE-S",
+          "title": "Blue / S",
+          "optionValues": {
+            "color": "Blue",
+            "size": "S"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUEM00000000001",
+          "sku": "M492300-BLUE-M",
+          "title": "Blue / M",
+          "optionValues": {
+            "color": "Blue",
+            "size": "M"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUEL00000000001",
+          "sku": "M492300-BLUE-L",
+          "title": "Blue / L",
+          "optionValues": {
+            "color": "Blue",
+            "size": "L"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTBLUEXL0000000001",
+          "sku": "M492300-BLUE-XL",
+          "title": "Blue / XL",
+          "optionValues": {
+            "color": "Blue",
+            "size": "XL"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENS0000000001",
+          "sku": "M492300-GREEN-S",
+          "title": "Green / S",
+          "optionValues": {
+            "color": "Green",
+            "size": "S"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENM0000000001",
+          "sku": "M492300-GREEN-M",
+          "title": "Green / M",
+          "optionValues": {
+            "color": "Green",
+            "size": "M"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENL0000000001",
+          "sku": "M492300-GREEN-L",
+          "title": "Green / L",
+          "optionValues": {
+            "color": "Green",
+            "size": "L"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        },
+        {
+          "id": "var_01JFSHIRTGREENXL000000001",
+          "sku": "M492300-GREEN-XL",
+          "title": "Green / XL",
+          "optionValues": {
+            "color": "Green",
+            "size": "XL"
+          },
+          "price": {
+            "amount": 6500,
+            "compareAtAmount": 8500,
+            "currency": "USD"
+          },
+          "inventory": {
+            "onHand": 20,
+            "oversellLimit": 0
+          },
+          "weightGrams": null,
+          "status": "active"
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8DETAIL000000000001",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-01.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/01-demo-fashion-store-product-detail-01.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "78c0b6fc3805e6f1d783c0519951a7bcd449c16c85ec95ea675590d4863d4062",
+          "alt": "Button-front shirt, front view",
+          "order": 1
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000002",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-02.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/02-demo-fashion-store-product-detail-02.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "088eaf849e998178103df40b8ecf38af3c75191dc42033c0014c9442e8738a46",
+          "alt": "Button-front shirt, back view",
+          "order": 2
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000003",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-03.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/03-demo-fashion-store-product-detail-03.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "771e49806f3f56a67448a8a9e6d148962ba90d278c37c466462293f6915fdbb6",
+          "alt": "Button-front shirt, alternate front view",
+          "order": 3
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000004",
+          "sourcePath": "apps/storefront/app/themes/fashion-store/upstream/images/demo-fashion-store-product-detail-04.jpg",
+          "r2Key": "catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/04-demo-fashion-store-product-detail-04.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "fb85f4e94254f301b3ced2b311e1c11b855c13fc1f422592428f6f6715507f67",
+          "alt": "Button-front shirt, flat product view",
+          "order": 4
+        },
+        {
+          "id": "media_01JFS12SHIRTGOLDFRONT001",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/charcoal-shirt-gold-front-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFASHIONLIVE0000000002/fashion-store-f12/charcoal-shirt-gold-front-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "39a5f28dbc801e0f28054428df814f99fa32db9d865e692bf88e2c25faa01f4b",
+          "alt": "Gold button-front shirt, front view",
+          "order": 5
+        },
+        {
+          "id": "media_01JFS12SHIRTBLUEFRONT001",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/charcoal-shirt-blue-front-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFASHIONLIVE0000000002/fashion-store-f12/charcoal-shirt-blue-front-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "13c8f8f07ad1e9c41ea59f4db9791dd3df9050f2a095eee2b23c88e360e296ec",
+          "alt": "Blue button-front shirt, front view",
+          "order": 6
+        },
+        {
+          "id": "media_01JFS12SHIRTGREENFRONT001",
+          "sourcePath": "apps/storefront/public/media/fashion-store-generated/charcoal-shirt-green-front-v1.jpg",
+          "r2Key": "catalog/products/prod_01JFASHIONLIVE0000000002/fashion-store-f12/charcoal-shirt-green-front-v1.jpg",
+          "mimeType": "image/jpeg",
+          "width": 600,
+          "height": 765,
+          "sha256": "40932a513bcdba1a62871dc98bdc02603a0d2e551c9bd7e5d7fd55b5eda9dbe2",
+          "alt": "Green button-front shirt, front view",
+          "order": 7
+        }
+      ]
+    }
+  ]
+}

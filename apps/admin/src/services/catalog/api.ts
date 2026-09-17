@@ -2,6 +2,44 @@ import { apiClient } from '../../infrastructure/http/api-client'
 
 export type ProductStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
+export type ProductReview = {
+  body: string
+  displayName: string
+  id: string
+  moderatedAt: string | null
+  moderatedBy: string | null
+  moderationReason: string | null
+  productId: string
+  rating: number
+  status: 'pending' | 'approved' | 'rejected'
+  submittedAt: string
+}
+
+export const fetchPendingProductReviews = async (after?: string) => {
+  const response = await apiClient.get<{
+    data: { items: ProductReview[]; nextCursor: string | null }
+  }>('/admin/catalog/reviews', { params: after ? { after } : {} })
+  return response.data.data
+}
+
+export const fetchProductReview = async (id: string) => {
+  const response = await apiClient.get<{ data: ProductReview }>(`/admin/catalog/reviews/${id}`)
+  return response.data.data
+}
+
+export const moderateProductReview = async (
+  id: string,
+  decision: 'approved' | 'rejected',
+  reason: string
+) => {
+  const response = await apiClient.post<{ data: ProductReview }>(
+    `/admin/catalog/reviews/${id}/moderate`,
+    { decision, reason },
+    { headers: { 'Idempotency-Key': `review-moderation-${crypto.randomUUID()}` } }
+  )
+  return response.data.data
+}
+
 export type ProductOptionDefinition = {
   name: string
   presentation: 'text' | 'color'
@@ -10,6 +48,7 @@ export type ProductOptionDefinition = {
 
 export type ProductPresentation = {
   brand?: string
+  purchaseStatus?: 'unverified'
   defaultVariantId?: string
   detail?: {
     body?: string
@@ -21,8 +60,9 @@ export type ProductPresentation = {
   reviewDisplay?: {
     averageRating: number
     count: number
-    entries: Array<{ author: string; date: string; text: string }>
+    entries: Array<{ author: string; date: string; id?: string; rating?: number; text: string }>
     provenance: string
+    ratingBands?: [number, number, number, number, number]
     updatedAt: string
   }
   specifications: Array<{ label: string; value: string }>
@@ -115,6 +155,32 @@ export type ProductDetail = {
   }>
 }
 
+export type PublishedProductRevisionContent = {
+  description: string
+  media: Array<{ altText: string; height: number; id: string; r2Key: string; width: number }>
+  name: string
+  optionDefinitions?: Array<{ name: string; presentation: 'text' | 'color'; values: Array<{ label: string; swatch?: string }> }>
+  presentation: ProductPresentation | null
+  seoDescription: string
+  seoTitle: string
+  variantOptions?: Array<{ id: string; optionValues: Record<string, string>; title: string }>
+}
+
+export type PublishedProductRevision = {
+  baseProductVersion: number
+  basePublishedRevisionId: string | null
+  content: PublishedProductRevisionContent
+  id: string
+  status: 'draft' | 'building' | 'published' | 'failed'
+  version: number
+}
+
+export type PublishedProductRevisionState = {
+  draft: PublishedProductRevision | null
+  productVersion: number
+  published: PublishedProductRevision | null
+}
+
 export type CatalogListFilters = {
   query?: string
   status?: ProductStatus
@@ -139,6 +205,79 @@ export const fetchCatalogProducts = async (
 
 export const fetchCatalogProduct = async (id: string): Promise<ProductDetail> => {
   const response = await apiClient.get<{ data: ProductDetail }>(`/admin/catalog/products/${id}`)
+  return response.data.data
+}
+
+export const fetchPublishedProductRevisions = async (
+  id: string
+): Promise<PublishedProductRevisionState> => {
+  const response = await apiClient.get<{ data: PublishedProductRevisionState }>(
+    `/admin/catalog/products/${id}/revisions`
+  )
+  return response.data.data
+}
+
+export const stagePublishedProductRevision = async (
+  id: string,
+  input: {
+    content: PublishedProductRevisionContent
+    expectedDraftVersion: number | null
+    expectedProductVersion: number
+    expectedPublishedRevisionId: string | null
+  }
+): Promise<PublishedProductRevision> => {
+  const response = await apiClient.put<{ data: PublishedProductRevision }>(
+    `/admin/catalog/products/${id}/revisions/draft`,
+    input
+  )
+  return response.data.data
+}
+
+export const previewPublishedProductRevision = async (
+  id: string,
+  revisionId: string
+): Promise<{
+  product: {
+    description: string
+    id: string
+    media: Array<{ alt: string; id: string; src: string }>
+    name: string
+    slug: string
+  }
+  revisionId: string
+  sourceProductVersion: number
+}> => {
+  const response = await apiClient.get<{
+    data: {
+      product: {
+        description: string
+        id: string
+        media: Array<{ alt: string; id: string; src: string }>
+        name: string
+        slug: string
+      }
+      revisionId: string
+      sourceProductVersion: number
+    }
+  }>(`/admin/catalog/products/${id}/revisions/preview`, { params: { revisionId } })
+  return response.data.data
+}
+
+export const publishPublishedProductRevision = async (
+  id: string,
+  input: {
+    expectedDraftVersion: number | null
+    expectedProductVersion: number
+    expectedPublishedRevisionId: string | null
+    reason: string
+    revisionId: string | null
+  }
+): Promise<{ buildCorrelationId: string; releaseId: string; status: string }> => {
+  const response = await apiClient.post<{
+    data: { buildCorrelationId: string; releaseId: string; status: string }
+  }>(`/admin/catalog/products/${id}/revisions/publish`, input, {
+    headers: { 'Idempotency-Key': `catalog-revision-${id}-${crypto.randomUUID()}` },
+  })
   return response.data.data
 }
 

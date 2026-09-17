@@ -61,39 +61,42 @@ describe("Fashion Store live commerce boundary", () => {
         },
       ],
     } as FashionStoreProductPresentation;
-    const runtime = normalizeFashionStoreRuntimeProductState({
-      availability: "in-stock",
-      id: "product-release",
-      media: [],
-      optionGroups: [{ name: "Color", values: ["Blue", "Green"] }],
-      slug: "released-product",
-      variants: [
-        {
-          availability: "out-of-stock",
-          id: "var-blue",
-          label: "Blue",
-          money: { amount: 6500, compareAtAmount: 8500, currency: "USD" },
-          options: { Color: "Blue" },
-          sku: "LIVE-BLUE",
-        },
-        {
-          availability: "in-stock",
-          id: "var-green",
-          label: "Green",
-          money: { amount: 7200, currency: "USD" },
-          options: { Color: "Green" },
-          sku: "LIVE-GREEN",
-        },
-        {
-          availability: "in-stock",
-          id: "var-unknown",
-          label: "Unknown",
-          money: { amount: 9900, currency: "USD" },
-          options: { Color: "Unknown" },
-          sku: "LIVE-UNKNOWN",
-        },
-      ],
-    }, releasedPresentation);
+    const runtime = normalizeFashionStoreRuntimeProductState(
+      {
+        availability: "in-stock",
+        id: "product-release",
+        media: [],
+        optionGroups: [{ name: "Color", values: ["Blue", "Green"] }],
+        slug: "released-product",
+        variants: [
+          {
+            availability: "out-of-stock",
+            id: "var-blue",
+            label: "Blue",
+            money: { amount: 6500, compareAtAmount: 8500, currency: "USD" },
+            options: { Color: "Blue" },
+            sku: "LIVE-BLUE",
+          },
+          {
+            availability: "in-stock",
+            id: "var-green",
+            label: "Green",
+            money: { amount: 7200, currency: "USD" },
+            options: { Color: "Green" },
+            sku: "LIVE-GREEN",
+          },
+          {
+            availability: "in-stock",
+            id: "var-unknown",
+            label: "Unknown",
+            money: { amount: 9900, currency: "USD" },
+            options: { Color: "Unknown" },
+            sku: "LIVE-UNKNOWN",
+          },
+        ],
+      },
+      releasedPresentation,
+    );
 
     expect(runtime.availability).toBe("in-stock");
     expect(runtime).not.toHaveProperty("gallery");
@@ -381,9 +384,10 @@ describe("Fashion Store live commerce boundary", () => {
       source("themes/fashion-store/components/pages/FashionStoreShopPage.vue"),
       source("themes/fashion-store/components/pages/FashionStoreProductPage.vue"),
     ]);
-    for (const value of liveSources) {
+    for (const value of liveSources.slice(0, 2)) {
       expect(value).not.toMatch(/\/fixtures\/|useCommerceApi|useGuestCart|\$fetch|\bfetch\s*\(/);
     }
+    expect(liveSources[2]).not.toMatch(/\/fixtures\/|useGuestCart|\$fetch|\bfetch\s*\(/);
     expect(liveSources[2]).toContain("useFashionStoreProductActionPort");
     expect(liveSources[2]).not.toContain("runtimeCommercePortKey");
     expect(liveSources[2]).not.toContain("storefrontActionAdapterKey");

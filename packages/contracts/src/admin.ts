@@ -22,6 +22,7 @@ export const ADMIN_PERMISSION_KEYS = [
   "catalog.read",
   "catalog.write",
   "catalog.publish",
+  "reviews.moderate",
   "inventory.read",
   "inventory.adjust",
   "orders.read",
@@ -79,6 +80,12 @@ export const ADMIN_PERMISSION_CATALOG = [
     description: "Publish catalog content.",
     key: "catalog.publish",
     label: "Publish catalog",
+  },
+  {
+    category: "catalog",
+    description: "Read pending customer reviews and approve or reject them.",
+    key: "reviews.moderate",
+    label: "Moderate reviews",
   },
   {
     category: "inventory",

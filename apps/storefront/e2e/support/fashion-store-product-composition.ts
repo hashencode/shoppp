@@ -1,11 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 
-import { fashionStoreProductRegionLedger } from "../../app/themes/fashion-store/contracts/pages/product";
-
 const geometryTolerancePx = 2;
-const forbiddenProductContent = fashionStoreProductRegionLedger.flatMap(
-  ({ forbiddenWhenUnavailable = [] }) => forbiddenWhenUnavailable,
-);
 
 interface FashionStoreProductCompositionExpectation {
   assurance: "populated" | "source-shaped-empty";
@@ -79,10 +74,27 @@ export async function expectFashionStoreProductComposition(
     "assurance",
   );
   if (expectation.assurance === "source-shaped-empty") {
-    await expect(product.locator("[data-product-assurance]")).toContainText("Not available");
+    await expect(product.locator("[data-product-assurance]")).toContainText(
+      "Delivery timing: Not available",
+    );
+    await expect(product.locator("[data-product-assurance]")).toContainText(
+      "Shipping & returns: Not available",
+    );
+    await expect(product.locator("[data-product-assurance]")).not.toContainText(
+      "Guarantee safe and secure checkout",
+    );
+    await expect(product.locator(".fashion-product-payments")).toContainText(
+      "Payment methods are not available.",
+    );
+    await expect(product.locator(".fashion-product-payments img")).toHaveCount(0);
   } else {
-    for (const forbidden of forbiddenProductContent)
-      await expect(product.locator("[data-product-assurance]")).toContainText(forbidden);
+    await expect(product.locator("[data-product-assurance]")).toContainText(
+      "Delivery timing: Delivery timing is confirmed for your destination at checkout.",
+    );
+    await expect(product.locator("[data-product-assurance]")).toContainText(
+      "Shipping & returns: Eligible unused items may be returned within 30 days of delivery.",
+    );
+    await expect(product.locator(".fashion-product-payments img")).toHaveCount(6);
   }
 
   const [breadcrumb, gallery, info, overflow] = await Promise.all([

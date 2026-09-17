@@ -80,7 +80,9 @@ const productReviewSchema = z
   .object({
     author: z.string().trim().min(1).max(160),
     date: z.string().trim().min(1).max(160),
+    id: z.string().trim().min(1).max(100).optional(),
     media: productGalleryItemSchema.optional(),
+    rating: z.number().int().min(1).max(5).optional(),
     text: z.string().trim().min(1).max(2_000),
   })
   .strict();
@@ -167,14 +169,15 @@ export const fashionStoreProductPresentationSchema = z
     assurance: z
       .object({
         categories: z.array(z.string().trim().min(1).max(160)).max(20),
-        estimatedDelivery: z.string().trim().min(1).max(300).optional(),
-        freeShippingReturns: z.string().trim().min(1).max(300).optional(),
+        deliverySummary: z.string().trim().min(1).max(300).optional(),
+        shippingReturnsSummary: z.string().trim().min(1).max(300).optional(),
         payments: z.array(productGalleryItemSchema).max(12),
         tags: z.array(z.string().trim().min(1).max(160)).max(20),
       })
       .strict()
       .optional(),
     brand: z.string().trim().min(1).max(160).optional(),
+    purchaseStatus: z.enum(["unverified"]).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     currency: z.string().trim().length(3).toUpperCase(),
     description: z.string().trim().min(1).max(50_000),
@@ -188,6 +191,9 @@ export const fashionStoreProductPresentationSchema = z
       })
       .strict(),
     gallery: z.array(productGalleryItemSchema).max(50),
+    colorGalleries: z
+      .record(z.string(), z.array(productGalleryItemSchema).min(1).max(50))
+      .optional(),
     name: z.string().trim().min(1).max(300),
     optionDefinitions: productOptionDefinitionsSchema,
     optionGroups: z.array(productOptionGroupSchema).max(20),
@@ -210,9 +216,18 @@ export const fashionStoreProductPresentationSchema = z
         averageRating: z.number().min(0).max(5).default(0),
         count: z.number().int().nonnegative(),
         label: z.string().trim().min(1).max(80),
+        ratingBands: z
+          .tuple([
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+            z.number().int().nonnegative(),
+          ])
+          .optional(),
       })
       .strict(),
-    reviews: z.array(productReviewSchema).max(20),
+    reviews: z.array(productReviewSchema).max(10_000),
     slug: productSlugSchema,
     siteName: z.string().trim().min(1).max(160),
     state: fixtureStateSchema.exclude(["success"]),
@@ -281,7 +296,6 @@ function liveControls(actions: ProductPageModel["actions"]) {
       label: action.label,
       role: action.intent === "variant.select" ? ("select-option" as const) : ("navigate" as const),
     })),
-    { enabled: false, label: "Compare", role: "compare" as const },
     { enabled: false, label: "Ask a question", role: "question" as const },
     { enabled: false, label: "Share", role: "share" as const },
     { enabled: false, label: "Add to wishlist", role: "wishlist" as const },
@@ -316,18 +330,22 @@ export function normalizeFashionStoreProductPresentation(
         }));
   const paymentBrands = input.paymentBrands ?? [];
   return fashionStoreProductPresentationSchema.parse({
-    assurance: paymentBrands.length
-      ? {
-          categories: input.taxonomy.categories,
-          payments: paymentBrands.map((brand) => ({
-            alt: paymentBrandLabels[brand],
-            kind: "theme-asset" as const,
-            path: `images/${brand}.svg`,
-          })),
-          tags: input.taxonomy.tags,
-        }
-      : undefined,
+    assurance:
+      paymentBrands.length || input.deliverySummary || input.shippingReturnsSummary
+        ? {
+            categories: input.taxonomy.categories,
+            deliverySummary: input.deliverySummary,
+            payments: paymentBrands.map((brand) => ({
+              alt: paymentBrandLabels[brand],
+              kind: "theme-asset" as const,
+              path: `images/${brand}.svg`,
+            })),
+            tags: input.taxonomy.tags,
+            shippingReturnsSummary: input.shippingReturnsSummary,
+          }
+        : undefined,
     brand: input.brand,
+    purchaseStatus: input.purchaseStatus,
     controls: liveControls(input.actions),
     compareAtPriceLabel: input.compareAtPriceLabel,
     currency: input.resource.money.currency,
@@ -339,13 +357,24 @@ export function normalizeFashionStoreProductPresentation(
         : undefined,
     },
     gallery: input.media.map(normalizeProductMedia),
+    colorGalleries: input.colorMedia
+      ? Object.fromEntries(
+          Object.entries(input.colorMedia).map(([color, media]) => [
+            color,
+            media.map(normalizeProductMedia),
+          ]),
+        )
+      : undefined,
     name: input.heading,
     optionDefinitions,
     optionGroups: input.optionGroups,
     optionalRegions: {
       ...unavailableProductRegions,
-      ...(paymentBrands.length ? { assurance: "populated" as const } : {}),
-      ...(input.shipping ? { delivery: "populated" as const, shipping: "populated" as const } : {}),
+      ...(paymentBrands.length || input.deliverySummary || input.shippingReturnsSummary
+        ? { assurance: "populated" as const }
+        : {}),
+      ...(input.deliverySummary ? { delivery: "populated" as const } : {}),
+      ...(input.shipping ? { shipping: "populated" as const } : {}),
       ...(input.specifications.length
         ? { specifications: "populated" as const }
         : { specifications: "source-shaped-empty" as const }),

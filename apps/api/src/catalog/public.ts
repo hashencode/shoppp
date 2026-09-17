@@ -5,6 +5,7 @@ import {
 } from "@shoppp/contracts";
 
 import { ApiError } from "../http/errors";
+import { publishedProductRevisionContentSchema } from "./schemas";
 
 interface PublicProductRow {
   description: string;
@@ -106,6 +107,24 @@ async function getLiveProductBy(
   ]);
   const product = productResult?.results[0] as PublicProductRow | undefined;
   if (!product) throw new ApiError(404, "product_not_found", "The product was not found.");
+  const publishedRevision = await db
+    .prepare(
+      `SELECT content_json FROM product_revisions
+        WHERE product_id = ? AND status = 'published'
+        ORDER BY published_at DESC, id DESC LIMIT 1`,
+    )
+    .bind(product.id)
+    .first<{ content_json: string }>();
+  const revision = publishedRevision
+    ? publishedProductRevisionContentSchema.parse(JSON.parse(publishedRevision.content_json))
+    : null;
+  if (revision?.presentation?.purchaseStatus === "unverified") {
+    throw new ApiError(
+      409,
+      "product_assortment_unverified",
+      "This Product's sellable options are being verified.",
+    );
+  }
   const variants = (variantsResult?.results ?? []) as unknown as PublicVariantRow[];
   const media = (mediaResult?.results ?? []) as unknown as PublicMediaRow[];
   if (variants.length === 0) {
@@ -118,7 +137,9 @@ async function getLiveProductBy(
   }
   const options = new Map<string, Set<string>>();
   const publicVariants = variants.map((variant) => {
-    const values = JSON.parse(variant.option_values_json) as Record<string, string>;
+    const values =
+      revision?.variantOptions?.find(({ id }) => id === variant.id)?.optionValues ??
+      (JSON.parse(variant.option_values_json) as Record<string, string>);
     for (const [name, value] of Object.entries(values)) {
       const choices = options.get(name) ?? new Set<string>();
       choices.add(value);
@@ -142,31 +163,48 @@ async function getLiveProductBy(
     JSON.parse(product.option_definitions_json),
   );
   const optionDefinitions =
-    storedOptionDefinitions.length > 0
+    revision?.optionDefinitions ??
+    (storedOptionDefinitions.length > 0
       ? storedOptionDefinitions
       : [...options].map(([name, values]) => ({
           name,
           presentation: "text" as const,
           values: [...values].map((label) => ({ label })),
-        }));
+        })));
   return {
-    description: product.description,
+    description: revision?.description ?? product.description,
     id: product.id,
-    media: media.map((item) => ({
-      alt: item.alt_text,
-      height: item.height,
-      id: item.id,
-      position: item.position,
-      src: `${mediaOrigin.replace(/\/+$/, "")}/${item.r2_key}`,
-      width: item.width,
-    })),
-    name: product.name,
+    media: revision
+      ? revision.media.map((item, position) => ({
+          alt: item.altText,
+          height: item.height,
+          id: item.id,
+          position,
+          src: `${mediaOrigin.replace(/\/+$/, "")}/${item.r2Key}`,
+          width: item.width,
+        }))
+      : media.map((item) => ({
+          alt: item.alt_text,
+          height: item.height,
+          id: item.id,
+          position: item.position,
+          src: `${mediaOrigin.replace(/\/+$/, "")}/${item.r2_key}`,
+          width: item.width,
+        })),
+    name: revision?.name ?? product.name,
     optionDefinitions,
     options: [...options].map(([name, values]) => ({ name, values: [...values] })),
-    ...(product.presentation_json
-      ? { presentation: productPresentationSchema.parse(JSON.parse(product.presentation_json)) }
-      : {}),
-    seo: { description: product.seo_description, title: product.seo_title },
+    ...(revision
+      ? revision.presentation
+        ? { presentation: revision.presentation }
+        : {}
+      : product.presentation_json
+        ? { presentation: productPresentationSchema.parse(JSON.parse(product.presentation_json)) }
+        : {}),
+    seo: {
+      description: revision?.seoDescription ?? product.seo_description,
+      title: revision?.seoTitle ?? product.seo_title,
+    },
     slug: product.slug,
     status: product.status,
     variants: publicVariants,

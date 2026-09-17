@@ -19,6 +19,7 @@ const ids = {
 
 async function resetAndSeed(): Promise<void> {
   await env.DB.batch([
+    env.DB.prepare("PRAGMA defer_foreign_keys = ON"),
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM cart_lines"),
     env.DB.prepare("DELETE FROM carts"),
@@ -29,6 +30,9 @@ async function resetAndSeed(): Promise<void> {
     env.DB.prepare("DELETE FROM inventory_items"),
     env.DB.prepare("DELETE FROM warehouses"),
     env.DB.prepare("DELETE FROM product_media"),
+    env.DB.prepare("DELETE FROM product_media_assets"),
+    env.DB.prepare("DELETE FROM product_reviews"),
+    env.DB.prepare("DELETE FROM product_revisions"),
     env.DB.prepare("DELETE FROM prices"),
     env.DB.prepare("DELETE FROM price_lists"),
     env.DB.prepare("DELETE FROM product_variants"),
@@ -148,6 +152,93 @@ function cartRequest(path: string, token?: string, init: RequestInit = {}): Requ
 
 describe("guest cart authority", () => {
   beforeEach(resetAndSeed);
+
+  test("blocks a published Product whose color and SKU association is unverified", async () => {
+    await seedDeployedRelease("release-assortment-review");
+    const app = createApp();
+    const created = await app.fetch(
+      cartRequest("/cart", undefined, {
+        body: JSON.stringify({ currency: "USD" }),
+        headers: { "Idempotency-Key": "cart-create-assortment-review" },
+        method: "POST",
+      }),
+      env,
+    );
+    const { data } = await created.json<{ data: { token: string } }>();
+    const add = (key: string) =>
+      app.fetch(
+        cartRequest("/cart/lines", data.token, {
+          body: JSON.stringify({
+            quantity: 1,
+            releaseId: "release-assortment-review",
+            variantId: ids.variant,
+          }),
+          headers: { "Idempotency-Key": key },
+          method: "POST",
+        }),
+        env,
+      );
+    expect((await add("cart-add-before-assortment-review")).status).toBe(200);
+
+    await env.DB.prepare(
+      `INSERT INTO product_revisions
+        (id, product_id, base_product_version, version, status, content_json, created_by, created_at, updated_at, published_at)
+       VALUES (?, ?, 1, 1, 'published', ?, 'catalog-test', ?, ?, ?)`,
+    )
+      .bind(
+        "revision-assortment-review",
+        ids.product,
+        JSON.stringify({
+          description: "Carry-on",
+          media: [
+            {
+              altText: "Carry-on",
+              height: 100,
+              id: "media-assortment-review",
+              r2Key: "catalog/products/atlas.jpg",
+              width: 100,
+            },
+          ],
+          name: "Atlas",
+          presentation: { purchaseStatus: "unverified", specifications: [] },
+          seoDescription: "Atlas carry-on",
+          seoTitle: "Atlas",
+        }),
+        now,
+        now,
+        now,
+      )
+      .run();
+
+    const live = await app.fetch(
+      new Request("https://api.example.test/catalog/products/atlas/live?currency=USD"),
+      env,
+    );
+    expect(live.status).toBe(409);
+    expect(await live.json()).toMatchObject({ error: { code: "product_assortment_unverified" } });
+    const rejected = await add("cart-add-after-assortment-review");
+    expect(rejected.status).toBe(422);
+    expect(await rejected.json()).toMatchObject({ error: { code: "cart_quantity_unavailable" } });
+    const cart = await app.fetch(cartRequest("/cart", data.token), env);
+    expect(await cart.json()).toMatchObject({
+      data: { adjustments: [expect.objectContaining({ code: "availability_changed" })] },
+    });
+
+    await env.DB.prepare(
+      `INSERT INTO product_revisions
+        (id, product_id, base_product_version, base_published_revision_id, version, status, content_json, created_by, created_at, updated_at, published_at)
+       SELECT 'revision-assortment-verified', product_id, base_product_version, id, 1,
+              'published', json_remove(content_json, '$.presentation.purchaseStatus'),
+              created_by, created_at, updated_at, '2026-07-31T00:00:00.000Z'
+         FROM product_revisions WHERE id = 'revision-assortment-review'`,
+    ).run();
+    const verified = await app.fetch(
+      new Request("https://api.example.test/catalog/products/atlas/live?currency=USD"),
+      env,
+    );
+    expect(verified.status).toBe(200);
+    expect((await add("cart-add-after-assortment-verified")).status).toBe(200);
+  });
 
   test("serves live currency and availability from API authority", async () => {
     const response = await createApp().fetch(

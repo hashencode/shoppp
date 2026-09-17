@@ -174,20 +174,8 @@ const settingsByPageType = {
     ),
   ],
   collection: [
-    text(
-      "intro-title",
-      "Intro title",
-      "Bounded heading for Shop and Collection.",
-      "Shop the collection",
-      120,
-    ),
-    text(
-      "intro-copy",
-      "Intro copy",
-      "Bounded plain text for Shop and Collection.",
-      "Discover the latest edit.",
-      500,
-    ),
+    text("intro-title", "Intro title", "Bounded heading for Shop and Collection.", "", 120),
+    text("intro-copy", "Intro copy", "Bounded plain text for Shop and Collection.", "", 500),
     reference(
       "collection-reference",
       "default-collection",
@@ -286,13 +274,7 @@ const settingsByPageType = {
     },
   ],
   home: [
-    text(
-      "announcement-text",
-      "Announcement text",
-      "Bounded global announcement copy.",
-      "Free delivery on selected orders",
-      160,
-    ),
+    text("announcement-text", "Announcement text", "Bounded global announcement copy.", "", 160),
     internalLink(
       "announcement-link",
       "Announcement link",
@@ -310,7 +292,7 @@ const settingsByPageType = {
       "header-contact-copy",
       "Header contact copy",
       "Bounded Header contact presentation copy.",
-      "How can we help?",
+      "",
       240,
     ),
     externalLink(
@@ -335,7 +317,7 @@ const settingsByPageType = {
       "footer-contact-copy",
       "Footer contact copy",
       "Bounded Footer contact presentation copy.",
-      "Stay in touch.",
+      "",
       240,
     ),
     externalLink(
@@ -385,6 +367,20 @@ const settingsByPageType = {
     ),
   ],
   product: [
+    text(
+      "delivery-summary",
+      "Delivery summary",
+      "Public delivery timing text. State only verified terms; leave blank when timing is confirmed at checkout.",
+      "",
+      300,
+    ),
+    text(
+      "shipping-returns-summary",
+      "Shipping and returns summary",
+      "Public summary of the published shipping and return policies. Do not promise free shipping unless it is offered.",
+      "",
+      300,
+    ),
     ...publicPaymentBrands.map((brand) =>
       boolean(
         `payment-brand-${brand}`,

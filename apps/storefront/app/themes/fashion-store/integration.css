@@ -35,7 +35,22 @@
   padding: 0 15px;
 }
 
-[data-fashion-store-product] .fashion-product-related [data-fashion-store-product-card] .shop-image img {
+[data-fashion-store-product] .fashion-product-rating-star-group,
+[data-fashion-store-product] .fashion-product-rating-count {
+  flex: none;
+  white-space: nowrap;
+}
+
+[data-fashion-store-product] .fashion-product-rating-sku {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+[data-fashion-store-product]
+  .fashion-product-related
+  [data-fashion-store-product-card]
+  .shop-image
+  img {
   width: 100%;
   aspect-ratio: 600 / 765;
   object-fit: cover;
@@ -133,8 +148,8 @@
   cursor: pointer;
 }
 
-[data-fashion-store-product] .product-info > .row.mb-15px {
-  min-height: 77.5px;
+[data-fashion-store-product] .btn-cart .btn-double-text {
+  white-space: nowrap;
 }
 
 [data-fashion-store-product] .fashion-product-payments a:not(:last-child) {
@@ -174,11 +189,17 @@
   [data-fashion-store-product] .product-image-thumb .swiper-slide[data-active="true"] img {
     border-color: var(--light-gray);
   }
+}
 
-  [data-fashion-store-product] .fashion-product-reviews article {
-    align-items: center;
-    flex-direction: column;
-    text-align: center;
+@media (min-width: 576px) {
+  [data-fashion-store-product] .fashion-product-rating-line {
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  [data-fashion-store-product] .fashion-product-rating-sku {
+    flex-basis: 100%;
   }
 }
 
@@ -194,7 +215,42 @@
   }
 }
 
+@media (max-width: 991px) {
+  [data-fashion-store-product] .fashion-product-tabs .nav.nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 8px;
+    row-gap: 10px;
+  }
+
+  [data-fashion-store-product] .fashion-product-tabs .nav-item {
+    display: flex;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  [data-fashion-store-product] .fashion-product-tabs .nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    min-height: 52px;
+    text-align: center;
+  }
+}
+
 @media (max-width: 575px) {
+  [data-fashion-store-product] .fashion-product-secondary-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  [data-fashion-store-product] .fashion-product-secondary-actions .col-auto {
+    width: 100%;
+  }
+
   [data-fashion-store-product] .fashion-product-tabs .nav-link {
     margin-bottom: -1px;
     padding: 0;
@@ -2659,4 +2715,86 @@ body[data-fashion-store-shell="true"] {
 .fashion-store-collection-placeholder {
   aspect-ratio: 4 / 3;
   width: 100%;
+}
+.fashion-store-compare-at-price {
+  color: #6b6b6b;
+}
+
+[data-fashion-store-product] .fashion-product-rating-distribution {
+  min-width: 0;
+  padding-left: 24px;
+}
+
+[data-fashion-store-product] .fashion-product-rating-band {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+  font-size: 13px;
+}
+
+[data-fashion-store-product] .fashion-product-rating-band .progress {
+  height: 8px;
+  margin: 0;
+  background: #e8e8e8;
+}
+
+[data-fashion-store-product] .fashion-product-rating-band .progress-bar {
+  height: 100%;
+}
+
+[data-fashion-store-product] .fashion-product-rating-band-count {
+  text-align: right;
+}
+
+[data-fashion-store-product] .fashion-product-review-form {
+  margin-top: 36px;
+}
+
+[data-fashion-store-product] .fashion-product-review-rating-options {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+[data-fashion-store-product] .fashion-product-review-rating-option {
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+}
+
+[data-fashion-store-product] .fashion-product-review-rating-option input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+}
+
+[data-fashion-store-product] .fashion-product-review-rating-option span {
+  display: inline-block;
+  padding: 2px;
+  color: #e8890b;
+  font-size: 22px;
+  line-height: 1;
+}
+
+[data-fashion-store-product] .fashion-product-review-rating-option input:checked + span,
+[data-fashion-store-product] .fashion-product-review-rating-option:hover span {
+  color: #bd6100;
+}
+
+[data-fashion-store-product] .fashion-product-review-rating-option input:focus-visible + span {
+  outline: 2px solid #232323;
+  outline-offset: 2px;
+}
+
+[data-fashion-store-product] .fashion-product-review-field-error,
+[data-fashion-store-product] .fashion-product-review-error {
+  color: #a32727;
+}
+
+@media (max-width: 991px) {
+  [data-fashion-store-product] .fashion-product-rating-distribution {
+    padding-inline: 15px;
+  }
 }

@@ -1,6 +1,6 @@
 import React from 'react'
 import { App } from 'antd'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -81,7 +81,10 @@ const detail: ProductDetail = {
 }
 
 const server = setupServer(
-  http.get('*/admin/catalog/products/product-001', () => HttpResponse.json({ data: detail }))
+  http.get('*/admin/catalog/products/product-001', () => HttpResponse.json({ data: detail })),
+  http.get('*/admin/catalog/products/product-001/revisions', () =>
+    HttpResponse.json({ data: { draft: null, productVersion: 3, published: null } })
+  )
 )
 
 const renderReadonly = () =>
@@ -299,6 +302,95 @@ describe('CatalogFormPage', () => {
     view.unmount()
   })
 
+  it('stages a published Product revision with its own name and ordered media', async () => {
+    const published: ProductDetail = {
+      ...detail,
+      product: { ...detail.product, status: 'published' },
+      media: [
+        ...detail.media,
+        {
+          alt_text: 'Carry-on side',
+          height: 1200,
+          id: 'media-002',
+          r2_key: 'catalog/products/carry-on-side.webp',
+          width: 1200,
+        },
+      ],
+    }
+    let staged: Record<string, unknown> | null = null
+    server.use(
+      http.get('*/admin/catalog/products/product-001/revisions', () =>
+        HttpResponse.json({ data: { draft: null, productVersion: 3, published: null } })
+      ),
+      http.put('*/admin/catalog/products/product-001/revisions/draft', async ({ request }) => {
+        staged = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            baseProductVersion: 3,
+            basePublishedRevisionId: null,
+            content: staged.content,
+            id: 'revision-001',
+            status: 'draft',
+            version: 1,
+          },
+        })
+      }),
+      http.get('*/admin/catalog/products/product-001/revisions/preview', () =>
+        HttpResponse.json({
+          data: {
+            product: {
+              description: 'International carry-on',
+              id: 'product-001',
+              media: [
+                { alt: 'Carry-on side', id: 'media-002', src: 'https://media.example.test/side' },
+                { alt: 'Black carry-on', id: 'media-001', src: 'https://media.example.test/front' },
+              ],
+              name: 'Revised carry-on',
+              slug: 'carry-on',
+            },
+            revisionId: 'revision-001',
+            sourceProductVersion: 3,
+          },
+        })
+      )
+    )
+    renderModify(published)
+    const editor = await screen.findByRole('region', { name: '已发布商品修订' })
+    fireEvent.change(within(editor).getByLabelText('名称'), {
+      target: { value: 'Revised carry-on' },
+    })
+    fireEvent.click(within(editor).getByRole('checkbox', { name: /款式选项尚未核实/ }))
+    fireEvent.change(within(editor).getByLabelText('详情标题'), {
+      target: { value: 'Verified appearance' },
+    })
+    fireEvent.click(within(editor).getByRole('button', { name: '添加规格' }))
+    fireEvent.change(within(editor).getByLabelText('规格名称'), {
+      target: { value: 'Color' },
+    })
+    fireEvent.change(within(editor).getByLabelText('规格内容'), {
+      target: { value: 'Black' },
+    })
+    fireEvent.click(within(editor).getAllByRole('button', { name: /下\s*移/ })[0]!)
+    fireEvent.click(within(editor).getByRole('button', { name: '保存暂存修订' }))
+    await waitFor(() => {
+      expect(staged).toMatchObject({
+        expectedProductVersion: 3,
+        expectedPublishedRevisionId: null,
+        content: {
+          name: 'Revised carry-on',
+          media: [{ id: 'media-002' }, { id: 'media-001' }],
+          presentation: {
+            purchaseStatus: 'unverified',
+            detail: { heading: 'Verified appearance' },
+            specifications: [{ label: 'Color', value: 'Black' }],
+          },
+        },
+      })
+    })
+    fireEvent.click(within(editor).getByRole('button', { name: '预览暂存数据' }))
+    expect(await within(editor).findByRole('region', { name: '商品暂存预览' })).toBeTruthy()
+  })
+
   it('authors ordered Product presentation through the versioned aggregate endpoint', async () => {
     const presentationDetail: ProductDetail = {
       ...detail,
@@ -335,7 +427,7 @@ describe('CatalogFormPage', () => {
     )
     renderModify(presentationDetail)
 
-    const brand = await screen.findByLabelText('Brand')
+    const brand = await screen.findByLabelText('品牌')
     expect((brand as HTMLInputElement).value).toBe('Zalando')
     fireEvent.change(brand, { target: { value: 'Shoppp' } })
     fireEvent.click(screen.getByRole('button', { name: 'Move specification up 2' }))

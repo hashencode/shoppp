@@ -23,6 +23,7 @@ const properties = defineProps<{
 }>();
 const presentation = computed(() => normalizeFashionStoreProductPresentation(properties.viewModel));
 const actionPort = useFashionStoreProductActionPort(presentation);
+const commerceApi = useCommerceApi();
 const runtimeProduct = ref<FashionStoreProductRuntimeState | null>(null);
 const runtimeState = ref<{ kind: "checking" | "error" | "ready"; message: string }>({
   kind: actionPort.authoritative ? "checking" : "ready",
@@ -44,6 +45,16 @@ const tabIds = ["description", "information", "shipping", "reviews"] as const;
 const cartAddCount = ref(0);
 const optionUpdateCount = ref(0);
 const previewIntentCount = ref(0);
+const visibleReviewCount = ref(3);
+const reviewRating = ref(0);
+const reviewName = ref("");
+const reviewBody = ref("");
+const reviewErrors = ref<{ rating?: string; name?: string; body?: string }>({});
+const reviewFormState = ref<{ kind: "idle" | "saving" | "success" | "error"; message: string }>({
+  kind: "idle",
+  message: "",
+});
+let reviewSubmissionKey: string | null = null;
 const productGallery = ref<InstanceType<typeof FashionStoreProductGallery>>();
 const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
 let revalidationVersion = 0;
@@ -54,7 +65,11 @@ const displayedOptionGroups = computed(() => presentation.value.optionGroups);
 const displayedVariants = computed(
   () => runtimeProduct.value?.variants ?? presentation.value.variants,
 );
-const displayedGallery = computed(() => presentation.value.gallery);
+const displayedGallery = computed(
+  () =>
+    presentation.value.colorGalleries?.[selectedOptions.value.color ?? ""] ??
+    presentation.value.gallery,
+);
 const galleryImages = computed(() =>
   displayedGallery.value.map((item) => (item.kind === "theme-asset" ? item.path : item)),
 );
@@ -75,14 +90,73 @@ const displayedCompareAtPrice = computed(() =>
 );
 const addDisabled = computed(
   () =>
+    presentation.value.purchaseStatus === "unverified" ||
     (actionPort.authoritative && !hydrated.value) ||
     runtimeState.value.kind === "checking" ||
     runtimeProduct.value?.availability === "out-of-stock" ||
     runtimeProduct.value?.availability === "unavailable",
 );
-const descriptionMedia = computed(() => presentation.value.descriptionDetail.media);
+const descriptionMedia = computed(
+  () =>
+    presentation.value.colorGalleries?.[selectedOptions.value.color ?? ""]?.at(-1) ??
+    presentation.value.descriptionDetail.media,
+);
 const descriptionMediaSource = computed(() => mediaSource(descriptionMedia.value));
 const descriptionMediaAlt = computed(() => descriptionMedia.value?.alt ?? presentation.value.name);
+const visibleReviews = computed(() =>
+  presentation.value.reviews.slice(0, visibleReviewCount.value),
+);
+const reviewBands = computed(() =>
+  [5, 4, 3, 2, 1].map((rating) => {
+    const count = presentation.value.reviewSummary.ratingBands?.[rating - 1] ?? 0;
+    return {
+      count,
+      percentage: presentation.value.reviewSummary.count
+        ? Math.round((count / presentation.value.reviewSummary.count) * 100)
+        : 0,
+      rating,
+    };
+  }),
+);
+
+function reviewInputChanged(): void {
+  reviewSubmissionKey = null;
+  reviewErrors.value = {};
+  if (reviewFormState.value.kind === "error") reviewFormState.value = { kind: "idle", message: "" };
+}
+
+async function submitReview(): Promise<void> {
+  if (reviewFormState.value.kind === "saving" || reviewFormState.value.kind === "success") return;
+  const errors: typeof reviewErrors.value = {};
+  const name = reviewName.value.trim();
+  const body = reviewBody.value.trim();
+  if (reviewRating.value < 1 || reviewRating.value > 5)
+    errors.rating = "Choose a rating from 1 to 5 stars.";
+  if (name.length < 2 || name.length > 80) errors.name = "Enter a name of 2 to 80 characters.";
+  if (body.length < 10 || body.length > 2_000)
+    errors.body = "Write a review of 10 to 2,000 characters.";
+  reviewErrors.value = errors;
+  if (Object.keys(errors).length) return;
+  reviewFormState.value = { kind: "saving", message: "Saving your review…" };
+  reviewSubmissionKey ??= `review-${crypto.randomUUID()}`;
+  try {
+    await commerceApi.submitProductReview(
+      presentation.value.slug,
+      { body, displayName: name, rating: reviewRating.value },
+      reviewSubmissionKey,
+    );
+    reviewFormState.value = {
+      kind: "success",
+      message: "Your review was saved and is awaiting moderation. It is not public yet.",
+    };
+  } catch (error) {
+    const response = error as { data?: { error?: { message?: string } } };
+    reviewFormState.value = {
+      kind: "error",
+      message: response.data?.error?.message ?? "Your review could not be saved. Try again.",
+    };
+  }
+}
 
 function gallerySource(index: number): string {
   const item = displayedGallery.value[index];
@@ -144,6 +218,7 @@ function selectOption(groupName: string, value: string): void {
       ),
     [groupName, value],
   ]);
+  if (groupName === "color") galleryIndex.value = 0;
   optionError.value = "";
   optionUpdateCount.value += 1;
 }
@@ -212,11 +287,19 @@ function resetProductState(): void {
   cartAddCount.value = 0;
   optionUpdateCount.value = 0;
   previewIntentCount.value = 0;
+  visibleReviewCount.value = 3;
+  reviewRating.value = 0;
+  reviewName.value = "";
+  reviewBody.value = "";
+  reviewErrors.value = {};
+  reviewFormState.value = { kind: "idle", message: "" };
+  reviewSubmissionKey = null;
   void nextTick(() => productGallery.value?.select(0));
   if (hydrated.value && actionPort.authoritative) void revalidate();
 }
 
 async function addToCart(): Promise<void> {
+  if (presentation.value.purchaseStatus === "unverified") return;
   if (runtimeState.value.kind === "error" && !(await revalidate())) return;
   const missing = displayedOptionGroups.value
     .map(({ name }) => name)
@@ -340,6 +423,7 @@ watch(
             <div class="col-lg-7 pe-50px md-pe-15px md-mb-40px fashion-product-gallery">
               <FashionStoreProductGallery
                 v-if="galleryImages.length"
+                :key="selectedOptions.color"
                 ref="productGallery"
                 :images="galleryImages"
                 :paused="galleryPaused"
@@ -360,7 +444,11 @@ watch(
 
             <div class="col-12 col-lg-5 product-info">
               <div
-                v-if="actionPort.authoritative && !hydrated"
+                v-if="
+                  actionPort.authoritative &&
+                  !hydrated &&
+                  presentation.purchaseStatus !== 'unverified'
+                "
                 class="mb-25px"
                 role="region"
                 aria-label="JavaScript limitations"
@@ -375,8 +463,8 @@ watch(
               <h4 class="alt-font text-dark-gray fw-500 mb-5px" role="heading" aria-level="2">
                 {{ presentation.name }}
               </h4>
-              <div class="d-block d-sm-flex align-items-center mb-15px">
-                <div class="me-10px xs-me-0">
+              <div class="d-block d-sm-flex align-items-center mb-15px fashion-product-rating-line">
+                <div class="me-10px xs-me-0 fashion-product-rating-star-group">
                   <span
                     class="ls-minus-1px icon-small"
                     role="img"
@@ -393,26 +481,37 @@ watch(
                 </div>
                 <button
                   type="button"
-                  class="me-25px text-dark-gray fw-500 section-link xs-me-0"
+                  class="me-25px text-dark-gray fw-500 section-link xs-me-0 fashion-product-rating-count"
                   @click="activeTab = 'reviews'"
                 >
                   {{ presentation.reviewSummary.label }}
                 </button>
-                <div v-if="selectedVariant?.sku">
+                <div
+                  v-if="presentation.purchaseStatus !== 'unverified' && selectedVariant?.sku"
+                  class="fashion-product-rating-sku"
+                >
                   <span class="text-dark-gray fw-500">SKU: </span>{{ selectedVariant.sku }}
                 </div>
               </div>
-              <div class="product-price mb-10px" data-live-product-price>
+              <div
+                v-if="presentation.purchaseStatus !== 'unverified'"
+                class="product-price mb-10px"
+                data-live-product-price
+              >
                 <span class="text-dark-gray fs-28 xs-fs-24 fw-700 ls-minus-1px">
-                  <del v-if="displayedCompareAtPrice" class="text-medium-gray me-10px fw-400">{{
-                    displayedCompareAtPrice
-                  }}</del
+                  <del
+                    v-if="displayedCompareAtPrice"
+                    class="fashion-store-compare-at-price me-10px fw-400"
+                    >{{ displayedCompareAtPrice }}</del
                   >{{ displayedPrice }}
                 </span>
               </div>
               <p>{{ presentation.description }}</p>
 
-              <div class="fashion-product-options mt-20px">
+              <div
+                v-if="presentation.purchaseStatus !== 'unverified'"
+                class="fashion-product-options mt-20px"
+              >
                 <fieldset
                   v-for="(group, groupIndex) in displayedOptionGroups"
                   :key="group.name"
@@ -491,6 +590,7 @@ watch(
                 {{ optionError }}
               </p>
               <div
+                v-if="presentation.purchaseStatus !== 'unverified'"
                 class="d-flex align-items-center flex-column flex-sm-row mb-20px position-relative"
               >
                 <FashionStoreQuantityInput
@@ -512,9 +612,7 @@ watch(
                 >
                   <span>
                     <FashionStoreIcon name="shopping-bag" />
-                    <span class="btn-double-text ls-0px">{{
-                      runtimeState.kind === "error" ? "Retry and add to cart" : "Add to cart"
-                    }}</span>
+                    <span class="btn-double-text ls-0px">Add to cart</span>
                   </span>
                 </button>
                 <button
@@ -537,7 +635,7 @@ watch(
                 </button>
               </div>
               <p
-                v-if="actionPort.authoritative"
+                v-if="actionPort.authoritative && presentation.purchaseStatus !== 'unverified'"
                 class="mt-15px"
                 :role="runtimeState.kind === 'error' ? 'alert' : 'status'"
                 aria-live="polite"
@@ -548,7 +646,7 @@ watch(
               <div class="row mb-20px fashion-product-secondary-actions">
                 <div
                   v-for="control in presentation.controls.filter(({ role }) =>
-                    ['compare', 'question', 'share'].includes(role),
+                    ['question', 'share'].includes(role),
                   )"
                   :key="control.role"
                   class="col-auto icon-with-text-style-08"
@@ -556,13 +654,7 @@ watch(
                   <div class="feature-box feature-box-left-icon-middle d-inline-flex align-middle">
                     <div class="feature-box-icon me-10px">
                       <FashionStoreIcon
-                        :name="
-                          control.role === 'compare'
-                            ? 'repeat'
-                            : control.role === 'question'
-                              ? 'mail'
-                              : 'share-2'
-                        "
+                        :name="control.role === 'question' ? 'mail' : 'share-2'"
                         class="align-middle text-dark-gray"
                       />
                     </div>
@@ -582,74 +674,79 @@ watch(
                 </div>
               </div>
               <div data-product-assurance data-product-region-state="assurance">
-                  <div class="mb-20px h-1px w-100 bg-extra-medium-gray d-block"></div>
-                  <div class="row mb-15px">
-                    <div class="col-12 icon-with-text-style-08">
-                      <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
-                        <div class="feature-box-icon me-10px">
-                          <FashionStoreIcon
-                            name="truck"
-                            class="top-8px position-relative align-middle text-dark-gray"
-                          />
-                        </div>
-                        <div class="feature-box-content">
-                          <span
-                            ><span class="alt-font text-dark-gray fw-500">Estimated delivery:</span>
-                            {{ presentation.assurance?.estimatedDelivery ?? "Not available" }}</span
-                          >
-                        </div>
+                <div class="mb-20px h-1px w-100 bg-extra-medium-gray d-block"></div>
+                <div class="row mb-15px">
+                  <div class="col-12 icon-with-text-style-08">
+                    <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
+                      <div class="feature-box-icon me-10px">
+                        <FashionStoreIcon
+                          name="truck"
+                          class="top-8px position-relative align-middle text-dark-gray"
+                        />
                       </div>
-                    </div>
-                    <div class="col-12 icon-with-text-style-08 mb-10px">
-                      <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
-                        <div class="feature-box-icon me-10px">
-                          <FashionStoreIcon
-                            name="archive"
-                            class="top-8px position-relative align-middle text-dark-gray"
-                          />
-                        </div>
-                        <div class="feature-box-content">
-                          <span
-                            ><span class="alt-font text-dark-gray fw-500"
-                              >Free shipping &amp; returns:</span
-                            >
-                            {{ presentation.assurance?.freeShippingReturns ?? "Not available" }}</span
-                          >
-                        </div>
+                      <div class="feature-box-content">
+                        <span
+                          ><span class="alt-font text-dark-gray fw-500">Delivery timing:</span>
+                          {{ presentation.assurance?.deliverySummary ?? "Not available" }}</span
+                        >
                       </div>
                     </div>
                   </div>
-                  <div
-                    class="bg-very-light-gray ps-30px pe-30px pt-25px pb-25px mb-20px xs-p-25px border-radius-4px"
-                  >
-                    <span class="alt-font fs-17 fw-500 text-dark-gray mb-15px d-block lh-initial"
-                      >Guarantee safe and secure checkout</span
-                    >
-                    <div class="fashion-product-payments">
-                      <span
-                        v-for="(payment, index) in presentation.assurance?.payments ?? []"
-                        :key="mediaSource(payment)"
-                        role="img"
-                        :aria-label="payment.alt ?? `Payment method ${index + 1}`"
-                      >
-                        <img :src="mediaSource(payment)" class="h-30px mb-5px me-5px" alt="" />
-                      </span>
-                      <span v-if="!presentation.assurance?.payments.length"
-                        >Payment methods are not available.</span
-                      >
-                    </div>
-                  </div>
-                  <div>
-                    <div class="w-100 d-block">
-                      <span class="text-dark-gray alt-font fw-500">Category:</span>
-                      <span>{{ presentation.taxonomy.categories.join(", ") || "Not available" }}</span>
-                    </div>
-                    <div>
-                      <span class="text-dark-gray alt-font fw-500">Tags: </span>
-                      <span>{{ presentation.taxonomy.tags.join(", ") || "Not available" }}</span>
+                  <div class="col-12 icon-with-text-style-08 mb-10px">
+                    <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
+                      <div class="feature-box-icon me-10px">
+                        <FashionStoreIcon
+                          name="archive"
+                          class="top-8px position-relative align-middle text-dark-gray"
+                        />
+                      </div>
+                      <div class="feature-box-content">
+                        <span
+                          ><span class="alt-font text-dark-gray fw-500"
+                            >Shipping &amp; returns:</span
+                          >
+                          {{
+                            presentation.assurance?.shippingReturnsSummary ?? "Not available"
+                          }}</span
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>
+                <div
+                  v-if="presentation.purchaseStatus !== 'unverified'"
+                  class="bg-very-light-gray ps-30px pe-30px pt-25px pb-25px mb-20px xs-p-25px border-radius-4px"
+                >
+                  <span class="alt-font fs-17 fw-500 text-dark-gray mb-15px d-block lh-initial"
+                    >Payment methods</span
+                  >
+                  <div class="fashion-product-payments">
+                    <span
+                      v-for="(payment, index) in presentation.assurance?.payments ?? []"
+                      :key="mediaSource(payment)"
+                      role="img"
+                      :aria-label="payment.alt ?? `Payment method ${index + 1}`"
+                    >
+                      <img :src="mediaSource(payment)" class="h-30px mb-5px me-5px" alt="" />
+                    </span>
+                    <span v-if="!presentation.assurance?.payments.length"
+                      >Payment methods are not available.</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <div class="w-100 d-block">
+                    <span class="text-dark-gray alt-font fw-500">Category:</span>
+                    <span>{{
+                      presentation.taxonomy.categories.join(", ") || "Not available"
+                    }}</span>
+                  </div>
+                  <div>
+                    <span class="text-dark-gray alt-font fw-500">Tags: </span>
+                    <span>{{ presentation.taxonomy.tags.join(", ") || "Not available" }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -683,7 +780,7 @@ watch(
                         : tab === "shipping"
                           ? "Shipping and return"
                           : tab === "reviews"
-                            ? `Reviews (${presentation.reviews.length})`
+                            ? `Reviews (${presentation.reviewSummary.count})`
                             : "Description"
                     }}
                     <span class="tab-border bg-dark-gray"></span>
@@ -822,12 +919,19 @@ watch(
                     data-product-region-state="shipping"
                   >
                     <div class="col-12 col-md-6 last-paragraph-no-margin sm-mb-30px">
-                      <h2 class="alt-font fs-22">Shipping information</h2>
-                      <p><strong>Standard:</strong> {{ presentation.shipping.standard }}</p>
+                      <h2 class="alt-font fs-22 text-dark-gray mb-15px fw-500">
+                        Shipping information
+                      </h2>
+                      <p>
+                        <span class="fw-500 text-dark-gray">Standard:</span>
+                        {{ presentation.shipping.standard }}
+                      </p>
                     </div>
                     <div class="col-12 col-md-6 last-paragraph-no-margin">
-                      <h2 class="alt-font fs-22">Return information</h2>
-                      <p>{{ presentation.shipping.returnBody }}</p>
+                      <h2 class="alt-font fs-22 text-dark-gray mb-15px fw-500">
+                        Return information
+                      </h2>
+                      <p class="w-80 md-w-100">{{ presentation.shipping.returnBody }}</p>
                     </div>
                   </div>
                   <div
@@ -836,12 +940,18 @@ watch(
                     data-product-region-state="shipping"
                   >
                     <div class="col-12 col-md-6 last-paragraph-no-margin sm-mb-30px">
-                      <h2 class="alt-font fs-22">Shipping information</h2>
+                      <h2 class="alt-font fs-22 text-dark-gray mb-15px fw-500">
+                        Shipping information
+                      </h2>
                       <p>Shipping information is not available for this product.</p>
                     </div>
                     <div class="col-12 col-md-6 last-paragraph-no-margin">
-                      <h2 class="alt-font fs-22">Return information</h2>
-                      <p>Return information is not available for this product.</p>
+                      <h2 class="alt-font fs-22 text-dark-gray mb-15px fw-500">
+                        Return information
+                      </h2>
+                      <p class="w-80 md-w-100">
+                        Return information is not available for this product.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -854,10 +964,12 @@ watch(
                   :hidden="activeTab !== 'reviews'"
                 >
                   <template v-if="presentation.optionalRegions.reviews === 'populated'">
-                    <div class="row align-items-center mb-6 sm-mb-10">
+                    <div
+                      class="row align-items-center mb-6 sm-mb-10 fashion-product-review-overview"
+                    >
                       <div class="col-lg-4 col-md-12 col-sm-7 md-mb-30px text-center text-lg-start">
                         <h5 class="alt-font text-dark-gray fw-500 mb-0 w-85 lg-w-100">
-                          Customer feedback from the product fixture.
+                          Customer reviews for {{ presentation.name }}.
                         </h5>
                       </div>
                       <div
@@ -872,7 +984,12 @@ watch(
                             role="img"
                             :aria-label="`${presentation.reviewSummary.averageRating} out of 5 stars`"
                           >
-                            <FashionStoreIcon v-for="star in 5" :key="star" name="star" filled />
+                            <FashionStoreIcon
+                              v-for="star in 5"
+                              :key="star"
+                              name="star"
+                              :filled="star <= Math.round(presentation.reviewSummary.averageRating)"
+                            />
                           </span>
                           <span
                             class="ps-15px pe-15px pt-10px pb-10px lh-normal bg-dark-gray text-white fs-12 fw-600 text-uppercase border-radius-4px d-inline-block text-center"
@@ -880,37 +997,81 @@ watch(
                           >
                         </div>
                       </div>
+                      <div
+                        v-if="presentation.reviewSummary.ratingBands"
+                        class="col-lg-6 col-md-8 fashion-product-rating-distribution"
+                      >
+                        <div class="text-dark-gray mb-15px fw-600">Average customer ratings</div>
+                        <div
+                          v-for="band in reviewBands"
+                          :key="band.rating"
+                          class="fashion-product-rating-band"
+                        >
+                          <span class="fashion-product-rating-band-label"
+                            >{{ band.rating }} stars</span
+                          >
+                          <div
+                            class="progress border-radius-6px"
+                            role="progressbar"
+                            :aria-label="`${band.rating} star reviews`"
+                            :aria-valuenow="band.count"
+                            aria-valuemin="0"
+                            :aria-valuemax="presentation.reviewSummary.count"
+                          >
+                            <div
+                              class="progress-bar bg-green m-0"
+                              :style="{ width: `${band.percentage}%` }"
+                            ></div>
+                          </div>
+                          <span class="fashion-product-rating-band-count">{{ band.count }}</span>
+                        </div>
+                      </div>
+                      <p v-else class="col-lg-6 col-md-8 mb-0">
+                        Rating breakdown is unavailable for this historical review snapshot.
+                      </p>
                     </div>
                     <div class="row g-0 mb-4 md-mb-35px fashion-product-reviews">
                       <div
-                        v-for="review in presentation.reviews"
-                        :key="review.author"
+                        v-for="(review, index) in visibleReviews"
+                        :key="review.id ?? `${review.author}-${review.date}-${index}`"
                         class="col-12 border-bottom border-color-extra-medium-gray pb-40px mb-40px xs-pb-30px xs-mb-30px"
                       >
-                        <div class="d-block d-md-flex w-100 align-items-center">
-                          <div class="w-300px md-w-250px sm-w-100 sm-mb-10px text-center">
-                            <img
-                              v-if="review.media"
-                              :src="mediaSource(review.media)"
-                              class="rounded-circle w-90px mb-10px"
-                              alt=""
-                            />
+                        <div class="row g-0 w-100 align-items-start">
+                          <div class="col-md-3 sm-mb-10px text-start">
                             <span class="text-dark-gray fw-600 d-block">{{ review.author }}</span>
                             <div class="fs-14 lh-18">{{ review.date }}</div>
                           </div>
                           <div
-                            class="w-100 last-paragraph-no-margin sm-ps-0 position-relative text-center text-md-start"
+                            class="col-md-9 last-paragraph-no-margin position-relative text-start"
                           >
                             <span
+                              v-if="review.rating"
                               class="text-golden-yellow ls-minus-1px mb-5px sm-me-10px sm-mb-0 d-inline-block d-md-block fashion-product-rating-stars"
                               role="img"
-                              aria-label="5 out of 5 stars"
+                              :aria-label="`${review.rating} out of 5 stars`"
                             >
-                              <FashionStoreIcon v-for="star in 5" :key="star" name="star" filled />
+                              <FashionStoreIcon
+                                v-for="star in 5"
+                                :key="star"
+                                name="star"
+                                :filled="star <= review.rating"
+                              />
                             </span>
                             <p class="w-85 sm-w-100 sm-mt-15px">{{ review.text }}</p>
                           </div>
                         </div>
+                      </div>
+                      <div
+                        v-if="visibleReviewCount < presentation.reviews.length"
+                        class="col-12 text-center"
+                      >
+                        <button
+                          type="button"
+                          class="btn btn-link btn-extra-large text-dark-gray"
+                          @click="visibleReviewCount += 3"
+                        >
+                          Show more reviews
+                        </button>
                       </div>
                     </div>
                   </template>
@@ -923,6 +1084,141 @@ watch(
                       <h5 class="alt-font text-dark-gray fw-500 mb-0">
                         No published reviews are available.
                       </h5>
+                    </div>
+                  </div>
+                  <div class="row justify-content-center fashion-product-review-form">
+                    <div class="col-12">
+                      <div class="p-7 lg-p-5 sm-p-7 bg-very-light-gray">
+                        <div class="row justify-content-center mb-30px sm-mb-10px">
+                          <div class="col-md-9 text-center">
+                            <h4 class="alt-font text-dark-gray fw-500 mb-15px">Add a review</h4>
+                            <p class="mb-0">Your review is checked before it appears publicly.</p>
+                          </div>
+                        </div>
+                        <p
+                          v-if="reviewFormState.kind === 'success'"
+                          role="status"
+                          class="text-center mb-0"
+                        >
+                          {{ reviewFormState.message }}
+                        </p>
+                        <form
+                          v-else
+                          class="row contact-form-style-02"
+                          @submit.prevent="submitReview"
+                        >
+                          <p
+                            v-if="reviewFormState.kind === 'error'"
+                            role="alert"
+                            class="col-12 fashion-product-review-error"
+                          >
+                            {{ reviewFormState.message }}
+                          </p>
+                          <div class="col-lg-5 col-md-6 mb-20px">
+                            <label class="form-label mb-15px" for="product-review-name"
+                              >Your name*</label
+                            >
+                            <input
+                              id="product-review-name"
+                              v-model="reviewName"
+                              class="form-control border-radius-4px"
+                              type="text"
+                              maxlength="80"
+                              autocomplete="name"
+                              :disabled="reviewFormState.kind === 'saving'"
+                              :aria-invalid="Boolean(reviewErrors.name)"
+                              :aria-describedby="
+                                reviewErrors.name ? 'product-review-name-error' : undefined
+                              "
+                              @input="reviewInputChanged"
+                            />
+                            <p
+                              v-if="reviewErrors.name"
+                              id="product-review-name-error"
+                              class="fashion-product-review-field-error"
+                            >
+                              {{ reviewErrors.name }}
+                            </p>
+                          </div>
+                          <div class="col-lg-7 col-md-6 mb-20px">
+                            <fieldset
+                              :aria-describedby="
+                                reviewErrors.rating ? 'product-review-rating-error' : undefined
+                              "
+                            >
+                              <legend class="form-label mb-15px">Your rating*</legend>
+                              <div class="fashion-product-review-rating-options">
+                                <label
+                                  v-for="star in 5"
+                                  :key="star"
+                                  class="fashion-product-review-rating-option"
+                                >
+                                  <input
+                                    v-model.number="reviewRating"
+                                    type="radio"
+                                    name="product-review-rating"
+                                    :value="star"
+                                    :aria-label="`${star} stars`"
+                                    :disabled="reviewFormState.kind === 'saving'"
+                                    @change="reviewInputChanged"
+                                  />
+                                  <span aria-hidden="true">
+                                    <FashionStoreIcon
+                                      name="star"
+                                      :filled="star <= (reviewRating ?? 0)"
+                                    />
+                                  </span>
+                                </label>
+                              </div>
+                            </fieldset>
+                            <p
+                              v-if="reviewErrors.rating"
+                              id="product-review-rating-error"
+                              class="fashion-product-review-field-error"
+                            >
+                              {{ reviewErrors.rating }}
+                            </p>
+                          </div>
+                          <div class="col-12 mb-20px">
+                            <label class="form-label mb-15px" for="product-review-body"
+                              >Your review*</label
+                            >
+                            <textarea
+                              id="product-review-body"
+                              v-model="reviewBody"
+                              class="form-control border-radius-4px"
+                              rows="5"
+                              maxlength="2000"
+                              :disabled="reviewFormState.kind === 'saving'"
+                              :aria-invalid="Boolean(reviewErrors.body)"
+                              :aria-describedby="
+                                reviewErrors.body ? 'product-review-body-error' : undefined
+                              "
+                              @input="reviewInputChanged"
+                            ></textarea>
+                            <p
+                              v-if="reviewErrors.body"
+                              id="product-review-body-error"
+                              class="fashion-product-review-field-error"
+                            >
+                              {{ reviewErrors.body }}
+                            </p>
+                          </div>
+                          <div class="col-12 text-center">
+                            <button
+                              type="submit"
+                              class="btn btn-medium btn-dark-gray btn-round-edge"
+                              :disabled="reviewFormState.kind === 'saving'"
+                            >
+                              {{
+                                reviewFormState.kind === "saving"
+                                  ? "Saving review…"
+                                  : "Submit review"
+                              }}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -3,7 +3,10 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 import { expectFashionStoreProductComposition } from "./support/fashion-store-product-composition";
-import { fashionStoreProductParityProfile } from "../app/themes/fashion-store/contracts/pages/product";
+import {
+  fashionStoreProductFeedbackGeometry,
+  fashionStoreProductParityProfile,
+} from "../app/themes/fashion-store/contracts/pages/product";
 
 const sourceOrigin = `http://127.0.0.1:${Number(
   process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427,
@@ -11,6 +14,22 @@ const sourceOrigin = `http://127.0.0.1:${Number(
 const productRoute = "/products/relaxed-corduroy-shirt";
 const galleryTransitionMs = 300;
 const geometryTolerancePx = 2;
+
+test("compare-at prices remain secondary on Home, Shop, and Product cards", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Card colors run once.");
+  for (const [path, selector] of [
+    ["/", "[data-home-section='product-merchandising'] .fashion-store-compare-at-price"],
+    ["/shop", ".shop-modern .fashion-store-compare-at-price"],
+    [productRoute, ".fashion-product-related .fashion-store-compare-at-price"],
+  ] as const) {
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    const compareAt = page.locator(selector).first();
+    await expect(compareAt, `${path} must render a compare-at price`).toBeVisible();
+    await expect(compareAt).toHaveCSS("color", "rgb(107, 107, 107)");
+  }
+});
 
 test("Product consumes the frozen historical Vue geometry profile", async ({ page }, testInfo) => {
   const viewportName = isFashionStoreViewport(testInfo, "desktop")
@@ -28,6 +47,7 @@ test("Product consumes the frozen historical Vue geometry profile", async ({ pag
   );
   expect(profile).toBeDefined();
   if (!profile) throw new Error("Missing frozen Product viewport profile.");
+  const feedback = fashionStoreProductFeedbackGeometry[viewportName];
 
   const selectors = {
     breadcrumb: ".breadcrumb",
@@ -42,14 +62,25 @@ test("Product consumes the frozen historical Vue geometry profile", async ({ pag
     width: document.documentElement.scrollWidth,
   }));
   for (const dimension of ["height", "width"] as const) {
-    expect(Math.abs(documentSize[dimension] - profile.document[dimension])).toBeLessThanOrEqual(
+    const expected = dimension === "height" ? feedback.documentHeight : profile.document.width;
+    expect(Math.abs(documentSize[dimension] - expected)).toBeLessThanOrEqual(
       profile.geometryTolerancePx,
     );
   }
   for (const [name, selector] of Object.entries(selectors)) {
     const actual = await page.locator(selector).first().boundingBox();
     expect(actual, `${name} must exist`).not.toBeNull();
-    const expected = profile.geometry[name as keyof typeof profile.geometry];
+    const expected: { x: number; y: number; width: number; height: number } = {
+      ...profile.geometry[name as keyof typeof profile.geometry],
+    };
+    if (name === "productInfo") expected.height = feedback.productInfoHeight;
+    if (name === "tabs") {
+      expected.y = feedback.tabsY;
+      if (viewportName === "mobile")
+        expected.height = fashionStoreProductFeedbackGeometry.mobile.tabsHeight;
+    }
+    if (name === "relatedHeading") expected.y = feedback.relatedHeadingY;
+    if (name === "footer") expected.y = feedback.footerY;
     for (const dimension of ["x", "y", "width", "height"] as const) {
       expect(
         Math.abs(actual![dimension] - expected[dimension]),
@@ -66,6 +97,186 @@ async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
   const cookieButton = page.getByRole("button", { name: "Allow cookies" });
   if (dismissCookie && (await cookieButton.isVisible())) await cookieButton.click();
 }
+
+test("Product Reviews keeps legacy ratings honest and saves a pending review once", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    !isFashionStoreViewport(testInfo, "desktop") && !isFashionStoreViewport(testInfo, "mobile"),
+    "Review interaction runs at desktop and mobile.",
+  );
+  const submissions: Array<{ rating: number; displayName: string; body: string }> = [];
+  await page.route("**/api/catalog/products/relaxed-corduroy-shirt/reviews", async (route) => {
+    submissions.push(route.request().postDataJSON());
+    await route.fulfill({
+      body: JSON.stringify({
+        data: { id: crypto.randomUUID(), status: "pending", submittedAt: new Date().toISOString() },
+      }),
+      contentType: "application/json",
+      status: 202,
+    });
+  });
+  await prepareProduct(page);
+  await page.getByRole("tab", { name: "Reviews (165)" }).click();
+  const panel = page.getByRole("tabpanel", { name: "Reviews (165)" });
+  await expect(
+    panel.getByText("Rating breakdown is unavailable for this historical review snapshot."),
+  ).toBeVisible();
+  await expect(
+    panel.locator(".fashion-product-reviews [role='img'][aria-label*='out of 5 stars']"),
+  ).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Show more reviews" })).toHaveCount(0);
+  await expect(panel.locator("img[alt*='avatar'], img[alt*='portrait']")).toHaveCount(0);
+  await panel.getByRole("button", { name: "Submit review" }).click();
+  await expect(panel.getByText("Choose a rating from 1 to 5 stars.")).toBeVisible();
+  await panel.getByRole("radio", { name: "4 stars" }).check();
+  await panel.getByLabel("Your name*").fill("Alex Shopper");
+  await panel
+    .getByLabel("Your review*")
+    .fill("The product page was clear and the item fit as expected.");
+  await panel.getByRole("button", { name: "Submit review" }).click();
+  await expect(panel.getByRole("status")).toContainText("awaiting moderation");
+  expect(submissions).toEqual([
+    {
+      rating: 4,
+      displayName: "Alex Shopper",
+      body: "The product page was clear and the item fit as expected.",
+    },
+  ]);
+});
+
+test("Product review submission retains input after a recoverable error and retries with one key", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Retry behavior runs once.");
+  const keys: string[] = [];
+  await page.route("**/api/catalog/products/relaxed-corduroy-shirt/reviews", async (route) => {
+    keys.push(route.request().headers()["idempotency-key"] ?? "");
+    await route.fulfill(
+      keys.length === 1
+        ? {
+            body: JSON.stringify({ error: { message: "Temporary review service error." } }),
+            contentType: "application/json",
+            status: 503,
+          }
+        : {
+            body: JSON.stringify({
+              data: {
+                id: crypto.randomUUID(),
+                status: "pending",
+                submittedAt: new Date().toISOString(),
+              },
+            }),
+            contentType: "application/json",
+            status: 202,
+          },
+    );
+  });
+  await prepareProduct(page);
+  await page.getByRole("tab", { name: "Reviews (165)" }).click();
+  const panel = page.getByRole("tabpanel", { name: "Reviews (165)" });
+  await panel.getByRole("radio", { name: "5 stars" }).check();
+  await panel.getByLabel("Your name*").fill("Morgan Shopper");
+  await panel.getByLabel("Your review*").fill("The details helped me choose the right option.");
+  await panel.getByRole("button", { name: "Submit review" }).click();
+  await expect(panel.getByRole("alert")).toContainText("Temporary review service error.");
+  await expect(panel.getByLabel("Your name*")).toHaveValue("Morgan Shopper");
+  await expect(panel.getByLabel("Your review*")).toHaveValue(
+    "The details helped me choose the right option.",
+  );
+  await panel.getByRole("button", { name: "Submit review" }).click();
+  await expect(panel.getByRole("status")).toContainText("awaiting moderation");
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBe(keys[1]);
+});
+
+test("Product demo reviews show matching ratings, five bands, and expandable entries", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    process.env.STOREFRONT_FASHION_DEMO_REVIEWS !== "1" ||
+      !isFashionStoreViewport(testInfo, "desktop"),
+    "Demo review fixture runs once when explicitly enabled.",
+  );
+  await prepareProduct(page);
+  await page.getByRole("tab", { name: "Reviews (4)" }).click();
+  const panel = page.getByRole("tabpanel", { name: "Reviews (4)" });
+  await expect(panel.locator(".fashion-product-rating-band")).toHaveCount(5);
+  await expect(panel.locator(".fashion-product-reviews > div.border-bottom")).toHaveCount(3);
+  await expect(
+    panel.getByText("Demonstration review 1 for Relaxed corduroy shirt.", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    panel.locator(".fashion-product-reviews [role='img'][aria-label*='out of 5 stars']"),
+  ).toHaveCount(3);
+  await panel.getByRole("button", { name: "Show more reviews" }).click();
+  await expect(panel.locator(".fashion-product-reviews > div.border-bottom")).toHaveCount(4);
+  await expect(panel.getByRole("button", { name: "Show more reviews" })).toHaveCount(0);
+  await expect(panel.locator("img[alt*='avatar'], img[alt*='portrait']")).toHaveCount(0);
+  for (const width of [320, 390, 768, 992, 1024, 1100, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await panel.evaluate((root) => ({
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      distributionLeft:
+        root.querySelector(".fashion-product-rating-distribution > div")?.getBoundingClientRect()
+          .left ?? -1,
+      firstBandLeft:
+        root.querySelector(".fashion-product-rating-band-label")?.getBoundingClientRect().left ??
+        -1,
+      lastBandRight:
+        root.querySelector(".fashion-product-rating-band-count")?.getBoundingClientRect().right ??
+        window.innerWidth + 1,
+      fillHeight:
+        root.querySelector(".fashion-product-rating-band .progress-bar")?.getBoundingClientRect()
+          .height ?? 0,
+      ratingLines: [...root.querySelectorAll(".fashion-product-reviews [role='img']")].map(
+        (group) =>
+          new Set(
+            [...group.querySelectorAll('[data-fashion-store-icon="star"]')].map((star) =>
+              Math.round(star.getBoundingClientRect().top),
+            ),
+          ).size,
+      ),
+      formWidth:
+        root.querySelector(".fashion-product-review-form")?.getBoundingClientRect().width ?? 0,
+    }));
+    expect(layout.overflow, `review page overflow at ${width}px`).toBeLessThanOrEqual(0);
+    expect(
+      layout.distributionLeft,
+      `review distribution heading clips at ${width}px`,
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      layout.firstBandLeft,
+      `review distribution label clips at ${width}px`,
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      layout.lastBandRight,
+      `review distribution count clips at ${width}px`,
+    ).toBeLessThanOrEqual(width);
+    expect(layout.fillHeight, `review distribution fill is hidden at ${width}px`).toBeGreaterThan(
+      0,
+    );
+    expect(
+      layout.ratingLines.every((lineCount) => lineCount === 1),
+      `review stars wrap at ${width}px`,
+    ).toBe(true);
+    expect(layout.formWidth, `review form is missing at ${width}px`).toBeGreaterThan(0);
+  }
+  const sourcePage = await page.context().newPage();
+  await sourcePage.goto(`${sourceOrigin}/demo-fashion-store-single-product.html`, {
+    waitUntil: "domcontentloaded",
+  });
+  await sourcePage.locator('a[data-tab="review-tab"]').click();
+  const sourceReviews = sourcePage.locator("#tab_five4");
+  await expect(sourceReviews).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await sourcePage.setViewportSize({ width, height: 900 });
+    await panel.screenshot({ path: testInfo.outputPath(`implementation-reviews-${width}.png`) });
+    await sourceReviews.screenshot({ path: testInfo.outputPath(`source-reviews-${width}.png`) });
+  }
+  await sourcePage.close();
+});
 
 async function galleryIndex(gallery: Locator): Promise<number> {
   return Number(await gallery.getAttribute("data-gallery-index"));
@@ -190,7 +401,7 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   const product = page.locator("[data-fashion-store-product]");
   const viewport = page.viewportSize()!.width >= 992 ? "desktop" : "mobile";
   await expectFashionStoreProductComposition(page, {
-    assurance: "source-shaped-empty",
+    assurance: "populated",
     expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
     name: "Relaxed corduroy shirt",
     relatedProductCount: 4,
@@ -201,7 +412,7 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   await expect(product.locator(".slider-product-prev, .slider-product-next")).toHaveCount(0);
   await expect(product.locator(".product-info")).toContainText("$85.00$65.00");
   await expect(product.locator(".product-info")).toContainText("165 Reviews");
-  await expect(product.getByRole("tab", { name: "Reviews (3)" })).toHaveCount(1);
+  await expect(product.getByRole("tab", { name: "Reviews (165)" })).toHaveCount(1);
   await expect(product.locator("[role='tab']")).toHaveCount(4);
   await expect(product.locator(".fashion-product-payments img")).toHaveCount(6);
   await expect(product.locator(".fashion-product-payments")).not.toContainText(
@@ -283,6 +494,65 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       await expect(source.locator(".product-image-thumb .swiper-slide")).toHaveCount(6);
     } finally {
       await source.close();
+    }
+  }
+});
+
+test("Product price and rating stay readable across content-stress widths", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Responsive sweep runs once.");
+  await prepareProduct(page);
+  const product = page.locator("[data-fashion-store-product]");
+  await expect(product.locator(".product-price del")).toHaveCSS("color", "rgb(107, 107, 107)");
+  await product.locator(".fashion-product-rating-sku").evaluate((node) => {
+    node.textContent = `SKU: ${"LONG-PRODUCT-SKU-".repeat(5)}`;
+  });
+
+  for (const width of [320, 390, 768, 992, 1024, 1100, 1440]) {
+    await page.setViewportSize({ height: 900, width });
+    const layout = await product.locator(".fashion-product-rating-line").evaluate((row) => {
+      const stars = [...row.querySelectorAll('[data-fashion-store-icon="star"]')].map((star) =>
+        star.getBoundingClientRect(),
+      );
+      const count = row.querySelector(".fashion-product-rating-count")!.getBoundingClientRect();
+      const sku = row.querySelector(".fashion-product-rating-sku")!.getBoundingClientRect();
+      return {
+        countRight: count.right,
+        skuLeft: sku.left,
+        skuTop: sku.top,
+        starBottom: stars[0]!.bottom,
+        starTops: stars.map((star) => star.top),
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    expect(new Set(layout.starTops).size, `stars wrap at ${width}px`).toBe(1);
+    expect(
+      layout.skuTop >= layout.starBottom - 1 || layout.skuLeft >= layout.countRight - 1,
+      `SKU overlaps rating at ${width}px`,
+    ).toBe(true);
+    expect(layout.overflow, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(0);
+    const controls = await product.evaluate((root) => ({
+      actions: [...root.querySelectorAll(".fashion-product-secondary-actions .col-auto")].map(
+        (element) => ({
+          left: Math.round(element.getBoundingClientRect().left),
+          top: Math.round(element.getBoundingClientRect().top),
+          width: Math.round(element.getBoundingClientRect().width),
+        }),
+      ),
+      tabs: [...root.querySelectorAll(".fashion-product-tabs .nav-link")].map((element) =>
+        Math.round(element.getBoundingClientRect().top),
+      ),
+    }));
+    if (width <= 575) {
+      expect(new Set(controls.actions.map(({ top }) => top)).size).toBe(3);
+      expect(new Set(controls.actions.map(({ left }) => left)).size).toBe(1);
+      expect(controls.actions[2]!.width).toBeGreaterThanOrEqual(width - 30);
+    }
+    if (width <= 991) {
+      expect(controls.tabs[0]).toBe(controls.tabs[1]);
+      expect(controls.tabs[2]).toBe(controls.tabs[3]);
+      expect(controls.tabs[2]).toBeGreaterThan(controls.tabs[0]!);
     }
   }
 });
@@ -872,7 +1142,7 @@ test("Product release-backed preview updates the shared cart without reaching Co
   const headerCartCount = page.locator(".header-cart .cart-count");
   await expect(headerCartCount).toHaveText("0");
   await page.getByRole("button", { name: "Increase quantity" }).click();
-  await expect(page.getByRole("button", { name: "Wishlist unavailable" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Add to wishlist" })).toBeDisabled();
   const addToCart = page.locator(".product-info .btn-cart");
   await addToCart.focus();
   await page.keyboard.press("Enter");
@@ -913,11 +1183,12 @@ test("product-reviews-tab interaction: tabs are keyboard operable and released r
   await description.focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Additional information" })).toBeFocused();
-  await page.getByRole("tab", { name: "Reviews (0)" }).click();
-  const reviews = page.getByRole("tabpanel", { name: "Reviews (0)" });
-  await expect(reviews).toContainText("No published reviews are available.");
-  await expect(reviews).not.toContainText("Customer feedback from the product fixture.");
-  await expect(page.getByRole("button", { name: "Submit review" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "Reviews (165)" }).click();
+  const reviews = page.getByRole("tabpanel", { name: "Reviews (165)" });
+  await expect(reviews).toContainText("165 Reviews");
+  await expect(reviews.locator(".fashion-product-reviews > div")).toHaveCount(3);
+  await expect(reviews.locator(".fashion-product-reviews img")).toHaveCount(0);
+  await expect(reviews.getByRole("button", { name: "Submit review" })).toBeVisible();
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,
     behaviorId: "product-tabs-reviews",

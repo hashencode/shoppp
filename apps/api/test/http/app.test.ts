@@ -60,7 +60,30 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     permission: "privacy.manage",
   },
   { method: "GET", path: "/admin/catalog/products", permission: "catalog.read" },
+  { method: "GET", path: "/admin/catalog/reviews", permission: "reviews.moderate" },
+  { method: "GET", path: "/admin/catalog/reviews/:id", permission: "reviews.moderate" },
+  {
+    method: "POST",
+    path: "/admin/catalog/reviews/:id/moderate",
+    permission: "reviews.moderate",
+  },
   { method: "GET", path: "/admin/catalog/products/:id", permission: "catalog.read" },
+  { method: "GET", path: "/admin/catalog/products/:id/revisions", permission: "catalog.read" },
+  {
+    method: "GET",
+    path: "/admin/catalog/products/:id/revisions/preview",
+    permission: "catalog.read",
+  },
+  {
+    method: "PUT",
+    path: "/admin/catalog/products/:id/revisions/draft",
+    permission: "catalog.write",
+  },
+  {
+    method: "POST",
+    path: "/admin/catalog/products/:id/revisions/publish",
+    permission: "catalog.publish",
+  },
   { method: "POST", path: "/admin/catalog/products", permission: "catalog.write" },
   {
     method: "PATCH",

@@ -50,6 +50,13 @@ interface LineRow {
   weight_grams: number;
 }
 
+const unverifiedPurchaseSql = `COALESCE((
+  SELECT json_extract(revision.content_json, '$.presentation.purchaseStatus')
+    FROM product_revisions revision
+   WHERE revision.product_id = p.id AND revision.status = 'published'
+   ORDER BY revision.published_at DESC, revision.id DESC LIMIT 1
+), '') = 'unverified'`;
+
 interface VariantAuthority {
   available_quantity: number;
   product_name: string;
@@ -173,9 +180,9 @@ async function authoritativeVariant(
                   AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
                   AND (pl.ends_at IS NULL OR pl.ends_at > ?)
                 ORDER BY pl.code LIMIT 1) AS unit_price,
-              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+              CASE WHEN ${unverifiedPurchaseSql} THEN 0 ELSE COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
                                          i.reserved_quantity - i.backordered_quantity)
-                          FROM inventory_items i WHERE i.variant_id = v.id), 0) AS available_quantity
+                          FROM inventory_items i WHERE i.variant_id = v.id), 0) END AS available_quantity
          FROM product_variants v
          JOIN products p ON p.id = v.product_id
         WHERE v.id = ? AND p.status = 'published'`,
@@ -254,9 +261,9 @@ function lineRowsStatement(db: D1Database, cart: CartRow): D1PreparedStatement {
                   AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
                   AND (pl.ends_at IS NULL OR pl.ends_at > ?)
                 ORDER BY pl.code LIMIT 1) AS unit_price,
-              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+              CASE WHEN ${unverifiedPurchaseSql} THEN 0 ELSE COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
                                          i.reserved_quantity - i.backordered_quantity)
-                          FROM inventory_items i WHERE i.variant_id = v.id), 0) AS available_quantity
+                          FROM inventory_items i WHERE i.variant_id = v.id), 0) END AS available_quantity
          FROM cart_lines cl
          JOIN product_variants v ON v.id = cl.variant_id
          JOIN products p ON p.id = v.product_id
@@ -280,9 +287,9 @@ function lineRowsByCartTokenStatement(db: D1Database, tokenHash: string): D1Prep
                   AND (pl.starts_at IS NULL OR pl.starts_at <= ?)
                   AND (pl.ends_at IS NULL OR pl.ends_at > ?)
                 ORDER BY pl.code LIMIT 1) AS unit_price,
-              COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
+              CASE WHEN ${unverifiedPurchaseSql} THEN 0 ELSE COALESCE((SELECT SUM(i.on_hand_quantity + i.oversell_limit -
                                          i.reserved_quantity - i.backordered_quantity)
-                          FROM inventory_items i WHERE i.variant_id = v.id), 0) AS available_quantity
+                          FROM inventory_items i WHERE i.variant_id = v.id), 0) END AS available_quantity
          FROM carts c
          JOIN cart_lines cl ON cl.cart_id = c.id
          JOIN product_variants v ON v.id = cl.variant_id

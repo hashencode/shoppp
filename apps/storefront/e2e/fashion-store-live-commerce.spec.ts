@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
@@ -11,6 +11,7 @@ const cartToken = "fashion_live_cart_token_12345678901234567890";
 const shippingMethodId = "ship_01J00000000000000000000000";
 const variantId = "var_01JFSHIRTGREENXL000000001";
 const atlasVariantId = "var_01J00000000000000000000000";
+const texturedVariantId = "var_01JFS8SHOP00000000000001";
 const checkoutAttemptId = "chk_01J00000000000000000000000";
 const orderAccessToken = "order_access_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const shippingAddress = {
@@ -39,9 +40,10 @@ function cart(
   const quantity = options.quantity ?? 1;
   const lineVariantId = options.variantId ?? variantId;
   const atlas = lineVariantId === atlasVariantId;
+  const textured = lineVariantId === texturedVariantId;
   const selectedShippingMethodId = options.selectedShippingMethodId ?? null;
   const shippingTotal = selectedShippingMethodId ? 1_200 : 0;
-  const unitAmount = atlas ? 12_900 : 6_500;
+  const unitAmount = atlas ? 12_900 : textured ? 18_900 : 6_500;
   const subtotal = quantity * unitAmount;
   return {
     adjustments: [],
@@ -56,11 +58,15 @@ function cart(
             {
               availableQuantity: 20,
               lineTotal: { amount: subtotal, currency: "USD" },
-              productName: atlas ? "Atlas Carry-on" : "Relaxed corduroy shirt",
+              productName: atlas
+                ? "Atlas Carry-on"
+                : textured
+                  ? "Textured sweater"
+                  : "Relaxed corduroy shirt",
               quantity,
               unitPrice: { amount: unitAmount, currency: "USD" },
               variantId: lineVariantId,
-              variantName: atlas ? "Standard" : "Green / XL",
+              variantName: atlas ? "Standard" : textured ? "Blue / M" : "Green / XL",
             },
           ],
     selectedShippingMethodId,
@@ -112,18 +118,27 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
 
 function liveProduct(productId: string, mediaOrigin?: string) {
   const atlas = productId.endsWith("0000000001");
-  const name = atlas ? "Atlas Carry-on" : "Relaxed corduroy shirt";
-  const slug = atlas ? "atlas-carry-on" : "relaxed-corduroy-shirt";
+  const textured = productId.endsWith("0000000003");
+  const name = atlas ? "Atlas Carry-on" : textured ? "Textured sweater" : "Relaxed corduroy shirt";
+  const slug = atlas
+    ? "atlas-carry-on"
+    : textured
+      ? "textured-sweater-01"
+      : "relaxed-corduroy-shirt";
   const ids = atlas
     ? [atlasVariantId]
-    : ["var_01JFSHIRTGOLDS00000000001", "var_01JFSHIRTGOLDM00000000001", variantId];
+    : textured
+      ? [texturedVariantId]
+      : ["var_01JFSHIRTGOLDS00000000001", "var_01JFSHIRTGOLDM00000000001", variantId];
   const optionValues = atlas
     ? [{ color: "Black" }]
-    : [
-        { color: "Gold", size: "M" },
-        { color: "Gold", size: "XL" },
-        { color: "Green", size: "XL" },
-      ];
+    : textured
+      ? [{ color: "Blue", size: "M" }]
+      : [
+          { color: "Gold", size: "M" },
+          { color: "Gold", size: "XL" },
+          { color: "Green", size: "XL" },
+        ];
   return {
     description: `${name} live description`,
     id: productId,
@@ -151,28 +166,42 @@ function liveProduct(productId: string, mediaOrigin?: string) {
             values: [{ label: "Black" }],
           },
         ]
-      : [
-          {
-            name: "color",
-            presentation: "color",
-            values: [
-              { label: "Gold", swatch: "#d4af37" },
-              { label: "Blue", swatch: "#5881bf" },
-              { label: "Green", swatch: "#87a968" },
-            ],
-          },
-          {
-            name: "size",
-            presentation: "text",
-            values: [{ label: "S" }, { label: "M" }, { label: "L" }, { label: "XL" }],
-          },
-        ],
+      : textured
+        ? [
+            {
+              name: "color",
+              presentation: "color",
+              values: [{ label: "Blue", swatch: "#5881bf" }],
+            },
+            { name: "size", presentation: "text", values: [{ label: "M" }] },
+          ]
+        : [
+            {
+              name: "color",
+              presentation: "color",
+              values: [
+                { label: "Gold", swatch: "#d4af37" },
+                { label: "Blue", swatch: "#5881bf" },
+                { label: "Green", swatch: "#87a968" },
+              ],
+            },
+            {
+              name: "size",
+              presentation: "text",
+              values: [{ label: "S" }, { label: "M" }, { label: "L" }, { label: "XL" }],
+            },
+          ],
     options: atlas
       ? [{ name: "color", values: ["Black"] }]
-      : [
-          { name: "color", values: ["Gold", "Green"] },
-          { name: "size", values: ["M", "XL"] },
-        ],
+      : textured
+        ? [
+            { name: "color", values: ["Blue"] },
+            { name: "size", values: ["M"] },
+          ]
+        : [
+            { name: "color", values: ["Gold", "Green"] },
+            { name: "size", values: ["M", "XL"] },
+          ],
     seo: { description: `${name} description`, title: name },
     slug,
     status: "published",
@@ -180,8 +209,8 @@ function liveProduct(productId: string, mediaOrigin?: string) {
       available: true,
       id,
       options: optionValues[index]!,
-      price: { amount: atlas ? 12_900 : 6_500 + index * 100, currency: "USD" },
-      sku: `${atlas ? "ATLAS" : "SHIRT"}-${index + 1}`,
+      price: { amount: atlas ? 12_900 : textured ? 18_900 : 6_500 + index * 100, currency: "USD" },
+      sku: `${atlas ? "ATLAS" : textured ? "TEXTURED" : "SHIRT"}-${index + 1}`,
     })),
   };
 }
@@ -408,14 +437,14 @@ test("live Collection landing, collection detail, and Shop share the accepted ca
   await expect(page).toHaveURL(/\/collections\/travel-essentials$/);
   await expect(collectionGrid).toHaveAttribute("data-layout", "none");
   await expect(collectionGrid.getByRole("heading", { level: 1 })).toHaveText("Shop the collection");
-  await expect(collectionGrid.locator("[data-fashion-store-product-card]")).toHaveCount(2);
+  await expect(collectionGrid.locator("[data-fashion-store-product-card]")).toHaveCount(5);
   await expect(collectionGrid.locator(".shop-sidebar, .pagination")).toHaveCount(0);
 
   await page.goto("/shop", { waitUntil: "networkidle" });
   const shop = page.locator("[data-fashion-store-catalog-grid]");
   await expect(shop).toHaveAttribute("data-layout", "left");
   await expect(shop.getByRole("heading", { level: 1 })).toHaveText("Shop");
-  await expect(shop.locator("[data-fashion-store-product-card]")).toHaveCount(2);
+  await expect(shop.locator("[data-fashion-store-product-card]")).toHaveCount(5);
   await expect(shop.locator(".shop-sidebar, .pagination")).toHaveCount(0);
 
   await page.goBack();
@@ -589,9 +618,10 @@ test("live Product requires a valid grouped option combination and stays truthfu
   const product = page.locator("[data-fashion-store-product]");
   await expect(product.getByRole("group", { name: "Color" })).toBeVisible();
   await expect(product.getByRole("group", { name: "Size" })).toBeVisible();
-  await expect(product.getByRole("radio", { name: "Gold" })).toBeChecked();
-  await expect(product.getByRole("radio", { name: "S" })).toBeChecked();
-
+  await expect(product.getByRole("radio", { name: "Green" })).toBeChecked();
+  await expect(product.getByRole("radio", { name: "XL" })).toBeChecked();
+  await product.getByRole("radio", { name: "Gold" }).check();
+  await product.getByRole("radio", { name: "S" }).check();
   await product.getByRole("radio", { name: "Green" }).check();
   await expect(product.getByRole("radio", { name: "M" })).toBeDisabled();
   await product.getByRole("radio", { name: "XL" }).check();
@@ -610,13 +640,14 @@ test("live Product requires a valid grouped option combination and stays truthfu
   const timeOrigin = await page.evaluate(() => performance.timeOrigin);
   await product
     .locator("[data-fashion-store-product-card]")
-    .filter({ hasText: "Atlas Carry-on" })
-    .getByRole("link", { name: "Atlas Carry-on", exact: true })
+    .filter({ hasText: "Textured sweater" })
+    .getByRole("link", { name: "Textured sweater", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/products\/atlas-carry-on$/);
-  await expect(page.locator(".product-info h4")).toHaveText("Atlas Carry-on");
+  await expect(page).toHaveURL(/\/products\/textured-sweater-01$/);
+  await expect(page.locator(".product-info h4")).toHaveText("Textured sweater");
   await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "Black" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Blue" })).toBeChecked();
+  await expect(page.locator("[data-live-product-price]")).toContainText("$189.00");
   await expect(page.getByLabel("Quantity", { exact: true })).toHaveValue("1");
   await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
     "data-cart-add-count",
@@ -648,8 +679,8 @@ test("live Product requires a valid grouped option combination and stays truthfu
     await expect(noJsProduct.getByText("Shopping actions require JavaScript.")).toBeVisible();
     await expect(noJsProduct.getByRole("button", { name: "Add to cart" })).toBeDisabled();
     await expect(
-      noJsProduct.getByRole("link", { name: "Browse the published catalog" }),
-    ).toHaveAttribute("href", "/shop");
+      noJsProduct.getByRole("link", { name: "Return to the storefront" }),
+    ).toHaveAttribute("href", "/");
   } finally {
     await noJsContext.close();
   }
@@ -658,6 +689,9 @@ test("live Product requires a valid grouped option combination and stays truthfu
 test("live Product retains matched desktop and mobile composition geometry", async ({ page }) => {
   const requestedProductIds: string[] = [];
   let submitted: Record<string, unknown> | undefined;
+  await page.addInitScript(() =>
+    localStorage.setItem("shoppp.fashion-store.cookie-notice-dismissed", "true"),
+  );
   await installLiveCommerce(page, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^\/api/, "");
@@ -712,6 +746,9 @@ test("live Product retains matched desktop and mobile composition geometry", asy
     liveProductCompositionIdentity.selectedVariantId,
   );
 
+  const captureDirectory = "test-results/fs-f11-u7/20260917T-live-revalidated";
+  await mkdir(captureDirectory, { recursive: true });
+
   for (const [viewport, size] of [
     ["desktop", { height: 1_000, width: 1_440 }],
     ["mobile", { height: 844, width: 390 }],
@@ -719,15 +756,20 @@ test("live Product retains matched desktop and mobile composition geometry", asy
     await page.setViewportSize(size);
     await page.goto(liveProductCompositionIdentity.route, { waitUntil: "networkidle" });
     await expectFashionStoreProductComposition(page, {
-      assurance: "source-shaped-empty",
+      assurance: "populated",
       expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
       name: "Relaxed corduroy shirt",
-      relatedProductCount: 1,
+      relatedProductCount: 4,
       secondaryActionCount: 3,
       viewport,
     });
     await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
     await expect(page.getByRole("group", { name: "Size" })).toBeVisible();
+    await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
+      "data-runtime-status",
+      "ready",
+    );
+    await page.screenshot({ path: `${captureDirectory}/product-${viewport}.png`, fullPage: true });
   }
 
   expect(new Set(requestedProductIds)).toEqual(new Set([liveProductCompositionIdentity.productId]));
@@ -772,7 +814,8 @@ test("live Product enables retry after initial Commerce revalidation fails", asy
 
   await page.goto("/products/relaxed-corduroy-shirt", { waitUntil: "networkidle" });
   const product = page.locator("[data-fashion-store-product]");
-  const retry = product.getByRole("button", { name: "Retry and add to cart" });
+  const retry = product.locator(".product-info .btn-cart");
+  await expect(retry).toHaveAccessibleName("Add to cart");
   await expect(retry).toBeEnabled();
   productUnavailable = false;
   await retry.click();
@@ -812,7 +855,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
       submitted = request.postDataJSON() as Record<string, unknown>;
       await route.fulfill({
         contentType: "application/json",
-        json: { data: cart({ variantId: atlasVariantId }) },
+        json: { data: cart({ variantId: texturedVariantId }) },
       });
       return;
     }
@@ -892,9 +935,9 @@ test("live Home preserves all sections and card outcomes across input modes", as
   const cards = home.locator(
     '[data-home-section="product-merchandising"] [data-fashion-store-product-card]',
   );
-  await expect(cards).toHaveCount(2);
+  await expect(cards).toHaveCount(5);
   expect(productRevalidationCount).toBe(0);
-  const directCard = cards.filter({ hasText: "Atlas Carry-on" }).first();
+  const directCard = cards.filter({ hasText: "Textured sweater" }).first();
   const optionsCard = cards.filter({ hasText: "Relaxed corduroy shirt" }).first();
   await expect(directCard).toHaveAttribute("data-card-variant", "home");
   await expect(directCard).toHaveAttribute("data-action-state", "available");
@@ -907,7 +950,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
   await expect(directCard).toHaveAttribute("data-action-state", "succeeded");
   await expect(directCard.getByRole("status")).toContainText("was added to your cart");
   expect(productRevalidationCount).toBe(1);
-  expect(submitted).toMatchObject({ quantity: 1, variantId: atlasVariantId });
+  expect(submitted).toMatchObject({ quantity: 1, variantId: texturedVariantId });
 
   await optionsCard.hover();
   await expect(optionsCard.getByRole("link", { name: "Choose options" })).toHaveAttribute(
@@ -945,7 +988,7 @@ test("live Home preserves all sections and card outcomes across input modes", as
     await touchPage.goto("/", { waitUntil: "domcontentloaded" });
     const touchCard = touchPage
       .locator("[data-fashion-store-product-card]")
-      .filter({ hasText: "Atlas Carry-on" })
+      .filter({ hasText: "Textured sweater" })
       .first();
     await expect(touchCard).toHaveAttribute("data-action-state", "available");
     await touchPage.getByRole("button", { name: "Allow cookies" }).click();
@@ -955,11 +998,11 @@ test("live Home preserves all sections and card outcomes across input modes", as
     await expect(touchCard).toHaveAttribute("data-action-state", "available");
     await touchPage
       .locator("[data-fashion-store-product-card]")
-      .filter({ hasText: "Atlas Carry-on" })
+      .filter({ hasText: "Textured sweater" })
       .first()
       .locator(".shop-image > a")
       .tap();
-    await expect(touchPage).toHaveURL(/\/products\/atlas-carry-on$/);
+    await expect(touchPage).toHaveURL(/\/products\/textured-sweater-01$/);
   } finally {
     await touchContext.close();
   }
@@ -1003,31 +1046,34 @@ test("live Home card failures stay truthful and recoverable", async ({ page }) =
     await route.abort();
   });
 
-  const atlasCard = () =>
-    page.locator("[data-fashion-store-product-card]").filter({ hasText: "Atlas Carry-on" }).first();
+  const directCard = () =>
+    page
+      .locator("[data-fashion-store-product-card]")
+      .filter({ hasText: "Textured sweater" })
+      .first();
 
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(atlasCard()).toHaveAttribute("data-action-state", "available");
-  await atlasCard().getByRole("button", { name: "Add to cart" }).click();
-  await expect(atlasCard()).toHaveAttribute("data-action-state", "unavailable");
-  await expect(atlasCard().locator('button[aria-label="Unavailable"]')).toBeDisabled();
+  await expect(directCard()).toHaveAttribute("data-action-state", "available");
+  await directCard().getByRole("button", { name: "Add to cart" }).click();
+  await expect(directCard()).toHaveAttribute("data-action-state", "unavailable");
+  await expect(directCard().locator('button[aria-label="Unavailable"]')).toBeDisabled();
   expect(cartPostCount).toBe(0);
 
   mode = "product-error";
   await page.reload({ waitUntil: "networkidle" });
-  await expect(atlasCard()).toHaveAttribute("data-action-state", "available");
-  await atlasCard().getByRole("button", { name: "Add to cart" }).click();
-  await expect(atlasCard()).toHaveAttribute("data-action-state", "retry");
-  await expect(atlasCard().getByRole("button", { name: "Retry add to cart" })).toBeEnabled();
+  await expect(directCard()).toHaveAttribute("data-action-state", "available");
+  await directCard().getByRole("button", { name: "Add to cart" }).click();
+  await expect(directCard()).toHaveAttribute("data-action-state", "retry");
+  await expect(directCard().getByRole("button", { name: "Retry add to cart" })).toBeEnabled();
   expect(cartPostCount).toBe(0);
 
   mode = "cart-error";
   await page.reload({ waitUntil: "networkidle" });
-  await expect(atlasCard()).toHaveAttribute("data-action-state", "available");
-  await atlasCard().getByRole("button", { name: "Add to cart" }).click();
-  await expect(atlasCard()).toHaveAttribute("data-action-state", "retry");
-  await expect(atlasCard().getByRole("alert")).toContainText("try again");
-  await expect(atlasCard().getByRole("button", { name: "Retry add to cart" })).toBeEnabled();
+  await expect(directCard()).toHaveAttribute("data-action-state", "available");
+  await directCard().getByRole("button", { name: "Add to cart" }).click();
+  await expect(directCard()).toHaveAttribute("data-action-state", "retry");
+  await expect(directCard().getByRole("alert")).toContainText("try again");
+  await expect(directCard().getByRole("button", { name: "Retry add to cart" })).toBeEnabled();
   expect(cartPostCount).toBe(1);
 });
 
@@ -1051,11 +1097,11 @@ test("live Home card can be added again after MiniCart removal", async ({ page }
     }
     if (path === "/cart/lines" && request.method() === "POST") {
       cartPosts += 1;
-      currentCart = cart({ variantId: atlasVariantId });
+      currentCart = cart({ variantId: texturedVariantId });
       await route.fulfill({ contentType: "application/json", json: { data: currentCart } });
       return;
     }
-    if (path === `/cart/lines/${atlasVariantId}` && request.method() === "DELETE") {
+    if (path === `/cart/lines/${texturedVariantId}` && request.method() === "DELETE") {
       currentCart = cart({ quantity: 0 });
       await route.fulfill({ contentType: "application/json", json: { data: currentCart } });
       return;
@@ -1066,14 +1112,14 @@ test("live Home card can be added again after MiniCart removal", async ({ page }
   await page.goto("/", { waitUntil: "networkidle" });
   const card = page
     .locator("[data-fashion-store-product-card]")
-    .filter({ hasText: "Atlas Carry-on" })
+    .filter({ hasText: "Textured sweater" })
     .first();
   await card.getByRole("button", { name: "Add to cart" }).click();
   await expect(card).toHaveAttribute("data-action-state", "succeeded");
 
   const headerCart = page.locator(".header-cart");
   await headerCart.hover();
-  await headerCart.getByRole("button", { name: "Remove Atlas Carry-on from cart" }).click();
+  await headerCart.getByRole("button", { name: "Remove Textured sweater from cart" }).click();
   await expect(card).toHaveAttribute("data-action-state", "available");
   await card.getByRole("button", { name: "Add to cart" }).click();
   await expect(card).toHaveAttribute("data-action-state", "succeeded");
@@ -1117,7 +1163,7 @@ test("live build-local search clears stale results and supports keyboard navigat
   await input.fill("a");
   await input.press("Enter");
   const results = page.getByRole("list", { name: "Catalog search results" });
-  await expect(results.getByRole("link")).toHaveCount(3);
+  await expect(results.getByRole("link")).toHaveCount(7);
   await input.press("ArrowDown");
   await input.press("Enter");
   await expect(page).toHaveURL(/\/products\/atlas-carry-on$/);
@@ -1190,7 +1236,7 @@ test("live routes keep unsupported pages truthful and policies Catalog-bound", a
   await expect(wishlist.getByRole("heading", { level: 1 })).toHaveText("Wishlist");
   await expect(wishlist).toContainText("Saved wishlists are not available yet.");
   const recoveryCards = wishlist.locator("[data-fashion-store-product-card]");
-  await expect(recoveryCards).toHaveCount(2);
+  await expect(recoveryCards).toHaveCount(4);
   await expect(recoveryCards.nth(0)).toHaveAttribute("data-action-state", "available");
   await expect(recoveryCards.nth(1)).toHaveAttribute("data-action-state", "available");
   await expect(recoveryCards.nth(0)).toHaveAttribute(

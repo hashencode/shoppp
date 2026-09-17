@@ -49,3 +49,20 @@ export async function enforceAnalyticsRateLimit(
     );
   }
 }
+
+export async function enforceReviewRateLimit(
+  context: Context<ApiEnvironment>,
+  limiter: RateLimiter | undefined,
+): Promise<void> {
+  if (!limiter) {
+    if (context.env.ENVIRONMENT !== "development") {
+      throw new ApiError(503, "review_rate_limit_unavailable", "Review submission is unavailable.");
+    }
+    return;
+  }
+  const result = await limiter.limit({ key: `reviews:${await actorKey(context)}` });
+  if (!result.success) {
+    context.header("Retry-After", "60");
+    throw new ApiError(429, "review_rate_limited", "Too many reviews. Wait before trying again.");
+  }
+}

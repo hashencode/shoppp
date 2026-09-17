@@ -43,6 +43,8 @@ describe("Catalog media library", () => {
   beforeEach(async () => {
     await env.DB.batch([
       env.DB.prepare("DELETE FROM product_media"),
+      env.DB.prepare("DELETE FROM product_media_assets"),
+      env.DB.prepare("DELETE FROM product_reviews"),
       env.DB.prepare("DELETE FROM products"),
     ]);
   });

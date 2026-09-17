@@ -104,6 +104,66 @@ export const productPresentationInputSchema = z
   })
   .strict();
 
+const publishedRevisionMediaSchema = mediaSchema.extend({
+  id: z.string().trim().min(1).max(100),
+});
+
+export const publishedProductRevisionContentSchema = z
+  .object({
+    description: z.string().trim().min(1).max(20_000),
+    media: z.array(publishedRevisionMediaSchema).min(1).max(20),
+    name: z.string().trim().min(1).max(200),
+    optionDefinitions: productOptionDefinitionsSchema.optional(),
+    presentation: productPresentationSchema.nullable(),
+    seoDescription: z.string().trim().min(1).max(320),
+    seoTitle: z.string().trim().min(1).max(70),
+    variantOptions: z
+      .array(
+        z
+          .object({
+            id: z.string().trim().min(1).max(100),
+            optionValues: z.record(z.string(), z.string().trim().min(1).max(160)),
+            title: z.string().trim().min(1).max(160),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(500)
+      .optional(),
+  })
+  .strict()
+  .superRefine((content, context) => {
+    if ((content.optionDefinitions === undefined) !== (content.variantOptions === undefined)) {
+      context.addIssue({
+        code: "custom",
+        message: "Option definitions and Variant option labels must be revised together.",
+        path: ["variantOptions"],
+      });
+    }
+  });
+
+export const publishedProductRevisionInputSchema = z
+  .object({
+    expectedProductVersion: z.int().positive(),
+    expectedPublishedRevisionId: z.string().min(1).nullable(),
+    expectedDraftVersion: z.int().positive().nullable(),
+    content: publishedProductRevisionContentSchema,
+  })
+  .strict();
+
+export const publishedProductReleaseInputSchema = z
+  .object({
+    expectedDraftVersion: z.int().positive().nullable(),
+    expectedProductVersion: z.int().positive(),
+    expectedPublishedRevisionId: z.string().min(1).nullable(),
+    reason: z.string().trim().min(3).max(500),
+    revisionId: z.string().min(1).nullable(),
+  })
+  .strict();
+
 export type ProductDraftInput = z.infer<typeof productDraftSchema>;
 export type ProductOptionDefinitionsInput = z.infer<typeof productOptionDefinitionsInputSchema>;
 export type ProductPresentationInput = z.infer<typeof productPresentationInputSchema>;
+export type PublishedProductRevisionInput = z.infer<typeof publishedProductRevisionInputSchema>;
+export type PublishedProductRevisionContent = z.infer<typeof publishedProductRevisionContentSchema>;
+export type PublishedProductReleaseInput = z.infer<typeof publishedProductReleaseInputSchema>;
